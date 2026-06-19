@@ -22,6 +22,13 @@ from routes.xiaozhi_compat.shared import (
 from routes.xiaozhi_compat.sms import login_code_error, sms_verification_payload, validate_login_code
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-auth"])
+_STATIC_LOGIN_DEV_ENV = "LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE"
+
+
+def _static_login_code_error() -> JSONResponse | None:
+    if os.environ.get(_STATIC_LOGIN_DEV_ENV, "").strip().lower() in {"1", "true", "yes", "on"}:
+        return login_code_error()
+    return err(503, "Static SMS verification code is disabled outside dev mode", 503)
 
 
 def _login_response(row):
@@ -73,7 +80,7 @@ async def login(request: Request):
         if isinstance(data, JSONResponse):
             return data
         return data
-    config_error = login_code_error()
+    config_error = _static_login_code_error()
     if config_error:
         return config_error
     if not phone or not code:
@@ -105,7 +112,7 @@ async def register(request: Request):
     code = str_field(body, "code", "smsCode")
     if not phone or not code:
         return err(400, "phone and code are required", 400)
-    config_error = login_code_error()
+    config_error = _static_login_code_error()
     if config_error:
         return config_error
     if not validate_login_code(code):
@@ -134,7 +141,7 @@ async def sms_verification(request: Request):
     phone = str_field(body, "phone", "mobile")
     if not phone:
         return err(400, "phone is required", 400)
-    config_error = login_code_error()
+    config_error = _static_login_code_error()
     if config_error:
         return config_error
     return sms_verification_payload(phone)

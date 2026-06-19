@@ -7,6 +7,7 @@ import time
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
 from backends_registry import BACKENDS
@@ -79,7 +80,7 @@ async def health():
         overall_status = "ok"  # serving, but background warm-up still in progress
     elif startup_status == "starting":
         overall_status = "degraded"
-    return {
+    payload = {
         "status": overall_status,
         "version": "2.0",
         "model": _model_id,
@@ -87,10 +88,13 @@ async def health():
         "startup": {
             "status": startup_status,
             "phases": phases,
-            "pending_warm": state["pending_warm"],
-            "errors": state["errors"],
+            "pending_warm": state.get("pending_warm", []),
+            "errors": state.get("errors", []),
         },
     }
+    if startup_status == "error":
+        return JSONResponse(status_code=503, content=payload)
+    return payload
 
 
 @router.get("/api/live-key", dependencies=[Depends(require_private_api_key)])

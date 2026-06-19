@@ -72,3 +72,18 @@ def test_health_uses_shared_loaded_modules():
         assert response.json()["modules"]["unit_test_module"] is True
     finally:
         system_endpoints._loaded_modules.pop("unit_test_module", None)
+
+
+def test_health_returns_503_when_startup_status_is_error(monkeypatch):
+    monkeypatch.setattr(
+        system_endpoints.server_lifespan,
+        "get_startup_state",
+        lambda: {"status": "error", "errors": [{"phase": "unit", "error": "boom"}]},
+    )
+    monkeypatch.setattr(system_endpoints.server_lifespan, "STARTUP_PHASES", [])
+
+    client = TestClient(server.app)
+    response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json()["status"] == "degraded"

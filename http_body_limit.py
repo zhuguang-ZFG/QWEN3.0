@@ -197,6 +197,9 @@ class BodySizeLimitMiddleware:
         if content_encoding == "gzip" and body:
             try:
                 body = gzip.decompress(body)
+                if len(body) > self.max_body_size:
+                    await _send_json_response(send, 413, _oversized_payload())
+                    return
             except Exception as exc:
                 _log.debug("http_body_limit.py: {}", type(exc).__name__)
 

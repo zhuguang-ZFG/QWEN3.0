@@ -1,33 +1,38 @@
-"""
-rate_limiter.py — 滑动窗口 IP 限流
-接入点: server.py 的 /v1/chat/completions 入口
+"""Sliding-window IP rate limiter for chat endpoints."""
 
-DISABLED: 限速已关闭（reverse-engineered 后端自带限速）
-"""
+from __future__ import annotations
 
 import time
 from collections import defaultdict
 
 WINDOW = 60
-MAX_PER_WINDOW = 99999  # effectively disabled
+MAX_PER_WINDOW = 120
 
 _requests: dict[str, list[float]] = defaultdict(list)
 
 
 def check_rate_limit(ip: str, multiplier: int = 1) -> bool:
-    """返回 True 表示允许。限速已禁用。"""
+    """Return True when the client is within its sliding-window limit."""
+    now = time.time()
+    limit = max(1, MAX_PER_WINDOW * max(1, multiplier))
+    recent = [t for t in _requests[ip] if now - t < WINDOW]
+    if len(recent) >= limit:
+        _requests[ip] = recent
+        return False
+    recent.append(now)
+    _requests[ip] = recent
     return True
 
 
 def get_usage(ip: str) -> dict:
-    """返回当前 IP 的使用情况（调试用）。"""
+    """Return current IP usage for debug/admin surfaces."""
     now = time.time()
     recent = [t for t in _requests[ip] if now - t < WINDOW]
     return {"ip": ip, "requests_in_window": len(recent), "limit": MAX_PER_WINDOW}
 
 
-def reset(ip: str = None):
-    """重置限流状态（测试用）。"""
+def reset(ip: str | None = None) -> None:
+    """Reset limiter state, mainly for tests."""
     if ip:
         _requests.pop(ip, None)
     else:

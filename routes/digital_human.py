@@ -8,7 +8,6 @@ connection URL so the page works out of the box when served from LiMa.
 
 from __future__ import annotations
 
-import html
 import json
 import logging
 import os
@@ -17,8 +16,6 @@ from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
-
-from device_gateway.auth import configured_device_tokens
 
 _log = logging.getLogger(__name__)
 
@@ -62,20 +59,18 @@ def _js(value: str | bool) -> str:
     return re.sub(r"</script", r"<\\/script", text, flags=re.IGNORECASE)
 
 
-def _build_voice_config(device_id: str, device_name: str, client_id: str, token: str) -> dict:
+def _build_voice_config(device_id: str, device_name: str, client_id: str) -> dict:
     """Build voice/model connection configuration."""
     return {
         "setInputs": {
             "deviceMac": _js(device_id),
             "deviceName": _js(device_name),
             "clientId": _js(client_id),
-            "limaToken": _js(token),
         },
         "seedStorage": {
             "xz_tester_deviceMac": _js(device_id),
             "xz_tester_deviceName": _js(device_name),
             "xz_tester_clientId": _js(client_id),
-            "xz_tester_limaToken": _js(token),
         },
     }
 
@@ -154,7 +149,6 @@ def _build_auto_config_script(
     device_id: str,
     device_name: str,
     client_id: str,
-    token: str,
     wakeword_enabled: bool,
 ) -> str:
     """Return an inline script that pre-fills LiMa connection defaults.
@@ -165,7 +159,7 @@ def _build_auto_config_script(
     settings after the first visit.
     """
     config = {
-        "voice": _build_voice_config(device_id, device_name, client_id, token),
+        "voice": _build_voice_config(device_id, device_name, client_id),
         "display": _build_display_config(),
         "advanced": _build_advanced_config(wakeword_enabled),
     }
@@ -173,21 +167,12 @@ def _build_auto_config_script(
 
 
 def _digital_human_defaults() -> dict[str, str | bool]:
-    """Return default connection values from environment variables.
-
-    Token is taken from LIMA_DEVICE_TOKENS if the default device_id is present
-    there, so that the injected frontend token always matches the backend
-    validator. Falls back to LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN for convenience.
-    """
+    """Return non-secret default connection values from environment variables."""
     device_id = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip()
-    token = configured_device_tokens().get(device_id, "").strip()
-    if not token:
-        token = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip()
     return {
         "device_id": device_id,
         "device_name": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_NAME", "LiMa 星云数字人").strip(),
         "client_id": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_CLIENT_ID", "web_test_client").strip(),
-        "token": token,
         "wakeword_enabled": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_WAKEUP_WORD_ENABLED", "false").strip().lower()
         == "true",
     }
@@ -216,14 +201,6 @@ def _patch_index_html(content: str) -> str:
         content = content.replace(marker, script + "\n    " + marker)
     else:
         content = content.replace("</body>", script + "</body>")
-    token = str(defaults.get("token", ""))
-    if token:
-        escaped = html.escape(token, quote=True)
-        content = re.sub(
-            r'(<input\s+[^>]*id="limaToken"\s+[^>]*?)value=""',
-            rf'\1value="{escaped}"',
-            content,
-        )
     return content
 
 

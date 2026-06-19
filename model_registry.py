@@ -204,7 +204,8 @@ def list_versions() -> list:
         ModelRecord 列表
     """
     data = _load()
-    return sorted(data["versions"], key=lambda r: r["created_at"], reverse=True)
+    indexed = enumerate(data["versions"])
+    return [record for _idx, record in sorted(indexed, key=lambda item: (item[1]["created_at"], item[0]), reverse=True)]
 
 
 def get_status() -> dict:
@@ -220,7 +221,7 @@ def get_status() -> dict:
 
     latest_metrics = None
     if versions:
-        sorted_versions = sorted(versions, key=lambda r: r["created_at"], reverse=True)
+        sorted_versions = list_versions()
         latest_metrics = sorted_versions[0].get("metrics")
 
     return {

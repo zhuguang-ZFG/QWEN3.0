@@ -133,6 +133,11 @@ def test_main_returns_failure_without_restart_when_upload_fails(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py"])
     monkeypatch.setattr(
         deploy_unified,
+        "prepare_remote_deploy",
+        lambda files, label: {"ok": True, "capacity": {}, "backup_path": "/tmp/unit.tgz"},
+    )
+    monkeypatch.setattr(
+        deploy_unified,
         "deploy_files",
         lambda files, dry_run=False: {"uploaded": 0, "failed": ["server.py: boom"], "skipped": []},
     )
@@ -143,6 +148,24 @@ def test_main_returns_failure_without_restart_when_upload_fails(monkeypatch):
     )
 
     assert deploy_unified.main() == 1
+
+
+def test_main_dry_run_does_not_open_remote_preflight(monkeypatch):
+    calls: list[str] = []
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py", "--dry-run"])
+    monkeypatch.setattr(
+        deploy_unified,
+        "prepare_remote_deploy",
+        lambda files, label: (_ for _ in ()).throw(AssertionError("preflight should not run in dry-run")),
+    )
+    monkeypatch.setattr(
+        deploy_unified,
+        "deploy_files",
+        lambda files, dry_run=False: calls.append(f"dry={dry_run}") or {"uploaded": 0, "failed": [], "skipped": []},
+    )
+
+    assert deploy_unified.main() == 0
+    assert calls == ["dry=True"]
 
 
 def test_restart_server_uses_systemd_and_polls_health(monkeypatch):

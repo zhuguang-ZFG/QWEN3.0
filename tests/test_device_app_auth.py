@@ -3,9 +3,23 @@ from device_app_helpers import client as make_client
 from device_app_helpers import seed_account_and_device
 
 
+def test_device_app_auth_rejects_static_code_without_dev_mode(tmp_path, monkeypatch):
+    client, _store = make_client(tmp_path, monkeypatch)
+    monkeypatch.setenv("LIMA_XIAOZHI_LOGIN_CODE", "000000")
+    monkeypatch.delenv("LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE", raising=False)
+
+    response = client.post(
+        "/device/v1/app/auth/register",
+        json={"phone": "13900", "code": "000000", "nickname": "native-owner"},
+    )
+
+    assert response.status_code == 503
+
+
 def test_device_app_auth_register_login_sms_me_and_delete_flow(tmp_path, monkeypatch):
     client, _store = make_client(tmp_path, monkeypatch)
     monkeypatch.setenv("LIMA_XIAOZHI_LOGIN_CODE", "000000")
+    monkeypatch.setenv("LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE", "1")
 
     registered = client.post(
         "/device/v1/app/auth/register",

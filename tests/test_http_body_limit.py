@@ -1,5 +1,7 @@
 """Request body size limit middleware (ASGI receive cap)."""
 
+import gzip
+
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
@@ -136,3 +138,26 @@ def test_allows_chunked_json_without_content_length_header():
         content=b'{"messages":[]}',
     )
     assert response.status_code == 200
+
+
+def test_rejects_gzip_body_that_expands_over_limit():
+    seen: dict[str, int] = {}
+    app = FastAPI()
+    app.add_middleware(BodySizeLimitMiddleware, max_body_size=64)
+
+    @app.post("/v1/messages")
+    async def _messages(request: Request):
+        body = await request.body()
+        seen["len"] = len(body)
+        return {"len": len(body)}
+
+    compressed = gzip.compress(b'{"messages":[]}' + b"x" * 128)
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.post(
+        "/v1/messages",
+        headers={"Content-Type": "application/json", "Content-Encoding": "gzip"},
+        content=compressed,
+    )
+
+    assert response.status_code == 413
+    assert "len" not in seen

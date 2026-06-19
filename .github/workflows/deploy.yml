@@ -20,39 +20,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "*.py,routes/,agent_runtime/,context_pipeline/,fleet/,routing_ml/,skills/,config/"
-          target: /opt/lima-router
-          strip_components: 0
+      - name: Write deploy key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
 
-      - name: Restart and health check
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script_stop: false
-          script: |
-            echo ">> Stopping lima-router..."
-            systemctl stop lima-router 2>/dev/null || true
-            sleep 3
-            systemctl start lima-router
-            sleep 10
-
-            echo ">> Waiting for health check..."
-            for i in $(seq 1 20); do
-              if curl -sf "http://127.0.0.1:8080/health" > /dev/null 2>&1; then
-                echo ">> Health OK after ${i}s"
-                exit 0
-              fi
-              sleep 3
-            done
-
-            echo ">> Health check FAILED"
-            journalctl -u lima-router --no-pager -n 10 || true
-            exit 1
+      - name: Deploy via unified manifest
+        env:
+          LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
+          LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts
+        run: |
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+          python scripts/deploy_unified.py --slice all

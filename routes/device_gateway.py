@@ -31,6 +31,7 @@ from device_gateway.notifier import (
     stop_task_notifier,
 )
 from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
+from device_gateway.health import build_device_gateway_health
 from device_gateway.tasks import (
     ack_processing_task,
     pending_count,
@@ -54,19 +55,12 @@ _drain_pending_tasks = drain_pending_tasks
 _notify_local_session_task_available = notify_local_session_task_available
 
 
-@router.get("/health")
-async def device_gateway_health() -> dict[str, Any]:
-    return {
-        "status": "ok",
-        "protocol": PROTOCOL_VERSION,
-        "active_sessions": registry.count(),
-        "pending_tasks": pending_count(),
-        "task_store": task_store_health(),
-        "memory_store": memory_store_health(),
-        "ledger_store": ledger_store_health(),
-        "session_bus": notifier_health(),
-        "auth_configured": token_configured(),
-    }
+@router.get("/health", response_model=None)
+async def device_gateway_health() -> dict[str, Any] | JSONResponse:
+    payload, production_ready = build_device_gateway_health()
+    if not production_ready:
+        return JSONResponse(status_code=503, content=payload)
+    return payload
 
 
 @router.post("/events", dependencies=[Depends(require_private_api_key)])

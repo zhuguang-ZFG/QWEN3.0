@@ -33,6 +33,20 @@ def test_digital_human_index_serves_patched_html():
     assert "seedStorage" in text
 
 
+def test_digital_human_index_does_not_embed_device_token(monkeypatch):
+    monkeypatch.setenv("LIMA_DEVICE_TOKENS", "web-tester=prod-secret-token")
+    monkeypatch.setenv("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "fallback-secret-token")
+    client = TestClient(server.app)
+
+    response = client.get("/digital-human/")
+    if response.status_code == 404:
+        return
+
+    assert response.status_code == 200
+    assert "prod-secret-token" not in response.text
+    assert "fallback-secret-token" not in response.text
+
+
 def test_digital_human_static_js_served():
     client = TestClient(server.app)
     response = client.get("/digital-human/js/app.js")
