@@ -283,7 +283,8 @@ wx_key_tool/
 /deploy/deploy_prometheus_metrics.sh
 
 # === 临时调试/修复脚本 (Phase 2 清理 2026-06-12) ===
-_*.py
+# Anchored to root so it does not ignore legitimate __init__.py or subpackage helpers.
+/_*.py
 *_temp*.py
 quick_fix.*
 patch_*.py
