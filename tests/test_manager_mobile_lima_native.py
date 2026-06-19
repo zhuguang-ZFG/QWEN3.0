@@ -42,3 +42,12 @@ def test_manager_mobile_wechat_env_points_to_lima():
     assert "VITE_UPLOAD_BASEURL__WEIXIN_TRIAL = 'https://chat.donglicao.com/upload'" in utils_text
     assert "VITE_UPLOAD_BASEURL__WEIXIN_RELEASE = 'https://chat.donglicao.com/upload'" in utils_text
     assert "ukw0y1.laf.run" not in utils_text
+
+
+def test_manager_mobile_default_avatar_does_not_use_xiaozhi_cdn():
+    """Default avatar must be a local asset, not the retired xiaozhi laf.run CDN."""
+    user_store_text = (ROOT / "src/store/user.ts").read_text(encoding="utf-8")
+
+    assert "ukw0y1.laf.run" not in user_store_text
+    assert "oss.laf.run" not in user_store_text
+    assert "'/static/images/default-avatar.png'" in user_store_text
