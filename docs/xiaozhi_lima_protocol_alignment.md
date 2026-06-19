@@ -209,7 +209,10 @@ XiaoZhi OpenAPI 的核心对象是 Account、Device、Task、Member、Voiceprint
 1. ✅ `GET /auth/captcha` 和 `PUT /auth/change-password` 已实现（change-password 仅对已有密码哈希的账号有效）。
 2. ✅ `/devices/manual-add` 管理员接口已实现。
 3. ✅ 路径别名已补齐：`POST /auth/login`、`POST /devices/{deviceId}/members`、`POST /voiceprints/{voiceprintId}`、`PUT /transfers/{transferId}/cancel`。
-4. ⏳ 建立 display/audio/speech/ocr/camera/perception 的独立审批门，不与 motion 共享放行条件。
+4. ✅ display/audio/speech/ocr/camera/perception 独立审批门已实现：
+   - `device_gateway/family_approval_store.py` 每设备审批持久化。
+   - `device_gateway/family_gate.py` 独立门控校验，不与 motion 共享放行条件。
+   - `routes/admin_api.py` 提供 `GET/POST /api/devices/{device_id}/families` 审批/撤销接口。
 
 ## 8. 建议实施顺序
 

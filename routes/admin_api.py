@@ -11,6 +11,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from backends_registry import BACKENDS
 import health_tracker
+from device_gateway.family_gate import (
+    approve_family,
+    list_family_approvals,
+    revoke_family,
+)
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_backends import describe_backend, test_backend_sync
 from routes.admin_state import FALLBACK_LOG, stats_context
@@ -183,4 +188,60 @@ async def admin_model_status():
         "fallback_log_count": log_count,
         "threshold": 100,
         "recent_fallbacks": recent_logs,
+    }
+
+
+@router.get("/api/devices/{device_id}/families", dependencies=[Depends(verify_admin)])
+async def admin_list_family_approvals(device_id: str):
+    """List per-device protocol-family approval status."""
+    approvals = list_family_approvals(device_id)
+    return {
+        "deviceId": device_id,
+        "families": [
+            {
+                "family": a.family,
+                "status": a.status,
+                "approvedBy": a.approved_by,
+                "approvedAt": a.approved_at,
+                "revokedAt": a.revoked_at,
+                "evidence": a.evidence,
+            }
+            for a in approvals
+        ],
+    }
+
+
+@router.post(
+    "/api/devices/{device_id}/families/{family}/approve",
+    dependencies=[Depends(verify_admin), Depends(verify_csrf)],
+)
+async def admin_approve_family(device_id: str, family: str, request: Request):
+    """Approve a protocol family for a specific device."""
+    body = await request.json()
+    evidence = body.get("evidence") if isinstance(body.get("evidence"), dict) else {}
+    account_id = body.get("approvedBy", "admin")
+    record = approve_family(device_id, family, approved_by=account_id, evidence=evidence)
+    return {
+        "deviceId": record.device_id,
+        "family": record.family,
+        "status": record.status,
+        "approvedBy": record.approved_by,
+        "approvedAt": record.approved_at,
+    }
+
+
+@router.post(
+    "/api/devices/{device_id}/families/{family}/revoke",
+    dependencies=[Depends(verify_admin), Depends(verify_csrf)],
+)
+async def admin_revoke_family(device_id: str, family: str):
+    """Revoke a protocol-family approval for a specific device."""
+    record = revoke_family(device_id, family, revoked_by="admin")
+    if record is None:
+        raise HTTPException(404, f"no approval found for {family} on {device_id}")
+    return {
+        "deviceId": record.device_id,
+        "family": record.family,
+        "status": record.status,
+        "revokedAt": record.revoked_at,
     }

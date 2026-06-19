@@ -5,6 +5,29 @@
 > Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-19 设备能力族独立审批门（完成）
+
+- **目标**：实现 `display/audio/speech/ocr/camera/perception` 能力族的独立审批门，不再与 `motion` 共享全局放行条件。
+- **实现**：
+  - 新增 `device_gateway/family_approval_store.py`：SQLite 表 `v2_family_approval`，支持每设备每能力族的审批、撤销、列表、查询。
+  - 新增 `device_gateway/family_gate.py`：
+    - `validate_family_capability(device_id, family, capability)` 对 gate 族要求显式审批，对非 gate 族（如 motion）保持全局 `ACTIVE_FAMILIES` 放行。
+    - gate 族即使不在 `ACTIVE_FAMILIES` 中，只要通过审批即可放行。
+  - 扩展 `routes/admin_api.py`：
+    - `GET /admin/api/devices/{device_id}/families`
+    - `POST /admin/api/devices/{device_id}/families/{family}/approve`
+    - `POST /admin/api/devices/{device_id}/families/{family}/revoke`
+  - 更新 `docs/XIAOZHI_SERVER_RETIREMENT_CHECKLIST_CN.md` 与 `docs/xiaozhi_lima_protocol_alignment.md`，将能力族审批门标记为已完成。
+- **验证**：
+  - 新增 `tests/test_family_approval_store.py`（5 测试）
+  - 新增 `tests/test_family_gate.py`（6 测试）
+  - 新增 `tests/test_admin_family_approval.py`（5 测试）
+  - 全量 `pytest -q` → **1836 passed, 4 skipped**
+  - `ruff check .` → 0 errors
+- **部署验证**：
+  - `scripts/deploy_unified.py --slice core` 上传 718 个文件，restart 后 health OK。
+  - 公网 `GET https://chat.donglicao.com/admin/api/devices/d-1/families` 返回 401，说明新 admin 路由已挂载。
+
 ## 2026-06-19 代码尺寸治理 M4：拆分 16 个 >300 行测试文件（完成）
 
 - **目标**：继续推进代码尺寸治理，将剩余超过 300 行的测试文件全部拆分，使整个仓库无 >300 行文件。

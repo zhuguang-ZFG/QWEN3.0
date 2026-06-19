@@ -154,7 +154,7 @@ FunASR / SileroVAD / 3D-Speaker 依赖 `torch` / `funasr` / `modelscope` / `onnx
 - [x] Voiceprint 删除接口 — 已实现
 - [x] `/auth/captcha` 与 `/auth/change-password` — 已实现
 - [x] `/devices/manual-add` 管理员入口 — 已实现
-- [ ] display/audio/speech/ocr/camera/perception 能力族独立审批门
+- [x] display/audio/speech/ocr/camera/perception 能力族独立审批门 — 已实现（每设备审批 + admin API）
 
 详见 `xiaozhi_lima_protocol_alignment.md` §7 P1/P2。
 
