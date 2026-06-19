@@ -50,7 +50,8 @@ def test_device_app_bind_rejects_unissued_activation_code(tmp_path, monkeypatch)
         json={"activationCode": "not-issued", "deviceSn": "SN-APP-01"},
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 400
+    assert response.json()["code"] == 4004
 
 
 def test_device_app_detail_and_update_flow(tmp_path, monkeypatch):

@@ -14,7 +14,6 @@ _log = logging.getLogger(__name__)
 ACTIVATION_TTL_SECONDS = 600
 _activation_codes: dict[str, dict[str, Any]] = {}
 _activation_lock = threading.Lock()
-_activation_warning_logged = False
 
 
 def _expire_stale_codes(now_ts: float) -> None:
@@ -29,10 +28,8 @@ def check_activation_code(code: str) -> bool:
     """Validate an activation code.
 
     In-memory generated codes take precedence. If none match and the
-    environment pins a static code, compare against it. Otherwise any
-    non-empty code is accepted (with a one-time warning).
+    environment pins a static code, compare against it. Otherwise reject.
     """
-    global _activation_warning_logged
     now_ts = time.time()
     _expire_stale_codes(now_ts)
     with _activation_lock:
@@ -42,10 +39,8 @@ def check_activation_code(code: str) -> bool:
     expected = os.environ.get("LIMA_XIAOZHI_ACTIVATION_CODE", "").strip()
     if expected:
         return secrets.compare_digest(code, expected)
-    if not _activation_warning_logged:
-        _log.warning("LIMA_XIAOZHI_ACTIVATION_CODE is not configured; accepting non-empty activation codes")
-        _activation_warning_logged = True
-    return bool(code)
+    _log.warning("LIMA_XIAOZHI_ACTIVATION_CODE is not configured; rejecting unissued activation code")
+    return False
 
 
 def new_activation_code(mac_address: str = "") -> str:

@@ -1,4 +1,4 @@
-"""Private API key guard for LiMa public-compatible endpoints."""
+"""API key guards for LiMa public and internal endpoints."""
 
 import os
 import secrets
@@ -73,27 +73,15 @@ def constant_time_equals(a: str, b: str) -> bool:
 
 
 def is_token_valid(token: str) -> bool:
-    """Return whether a bearer token is valid, honouring anonymous access.
-
-    An empty token is considered valid when ``LIMA_ALLOW_ANONYMOUS=1`` and at
-    least one private key is configured.  Non-empty tokens are validated against
-    the configured keys.
-    """
+    """Return whether a non-empty bearer token matches a configured key."""
     keys = configured_api_keys()
-    if not keys:
+    if not keys or not token:
         return False
-    if not token:
-        return allow_anonymous_access()
     return any(constant_time_equals(token, k) for k in keys)
 
 
 def require_private_api_key(authorization: str = Header(default="")) -> None:
-    """FastAPI dependency that fails closed unless a configured key is supplied.
-
-    When ``LIMA_ALLOW_ANONYMOUS=1`` is set and at least one private key is
-    configured, requests without an Authorization header are allowed.  Explicit
-    keys are still validated when present.
-    """
+    """FastAPI dependency that always requires a configured private key."""
     token = extract_bearer_token(authorization)
     if is_token_valid(token):
         return
@@ -102,4 +90,19 @@ def require_private_api_key(authorization: str = Header(default="")) -> None:
             status_code=503,
             detail="LiMa private API key is not configured.",
         )
+    raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def require_public_or_private_api_key(authorization: str = Header(default="")) -> None:
+    """Public endpoint dependency that may allow anonymous demo traffic."""
+    token = extract_bearer_token(authorization)
+    if is_token_valid(token):
+        return
+    if not configured_api_keys():
+        raise HTTPException(
+            status_code=503,
+            detail="LiMa private API key is not configured.",
+        )
+    if not token and allow_anonymous_access():
+        return
     raise HTTPException(status_code=401, detail="Unauthorized")

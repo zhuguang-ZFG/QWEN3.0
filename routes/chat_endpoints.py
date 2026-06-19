@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from access_guard import require_private_api_key
+from access_guard import require_public_or_private_api_key
 from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
 from response_builder import build_response, make_chat_id
@@ -99,7 +99,7 @@ async def _handle_vision_shortcut(
 
 @router.post(
     "/v1/chat/completions",
-    dependencies=[Depends(require_private_api_key)],
+    dependencies=[Depends(require_public_or_private_api_key)],
 )
 async def chat_completions(request: Request):
     """OpenAI-compatible chat completions endpoint."""

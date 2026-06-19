@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
@@ -36,6 +38,8 @@ def _login_response(row):
 
 
 def _wechat_openid_from_code(code: str) -> str:
+    if os.environ.get("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", "").strip().lower() not in {"1", "true", "yes", "on"}:
+        return ""
     return f"wx:{code}"
 
 
@@ -50,6 +54,8 @@ async def login(request: Request):
         return err(400, "code is required", 400)
     if not phone:
         openid = _wechat_openid_from_code(code)
+        if not openid:
+            return err(503, "WeChat login is not configured", 503)
         with connect() as conn:
             row = conn.execute(
                 "SELECT * FROM v2_account WHERE wechat_openid=? AND status='active'",
