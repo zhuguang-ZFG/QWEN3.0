@@ -107,6 +107,49 @@ async def list_members(device_id: str, authorization: str = Header(default="")) 
     return ok([member_payload(row) for row in rows])
 
 
+@router.post("/devices/{device_id}/members")
+async def create_member_for_device(
+    device_id: str, request: Request, authorization: str = Header(default="")
+) -> JSONResponse:
+    """OpenAPI-compatible alias: create a member on a specific device."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    name = str_field(body, "name")
+    role = str_field(body, "role") or "child"
+    if not name:
+        return err(400, "name is required", 400)
+    if role not in ALLOWED_MEMBER_ROLES:
+        return err(400, "invalid member role", 400)
+    with connect() as conn:
+        denied = require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        member_id = new_id()
+        conn.execute(
+            "INSERT INTO v2_member (id, account_id, device_id, name, role, avatar_url) VALUES (?, ?, ?, ?, ?, ?)",
+            (member_id, account["id"], device_id, name, role, body.get("avatarUrl") or body.get("avatar_url")),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM v2_member WHERE id=?", (member_id,)).fetchone()
+    return ok(member_payload(row))
+
+
+@router.post("/voiceprints/{voiceprint_id}")
+async def enroll_voiceprint_alias(
+    voiceprint_id: str, request: Request, authorization: str = Header(default="")
+) -> JSONResponse:
+    """OpenAPI-compatible alias for POST /voiceprints/{voiceprintId}.
+
+    The path parameter is a placeholder; the actual member/device ids come from the body.
+    """
+    # Delegate to the existing enroll logic to avoid duplication.
+    return await enroll_voiceprint(request, authorization)
+
+
 @router.delete("/voiceprints/{voiceprint_id}")
 async def delete_voiceprint(voiceprint_id: str, authorization: str = Header(default="")) -> JSONResponse:
     account = authorize(authorization)

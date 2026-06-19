@@ -22,7 +22,34 @@ except ImportError as exc:
 else:
     _JWT_IMPORT_ERROR = None
 
+try:
+    import bcrypt
+except ImportError as exc:
+    bcrypt = None
+    _BCRYPT_IMPORT_ERROR: ImportError | None = exc
+else:
+    _BCRYPT_IMPORT_ERROR = None
+
 _log = logging.getLogger(__name__)
+
+
+def _hash_password(password: str) -> str | None:
+    if bcrypt is None:
+        _log.warning("bcrypt is not installed: %s", _BCRYPT_IMPORT_ERROR)
+        return None
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def _verify_password(password: str, hashed: str | None) -> bool:
+    if not hashed:
+        return False
+    if bcrypt is None:
+        _log.warning("bcrypt is not installed: %s", _BCRYPT_IMPORT_ERROR)
+        return False
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def jwt_secret() -> str | None:

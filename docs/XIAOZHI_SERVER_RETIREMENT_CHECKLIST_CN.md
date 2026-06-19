@@ -12,13 +12,13 @@
 
 | 维度 | 状态 | 是否阻塞退役 |
 | --- | --- | --- |
-| 兼容 REST 层（OpenAPI 28/29） | ✅ 28/29 上线，13 集成测试通过 | 否（差 1 端点） |
+| 兼容 REST 层（OpenAPI 27/27 覆盖） | ✅ 27/27 业务端点均已实现或补全别名，23 个集成测试通过 | 否 |
 | 语音管线骨架（ASR/VAD/TTS/声纹） | ✅ 骨架完整 | 否 |
 | **生产级云 ASR/TTS provider** | ✅ 已接入真实 SDK/REST 并通过 VPS 真实凭证冒烟 | 否 |
 | **静默降级（违反 Hard Rule 1）** | ✅ VAD/声纹失败路径已加 warning/异常 | 否 |
 | EdgeTTS 音频格式 | ✅ MP3 已转 PCM（依赖 ffmpeg） | 否 |
 | **2D 数字人系统** | ✅ 已挂载到 LiMa `/digital-human/`，前端已支持 LiMa 协议 | 否 |
-| OpenAPI 最后 1 端点 | ⚠️ 28/29 | 否（P1） |
+| OpenAPI 覆盖 | ✅ 27/27 业务端点已覆盖 | 否 |
 | 真机端到端回归 | ❌ 真机未执行；固件已可本机 ESP-IDF build | **是（P0）** |
 | VPS 运行时依赖验证 | ✅ 已明确走纯云路线（MiMo TTS + AliyunFallback ASR），无需在 VPS 部署本地大模型 | 否 |
 
@@ -120,27 +120,40 @@ FunASR / SileroVAD / 3D-Speaker 依赖 `torch` / `funasr` / `modelscope` / `onnx
 
 ## 3. P1 项（退役后短期内补齐）
 
-### 3.1 OpenAPI 最后 1/29 端点
+### 3.1 OpenAPI 覆盖状态
 
-当前 28/29（见 `xiaozhi_lima_protocol_alignment.md` §3）。剩余端点需核对后补齐或显式标注不实现。
+按 `docs/xiaozhi_api_openapi.yaml` 去重后共 27 个业务端点，当前兼容层已实现 27/27 覆盖：
 
-- [ ] 核对剩余 1 端点（疑似 Supply 或 SelfCheck 历史查询）
-- [ ] 补齐实现或显式标注"LiMa 不承接，原小智也不使用"
+| Method | OpenAPI path | LiMa 实现 | 说明 |
+| --- | --- | --- | --- |
+| GET | `/auth/captcha` | `GET /api/v1/auth/captcha` | 返回 PNG 验证码图，`X-Captcha-Id` 在响应头。 |
+| PUT | `/auth/change-password` | `PUT /api/v1/auth/change-password` | 仅对已设置密码的账号有效；短信登录账号会返回明确错误。 |
+| POST | `/devices/manual-add` | `POST /api/v1/devices/manual-add` | 仅 `role=admin` 可调用。 |
+| POST | `/auth/login` | `POST /api/v1/auth/login` | `/login` 的 OpenAPI 别名。 |
+| POST | `/devices/{deviceId}/members` | `POST /api/v1/devices/{device_id}/members` | `/members` 的 OpenAPI 别名。 |
+| POST | `/voiceprints/{voiceprintId}` | `POST /api/v1/voiceprints/{voiceprint_id}` | `/voiceprints/enroll` 的 OpenAPI 别名。 |
+| PUT | `/transfers/{transferId}/cancel` | `PUT /api/v1/transfers/{transfer_id}/cancel` | POST cancel 的 PUT 别名。 |
+
+- [x] 补齐 `/auth/captcha` 与 `/auth/change-password`
+- [x] 补齐 `/devices/manual-add` POST（管理员）
+- [x] 补齐 login/members/voiceprint/transfer cancel 的 OpenAPI 别名
 
 ### 3.2 协议对齐文档 P0 项复核
 
-`xiaozhi_lima_protocol_alignment.md` §7 列出的 P0 项（Auth register/sms-verification/me、Device register/list/detail/unbind、Task list/detail），需复核当前实现状态（文档日期 2026-06-10，距今有增量）。
+`xiaozhi_lima_protocol_alignment.md` §7 P0/P1 项（Auth register/sms-verification/me、Device register/list/detail/unbind、Task list/detail、Transfer/Supply/SelfCheck/Voiceprint delete）已 majority 实现。
 
-- [ ] 逐项核对 §7 P0 清单当前实现状态
-- [ ] 更新本文档或对齐文档，反映 28/29 的具体构成
+- [x] 逐项核对 §7 P0/P1 清单当前实现状态
+- [x] 更新本文档与对齐文档，反映 27/27 覆盖
 
 ---
 
 ## 4. P2 项（运营/长期，不阻塞退役）
 
-- [ ] Transfer 全套接口（申请/待处理/接受/取消）
-- [ ] Supply 查询/更新 + 设备上报 schema
-- [ ] Voiceprint 删除接口
+- [x] Transfer 全套接口（申请/待处理/接受/取消）— 已实现
+- [x] Supply 查询/更新 + 设备上报 schema — 已实现
+- [x] Voiceprint 删除接口 — 已实现
+- [x] `/auth/captcha` 与 `/auth/change-password` — 已实现
+- [x] `/devices/manual-add` 管理员入口 — 已实现
 - [ ] display/audio/speech/ocr/camera/perception 能力族独立审批门
 
 详见 `xiaozhi_lima_protocol_alignment.md` §7 P1/P2。

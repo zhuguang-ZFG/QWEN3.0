@@ -120,6 +120,16 @@ async def accept_transfer(transfer_id: str, authorization: str = Header(default=
 
 @router.post("/transfers/{transfer_id}/cancel")
 async def cancel_transfer(transfer_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    return await _cancel_transfer_core(transfer_id, authorization)
+
+
+@router.put("/transfers/{transfer_id}/cancel")
+async def cancel_transfer_put_alias(transfer_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    """OpenAPI-compatible PUT alias for cancel transfer."""
+    return await _cancel_transfer_core(transfer_id, authorization)
+
+
+async def _cancel_transfer_core(transfer_id: str, authorization: str) -> JSONResponse:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account

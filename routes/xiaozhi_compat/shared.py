@@ -9,7 +9,17 @@ from .access import (
     parse_supply_updates,
     require_device_access,
 )
-from .auth import _JWT_IMPORT_ERROR, account_payload, authorize, jwt, jwt_secret, make_token
+from .auth import (
+    _JWT_IMPORT_ERROR,
+    _hash_password,
+    _verify_password,
+    account_payload,
+    authorize,
+    jwt,
+    jwt_secret,
+    make_token,
+)
+from .captcha import create_captcha, generate_captcha_image, verify_captcha
 from .constants import (
     ALLOWED_MEMBER_ROLES,
     ALLOWED_SOURCES,
@@ -46,14 +56,18 @@ __all__ = [
     "ALLOWED_TASKS",
     "ALLOWED_TASK_STATUSES",
     "_JWT_IMPORT_ERROR",
+    "_hash_password",
     "_schema_lock",
     "_schema_ready_paths",
+    "_verify_password",
     "account_payload",
     "authorize",
     "build_gateway_task",
     "connect",
+    "create_captcha",
     "db_path",
     "device_access",
+    "generate_captcha_image",
     "device_payload",
     "dispatch_or_enqueue",
     "ensure_schema",
@@ -80,5 +94,6 @@ __all__ = [
     "supply_payload",
     "task_payload",
     "transfer_payload",
+    "verify_captcha",
     "voiceprint_payload",
 ]

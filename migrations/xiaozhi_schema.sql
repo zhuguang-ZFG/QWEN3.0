@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS v2_account (
     wechat_openid   TEXT UNIQUE,                -- 微信 OpenID（小程序登录）
     nickname        TEXT,                       -- 昵称
     avatar_url      TEXT,                       -- 头像 URL
+    password_hash   TEXT,                       -- 密码哈希（bcrypt），当前主登录模型为短信码
     role            TEXT DEFAULT 'user'         -- 角色: user/admin
         CHECK (role IN ('user', 'admin')),
     status          TEXT DEFAULT 'active'       -- 状态: active/disabled/deleted
@@ -28,6 +29,18 @@ CREATE TABLE IF NOT EXISTS v2_account (
 
 CREATE INDEX IF NOT EXISTS idx_v2_account_phone ON v2_account(phone);
 CREATE INDEX IF NOT EXISTS idx_v2_account_wechat ON v2_account(wechat_openid);
+
+-- ============================================================
+-- 1a. v2_captcha - 短信验证码前的图形验证码会话
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_captcha (
+    id              TEXT PRIMARY KEY,           -- captchaId (UUID)
+    code            TEXT NOT NULL,              -- 验证码内容（字母/数字）
+    expires_at      TEXT NOT NULL,              -- ISO 8601 过期时间
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_captcha_expires ON v2_captcha(expires_at);
 
 -- ============================================================
 -- 2. v2_device - 设备信息

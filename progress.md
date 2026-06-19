@@ -5,6 +5,36 @@
 > Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-19 小智服务器功能移植收尾：OpenAPI 27/27 覆盖（完成）
+
+- **目标**：回答并闭环“小智服务器还有未移植到 LiMa 的功能吗”。审计后补齐剩余 4 个 OpenAPI 端点 + 4 处路径别名，使小智 v1 兼容层达到 27/27 业务操作覆盖。
+- **实现**：
+  - 新增 `routes/xiaozhi_compat/captcha.py`：SQLite 存储验证码会话、PIL 生成 PNG 验证码图、单次验证后删除。
+  - `routes/xiaozhi_compat/user_routes.py`：
+    - `GET /api/v1/auth/captcha` 返回 PNG 与 `X-Captcha-Id`。
+    - `PUT /api/v1/auth/change-password`（bcrypt），仅对已有密码哈希账号生效，短信登录账号返回明确错误。
+    - `POST /api/v1/auth/login` 作为 `/login` 的 OpenAPI 别名。
+    - `/auth/sms-verification` 可选校验 captcha；可通过 `LIMA_XIAOZHI_CAPTCHA_REQUIRED=1` 强制开启。
+  - `routes/xiaozhi_compat/device_routes.py`：`POST /api/v1/devices/manual-add` 仅 `role=admin`。
+  - `routes/xiaozhi_compat/member_routes.py`：补 `POST /devices/{id}/members`、`POST /voiceprints/{id}` 别名。
+  - `routes/xiaozhi_compat/misc_routes.py`：补 `PUT /transfers/{id}/cancel` 别名。
+  - `migrations/xiaozhi_schema.sql` 与 `routes/xiaozhi_compat/db.py`：新增 `v2_account.password_hash`、`v2_captcha` 表，并对旧库做幂等迁移。
+  - 更新 `docs/XIAOZHI_SERVER_RETIREMENT_CHECKLIST_CN.md`、`docs/xiaozhi_lima_protocol_alignment.md` 反映 27/27 覆盖。
+- **验证**：
+  - `tests/test_xiaozhi_v1_compat_p2.py` 新增 10 个测试：captcha 图、短信 captcha 校验、change-password、manual-add 权限、4 个 OpenAPI 别名 → **10 passed**。
+  - 小智兼容层全量（P0+P1+P2+schema+route policy）→ **73 passed**。
+  - 全量 `pytest -q` → **1820 passed, 4 skipped**。
+  - `ruff check routes/xiaozhi_compat/ tests/test_xiaozhi_v1_compat_p2.py` → 0 errors；`ruff format` 已格式化。
+- **部署验证**：
+  - `scripts/deploy_unified.py --slice core` 上传 681 个文件，VPS `systemctl restart lima-router` 后 health OK。
+  - VPS `.env` 追加 `LIMA_XIAOZHI_COMPAT_ENABLED=1` 并重启；health 显示 `xiaozhi_v1_compat: true`。
+  - 公网 `GET https://chat.donglicao.com/api/v1/auth/captcha` 返回 120x40 PNG 与 `X-Captcha-Id`。
+  - 公网 `POST /api/v1/auth/login` 返回 503（未配置短信码），证明路由已挂载。
+  - 公网 `POST /api/v1/devices/manual-add` 返回 401，证明路由已挂载。
+- **遗留**：
+  - 真机端到端回归仍待有真实 U8 设备后执行（唤醒 → VAD → ASR → LLM → TTS → 播放 + 声纹注册/识别）。
+  - `display/audio/speech/ocr/camera/perception` 能力族独立审批门属于 P2，不阻塞退役。
+
 ## 2026-06-19 固件 / WebChat / 数字人 / 小程序闭环审计（完成）
 
 - **目标**：处理微信小程序默认头像/后端迁移后，继续审计并关闭固件、WebChat、数字人其余闭环缺口。

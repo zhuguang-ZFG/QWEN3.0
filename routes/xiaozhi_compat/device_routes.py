@@ -193,3 +193,42 @@ async def unbind_device(device_id: str, authorization: str = Header(default=""))
     if result.rowcount < 1:
         return err(404, "active binding not found", 404)
     return ok({"deviceId": device_id, "status": "unbound"})
+
+
+@router.post("/devices/manual-add")
+async def manual_add_device(request: Request, authorization: str = Header(default="")) -> JSONResponse:
+    """Admin-only endpoint to manually register a device by serial number."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    if account.get("role") != "admin":
+        return err(403, "only admin can manually add devices", 403)
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    device_sn = str_field(body, "deviceSn", "device_sn")
+    model = str_field(body, "model") or "esp32s3_xyz"
+    if not device_sn:
+        return err(400, "deviceSn is required", 400)
+    with connect() as conn:
+        existing = conn.execute("SELECT * FROM v2_device WHERE device_sn=?", (device_sn,)).fetchone()
+        if existing is not None:
+            return err(409, "device with this serial number already exists", 409)
+        device_id = new_id()
+        conn.execute(
+            """
+            INSERT INTO v2_device (id, device_sn, model, firmware_ver, hardware_ver, metadata)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                device_id,
+                device_sn,
+                model,
+                str_field(body, "firmwareVer", "firmware_ver"),
+                str_field(body, "hardwareVer", "hardware_ver"),
+                json_params(body.get("metadata")),
+            ),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM v2_device WHERE id=?", (device_id,)).fetchone()
+    return ok(device_payload(row))
