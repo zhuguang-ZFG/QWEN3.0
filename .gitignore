@@ -324,3 +324,20 @@ nginx/
 .omc/
 # Stale chat UI copy; authoritative source is chat-web/
 data/chat/index.html
+
+# === 本地 AI agent / IDE 配置与缓存 ===
+.agent/
+.codebuddy/
+.continue/
+.gemini/
+.roo/
+.trae/
+.windsurf/
+.github/prompts/
+.mcp.json
+
+# === 本地构建/评估产物 ===
+data/eval/
+lima_mimo_mcp.egg-info/
+test_ws*.py
+.codegraph/.gitignore
