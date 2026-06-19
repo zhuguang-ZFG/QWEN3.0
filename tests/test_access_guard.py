@@ -60,11 +60,21 @@ def test_private_api_key_fails_closed_when_unconfigured(monkeypatch):
     assert exc.value.status_code == 503
 
 
-def test_private_api_key_allows_anonymous_when_enabled(monkeypatch):
+def test_private_api_key_rejects_anonymous_even_when_public_anonymous_enabled(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "private-key")
     monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
 
-    assert access_guard.require_private_api_key("") is None
+    with pytest.raises(HTTPException) as exc:
+        access_guard.require_private_api_key("")
+
+    assert exc.value.status_code == 401
+
+
+def test_public_api_key_allows_anonymous_when_enabled(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "private-key")
+    monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
+
+    assert access_guard.require_public_or_private_api_key("") is None
 
 
 def test_private_api_key_still_validates_explicit_key_when_anonymous_enabled(monkeypatch):

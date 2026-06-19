@@ -65,17 +65,9 @@ def test_device_app_auth_fails_closed_without_configured_login_code(tmp_path, mo
     assert logged_in.status_code == 503
 
 
-def test_device_app_auth_accepts_wechat_code_login(tmp_path, monkeypatch):
+def test_device_app_auth_rejects_wechat_code_login_without_dev_flag(tmp_path, monkeypatch):
     client, _store = make_client(tmp_path, monkeypatch)
+    monkeypatch.delenv("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", raising=False)
 
     logged_in = client.post("/device/v1/app/auth/login", json={"code": "wx-code-1"})
-    assert logged_in.status_code == 200, logged_in.text
-    data = logged_in.json()
-    assert data["accountId"]
-    assert data["userId"] == data["accountId"]
-    assert data["token"]
-    assert data["phone"] is None
-
-    me = client.get("/device/v1/app/auth/me", headers={"Authorization": f"Bearer {data['token']}"})
-    assert me.status_code == 200, me.text
-    assert me.json()["accountId"] == data["accountId"]
+    assert logged_in.status_code == 503

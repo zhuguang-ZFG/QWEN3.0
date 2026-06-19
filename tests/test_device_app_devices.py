@@ -39,6 +39,20 @@ def test_device_app_bind_list_unbind_flow(tmp_path, monkeypatch):
     assert devices_after.json() == {"devices": [], "count": 0}
 
 
+def test_device_app_bind_rejects_unissued_activation_code(tmp_path, monkeypatch):
+    client, _store = make_client(tmp_path, monkeypatch)
+    monkeypatch.delenv("LIMA_XIAOZHI_ACTIVATION_CODE", raising=False)
+    seed_account_and_device()
+
+    response = client.post(
+        "/device/v1/app/devices/bind",
+        headers=headers("a-owner"),
+        json={"activationCode": "not-issued", "deviceSn": "SN-APP-01"},
+    )
+
+    assert response.status_code == 401
+
+
 def test_device_app_detail_and_update_flow(tmp_path, monkeypatch):
     client, _store = make_client(tmp_path, monkeypatch)
     seed_account_and_device()
