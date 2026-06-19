@@ -9,55 +9,62 @@ import urllib.request
 from backends_registry import BACKENDS
 
 
+def _resolve_vendor(url: str) -> str:
+    if "longcat" in url:
+        return "LongCat"
+    if "nvidia" in url:
+        return "英伟达 NVIDIA"
+    if "openrouter" in url:
+        return "OpenRouter"
+    if "deepseek" in url:
+        return "DeepSeek"
+    if "chinamobile" in url:
+        return "中国移动"
+    if "right.codes" in url:
+        return "Claude"
+    if "localhost" in url or "127.0.0.1" in url:
+        return "本地模型"
+    return "未知"
+
+
+def _resolve_tier(url: str, cfg_tier: str) -> str:
+    if cfg_tier:
+        return cfg_tier
+    if "localhost" in url or "127.0.0.1" in url:
+        return "L0 本地"
+    if "longcat" in url or "chinamobile" in url:
+        return "L1 免费无限"
+    if "nvidia" in url:
+        return "L2 免费额度"
+    if "openrouter" in url:
+        return "L3 免费限量"
+    return "L4 付费"
+
+
+def _resolve_capabilities(name: str, cfg_caps: list[str]) -> list[str]:
+    caps = list(cfg_caps)
+    if caps:
+        return caps
+    if name in ("claude", "or_deepseek_r1", "or_qwen3_coder", "deepseek_pro", "deepseek_flash"):
+        caps.append("工具调用")
+    if name in ("claude", "longcat_omni"):
+        caps.append("视觉")
+    if "thinking" in name or "r1" in name:
+        caps.append("深度推理")
+    if not caps:
+        caps.append("纯文本")
+    return caps
+
+
 def describe_backend(name: str, cfg: dict, *, enabled: bool, status_info: dict) -> dict:
     url = cfg.get("url", "")
     fmt = cfg.get("fmt", "openai")
     auth = cfg.get("auth", "x-api-key" if fmt == "anthropic" else "bearer")
-
-    vendor = "未知"
-    if "longcat" in url:
-        vendor = "LongCat"
-    elif "nvidia" in url:
-        vendor = "英伟达 NVIDIA"
-    elif "openrouter" in url:
-        vendor = "OpenRouter"
-    elif "deepseek" in url:
-        vendor = "DeepSeek"
-    elif "chinamobile" in url:
-        vendor = "中国移动"
-    elif "right.codes" in url:
-        vendor = "Claude"
-    elif "localhost" in url or "127.0.0.1" in url:
-        vendor = "本地模型"
-
-    tier = cfg.get("tier", "")
-    if not tier:
-        if "localhost" in url or "127.0.0.1" in url:
-            tier = "L0 本地"
-        elif "longcat" in url or "chinamobile" in url:
-            tier = "L1 免费无限"
-        elif "nvidia" in url:
-            tier = "L2 免费额度"
-        elif "openrouter" in url:
-            tier = "L3 免费限量"
-        else:
-            tier = "L4 付费"
-
-    caps = list(cfg.get("caps", []))
-    if not caps:
-        if name in ("claude", "or_deepseek_r1", "or_qwen3_coder", "deepseek_pro", "deepseek_flash"):
-            caps.append("工具调用")
-        if name in ("claude", "longcat_omni"):
-            caps.append("视觉")
-        if "thinking" in name or "r1" in name:
-            caps.append("深度推理")
-        if not caps:
-            caps.append("纯文本")
-
+    caps = _resolve_capabilities(name, cfg.get("caps", []))
     return {
         "name": name,
-        "vendor": vendor,
-        "tier": tier,
+        "vendor": _resolve_vendor(url),
+        "tier": _resolve_tier(url, cfg.get("tier", "")),
         "protocol": "Anthropic" if fmt == "anthropic" else "OpenAI",
         "fmt": fmt,
         "capabilities": caps,

@@ -106,71 +106,65 @@ class ToolRegistry:
         return [tool for _score, tool in scored[:limit]]
 
 
+_DEFAULT_TOOLS: tuple[ToolDefinition, ...] = (
+    ToolDefinition(
+        name="dev_search_docs",
+        description="Search public programming documentation for agent workers.",
+        tags=("programming", "docs", "search", "readonly", "agent-worker"),
+        authority=AuthorityClass.READ_ONLY,
+    ),
+    ToolDefinition(
+        name="dev_search_error",
+        description="Search public sources for sanitized programming errors.",
+        tags=("programming", "error", "traceback", "debug", "readonly", "agent-worker"),
+        authority=AuthorityClass.READ_ONLY,
+    ),
+    ToolDefinition(
+        name="dev_read_url",
+        description="Read a public HTTP or HTTPS URL for agent workers.",
+        tags=("url", "docs", "fetch", "readonly", "agent-worker"),
+        authority=AuthorityClass.NETWORK_READ,
+    ),
+    ToolDefinition(
+        name="dev_fetch_github_file",
+        description="Fetch a public GitHub file for reference.",
+        tags=("github", "source", "reference", "readonly", "agent-worker"),
+        authority=AuthorityClass.NETWORK_READ,
+    ),
+    ToolDefinition(
+        name="dev_search_gitee",
+        description="Search Gitee repositories and scoped issues for agent workers.",
+        tags=("gitee", "mirror", "search", "readonly", "agent-worker"),
+        authority=AuthorityClass.NETWORK_READ,
+        requires_secret=True,
+    ),
+    ToolDefinition(
+        name="dev_fetch_gitee_file",
+        description="Fetch a file from a Gitee repository via OpenAPI.",
+        tags=("gitee", "mirror", "source", "readonly", "agent-worker"),
+        authority=AuthorityClass.NETWORK_READ,
+        requires_secret=True,
+    ),
+    ToolDefinition(
+        name="dev_search_codesearch",
+        description="Local semantic code search via codesearch (allowlisted paths).",
+        tags=("code", "search", "semantic", "readonly", "agent-worker", "offline"),
+        authority=AuthorityClass.READ_ONLY,
+    ),
+    ToolDefinition(
+        name="dev_summarize_sources",
+        description="Summarize source dictionaries into prompt evidence.",
+        tags=("evidence", "summary", "sources", "agent-worker"),
+    ),
+)
+
+
+def _register_tools(registry: ToolRegistry, tools: tuple[ToolDefinition, ...]) -> None:
+    for tool in tools:
+        registry.register(tool)
+
+
 def build_default_registry() -> ToolRegistry:
     registry = ToolRegistry()
-    registry.register(
-        ToolDefinition(
-            name="dev_search_docs",
-            description="Search public programming documentation for agent workers.",
-            tags=("programming", "docs", "search", "readonly", "agent-worker"),
-            authority=AuthorityClass.READ_ONLY,
-        )
-    )
-    registry.register(
-        ToolDefinition(
-            name="dev_search_error",
-            description="Search public sources for sanitized programming errors.",
-            tags=("programming", "error", "traceback", "debug", "readonly", "agent-worker"),
-            authority=AuthorityClass.READ_ONLY,
-        )
-    )
-    registry.register(
-        ToolDefinition(
-            name="dev_read_url",
-            description="Read a public HTTP or HTTPS URL for agent workers.",
-            tags=("url", "docs", "fetch", "readonly", "agent-worker"),
-            authority=AuthorityClass.NETWORK_READ,
-        )
-    )
-    registry.register(
-        ToolDefinition(
-            name="dev_fetch_github_file",
-            description="Fetch a public GitHub file for reference.",
-            tags=("github", "source", "reference", "readonly", "agent-worker"),
-            authority=AuthorityClass.NETWORK_READ,
-        )
-    )
-    registry.register(
-        ToolDefinition(
-            name="dev_search_gitee",
-            description="Search Gitee repositories and scoped issues for agent workers.",
-            tags=("gitee", "mirror", "search", "readonly", "agent-worker"),
-            authority=AuthorityClass.NETWORK_READ,
-            requires_secret=True,
-        )
-    )
-    registry.register(
-        ToolDefinition(
-            name="dev_fetch_gitee_file",
-            description="Fetch a file from a Gitee repository via OpenAPI.",
-            tags=("gitee", "mirror", "source", "readonly", "agent-worker"),
-            authority=AuthorityClass.NETWORK_READ,
-            requires_secret=True,
-        )
-    )
-    registry.register(
-        ToolDefinition(
-            name="dev_search_codesearch",
-            description="Local semantic code search via codesearch (allowlisted paths).",
-            tags=("code", "search", "semantic", "readonly", "agent-worker", "offline"),
-            authority=AuthorityClass.READ_ONLY,
-        )
-    )
-    registry.register(
-        ToolDefinition(
-            name="dev_summarize_sources",
-            description="Summarize source dictionaries into prompt evidence.",
-            tags=("evidence", "summary", "sources", "agent-worker"),
-        )
-    )
+    _register_tools(registry, _DEFAULT_TOOLS)
     return registry

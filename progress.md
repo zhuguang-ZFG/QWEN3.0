@@ -25,6 +25,23 @@
   - `scripts/deploy_unified.py --slice core` 上传 723 个文件，restart 后 health OK。
   - 公网 `/health` 返回 `status ok`。
 
+## 2026-06-19 函数级尺寸治理第二轮：再拆分 5 个生产超长函数（完成）
+
+- **目标**：继续降低 >50 行函数数量，优先处理风险较低的函数。
+- **实现**：
+  - `backend_utils.py::detect_vendor`（67→2 行）：提取 `_VENDOR_HINTS` 表与 `_match_vendor`。
+  - `tool_gateway/registry.py::build_default_registry`（68→4 行）：提取 `_DEFAULT_TOOLS` 常量。
+  - `routes/admin_backends.py::describe_backend`（65→25 行）：提取 `_resolve_vendor`、`_resolve_tier`、`_resolve_capabilities`。
+  - `routing_ml/training_data.py::build_training_samples`（64→37 行）：提取入口过滤、特征向量、目标向量、负样本 helper，保持 ML 输出不变。
+  - `orchestrate.py::orchestrate`（66→33 行）：提取 `_direct_route` 与 `_build_orchestrate_result`，保留 `_route_via_engine` 引用与计时点。
+- **验证**：
+  - `scripts/check_code_size.py`：**无 >300 行文件**；>50 行函数从 95 个降至 90 个。
+  - 全量 `pytest -q` → **1836 passed, 4 skipped**。
+  - `ruff check .` → 0 errors。
+- **部署验证**：
+  - `scripts/deploy_unified.py --slice core` 上传 723 个文件，restart 后 health OK。
+  - 公网 `/health` 返回 `status ok`。
+
 ## 2026-06-19 设备能力族独立审批门（完成）
 
 - **目标**：实现 `display/audio/speech/ocr/camera/perception` 能力族的独立审批门，不再与 `motion` 共享全局放行条件。

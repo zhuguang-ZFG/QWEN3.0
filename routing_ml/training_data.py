@@ -85,6 +85,58 @@ def load_coding_scores(data_dir: str = "data") -> dict[str, float]:
     return {b: sum(v) / len(v) for b, v in scores.items() if v}
 
 
+def _valid_entry(entry: dict, backend_idx: dict[str, int]) -> bool:
+    backend = entry["backend"]
+    if backend not in backend_idx:
+        return False
+    successes = entry.get("successes", 0)
+    failures = entry.get("failures", 0)
+    return successes + failures > 0
+
+
+def _scenario_features(scenario: str) -> list[float]:
+    features = [0.0] * N_FEATURES
+    if scenario == "coding":
+        features[0] = 0.5
+        features[1] = 0.7
+        features[10] = 1.0
+    elif scenario == "chat":
+        features[0] = 0.3
+        features[1] = 0.1
+        features[11] = 1.0
+    else:
+        features[0] = 0.4
+        features[1] = 0.3
+    return features
+
+
+def _build_target(n_backends: int, backend_index: int, weight: float) -> list[float]:
+    target = [0.0] * n_backends
+    target[backend_index] = min(max(weight / 2.0, 0.0), 1.0)
+    return target
+
+
+def _append_negative_sample(
+    samples: list[TrainingSample],
+    features: list[float],
+    target: list[float],
+    backend_index: int,
+    backend: str,
+    scenario: str,
+) -> None:
+    neg_target = list(target)
+    neg_target[backend_index] *= 0.3
+    samples.append(
+        TrainingSample(
+            features=list(features),
+            target=neg_target,
+            backend=backend,
+            success=False,
+            scenario=scenario,
+        )
+    )
+
+
 def build_training_samples(
     weight_history: list[dict],
     backend_names: list[str],
@@ -96,34 +148,17 @@ def build_training_samples(
     coding_scores = coding_scores or {}
 
     for entry in weight_history:
-        backend = entry["backend"]
-        if backend not in backend_idx:
+        if not _valid_entry(entry, backend_idx):
             continue
 
+        backend = entry["backend"]
         scenario = entry.get("scenario", "chat")
         successes = entry.get("successes", 0)
         failures = entry.get("failures", 0)
-        total = successes + failures
-
-        if total == 0:
-            continue
-
-        features = [0.0] * N_FEATURES
-        if scenario == "coding":
-            features[0] = 0.5
-            features[1] = 0.7
-            features[10] = 1.0
-        elif scenario == "chat":
-            features[0] = 0.3
-            features[1] = 0.1
-            features[11] = 1.0
-        else:
-            features[0] = 0.4
-            features[1] = 0.3
-
         weight = entry.get("weight", 1.0)
-        target = [0.0] * len(backend_names)
-        target[backend_idx[backend]] = min(max(weight / 2.0, 0.0), 1.0)
+
+        features = _scenario_features(scenario)
+        target = _build_target(len(backend_names), backend_idx[backend], weight)
 
         samples.append(
             TrainingSample(
@@ -136,17 +171,7 @@ def build_training_samples(
         )
 
         if failures > 0:
-            neg_target = list(target)
-            neg_target[backend_idx[backend]] *= 0.3
-            samples.append(
-                TrainingSample(
-                    features=list(features),
-                    target=neg_target,
-                    backend=backend,
-                    success=False,
-                    scenario=scenario,
-                )
-            )
+            _append_negative_sample(samples, features, target, backend_idx[backend], backend, scenario)
 
     return samples
 

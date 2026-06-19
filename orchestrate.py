@@ -32,6 +32,52 @@ __all__ = [
 ]
 
 
+def _direct_route(
+    query: str,
+    messages: list[dict] | None,
+    ide_source: str,
+    system_prompt: str,
+    max_tokens: int,
+    needs_tools: bool,
+    tools: list[dict] | None,
+) -> dict:
+    """Route a query directly through the engine and return the standard result dict."""
+    r = _route_via_engine(
+        query,
+        messages=messages,
+        ide_source=ide_source,
+        system_prompt=system_prompt,
+        max_tokens=max_tokens,
+        needs_tools=needs_tools,
+        tools=tools,
+    )
+    return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
+
+
+def _build_orchestrate_result(
+    intent: dict,
+    results: list[dict],
+    final_answer: str,
+    t0: float,
+) -> dict:
+    """Build the final orchestration result dict from subtask results."""
+    backends_used = list({r["backend"] for r in results})
+    subtask_ms = [r["ms"] for r in results]
+    total_ms = int((time.time() - t0) * 1000)
+    return {
+        "answer": final_answer,
+        "backend": f"orchestrate({','.join(backends_used)})",
+        "intent": intent,
+        "total_ms": total_ms,
+        "orchestration": {
+            "subtask_count": len(results),
+            "backends_used": backends_used,
+            "subtask_ms": subtask_ms,
+            "parallel_speedup": f"{sum(subtask_ms) / max(max(subtask_ms), 1):.1f}x",
+        },
+    }
+
+
 def orchestrate(
     query: str,
     *,
@@ -48,30 +94,12 @@ def orchestrate(
     intent = routing_intent.analyze_intent(query, system_prompt=system_prompt, ide=ide_source)
 
     if not needs_orchestration(query, intent):
-        r = _route_via_engine(
-            query,
-            messages=messages,
-            ide_source=ide_source,
-            system_prompt=system_prompt,
-            max_tokens=max_tokens,
-            needs_tools=needs_tools,
-            tools=tools,
-        )
-        return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
+        return _direct_route(query, messages, ide_source, system_prompt, max_tokens, needs_tools, tools)
 
     subtasks = decompose(query)
 
     if len(subtasks) == 1 and subtasks[0]["task"] == query:
-        r = _route_via_engine(
-            query,
-            messages=messages,
-            ide_source=ide_source,
-            system_prompt=system_prompt,
-            max_tokens=max_tokens,
-            needs_tools=needs_tools,
-            tools=tools,
-        )
-        return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
+        return _direct_route(query, messages, ide_source, system_prompt, max_tokens, needs_tools, tools)
 
     results = execute_subtasks(
         subtasks,
@@ -82,22 +110,7 @@ def orchestrate(
 
     final_answer = synthesize(query, results)
 
-    backends_used = list({r["backend"] for r in results})
-    total_ms = int((time.time() - t0) * 1000)
-    subtask_ms = [r["ms"] for r in results]
-
-    return {
-        "answer": final_answer,
-        "backend": f"orchestrate({','.join(backends_used)})",
-        "intent": intent,
-        "total_ms": total_ms,
-        "orchestration": {
-            "subtask_count": len(subtasks),
-            "backends_used": backends_used,
-            "subtask_ms": subtask_ms,
-            "parallel_speedup": f"{sum(subtask_ms) / max(max(subtask_ms), 1):.1f}x",
-        },
-    }
+    return _build_orchestrate_result(intent, results, final_answer, t0)
 
 
 if __name__ == "__main__":

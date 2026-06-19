@@ -25,73 +25,57 @@ def get_configured() -> list[str]:
 
 
 # -- Auto-detection: vendor, tier, protocol, capabilities --
+_VENDOR_HINTS: tuple[tuple[str, str], ...] = (
+    ("longcat", "LongCat"),
+    ("nvidia", "NVIDIA"),
+    ("openrouter", "OpenRouter"),
+    ("deepseek", "DeepSeek"),
+    ("chinamobile", "China Mobile"),
+    ("localhost", "Local (Ollama)"),
+    ("127.0.0.1", "Local (Ollama)"),
+    ("trycloudflare.com", "Local (Ollama)"),
+    ("ddg.zhuguang", "DuckDuckGo AI"),
+    ("tele.zhuguang", "lza6 Workers"),
+    ("assist.zhuguang", "lza6 Workers"),
+    ("vision.zhuguang", "lza6 Workers"),
+    ("stock.zhuguang", "StockAI"),
+    ("llm.zhuguang", "TheOldLLM"),
+    ("groq.com", "Groq"),
+    ("cerebras", "Cerebras"),
+    ("models.inference.ai.azure.com", "GitHub Models"),
+    ("generativelanguage.googleapis.com", "Google"),
+    ("cloudflare.com", "Cloudflare"),
+    ("ai.gitee.com", "Gitee AI"),
+    ("mistral.ai", "Mistral"),
+    ("codestral.mistral", "Mistral"),
+    ("bigmodel.cn", "Zhipu"),
+    ("siliconflow.cn", "SiliconFlow"),
+    ("baidubce.com", "Baidu"),
+    ("volces.com", "Volcengine"),
+    ("aliyuncs.com", "Alibaba"),
+    ("tencent", "Tencent"),
+    ("hunyuan", "Tencent"),
+    ("unturf.com", "UncloseAI"),
+    ("ch.at", "ChatUbi"),
+    ("llm7.io", "LLM7"),
+    ("pollinations", "Pollinations"),
+    ("fireworks.ai", "Fireworks AI"),
+    ("ovh.net", "OVHcloud"),
+    ("cohere.com", "Cohere"),
+    ("sambanova.ai", "SambaNova"),
+    ("deepinfra.com", "DeepInfra"),
+)
+
+
+def _match_vendor(url: str) -> str | None:
+    for hint, vendor in _VENDOR_HINTS:
+        if hint in url:
+            return vendor
+    return None
+
+
 def detect_vendor(url: str) -> str:
-    u = url.lower()
-    if "longcat" in u:
-        return "LongCat"
-    if "nvidia" in u:
-        return "NVIDIA"
-    if "openrouter" in u:
-        return "OpenRouter"
-    if "deepseek" in u:
-        return "DeepSeek"
-    if "chinamobile" in u:
-        return "China Mobile"
-    if "localhost" in u or "127.0.0.1" in u or "trycloudflare.com" in u:
-        return "Local (Ollama)"
-    if "ddg.zhuguang" in u:
-        return "DuckDuckGo AI"
-    if "tele.zhuguang" in u or "assist.zhuguang" in u or "vision.zhuguang" in u:
-        return "lza6 Workers"
-    if "stock.zhuguang" in u:
-        return "StockAI"
-    if "llm.zhuguang" in u:
-        return "TheOldLLM"
-    if "groq.com" in u:
-        return "Groq"
-    if "cerebras" in u:
-        return "Cerebras"
-    if "models.inference.ai.azure.com" in u:
-        return "GitHub Models"
-    if "generativelanguage.googleapis.com" in u:
-        return "Google"
-    if "cloudflare.com" in u:
-        return "Cloudflare"
-    if "ai.gitee.com" in u:
-        return "Gitee AI"
-    if "mistral.ai" in u or "codestral.mistral" in u:
-        return "Mistral"
-    if "bigmodel.cn" in u:
-        return "Zhipu"
-    if "siliconflow.cn" in u:
-        return "SiliconFlow"
-    if "baidubce.com" in u:
-        return "Baidu"
-    if "volces.com" in u:
-        return "Volcengine"
-    if "aliyuncs.com" in u:
-        return "Alibaba"
-    if "tencent" in u or "hunyuan" in u:
-        return "Tencent"
-    if "unturf.com" in u:
-        return "UncloseAI"
-    if "ch.at" in u:
-        return "ChatUbi"
-    if "llm7.io" in u:
-        return "LLM7"
-    if "pollinations" in u:
-        return "Pollinations"
-    if "fireworks.ai" in u:
-        return "Fireworks AI"
-    if "ovh.net" in u:
-        return "OVHcloud"
-    if "cohere.com" in u:
-        return "Cohere"
-    if "sambanova.ai" in u:
-        return "SambaNova"
-    if "deepinfra.com" in u:
-        return "DeepInfra"
-    return "Unknown"
+    return _match_vendor(url.lower()) or "Unknown"
 
 
 def detect_tier(url: str, name: str = "") -> str:
