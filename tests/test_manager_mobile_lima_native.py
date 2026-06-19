@@ -29,3 +29,16 @@ def test_manager_mobile_defaults_to_lima_native_v2_entrypoints():
     assert "/api/ping" not in settings_text
     assert "/health" in settings_text
     assert "/xiaozhi$" not in settings_text
+
+
+def test_manager_mobile_wechat_env_points_to_lima():
+    """WeChat mini-program develop/trial/release must default to LiMa, not xiaozhi laf.run."""
+    utils_text = (ROOT / "src/utils/index.ts").read_text(encoding="utf-8")
+
+    assert "VITE_SERVER_BASEURL__WEIXIN_DEVELOP = 'https://chat.donglicao.com'" in utils_text
+    assert "VITE_SERVER_BASEURL__WEIXIN_TRIAL = 'https://chat.donglicao.com'" in utils_text
+    assert "VITE_SERVER_BASEURL__WEIXIN_RELEASE = 'https://chat.donglicao.com'" in utils_text
+    assert "VITE_UPLOAD_BASEURL__WEIXIN_DEVELOP = 'https://chat.donglicao.com/upload'" in utils_text
+    assert "VITE_UPLOAD_BASEURL__WEIXIN_TRIAL = 'https://chat.donglicao.com/upload'" in utils_text
+    assert "VITE_UPLOAD_BASEURL__WEIXIN_RELEASE = 'https://chat.donglicao.com/upload'" in utils_text
+    assert "ukw0y1.laf.run" not in utils_text

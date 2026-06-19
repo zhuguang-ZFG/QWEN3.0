@@ -16,6 +16,7 @@ LiMa 已经接管设备直连、设备管理、任务、OTA、固件默认连接
 - OTA 发布、灰度、升级计划、安装结果：`routes/device_ota.py`
 - 固件端已改为 LiMa 协议默认连接：`esp32S_XYZ/firmware/u8-xiaozhi/main/protocols/websocket_protocol.cc`
 - manager-mobile 默认 `https://chat.donglicao.com`、v2 入口、`/device/v1/app` API，设置页使用 `/health` 验证服务地址
+- 微信小程序 develop/trial/release 默认后端常量已从 `ukw0y1.laf.run` 切到 `https://chat.donglicao.com`，上传接口同步切到 `https://chat.donglicao.com/upload`
 - 兼容层默认关闭：`routes/route_registry.py`
 
 ## 仅可选兼容层保留
