@@ -5,6 +5,21 @@
 > Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-19 微信小程序后端迁移：manager-mobile 默认指向 LiMa（完成）
+
+- **问题**：用户问“微信小程序从小智服务器迁移过来了吗”。检查发现 `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/src/utils/index.ts` 中微信小程序 develop/trial/release 的 baseUrl 和 uploadUrl 仍硬编码为旧小智服务器 `https://ukw0y1.laf.run`，属于未闭环点。
+- **修复**：
+  - 将 `VITE_SERVER_BASEURL__WEIXIN_*` 改为 `https://chat.donglicao.com`。
+  - 将 `VITE_UPLOAD_BASEURL__WEIXIN_*` 改为 `https://chat.donglicao.com/upload`。
+  - 注释标注迁移到 LiMa。
+  - 提交在 `esp32S_XYZ` 子模块 (`b7579a6`)，主仓库更新子模块指针。
+- **验证**：
+  - 新增 `tests/test_manager_mobile_lima_native.py::test_manager_mobile_wechat_env_points_to_lima`，确保 `ukw0y1.laf.run` 不再出现在 utils 中。
+  - `pytest tests/test_manager_mobile_lima_native.py` → 3 passed。
+  - `ruff check tests/test_manager_mobile_lima_native.py` → 0 errors。
+  - 更新 `docs/XIAOZHI_TO_LIMA_GAP_AUDIT_CN.md` 记录该闭环点。
+- **遗留**：默认头像仍引用 `https://oss.laf.run/ukw0y1-site/avatar.jpg?feige`，且 `user.ts` 里 else 分支会把用户头像强制覆盖成该默认图，逻辑疑似 bug；建议后续改为 LiMa 默认头像或本地资源。
+
 ## 2026-06-19 代码尺寸治理 M2：剩余生产大文件拆分 + deploy helper 修复（完成）
 
 - **目标**：继续拆分剩余生产代码中超 300 行的文件，并修复部署脚本在 `--files` 模式下无法自动展开包内子模块、以及 `restart_server()` 因 `find -exec rm -rf __pycache__` 挂起的问题。
