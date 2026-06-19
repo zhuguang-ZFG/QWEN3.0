@@ -5,6 +5,38 @@
 > Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-19 代码尺寸治理 M3：拆分最后 5 个生产大文件（完成）
+
+- **目标**：继续推进代码尺寸治理，将剩余 5 个超过 300 行的生产文件全部拆分，使生产代码无 >300 行文件。
+- **实现**：
+  - `routes/ops_metrics.py`（382 行）→ 改建为 `routes/ops_metrics/` 包：
+    - 新增 `summary.py`、`backend_ops.py`、`eval_ops.py`、`prometheus.py`、`ops_metrics.py`。
+    - 消除 `__init__.py` 对父文件的 `importlib.util` 动态加载。
+  - `session_memory/learning_loop.py`（378 行）→ 改建为 `session_memory/learning_loop/` 包：
+    - `models.py`、`ingest.py`、`memory_channel.py`、`prompt_channel.py`、`routing_channel.py`、`eval_channel.py`。
+    - `_PROMPT_PROFILES` / `_EVAL_CANDIDATES` 单例缓存保留在各自子模块。
+  - `device_gateway/device_profile.py`（357 行）→ 改建为 `device_gateway/device_profile/` 包：
+    - `models.py`、`registry.py`、`sources.py`、`_artifact_parser.py`、`serialize.py`。
+    - 原文件保留为 facade，所有调用方导入路径不变。
+  - `routes/admin_ui/panels.py`（347 行）→ 改建为 `routes/admin_ui/panels/` 包：
+    - 按业务域拆分为 12 个面板模块，HTML 内容无变更。
+  - `code_context/treesitter_adapter.py`（346 行）→ 改建为 `code_context/treesitter/` 包：
+    - `constants.py`、`parser_pool.py`、`ts_symbols.py`、`regex_symbols.py`、`extractor.py`。
+    - `_TREE_SITTER_AVAILABLE` 单例缓存保留在 `parser_pool.py`。
+- **验证**：
+  - `scripts/check_code_size.py`：生产代码 >300 行文件从 5 个降至 **0**；整体 >300 行文件从 19 个降至 14 个（剩余全部为测试文件）。
+  - 各模块聚焦测试全部通过：
+    - ops_metrics 4 个测试文件 → 27 passed
+    - learning_loop → 12 passed
+    - device_profile → 20 passed
+    - admin_ui → 1 passed
+  - 全量 `pytest -q` → **1820 passed, 4 skipped**。
+  - `ruff check .` → 0 errors；`ruff format` 已应用；`pyright` 触及目录无错误。
+- **部署验证**：
+  - VPS 磁盘接近满载（99%），清理旧备份（`lima-worktree.tgz`、`lima-head.tgz` 等）后释放约 180MB。
+  - `scripts/deploy_unified.py --slice core` 上传 716 个文件，restart 后 health OK。
+  - 公网验证 `/health` 正常；`/admin` 返回 401 登录页；`/v1/ops/summary` 返回 401，说明路由已挂载。
+
 ## 2026-06-19 小智服务器功能移植收尾：OpenAPI 27/27 覆盖（完成）
 
 - **目标**：回答并闭环“小智服务器还有未移植到 LiMa 的功能吗”。审计后补齐剩余 4 个 OpenAPI 端点 + 4 处路径别名，使小智 v1 兼容层达到 27/27 业务操作覆盖。
