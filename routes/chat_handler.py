@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from fastapi import HTTPException
 
@@ -11,6 +11,7 @@ from chat_models import ChatRequest
 from response_builder import extract_query
 from routes.chat_fallback import inject_deps as _inject_chat_fallback_deps
 from routes.chat_handler_dispatch import (
+    ChatRunContext,
     build_streaming_response,
     execute_non_stream_route,
     maybe_image_response,
@@ -18,6 +19,9 @@ from routes.chat_handler_dispatch import (
     start_chat_run,
 )
 from routes.chat_response_finalize import finalize_success_response
+
+if TYPE_CHECKING:
+    from context_pipeline.tracing import RequestTrace as Trace
 
 _log = logging.getLogger(__name__)
 _model_id = "lima-1.3"
@@ -45,6 +49,45 @@ def inject_deps(
     )
 
 
+def _start_trace(ide_source: str) -> Trace | None:
+    try:
+        from context_pipeline.tracing import new_trace
+
+        trace = new_trace()
+        trace.start_span("handle_chat", ide=ide_source)
+        return trace
+    except ImportError as exc:
+        _log.warning("context_pipeline.tracing unavailable: %s", exc)
+        return None
+
+
+async def _try_early_response(
+    ctx: ChatRunContext,
+    req: ChatRequest,
+    model_id: str,
+) -> dict | None:
+    image_resp = await maybe_image_response(
+        ctx,
+        req,
+        model_id=model_id,
+        record_request=_record_request,
+        build_pollinations_url=_build_pollinations_url,
+    )
+    if image_resp is not None:
+        return image_resp
+
+    thinking_resp = await maybe_thinking_response(
+        ctx,
+        req,
+        model_id=model_id,
+        record_request=_record_request,
+    )
+    if thinking_resp is not None:
+        return thinking_resp
+
+    return None
+
+
 async def handle_chat(
     req: ChatRequest,
     fmt: str = "openai",
@@ -58,15 +101,7 @@ async def handle_chat(
     if not query.strip():
         raise HTTPException(status_code=400, detail="Empty query")
 
-    try:
-        from context_pipeline.tracing import new_trace
-
-        trace = new_trace()
-        trace.start_span("handle_chat", ide=ide_source)
-    except ImportError as exc:
-        _log.warning("context_pipeline.tracing unavailable: %s", exc)
-        trace = None
-
+    trace = _start_trace(ide_source)
     ctx = start_chat_run(
         req,
         fmt=fmt,
@@ -78,24 +113,9 @@ async def handle_chat(
         trace=trace,
     )
 
-    image_resp = await maybe_image_response(
-        ctx,
-        req,
-        model_id=_model_id,
-        record_request=_record_request,
-        build_pollinations_url=_build_pollinations_url,
-    )
-    if image_resp is not None:
-        return image_resp
-
-    thinking_resp = await maybe_thinking_response(
-        ctx,
-        req,
-        model_id=_model_id,
-        record_request=_record_request,
-    )
-    if thinking_resp is not None:
-        return thinking_resp
+    early_resp = await _try_early_response(ctx, req, _model_id)
+    if early_resp is not None:
+        return early_resp
 
     if req.stream:
         return build_streaming_response(ctx, req)

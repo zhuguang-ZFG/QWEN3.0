@@ -30,43 +30,65 @@ def execute_with_strategy(
     complexity = speculative.classify_complexity(query, messages)
 
     if needs_tools:
-        final_backend, answer, _ = execute(
-            backends,
-            call_fn,
-            messages,
-            max_tokens,
-            tools=tools,
-            scenario=scenario,
-            request_type=req_type,
+        final_backend, answer = _run_standard_execute(
+            backends, call_fn, messages, max_tokens, scenario, req_type, tools=tools
         )
     elif complexity == "simple" and req_type in ("ide", "chat"):
-        final_backend, answer = _try_speculative(
-            backends,
-            call_fn,
-            messages,
-            max_tokens,
-            scenario,
-            req_type,
-        )
+        final_backend, answer = _try_speculative(backends, call_fn, messages, max_tokens, scenario, req_type)
     elif complexity == "code":
-        final_backend, answer = _execute_code_priority(
-            backends,
-            call_fn,
-            messages,
-            max_tokens,
-            scenario,
-            req_type,
-        )
+        final_backend, answer = _execute_code_priority(backends, call_fn, messages, max_tokens, scenario, req_type)
     else:
-        final_backend, answer, _ = execute(
-            backends,
-            call_fn,
-            messages,
-            max_tokens,
-            scenario=scenario,
-            request_type=req_type,
-        )
+        final_backend, answer = _run_standard_execute(backends, call_fn, messages, max_tokens, scenario, req_type)
 
+    return _pin_backend_and_quality_retry(
+        final_backend,
+        answer,
+        backends,
+        call_fn,
+        messages,
+        max_tokens,
+        query,
+        scenario,
+        req_type,
+        sticky_key,
+    )
+
+
+def _run_standard_execute(
+    backends: list[str],
+    call_fn: Callable,
+    messages: list[dict],
+    max_tokens: int,
+    scenario: str,
+    request_type: str,
+    tools: list[dict] | None = None,
+) -> tuple[str, str]:
+    """调用模块级 execute 并丢弃第三返回值。"""
+    final_backend, answer, _ = execute(
+        backends,
+        call_fn,
+        messages,
+        max_tokens,
+        tools=tools,
+        scenario=scenario,
+        request_type=request_type,
+    )
+    return final_backend, answer
+
+
+def _pin_backend_and_quality_retry(
+    final_backend: str,
+    answer: str,
+    backends: list[str],
+    call_fn: Callable,
+    messages: list[dict],
+    max_tokens: int,
+    query: str,
+    scenario: str,
+    request_type: str,
+    sticky_key: str,
+) -> tuple[str, str]:
+    """记录 sticky backend 并在 coding 场景执行质量重试。"""
     if final_backend != "exhausted":
         sticky_session.pin_backend(sticky_key, final_backend)
 
@@ -80,7 +102,7 @@ def execute_with_strategy(
             max_tokens,
             query,
             scenario,
-            req_type,
+            request_type,
         )
 
     return final_backend, answer

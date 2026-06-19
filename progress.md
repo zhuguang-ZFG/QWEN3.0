@@ -59,6 +59,22 @@
   - 首次 `scripts/deploy_unified.py --slice core` 因 SFTP socket 中断，79 成功 / 754 失败；第二次重试成功上传 833 个文件，restart 后 health OK。
   - 公网 `/health` 正常。
 
+## 2026-06-20 函数级尺寸治理第四轮：拆分 4 个热路径超长函数（完成）
+
+- **目标**：继续降低 >50 行函数数量，处理 chat/routing/http stream 热路径。
+- **实现**：
+  - `routes/chat_handler.py::handle_chat`（64→41 行）：提取 `_start_trace` 与 `_try_early_response` helper。
+  - `routing_engine.py::route`（65→46 行）：提取 `_identity_shortcut`、`_pick_for_route`、`_build_route_result`。
+  - `routing_engine_execute_strategy.py::execute_with_strategy`（70→38 行）：提取 `_run_standard_execute` 与 `_pin_backend_and_quality_retry`。
+  - `http_stream.py::_stream_parse_lines`（65→47 行）与 `_stream_parse_lines_async`（63→47 行）：提取错误检测、initial buffer flush、sanitizer tail、chunk 清理、空流处理 helper；新增 `tests/test_http_stream_parse_lines.py`（19 测试）。
+- **验证**：
+  - `scripts/check_code_size.py`：**无 >300 行文件**；>50 行函数从 86 个降至 **81 个**。
+  - 全量 `pytest -q` → **1852 passed, 4 skipped**；1 个与本次无关的 flaky 失败：`tests/test_model_registry.py::test_list_versions_sorted_by_created_at_desc`（单独重跑通过）。
+  - `ruff check .` → 0 errors。
+- **部署验证**：
+  - `scripts/deploy_unified.py --slice core` 上传 833 个文件，restart 后 health OK。
+  - 公网 `/health` 正常。
+
 ## 2026-06-19 设备能力族独立审批门（完成）
 
 - **目标**：实现 `display/audio/speech/ocr/camera/perception` 能力族的独立审批门，不再与 `motion` 共享全局放行条件。

@@ -24,6 +24,51 @@ def _caller():
     return http_caller
 
 
+def _maybe_raise_backend_error(total_text: str, backend: str, health_tracker) -> None:
+    """Detect backend error text and raise BackendError."""
+    if _is_backend_error(total_text):
+        health_tracker.record_failure(backend, error_code=429, error_text=total_text)
+        raise BackendError(f"{backend} error: {total_text[:60]}", status_code=429)
+
+
+def _flush_initial_buffer(pending_chunks: list[str], backend: str) -> tuple[str, StreamIdentitySanitizer]:
+    """Concatenate pending chunks, sanitize, and create a stream sanitizer."""
+    buffered = "".join(pending_chunks)
+    cleaned = clean_response(buffered, backend)
+    sanitizer = StreamIdentitySanitizer(backend)
+    return cleaned, sanitizer
+
+
+def _flush_sanitizer_tail(sanitizer) -> str | None:
+    """Flush sanitizer tail text, if any."""
+    if sanitizer is None:
+        return None
+    tail = sanitizer.flush()
+    return tail if tail else None
+
+
+def _clean_chunk(chunk: str, backend: str) -> str:
+    """Remove data: prefix, strip, and apply response cleaning if needed."""
+    line = chunk.strip()
+    if line.startswith("data: "):
+        line = line[6:]
+    if line == "[DONE]":
+        return ""
+    return clean_response(line.strip(), backend)
+
+
+def _handle_empty_or_unflushed_buffer(
+    pending_chunks: list[str], total_text: str, backend: str, health_tracker
+) -> list[str]:
+    """Detect backend error/empty stream and return cleaned chunks to yield."""
+    if not total_text:
+        return []
+    if _is_backend_error(total_text):
+        health_tracker.record_failure(backend, error_code=429, error_text=total_text)
+        raise BackendError(f"{backend} returned error: {total_text[:60]}", status_code=429)
+    return [cleaned for chunk in pending_chunks if (cleaned := _clean_chunk(chunk, backend))]
+
+
 def _stream_parse_lines(
     lines,
     fmt: str,
@@ -49,46 +94,27 @@ def _stream_parse_lines(
             continue
         total_text += text
         if flushed:
-            if stream_sanitizer is None:
-                stream_sanitizer = StreamIdentitySanitizer(backend)
+            _maybe_raise_backend_error(text, backend, health_tracker)
             cleaned_out = stream_sanitizer.feed(text)
             if cleaned_out:
                 yield cleaned_out
         else:
             pending_chunks.append(text)
             if len(total_text) > 200:
-                if _is_backend_error(total_text):
-                    health_tracker.record_failure(backend, error_code=429, error_text=total_text)
-                    raise BackendError(
-                        f"{backend} error: {total_text[:60]}",
-                        status_code=429,
-                    )
-                buffered = "".join(pending_chunks)
-                cleaned = clean_response(buffered, backend)
+                _maybe_raise_backend_error(total_text, backend, health_tracker)
+                cleaned, stream_sanitizer = _flush_initial_buffer(pending_chunks, backend)
                 if cleaned:
                     yield cleaned
                 pending_chunks = []
                 flushed = True
-                stream_sanitizer = StreamIdentitySanitizer(backend)
 
-    # Post-stream: flush sanitizer tail
-    if flushed and stream_sanitizer is not None:
-        tail = stream_sanitizer.flush()
+    if flushed:
+        tail = _flush_sanitizer_tail(stream_sanitizer)
         if tail:
             yield tail
-
-    # Post-stream: unflushed buffer
-    if not flushed:
-        if not total_text:
-            health_tracker.record_failure(backend, error_code=502, error_text="empty stream")
-            raise BackendError(f"{backend} returned empty stream", status_code=502)
-        if _is_backend_error(total_text):
-            health_tracker.record_failure(backend, error_code=429, error_text=total_text)
-            raise BackendError(f"{backend} returned error: {total_text[:60]}", status_code=429)
-        for chunk in pending_chunks:
-            cleaned = clean_response(chunk, backend)
-            if cleaned:
-                yield cleaned
+    else:
+        for chunk in _handle_empty_or_unflushed_buffer(pending_chunks, total_text, backend, health_tracker):
+            yield chunk
 
 
 def _record_stream_success(hc, backend, key_provider, selected_key, total_text, started):
@@ -199,44 +225,27 @@ async def _stream_parse_lines_async(
             continue
         total_text += text
         if flushed:
-            if stream_sanitizer is None:
-                stream_sanitizer = StreamIdentitySanitizer(backend)
+            _maybe_raise_backend_error(text, backend, health_tracker)
             cleaned_out = stream_sanitizer.feed(text)
             if cleaned_out:
                 yield cleaned_out
         else:
             pending_chunks.append(text)
             if len(total_text) > 200:
-                if _is_backend_error(total_text):
-                    health_tracker.record_failure(backend, error_code=429, error_text=total_text)
-                    raise BackendError(
-                        f"{backend} error: {total_text[:60]}",
-                        status_code=429,
-                    )
-                buffered = "".join(pending_chunks)
-                cleaned_out = clean_response(buffered, backend)
-                if cleaned_out:
-                    yield cleaned_out
+                _maybe_raise_backend_error(total_text, backend, health_tracker)
+                cleaned, stream_sanitizer = _flush_initial_buffer(pending_chunks, backend)
+                if cleaned:
+                    yield cleaned
                 pending_chunks = []
                 flushed = True
-                stream_sanitizer = StreamIdentitySanitizer(backend)
 
-    if flushed and stream_sanitizer is not None:
-        tail = stream_sanitizer.flush()
+    if flushed:
+        tail = _flush_sanitizer_tail(stream_sanitizer)
         if tail:
             yield tail
-
-    if not flushed:
-        if not total_text:
-            health_tracker.record_failure(backend, error_code=502, error_text="empty stream")
-            raise BackendError(f"{backend} returned empty stream", status_code=502)
-        if _is_backend_error(total_text):
-            health_tracker.record_failure(backend, error_code=429, error_text=total_text)
-            raise BackendError(f"{backend} returned error: {total_text[:60]}", status_code=429)
-        for chunk in pending_chunks:
-            cleaned_out = clean_response(chunk, backend)
-            if cleaned_out:
-                yield cleaned_out
+    else:
+        for chunk in _handle_empty_or_unflushed_buffer(pending_chunks, total_text, backend, health_tracker):
+            yield chunk
 
 
 async def call_api_stream_async(
