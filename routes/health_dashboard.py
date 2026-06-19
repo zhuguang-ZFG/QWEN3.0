@@ -33,46 +33,68 @@ async def health_dashboard(request: Request):
     return HTMLResponse(html)
 
 
-def _collect_backend_health() -> dict:
-    """Collect comprehensive health data for all backends."""
+def _get_backend_stats(name: str, cfg: dict) -> dict:
+    """Collect cooldown and probe stats for a single backend."""
     import health_tracker
     import health_state
-    import budget_manager
-    from backends_registry import BACKENDS
-    from backend_utils import detect_caps
+    import backend_probe_loop
 
+    state = health_tracker.get_backend_state(name)
+    quality = health_state.get_backend_quality(name)
     scores = health_tracker.get_scores()
     latency_map = health_tracker.get_latency_map()
     health_map = health_tracker.get_health_map()
+    cb_state = "open" if health_tracker.is_cooled_down(name) else "closed"
+    return {
+        "state": state,
+        "quality": quality,
+        "health": health_map.get(name, "unknown"),
+        "score": scores.get(name, 50),
+        "avg_latency_ms": latency_map.get(name, 0),
+        "cb_state": cb_state,
+        "probe_enabled": backend_probe_loop._running,
+        "probe_interval": backend_probe_loop.PROBE_INTERVAL,
+    }
 
-    backends = []
-    for name, cfg in sorted(BACKENDS.items()):
-        state = health_tracker.get_backend_state(name)
-        caps = detect_caps(name, cfg)
-        budget_status = budget_manager.get_budget_status(name)
-        quality = health_state.get_backend_quality(name)
-        cb_state = "open" if health_tracker.is_cooled_down(name) else "closed"
 
-        backends.append(
-            {
-                "name": name,
-                "health": health_map.get(name, "unknown"),
-                "score": scores.get(name, 50),
-                "avg_latency_ms": latency_map.get(name, 0),
-                "consecutive_failures": state.get("consecutive_failures", 0),
-                "cooldown_remaining_s": state.get("cooldown_remaining_s", 0),
-                "last_error_code": state.get("last_error_code"),
-                "last_error_class": state.get("last_error_class"),
-                "total_requests": quality.get("total_requests", 0),
-                "empty_count": quality.get("empty_count", 0),
-                "caps": caps,
-                "budget": budget_status,
-                "model": cfg.get("model", ""),
-                "cb_state": cb_state,
-                "cb_failures": state.get("consecutive_failures", 0),
-                "cb_total_calls": quality.get("total_requests", 0),
-            }
-        )
+def _compute_backend_status(name: str, cfg: dict, stats: dict) -> dict:
+    """Compute the health/status dict for a single backend."""
+    import budget_manager
+    from backend_utils import detect_caps
+
+    state = stats["state"]
+    quality = stats["quality"]
+    caps = detect_caps(name, cfg)
+    budget_status = budget_manager.get_budget_status(name)
+    is_healthy = stats["health"] == "healthy"
+    last_ok = time.time() if is_healthy else None
+    return {
+        "name": name,
+        "health": stats["health"],
+        "score": stats["score"],
+        "avg_latency_ms": stats["avg_latency_ms"],
+        "consecutive_failures": state.get("consecutive_failures", 0),
+        "cooldown_remaining_s": state.get("cooldown_remaining_s", 0),
+        "last_error_code": state.get("last_error_code"),
+        "last_error_class": state.get("last_error_class"),
+        "total_requests": quality.get("total_requests", 0),
+        "empty_count": quality.get("empty_count", 0),
+        "caps": caps,
+        "budget": budget_status,
+        "model": cfg.get("model", ""),
+        "cb_state": stats["cb_state"],
+        "cb_failures": state.get("consecutive_failures", 0),
+        "cb_total_calls": quality.get("total_requests", 0),
+    }
+
+
+def _collect_backend_health() -> dict:
+    """Collect comprehensive health data for all backends."""
+    from backends_registry import BACKENDS
+
+    backends = [
+        _compute_backend_status(name, cfg, _get_backend_stats(name, cfg)) for name, cfg in sorted(BACKENDS.items())
+    ]
 
     healthy = sum(1 for b in backends if b["health"] == "healthy")
     degraded = sum(1 for b in backends if b["health"] == "degraded")

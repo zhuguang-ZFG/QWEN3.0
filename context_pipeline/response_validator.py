@@ -11,6 +11,7 @@ import ast
 import logging
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 _log = logging.getLogger(__name__)
 
@@ -62,16 +63,37 @@ def validate_response(response: str, query: str = "") -> ValidationResult:
 
     Returns a ValidationResult with score 0-1 and categorized issues.
     """
-    if not response or not response.strip():
-        return ValidationResult(passed=False, score=0.0, issues=["empty_response"])
+    if _should_skip_validation("", None, response):
+        empty_errors: dict[str, Any] = {
+            "all": ["empty_response"],
+            "security": [],
+            "syntax": [],
+            "score": 0.0,
+        }
+        return _format_validation_result(False, empty_errors, 0)
 
     blocks = _extract_code_blocks(response)
+    passed, errors = _run_coding_validation(response, blocks, None)
+    return _format_validation_result(passed, errors, len(blocks))
+
+
+def _should_skip_validation(request_type: str, config: dict | None, response_text: str) -> bool:
+    """Return True when validation should be short-circuited."""
+    return not response_text or not response_text.strip()
+
+
+def _run_coding_validation(
+    response_text: str,
+    code_blocks: list[CodeBlock],
+    config: dict | None,
+) -> tuple[bool, dict[str, Any]]:
+    """Run syntax and security checks on extracted code blocks."""
     all_issues: list[str] = []
     security_issues: list[str] = []
     syntax_issues: list[str] = []
     blocks_with_issues = 0
 
-    for block in blocks:
+    for block in code_blocks:
         block_issues = _validate_block(block)
         if block_issues:
             blocks_with_issues += 1
@@ -82,42 +104,35 @@ def validate_response(response: str, query: str = "") -> ValidationResult:
                 else:
                     syntax_issues.append(detail)
 
-    total_blocks = max(len(blocks), 1)
+    total_blocks = max(len(code_blocks), 1)
     issue_ratio = blocks_with_issues / total_blocks
     score = max(0.0, 1.0 - issue_ratio * 0.5 - len(security_issues) * 0.15)
-
-    has_code_blocks = len(blocks) > 0
-    any(
-        kw in query.lower()
-        for kw in [
-            "code",
-            "function",
-            "class",
-            "implement",
-            "write",
-            "fix",
-            "refactor",
-            "代码",
-            "函数",
-            "实现",
-            "编写",
-            "修复",
-            "重构",
-        ]
-    )
-
-    if has_code_blocks and security_issues:
+    if code_blocks and security_issues:
         score *= 0.5
 
     passed = score >= 0.6 and not security_issues
+    errors: dict[str, Any] = {
+        "all": all_issues,
+        "security": security_issues,
+        "syntax": syntax_issues,
+        "score": score,
+    }
+    return passed, errors
 
+
+def _format_validation_result(
+    is_valid: bool,
+    errors: dict[str, Any],
+    code_count: int,
+) -> ValidationResult:
+    """Build a ValidationResult from validation outcome data."""
     return ValidationResult(
-        passed=passed,
-        score=round(score, 3),
-        issues=all_issues,
-        blocks_checked=len(blocks),
-        security_issues=security_issues,
-        syntax_issues=syntax_issues,
+        passed=is_valid,
+        score=round(errors.get("score", 0.0), 3),
+        issues=errors.get("all", []),
+        blocks_checked=code_count,
+        security_issues=errors.get("security", []),
+        syntax_issues=errors.get("syntax", []),
     )
 
 

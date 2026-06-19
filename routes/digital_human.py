@@ -55,6 +55,100 @@ else:
     )
 
 
+def _js(value: str | bool) -> str:
+    """JSON-encode a value for safe embedding inside a <script> tag."""
+    text = json.dumps(value)
+    # Escape the closing script tag sequence to prevent premature </script>.
+    return re.sub(r"</script", r"<\\/script", text, flags=re.IGNORECASE)
+
+
+def _build_voice_config(device_id: str, device_name: str, client_id: str, token: str) -> dict:
+    """Build voice/model connection configuration."""
+    return {
+        "setInputs": {
+            "deviceMac": _js(device_id),
+            "deviceName": _js(device_name),
+            "clientId": _js(client_id),
+            "limaToken": _js(token),
+        },
+        "seedStorage": {
+            "xz_tester_deviceMac": _js(device_id),
+            "xz_tester_deviceName": _js(device_name),
+            "xz_tester_clientId": _js(client_id),
+            "xz_tester_limaToken": _js(token),
+        },
+    }
+
+
+def _build_display_config() -> dict:
+    """Build display/connection configuration that forces the WebSocket URL."""
+    ws_url = 'proto + "//" + window.location.host + "/device/v1/ws"'
+    return {"forceSetInputs": {"limaWsUrl": {"__expr": ws_url}}}
+
+
+def _build_advanced_config(wakeword_enabled: bool) -> dict:
+    """Build advanced/optional configuration."""
+    return {
+        "selectValue": {
+            "wakewordEnabled": _js("true" if wakeword_enabled else "false"),
+        },
+    }
+
+
+def _serialize_config_script(config: dict) -> str:
+    """Wrap a configuration dict in the digital-human auto-config <script>."""
+    lines = [
+        "<script>",
+        "(function () {",
+        '  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";',
+        "  function setInput(id, value) {",
+        "    const el = document.getElementById(id);",
+        "    if (el && !el.value.trim() && value) el.value = value;",
+        "  }",
+        "  function forceSetInput(id, value) {",
+        "    const el = document.getElementById(id);",
+        "    if (el && value) el.value = value;",
+        "  }",
+        "  function seedStorage(key, value) {",
+        "    try {",
+        "      const stored = localStorage.getItem(key);",
+        "      if (value && (!stored || !stored.trim())) localStorage.setItem(key, value);",
+        "    } catch (e) {}",
+        "  }",
+        "  function apply() {",
+    ]
+
+    display = config.get("display", {})
+    for field, raw in display.get("forceSetInputs", {}).items():
+        expr = raw["__expr"] if isinstance(raw, dict) and "__expr" in raw else raw
+        lines.append(f'    forceSetInput("{field}", {expr});')
+
+    voice = config.get("voice", {})
+    for field, value in voice.get("setInputs", {}).items():
+        lines.append(f'    setInput("{field}", {value});')
+    for key, value in voice.get("seedStorage", {}).items():
+        lines.append(f'    seedStorage("{key}", {value});')
+
+    advanced = config.get("advanced", {})
+    for field, value in advanced.get("selectValue", {}).items():
+        lines.append(f'    const {field}El = document.getElementById("{field}");')
+        lines.append(f"    if ({field}El && !{field}El.value) {field}El.value = {value};")
+
+    lines.extend(
+        [
+            "  }",
+            '  if (document.readyState === "loading") {',
+            '    document.addEventListener("DOMContentLoaded", apply);',
+            "  } else {",
+            "    apply();",
+            "  }",
+            "})();",
+            "</script>",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _build_auto_config_script(
     *,
     device_id: str,
@@ -70,52 +164,12 @@ def _build_auto_config_script(
     Other fields are only set when empty so returning visitors keep their own
     settings after the first visit.
     """
-    ws_url = 'proto + "//" + window.location.host + "/device/v1/ws"'
-
-    def _js(value: str | bool) -> str:
-        """JSON-encode a value for safe embedding inside a <script> tag."""
-        text = json.dumps(value)
-        # Escape the closing script tag sequence to prevent premature </script>.
-        return re.sub(r"</script", r"<\\/script", text, flags=re.IGNORECASE)
-
-    return f"""<script>
-(function () {{
-  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  function setInput(id, value) {{
-    const el = document.getElementById(id);
-    if (el && !el.value.trim() && value) el.value = value;
-  }}
-  function forceSetInput(id, value) {{
-    const el = document.getElementById(id);
-    if (el && value) el.value = value;
-  }}
-  function seedStorage(key, value) {{
-    try {{
-      const stored = localStorage.getItem(key);
-      if (value && (!stored || !stored.trim())) localStorage.setItem(key, value);
-    }} catch (e) {{}}
-  }}
-  function apply() {{
-    forceSetInput("limaWsUrl", {ws_url});
-    setInput("deviceMac", {_js(device_id)});
-    setInput("deviceName", {_js(device_name)});
-    setInput("clientId", {_js(client_id)});
-    setInput("limaToken", {_js(token)});
-    seedStorage("xz_tester_deviceMac", {_js(device_id)});
-    seedStorage("xz_tester_deviceName", {_js(device_name)});
-    seedStorage("xz_tester_clientId", {_js(client_id)});
-    seedStorage("xz_tester_limaToken", {_js(token)});
-    const wwEnabled = document.getElementById("wakewordEnabled");
-    if (wwEnabled && !wwEnabled.value) wwEnabled.value = {_js("true" if wakeword_enabled else "false")};
-  }}
-  if (document.readyState === "loading") {{
-    document.addEventListener("DOMContentLoaded", apply);
-  }} else {{
-    apply();
-  }}
-}})();
-</script>
-"""
+    config = {
+        "voice": _build_voice_config(device_id, device_name, client_id, token),
+        "display": _build_display_config(),
+        "advanced": _build_advanced_config(wakeword_enabled),
+    }
+    return _serialize_config_script(config)
 
 
 def _digital_human_defaults() -> dict[str, str | bool]:
@@ -143,14 +197,16 @@ def _patch_index_html(content: str) -> str:
     """Inject auto-configuration script and brand patches into the digital-human index page."""
     # Replace brand in specific locations only (avoid breaking wake words that contain "小智")
     content = content.replace("<title>小智数字人页面</title>", "<title>LiMa 星云数字人页面</title>")
-    content = content.replace("<div class=\"brand\">小智 AI 语音/视频通话</div>", "<div class=\"brand\">LiMa 星云 AI 语音/视频通话</div>")
+    content = content.replace(
+        '<div class="brand">小智 AI 语音/视频通话</div>', '<div class="brand">LiMa 星云 AI 语音/视频通话</div>'
+    )
     content = content.replace("小智数字人页面", "LiMa 星云数字人页面")
     content = content.replace("小智服务器", "星云服务器")
     content = content.replace("小智 OTA", "LiMa 星云 OTA")
     # Do NOT replace generic "小智" because wake words like "小智小智" must remain intact
     # Replace LiMa labels
     content = content.replace('"LiMa (直连)"', '"LiMa 星云 (直连)"')
-    content = content.replace('>LiMa WebSocket 地址:<', '>LiMa 星云 WebSocket 地址:<')
+    content = content.replace(">LiMa WebSocket 地址:<", ">LiMa 星云 WebSocket 地址:<")
     content = content.replace('"LiMa 认证令牌:"', '"LiMa 星云认证令牌:"')
     content = content.replace('placeholder="LiMa WebSocket地址', 'placeholder="LiMa 星云 WebSocket地址')
     defaults = _digital_human_defaults()

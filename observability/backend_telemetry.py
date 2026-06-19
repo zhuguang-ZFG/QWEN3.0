@@ -12,6 +12,16 @@ from typing import Any
 MAX_RECENT = 500
 _log = logging.getLogger(__name__)
 
+_BACKEND_STATS_TEMPLATE = {
+    "attempts": 0,
+    "success": 0,
+    "failures": 0,
+    "total_latency_ms": 0,
+    "max_latency_ms": 0,
+    "slow": 0,
+    "error_classes": {},
+}
+
 
 def _data_dir() -> Path:
     return Path(os.environ.get("LIMA_DATA_DIR", "data"))
@@ -183,64 +193,98 @@ def recent_backend_attempts(limit: int = MAX_RECENT) -> list[dict[str, Any]]:
     return _read_recent(max(limit, 1))
 
 
-def backend_telemetry_summary(limit: int = 20, slow_ms: int = 30000) -> dict[str, Any]:
-    records = recent_backend_attempts(max(limit, MAX_RECENT))
+def _build_success_rate_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
     total = len(records)
     failures = sum(1 for item in records if not item.get("success", False))
-    slow = sum(1 for item in records if _int(item.get("latency_ms", 0)) >= slow_ms)
     error_classes: dict[str, int] = {}
-    per_backend: dict[str, dict[str, Any]] = {}
+    for item in records:
+        error_class = _short(item.get("error_class", ""), 40)
+        if error_class:
+            error_classes[error_class] = error_classes.get(error_class, 0) + 1
+    success = total - failures
+    return {
+        "total": total,
+        "success": success,
+        "failures": failures,
+        "success_rate": round(success / max(total, 1), 4),
+        "error_rate": round(failures / max(total, 1), 4),
+        "error_classes": error_classes,
+    }
 
+
+def _build_latency_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
+    latencies = sorted(_int(item.get("latency_ms", 0)) for item in records)
+    if not latencies:
+        return {"min": 0, "max": 0, "avg": 0, "p50": 0, "p95": 0, "p99": 0}
+    n = len(latencies)
+
+    def pct(p: float) -> int:
+        if n == 1:
+            return latencies[0]
+        k = (p / 100) * (n - 1)
+        f = int(k)
+        c = min(f + 1, n - 1)
+        if f == c:
+            return latencies[f]
+        return int(latencies[f] + (latencies[c] - latencies[f]) * (k - f))
+
+    return {
+        "min": latencies[0],
+        "max": latencies[-1],
+        "avg": int(sum(latencies) / n),
+        "p50": pct(50),
+        "p95": pct(95),
+        "p99": pct(99),
+    }
+
+
+def _build_status_breakdown(records: list[dict[str, Any]]) -> dict[str, int]:
+    breakdown: dict[str, int] = {}
+    for item in records:
+        code = _status(item.get("status_code", 0))
+        if code > 0:
+            key = str(code)
+            breakdown[key] = breakdown.get(key, 0) + 1
+    return breakdown
+
+
+def backend_telemetry_summary(limit: int = 20, slow_ms: int = 30000) -> dict[str, Any]:
+    records = recent_backend_attempts(max(limit, MAX_RECENT))
+    success_metrics = _build_success_rate_metrics(records)
+    latency_metrics = _build_latency_metrics(records)
+    status_breakdown = _build_status_breakdown(records)
+    slow = sum(1 for item in records if _int(item.get("latency_ms", 0)) >= slow_ms)
+    per_backend: dict[str, dict[str, Any]] = {}
     for item in records:
         backend = _short(item.get("backend", "unknown")) or "unknown"
         latency = _int(item.get("latency_ms", 0))
-        error_class = _short(item.get("error_class", ""), 40)
-        success = bool(item.get("success", False))
-        stats = per_backend.setdefault(
-            backend,
-            {
-                "attempts": 0,
-                "success": 0,
-                "failures": 0,
-                "total_latency_ms": 0,
-                "max_latency_ms": 0,
-                "slow": 0,
-                "error_classes": {},
-            },
-        )
+        ok = bool(item.get("success", False))
+        err = _short(item.get("error_class", ""), 40)
+        stats = per_backend.setdefault(backend, _BACKEND_STATS_TEMPLATE.copy())
         stats["attempts"] += 1
-        stats["success"] += int(success)
-        stats["failures"] += int(not success)
+        stats["success"] += int(ok)
+        stats["failures"] += int(not ok)
         stats["total_latency_ms"] += latency
         stats["max_latency_ms"] = max(stats["max_latency_ms"], latency)
         stats["slow"] += int(latency >= slow_ms)
-        if error_class:
-            error_classes[error_class] = error_classes.get(error_class, 0) + 1
-            nested = stats["error_classes"]
-            nested[error_class] = nested.get(error_class, 0) + 1
-
+        if err:
+            stats["error_classes"][err] = stats["error_classes"].get(err, 0) + 1
     by_backend: dict[str, dict[str, Any]] = {}
-    ranked = sorted(
-        per_backend.items(),
-        key=lambda pair: (-pair[1]["attempts"], pair[0]),
-    )[:10]
+    ranked = sorted(per_backend.items(), key=lambda pair: (-pair[1]["attempts"], pair[0]))[:10]
     for backend, stats in ranked:
         attempts = max(int(stats["attempts"]), 1)
-        by_backend[backend] = {
-            "attempts": int(stats["attempts"]),
-            "success": int(stats["success"]),
-            "failures": int(stats["failures"]),
-            "avg_latency_ms": int(stats["total_latency_ms"] / attempts),
-            "max_latency_ms": int(stats["max_latency_ms"]),
-            "slow": int(stats["slow"]),
-            "error_classes": dict(stats["error_classes"]),
-        }
-
+        by_backend[backend] = {k: int(stats[k]) for k in ("attempts", "success", "failures", "max_latency_ms", "slow")}
+        by_backend[backend]["avg_latency_ms"] = int(stats["total_latency_ms"] / attempts)
+        by_backend[backend]["error_classes"] = dict(stats["error_classes"])
     return {
-        "total_recent": total,
-        "failed_recent": failures,
+        "total_recent": success_metrics["total"],
+        "failed_recent": success_metrics["failures"],
         "slow_recent": slow,
-        "error_classes": error_classes,
+        "error_classes": success_metrics["error_classes"],
+        "success_rate": success_metrics["success_rate"],
+        "error_rate": success_metrics["error_rate"],
+        "latency": latency_metrics,
+        "status_breakdown": status_breakdown,
         "by_backend": by_backend,
         "recent": records[-limit:],
     }

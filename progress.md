@@ -42,6 +42,23 @@
   - `scripts/deploy_unified.py --slice core` 上传 723 个文件，restart 后 health OK。
   - 公网 `/health` 返回 `status ok`。
 
+## 2026-06-20 函数级尺寸治理第三轮：再拆分 5 个生产超长函数（完成）
+
+- **目标**：继续降低 >50 行函数数量，处理风险较低的 5 个函数。
+- **实现**：
+  - `routes/digital_human.py::_build_auto_config_script`（61→21 行）：提取 voice/display/advanced config 构建与序列化 helper。
+  - `routes/health_dashboard.py::_collect_backend_health`（61→29 行）：提取 `_get_backend_stats` 与 `_compute_backend_status`。
+  - `observability/backend_telemetry.py::backend_telemetry_summary`（61→40 行）：提取成功率、延迟、状态码 breakdown helper。
+  - `context_pipeline/response_validator.py::validate_response`（62→17 行）：提取跳过判断、代码校验、结果格式化 helper。
+  - `code_context/treesitter/regex_symbols.py::_extract_regex_symbols`（68→6 行）：提取 class/function 扫描与去重 helper。
+- **验证**：
+  - `scripts/check_code_size.py`：**无 >300 行文件**；>50 行函数从 90 个降至 **86 个**。
+  - 全量 `pytest -q` → **1838 passed, 4 skipped**。
+  - `ruff check .` → 0 errors。
+- **部署验证**：
+  - 首次 `scripts/deploy_unified.py --slice core` 因 SFTP socket 中断，79 成功 / 754 失败；第二次重试成功上传 833 个文件，restart 后 health OK。
+  - 公网 `/health` 正常。
+
 ## 2026-06-19 设备能力族独立审批门（完成）
 
 - **目标**：实现 `display/audio/speech/ocr/camera/perception` 能力族的独立审批门，不再与 `motion` 共享全局放行条件。
