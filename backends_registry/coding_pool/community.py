@@ -1,0 +1,61 @@
+"""Coding-pool backend definitions: community."""
+
+import os
+
+BACKENDS = {
+    "free_muyuan_gpt54_code": {
+        "url": "https://muyuan.do/v1/chat/completions",
+        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "model": "gpt-5.4",
+        "fmt": "openai",
+        "timeout": 60,
+        "admission": "code_medium_candidate",
+        "private_code_allowed": True,
+        "caps": ["tool_calls"],
+        "headers": {"User-Agent": "Mozilla/5.0"},
+    },
+    "free_muyuan_gpt55_code": {
+        "url": "https://muyuan.do/v1/chat/completions",
+        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "model": "gpt-5.5",
+        "fmt": "openai",
+        "timeout": 90,
+        "admission": "code_medium_candidate",
+        "private_code_allowed": True,
+        "caps": ["tool_calls"],
+        "headers": {"User-Agent": "Mozilla/5.0"},
+    },
+    "free_muyuan_codex_code": {
+        "url": "https://muyuan.do/v1/chat/completions",
+        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "model": "codex-auto-review",
+        "fmt": "openai",
+        "timeout": 60,
+        "admission": "code_medium_candidate",
+        "private_code_allowed": True,
+        "caps": ["tool_calls", "code"],
+        "headers": {"User-Agent": "Mozilla/5.0"},
+    },
+    "free_ajiakesi_gpt54_code": {
+        "url": "http://codehub.ajiakesi.cn/v1/chat/completions",
+        "key": os.environ.get("FREE_AJIAKESI_KEY", ""),
+        "model": "gpt-5.4",
+        "fmt": "openai",
+        "timeout": 60,
+        "admission": "code_medium_candidate",
+        "private_code_allowed": True,
+        "caps": ["tool_calls"],
+        "headers": {"User-Agent": "Mozilla/5.0"},
+    },
+    "free_ajiakesi_gpt55_code": {
+        "url": "http://codehub.ajiakesi.cn/v1/chat/completions",
+        "key": os.environ.get("FREE_AJIAKESI_KEY", ""),
+        "model": "gpt-5.5",
+        "fmt": "openai",
+        "timeout": 90,
+        "admission": "code_medium_candidate",
+        "private_code_allowed": True,
+        "caps": ["tool_calls"],
+        "headers": {"User-Agent": "Mozilla/5.0"},
+    },
+}

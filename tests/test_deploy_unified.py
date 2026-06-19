@@ -113,10 +113,12 @@ class _PrepareSsh:
 
 
 def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
+    import scripts.deploy_unified_deploy as deploy_mod
+
     sftp = _Sftp()
     ssh = _DeploySsh(sftp)
-    monkeypatch.setattr(deploy_unified.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(deploy_unified, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(deploy_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(deploy_mod, "configure_ssh_host_keys", lambda client: None)
 
     result = deploy_unified.deploy_files(["scripts/deploy_unified.py"])
 
@@ -144,9 +146,11 @@ def test_main_returns_failure_without_restart_when_upload_fails(monkeypatch):
 
 
 def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
+    import scripts.deploy_unified_restart as restart_mod
+
     ssh = _RestartSsh()
-    monkeypatch.setattr(deploy_unified.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(deploy_unified, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(restart_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(restart_mod, "configure_ssh_host_keys", lambda client: None)
 
     assert deploy_unified.restart_server() is True
 
@@ -184,10 +188,13 @@ def test_capacity_result_rejects_low_disk_or_memory():
 
 
 def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
+    import scripts.deploy_unified_common as common_mod
+    import scripts.deploy_unified_preflight as preflight_mod
+
     ssh = _PrepareSsh()
-    monkeypatch.setattr(deploy_unified.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(deploy_unified, "configure_ssh_host_keys", lambda client: None)
-    monkeypatch.setattr(deploy_unified.time, "strftime", lambda fmt: "20260609_010203")
+    monkeypatch.setattr(common_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(common_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(preflight_mod.time, "strftime", lambda fmt: "20260609_010203")
 
     result = deploy_unified.prepare_remote_deploy(["server.py"], label="unit test")
 

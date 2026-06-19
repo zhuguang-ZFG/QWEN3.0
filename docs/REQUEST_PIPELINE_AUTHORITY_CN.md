@@ -28,7 +28,7 @@
 | 意图分析 | `routing_intent.py` | — | `analyze_intent()` 统一意图分类 |
 | 场景分类 | `routing_classifier.py` | — | `classify()` → request_type; `classify_scenario()` → scenario |
 | 后端池定义 | `router_v3/` 包 | — | `POOLS` 字典在 `router_v3/pools.py`; `select_backends()` 按 request_type 返回候选 |
-| 后端排名 | `routing_selector.py` | — | `select()`综合 health/budget/sticky/ML/memory/评分 |
+| 后端排名 | `routing_selector/` 包 | — | `select()` 在 `routing_selector/core.py`；综合 health/budget/sticky/ML/memory/评分 |
 | 后端执行 | `routing_executor.py` | — | `execute()`按序/并行尝试，记录 health 成功/失败 |
 | HTTP 传输 | `http_caller.py` (→ `http_sync`/`http_async`/`http_stream`) | — | httpx 栈，已无 urllib 遗留 |
 | 健康/冷却 | `health_tracker.py` | — | 新代码优先使用 health_tracker |

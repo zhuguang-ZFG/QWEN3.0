@@ -1,0 +1,101 @@
+"""Commercial backend definitions: chinese."""
+
+import os
+
+BACKENDS = {
+    "zhipu_flash": {
+        "url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+        "key": os.environ.get("ZHIPU_API_KEY", ""),
+        "model": "glm-4-flash",
+        "fmt": "openai",
+        "timeout": 10,
+    },
+    "zhipu_flash7": {
+        "url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+        "key": os.environ.get("ZHIPU_API_KEY", ""),
+        "model": "glm-4.7-flash",
+        "fmt": "openai",
+        "timeout": 10,
+    },
+    "silicon_qwen8b": {
+        "url": "https://api.siliconflow.cn/v1/chat/completions",
+        "key": os.environ.get("SILICONFLOW_API_KEY", ""),
+        "model": "Qwen/Qwen3-8B",
+        "fmt": "openai",
+        "timeout": 10,
+    },
+    "silicon_glm9b": {
+        "url": "https://api.siliconflow.cn/v1/chat/completions",
+        "key": os.environ.get("SILICONFLOW_API_KEY", ""),
+        "model": "THUDM/glm-4-9b-chat",
+        "fmt": "openai",
+        "timeout": 10,
+    },
+    "silicon_deepseek": {
+        "url": "https://api.siliconflow.cn/v1/chat/completions",
+        "key": os.environ.get("SILICONFLOW_API_KEY", ""),
+        "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        "fmt": "openai",
+        "timeout": 15,
+    },
+    "baidu_ernie": {
+        "url": "https://qianfan.baidubce.com/v2/chat/completions",
+        "key": os.environ.get("BAIDU_API_KEY", ""),
+        "model": "ernie-3.5-8k",
+        "fmt": "openai",
+        "auth": "bearer",
+        "timeout": 10,
+    },
+    "baidu_speed": {
+        "url": "https://qianfan.baidubce.com/v2/chat/completions",
+        "key": os.environ.get("BAIDU_API_KEY", ""),
+        "model": "ernie-speed-8k",
+        "fmt": "openai",
+        "auth": "bearer",
+        "timeout": 8,
+    },
+    "volcengine_doubao": {
+        "url": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+        "key": os.environ.get("VOLCENGINE_API_KEY", ""),
+        "model": "doubao-1-5-pro-256k",
+        "fmt": "openai",
+        "timeout": 15,
+    },
+    "aliyun_qwen3": {
+        "url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        "key": os.environ.get("ALIYUN_API_KEY", ""),
+        "model": "qwen3-8b",
+        "fmt": "openai",
+        "timeout": 10,
+        "force_stream_param": True,
+    },
+    "aliyun_coder": {
+        "url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        "key": os.environ.get("ALIYUN_API_KEY", ""),
+        "model": "qwen-3-coder-plus",
+        "fmt": "openai",
+        "timeout": 15,
+    },
+    "tencent_hunyuan": {
+        "url": "https://api.hunyuan.cloud.tencent.com/v1/chat/completions",
+        "key": os.environ.get("TENCENT_API_KEY", ""),
+        "model": "hunyuan-lite",
+        "fmt": "openai",
+        "timeout": 10,
+    },
+    "chinamobile": {
+        "url": "https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions",
+        "key": os.environ.get("CHINAMOBILE_API_KEY", ""),
+        "model": "minimax-m25",
+        "fmt": "openai",
+        "caps": ["tool_calls"],
+    },
+    "tokenrouter_minimax_m3": {
+        "url": "https://api.tokenrouter.com/v1/chat/completions",
+        "key": os.environ.get("TOKENROUTER_API_KEY", ""),
+        "model": "MiniMax-M3",
+        "fmt": "openai",
+        "timeout": 30,
+        "caps": ["tool_calls"],
+    },
+}

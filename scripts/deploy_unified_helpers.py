@@ -35,7 +35,8 @@ def _top_level_imports(path: Path, project_root: Path) -> list[str]:
         return []
 
     current_module = _module_name_from_path(path, project_root)
-    current_package = ".".join(current_module.split(".")[:-1])
+    # For __init__.py, the package is the module itself; otherwise drop the final segment.
+    current_package = current_module if path.name == "__init__.py" else ".".join(current_module.split(".")[:-1])
 
     names: list[str] = []
     for node in ast.walk(tree):
@@ -47,10 +48,12 @@ def _top_level_imports(path: Path, project_root: Path) -> list[str]:
                 module = node.module
             elif node.level > 0:
                 # Resolve relative import to absolute module name.
-                base_parts = current_package.split(".")
-                if len(base_parts) < node.level:
+                # level=1 keeps the whole current package; each extra dot goes up one level.
+                package_parts = current_package.split(".")
+                drop = node.level - 1
+                if drop > len(package_parts):
                     continue
-                base = ".".join(base_parts[:-node.level]) if node.level < len(base_parts) else ""
+                base = ".".join(package_parts[:-drop]) if drop else current_package
                 if node.module:
                     module = f"{base}.{node.module}" if base else node.module
                 else:
