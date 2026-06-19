@@ -30,15 +30,10 @@ def restart_server() -> bool:
     ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
 
     try:
-        commands = [
-            f"find {REMOTE} -type d -name __pycache__ -exec rm -rf {{}} + 2>/dev/null",
-            "systemctl restart lima-router",
-        ]
-        for cmd in commands:
-            code, _out, err = _ssh_exec(ssh, cmd)
-            if code != 0:
-                print(f"restart command failed: {cmd}: {err}")
-                return False
+        code, _out, err = _ssh_exec(ssh, "systemctl restart lima-router")
+        if code != 0:
+            print(f"restart command failed: {err}")
+            return False
 
         if HEALTH_GRACE_AFTER_RESTART_S > 0:
             time.sleep(HEALTH_GRACE_AFTER_RESTART_S)

@@ -5,6 +5,27 @@
 > Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-19 代码尺寸治理 M2：剩余生产大文件拆分 + deploy helper 修复（完成）
+
+- **目标**：继续拆分剩余生产代码中超 300 行的文件，并修复部署脚本在 `--files` 模式下无法自动展开包内子模块、以及 `restart_server()` 因 `find -exec rm -rf __pycache__` 挂起的问题。
+- **实现**：
+  - `backends_registry/coding_pool.py`（548 行）拆为 `backends_registry/coding_pool/`：`modelscope.py`、`third_party.py`、`community.py`。
+  - `backends_registry/commercial.py`（535 行）拆为 `backends_registry/commercial/`：`cerebras_family.py`、`chinese.py`、`platforms.py`、`opengateway.py`。
+  - `scripts/deploy_unified.py`（474 行）拆为薄入口 + `scripts/deploy_unified_common.py`、`deploy_unified_preflight.py`、`deploy_unified_deploy.py`、`deploy_unified_restart.py`；同时更新 `tests/test_deploy_unified.py` 的 monkeypatch 目标到新的子模块。
+  - `routing_selector.py`（357 行）拆为 `routing_selector/`：`constants.py`、`helpers.py`、`filters.py`、`scoring.py`、`ranking.py`、`core.py`；公开 API 不变，`streaming_bridge.py` 引用的 `_STATIC_LATENCY_ESTIMATE` 仍通过 `routing_selector` 暴露。
+  - 修复 `scripts/deploy_unified_helpers.py::expand_with_dependencies`：相对导入解析在 `__init__.py` 中把 current_package 误算为空，导致 `backends_registry.coding_pool` 等包子模块从未被自动部署。现在 level=1 能正确解析为当前包 + 子模块。
+  - 移除 `restart_server()` 中的 `find ... -exec rm -rf __pycache__` 步骤（该命令在 VPS 上会遍历整个仓库并挂起 30s+，导致自动部署卡在重启阶段）。依赖 Python 的 mtime 检查自动重新编译 pyc。
+  - 同步更新 `AGENTS.md`、`docs/REQUEST_PIPELINE_AUTHORITY_CN.md`、`scripts/deploy_unified_common.py` 中的模块/文件引用。
+- **验证**：
+  - `pytest -q` 全量 → **1808 passed, 4 skipped**（新增 0，与 M1 持平）。
+  - `ruff check .` → 0 errors；触及文件 `pyright` → 0 errors。
+  - `scripts/check_code_size.py` 超 300 行文件从 23 降至 **19**（生产代码剩余 `routes/ops_metrics.py`、`session_memory/learning_loop.py`、`device_gateway/device_profile.py`、`routes/admin_ui/panels.py`、`code_context/treesitter_adapter.py`）。
+- **部署验证**：
+  - 自动 `scripts/deploy_unified.py --files ...` 上传 57 个文件后因 `restart_server()` 旧逻辑挂起；修复后手动 `systemctl restart` 恢复。
+  - 已手动清理/补齐 VPS 上的新包目录：`backends_registry/coding_pool/`、`backends_registry/commercial/`、`routing_selector/`。
+  - VPS `http://127.0.0.1:8080/health` OK；公网 `https://chat.donglicao.com/health` OK。
+  - 公网 `POST /v1/chat/completions` 返回 200，服务正常。
+
 ## 2026-06-19 代码尺寸治理 M1：deploy 加固 + 三大模块拆分 + 腐烂测试清理（完成）
 
 - **目标**：继续按顺序治理代码尺寸与工程债务：加固 VPS 部署脚本，拆分 `backends_registry.py`、`response_cleaner.py`、`router_v3.py`，清理腐烂/跳过测试与 hypothesis 中的 `ImportError` 吞异常。
