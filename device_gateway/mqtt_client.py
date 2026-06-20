@@ -267,8 +267,8 @@ async def _mqtt_message_loop() -> None:
         client.connect(_MQTT_BROKER, _MQTT_PORT, keepalive=60)
         client.loop_start()
     except Exception as exc:
-        _log.warning("MQTT connect failed: %s", exc)
-        client.loop_start()
+        _log.error("MQTT connect failed: %s", exc)
+        return
 
     try:
         await _run_mqtt_message_pump(client, message_queue, _json, _time_mod)

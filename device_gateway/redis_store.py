@@ -192,7 +192,12 @@ class RedisDeviceTaskStore:
         for item in self._redis.lrange(key, 0, -1):
             try:
                 data = decode_redis_json(item)
-            except Exception:
+            except Exception as exc:
+                _log.warning(
+                    "remove_pending_task device=%s: corrupt queue item ignored: %s",
+                    device_id,
+                    exc,
+                )
                 continue
             if data.get("task_id") == task_id:
                 return bool(self._redis.lrem(key, 1, item))
@@ -241,7 +246,12 @@ class RedisDeviceTaskStore:
                             state.pop("processing_started_at", None)
                             self._write_task_state(task_id, state)
                         count += 1
-            except Exception:
+            except Exception as exc:
+                _log.warning(
+                    "recover_stale_processing device=%s: failed to recover item: %s",
+                    device_id,
+                    exc,
+                )
                 continue
         return count
 
@@ -271,7 +281,12 @@ class RedisDeviceTaskStore:
         for item in self._redis.lrange(key, 0, -1):
             try:
                 data = decode_redis_json(item)
-            except Exception:
+            except Exception as exc:
+                _log.warning(
+                    "_remove_processing_task device=%s: corrupt processing item ignored: %s",
+                    device_id,
+                    exc,
+                )
                 continue
             if data.get("task_id") == task_id:
                 return bool(self._redis.lrem(key, 1, item))
