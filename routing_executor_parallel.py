@@ -7,6 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
 
+import budget_manager
 from routing_executor_telemetry import (
     _record_backend_attempt,
     extract_error_code,
@@ -34,6 +35,7 @@ def _try_one_parallel(
             answer = call_fn(backend, messages, max_tokens)
         latency_ms = (time.time() - started) * 1000
         if answer and len(answer.strip()) > 5:
+            budget_manager.record_usage(backend)
             _record_backend_attempt(
                 backend=backend,
                 scenario=scenario,

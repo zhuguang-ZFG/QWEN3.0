@@ -46,6 +46,7 @@ def _serial_fallback_attempt(
             if answer and len(answer.strip()) > 5:
                 latency_ms = (time.time() - t0) * 1000
                 health_tracker.record_success(backend, latency_ms)
+                budget_manager.record_usage(backend)
                 _record_backend_attempt(
                     backend=backend,
                     scenario=scenario,
