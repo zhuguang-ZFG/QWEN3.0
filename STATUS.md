@@ -21,6 +21,7 @@
 - **U1 固件侧 route_policy 拒绝**：物理 U1 无法真机验证；fake U1 已覆盖未知 `route_role` / `primary_strategy` / `artifact_required` / `backend`、角色与策略/制品不兼容、`run_path` 能力缺失、`device_control` 要求模型等拒绝路径。新增 `tests/test_fake_u1_route_policy_validator.py` 10 个单元测试，与 `tests/test_fake_u1_cloud_rejection.py` 形成云端到 fake U1 闭环证据。
 - **验证**：`tests/test_model_registry.py` 10 passed ×5；`tests/test_fake_u1_route_policy_validator.py` 10 passed；`tests/test_fake_u1_cloud_*.py` 5 passed。
 - **提交**：`e7cf101 test(device): add fake U1 route_policy validator unit tests`、`3c3d220 test(model_registry): eliminate flake by stepping timestamps in sort test`。
+- **VPS 部署**：已使用 `LIMA_DEPLOY_PASS` 成功部署并重启，smoke 通过。
 
 ### 最近完成（2026-06-18）函数级尺寸治理第 5 批：route_registry / routing_executor / http_body_limit 拆分
 
@@ -29,7 +30,8 @@
   - `routes/route_registry.py`：将 `_register_core_routes` 拆分为 `_register_chat_and_media_routes`、`_register_admin_and_static_routes`、`_register_system_routes`、`_register_device_app_routes`、`_register_voice_routes`，每个 helper 职责单一。
   - `routing_executor.py`：按串行/并行/fallback/遥测拆分为 `routing_executor_serial.py`、`routing_executor_parallel.py`、`routing_executor_fallback.py`、`routing_executor_telemetry.py`，`routing_executor.py` 保留 `execute` 入口。
   - `http_body_limit.py`：将 `BodySizeLimitMiddleware.__call__` 中的 body 读取/解压/限流逻辑拆分为 `_read_limited_body`。
-- **验证**：聚焦测试 52 passed；全量 pytest 进行中；`ruff check` / `pyright` 目标文件 clean；`scripts/check_code_size.py` 不再报告 >300 行文件，>50 行函数从 82 降至 78。
+- **验证**：聚焦测试 52 passed；全量 pytest 1860 passed / 4 skipped；`ruff check` / `pyright` 目标文件 clean；`scripts/check_code_size.py` 不再报告 >300 行文件，>50 行函数从 82 降至 78。
+- **VPS 部署**：使用 `LIMA_DEPLOY_PASS` 成功部署并重启（1287 文件，0 失败）。Smoke：`/health` 200 ready；`/device/v1/health` 200 ready，`production_ready=true`。
 
 ### 最近完成（2026-06-18）review 修复：SSH 部署回退、health 503 语义、rate limiter 缺省
 

@@ -2425,7 +2425,7 @@ Agent Worker path.
   - 全量测试：**1860 passed, 4 skipped, 0 failed**。
   - `ruff check` clean；`pyright` 目标文件 0 errors；`scripts/check_code_size.py` 无 >300 行文件，>50 行函数从 82 降至 78。
 - **提交**：`4919b51 refactor(size): split route_registry, routing_executor and http_body_limit hot paths`。
-- **VPS 部署**：**阻塞**。`~/.ssh/id_ed25519` 为占位符，且当前环境无 `LIMA_DEPLOY_PASS`，`scripts/deploy_unified.py` 无法连接 VPS。需后续补充 VPS smoke 证据。
+- **VPS 部署**：已使用 `LIMA_DEPLOY_PASS` 成功部署并重启（1287 文件上传，0 失败）。Smoke：`/health` 200 ready；`/device/v1/health` 200 ready，`production_ready=true`。
 
 ## 2026-06-18 U1 route_policy 拒绝证据补齐 + flaky test 修复
 
@@ -2440,4 +2440,12 @@ Agent Worker path.
   - 改为固定递增时间戳，连续复跑 5 次均通过。
   - 验证：`tests/test_model_registry.py` → **10 passed ×5**。
   - 提交：`3c3d220 test(model_registry): eliminate flake by stepping timestamps in sort test`。
-- **VPS 部署**：仍因 `LIMA_DEPLOY_PASS` 未设置 / SSH key 占位符而阻塞，需后续补充 smoke。
+- **VPS 部署**：已使用 `LIMA_DEPLOY_PASS` 成功部署并重启，smoke 通过。
+
+## 2026-06-18 VPS 部署关闭
+
+- **操作**：使用 `LIMA_DEPLOY_PASS` 执行 `scripts/deploy_unified.py`。
+- **结果**：1287 文件上传，0 失败；服务重启成功，health OK。
+- **Smoke**：
+  - `https://chat.donglicao.com/health` → 200，`startup.status=ready`
+  - `https://chat.donglicao.com/device/v1/health` → 200，`protocol=lima-device-v1`，`production_ready=true`
