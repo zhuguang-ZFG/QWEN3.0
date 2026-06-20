@@ -142,8 +142,15 @@ def _process_response(
     except (json.JSONDecodeError, ValueError):
         content = _extract_answer_from_sse(text)
         if content:
-            hc.health_tracker.record_success(backend, (time.time() - started) * 1000)
-            return content
+            if _is_backend_error(content):
+                hc.health_tracker.record_failure(backend, error_code=429, error_text=content)
+                raise BackendError(f"{backend} returned error response: {content[:60]}", status_code=429)
+            latency_ms = (time.time() - started) * 1000
+            hc.health_tracker.record_success(backend, latency_ms)
+            hc._report_key_result(key_provider, selected_key, True)
+            cleaned = clean_response(content, backend)
+            hc.health_tracker.record_response_quality(backend, len(cleaned) if cleaned else 0)
+            return cleaned
         hc.health_tracker.record_failure(backend, error_code=502, error_text="invalid JSON and no SSE content")
         raise BackendError(f"{backend} returned unparseable response", status_code=502)
 
