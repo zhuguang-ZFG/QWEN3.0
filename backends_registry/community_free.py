@@ -1,8 +1,20 @@
 """社区免费 API 后端定义（free_* 系列）"""
 
+import logging
 import os
 
-BACKENDS = {
+logger = logging.getLogger(__name__)
+
+
+def _is_truthy(value: str | None) -> bool:
+    """Check whether an env-var value means 'enabled'."""
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+# ── HTTPS-only community backends (always registered) ──
+BACKENDS: dict[str, dict] = {
     # ── free_openai_next (社区分享, 500刀额度) ──
     "free_openai_next_gpt4": {
         "url": "https://api.openai-next.com/v1/chat/completions",
@@ -128,10 +140,18 @@ BACKENDS = {
         "caps": ["tool_calls"],
         "headers": {"User-Agent": "Mozilla/5.0"},
     },
-    # ── free_ajiakesi (codehub.ajiakesi.cn) ──
+}
+
+# ── HTTP-only community backends (opt-in, default disabled) ──
+_AJIAKESI_ENABLED = _is_truthy(os.environ.get("FREE_AJIAKESI_ENABLED"))
+_TEAM_SPEED_ENABLED = _is_truthy(os.environ.get("FREE_TEAM_SPEED_ENABLED"))
+
+_AJIAKESI_BASE_URL = "http://codehub.ajiakesi.cn/v1/chat/completions"
+_AJIAKESI_KEY = os.environ.get("FREE_AJIAKESI_KEY", "")
+_AJIAKESI_BACKENDS = {
     "free_ajiakesi_gpt54": {
-        "url": "http://codehub.ajiakesi.cn/v1/chat/completions",
-        "key": os.environ.get("FREE_AJIAKESI_KEY", ""),
+        "url": _AJIAKESI_BASE_URL,
+        "key": _AJIAKESI_KEY,
         "model": "gpt-5.4",
         "fmt": "openai",
         "timeout": 60,
@@ -139,8 +159,8 @@ BACKENDS = {
         "headers": {"User-Agent": "Mozilla/5.0"},
     },
     "free_ajiakesi_gpt55": {
-        "url": "http://codehub.ajiakesi.cn/v1/chat/completions",
-        "key": os.environ.get("FREE_AJIAKESI_KEY", ""),
+        "url": _AJIAKESI_BASE_URL,
+        "key": _AJIAKESI_KEY,
         "model": "gpt-5.5",
         "fmt": "openai",
         "timeout": 90,
@@ -148,25 +168,29 @@ BACKENDS = {
         "headers": {"User-Agent": "Mozilla/5.0"},
     },
     "free_ajiakesi_gpt54_mini": {
-        "url": "http://codehub.ajiakesi.cn/v1/chat/completions",
-        "key": os.environ.get("FREE_AJIAKESI_KEY", ""),
+        "url": _AJIAKESI_BASE_URL,
+        "key": _AJIAKESI_KEY,
         "model": "gpt-5.4-mini",
         "fmt": "openai",
         "timeout": 30,
         "headers": {"User-Agent": "Mozilla/5.0"},
     },
     "free_ajiakesi_gpt55_compact": {
-        "url": "http://codehub.ajiakesi.cn/v1/chat/completions",
-        "key": os.environ.get("FREE_AJIAKESI_KEY", ""),
+        "url": _AJIAKESI_BASE_URL,
+        "key": _AJIAKESI_KEY,
         "model": "gpt-5.5-openai-compact",
         "fmt": "openai",
         "timeout": 60,
         "headers": {"User-Agent": "Mozilla/5.0"},
     },
-    # ── free_team_speed (Team 速登, ChatGPT Team 账号) ──
+}
+
+_TEAM_SPEED_BASE_URL = "http://156.239.47.88:8080/v1/chat/completions"
+_TEAM_SPEED_KEY = os.environ.get("FREE_TEAM_SPEED_KEY", "")
+_TEAM_SPEED_BACKENDS = {
     "free_team_speed_gpt55": {
-        "url": "http://156.239.47.88:8080/v1/chat/completions",
-        "key": os.environ.get("FREE_TEAM_SPEED_KEY", ""),
+        "url": _TEAM_SPEED_BASE_URL,
+        "key": _TEAM_SPEED_KEY,
         "model": "gpt-5.5",
         "fmt": "openai",
         "timeout": 90,
@@ -174,11 +198,35 @@ BACKENDS = {
         "headers": {"User-Agent": "Mozilla/5.0"},
     },
     "free_team_speed_gpt54_mini": {
-        "url": "http://156.239.47.88:8080/v1/chat/completions",
-        "key": os.environ.get("FREE_TEAM_SPEED_KEY", ""),
+        "url": _TEAM_SPEED_BASE_URL,
+        "key": _TEAM_SPEED_KEY,
         "model": "gpt-5.4-mini",
         "fmt": "openai",
         "timeout": 30,
         "headers": {"User-Agent": "Mozilla/5.0"},
     },
 }
+
+if _AJIAKESI_ENABLED:
+    BACKENDS.update(_AJIAKESI_BACKENDS)
+    logger.warning(
+        "free_ajiakesi backends are enabled over cleartext HTTP; "
+        "API keys and user messages may be intercepted in transit"
+    )
+else:
+    logger.info(
+        "free_ajiakesi backends are disabled by default; "
+        "set FREE_AJIAKESI_ENABLED=1 to opt in to cleartext HTTP endpoints"
+    )
+
+if _TEAM_SPEED_ENABLED:
+    BACKENDS.update(_TEAM_SPEED_BACKENDS)
+    logger.warning(
+        "free_team_speed backends are enabled over cleartext HTTP; "
+        "API keys and user messages may be intercepted in transit"
+    )
+else:
+    logger.info(
+        "free_team_speed backends are disabled by default; "
+        "set FREE_TEAM_SPEED_ENABLED=1 to opt in to cleartext HTTP endpoints"
+    )
