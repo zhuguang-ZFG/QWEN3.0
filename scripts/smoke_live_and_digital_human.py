@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import re
 import ssl
 import sys
 import urllib.error
@@ -59,16 +58,6 @@ def _http_get(url: str, api_key: str | None = None) -> tuple[int, str]:
             return resp.status, resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read().decode("utf-8", errors="replace")
-
-
-def _extract_digital_human_value(html: str, key: str) -> str:
-    """Extract a default value injected by the patched index page."""
-    if key == "token":
-        match = re.search(r'<input\s+[^>]*id="limaToken"\s+[^>]*value="([^"]*)"', html)
-        return (match.group(1) if match else "").strip()
-    # Values set via the inline JS use setInput("<id>", "<value>").
-    match = re.search(rf'setInput\("{re.escape(key)}",\s*"([^"]*)"\)', html)
-    return (match.group(1) if match else "").strip()
 
 
 async def _fetch_live_config(api_key: str) -> dict:
@@ -159,20 +148,12 @@ async def _test_gemini_live(api_key: str) -> dict:
 async def _test_digital_human_ws() -> dict:
     device_id = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "").strip()
     token = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip()
-    token_source = "env"
 
     if not token:
-        # The patched digital-human page injects defaults; these values are
-        # already delivered to browsers, so parsing them is a fair fallback.
-        status, body = _http_get(f"https://{LIMA_HOST}/digital-human/")
-        if status != 200:
-            return {"ok": False, "error": f"digital-human page returned {status}"}
-        token = _extract_digital_human_value(body, "token")
-        if not token:
-            return {"ok": False, "error": "could not extract default token from digital-human page"}
-        if not device_id:
-            device_id = _extract_digital_human_value(body, "deviceMac")
-        token_source = "page"
+        return {
+            "ok": False,
+            "error": "LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN not set; supply a device token in .env",
+        }
 
     if not device_id:
         device_id = "web-tester"
@@ -234,7 +215,6 @@ async def _test_digital_human_ws() -> dict:
             return {
                 "ok": True,
                 "device_id": device_id,
-                "token_source": token_source,
                 "hello_ack_keys": list(ack_obj.keys()),
                 "pipeline_responses": responses,
             }
@@ -272,7 +252,6 @@ async def main() -> int:
     if dh["ok"]:
         print("OK: hello/hello_ack succeeded")
         print(f"  device_id: {dh['device_id']}")
-        print(f"  token_source: {dh.get('token_source', 'unknown')}")
         print(f"  hello_ack keys: {dh['hello_ack_keys']}")
         print(f"  transcript pipeline responses: {dh['pipeline_responses']}")
     else:

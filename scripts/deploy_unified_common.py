@@ -182,7 +182,13 @@ def _connect_ssh() -> paramiko.SSHClient:
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
+    password = os.environ.get("LIMA_DEPLOY_PASS")
+    try:
+        ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
+    except paramiko.SSHException:
+        if not password:
+            raise
+        ssh.connect(SERVER, username="root", password=password, timeout=15)
     return ssh
 
 

@@ -9,7 +9,7 @@ import paramiko
 
 SERVER = "47.112.162.80"
 REMOTE = "/opt/lima-router"
-KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
+KEY = os.path.expanduser(os.environ.get("LIMA_DEPLOY_KEY_PATH", "~/.ssh/id_ed25519"))
 
 
 def notify_enabled() -> bool:
@@ -21,7 +21,7 @@ def configure_ssh_host_keys(ssh: paramiko.SSHClient) -> None:
     ssh.load_system_host_keys()
     known_hosts = os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS")
     if known_hosts:
-        ssh.load_host_keys(known_hosts)
+        ssh.load_host_keys(os.path.expanduser(known_hosts))
     ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 
 from scripts.deploy_common import SERVER, KEY, REMOTE, configure_ssh_host_keys
@@ -27,7 +28,13 @@ def restart_server() -> bool:
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
+    password = os.environ.get("LIMA_DEPLOY_PASS")
+    try:
+        ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
+    except paramiko.SSHException:
+        if not password:
+            raise
+        ssh.connect(SERVER, username="root", password=password, timeout=15)
 
     try:
         code, _out, err = _ssh_exec(ssh, "systemctl restart lima-router")

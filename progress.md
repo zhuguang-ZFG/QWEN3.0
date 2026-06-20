@@ -75,6 +75,26 @@
   - `scripts/deploy_unified.py --slice core` 上传 833 个文件，restart 后 health OK。
   - 公网 `/health` 正常。
 
+## 2026-06-20 代码审查后修复：部署 SSH 路径、env 文档、数字人 smoke 脚本（完成）
+
+- **触发**：用户执行 `/review`，对 `ebf2100..HEAD` 的 42 个文件做了 4 视角审查，报告见 `.omk/CODE_REVIEW_ISSUES.md`。
+- **发现的关键问题**：
+  - **高** `scripts/deploy_common.py` 中 `LIMA_DEPLOY_KEY_PATH` / `LIMA_DEPLOY_KNOWN_HOSTS` 的 env 值含字面量 `~` 时，Paramiko 不会自动展开，CI 部署会报 `FileNotFoundError`。
+  - **中** 新增 env 变量 `LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE`、`LIMA_RUNTIME_ENV`、`LIMA_DEPLOY_KEY_PATH`、`LIMA_DEPLOY_KNOWN_HOSTS` 未写入 `.env.example`。
+  - **中** `scripts/smoke_live_and_digital_human.py` 在 `routes/digital_human.py` 停止注入 token 后仍尝试从 HTML 抓取 token，契约已断。
+- **修复**：
+  - `scripts/deploy_common.py`：对 SSH key/known_hosts 路径应用 `os.path.expanduser()`。
+  - `scripts/deploy_unified_common.py`、`scripts/deploy_unified_deploy.py`、`scripts/deploy_unified_restart.py`：SSH key 无效或缺失时，回退到 `LIMA_DEPLOY_PASS` 密码认证。
+  - `.env.example`：补充 `LIMA_DEPLOY_KEY_PATH`、`LIMA_DEPLOY_KNOWN_HOSTS`、`LIMA_RUNTIME_ENV`、`LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE` 及中文注释。
+  - `scripts/smoke_live_and_digital_human.py`：删除 HTML token 抓取逻辑，改从 `LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN` 环境变量读取；未设置时明确报错。
+- **验证**：
+  - 聚焦测试：`tests/test_deploy_unified.py` 6 passed、`tests/test_digital_human_routes.py` 4 passed、`tests/test_github_deploy_workflow.py` 1 passed。
+  - 全量 `pytest -q` → **1863 passed, 4 skipped**。
+  - `ruff check .` → 0 errors。
+- **部署验证**：
+  - 因本地 `~/.ssh/id_ed25519` 是占位文件，首次 deploy 在 key auth 失败后通过密码回退成功。
+  - `scripts/deploy_unified.py --slice core` 上传 1283 个文件，restart 后 health OK。
+
 ## 2026-06-19 设备能力族独立审批门（完成）
 
 - **目标**：实现 `display/audio/speech/ocr/camera/perception` 能力族的独立审批门，不再与 `motion` 共享全局放行条件。
