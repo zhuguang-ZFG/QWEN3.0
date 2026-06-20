@@ -2,11 +2,40 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
+import socket
 import time
 import urllib.request
+from urllib.parse import urlparse
 
 from backends_registry import BACKENDS
+
+
+def _is_safe_backend_url(url: str) -> bool:
+    """Reject non-HTTPS URLs, private IPs, loopback, and file:// schemes."""
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        return False
+    host = parsed.hostname
+    if not host:
+        return False
+    if host.lower() in ("localhost", "localhost."):
+        return False
+    try:
+        addr = ipaddress.ip_address(host)
+        if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_multicast:
+            return False
+    except ValueError:
+        try:
+            infos = socket.getaddrinfo(host, None)
+            for info in infos:
+                addr = ipaddress.ip_address(info[4][0])
+                if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_multicast:
+                    return False
+        except socket.gaierror:
+            return False
+    return True
 
 
 def _resolve_vendor(url: str) -> str:
@@ -88,6 +117,8 @@ def test_backend_sync(name: str) -> dict:
         return {"ok": False, "error": f"backend '{name}' not found"}
     cfg = BACKENDS[name]
     url = cfg.get("url", "")
+    if not _is_safe_backend_url(url):
+        return {"ok": False, "error": f"backend URL is not a public HTTPS endpoint: {url}"}
     key = cfg.get("key", "")
     fmt = cfg.get("fmt", "openai")
     model = cfg.get("model", "")

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import os
 import struct
 from typing import Any
 
@@ -16,6 +17,28 @@ _log = logging.getLogger(__name__)
 
 # In-memory audio buffer registry: device_id -> (VADState, vad_provider)
 _audio_registry: dict[str, tuple] = {}
+
+# Max decoded PCM bytes per audio chunk / voiceprint sample (default 1 MiB).
+_MAX_AUDIO_BYTES = int(os.environ.get("LIMA_VOICE_MAX_AUDIO_BYTES", "1048576"))
+
+
+def _decode_limited_audio(data_b64: str, device_id: str, label: str) -> bytes | None:
+    """Decode base64 audio and enforce a size ceiling."""
+    try:
+        pcm_bytes = base64.b64decode(data_b64)
+    except Exception:
+        _log.warning("device=%s invalid base64 %s data", device_id, label)
+        return None
+    if len(pcm_bytes) > _MAX_AUDIO_BYTES:
+        _log.warning(
+            "device=%s %s data exceeds limit: %d > %d bytes",
+            device_id,
+            label,
+            len(pcm_bytes),
+            _MAX_AUDIO_BYTES,
+        )
+        return None
+    return pcm_bytes
 
 
 async def handle_audio_chunk(
@@ -30,10 +53,8 @@ async def handle_audio_chunk(
     Returns True to keep the connection open.
     """
     data_b64 = message.get("data", "")
-    try:
-        pcm_bytes = base64.b64decode(data_b64)
-    except Exception:
-        _log.warning("device=%s invalid base64 audio data", device_id)
+    pcm_bytes = _decode_limited_audio(data_b64, device_id, "audio")
+    if pcm_bytes is None:
         return True
 
     is_end = message.get("is_end", False)
@@ -131,12 +152,7 @@ async def _extract_and_store_voiceprint_embedding(
     audio_data_b64 = validated.get("audio_data", "")
     fmt = validated.get("format", "raw_pcm")
 
-    try:
-        audio_bytes = base64.b64decode(audio_data_b64)
-    except Exception:
-        _log.warning("device=%s voiceprint_id=%s failed to decode audio", device_id, voiceprint_id)
-        return
-
+    audio_bytes = _decode_limited_audio(audio_data_b64, device_id, "voiceprint")
     if not audio_bytes:
         return
 

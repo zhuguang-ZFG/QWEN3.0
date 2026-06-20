@@ -17,7 +17,11 @@ from device_gateway.family_gate import (
     revoke_family,
 )
 from routes.admin_auth import verify_admin, verify_csrf
-from routes.admin_backends import describe_backend, test_backend_sync
+from routes.admin_backends import (
+    _is_safe_backend_url,
+    describe_backend,
+    test_backend_sync,
+)
 from routes.admin_state import FALLBACK_LOG, stats_context
 from routes.ops_metrics import backend_call_detail
 
@@ -117,6 +121,8 @@ async def admin_add_backend(req: Request):
         auth = "x-api-key" if fmt == "anthropic" else "bearer"
     if not name or not url:
         raise HTTPException(400, "name and url required")
+    if not _is_safe_backend_url(url):
+        raise HTTPException(400, f"backend URL must be a public HTTPS endpoint: {url}")
     if name in BACKENDS:
         raise HTTPException(409, f"backend '{name}' already exists")
     BACKENDS[name] = {
