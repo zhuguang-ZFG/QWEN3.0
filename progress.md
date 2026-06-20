@@ -2504,3 +2504,34 @@ Agent Worker path.
   - `df4cd99 fix(device_gateway): log corrupt Redis items and avoid MQTT loop_start after connect failure`
   - `b7ba54b fix(context): preserve skill use_count on crystallize and warn on corrupt routing weights`
 - **注意**：`device_gateway/redis_store.py` 当前 305 行，略超 300 行目标；本次改动新增日志行导致。后续可拆分到 `redis_store_recovery.py`。
+
+## 2026-06-18 omk-review 第二批 Medium 修复
+
+- **目标**：继续处理 Medium 级别问题，覆盖 lifespan/eval、observability、context、admin 安全、voice 安全。
+- **已修复**：
+  1. **Telegram retirement warm phase 移除**：
+     - `server_lifespan_phases.py` 删除 `schedule_telegram_retirement` 及其在 `WARM_PHASES` 中的注册；删除 `channel_retirement` import。
+  2. **eval_loop_core passed 标志**：
+     - `scripts/eval_loop_core.py` 正常完成路径返回 `"passed": True`（`compare` 后续仍可能覆盖为 False）。
+  3. **observability 修复**：
+     - `observability/correlation.py`：`correlate_by_id` 改为精确匹配，空/空白 `target_id` 返回 `[]`。
+     - `observability/routing_guard.py`：`backend_telemetry` import 失败时记录 warning。
+  4. **context_pipeline 修复**：
+     - `context_pipeline/auto_indexer.py`：检测到删除文件时从 vector/graph index 移除；新增 `deleted_count` 统计。
+     - `code_context/graph_index.py` / `sqlite_graph_store.py`：新增 `delete_file(path)` 接口。
+     - `context_pipeline/code_scanner.py`：使用 `rglob("*.py")` 递归扫描子目录。
+     - `code_context/sqlite_graph_store.py`：`fts_search` 异常时记录 warning。
+  5. **admin backend SSRF 防护**：
+     - `routes/admin_backends.py`：新增 `_is_safe_backend_url`，仅允许 public HTTPS，拒绝 private/loopback/multicast/reserved IP 与 file://。
+     - `routes/admin_api.py`：添加 backend 时校验 URL。
+     - `routes/admin_backends.py::test_backend_sync`：探测前校验 URL。
+  6. **voice WS 音频大小限制**：
+     - `routes/device_voice_ws_helpers.py`：新增 `LIMA_VOICE_MAX_AUDIO_BYTES`（默认 1 MiB），在 `handle_audio_chunk` 和 `_extract_and_store_voiceprint_embedding` 中限制解码后 PCM 大小。
+- **验证**：
+  - `ruff check` clean。
+  - 全量测试：**1869 passed, 4 skipped, 1 failed**。失败的是 `tests/test_mimo_mcp_runner.py::test_build_command_puts_flags_before_message`，原因是当前环境 PATH 缺少 `mimo` CLI，与本批次改动无关。
+- **提交**：
+  - `454d1bc fix(lifespan/eval): remove retired Telegram warm phase and fix eval success flag`
+  - `b3aa21a fix(observability): exact-match correlation IDs and warn on routing_guard telemetry import`
+  - `00e224d fix(context): delete removed files from indexes, recursive scanner, fts warning`
+  - `925c397 fix(security): restrict admin backend URLs to public HTTPS and cap voice audio size`
