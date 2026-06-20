@@ -2535,3 +2535,54 @@ Agent Worker path.
   - `b3aa21a fix(observability): exact-match correlation IDs and warn on routing_guard telemetry import`
   - `00e224d fix(context): delete removed files from indexes, recursive scanner, fts warning`
   - `925c397 fix(security): restrict admin backend URLs to public HTTPS and cap voice audio size`
+
+## 2026-06-20 第四批 High/Critical 遗留修复 + SEC-005
+
+- **目标**：完成 CODE_REVIEW_ISSUES.md 中剩余 Must Fix 项，并处理 SEC-005 明文 HTTP 社区后端。
+- **已修复/处理**：
+  1. **COR-003 ledger `events_for_device`**：
+     - `InMemoryLedgerStore` / `RedisLedgerStore` 新增 `events_for_device(device_id)`。
+     - Redis 版同时写入 task 索引与 device 索引，支持按设备查询。
+  2. **COR-004 SVG parser 崩溃**：
+     - `device_gateway/svg_parser.py` 所有 `float()` 转换加 `_safe_float` 防护。
+     - 非法 token 直接终止当前命令，避免未处理异常。
+  3. **COR-005 pytest 污染**：
+     - `provider_probe/verify/connectivity_test.py` 中 `test_latency` / `test_chat_completion` 改名为 `measure_latency` / `probe_chat_completion`。
+  4. **测试环境补齐**：
+     - 新增 `tests/__init__.py` 和 `tests/xiaozhi_schema/__init__.py`，schema 测试可正常导入。
+     - `lima_mcp_stdio/mimo_invoke.py` 支持 `MIMO_MCP_MIMO_BINARY` 环境变量注入 fake binary；对应测试改为 monkeypatch，不再依赖真实 mimo CLI。
+  5. **SEC-005 Cleartext HTTP backend keys**：
+     - 选择「默认禁用 + 显式 opt-in」方案。
+     - `backends_registry/community_free.py`：HTTP-only 后端（`free_ajiakesi_*`、`free_team_speed_*`）默认不注册；新增 `FREE_AJIAKESI_ENABLED` / `FREE_TEAM_SPEED_ENABLED`，启用时记录 warning。
+     - `backends_registry/coding_pool/community.py`：`free_ajiakesi_*_code` 同样默认禁用，受同一 `FREE_AJIAKESI_ENABLED` 控制。
+     - `backends_constants_code_tools.py`：移除默认不存在的 `free_team_speed_gpt55`（不再出现在 `CODE_CAPABLE_BACKENDS` / `TOOL_CAPABLE_BACKENDS`）。
+     - `.env.example`：新增两个 opt-in 环境变量说明。
+- **验证**：
+  - `ruff check` clean（对修改的 Python 文件）。
+  - `tests/test_backend_registry.py` 32 passed。
+  - 全量测试（排除 `tests/test_token_health.py`，该测试会连接外部 API 导致网络超时）：**1861 passed, 18 skipped, 0 failed**。
+- **提交**：
+  - `ac877d9 fix(high/critical): address remaining Must Fix issues from CODE_REVIEW_ISSUES.md`
+  - `2f126e6 fix(sec-005): disable cleartext HTTP community backends by default`
+- **推送/部署**：
+  - GitHub (`origin`) 推送成功。
+  - Gitee (`gitee`) SSH push 仍因本地无 key 失败（已知问题，见 findings.md）。
+  - VPS `scripts/deploy_unified.py` 在本机执行时因 SSH key 无效失败；需通过 CI 或有正确 SSH key 的环境重新部署。
+- **文档**：
+  - `.omk/CODE_REVIEW_ISSUES.md` 已更新：Summary 标注全部 10 项 Must Fix 已修复；Security/Correctness 表格添加 ✅ Fixed；Tests 段落更新最新全量结果。
+  - 该文件位于 `.omk/`（被 `.git/info/exclude` 忽略），本次未进入 git commit。
+
+## 2026-06-20 小智服务器功能移植梳理
+
+- **现状**：
+  - 小智服务器主链路已闭环，`docs/XIAOZHI_TO_LIMA_GAP_AUDIT_CN.md` 明确「小智服务器可默认退役」。
+  - `/api/v1` 兼容层默认关闭，仅当 `LIMA_XIAOZHI_COMPAT_ENABLED=1` 时挂载。
+  - 原生 LiMa 设备管理 `/device/v1/app/*`、设备网关 `/device/v1/ws`、OTA `/device/v1/ota/*`、2D 数字人 `/digital-human/` 均已上线。
+- **剩余开放项**（均为真机/真网验证，非代码移植）：
+  - `XZRT-LIMA-7` / `XZRT-LIMA-11`：真实 U8 硬件刷写后 end-to-end 回归（缺少 `LIMA_HARDWARE_DEVICE_ID` / `LIMA_HARDWARE_DEVICE_TOKEN`）。
+  - `XZRT-LIMA-16`：`scripts/firmware_hardware_gate.py --build --flash --hardware-smoke` 因缺少真实设备凭证未执行。
+  - `XZRT-DH-4`：2D 数字人真实浏览器/硬件语音交互未验证。
+  - Manager-mobile 真机包回归未做。
+  - Doubao 语音凭证未配置。
+- **下一步**：
+  如需继续推进，优先补齐真实 U8 设备凭证并运行硬件闭环；否则小智服务器代码移植可视为完成，仅保留兼容性层作为迁移回退。

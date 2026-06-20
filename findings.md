@@ -618,3 +618,41 @@
 
 **残余风险**
 - 该 Key 仍保留在子模块 Git 历史以及 `manager-api/src/main/resources/db/changelog/202504112058.sql` 中；如仍在使用，请在和风天气控制台轮换。
+
+## 2026-06-20 SEC-005 Cleartext HTTP 社区后端处理
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SEC-005 | security | `backends_registry/community_free.py` 与 `coding_pool/community.py` 中的 `free_ajiakesi_*` / `free_team_speed_*` 后端通过 `http://` 明文传输 API key 与用户消息 | Closed (opt-in) |
+
+**决策**
+- 用户选择「默认禁用 + 显式 opt-in」方案，不改默认运行时行为中的可用后端集合，但要求显式接受风险才启用 HTTP 后端。
+
+**修复动作**
+- `backends_registry/community_free.py`：默认仅注册 HTTPS 社区后端；HTTP-only 的 ajiakesi / team_speed 后端仅在对应 env var 为 truthy 时注册。
+- `backends_registry/coding_pool/community.py`：`free_ajiakesi_*_code` 同样默认禁用，受 `FREE_AJIAKESI_ENABLED` 控制。
+- 新增 truthy 解析：`1/true/yes/on`（不区分大小写）。
+- 启用时记录 `logger.warning`，说明 API key 与用户消息可能被中间人读取；禁用时记录 `logger.info`，说明如何 opt-in。
+- `backends_constants_code_tools.py`：移除默认不存在的 `free_team_speed_gpt55`（避免 `test_code_capable_backends_all_registered` 失败）。
+- `.env.example`：新增 `FREE_AJIAKESI_ENABLED=0` / `FREE_TEAM_SPEED_ENABLED=0` 注释说明。
+- `.omk/CODE_REVIEW_ISSUES.md` 更新状态：全部 10 项 Must Fix 标记为已修复。
+
+**验证**
+- `ruff check` clean（修改文件）。
+- `tests/test_backend_registry.py` 32 passed。
+- 全量测试（排除 `test_token_health.py`）：1861 passed, 18 skipped。
+
+**提交**
+- `2f126e6 fix(sec-005): disable cleartext HTTP community backends by default`
+
+## 2026-06-20 Gitee / VPS 部署状态
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| DEPLOY-2026-06-20-1 | deploy | Gitee SSH push 失败（本地无 SSH key） | Known / 可用 HTTPS fallback 或添加 Gitee SSH key |
+| DEPLOY-2026-06-20-2 | deploy | 本机 `scripts/deploy_unified.py` 因 SSH key 无效失败 | Needs correct key/env or CI deploy |
+
+**说明**
+- GitHub (`origin`) push 成功：`ac877d9` 与 `2f126e6` 已推送。
+- Gitee (`gitee`) push 仍失败：`git@gitee.com: Permission denied (publickey)`。已存在 `scripts/push_dual_remotes.py` 的 HTTPS fallback，但本次直接 `git push gitee main` 未触发 fallback。
+- VPS 部署：`deploy_unified_common.py::_connect_ssh` 先用 `key_filename=KEY` 连接，paramiko 报 `Invalid key`，异常被 `except paramiko.SSHException` 捕获后尝试密码，但仍抛出同一异常导致退出；需在有正确 SSH key 或 `LIMA_DEPLOY_PASS` 的环境重新执行，或通过 CI 部署。
