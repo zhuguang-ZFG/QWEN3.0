@@ -9,10 +9,13 @@ Backend routing weights that learn from success/failure history:
 """
 
 import json
+import logging
 import os
 import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
+
+_log = logging.getLogger(__name__)
 
 
 _default_path = os.path.join(
@@ -119,8 +122,14 @@ class RoutingWeights:
                 data = json.loads(WEIGHTS_PATH.read_text(encoding="utf-8"))
                 for key, d in data.items():
                     self._weights[key] = BackendWeight(**d)
-            except (json.JSONDecodeError, TypeError):
-                pass
+            except (json.JSONDecodeError, TypeError) as exc:
+                _log.warning("routing weights file %s is corrupt: %s", WEIGHTS_PATH, exc)
+                backup = WEIGHTS_PATH.with_suffix(".json.corrupt")
+                try:
+                    WEIGHTS_PATH.rename(backup)
+                    _log.warning("corrupt weights file renamed to %s", backup)
+                except OSError:
+                    pass
 
     def _save(self) -> None:
         WEIGHTS_PATH.parent.mkdir(parents=True, exist_ok=True)

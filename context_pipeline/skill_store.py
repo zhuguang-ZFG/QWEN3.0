@@ -60,6 +60,17 @@ class SkillStore:
         key = self._compute_key(messages, scenario)
         now = time.time()
 
+        existing = self._skills.get(key)
+        if existing:
+            existing.backend = backend
+            existing.scenario = scenario
+            existing.complexity_score = complexity_score
+            existing.latency_ms = latency_ms
+            existing.last_used = now
+            existing.use_count += 1
+            self._evict_if_needed()
+            return existing
+
         skill = RoutingSkill(
             skill_key=key,
             backend=backend,
