@@ -3,6 +3,14 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-20 工作区清理与 redis_store 瘦身
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CLEANUP-1 | hygiene | 删除 `__pycache__`、`.ruff_cache`、`.pytest_cache`、`.hypothesis` 等可重建缓存 | Closed |
+| SLIM-1 | code_size | `device_gateway/redis_store.py` 305 行超过 300 行限制，已拆出 `redis_store_helpers.py` mixin | Closed |
+| ORPHAN-1 | dead_code_audit | `coding_backend_scorer.py` 等 7 个模块被 CodeGraph 标记为 cold，但均通过 `try/except ImportError` 被生产路径动态导入，不可直接删除 | Documented |
+
 ## 2026-06-18 draw_generated 主链路接入 AI 绘图
 
 | ID | Area | Finding | Status |

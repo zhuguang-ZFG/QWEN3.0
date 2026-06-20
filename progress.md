@@ -2,8 +2,26 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-19
+> Updated: 2026-06-20
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
+
+## 2026-06-20 工作区清理与代码瘦身（完成）
+
+- **目标**：响应「清理工作区；代码瘦身」指令，清理可重建缓存并修复当前唯一的生产文件级尺寸违规。
+- **工作区清理**：
+  - 删除 `__pycache__/`, `.ruff_cache/`, `.pytest_cache/`, `.hypothesis/` 及所有子目录 `__pycache__/`。
+  - 释放约 6 MB 可重建缓存；`git status` 保持干净。
+- **代码瘦身**：
+  - `device_gateway/redis_store.py` 从 305 行拆至 259 行。
+  - 新增 `device_gateway/redis_store_helpers.py`（66 行）作为 `RedisStoreHelpers` mixin，承载私有 Redis key/state/queue 辅助方法。
+  - 保留 `RedisDeviceTaskStore` 公共 API，测试无需改动。
+- **死代码审计结论**：
+  - `scripts/codegraph_orphans.py` 曾标记 7 个 cold 模块（`coding_backend_scorer.py`、`context_pipeline/complexity.py`、`entity_extraction.py`、`graph_context_expander.py`、`production_index.py`、`retrieval_corpus.py`、`retrieval_trace.py`）。
+  - 进一步检查发现它们均通过 `try: from ... import ... except ImportError` 被生产路径动态导入，属于可选能力而非死代码，本次不删除。
+- **验证**：
+  - `scripts/check_code_size.py`：**无 >300 行文件**（函数级 >50 行仍有 80 个，未在本次处理）。
+  - `ruff check device_gateway/redis_store.py device_gateway/redis_store_helpers.py` → 0 errors。
+  - `python -m pytest tests/test_device_gateway_redis_store.py -v` → **6 passed**。
 
 ## 2026-06-19 函数级尺寸治理第一轮：拆分 Top 5 生产超长函数（完成）
 
