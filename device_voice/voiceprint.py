@@ -18,7 +18,16 @@ _log = logging.getLogger(__name__)
 VOICEPRINT_MODE = os.environ.get("LIMA_VOICEPRINT_MODE", "local").strip().lower()
 VOICEPRINT_API_URL = os.environ.get("LIMA_VOICEPRINT_API_URL", "").strip()
 VOICEPRINT_API_KEY = os.environ.get("LIMA_VOICEPRINT_API_KEY", "").strip()
-SIMILARITY_THRESHOLD = float(os.environ.get("LIMA_VOICEPRINT_SIMILARITY_THRESHOLD", "0.6"))
+def _parse_similarity_threshold() -> float:
+    raw = os.environ.get("LIMA_VOICEPRINT_SIMILARITY_THRESHOLD", "0.6")
+    try:
+        return float(raw)
+    except (ValueError, TypeError):
+        _log.warning("LIMA_VOICEPRINT_SIMILARITY_THRESHOLD=%r invalid; falling back to 0.6", raw)
+        return 0.6
+
+
+SIMILARITY_THRESHOLD = _parse_similarity_threshold()
 
 
 class VoiceprintProvider:
@@ -57,7 +66,9 @@ class VoiceprintProvider:
     async def identify_speaker(self, wav_data: bytes, device_id: str) -> SpeakerIdentity:
         from device_voice.voiceprint_policy import _identify_speaker_impl
 
-        return await _identify_speaker_impl(self, wav_data, device_id, SIMILARITY_THRESHOLD, _cosine_similarity)
+        return await _identify_speaker_impl(
+            self, wav_data, device_id, SIMILARITY_THRESHOLD, _cosine_similarity
+        )
 
     async def register_speaker(self, wav_data: bytes, member_id: str, device_id: str) -> Optional[list[float]]:
         if not self.enabled:
@@ -92,8 +103,10 @@ class VoiceprintProvider:
     async def close(self) -> None:
         if self._model is not None:
             self._model.unload()
-        self.cache.clear_device.__func__  # no-op reference
-        _log.info("VoiceprintProvider closed")
+        cleared_count = 0
+        for device_id in list(self.cache._by_device.keys()):
+            cleared_count += self.cache.clear_device(device_id)
+        _log.info("VoiceprintProvider closed; cleared %d device caches", cleared_count)
 
 
 _voiceprint_instance: Optional[VoiceprintProvider] = None

@@ -44,6 +44,7 @@ def _overlay_tiers_for_pool(pool_key: str) -> dict[str, list[str]]:
         return {"medium": [], "floor": []}
     grouped = get_overlay_backends_by_tier(pool_key)
     return {
+        "strong": grouped.get("strong", []),
         "medium": grouped.get("medium", []) + grouped.get("late_fallback", []),
         "floor": grouped.get("floor", []),
     }

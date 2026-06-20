@@ -15,6 +15,8 @@ import health_state
 import health_tracker
 import server_lifespan
 
+_SHOW_HEALTH_ERRORS = os.environ.get("LIMA_HEALTH_SHOW_ERRORS", "0").strip().lower() in {"1", "true", "yes"}
+
 router = APIRouter()
 
 _model_id = "lima-1.3"
@@ -89,7 +91,7 @@ async def health():
             "status": startup_status,
             "phases": phases,
             "pending_warm": state.get("pending_warm", []),
-            "errors": state.get("errors", []),
+            "errors": state.get("errors", []) if _SHOW_HEALTH_ERRORS else [],
         },
     }
     if startup_status == "error":

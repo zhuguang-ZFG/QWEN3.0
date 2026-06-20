@@ -65,7 +65,7 @@ def _try_include(
             inject(mod)
         loaded[module_key] = True
         return True
-    except ImportError as exc:
+    except Exception as exc:
         logging.warning("[STARTUP] %s module not loaded: %s", module_key, exc)
         loaded[module_key] = False
         return False
@@ -196,7 +196,10 @@ def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     _try_include(app, loaded, "routes.health_dashboard", "health_dashboard")
 
     def _fleet_inject(mod: Any) -> None:
-        mod.inject_state(admin_token=os.environ.get("LIMA_API_KEY", ""))
+        admin_token = os.environ.get("LIMA_ADMIN_TOKEN", "") or os.environ.get("LIMA_API_KEY", "")
+        if not admin_token:
+            logging.warning("LIMA_ADMIN_TOKEN/LIMA_API_KEY not set; fleet API will reject all requests")
+        mod.inject_state(admin_token=admin_token)
 
     _try_include(app, loaded, "routes.fleet_api", "fleet", inject=_fleet_inject)
     _try_include(app, loaded, "routes.eval_internal", "eval_internal")

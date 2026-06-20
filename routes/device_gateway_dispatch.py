@@ -25,19 +25,24 @@ def extract_ws_token(websocket: WebSocket) -> str:
     if authorization.lower().startswith("bearer "):
         return authorization[7:].strip()
     if authorization.strip():
+        _log.warning("device WS authorization missing Bearer prefix")
         return authorization.strip()
     # Some web testers (e.g. the 2D digital human page) pass the token as an
     # ``authorization`` query parameter. Support both ``token`` and
-    # ``authorization`` for compatibility.
+    # ``authorization`` for compatibility, but log missing Bearer prefix.
     token = websocket.query_params.get("token", "").strip()
+    if token.lower().startswith("bearer "):
+        return token[7:].strip()
     if token:
-        if token.lower().startswith("bearer "):
-            return token[7:].strip()
+        _log.warning("device WS token query param missing Bearer prefix")
         return token
     auth_query = websocket.query_params.get("authorization", "").strip()
     if auth_query.lower().startswith("bearer "):
         return auth_query[7:].strip()
-    return auth_query
+    if auth_query:
+        _log.warning("device WS authorization query param missing Bearer prefix")
+        return auth_query
+    return ""
 
 
 async def send_ws_error(

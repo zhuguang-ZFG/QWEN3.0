@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from typing import Any
 
 from device_memory.schemas import MemoryEntry, MemoryType
 from device_memory.store import MemoryStore
+
+_log = logging.getLogger(__name__)
 
 
 def consolidate_task_episodes(store: MemoryStore, device_id: str) -> list[MemoryEntry]:
@@ -42,7 +45,16 @@ def consolidate_task_episodes(store: MemoryStore, device_id: str) -> list[Memory
         existing_key = f"conf_{task_type}"
         old = store.recall(device_id, existing_key, MemoryType.PROCEDURE_CONFIDENCE)
         if old is not None and old.value:
-            old_data = json.loads(old.value)
+            try:
+                old_data = json.loads(old.value)
+            except json.JSONDecodeError as exc:
+                _log.warning(
+                    "device=%s key=%s corrupt procedure confidence value: %s",
+                    device_id,
+                    existing_key,
+                    exc,
+                )
+                old_data = {}
             old_rate = old_data.get("success_rate", 0)
             old_total = old_data.get("total_count", 0)
             if old_total == total and abs(old_rate - success_rate) < 0.01:

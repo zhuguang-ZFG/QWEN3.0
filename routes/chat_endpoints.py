@@ -11,6 +11,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+import rate_limiter
 from access_guard import require_public_or_private_api_key
 from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
@@ -109,8 +110,6 @@ async def chat_completions(request: Request):
     raw_messages = body.get("messages", [])
     client_ip = _call("client_ip", request)
     ide_source = _call("detect_ide", raw_messages)
-
-    import rate_limiter
 
     rate_limit_multiplier = 5 if ide_source else 1
     if not rate_limiter.check_rate_limit(client_ip, multiplier=rate_limit_multiplier):

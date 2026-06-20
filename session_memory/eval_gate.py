@@ -16,6 +16,7 @@ every promotion has explicit evidence, approval, and rollback.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -24,6 +25,8 @@ from session_memory.store import (
     query_by_type,
     save_typed_memory,
 )
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -90,7 +93,8 @@ def eval_candidates_from_memory(limit: int = 20) -> list[EvalCandidate]:
     """Extract eval candidates from reference_pattern typed memories."""
     try:
         patterns = query_by_type("reference_pattern", limit=limit)
-    except Exception:
+    except Exception as exc:
+        _log.warning("eval_candidates_from_memory failed: %s", exc)
         return []
 
     candidates: dict[str, EvalCandidate] = {}

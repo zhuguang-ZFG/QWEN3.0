@@ -147,7 +147,8 @@ class _VoiceSession:
 
     async def _process_utterance(self, pcm: bytes) -> None:
         await self._send_status("thinking")
-        result = await process_voice_utterance(pcm, device_id="voice-web")
+        client_ip = _client_ip_from_websocket(self.websocket)
+        result = await process_voice_utterance(pcm, device_id="voice-web", client_ip=client_ip)
         await self._emit_result(result)
 
     async def _process_text(self, text: str) -> None:
@@ -202,6 +203,18 @@ class _VoiceSession:
                 await self.worker_task
             except asyncio.CancelledError:
                 pass
+
+
+def _client_ip_from_websocket(websocket: WebSocket) -> str:
+    """Best-effort client IP extraction from WS scope/headers."""
+    scope = websocket.scope
+    client = scope.get("client")
+    if isinstance(client, (list, tuple)) and len(client) >= 1:
+        return str(client[0])
+    forwarded = websocket.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return websocket.headers.get("x-real-ip", "127.0.0.1")
 
 
 class _SimpleEnergyVAD:

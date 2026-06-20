@@ -53,7 +53,7 @@ def generate_backend_entry(provider_info: dict) -> str:
         String containing the backend entry code block.
     """
     name = _sanitize_name(provider_info.get("name", "unknown"))
-    base_url = provider_info.get("base_url", "https://api.example.com/v1")
+    base_url = provider_info.get("base_url", "https://api.example.com/v1").rstrip("/")
     fmt = provider_info.get("fmt", "openai")
     requires_auth = provider_info.get("requires_auth", True)
     auth_type = provider_info.get("auth_type", "bearer")
@@ -82,9 +82,15 @@ def generate_backend_entry(provider_info: dict) -> str:
     # Primary model (first in list or generate from name)
     model = provider_info.get("model_id", models[0] if models else name)
 
+    # Smart URL construction: avoid double /v1 and force chat completions path.
+    if base_url.endswith("/v1"):
+        chat_url = f"{base_url}/chat/completions"
+    else:
+        chat_url = f"{base_url}/v1/chat/completions"
+
     entry = dedent(f"""\
     '{name}': {{
-        'url': '{base_url}/v1/chat/completions',
+        'url': '{chat_url}',
         'key': {key_source},
         'model': '{model}',
         'fmt': '{fmt}',

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+
 
 def preview_svg(
     path: list[dict[str, float]],
@@ -19,6 +21,6 @@ def preview_svg(
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">'
         f'<rect width="{width}" height="{height}" fill="#fafafa" stroke="#ccc"/>'
         f'<polyline points="{points_str}" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round"/>'
-        f'<text x="5" y="{height - 5}" font-size="10" fill="#888">{title} — {len(path)} pts</text>'
+        f'<text x="5" y="{height - 5}" font-size="10" fill="#888">{html.escape(title)} — {len(path)} pts</text>'
         f"</svg>"
     )

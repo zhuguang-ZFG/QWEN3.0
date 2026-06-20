@@ -27,6 +27,7 @@ async def process_voice_utterance(
     *,
     audio_config: AudioConfig | None = None,
     voice: str = "",
+    client_ip: str = "127.0.0.1",
 ) -> dict[str, Any]:
     """Process a complete voice utterance through the dialogue pipeline.
 
@@ -35,6 +36,7 @@ async def process_voice_utterance(
         device_id: Device identifier for routing and memory context.
         audio_config: Audio format config (default 16kHz 16-bit mono).
         voice: TTS voice preference (empty = provider default).
+        client_ip: Origin IP for rate-limiting/budget attribution.
 
     Returns:
         Dict with keys: transcript, reply_text, reply_audio (PCM bytes),
@@ -50,7 +52,7 @@ async def process_voice_utterance(
     except Exception:
         _log.warning("device=%s voiceprint identification skipped", device_id, exc_info=True)
 
-    # ── ASR ──
+
     asr_start = time.monotonic()
     transcript = await _run_asr(pcm_data, cfg)
     asr_ms = (time.monotonic() - asr_start) * 1000
@@ -68,7 +70,7 @@ async def process_voice_utterance(
     )
 
     return await _run_llm_tts_dialogue(
-        transcript, device_id, voice, cfg, t0, asr_ms=asr_ms, voiceprint_result=voiceprint_result
+        transcript, device_id, voice, cfg, t0, asr_ms=asr_ms, voiceprint_result=voiceprint_result, client_ip=client_ip
     )
 
 
@@ -96,11 +98,12 @@ async def _run_llm_tts_dialogue(
     *,
     asr_ms: float = 0.0,
     voiceprint_result: Optional[dict[str, Any]] = None,
+    client_ip: str = "127.0.0.1",
 ) -> dict[str, Any]:
     """Run LLM and TTS for a given transcript and assemble the result dict."""
     # ── LLM via LiMa routing engine ──
     llm_start = time.monotonic()
-    reply_text = await _run_llm(transcript, device_id)
+    reply_text = await _run_llm(transcript, device_id, client_ip=client_ip)
     llm_ms = (time.monotonic() - llm_start) * 1000
 
     if not reply_text:
@@ -189,7 +192,7 @@ async def _run_asr(pcm_data: bytes, config: AudioConfig) -> str:
         return ""
 
 
-async def _run_llm(transcript: str, device_id: str) -> str:
+async def _run_llm(transcript: str, device_id: str, *, client_ip: str = "127.0.0.1") -> str:
     """Send transcript through LiMa's chat pipeline and return reply text.
 
     This bridges the voice pipeline into the same path used by the web chat
@@ -201,7 +204,7 @@ async def _run_llm(transcript: str, device_id: str) -> str:
         from routes.chat_handler import handle_chat
 
         req = ChatRequest(messages=[Message(role="user", content=transcript)])
-        result = await handle_chat(req, fmt="openai", client_ip="127.0.0.1", ide_source="voice")
+        result = await handle_chat(req, fmt="openai", client_ip=client_ip, ide_source="voice")
         body = json.loads(result.body)
         choices = body.get("choices", [])
         if choices:
@@ -236,7 +239,7 @@ def _empty_result(
     voiceprint_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     total_ms = (time.monotonic() - t0) * 1000
-    result = {
+    result: dict[str, Any] = {
         "transcript": "",
         "reply_text": "",
         "reply_audio": b"",

@@ -64,14 +64,3 @@ async def handle_voiceprint_sample(
     await _extract_and_store_voiceprint_embedding(validated, voiceprint_id, member_id, device_id)
 
     shadow_store.update_voiceprint_sample(message)
-    session = registry.get(device_id)
-    if session is not None:
-        await session.send_json(
-            ack_frame(
-                "voiceprint_sample_ack",
-                device_id,
-                voiceprint_id=voiceprint_id,
-                sample_index=sample_index,
-                request_id=request_id,
-            )
-        )

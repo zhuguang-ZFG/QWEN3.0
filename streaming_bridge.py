@@ -17,7 +17,8 @@ CallApiFn = Callable[[str, list, int, str], str]
 # Static latency estimates imported from routing_selector (canonical source)
 try:
     from routing_selector import _STATIC_LATENCY_ESTIMATE
-except ImportError:
+except ImportError as exc:
+    _log.warning("routing_selector._STATIC_LATENCY_ESTIMATE not available: %s", exc)
     _STATIC_LATENCY_ESTIMATE: dict[str, float] = {}
 
 

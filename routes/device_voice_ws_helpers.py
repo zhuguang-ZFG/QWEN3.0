@@ -5,12 +5,12 @@ from __future__ import annotations
 import base64
 import logging
 import os
-import struct
 from typing import Any
 
 from fastapi import WebSocket
 
 from device_intelligence.shadow import shadow_store
+from device_voice.audio_stream import AudioConfig, pcm_to_wav
 from device_gateway.protocol import voice_status_frame, audio_reply_frame
 
 _log = logging.getLogger(__name__)
@@ -110,7 +110,8 @@ async def _feed_audio_to_pipeline(
         try:
             from device_voice.dialogue import process_voice_utterance
 
-            result = await process_voice_utterance(pcm_data, device_id)
+            client_ip = _client_ip_from_websocket(websocket)
+            result = await process_voice_utterance(pcm_data, device_id, client_ip=client_ip)
         except Exception:
             _log.warning("device=%s dialogue pipeline failed", device_id, exc_info=True)
             await websocket.send_json(voice_status_frame(device_id, "idle"))
@@ -140,6 +141,18 @@ async def _feed_audio_to_pipeline(
 def _cleanup_audio_registry(device_id: str) -> None:
     """Remove audio pipeline state for a disconnected device."""
     _audio_registry.pop(device_id, None)
+
+
+def _client_ip_from_websocket(websocket: WebSocket) -> str:
+    """Best-effort client IP extraction from WS scope/headers."""
+    scope = websocket.scope
+    client = scope.get("client")
+    if isinstance(client, (list, tuple)) and len(client) >= 1:
+        return str(client[0])
+    forwarded = websocket.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return websocket.headers.get("x-real-ip", "127.0.0.1")
 
 
 async def _extract_and_store_voiceprint_embedding(
@@ -199,47 +212,17 @@ async def _extract_and_store_voiceprint_embedding(
         _log.warning("device=%s voiceprint embedding extraction failed", device_id, exc_info=True)
 
 
-def _ensure_wav(audio_bytes: bytes, fmt: str) -> bytes | None:
+def _ensure_wav(audio_bytes: bytes, fmt: str, config: AudioConfig | None = None) -> bytes | None:
     """Convert raw PCM audio bytes to WAV format if needed."""
     if fmt in ("wav",):
         return audio_bytes
 
     if fmt in ("raw_pcm", "pcm"):
-        # Add WAV header to raw PCM (16kHz, 16-bit, mono)
-        return _pcm_to_wav(audio_bytes, sample_rate=16000, channels=1, bits_per_sample=16)
+        cfg = config or AudioConfig()
+        return pcm_to_wav(audio_bytes, cfg)
 
     _log.debug("Unsupported voiceprint audio format: %s", fmt)
     return None
-
-
-def _pcm_to_wav(
-    pcm_data: bytes,
-    sample_rate: int = 16000,
-    channels: int = 1,
-    bits_per_sample: int = 16,
-) -> bytes:
-    """Add a WAV header to raw PCM bytes."""
-    byte_rate = sample_rate * channels * bits_per_sample // 8
-    block_align = channels * bits_per_sample // 8
-    data_size = len(pcm_data)
-
-    wav_header = struct.pack(
-        "<4sI4s4sIHHIIHH4sI",
-        b"RIFF",
-        36 + data_size,
-        b"WAVE",
-        b"fmt ",
-        16,  # Subchunk1Size (PCM)
-        1,  # AudioFormat (PCM = 1)
-        channels,
-        sample_rate,
-        byte_rate,
-        block_align,
-        bits_per_sample,
-        b"data",
-        data_size,
-    )
-    return wav_header + pcm_data
 
 
 __all__ = [
@@ -247,7 +230,7 @@ __all__ = [
     "handle_audio_chunk",
     "_feed_audio_to_pipeline",
     "_cleanup_audio_registry",
+    "_client_ip_from_websocket",
     "_extract_and_store_voiceprint_embedding",
     "_ensure_wav",
-    "_pcm_to_wav",
 ]
