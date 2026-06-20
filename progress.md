@@ -2395,3 +2395,20 @@ Agent Worker path.
   - `.venv310\Scripts\python.exe scripts\deploy_unified.py` -> ?? **1171 files**?0 failed??? restart ? `Health: OK`?
   - `https://chat.donglicao.com/health` -> `status=ok`?`startup.status=ready`?? startup errors?
   - `https://chat.donglicao.com/digital-human/` -> HTTP 200???? `limaToken` ?? secret value?
+
+## 2026-06-18 review 修复关闭
+
+- **目标**：补齐代码审查后 5 个测试覆盖缺口，并同步更新部署/发布文档。
+- **已做**：
+  - 新增 rate_limiter 窗口过期、multiplier 夹紧测试。
+  - 新增 device_app_auth dev-mode 无静态码 503 路径测试。
+  - 新增 device_gateway health 生产 + 共享 state 成功路径测试。
+  - 新增 model_registry 稳定排序测试。
+  - 更新 `docs/DEPLOY_AND_RELEASE_CONVENTION.md`、`docs/RELEASE_GATE_CHECKLIST.md`、`STATUS.md`，明确 `/health`（启动错误）、`/device/v1/health`（生产未就绪）可能返回 503，以及 chat 端点 rate limiter 默认值 60s/120 请求（IDE 倍率 5，返回 429）。
+- **验证**：
+  - 聚焦测试：`tests/test_rate_limiter.py tests/test_device_app_auth.py tests/device_gateway/test_health.py tests/test_model_registry.py` → **22 passed**。
+  - 全量测试：`1860 passed, 4 skipped, 0 failed`。
+  - `ruff check .` clean；`ruff format --check` clean。
+  - VPS smoke：`https://chat.donglicao.com/health` 200 ready；`/device/v1/health` 200 ready。
+- **提交**：`d80c873 test(review): backfill coverage gaps and document health 503 semantics`。
+- **推送**：`origin` 成功；`gitee` 失败（SSH publickey 无权限，已知问题）。
