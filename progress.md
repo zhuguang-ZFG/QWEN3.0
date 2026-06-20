@@ -2449,3 +2449,29 @@ Agent Worker path.
 - **Smoke**：
   - `https://chat.donglicao.com/health` → 200，`startup.status=ready`
   - `https://chat.donglicao.com/device/v1/health` → 200，`protocol=lima-device-v1`，`production_ready=true`
+
+## 2026-06-18 omk-review Critical/High 问题修复
+
+- **来源**：`.omk/CODE_REVIEW_ISSUES.md` 全项目审查报告。
+- **已修复**：
+  1. **SSH AutoAddPolicy MITM 风险**：
+     - `deploy/jdcloud/deploy_jd.py`、`deploy/jdcloud/deploy_via_paramiko.py`、`deploy/deploy_prometheus_metrics.py`、`scripts/test_jdcloud_connection.py` 改为加载系统/known_hosts 并使用 `paramiko.RejectPolicy()`。
+     - `scripts/test_jdcloud_connection.py` 改用 `REDISCLI_AUTH` 环境变量传递 Redis 密码，避免命令行泄露。
+     - `deploy/deploy_prometheus_metrics.py` 修正服务名称为 `lima-router`，`.env` 路径改为 `/opt/lima-router`。
+  2. **provider_probe 注入与 SSRF**：
+     - `provider_probe/integrate/constants_updater.py`：新增 backend ID 白名单校验 `[A-Za-z0-9_-]+`，防止写入任意 Python。
+     - `provider_probe/browser_service.py`：默认监听 `127.0.0.1`；新增 `PROBE_BROWSER_TOKEN` 鉴权；校验 URL scheme 并阻止 private/loopback IP；`/extract` 改用 Playwright `locator.all_inner_texts()` 避免 selector 注入；`/network-intercept` 对敏感 header 脱敏。
+  3. **http_stream.py BackendError 静默吞掉**：
+     - `_record_stream_error` 中对 `BackendError` 分支补充 `raise exc`，失败流不再返回空 200。
+  4. **device_voice VAD 状态共享**：
+     - 将 SileroVAD 的 `last_voice_time_ms`、`last_is_voice`、`voice_window`、`onnx_state`、`onnx_context` 从 provider 单例移到 `VADState` 每流状态，避免多设备互相污染。
+- **验证**：
+  - `ruff check` clean。
+  - 全量测试：**1870 passed, 4 skipped, 0 failed**。
+  - 聚焦测试：`tests/test_browser_service.py` 4 passed；`tests/test_http_stream_parse_lines.py` + `tests/test_device_voice*.py` 57 passed。
+- **提交**：
+  - `3d75b1a fix(http_stream): re-raise BackendError so failed streams do not return empty 200`
+  - `df09b06 fix(device_voice): keep VAD ONNX state per-stream instead of shared provider`
+  - `35e3393 fix(provider_probe): validate backend IDs, harden browser SSRF/auth/selector injection`
+  - `b7ff0dd fix(provider_probe): allow test domains when DNS returns benchmark IPs`
+- **说明**：4 个 deploy 相关文件在 `.gitignore` 中显式被忽略，因此仅本地修改，未进入仓库。如需纳入版本控制，请调整 `.gitignore`。
