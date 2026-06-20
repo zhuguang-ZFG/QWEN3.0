@@ -133,6 +133,7 @@ def _record_stream_error(hc, backend, key_provider, selected_key, exc, label: st
             error_code=exc.status_code or 0,
             retry_after=0,
         )
+        raise exc
     elif isinstance(exc, httpx.HTTPStatusError):
         error_code = exc.response.status_code
         hc.health_tracker.record_failure(backend, error_code=error_code, error_text=str(exc))
