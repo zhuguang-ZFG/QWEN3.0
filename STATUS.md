@@ -15,6 +15,13 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-18）flaky test 修复 + U1 route_policy 拒绝证据补齐
+
+- **flaky test**：`tests/test_model_registry.py::test_list_versions_sorted_by_created_at_desc` 因 `datetime.now()` 精度导致偶发失败，已改为固定递增时间戳，连续 5 次复跑稳定通过。
+- **U1 固件侧 route_policy 拒绝**：物理 U1 无法真机验证；fake U1 已覆盖未知 `route_role` / `primary_strategy` / `artifact_required` / `backend`、角色与策略/制品不兼容、`run_path` 能力缺失、`device_control` 要求模型等拒绝路径。新增 `tests/test_fake_u1_route_policy_validator.py` 10 个单元测试，与 `tests/test_fake_u1_cloud_rejection.py` 形成云端到 fake U1 闭环证据。
+- **验证**：`tests/test_model_registry.py` 10 passed ×5；`tests/test_fake_u1_route_policy_validator.py` 10 passed；`tests/test_fake_u1_cloud_*.py` 5 passed。
+- **提交**：`e7cf101 test(device): add fake U1 route_policy validator unit tests`、`3c3d220 test(model_registry): eliminate flake by stepping timestamps in sort test`。
+
 ### 最近完成（2026-06-18）函数级尺寸治理第 5 批：route_registry / routing_executor / http_body_limit 拆分
 
 - **目标**：继续降低 >50 行函数基线，聚焦最热路径。

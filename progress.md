@@ -2412,3 +2412,32 @@ Agent Worker path.
   - VPS smoke：`https://chat.donglicao.com/health` 200 ready；`/device/v1/health` 200 ready。
 - **提交**：`d80c873 test(review): backfill coverage gaps and document health 503 semantics`。
 - **推送**：`origin` 成功；`gitee` 失败（SSH publickey 无权限，已知问题）。
+
+## 2026-06-18 函数级尺寸治理第 5 批
+
+- **目标**：继续降低 >50 行函数基线，拆分最热路径。
+- **实现**：
+  - `routes/route_registry.py`：`/_register_core_routes` 拆为 5 个注册 helper。
+  - `routing_executor.py`：按串行/并行/fallback/遥测拆为 4 个子模块。
+  - `http_body_limit.py`：拆出 `_read_limited_body`。
+- **验证**：
+  - 聚焦测试：`tests/test_route_registry.py tests/test_http_body_limit.py tests/test_routing_engine_integration.py tests/test_routing_loop.py tests/test_routing_pipeline_authority.py` → **52 passed**。
+  - 全量测试：**1860 passed, 4 skipped, 0 failed**。
+  - `ruff check` clean；`pyright` 目标文件 0 errors；`scripts/check_code_size.py` 无 >300 行文件，>50 行函数从 82 降至 78。
+- **提交**：`4919b51 refactor(size): split route_registry, routing_executor and http_body_limit hot paths`。
+- **VPS 部署**：**阻塞**。`~/.ssh/id_ed25519` 为占位符，且当前环境无 `LIMA_DEPLOY_PASS`，`scripts/deploy_unified.py` 无法连接 VPS。需后续补充 VPS smoke 证据。
+
+## 2026-06-18 U1 route_policy 拒绝证据补齐 + flaky test 修复
+
+- **U1 固件侧 route_policy 拒绝**：
+  - 物理 U1 无真机，无法执行硬件门。
+  - fake U1（`esp32S_XYZ/tools/fake_u1/route_policy_validator.py`）已覆盖：未知 route_role、primary_strategy、artifact_required、backend；角色与策略/制品不兼容；缺少 run_path 能力；device_control 要求模型。
+  - 新增 `tests/test_fake_u1_route_policy_validator.py`（10 cases），与现有 `tests/test_fake_u1_cloud_rejection.py` 形成云端 → fake U1 闭环证据。
+  - 验证：`tests/test_fake_u1_route_policy_validator.py` → **10 passed**；`tests/test_fake_u1_cloud_home.py test_fake_u1_protocol_translation.py test_fake_u1_cloud_rejection.py test_fake_u1_cloud_draw_svg.py test_fake_u1_cloud_write_text.py` → **5 passed**。
+  - 提交：`e7cf101 test(device): add fake U1 route_policy validator unit tests`。
+- **flaky test 修复**：
+  - `tests/test_model_registry.py::test_list_versions_sorted_by_created_at_desc` 因 `datetime.now()` 精度导致偶发 `created_at` 相同而排序不稳定。
+  - 改为固定递增时间戳，连续复跑 5 次均通过。
+  - 验证：`tests/test_model_registry.py` → **10 passed ×5**。
+  - 提交：`3c3d220 test(model_registry): eliminate flake by stepping timestamps in sort test`。
+- **VPS 部署**：仍因 `LIMA_DEPLOY_PASS` 未设置 / SSH key 占位符而阻塞，需后续补充 smoke。
