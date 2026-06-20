@@ -2475,3 +2475,32 @@ Agent Worker path.
   - `35e3393 fix(provider_probe): validate backend IDs, harden browser SSRF/auth/selector injection`
   - `b7ff0dd fix(provider_probe): allow test domains when DNS returns benchmark IPs`
 - **说明**：4 个 deploy 相关文件在 `.gitignore` 中显式被忽略，因此仅本地修改，未进入仓库。如需纳入版本控制，请调整 `.gitignore`。
+
+## 2026-06-18 omk-review Medium 批次修复
+
+- **目标**：处理报告中的 Medium 级别问题，提升路由预算一致性、HTTP 异常处理、设备网关可观测性和上下文状态持久化。
+- **已修复**：
+  1. **routing executor 预算与 telemetry 韧性**：
+     - `routing_executor_parallel.py` / `routing_executor_fallback.py`：fallback/parallel 成功路径补充 `budget_manager.record_usage(backend)`。
+     - `routing_executor_telemetry.py`：`_record_backend_attempt` 捕获所有异常并 warning，避免 telemetry 失败导致有效后端答案被丢弃。
+  2. **IDE 分类不一致**：
+     - `routing_classifier.py`：`ide_source` 比较改为 lowercase；system prompt 检测改用大小写不敏感的 `detect_ide_by_fingerprints`，`vscode` / `vs code` 现在能正确识别为 `ide`。
+  3. **HTTP 传输对齐**：
+     - `http_sync.py`：非 JSON SSE fallback 现在走统一成功路径（key result、clean、response_quality）。
+     - `http_async.py`：空响应体返回时抛出 `BackendError(502)`，与 sync 路径一致。
+  4. **device_gateway 静默错误**：
+     - `device_gateway/redis_store.py`：corrupt queue/processing 项现在记录 warning。
+     - `device_gateway/mqtt_client.py`：MQTT connect 失败后不再调用 `loop_start()`，避免未定义行为。
+  5. **上下文状态持久化**：
+     - `context_pipeline/skill_store.py`：`crystallize()` 对已存在 skill 增量更新 `use_count`，不再重置历史。
+     - `context_pipeline/routing_weights.py`：损坏的权重文件记录 warning 并备份为 `.json.corrupt`。
+- **验证**：
+  - `ruff check` clean。
+  - 全量测试：**1870 passed, 4 skipped, 0 failed**。
+- **提交**：
+  - `c6fa66b fix(routing): record budget on fallback/parallel success and make telemetry failure-safe`
+  - `e11bcc3 fix(routing): align IDE source detection with vscode and case-insensitive fingerprints`
+  - `d8e4880 fix(http): handle SSE fallback telemetry and reject empty async body`
+  - `df4cd99 fix(device_gateway): log corrupt Redis items and avoid MQTT loop_start after connect failure`
+  - `b7ba54b fix(context): preserve skill use_count on crystallize and warn on corrupt routing weights`
+- **注意**：`device_gateway/redis_store.py` 当前 305 行，略超 300 行目标；本次改动新增日志行导致。后续可拆分到 `redis_store_recovery.py`。

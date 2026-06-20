@@ -22,7 +22,7 @@
 - **验证**：`tests/test_model_registry.py` 10 passed ×5；`tests/test_fake_u1_route_policy_validator.py` 10 passed；`tests/test_fake_u1_cloud_*.py` 5 passed。
 - **提交**：`e7cf101 test(device): add fake U1 route_policy validator unit tests`、`3c3d220 test(model_registry): eliminate flake by stepping timestamps in sort test`。
 - **VPS 部署**：已使用 `LIMA_DEPLOY_PASS` 成功部署并重启，smoke 通过。
-- **omk-review 修复**：已处理 Critical/High 中的 5 项（SSH AutoAddPolicy、provider_probe 注入/SSRF、http_stream BackendError 静默、device_voice VAD 状态共享），剩余 Medium/Low 项进入 backlog。
+- **omk-review 修复**：已处理 Critical/High 5 项 + Medium 8 项（routing budget/telemetry、IDE 分类、http SSE fallback/async 空 body、device_gateway Redis/MQTT、skill_store/routing_weights），剩余 Medium/Low 项进入 backlog。
 
 ### 最近完成（2026-06-18）函数级尺寸治理第 5 批：route_registry / routing_executor / http_body_limit 拆分
 
