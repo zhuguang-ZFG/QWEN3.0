@@ -83,12 +83,13 @@ def test_verify_delta(tmp_path, monkeypatch):
     assert (artifact / "verify-delta.json").is_file()
 
 
-def test_build_command_puts_flags_before_message():
+def test_build_command_puts_flags_before_message(monkeypatch):
     from lima_mcp_stdio.mimo_invoke import build_command
     from pathlib import Path
 
+    monkeypatch.setenv("MIMO_MCP_MIMO_BINARY", "/fake/mimo")
     cmd = build_command("do review", Path("D:/proj"), attach_files=[])
-    assert "mimo" in Path(cmd[0]).name.lower()
+    assert Path(cmd[0]).name.lower() == "mimo"
     assert cmd[1] == "run"
     assert any(str(a).startswith("--dir=") for a in cmd)
     assert cmd[-1] == "do review"

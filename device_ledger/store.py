@@ -20,6 +20,8 @@ class LedgerStoreBackend(Protocol):
 
     def events_for_task(self, task_id: str) -> list[LedgerEvent]: ...
 
+    def events_for_device(self, device_id: str) -> list[LedgerEvent]: ...
+
     def replay_task(self, task_id: str) -> dict[str, Any]: ...
 
 
@@ -47,6 +49,10 @@ class InMemoryLedgerStore:
     def events_for_task(self, task_id: str) -> list[LedgerEvent]:
         with self._lock:
             return [deepcopy(event) for event in self._events if event.task_id == task_id]
+
+    def events_for_device(self, device_id: str) -> list[LedgerEvent]:
+        with self._lock:
+            return [deepcopy(event) for event in self._events if event.device_id == device_id]
 
     def replay_task(self, task_id: str) -> dict[str, Any]:
         return _replay_from_events(self.events_for_task(task_id), task_id)

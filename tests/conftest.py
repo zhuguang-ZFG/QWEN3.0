@@ -5,8 +5,9 @@ from pathlib import Path
 
 import pytest_asyncio  # noqa: F401
 
-# Allow `from provider_automation_helpers import ...` within tests/
+# Allow `from tests.xiaozhi_schema import ...` and sibling helper imports
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "xiaozhi_schema"))
 
 # Enable auto mode so @pytest.mark.asyncio tests run without manual event loop setup
 pytest_plugins = ["pytest_asyncio"]

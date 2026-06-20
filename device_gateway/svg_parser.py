@@ -53,14 +53,25 @@ def _pt(origin_x: float, origin_y: float, x: float, y: float) -> dict[str, float
     return {"x": round(origin_x + x, 2), "y": round(origin_y - y, 2), "z": 0}
 
 
+def _safe_float(token: str) -> float | None:
+    try:
+        return float(token)
+    except ValueError:
+        return None
+
+
 def _handle_ml(
     tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
 ) -> tuple[int, float, float, float, float]:
     rel = cmd == "m"
     if i + 1 >= len(tokens):
         return len(tokens), cx, cy, cx if rel else 0.0, cy if rel else 0.0
-    x = float(tokens[i]) * scale + (cx if rel else 0)
-    y = float(tokens[i + 1]) * scale + (cy if rel else 0)
+    x = _safe_float(tokens[i])
+    y = _safe_float(tokens[i + 1])
+    if x is None or y is None:
+        return len(tokens), cx, cy, cx if rel else 0.0, cy if rel else 0.0
+    x = x * scale + (cx if rel else 0)
+    y = y * scale + (cy if rel else 0)
     i += 2
     path.append(_pt(ox, oy, x, y))
     first_x = x if cmd == "M" or (cmd == "m" and not path[:-1]) else 0.0
@@ -74,10 +85,13 @@ def _handle_hv(
     rel = cmd in ("h", "v")
     if i >= len(tokens):
         return len(tokens), cx, cy
+    value = _safe_float(tokens[i])
+    if value is None:
+        return len(tokens), cx, cy
     if cmd in ("H", "h"):
-        cx = float(tokens[i]) * scale + (cx if rel else 0)
+        cx = value * scale + (cx if rel else 0)
     else:
-        cy = float(tokens[i]) * scale + (cy if rel else 0)
+        cy = value * scale + (cy if rel else 0)
     i += 1
     path.append(_pt(ox, oy, cx, cy))
     return i, cx, cy
@@ -88,9 +102,10 @@ def _handle_cubic(
 ) -> tuple[int, float, float]:
     if i + 5 >= len(tokens):
         return len(tokens), cx, cy
-    x1, y1 = float(tokens[i]), float(tokens[i + 1])
-    x2, y2 = float(tokens[i + 2]), float(tokens[i + 3])
-    x, y = float(tokens[i + 4]), float(tokens[i + 5])
+    coords = [_safe_float(tokens[i + k]) for k in range(6)]
+    if any(c is None for c in coords):
+        return len(tokens), cx, cy
+    x1, y1, x2, y2, x, y = coords  # type: ignore[assignment]
     i += 6
     if cmd == "c":
         x, y = cx + x * scale, cy + y * scale
@@ -111,8 +126,10 @@ def _handle_quad(
 ) -> tuple[int, float, float]:
     if i + 3 >= len(tokens):
         return len(tokens), cx, cy
-    x1, y1 = float(tokens[i]), float(tokens[i + 1])
-    x, y = float(tokens[i + 2]), float(tokens[i + 3])
+    coords = [_safe_float(tokens[i + k]) for k in range(4)]
+    if any(c is None for c in coords):
+        return len(tokens), cx, cy
+    x1, y1, x, y = coords  # type: ignore[assignment]
     i += 4
     if cmd == "q":
         x, y = cx + x * scale, cy + y * scale

@@ -35,10 +35,18 @@ class RedisLedgerStore:
         added = int(self._redis.sadd(self._event_ids_key(), event.event_id))
         if added == 0:
             raise DuplicateLedgerEvent(f"duplicate ledger event id: {event.event_id}")
-        self._redis.rpush(self._task_key(event.task_id), json.dumps(event.to_dict()))
+        encoded = json.dumps(event.to_dict())
+        self._redis.rpush(self._task_key(event.task_id), encoded)
+        self._redis.rpush(self._device_key(event.device_id), encoded)
 
     def events_for_task(self, task_id: str) -> list[LedgerEvent]:
-        raw_events = self._redis.lrange(self._task_key(task_id), 0, -1) or []
+        return self._events_from_key(self._task_key(task_id), context=f"task_id={task_id}")
+
+    def events_for_device(self, device_id: str) -> list[LedgerEvent]:
+        return self._events_from_key(self._device_key(device_id), context=f"device_id={device_id}")
+
+    def _events_from_key(self, key: str, context: str) -> list[LedgerEvent]:
+        raw_events = self._redis.lrange(key, 0, -1) or []
         events: list[LedgerEvent] = []
         for raw in raw_events:
             try:
@@ -54,7 +62,7 @@ class RedisLedgerStore:
                     )
                 )
             except (KeyError, TypeError, ValueError) as exc:
-                _log.warning("redis ledger decode failed task_id=%s: %s", task_id, type(exc).__name__)
+                _log.warning("redis ledger decode failed %s: %s", context, type(exc).__name__)
         return events
 
     def replay_task(self, task_id: str) -> dict[str, Any]:
@@ -65,3 +73,6 @@ class RedisLedgerStore:
 
     def _task_key(self, task_id: str) -> str:
         return f"{self._prefix}:task:{task_id}"
+
+    def _device_key(self, device_id: str) -> str:
+        return f"{self._prefix}:device:{device_id}"

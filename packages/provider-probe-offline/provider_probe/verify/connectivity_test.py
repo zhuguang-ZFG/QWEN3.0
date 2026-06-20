@@ -8,7 +8,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-async def test_latency(url: str, samples: int = 3) -> dict:
+async def measure_latency(url: str, samples: int = 3) -> dict:
     """Measure API latency with multiple samples.
 
     Returns: avg_ms, min_ms, max_ms, samples, success_rate
@@ -40,7 +40,7 @@ async def test_latency(url: str, samples: int = 3) -> dict:
     }
 
 
-async def test_chat_completion(base_url: str, model: str = "", api_key: str = "", timeout: float = 30.0) -> dict:
+async def probe_chat_completion(base_url: str, model: str = "", api_key: str = "", timeout: float = 30.0) -> dict:
     """Test actual chat completion with a simple query.
 
     Returns: status, latency_ms, model_used, tokens, error
@@ -85,7 +85,7 @@ async def test_chat_completion(base_url: str, model: str = "", api_key: str = ""
 
 async def probe_availability(base_url: str) -> dict:
     """Quick availability check: models endpoint + chat completion."""
-    chat_result = await test_chat_completion(base_url)
+    chat_result = await probe_chat_completion(base_url)
 
     # Also check models
     models_url = base_url.rstrip("/") + "/v1/models"

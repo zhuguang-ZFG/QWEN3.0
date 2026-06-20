@@ -32,6 +32,9 @@ def build_command(
     session_continue: bool = False,
 ) -> list[str]:
     binary = mimo_binary()
+    if binary is None:
+        # Allow tests to inject a fake binary via env.
+        binary = os.environ.get("MIMO_MCP_MIMO_BINARY", "")
     if not binary:
         raise FileNotFoundError("mimo CLI not found on PATH")
 
