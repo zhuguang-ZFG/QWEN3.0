@@ -9,7 +9,6 @@ from typing import Callable
 
 import http_caller
 import probe_loop
-from channel_retirement import retire_telegram_webhook_from_env
 from server_lifespan_state import PhaseTimer
 
 _log = logging.getLogger(__name__)
@@ -112,14 +111,6 @@ async def start_session_memory_daemon() -> None:
             await start_daemon()
         except ImportError as exc:
             _log.warning("session_memory.daemon not installed; session memory daemon skipped: %s", exc)
-
-
-async def schedule_telegram_retirement() -> None:
-    async with PhaseTimer("channel_retirement.telegram"):
-        try:
-            asyncio.create_task(retire_telegram_webhook_from_env())
-        except Exception as exc:
-            _log.debug("telegram webhook cleanup scheduling failed: %s", type(exc).__name__)
 
 
 async def setup_structured_logging() -> None:
@@ -236,7 +227,6 @@ WARM_PHASES: list[tuple[str, _PhaseFn]] = [
     ("backend_profile.load", load_backend_profiles),
     ("periodic_coding_eval.start", start_periodic_eval),
     ("session_memory.daemon.start", start_session_memory_daemon),
-    ("channel_retirement.telegram", schedule_telegram_retirement),
     ("observability.structured_logging", setup_structured_logging),
     ("context_pipeline.auto_indexer.start", start_auto_indexer),
     ("observability.prometheus.start", start_prometheus),
