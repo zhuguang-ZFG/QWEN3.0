@@ -5,6 +5,7 @@ Provides weather, holidays, and other public data with:
 - Rate limiting and attribution
 - No dependency on external APIs for dispatch
 """
+
 from external_enrichment.cache import EnrichmentCache
 from external_enrichment.schemas import EnrichmentResult
 

@@ -42,10 +42,7 @@ def test_build_gitee_oauth_push_url_from_ssh():
 
 
 def test_build_gitee_oauth_push_url_urlencodes_token():
-    assert (
-        build_gitee_oauth_push_url("git@gitee.com:u/r.git", "tok@en")
-        == "https://oauth2:tok%40en@gitee.com/u/r.git"
-    )
+    assert build_gitee_oauth_push_url("git@gitee.com:u/r.git", "tok@en") == "https://oauth2:tok%40en@gitee.com/u/r.git"
 
 
 def test_build_gitee_oauth_push_url_from_https():
@@ -66,10 +63,7 @@ def test_build_gitee_oauth_push_url_from_https_with_credentials():
 
 
 def test_build_gitee_oauth_push_url_from_ssh_scheme():
-    assert (
-        build_gitee_oauth_push_url("ssh://git@gitee.com/u/r.git", "tok")
-        == "https://oauth2:tok@gitee.com/u/r.git"
-    )
+    assert build_gitee_oauth_push_url("ssh://git@gitee.com/u/r.git", "tok") == "https://oauth2:tok@gitee.com/u/r.git"
 
 
 def test_build_gitee_https_push_url_tokenless():

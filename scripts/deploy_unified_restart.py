@@ -42,14 +42,10 @@ def restart_server() -> bool:
         last_detail = ""
         while time.time() < deadline:
             # Fast-path: if the service already failed, stop polling immediately.
-            active_code, _active_out, _active_err = _ssh_exec(
-                ssh, "systemctl is-active lima-router"
-            )
+            active_code, _active_out, _active_err = _ssh_exec(ssh, "systemctl is-active lima-router")
             if active_code != 0:
                 print(f"  service not active (is-active exit {active_code}); fetching logs...")
-                _code, logs, _err = _ssh_exec(
-                    ssh, "journalctl -u lima-router -n 25 --no-pager"
-                )
+                _code, logs, _err = _ssh_exec(ssh, "journalctl -u lima-router -n 25 --no-pager")
                 if logs:
                     print(logs)
                 return False

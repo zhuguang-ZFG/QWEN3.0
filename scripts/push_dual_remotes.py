@@ -64,11 +64,7 @@ def _check_gitee_ssh(repo: Path, entries: list) -> tuple[bool, str]:
     detail = (proc.stdout or "") + (proc.stderr or "")
     # Gitee/GitHub return 1 on successful auth with a non-shell message.
     if proc.returncode == 0 or (
-        proc.returncode == 1
-        and (
-            "successfully authenticated" in detail.lower()
-            or detail.strip().startswith("Hi ")
-        )
+        proc.returncode == 1 and ("successfully authenticated" in detail.lower() or detail.strip().startswith("Hi "))
     ):
         return True, ""
 
@@ -76,8 +72,7 @@ def _check_gitee_ssh(repo: Path, entries: list) -> tuple[bool, str]:
     if not pub_key.exists():
         pub_key = Path.home() / ".ssh" / "id_rsa.pub"
     key_hint = (
-        f"\nPublic key to add to Gitee: {pub_key}\n"
-        f"{pub_key.read_text().strip() if pub_key.exists() else '(not found)'}"
+        f"\nPublic key to add to Gitee: {pub_key}\n{pub_key.read_text().strip() if pub_key.exists() else '(not found)'}"
     )
     return False, (
         f"Gitee SSH authentication failed.{key_hint}\n"

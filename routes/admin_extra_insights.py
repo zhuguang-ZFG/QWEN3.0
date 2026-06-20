@@ -112,7 +112,10 @@ async def retrain_jobs():
 @router.post("/api/retrain", dependencies=[Depends(verify_admin)])
 async def trigger_retrain():
     """Manual trigger for the retired auto-retrain pipeline."""
-    return {"status": "retired", "message": "auto_retrain was retired in Phase 0; manual retraining is no longer supported."}
+    return {
+        "status": "retired",
+        "message": "auto_retrain was retired in Phase 0; manual retraining is no longer supported.",
+    }
 
 
 @router.get("/api/agent-audit", dependencies=[Depends(verify_admin)])

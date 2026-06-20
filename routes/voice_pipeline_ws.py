@@ -44,7 +44,9 @@ async def voice_pipeline_ws(
         _log.warning(WS_QUERY_PARAM_TOKEN_WARNING, websocket.url.path)
     if not is_token_valid(token):
         if not configured_api_keys():
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LiMa private API key is not configured.")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LiMa private API key is not configured."
+            )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
     try:

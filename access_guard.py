@@ -6,9 +6,7 @@ import secrets
 from fastapi import Header, HTTPException, WebSocket
 
 
-WS_QUERY_PARAM_TOKEN_WARNING = (
-    "Token supplied via query param for %s; ensure nginx access_log is off"
-)
+WS_QUERY_PARAM_TOKEN_WARNING = "Token supplied via query param for %s; ensure nginx access_log is off"
 
 
 def configured_api_keys() -> set[str]:

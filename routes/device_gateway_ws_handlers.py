@@ -72,9 +72,7 @@ async def handle_hello(
     device_id = message["device_id"]
     token = extract_ws_token(websocket)
     if not validate_device_token(device_id, token):
-        _log.warning(
-            "device hello auth failed device=%r token_len=%d", device_id, len(token)
-        )
+        _log.warning("device hello auth failed device=%r token_len=%d", device_id, len(token))
         await send_ws_error(
             websocket,
             ProtocolError("E_UNAUTHORIZED_DEVICE", "device token is invalid", request_id),

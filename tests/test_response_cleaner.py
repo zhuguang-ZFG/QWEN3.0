@@ -30,9 +30,7 @@ def test_brand_regex_does_not_eat_cjk_context():
 
 
 def test_clean_patterns_include_brand_and_identity():
-    assert len(CLEAN_PATTERNS) == len(BRAND_PATTERNS) + len([
-        p for p in CLEAN_PATTERNS if p not in BRAND_PATTERNS
-    ])
+    assert len(CLEAN_PATTERNS) == len(BRAND_PATTERNS) + len([p for p in CLEAN_PATTERNS if p not in BRAND_PATTERNS])
 
 
 def test_apply_identity_cleaning_replaces_known_brands():

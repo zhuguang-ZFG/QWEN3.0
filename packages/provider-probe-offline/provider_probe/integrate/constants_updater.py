@@ -73,16 +73,12 @@ def generate_patch(
         lines.append("")
 
     if code:
-        lines.append(
-            f"# In {_SET_FILE_MAP['CODE_CAPABLE_BACKENDS']} CODE_CAPABLE_BACKENDS frozenset, add:"
-        )
+        lines.append(f"# In {_SET_FILE_MAP['CODE_CAPABLE_BACKENDS']} CODE_CAPABLE_BACKENDS frozenset, add:")
         lines.append(f"    {names_str},")
         lines.append("")
 
     if tool:
-        lines.append(
-            f"# In {_SET_FILE_MAP['TOOL_CAPABLE_BACKENDS']} TOOL_CAPABLE_BACKENDS frozenset, add:"
-        )
+        lines.append(f"# In {_SET_FILE_MAP['TOOL_CAPABLE_BACKENDS']} TOOL_CAPABLE_BACKENDS frozenset, add:")
         lines.append(f"    {names_str},")
         lines.append("")
 

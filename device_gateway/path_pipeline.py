@@ -55,8 +55,7 @@ def _normalize_path_to_workspace(
     origin_x = margin - min_x * scale
     origin_y = margin - min_y * scale
     return [
-        {"x": round(origin_x + pt["x"] * scale, 2), "y": round(origin_y + pt["y"] * scale, 2), "z": 0}
-        for pt in path
+        {"x": round(origin_x + pt["x"] * scale, 2), "y": round(origin_y + pt["y"] * scale, 2), "z": 0} for pt in path
     ]
 
 

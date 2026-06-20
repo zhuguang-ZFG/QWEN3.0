@@ -162,9 +162,7 @@ def parse_capacity_output(output: str) -> dict[str, int]:
     return capacity
 
 
-def capacity_result(
-    capacity: dict[str, int], *, min_free_mb: int, min_mem_mb: int
-) -> dict[str, object]:
+def capacity_result(capacity: dict[str, int], *, min_free_mb: int, min_mem_mb: int) -> dict[str, object]:
     disk_free = capacity.get("disk_free_mb", -1)
     mem_available = capacity.get("mem_available_mb", -1)
     if disk_free < min_free_mb:

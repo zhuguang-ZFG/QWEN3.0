@@ -19,9 +19,8 @@ def build_device_gateway_health() -> tuple[dict[str, Any], bool]:
     task_store = task_store_health()
     session_bus = notifier_health()
     production = is_production_runtime()
-    production_ready = (
-        not production
-        or (bool(task_store.get("shared_across_processes")) and bool(session_bus.get("shared_across_processes")))
+    production_ready = not production or (
+        bool(task_store.get("shared_across_processes")) and bool(session_bus.get("shared_across_processes"))
     )
     return (
         {

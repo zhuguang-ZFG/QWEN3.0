@@ -49,7 +49,9 @@ from scripts.deploy_unified_restart import restart_server
 def main() -> int:
     parser = argparse.ArgumentParser(description="Unified LiMa deploy")
     parser.add_argument(
-        "--slice", choices=["core", "phase_a", "phase_b", "all"], default="core",
+        "--slice",
+        choices=["core", "phase_a", "phase_b", "all"],
+        default="core",
         help="Which slice to deploy",
     )
     parser.add_argument("--files", nargs="+", help="Specific files to deploy")
@@ -62,9 +64,7 @@ def main() -> int:
 
     if args.files:
         exclude_prefixes = tuple(f"{d}/" for d in _DEPLOY_EXCLUDES)
-        files = expand_with_dependencies(
-            args.files, project_root, exclude_patterns=exclude_prefixes
-        )
+        files = expand_with_dependencies(args.files, project_root, exclude_patterns=exclude_prefixes)
         added = [f for f in files if f not in args.files]
         if added:
             print(f"  auto-added {len(added)} local dependencies: {', '.join(added)}")
@@ -95,8 +95,7 @@ def main() -> int:
     results = deploy_files(files, dry_run=args.dry_run)
 
     print(
-        f"\nResult: {results['uploaded']} uploaded, "
-        f"{len(results['failed'])} failed, {len(results['skipped'])} skipped"
+        f"\nResult: {results['uploaded']} uploaded, {len(results['failed'])} failed, {len(results['skipped'])} skipped"
     )
     if results["failed"]:
         for f in results["failed"]:
