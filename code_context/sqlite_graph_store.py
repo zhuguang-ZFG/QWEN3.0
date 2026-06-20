@@ -75,6 +75,11 @@ class SqliteGraphIndex(GraphIndex):
         )
         self._conn.commit()
 
+    def delete_file(self, path: str) -> None:
+        """Remove all edges whose source or target equals *path*."""
+        self._conn.execute("DELETE FROM edges WHERE source = ? OR target = ?", (path, path))
+        self._conn.commit()
+
     def add_file_relations(
         self,
         filename: str,
@@ -145,7 +150,8 @@ class SqliteGraphIndex(GraphIndex):
                 (query, limit),
             ).fetchall()
             return [{"source": r[0], "target": r[1], "relation_type": r[2], "rank": r[3]} for r in rows]
-        except Exception:
+        except Exception as exc:
+            _log.warning("sqlite graph fts_search failed: %s", exc)
             return []
 
     def clear(self) -> None:

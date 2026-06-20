@@ -69,9 +69,16 @@ class AutoIndexer:
         changed_paths, changes = self._watcher.scan()
 
         indexed = 0
+        deleted_count = 0
         errors = 0
         for path in changed_paths:
             if not os.path.exists(path):
+                try:
+                    self._delete_file(path)
+                    deleted_count += 1
+                except Exception as exc:
+                    _log.debug("delete %s failed: %s", path, exc)
+                    errors += 1
                 continue
             try:
                 self._index_file(path)
@@ -87,6 +94,7 @@ class AutoIndexer:
             "scanned": self._watcher.manifest.total_files,
             "changed": len(changed_paths),
             "indexed": indexed,
+            "deleted_count": deleted_count,
             "errors": errors,
             "duration_ms": round(duration, 1),
             "created": sum(1 for c in changes if c.change_type == "created"),
@@ -94,15 +102,28 @@ class AutoIndexer:
             "deleted": sum(1 for c in changes if c.change_type == "deleted"),
         }
 
-        if indexed > 0:
+        if indexed > 0 or deleted_count > 0:
             _log.info(
-                "AutoIndexer: %d files indexed, %d changed in %.0fms",
+                "AutoIndexer: %d indexed, %d deleted, %d changed in %.0fms",
                 indexed,
+                deleted_count,
                 len(changed_paths),
                 duration,
             )
 
         return stats
+
+    def _delete_file(self, path: str) -> None:
+        if self._vector is not None:
+            try:
+                self._vector.delete_file(path)
+            except Exception as exc:
+                _log.debug("vector delete %s failed: %s", path, exc)
+        if self._graph is not None:
+            try:
+                self._graph.delete_file(path)
+            except Exception as exc:
+                _log.debug("graph delete %s failed: %s", path, exc)
 
     def _index_file(self, path: str) -> None:
         p = Path(path)

@@ -53,6 +53,9 @@ class GraphIndex(ABC):
     def add_relation(self, source: str, target: str, relation_type: str) -> None: ...
 
     @abstractmethod
+    def delete_file(self, path: str) -> None: ...
+
+    @abstractmethod
     def get_related(self, entity: str, max_depth: int = 2) -> list[GraphRelation]: ...
 
     @abstractmethod
@@ -82,6 +85,16 @@ class InMemoryGraphIndex(GraphIndex):
         self._adjacency.setdefault(target, []).append(
             GraphRelation(source=target, target=source, relation_type=f"rev_{relation_type}")
         )
+
+    def delete_file(self, path: str) -> None:
+        """Remove all edges whose source or target equals *path*."""
+        self._edges = [rel for rel in self._edges if rel.source != path and rel.target != path]
+        new_adjacency: dict[str, list[GraphRelation]] = {}
+        for entity, rels in self._adjacency.items():
+            filtered = [rel for rel in rels if rel.source != path and rel.target != path]
+            if filtered:
+                new_adjacency[entity] = filtered
+        self._adjacency = new_adjacency
 
     def get_related(self, entity: str, max_depth: int = 2) -> list[GraphRelation]:
         visited: set[str] = set()

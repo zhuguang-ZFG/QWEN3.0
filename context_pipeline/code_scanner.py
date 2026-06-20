@@ -19,7 +19,7 @@ def scan_directory(directory: str, graph: CodeGraph | None = None) -> CodeGraph:
     if graph is None:
         graph = CodeGraph()
 
-    py_files = list(Path(directory).glob("*.py"))
+    py_files = list(Path(directory).rglob("*.py"))
     return scan_files([str(path) for path in py_files], graph=graph)
 
 
