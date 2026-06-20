@@ -18,6 +18,14 @@ _GFW_INSERT = re.compile(r"(GFW_BACKENDS = frozenset\(\{)", re.MULTILINE)
 _CODE_INSERT = re.compile(r"(CODE_CAPABLE_BACKENDS = frozenset\(\{)", re.MULTILINE)
 _TOOL_INSERT = re.compile(r"(TOOL_CAPABLE_BACKENDS = frozenset\(\{)", re.MULTILINE)
 
+# Backend IDs must be simple ASCII identifiers to avoid breaking frozenset literals.
+_VALID_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def _validate_names(names: list[str]) -> list[str]:
+    """Return invalid backend IDs, if any."""
+    return [n for n in names if not _VALID_NAME.match(n)]
+
 
 def _resolve_constants_path(file_path: str | None, set_name: str) -> Path | None:
     """Return the actual constants file for a given set name."""
@@ -59,6 +67,9 @@ def generate_patch(
     """
     if new_names is None:
         new_names = []
+    invalid = _validate_names(new_names)
+    if invalid:
+        raise ValueError(f"Invalid backend IDs (must match {_VALID_NAME.pattern}): {invalid}")
     names_str = ", ".join(f"'{n}'" for n in new_names)
 
     lines = [
@@ -102,6 +113,11 @@ def apply_to_frozenset(
     Returns:
         True if successfully applied, False otherwise.
     """
+    invalid = _validate_names(new_names)
+    if invalid:
+        logger.error("Invalid backend IDs (must match %s): %s", _VALID_NAME.pattern, invalid)
+        return False
+
     path = _resolve_constants_path(file_path, set_name)
     if path is None:
         logger.warning("No constants file known for set %s", set_name)

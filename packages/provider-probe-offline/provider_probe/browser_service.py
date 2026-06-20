@@ -9,19 +9,27 @@ Usage:
     # or via systemd: lima-probe-browser.service
 """
 
+import ipaddress
 import logging
 import os
 import re
+import socket
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger("provider_probe.browser")
 
+BROWSER_HOST = os.environ.get("PROBE_BROWSER_HOST", "127.0.0.1")
 BROWSER_PORT = int(os.environ.get("PROBE_BROWSER_PORT", "8092"))
 CHROMIUM_EXECUTABLE = os.environ.get("PROBE_CHROMIUM_EXECUTABLE")
+BROWSER_TOKEN = os.environ.get("PROBE_BROWSER_TOKEN")
+
+_ALLOWED_SCHEMES = {"http", "https"}
+_SENSITIVE_HEADERS = {"authorization", "cookie", "set-cookie", "x-api-key", "api-key"}
 
 # ---------------------------------------------------------------------------
 # Pydantic models
@@ -64,6 +72,46 @@ class ExtractResponse(BaseModel):
 
 _browser = None
 _playwright = None
+
+
+def _check_auth(token: str | None) -> None:
+    """Require a bearer token when PROBE_BROWSER_TOKEN is configured."""
+    if BROWSER_TOKEN and token != BROWSER_TOKEN:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def _is_public_host(host: str) -> bool:
+    """Return True if host is a public IP/hostname, False for private/internal."""
+    if not host or host in ("localhost", "localhost."):
+        return False
+    try:
+        addr = ipaddress.ip_address(host)
+        return not (addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_multicast)
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(host, None)
+        for info in infos:
+            addr = ipaddress.ip_address(info[4][0])
+            if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_multicast:
+                return False
+        return bool(infos)
+    except socket.gaierror:
+        return False
+
+
+def _validate_url(url: str) -> str:
+    """Validate a probe URL: public host, http/https only."""
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required")
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_SCHEMES:
+        raise HTTPException(status_code=400, detail=f"URL scheme must be http or https: {url}")
+    if not parsed.hostname:
+        raise HTTPException(status_code=400, detail=f"URL has no host: {url}")
+    if not _is_public_host(parsed.hostname):
+        raise HTTPException(status_code=400, detail=f"URL host is not public: {parsed.hostname}")
+    return url
 
 
 def _sanitize_error(message: str) -> str:
@@ -173,8 +221,13 @@ async def ready():
 
 
 @app.post("/render", response_model=RenderResponse)
-async def render_page(req: RenderRequest):
+async def render_page(
+    req: RenderRequest,
+    x_probe_token: str | None = Header(None, alias="X-Probe-Token"),
+):
     """Render a page and return text content + optional screenshot."""
+    _check_auth(x_probe_token)
+    _validate_url(req.url)
     context = None
 
     try:
@@ -244,8 +297,13 @@ async def render_page(req: RenderRequest):
 
 
 @app.post("/extract", response_model=ExtractResponse)
-async def extract_content(req: ExtractRequest):
+async def extract_content(
+    req: ExtractRequest,
+    x_probe_token: str | None = Header(None, alias="X-Probe-Token"),
+):
     """Extract text matching a CSS selector from a page."""
+    _check_auth(x_probe_token)
+    _validate_url(req.url)
     browser = await _get_browser()
     context = await browser.new_context()
     page = await context.new_page()
@@ -257,11 +315,9 @@ async def extract_content(req: ExtractRequest):
         text = ""
         items = []
         if req.selector:
-            items = await page.evaluate(f"""
-                () => [...document.querySelectorAll("{req.selector}")]
-                    .map(el => el.innerText.trim())
-                    .filter(Boolean)
-            """)
+            locator = page.locator(req.selector)
+            raw_items = await locator.all_inner_texts()
+            items = [item.strip() for item in raw_items if item.strip()]
         else:
             text = await page.evaluate("() => document.body ? document.body.innerText : ''")
 
@@ -272,9 +328,23 @@ async def extract_content(req: ExtractRequest):
         raise HTTPException(status_code=502, detail=f"Extract failed: {exc}")
 
 
+def _redact_headers(headers: dict[str, str]) -> dict[str, str]:
+    """Remove sensitive headers from captured network requests."""
+    return {
+        k: "<redacted>" if k.lower() in _SENSITIVE_HEADERS else v
+        for k, v in headers.items()
+    }
+
+
 @app.post("/network-intercept")
-async def network_intercept(req: dict):
+async def network_intercept(
+    req: dict,
+    x_probe_token: str | None = Header(None, alias="X-Probe-Token"),
+):
     """Navigate to URL and collect all network requests (API endpoints, etc.)."""
+    _check_auth(x_probe_token)
+    url = req.get("url", "")
+    _validate_url(url)
     browser = await _get_browser()
     context = await browser.new_context()
     page = await context.new_page()
@@ -286,7 +356,7 @@ async def network_intercept(req: dict):
             {
                 "url": request.url,
                 "method": request.method,
-                "headers": dict(request.headers),
+                "headers": _redact_headers(dict(request.headers)),
                 "post_data": request.post_data[:1000] if request.post_data else None,
                 "resource_type": request.resource_type,
             }
@@ -295,7 +365,7 @@ async def network_intercept(req: dict):
     page.on("request", _capture)
 
     try:
-        await page.goto(req.get("url", ""), wait_until="networkidle", timeout=30000)
+        await page.goto(url, wait_until="networkidle", timeout=30000)
         await page.wait_for_timeout(req.get("wait_ms", 5000))
     except Exception as exc:
         logger.warning("Navigation error (may be ok): %s", exc)
@@ -321,4 +391,5 @@ if __name__ == "__main__":
     import uvicorn
 
     logging.basicConfig(level=logging.INFO)
-    uvicorn.run(app, host="0.0.0.0", port=BROWSER_PORT)
+    logger.info("Browser service listening on %s:%d", BROWSER_HOST, BROWSER_PORT)
+    uvicorn.run(app, host=BROWSER_HOST, port=BROWSER_PORT)
