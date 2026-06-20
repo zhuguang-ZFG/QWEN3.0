@@ -22,7 +22,7 @@ def classify(
     if fmt == "anthropic":
         return "ide"
 
-    if ide_source and ide_source in router_v3.IDE_SOURCES:
+    if ide_source and ide_source.lower() in _IDE_SOURCES:
         return "ide"
 
     ua = headers.get("user-agent", "").lower()
@@ -45,7 +45,7 @@ def classify(
     ):
         return "ide"
 
-    if system_prompt and router_v3.detect_ide_from_system_prompt(system_prompt):
+    if system_prompt and router_v3.detect_ide_by_fingerprints(system_prompt):
         return "ide"
 
     if _has_image_blocks(messages):
