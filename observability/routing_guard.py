@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from typing import Any
@@ -41,7 +42,9 @@ def _recent_records(limit: int) -> list[dict[str, Any]]:
         from observability.backend_telemetry import recent_backend_attempts
 
         records = recent_backend_attempts(limit=limit)
-    except ImportError:
+    except ImportError as exc:
+        _log = logging.getLogger(__name__)
+        _log.warning("observability.backend_telemetry not installed; routing guard disabled: %s", exc)
         return []
     return [item for item in records if isinstance(item, dict)]
 

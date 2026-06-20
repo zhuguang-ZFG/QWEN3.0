@@ -141,8 +141,14 @@ def record_motion_event_correlation(
 
 def correlate_by_id(target_id: str, limit: int = 50) -> list[dict[str, Any]]:
     """Find all events matching a request_id, task_id, or device_id."""
+    if not target_id or not str(target_id).strip():
+        return []
+    target = str(target_id).strip()
     with _lock:
-        matched = [e for e in _events if target_id in (e.request_id, e.task_id, e.device_id)]
+        matched = [
+            e for e in _events
+            if target == (e.request_id or "") or target == (e.task_id or "") or target == (e.device_id or "")
+        ]
     return [e.to_dict() for e in matched[-limit:]]
 
 
