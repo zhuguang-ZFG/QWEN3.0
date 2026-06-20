@@ -102,7 +102,20 @@ def test_rollback_returns_none_when_no_previous_version(tmp_path):
     assert mr.rollback() is None
 
 
-def test_list_versions_sorted_by_created_at_desc(tmp_path):
+def test_list_versions_sorted_by_created_at_desc(tmp_path, monkeypatch):
+    from datetime import datetime, timedelta
+
+    class _SteppingDateTime:
+        _base = datetime(2026, 6, 20, 12, 0, 0)
+        _counter = 0
+
+        @classmethod
+        def now(cls, *_args, **_kwargs):
+            cls._counter += 1
+            return cls._base + timedelta(seconds=cls._counter)
+
+    monkeypatch.setattr(mr, "datetime", _SteppingDateTime())
+
     adapter1 = tmp_path / "a1"
     adapter2 = tmp_path / "a2"
     adapter1.mkdir()
