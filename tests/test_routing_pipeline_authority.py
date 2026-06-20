@@ -74,7 +74,11 @@ class TestRoutingExecutorAuthority:
         assert callable(execute)
 
     def test_executor_records_health(self):
-        src = _read_module_source("routing_executor")
+        src = (
+            _read_module_source("routing_executor")
+            + _read_module_source("routing_executor_serial")
+            + _read_module_source("routing_executor_fallback")
+        )
         assert "health_tracker.record" in src or "re.health_tracker.record" in src, (
             "routing_executor should record health success/failure"
         )

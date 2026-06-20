@@ -150,6 +150,39 @@ def install_body_size_limit(request: Request, max_size: int) -> tuple[Request, d
     return limited, state
 
 
+async def _read_limited_body(
+    receive: ReceiveCallable,
+    send: SendCallable,
+    max_body_size: int,
+    headers: dict[str, str],
+) -> bytes | None:
+    """Read the request body up to max_body_size; return None when a 413 was sent."""
+    body = b""
+    while True:
+        message = await receive()
+        if message["type"] != "http.request":
+            break
+        body += message.get("body", b"") or b""
+        if len(body) > max_body_size:
+            await _send_json_response(send, 413, _oversized_payload())
+            await _drain_receive(receive)
+            return None
+        if not message.get("more_body", False):
+            break
+
+    content_encoding = (headers.get("content-encoding") or "").lower()
+    if content_encoding == "gzip" and body:
+        try:
+            body = gzip.decompress(body)
+            if len(body) > max_body_size:
+                await _send_json_response(send, 413, _oversized_payload())
+                return None
+        except Exception as exc:
+            _log.debug("http_body_limit.py: {}", type(exc).__name__)
+
+    return body
+
+
 class BodySizeLimitMiddleware:
     """Pure ASGI middleware: caps body bytes before Starlette builds Request."""
 
@@ -180,28 +213,9 @@ class BodySizeLimitMiddleware:
             await _drain_receive(receive)
             return
 
-        body = b""
-        while True:
-            message = await receive()
-            if message["type"] != "http.request":
-                break
-            body += message.get("body", b"") or b""
-            if len(body) > self.max_body_size:
-                await _send_json_response(send, 413, _oversized_payload())
-                await _drain_receive(receive)
-                return
-            if not message.get("more_body", False):
-                break
-
-        content_encoding = (headers.get("content-encoding") or "").lower()
-        if content_encoding == "gzip" and body:
-            try:
-                body = gzip.decompress(body)
-                if len(body) > self.max_body_size:
-                    await _send_json_response(send, 413, _oversized_payload())
-                    return
-            except Exception as exc:
-                _log.debug("http_body_limit.py: {}", type(exc).__name__)
+        body = await _read_limited_body(receive, send, self.max_body_size, headers)
+        if body is None:
+            return
 
         replayed = False
 

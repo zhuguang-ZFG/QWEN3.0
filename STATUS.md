@@ -15,6 +15,15 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-18）函数级尺寸治理第 5 批：route_registry / routing_executor / http_body_limit 拆分
+
+- **目标**：继续降低 >50 行函数基线，聚焦最热路径。
+- **实现**：
+  - `routes/route_registry.py`：将 `_register_core_routes` 拆分为 `_register_chat_and_media_routes`、`_register_admin_and_static_routes`、`_register_system_routes`、`_register_device_app_routes`、`_register_voice_routes`，每个 helper 职责单一。
+  - `routing_executor.py`：按串行/并行/fallback/遥测拆分为 `routing_executor_serial.py`、`routing_executor_parallel.py`、`routing_executor_fallback.py`、`routing_executor_telemetry.py`，`routing_executor.py` 保留 `execute` 入口。
+  - `http_body_limit.py`：将 `BodySizeLimitMiddleware.__call__` 中的 body 读取/解压/限流逻辑拆分为 `_read_limited_body`。
+- **验证**：聚焦测试 52 passed；全量 pytest 进行中；`ruff check` / `pyright` 目标文件 clean；`scripts/check_code_size.py` 不再报告 >300 行文件，>50 行函数从 82 降至 78。
+
 ### 最近完成（2026-06-18）review 修复：SSH 部署回退、health 503 语义、rate limiter 缺省
 
 - **问题来源**：代码审查后遗留的 5 个测试覆盖缺口与部署脚本路径兼容性问题。

@@ -71,8 +71,8 @@ def _try_include(
         return False
 
 
-def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
-    """Mount always-present routers and return handler aliases."""
+def _register_chat_and_media_routes(app: FastAPI, deps: RouteRegistryDeps):
+    """Mount chat, media, embeddings and public demo routers."""
     from routes.images import router as images_router, build_pollinations_url
     import routes.images as images_mod
 
@@ -104,7 +104,11 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
     from routes.embeddings import router as embeddings_router
 
     app.include_router(embeddings_router)
+    return chat_endpoints_mod
 
+
+def _register_admin_and_static_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
+    """Mount admin, static files and digital human routers."""
     from routes.admin import router as admin_router
     import routes.admin as admin_mod
 
@@ -120,6 +124,9 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
     app.include_router(digital_human_router)
     mount_static_files(app)
 
+
+def _register_system_routes(app: FastAPI, deps: RouteRegistryDeps):
+    """Mount system endpoints and return the module for handler aliases."""
     from routes.system_endpoints import router as system_endpoints_router
     import routes.system_endpoints as system_endpoints_mod
 
@@ -129,7 +136,11 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
         loaded_modules=deps.loaded_modules,
     )
     app.include_router(system_endpoints_router)
+    return system_endpoints_mod
 
+
+def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
+    """Mount device gateway and device app routers."""
     from routes.device_gateway import router as device_gateway_router
     from routes.device_app_api import router as device_app_router
     from routes.device_app_members import router as device_app_members_router
@@ -143,23 +154,34 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
     app.include_router(device_app_misc_router)
     app.include_router(device_app_auth_router)
     app.include_router(device_app_tasks_router)
-    deps.loaded_modules["device_gateway"] = True
-    deps.loaded_modules["device_app_api"] = True
-    deps.loaded_modules["device_app_members"] = True
-    deps.loaded_modules["device_app_misc"] = True
-    deps.loaded_modules["device_app_auth"] = True
-    deps.loaded_modules["device_app_tasks"] = True
+    loaded_modules["device_gateway"] = True
+    loaded_modules["device_app_api"] = True
+    loaded_modules["device_app_members"] = True
+    loaded_modules["device_app_misc"] = True
+    loaded_modules["device_app_auth"] = True
+    loaded_modules["device_app_tasks"] = True
 
+
+def _register_voice_routes(app: FastAPI, loaded_modules: dict) -> None:
+    """Mount Gemini live proxy and voice pipeline WebSocket routers."""
     from routes.gemini_live_proxy import router as gemini_live_router
 
     app.include_router(gemini_live_router)
-    deps.loaded_modules["gemini_live_proxy"] = True
+    loaded_modules["gemini_live_proxy"] = True
 
     from routes.voice_pipeline_ws import router as voice_pipeline_router
 
     app.include_router(voice_pipeline_router)
-    deps.loaded_modules["voice_pipeline_ws"] = True
+    loaded_modules["voice_pipeline_ws"] = True
 
+
+def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
+    """Mount always-present routers and return handler aliases."""
+    chat_endpoints_mod = _register_chat_and_media_routes(app, deps)
+    _register_admin_and_static_routes(app, deps)
+    system_endpoints_mod = _register_system_routes(app, deps)
+    _register_device_app_routes(app, deps.loaded_modules)
+    _register_voice_routes(app, deps.loaded_modules)
     return chat_endpoints_mod, system_endpoints_mod
 
 
