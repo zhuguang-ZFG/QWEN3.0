@@ -2586,3 +2586,33 @@ Agent Worker path.
   - Doubao 语音凭证未配置。
 - **下一步**：
   如需继续推进，优先补齐真实 U8 设备凭证并运行硬件闭环；否则小智服务器代码移植可视为完成，仅保留兼容性层作为迁移回退。
+
+## 2026-06-20 SEC-005 code review 全量修复
+
+- **目标**：处理 code review 提出的全部 HIGH/MEDIUM/LOW 及架构关注项。
+- **已修复**：
+  1. **HIGH：coding-pool 明文后端禁止私有代码**
+     - `backends_registry/coding_pool/community.py`：`free_ajiakesi_gpt54_code` / `free_ajiakesi_gpt55_code` 强制 `private_code_allowed: False`，防止私有源代码通过 HTTP 明文传输。
+     - warning 文本明确提示「private source code is blocked by private_code_allowed=False」。
+  2. **MEDIUM：复用 env_truthy，删除重复 helper**
+     - 新增 `backends_registry/_utils.py`，提供共享 `legacy_free_enabled(name)` 函数。
+     - 复用 `runtime_topology.env_truthy`，同时支持新名称 `LIMA_FREE_*_ENABLED` 和旧名称 `FREE_*_ENABLED`（旧名启用时打弃用 warning）。
+     - `community_free.py` 和 `coding_pool/community.py` 删除各自的 `_is_truthy`。
+  3. **MEDIUM：team_speed caps 与能力常量一致**
+     - 移除 `free_team_speed_gpt55` 注册中的 `"caps": ["tool_calls"]`，因为它已从 `CODE_CAPABLE_BACKENDS` / `TOOL_CAPABLE_BACKENDS` 移除。
+  4. **MEDIUM/LOW：减少导入时副作用，日志后移到注册表组装完成**
+     - `community_free.py` / `coding_pool/community.py` 不再在模块顶层直接 emit logger.info/warning。
+     - 改为导出 `log_insecure_backend_status()` 函数；在 `backends_registry/__init__.py` 完成 `BACKENDS` 组装和 overlay 加载后调用。
+  5. **LOW：环境变量命名规范化**
+     - 主推 `LIMA_FREE_AJIAKESI_ENABLED` / `LIMA_FREE_TEAM_SPEED_ENABLED`。
+     - `.env.example` 更新为新名称，并说明旧名仍兼容但会提示弃用。
+  6. **LOW：新增单元测试**
+     - `tests/test_community_free_optin.py`：覆盖默认禁用、truthy 启用、falsy 禁用、新旧 env 名优先级、弃用 warning、私有代码强制 False、team_speed 无 tool_calls cap、HTTPS 后端始终注册。
+  7. **架构 WATCH：传输层纵深防御（部分落地）**
+     - 当前通过注册阶段 + 启动日志 + 测试覆盖实现主要缓解。
+     - 完全的 HTTP scheme 传输层门控留在后续统一实现（涉及 `http_caller.py` 和后端元数据标签扩展）。
+- **验证**：
+  - `ruff check` clean。
+  - `tests/test_community_free_optin.py` + `tests/test_backend_registry.py`：**50 passed**。
+  - 全量测试（排除 `tests/test_token_health.py`）：**1879 passed, 18 skipped, 0 failed**。
+- **提交**：待提交（本次全量修复）。

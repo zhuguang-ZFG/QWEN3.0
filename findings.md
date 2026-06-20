@@ -656,3 +656,32 @@
 - GitHub (`origin`) push 成功：`ac877d9` 与 `2f126e6` 已推送。
 - Gitee (`gitee`) push 仍失败：`git@gitee.com: Permission denied (publickey)`。已存在 `scripts/push_dual_remotes.py` 的 HTTPS fallback，但本次直接 `git push gitee main` 未触发 fallback。
 - VPS 部署：`deploy_unified_common.py::_connect_ssh` 先用 `key_filename=KEY` 连接，paramiko 报 `Invalid key`，异常被 `except paramiko.SSHException` 捕获后尝试密码，但仍抛出同一异常导致退出；需在有正确 SSH key 或 `LIMA_DEPLOY_PASS` 的环境重新执行，或通过 CI 部署。
+
+## 2026-06-20 SEC-005 code review 全量修复详情
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| REVIEW-HIGH-1 | security | coding-pool 的 HTTP ajiakesi 后端仍允许 `private_code_allowed=True`，启用后私有源代码明文传输 | Closed |
+| REVIEW-MED-1 | maintainability | `_is_truthy` 在两个注册模块重复定义 | Closed |
+| REVIEW-MED-2 | consistency | `free_team_speed_gpt55` 注册带 `tool_calls` cap 但已从能力常量移除 | Closed |
+| REVIEW-MED-3 | design | `BACKENDS` 导入时组装，日志在导入时触发 | Closed (日志后移；深层运行时 gate 留后续) |
+| REVIEW-MED-4 | security | 缺少传输层 HTTP scheme 门控 | Accepted / 后续统一实现 |
+| REVIEW-LOW-1 | tests | 无 opt-in env gating 测试 | Closed |
+| REVIEW-LOW-2 | observability | 导入时日志可能丢失 | Closed |
+| REVIEW-WATCH-1 | conventions | env var 未遵循 `LIMA_` 前缀 | Closed |
+
+**修复动作**
+- `backends_registry/_utils.py`：新增 `legacy_free_enabled(name)`，复用 `runtime_topology.env_truthy`，支持新旧 env 名并提示弃用。
+- `backends_registry/community_free.py`：使用共享 helper；移除 `_is_truthy`；team_speed 后端移除 `tool_calls` cap；顶层不再直接 emit 日志，改为 `log_insecure_backend_status()`。
+- `backends_registry/coding_pool/community.py`：同上；ajiakesi code 后端 `private_code_allowed=False`；warning 明确说明私有源代码被阻断。
+- `backends_registry/__init__.py`：BACKENDS 组装和 overlay 完成后调用两个模块的 `log_insecure_backend_status()`。
+- `.env.example`：更新为 `LIMA_FREE_AJIAKESI_ENABLED` / `LIMA_FREE_TEAM_SPEED_ENABLED`，保留旧名兼容说明。
+- `tests/test_community_free_optin.py`：新增 9 个测试用例覆盖 opt-in 行为。
+
+**验证**
+- `ruff check` clean。
+- focused tests：50 passed。
+- 全量测试（排除 `test_token_health.py`）：1879 passed, 18 skipped。
+
+**后续建议**
+- 在 `http_caller.py` 增加集中式 scheme 策略门控：拒绝 `http://` 调用，除非后端标记 `insecure_http: true` 且对应 opt-in flag 已启用。本次未实现，因为涉及更广泛的调用路径和错误处理改造。

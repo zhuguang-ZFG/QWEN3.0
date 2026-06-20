@@ -18,6 +18,10 @@ from .groq import BACKENDS as _groq
 from .kilo import BACKENDS as _kilo
 from .misc import BACKENDS as _misc
 from .mistral import BACKENDS as _mistral
+
+# Imported for their startup logging side effects only.
+from . import community_free as _community_free_module
+from .coding_pool import community as _coding_community_module
 from .modelscope import BACKENDS as _ms
 from .nvidia import BACKENDS as _nvidia
 from .openrouter import BACKENDS as _or
@@ -83,3 +87,7 @@ def _normalize_overlay_backend(name: str, cfg: dict) -> dict:
 
 
 _load_backend_overlay()
+
+# Emit startup warnings/info for opt-in cleartext backends after logging is configured.
+_community_free_module.log_insecure_backend_status()
+_coding_community_module.log_insecure_backend_status()
