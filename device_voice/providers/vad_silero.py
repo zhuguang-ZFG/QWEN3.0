@@ -49,12 +49,6 @@ class SileroVADProvider(VADProvider):
         self._silence_duration_ms = silence_duration_ms
         self._frame_window = frame_window
         self._session = None
-        self._last_voice_time: float = 0.0
-        self._last_is_voice: bool = False
-        self._voice_window: list[bool] = []
-        # ONNX model state (per-provider, reset per utterance)
-        self._state: np.ndarray | None = None
-        self._context: np.ndarray | None = None
 
     def _ensure_model(self) -> bool:
         """Lazy-load the SileroVAD ONNX model."""
@@ -79,8 +73,6 @@ class SileroVADProvider(VADProvider):
         opts.inter_op_num_threads = 1
         opts.intra_op_num_threads = 1
         self._session = onnxruntime.InferenceSession(model_path, providers=["CPUExecutionProvider"], sess_options=opts)
-        self._state = np.zeros((2, 1, 128), dtype=np.float32)
-        self._context = np.zeros((1, 64), dtype=np.float32)
         _log.info("SileroVAD model loaded from %s", model_path)
         return True
 
@@ -99,9 +91,9 @@ class SileroVADProvider(VADProvider):
                 f"(download from {_MODEL_URL})"
             )
 
-        if self._state is None or self._context is None:
-            self._state = np.zeros((2, 1, 128), dtype=np.float32)
-            self._context = np.zeros((1, 64), dtype=np.float32)
+        if state.onnx_state is None or state.onnx_context is None:
+            state.onnx_state = np.zeros((2, 1, 128), dtype=np.float32)
+            state.onnx_context = np.zeros((1, 64), dtype=np.float32)
 
         has_voice = False
         offset = 0
@@ -111,16 +103,18 @@ class SileroVADProvider(VADProvider):
 
             audio_int16 = np.frombuffer(frame, dtype=np.int16)
             audio_float32 = audio_int16.astype(np.float32) / 32768.0
-            audio_input = np.concatenate([self._context, audio_float32.reshape(1, -1)], axis=1).astype(np.float32)
+            audio_input = np.concatenate(
+                [state.onnx_context, audio_float32.reshape(1, -1)], axis=1
+            ).astype(np.float32)
 
             ort_inputs = {
                 "input": audio_input,
-                "state": self._state,
+                "state": state.onnx_state,
                 "sr": np.array(16000, dtype=np.int64),
             }
             out, new_state = self._session.run(None, ort_inputs)
-            self._state = new_state
-            self._context = audio_input[:, -64:]
+            state.onnx_state = new_state
+            state.onnx_context = audio_input[:, -64:]
 
             speech_prob = out.item()
             # Dual-threshold
@@ -129,20 +123,20 @@ class SileroVADProvider(VADProvider):
             elif speech_prob <= self._threshold_low:
                 is_voice = False
             else:
-                is_voice = self._last_is_voice
+                is_voice = state.last_is_voice
 
-            self._last_is_voice = is_voice
-            self._voice_window.append(is_voice)
-            if len(self._voice_window) > self._frame_window:
-                self._voice_window.pop(0)
+            state.last_is_voice = is_voice
+            state.voice_window.append(is_voice)
+            if len(state.voice_window) > self._frame_window:
+                state.voice_window.pop(0)
 
-            has_voice = self._voice_window.count(True) >= self._frame_window
+            has_voice = state.voice_window.count(True) >= self._frame_window
 
             if is_voice:
                 state.speech_buffer.extend(frame)
                 state.is_speaking = True
                 state.silence_frames = 0
-                self._last_voice_time = time.monotonic() * 1000
+                state.last_voice_time_ms = time.monotonic() * 1000
             else:
                 state.silence_frames += 1
 
@@ -153,16 +147,16 @@ class SileroVADProvider(VADProvider):
         """Check if silence duration exceeds the utterance-end threshold."""
         if not state.is_speaking:
             return False
-        elapsed = time.monotonic() * 1000 - self._last_voice_time
+        elapsed = time.monotonic() * 1000 - state.last_voice_time_ms
         return elapsed >= self._silence_duration_ms
 
     def reset(self, state: VADState) -> None:
         """Reset VAD state for a new utterance."""
         super().reset(state)
-        self._last_voice_time = 0.0
-        self._last_is_voice = False
-        self._voice_window.clear()
-        if self._state is not None:
-            self._state = np.zeros((2, 1, 128), dtype=np.float32)
-        if self._context is not None:
-            self._context = np.zeros((1, 64), dtype=np.float32)
+        state.last_voice_time_ms = 0.0
+        state.last_is_voice = False
+        state.voice_window.clear()
+        if state.onnx_state is not None:
+            state.onnx_state = np.zeros((2, 1, 128), dtype=np.float32)
+        if state.onnx_context is not None:
+            state.onnx_context = np.zeros((1, 64), dtype=np.float32)

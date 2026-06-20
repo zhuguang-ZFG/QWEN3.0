@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Any
 
 _log = logging.getLogger(__name__)
 
@@ -34,6 +35,12 @@ class VADState:
     speech_buffer: bytearray = field(default_factory=bytearray)
     silence_frames: int = 0
     total_frames: int = 0
+    # Provider-specific per-stream mutable state (SileroVAD).
+    last_voice_time_ms: float = 0.0
+    last_is_voice: bool = False
+    voice_window: list[bool] = field(default_factory=list)
+    onnx_state: Any = None
+    onnx_context: Any = None
 
 
 class VADProvider(ABC):
