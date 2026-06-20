@@ -117,6 +117,41 @@ def test_list_versions_sorted_by_created_at_desc(tmp_path):
     assert [v["version"] for v in versions] == [record2["version"], record1["version"]]
 
 
+def test_list_versions_stable_sort_preserves_registration_order_on_ties(tmp_path, monkeypatch):
+    adapter1 = tmp_path / "a1"
+    adapter2 = tmp_path / "a2"
+    adapter1.mkdir()
+    adapter2.mkdir()
+    _write_trainer_state(adapter1, 1000)
+    _write_trainer_state(adapter2, 2000)
+
+    # Freeze time so both registrations share the same created_at.
+    fixed_iso = "2026-06-20T12:00:00.000000"
+    from datetime import datetime
+
+    class _FrozenDateTime:
+        @staticmethod
+        def now(*_args, **_kwargs):
+            return datetime.fromisoformat(fixed_iso)
+
+        @staticmethod
+        def isoformat(*_args, **_kwargs):
+            return fixed_iso
+
+        @staticmethod
+        def strftime(*_args, **_kwargs):
+            return "20260620_1200"
+
+    monkeypatch.setattr(mr, "datetime", _FrozenDateTime())
+
+    record1 = mr.register(str(adapter1), {"overall": 0.80})
+    record2 = mr.register(str(adapter2), {"overall": 0.90})
+
+    versions = mr.list_versions()
+    # Registration order should be preserved as a tie-breaker (newest index first).
+    assert [v["version"] for v in versions] == [record2["version"], record1["version"]]
+
+
 def test_get_status_summarizes_registry(tmp_path):
     adapter = tmp_path / "a1"
     adapter.mkdir()

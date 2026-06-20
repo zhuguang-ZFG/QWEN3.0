@@ -16,6 +16,12 @@
 | `/health` 返回 200 | ⬜ | `curl -sf https://chat.donglicao.com/health` |
 | `/device/v1/health` 返回 200 | ⬜ | `curl -sf https://chat.donglicao.com/device/v1/health` |
 | 无 critical alerts | ⬜ | 检查 `/v1/ops/summary` |
+
+> **注意**：
+> - `/health` 在启动阶段出现 critical error（`startup.status=error`）时返回 **503**。
+> - `/device/v1/health` 在生产运行时（`LIMA_RUNTIME_ENV=production`）若 `task_store` / `session_bus` 未跨进程共享（`production_ready=false`）返回 **503**。
+> - `/v1/chat/completions` 默认限流为 60s/120 请求（IDE 来源倍率 5），超限时返回 **429**。
+> 验证时应先检查响应体，排除上述正常门控后再判定服务异常。
 | 路由引擎正常 | ⬜ | `python -m pytest tests/test_routing_engine.py -q` |
 | 设备网关正常 | ⬜ | `python -m pytest tests/test_device_gateway_*.py -q` |
 

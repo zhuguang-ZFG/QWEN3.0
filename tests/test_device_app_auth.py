@@ -85,3 +85,19 @@ def test_device_app_auth_rejects_wechat_code_login_without_dev_flag(tmp_path, mo
 
     logged_in = client.post("/device/v1/app/auth/login", json={"code": "wx-code-1"})
     assert logged_in.status_code == 503
+
+
+def test_device_app_auth_dev_mode_without_login_code_returns_503(tmp_path, monkeypatch):
+    client, _store = make_client(tmp_path, monkeypatch)
+    monkeypatch.setenv("LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE", "1")
+    monkeypatch.delenv("LIMA_XIAOZHI_LOGIN_CODE", raising=False)
+
+    endpoints = [
+        ("/device/v1/app/auth/sms-verification", {"phone": "13903"}),
+        ("/device/v1/app/auth/register", {"phone": "13903", "code": "000000", "nickname": "native-owner"}),
+        ("/device/v1/app/auth/login", {"phone": "13903", "code": "000000"}),
+    ]
+    for path, body in endpoints:
+        response = client.post(path, json=body)
+        assert response.status_code == 503, f"{path}: {response.text}"
+        assert "SMS verification code is not configured" in response.json()["message"]

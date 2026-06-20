@@ -8,12 +8,31 @@
 > Updated: 2026-06-18
 > Branch: `main`
 > Scale: 约 1021 个 Python 文件 / 全仓 630 文件已格式化
-> Tests: 全量 1746 passed / 37 skipped / 0 failed；ruff check clean；ruff format clean
+> Tests: 全量 1860 passed / 4 skipped / 0 failed；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
-> VPS smoke：`https://chat.donglicao.com/health` 200 且 `startup.status=ready`；`/device/v1/health` 200 且 `protocol=lima-device-v1`；`xiaozhi_v1_compat=false`。
+> VPS smoke：`https://chat.donglicao.com/health` 200 且 `startup.status=ready`；`/device/v1/health` 200 且 `protocol=lima-device-v1`；`xiaozhi_v1_compat=false`。注意：`/health` 在启动错误时可能返回 503；`/device/v1/health` 在生产环境未就绪时可能返回 503；`/v1/chat/completions` 默认 rate limiter 为 60s/120 请求（IDE 来源倍率 5），超限时返回 429。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted（图片域名白名单已落地；WebSocket query-param token 已加 `access_log off` 与 warning 日志）。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-18）review 修复：SSH 部署回退、health 503 语义、rate limiter 缺省
+
+- **问题来源**：代码审查后遗留的 5 个测试覆盖缺口与部署脚本路径兼容性问题。
+- **实现**：
+  - `scripts/deploy_common.py`：对 `LIMA_DEPLOY_KEY_PATH` / `LIMA_DEPLOY_KNOWN_HOSTS` 应用 `os.path.expanduser()`。
+  - `scripts/deploy_unified_*.py`：SSH key 无效时自动回退到 `LIMA_DEPLOY_PASS` 密码认证。
+  - `.env.example`：补充 `LIMA_DEPLOY_KEY_PATH`、`LIMA_DEPLOY_KNOWN_HOSTS`、`LIMA_RUNTIME_ENV`、`LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE`。
+  - `scripts/smoke_live_and_digital_human.py`：移除 HTML token 抓取，改为环境变量读取。
+  - `rate_limiter.py`：滑动窗口过期清理、multiplier 夹紧到 ≥1。
+  - `device_gateway/health.py`：生产环境 `production_ready` 要求 task_store / session_bus 跨进程共享。
+  - `model_registry.py`：列表排序使用稳定排序，保证 `created_at` 相同时保持注册顺序。
+- **新增测试**：
+  - `tests/test_rate_limiter.py`：窗口过期、multiplier ≤0。
+  - `tests/test_device_app_auth.py`：dev flag 开启但无静态码时返回 503。
+  - `tests/device_gateway/test_health.py`：生产 + 共享 state 时返回 200 + `production_ready=True`。
+  - `tests/test_model_registry.py`：相同 `created_at` 稳定排序。
+- **验证**：聚焦测试 22 passed；`ruff check` / `ruff format --check` clean；VPS `/health` 与 `/device/v1/health` 验证通过。
+- **文档**：`docs/RELEASE_GATE_CHECKLIST.md`、`docs/DEPLOY_AND_RELEASE_CONVENTION.md`、`STATUS.md` 已更新 health 可能返回 503 与 rate limiter 默认值。
 
 ### 最近完成（2026-06-18）draw_generated 主链路接入 AI 绘图管线
 

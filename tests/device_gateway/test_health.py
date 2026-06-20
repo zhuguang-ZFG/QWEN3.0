@@ -29,3 +29,20 @@ def test_device_gateway_health_reports_unready_in_production_without_shared_stat
     data = response.json()
     assert data["status"] == "degraded"
     assert data["production_ready"] is False
+
+
+def test_device_gateway_health_reports_ready_in_production_with_shared_state(monkeypatch):
+    monkeypatch.setenv("LIMA_RUNTIME_ENV", "production")
+    import device_gateway.health as health
+
+    monkeypatch.setattr(health, "task_store_health", lambda: {"backend": "redis", "shared_across_processes": True})
+    monkeypatch.setattr(health, "notifier_health", lambda: {"backend": "redis", "shared_across_processes": True})
+
+    response = _client().get("/device/v1/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["production_ready"] is True
+    assert data["task_store"]["shared_across_processes"] is True
+    assert data["session_bus"]["shared_across_processes"] is True
