@@ -1,0 +1,77 @@
+# 虚拟环境
+.venv310/
+.venv*/
+venv/
+env/
+
+# 固件/嵌入式（没用过）
+esp32S_XYZ/
+esp32*/
+
+# IDE/工具缓存
+.opencode/
+.roo/
+.trae/
+.kimi-code/
+.omc/
+.omk/
+.omx/
+.qoder/
+.qoder/
+.cache/
+.hypothesis/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.pytype/
+
+# 构建产物
+*.egg-info/
+.pnpm-store/
+__pycache__/
+*.pyc
+*.pyo
+
+# 临时数据
+tmp/
+.test-tmp/
+data/
+device_artifacts/
+
+# 参考/文档仓库（太大）
+reference/
+
+# Git
+.git/
+.gitattributes
+.gitignore
+
+# 环境/密钥
+.env
+.env.*
+*.key
+*.pem
+*.crt
+
+# 图片/媒体（AI 工具不会分析）
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.mp3
+*.mp4
+*.wav
+
+# 编译产物
+*.so
+*.dll
+*.dylib
+*.whl
+*.exe
+*.bin
+
+# 日志
+*.log
+*.pid
