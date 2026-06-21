@@ -2900,3 +2900,12 @@ Agent Worker path.
   - `b09f9c52` `chore: add .cursorignore ...`
   - `19810c7a` `refactor: split five long functions to satisfy size constraints`
   - 已 push 到 GitHub `origin/main`。
+
+## 2026-06-22 继续优化 — 忽略自动生成产物
+
+- **问题**：`.guardian/` 下的扫描报告和 `ARCHITECTURE_KNOWLEDGE.md` 是工具自动生成的，不应进入版本控制；工作区常被这些文件污染。
+- **操作**：
+  - `.gitignore` 新增：`.guardian/`、`ARCHITECTURE_KNOWLEDGE.md`。
+  - `git rm --cached -r .guardian/`，从 git 索引移除已跟踪的 4 个 guardian JSON 文件（工作区保留）。
+- **验证**：`git status` 工作区不再显示 `.guardian/*` 修改。
+- **提交**：`dec41d00` `chore: ignore auto-generated .guardian/ and ARCHITECTURE_KNOWLEDGE.md`；已 push 到 GitHub `origin/main`。

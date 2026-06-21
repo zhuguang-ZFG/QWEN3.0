@@ -818,3 +818,19 @@
 ## 2026-06-22 OPS-024 未处理项
 
 - `esp32S_XYZ` submodule 工作区存在大量修改/删除，未提交也未重置，需用户后续决定。
+
+## 2026-06-22 MAINT-025 将自动生成产物加入 .gitignore
+
+**问题**
+- `.guardian/` 报告和 `ARCHITECTURE_KNOWLEDGE.md` 由 `lima_guardian.py`、`generate_architecture_knowledge.py` 自动生成，却曾被 git 跟踪或污染工作区。
+
+**修复**
+- `.gitignore` 新增 `.guardian/` 和 `ARCHITECTURE_KNOWLEDGE.md`。
+- 用 `git rm --cached -r .guardian/` 取消已跟踪的 guardian JSON 文件。
+
+**验证**
+- `git status` 不再显示 `.guardian/*` 修改。
+- 相关文件仍保留在工作区供本地查看。
+
+**未处理项**
+- `esp32S_XYZ` submodule 仍有未提交修改。
