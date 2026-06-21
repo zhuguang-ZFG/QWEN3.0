@@ -18,6 +18,9 @@ DB_PATH = os.environ.get("LIMA_BACKEND_RETIREMENT_DB", "data/backend_retirement.
 
 # Retirement thresholds
 CONSECUTIVE_FAILURES_DEGRADED = 10
+# Success-rate tier labels (_24H/_7D/_30D) are severity names only — NOT rolling
+# 24h/7d/30d windows. evaluate_backend() uses backend_profile aggregate success
+# rate with minimum sample counts (5 / 10 / 20) to pick suspicious → retiring → retired.
 SUCCESS_RATE_SUSPICIOUS_24H = 0.20
 SUCCESS_RATE_RETIRING_7D = 0.10
 SUCCESS_RATE_RETIRED_30D = 0.05
