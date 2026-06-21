@@ -25,6 +25,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s:%(name)s:%(message)s")
 
+logger = logging.getLogger(__name__)
+
 
 class LimaCodeQuery:
     """MCP 工具实现：包装 code_context 和 graph_index 的检索能力"""
@@ -43,14 +45,14 @@ class LimaCodeQuery:
 
             self._index = build_code_index()
         except Exception as e:
-            pass  # 运行时初始化
+            logger.warning("code_context index init failed: %s", e)
 
         try:
             from code_context.sqlite_graph_store import SqliteGraphIndex
 
             self._graph = SqliteGraphIndex(str(PROJECT_ROOT / ".lima-data" / "graph.db"))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("sqlite graph index init failed: %s", e)
 
     def search_code(self, query: str, limit: int = 8) -> list[dict[str, Any]]:
         """语义搜索代码 — 返回相关文件和关键符号"""
@@ -67,14 +69,12 @@ class LimaCodeQuery:
             for r in chroma_results:
                 results.append(
                     {
-                        "path": r.get("path", ""),
-                        "content": r.get("content", "")[:300],
-                        "score": r.get("score", 0.0),
+                        "path": r.path,
                         "source": "chroma",
                     }
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("chroma search failed for query %r: %s", query, e)
 
         # 2. 符号匹配（基于 index_store 的关键词搜索）
         if self._index and len(results) < limit:
@@ -92,8 +92,8 @@ class LimaCodeQuery:
                             "source": "keyword",
                         }
                     )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("keyword index search failed for query %r: %s", query, e)
 
         # 3. 文件路径匹配（直接扫关键目录）
         if len(results) < limit:
@@ -189,8 +189,8 @@ class LimaCodeQuery:
                         rel = str(c.relative_to(PROJECT_ROOT))
                         if rel not in [r.get("path") for r in related]:
                             related.append({"path": rel, "relation": "imports"})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("import parse failed for %s: %s", path, e)
 
         # 2. 同一目录相邻文件
         try:
@@ -199,8 +199,8 @@ class LimaCodeQuery:
                     rel = str(f.relative_to(PROJECT_ROOT))
                     if rel not in [r.get("path") for r in related]:
                         related.append({"path": rel, "relation": "sibling"})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("sibling scan failed for %s: %s", path, e)
 
         return related[:max_results]
 
@@ -242,8 +242,8 @@ class LimaCodeQuery:
                                     "type": "def" if "def " in line_stripped else "ref",
                                 }
                             )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("symbol trace read failed for %s: %s", py_file, e)
 
                 if len(results) >= max_results:
                     break
@@ -374,8 +374,8 @@ def main():
             response = handle_request(request)
             sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
             sys.stdout.flush()
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as e:
+            logger.warning("invalid JSON-RPC input: %s", e)
         except Exception as e:
             error_response = {"jsonrpc": "2.0", "id": None, "error": {"code": -32603, "message": str(e)}}
             sys.stdout.write(json.dumps(error_response) + "\n")
