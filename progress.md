@@ -2801,3 +2801,21 @@ Agent Worker path.
 - **问题**：`docs/FIRMWARE_V1_V2_OTA_MIGRATION_CN.md` 曾以错误编码保存，全文乱码。
 - **修复**：重写为 UTF-8 中文；补充 `scripts/firmware_hardware_gate.py --flash` 批量烧录引用。
 - **验证**：人工可读 + 与子模块 `partitions/v2/README.md` 一致。
+
+## 2026-06-22 继续优化 — MCP stdio 静默降级修复与部署/同步阻塞记录
+
+- **问题**：`lima_mcp_stdio/lima_code_query_mcp.py` 存在多处 `except Exception: pass`，违反 AGENTS.md 硬规则 1（禁止静默降级）。
+- **修复**：
+  - 新增模块级 `logger = logging.getLogger(__name__)`。
+  - 将初始化失败（`code_context` index、`sqlite_graph_store`）、检索失败（chroma、keyword）、解析失败（import parse、sibling scan、symbol trace）、输入错误（`json.JSONDecodeError`）全部改为 `logger.warning(...)` 并带上下文。
+  - 修复 chroma search 结果类型误用：返回的是 `FileRecord` dataclass，原代码按 `dict.get` 读取导致 pyright warning；改为访问 `.path` 属性。
+- **验证**：
+  - `ruff check lima_mcp_stdio/lima_code_query_mcp.py` → clean。
+  - `ruff format --check lima_mcp_stdio/lima_code_query_mcp.py` → formatted。
+  - `pyright lima_mcp_stdio/lima_code_query_mcp.py` → 0 errors, 0 warnings。
+  - 聚焦测试：`tests/test_lima_mcp_stdio_core.py`、`tests/test_mimo_mcp_runner.py` → 20 passed。
+  - 全量测试：`pytest -q` → **2230 passed, 4 skipped**。
+- **提交**：`fba1afa0` `fix(lima_mcp_stdio): replace silent except-pass with logger warnings in code query MCP`；已 push 到 GitHub `origin/main`。
+- **阻塞**：
+  - VPS 部署：`~/.ssh/id_ed25519` 私钥内容为占位符 `test`，paramiko 报 `Invalid key`；`LIMA_DEPLOY_PASS` 未设置，无法连接 `47.112.162.80`。
+  - Gitee 同步：`git@gitee.com:zhuguang-cn/QWEN3.0.git` push 报 `Permission denied (publickey)`；本地无 Gitee SSH key / `GITEE_TOKEN`。
