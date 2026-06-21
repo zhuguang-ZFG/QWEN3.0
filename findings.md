@@ -788,3 +788,33 @@
 
 **结果**
 - 仓库仅保留 `origin`（GitHub）。
+
+## 2026-06-22 QUAL-023 拆分剩余 long_function，guardian 报告清零
+
+**发现**
+- Guardian 全量扫描剩余 4 个 `long_function` 提示：
+  - `generate_architecture_knowledge.py::build_architecture_doc`
+  - `routes/device_voice_ws_helpers.py::_feed_audio_to_pipeline`
+  - `device_voice/providers/asr_doubao.py::transcribe`
+  - `device_voice/providers/vad_silero.py::detect`
+  - `device_memory/consolidation.py::consolidate_task_episodes`
+
+**修复**
+- 将 5 个长函数拆分为小的职责单一的辅助函数，保持公共 API 不变。
+
+**验证**
+- `ruff` / `pyright` 对改动文件 clean。
+- 相关聚焦测试 29 passed。
+- Guardian 全量扫描 → 0 错误 / 0 警告 / 0 提示。
+
+**其他**
+- 提交 `.cursorignore`。
+- `esp32S_XYZ` submodule 有大量未提交修改，未处理。
+
+**VPS 部署**
+- `deploy_unified.py --slice core` 2374 files OK，backup `unified-core-20260622_070210`。
+- `verify_production_deploy.py` PASS。
+
+## 2026-06-22 OPS-024 未处理项
+
+- `esp32S_XYZ` submodule 工作区存在大量修改/删除，未提交也未重置，需用户后续决定。

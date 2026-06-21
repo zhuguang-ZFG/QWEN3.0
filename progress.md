@@ -2876,3 +2876,27 @@ Agent Worker path.
   - 删除 `~/.ssh/config` 中的 `Host gitee.com` 配置。
   - 移除 git remote：`git remote remove gitee`。
 - **结果**：项目仅保留 GitHub `origin` 作为 upstream。
+
+## 2026-06-22 继续优化 — 拆分全部 long_function、guardian 清零、VPS 重新部署
+
+- **目标**：把 guardian 剩余 `long_function` 提示全部清零。
+- **拆分 4 个长函数**：
+  - `scripts/generate_architecture_knowledge.py::build_architecture_doc` → 提取 `_build_header`、`_build_system_composition_section`、`_build_code_distribution_section`、`_build_device_connection_section`、`_build_protocol_classes_section`、`_build_key_routes_section`、`_build_routing_pipeline_section`。验证脚本可正常生成 `ARCHITECTURE_KNOWLEDGE.md`。
+  - `routes/device_voice_ws_helpers.py::_feed_audio_to_pipeline` → 提取 `_get_vad_state`、`_detect_utterance`、`_process_utterance`。
+  - `device_voice/providers/asr_doubao.py::transcribe` → 提取 `_build_request_payload`、`_send_initial_request`、`_stream_audio_chunks`、`_read_final_transcript`。
+  - `device_voice/providers/vad_silero.py::detect` → 提取 `_init_onnx_state`、`_run_onnx_frame`、`_classify_speech`、`_update_state_from_voice`。
+  - `device_memory/consolidation.py::consolidate_task_episodes` → 提取 `_load_task_episodes`、`_group_episodes_by_task_type`、`_should_update_confidence`、`_build_confidence_entry`。
+- **验证**：
+  - `ruff` / `pyright` 对所有改动文件 clean。
+  - 相关聚焦测试：`test_device_voice_vad.py`、`test_device_voice_asr.py`、`test_device_voice_init.py`、`test_asr_doubao.py`、`test_device_memory_consolidation.py` → **29 passed**。
+  - Guardian 全量扫描 → **0 错误、0 警告、0 提示**。
+- **其他**：
+  - 提交 `.cursorignore`（Cursor IDE 工作区规则）。
+  - `esp32S_XYZ` submodule 有大量未提交修改，本轮未处理，保持原样。
+- **VPS 重新部署**：
+  - `python scripts/deploy_unified.py --slice core` → 2374 files uploaded, backup `/opt/lima-router/backups/unified-core-20260622_070210/runtime-before.tgz`，Health OK。
+  - `scripts/verify_production_deploy.py` → **PASS**。
+- **提交**：
+  - `b09f9c52` `chore: add .cursorignore ...`
+  - `19810c7a` `refactor: split five long functions to satisfy size constraints`
+  - 已 push 到 GitHub `origin/main`。
