@@ -1,53 +1,53 @@
-﻿# 鍥轰欢 v1 鈫?v2 鍒嗗尯琛ㄨ縼绉绘寚鍗?
+﻿# 固件 v1 → v2 分区表迁移指南
 
-**鏃ユ湡**: 2026-06-22
-**閫傜敤鑼冨洿**: `esp32S_XYZ/firmware/u8-xiaozhi`锛圠iMa 缁樺浘/鍐欏瓧鏈?ESP32 鍥轰欢锛?
-**鐘舵€?*: 杩愮淮蹇呰 鈥?v1 瀛橀噺璁惧 **涓嶈兘** 閫氳繃 OTA 鐩存帴鍗囩骇鍒?v2
+**日期**: 2026-06-22
+**适用范围**: `esp32S_XYZ/firmware/u8-xiaozhi`（LiMa 绘图/写字机 ESP32 固件）
+**状态**: 运维必读 — v1 存量设备 **不能** 通过 OTA 直接升级到 v2
 
 ---
 
-## 鑳屾櫙
+## 背景
 
-u8-xiaozhi 鍥轰欢浠?**v1 鍒嗗尯琛?* 杩佺Щ鍒?**v2 鍒嗗尯琛?* 鏃讹紝Flash 甯冨眬鍙戠敓缁撴瀯鎬у彉鍖栵細
+u8-xiaozhi 固件从 **v1 分区表** 迁移到 **v2 分区表** 时，Flash 布局发生结构性变化：
 
-| 缁村害 | v1 | v2 |
+| 维度 | v1 | v2 |
 |------|----|----|
-| 妯″瀷/璧勬簮 | 鍥哄畾 `model` 鍒嗗尯锛堢害 960KB锛?| 鍙綉缁滄洿鏂扮殑 `assets` 鍒嗗尯锛圫PIFFS锛?|
-| 搴旂敤 OTA 妲?| `ota_0` / `ota_1` 鍚勭害 6MB锛?6MB Flash锛?| 鍚勭害 4MB锛岃吘鍑虹┖闂寸粰 assets |
-| OTA 鍏煎鎬?| 鈥?| **涓?v1 鍒嗗尯琛ㄤ笉鍏煎** |
+| 模型/资源 | 固定 `model` 分区（约 960KB） | 可网络更新的 `assets` 分区（SPIFFS） |
+| 应用 OTA 槽 | `ota_0` / `ota_1` 各约 6MB（16MB Flash） | 各约 4MB，腾出空间给 assets |
+| OTA 兼容性 | — | **与 v1 分区表不兼容** |
 
-v2 鍒嗗尯琛ㄨ瑙佸瓙妯″潡鏂囨。锛歚esp32S_XYZ/firmware/u8-xiaozhi/partitions/v2/README.md`銆?
+v2 分区表详见子模块文档：`esp32S_XYZ/firmware/u8-xiaozhi/partitions/v2/README.md`。
 
-**缁撹**锛氬凡鍦?v1 鍒嗗尯琛ㄤ笂閲忎骇鐨勮澶囷紝浜戠 OTA 鎺ㄩ€?v2 鍥轰欢浼氬鑷村垎鍖哄亸绉婚敊璇紝鍗囩骇澶辫触鎴栧彉鐮栥€?*蹇呴』 USB 涓插彛鍏ㄩ噺鐑у綍**锛坆ootloader + 鍒嗗尯琛?+ 搴旂敤 + 鍒濆鏁版嵁锛夈€?
-
----
-
-## 褰卞搷鑼冨洿
-
-- 鍑哄巶鎴栫幇鍦虹儳褰曟椂浣跨敤 `partitions/v1/*.csv` 鐨勮澶?
-- 绉诲姩绔?浜戠宸插垏鍒?LiMa native API锛坄/device/v1/app/*`锛夆€斺€?*浜戠鍔熻兘涓嶅彈褰卞搷**锛屼粎鍥轰欢鍗囩骇璺緞鍙楅檺
-- v2 鏂颁骇璁惧锛堝嚭鍘傚嵆 v2 鍒嗗尯琛級鍙甯?OTA
+**结论**：已在 v1 分区表上量产的设备，云端 OTA 推送 v2 固件会导致分区偏移错误，升级失败或变砖。**必须 USB 串口全量烧录**（bootloader + 分区表 + 应用 + 初始数据）。
 
 ---
 
-## 璇嗗埆鏂规硶
+## 影响范围
 
-1. **鏋勫缓閰嶇疆**锛氭鏌?`sdkconfig` 鎴?board README 涓?`CONFIG_PARTITION_TABLE_CUSTOM_FILENAME` 鏄惁鎸囧悜 `partitions/v1/` 鎴?`partitions/v2/`銆?
-2. **璁惧涓婃姤**锛歚firmwareVer` / `hardwareVer` 涓庡嚭鍘傝褰曞鐓э紱v2 棣栫増鍥轰欢鐗堟湰鍙蜂互 release tag 涓哄噯銆?
-3. **Flash 璇诲彇**锛堥珮绾э級锛氫覆鍙ｆ墽琛?`esptool.py read_flash 0x8000 0x1000` 瑙ｆ瀽鍒嗗尯琛紝纭鏄惁瀛樺湪 `assets` 鍒嗗尯鍚嶃€?
+- 出厂或现场烧录时使用 `partitions/v1/*.csv` 的设备
+- 移动端/云端已切到 LiMa native API（`/device/v1/app/*`）— **云端功能不受影响**，仅固件升级路径受限
+- v2 新产设备（出厂即 v2 分区表）可正常 OTA
 
 ---
 
-## 杩佺Щ姝ラ锛坴1 鈫?v2锛屾墜鍔ㄧ儳褰曪級
+## 识别方法
 
-### 鍓嶇疆鏉′欢
+1. **构建配置**：检查 `sdkconfig` 或 board README 中 `CONFIG_PARTITION_TABLE_CUSTOM_FILENAME` 是否指向 `partitions/v1/` 或 `partitions/v2/`。
+2. **设备上报**：`firmwareVer` / `hardwareVer` 与出厂记录对照；v2 首版固件版本号以 release tag 为准。
+3. **Flash 读取**（高级）：串口执行 `esptool.py read_flash 0x8000 0x1000` 解析分区表，确认是否存在 `assets` 分区名。
 
-- USB 鏁版嵁绾裤€佸凡鐭?COM 鍙ｏ紙Windows锛夋垨 `/dev/ttyUSB*`
-- [esptool.py](https://docs.espressif.com/projects/esptool/) 鎴?ESP-IDF 鐜
-- 瀵瑰簲 Flash 瀹归噺鐨?**v2 鍒嗗尯琛?CSV**锛坄partitions/v2/8m.csv`銆乣16m.csv` 绛夛級
-- 瀹屾暣缂栬瘧浜х墿锛歚bootloader.bin`銆乣partition-table.bin`銆乣ota_data_initial.bin`銆佸簲鐢?`xiaozhi.bin`锛堝強鏉跨骇瑕佹眰鐨?`srmodels.bin` 绛夛級
+---
 
-### 鏍囧噯鐑у綍鍛戒护锛?6MB ESP32-S3 绀轰緥锛?
+## 迁移步骤（v1 → v2，手动烧录）
+
+### 前置条件
+
+- USB 数据线、已知 COM 口（Windows）或 `/dev/ttyUSB*`
+- [esptool.py](https://docs.espressif.com/projects/esptool/) 或 ESP-IDF 环境
+- 对应 Flash 容量的 **v2 分区表 CSV**（`partitions/v2/8m.csv`、`16m.csv` 等）
+- 完整编译产物：`bootloader.bin`、`partition-table.bin`、`ota_data_initial.bin`、应用 `xiaozhi.bin`（及板级要求的 `srmodels.bin` 等）
+
+### 标准烧录命令（16MB ESP32-S3 示例）
 
 ```powershell
 esptool.py -p COM3 -b 460800 `
@@ -60,53 +60,53 @@ esptool.py -p COM3 -b 460800 `
   0x100000 build/xiaozhi.bin
 ```
 
-> 鍦板潃涓庨檮鍔?bin 浠ュ叿浣?board README 涓哄噯锛堝 `labplus-ledong-v2`銆乣sensecap-watcher` 绛夛級銆?
+> 地址与附加 bin 以具体 board README 为准（如 `labplus-ledong-v2`、`sensecap-watcher` 等）。
 
-### 鐑у綍鍚庨獙璇?
+### 烧录后验证
 
-1. 涓插彛鏃ュ織锛氶娆″惎鍔ㄥ簲瑙﹀彂 assets 涓嬭浇锛堣嫢鍚敤缃戠粶 assets锛夈€?
-2. 璁惧娉ㄥ唽锛氬皬绋嬪簭/绠＄悊绔粦瀹氾紝`/device/v1/app/devices` 鍙 `firmwareVer` 鏇存柊銆?
-3. 鍔熻兘鍐掔儫锛歚scripts/firmware_hardware_smoke.py` 鎴栨澘绾?`docs/` 涓殑纭欢妫€鏌ユ竻鍗曘€?
-4. 浜戠浠诲姟锛氫笅鍙?`home` / `calibrate` / `draw_image` 璇曡窇銆?
-
----
-
-## 涓轰粈涔?OTA 涓嶅彲鐢?
-
-ESP-IDF OTA 鍦?**鍚屼竴鍒嗗尯琛?* 鍐呭垏鎹?`ota_0` 鈫?`ota_1`銆倂1鈫抳2 鍙樻洿浜嗭細
-
-- 鍒嗗尯璧峰鍦板潃涓庡ぇ灏?
-- 鍒嗗尯鍚嶇О闆嗗悎锛坄model` 鈫?`assets`锛?
-- 搴旂敤妲藉閲?
-
-OTA 鍖呮棤娉曟惡甯︽柊鍒嗗尯琛紱Bootloader 浠嶆寜鏃ц〃瑙ｆ瀽锛屽啓鍏?v2 搴旂敤浼氬鑷村湴鍧€瓒婄晫鎴栧惎鍔ㄥけ璐ャ€?
-
-**LiMa 浜戠绛栫暐**锛氬宸茬煡 v1 璁惧 **涓嶈** 鎺ㄩ€?v2 OTA URL锛涜繍缁村彴璐︽爣璁般€岄渶鐜板満鐑у綍銆嶃€?
+1. 串口日志：首次启动应触发 assets 下载（若启用网络 assets）。
+2. 设备注册：小程序/管理端绑定，`/device/v1/app/devices` 可见 `firmwareVer` 更新。
+3. 功能冒烟：`scripts/firmware_hardware_smoke.py` 或板级 `docs/` 中的硬件检查清单。
+4. 云端任务：下发 `home` / `calibrate` / `draw_image` 试跑。
 
 ---
 
-## 鎵归噺杩佺Щ寤鸿
+## 为什么 OTA 不可用？
 
-| 闃舵 | 鍔ㄤ綔 |
+ESP-IDF OTA 在 **同一分区表** 内切换 `ota_0` ↔ `ota_1`。v1→v2 变更了：
+
+- 分区起始地址与大小
+- 分区名称集合（`model` → `assets`）
+- 应用槽容量
+
+OTA 包无法携带新分区表；Bootloader 仍按旧表解析，写入 v2 应用会导致地址越界或启动失败。
+
+**LiMa 云端策略**：对已知 v1 设备 **不要** 推送 v2 OTA URL；运维台账标记「需现场烧录」。
+
+---
+
+## 批量迁移建议
+
+| 阶段 | 动作 |
 |------|------|
-| 鍙拌处 | 鎸?SN / MAC 鏍囪 v1/v2 鍒嗗尯 |
-| 澶囦欢 | 鍑嗗 USB 绾裤€佸浐瀹?COM 椹卞姩銆佹爣鍑嗙儳褰曡剼鏈?|
-| 鐜板満 | 閫愬彴鐑у綍 + 楠岃瘉 + 鏇存柊鍙拌处 |
-| 鏂颁骇 | 鍑哄巶缁熶竴 v2 鍒嗗尯琛紝浠?v2 璧?OTA |
+| 台账 | 按 SN / MAC 标记 v1/v2 分区 |
+| 备件 | 准备 USB 线、固定 COM 驱动、标准烧录脚本 |
+| 现场 | 逐台烧录 + 验证 + 更新台账 |
+| 新产 | 出厂统一 v2 分区表，从 v2 起 OTA |
 
-鍙€夛細鍦?`scripts/firmware_hardware_smoke.py` 澧炲姞鍒嗗尯鐗堟湰鎺㈡祴锛堣鍙?NVS 鎴栧浐浠?self-check 瀛楁锛夊悗鍐嶈嚜鍔ㄥ寲銆?
-
----
-
-## 鍥炴粴
-
-- v2 鐑у綍澶辫触锛氶噸鏂版墽琛屽叏閲忕儳褰曪紙鎿﹂櫎 Flash锛歚esptool.py erase_flash` 鍚庡啀 write_flash锛夈€?
-- 闇€鍥炲埌 v1锛氫粎褰撲粛淇濈暀 v1 瀹屾暣 bin 涓?v1 鍒嗗尯琛ㄦ椂锛屽悓鏍?**鍏ㄩ噺鐑у綍 v1 濂椾欢**锛涗笉鑳介€氳繃 OTA 鍥為€€銆?
+可选：在 `scripts/firmware_hardware_gate.py`（`--flash`）或 `scripts/firmware_hardware_smoke.py` 增加分区版本探测（读取 NVS 或固件 self-check 字段）后再自动化。
 
 ---
 
-## 鐩稿叧鏂囨。
+## 回滚
 
-- 瀛愭ā鍧楋細`esp32S_XYZ/firmware/u8-xiaozhi/partitions/v2/README.md`
-- 浜戠璁惧 API锛歚docs/xiaozhi_api_openapi.yaml`锛坄/device/v1/app/*`锛?
-- 閮ㄧ讲锛歚docs/DEPLOY_AND_RELEASE_CONVENTION.md`
+- v2 烧录失败：重新执行全量烧录（擦除 Flash：`esptool.py erase_flash` 后再 `write_flash`）。
+- 需回到 v1：仅当仍保留 v1 完整 bin 与 v1 分区表时，同样 **全量烧录 v1 套件**；不能通过 OTA 回退。
+
+---
+
+## 相关文档
+
+- 子模块：`esp32S_XYZ/firmware/u8-xiaozhi/partitions/v2/README.md`
+- 云端设备 API：`docs/xiaozhi_api_openapi.yaml`（`/device/v1/app/*`）
+- 部署：`docs/DEPLOY_AND_RELEASE_CONVENTION.md`

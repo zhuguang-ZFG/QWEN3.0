@@ -39,6 +39,15 @@ def test_path_exceeds_workspace():
     assert any("超出工作区" in e for e in result.errors)
 
 
+def test_path_negative_coordinates():
+    """测试路径负坐标超出工作区"""
+    path = "M -10 10 L 50 50"
+    result = validate_svg_path(path, workspace=(200, 200))
+
+    assert result.valid is False
+    assert any("超出工作区" in e for e in result.errors)
+
+
 def test_path_near_workspace_limit():
     """测试路径接近工作区边界（警告）"""
     path = "M 0 0 L 195 195"  # 接近 200x200

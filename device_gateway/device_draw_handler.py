@@ -9,6 +9,7 @@ from xiaozhi_drawing.path_optimizer import optimize_svg_path
 from xiaozhi_drawing.preset_shapes import get_preset_svg
 
 from device_gateway.draw_prompt_enhancer import enhance_drawing_prompt
+from device_gateway.draw_path_bounds import precheck_draw_motion_path
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,10 @@ def _try_preset_shape(prompt: str) -> Optional[Dict[str, Any]]:
             logger.info(f"Detected preset shape: {shape}")
             result = get_preset_svg(shape, size=180)
             if result["status"] == "success":
+                err = precheck_draw_motion_path(result["svg_path"])
+                if err:
+                    logger.warning("Preset motion bounds precheck failed: %s", err)
+                    return _build_failed_response(f"preset:{shape}", f"Motion bounds precheck failed: {err}")
                 return {
                     "status": "success",
                     "image_url": "",
@@ -147,6 +152,16 @@ async def _convert_and_optimize(
         f"Path optimized: {optimization.original_points} -> "
         f"{optimization.optimized_points} points ({optimization.reduction_ratio:.1%} reduction)"
     )
+    bounds_err = precheck_draw_motion_path(optimization.optimized_path)
+    if bounds_err:
+        logger.warning("Draw motion bounds precheck failed: %s", bounds_err)
+        return _build_partial_response(
+            image_url,
+            svg_result["width"],
+            svg_result["height"],
+            model,
+            error=f"Motion bounds precheck failed: {bounds_err}",
+        )
     return _build_success_response(image_url, svg_result, optimization, model)
 
 

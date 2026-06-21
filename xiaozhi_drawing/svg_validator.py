@@ -62,7 +62,7 @@ def validate_svg_path(
     # 检查工作区范围
     if bbox:
         w, h = workspace
-        if bbox["max_x"] > w or bbox["max_y"] > h:
+        if bbox["min_x"] < 0 or bbox["min_y"] < 0 or bbox["max_x"] > w or bbox["max_y"] > h:
             errors.append(f"路径超出工作区 ({w}x{h})")
         elif bbox["max_x"] > w * 0.95 or bbox["max_y"] > h * 0.95:
             warnings.append("路径接近工作区边界")

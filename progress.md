@@ -2760,3 +2760,19 @@ Agent Worker path.
 - **实现**：`access_guard.allow_anonymous_access()` 在 `LIMA_RUNTIME_ENV=production` 时强制返回 False（即使 `LIMA_ALLOW_ANONYMOUS=1`）；`anonymous_access_status()` 供 `/health` 暴露 `env_enabled` / `production_blocked` / `allowed`。
 - **验证**：`tests/test_access_guard.py` + `tests/test_system_endpoints.py::test_health_includes_anonymous_access_security` → **27 passed**（聚焦套件）。
 - **部署**：VPS 已部署 `access_guard.py`、`routes/system_endpoints.py`；当前 VPS 仅有 `LIMA_ALLOW_ANONYMOUS=1`、未设 `LIMA_RUNTIME_ENV=production`，故匿名仍可用（开发/demo 行为）；设 production 后自动阻断。
+- **生产启用（2026-06-22 补跑）**：VPS `.env` 追加 `LIMA_RUNTIME_ENV=production` 并 `systemctl restart lima-router`；本机 `/health.security.anonymous_access` → `allowed=false`、`production_blocked=true`；`/device/v1/health` → `status=ok`、`production_ready=true`（Redis task_store + session_bus 已共享）；公网 `scripts/verify_production_deploy.py` → **PASS**。
+
+## 2026-06-22 Backlog L3 — G-code / 运动坐标边界预检
+
+- **实现**：
+  - `device_gateway/draw_path_bounds.py`：`precheck_draw_motion_path()` 复用 `render_svg_task()` 流水线，校验归一化后 motion 点是否在 `DEFAULT_WORKSPACE_MM`（100×100mm）内。
+  - `device_gateway/device_draw_handler.py`：优化后及 preset 返回前调用预检；失败返回 `partial`/`failed` + `Motion bounds precheck failed: …`。
+  - `xiaozhi_drawing/svg_validator.py`：SVG bbox 负坐标纳入工作区校验。
+- **验证**：`tests/test_draw_path_bounds.py` + `tests/test_svg_validator.py::test_path_negative_coordinates` + `tests/test_device_draw_handler.py`（含 bounds 失败路径）→ **聚焦套件 pass**。
+- **部署**：`deploy_unified.py` **15 files**（含依赖展开），backup `unified-files-20260622_045710`，`lima-router` active，Health OK。
+
+## 2026-06-22 Backlog M5 — 固件 v1→v2 OTA 文档修复
+
+- **问题**：`docs/FIRMWARE_V1_V2_OTA_MIGRATION_CN.md` 曾以错误编码保存，全文乱码。
+- **修复**：重写为 UTF-8 中文；补充 `scripts/firmware_hardware_gate.py --flash` 批量烧录引用。
+- **验证**：人工可读 + 与子模块 `partitions/v2/README.md` 一致。

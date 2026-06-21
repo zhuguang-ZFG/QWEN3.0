@@ -57,11 +57,29 @@ class TestPresetShape:
             "width": 10,
             "height": 10,
         }
-        resp = _try_preset_shape("画一个圆")
+        with patch("device_gateway.device_draw_handler.precheck_draw_motion_path", return_value=None):
+            resp = _try_preset_shape("画一个圆")
         assert resp is not None
         assert resp["status"] == "success"
         assert resp["model"] == "preset:circle"
         assert resp["preset"] is True
+
+    @patch("device_gateway.device_draw_handler.get_preset_svg")
+    def test_try_preset_shape_bounds_failure(self, mock_get):
+        mock_get.return_value = {
+            "status": "success",
+            "svg_path": "M0,0",
+            "width": 10,
+            "height": 10,
+        }
+        with patch(
+            "device_gateway.device_draw_handler.precheck_draw_motion_path",
+            return_value="motion point 0 (150,50,0) outside workspace 100x100mm",
+        ):
+            resp = _try_preset_shape("画一个圆")
+        assert resp is not None
+        assert resp["status"] == "failed"
+        assert "Motion bounds precheck failed" in resp["error"]
 
     @patch("device_gateway.device_draw_handler.get_preset_svg")
     def test_try_preset_shape_not_found(self, mock_get):
@@ -80,8 +98,10 @@ class TestHandleDeviceDraw:
     @patch("device_gateway.device_draw_handler.SVGConverter")
     @patch("device_gateway.device_draw_handler.validate_svg_path")
     @patch("device_gateway.device_draw_handler.optimize_svg_path")
+    @patch("device_gateway.device_draw_handler.precheck_draw_motion_path")
     async def test_full_success_path(
         self,
+        mock_precheck,
         mock_optimize,
         mock_validate,
         mock_converter_cls,
@@ -114,6 +134,7 @@ class TestHandleDeviceDraw:
             optimized_points=50,
             reduction_ratio=0.5,
         )
+        mock_precheck.return_value = None
 
         resp = await handle_device_draw("a cat")
         assert resp["status"] == "success"
@@ -123,6 +144,52 @@ class TestHandleDeviceDraw:
         mock_converter.convert_url_to_svg.assert_awaited_once_with("http://img/1", skeletonize=True)
         mock_optimize.assert_called_once()
         assert mock_optimize.call_args.kwargs.get("close") is False
+
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: p)
+    @patch("device_gateway.device_draw_handler.DashScopeImageClient")
+    @patch("device_gateway.device_draw_handler.SVGConverter")
+    @patch("device_gateway.device_draw_handler.validate_svg_path")
+    @patch("device_gateway.device_draw_handler.optimize_svg_path")
+    @patch("device_gateway.device_draw_handler.precheck_draw_motion_path")
+    async def test_motion_bounds_precheck_failure(
+        self,
+        mock_precheck,
+        mock_optimize,
+        mock_validate,
+        mock_converter_cls,
+        mock_client_cls,
+    ):
+        mock_client = MagicMock()
+        mock_client.generate.return_value = {
+            "status": "success",
+            "images": [{"url": "http://img/1"}],
+        }
+        mock_client_cls.return_value = mock_client
+
+        mock_converter = MagicMock()
+        mock_converter.convert_url_to_svg = AsyncMock(
+            return_value={
+                "status": "success",
+                "svg_path": "M0,0",
+                "width": 100,
+                "height": 200,
+            }
+        )
+        mock_converter_cls.return_value = mock_converter
+
+        mock_validate.return_value = SimpleNamespace(valid=True, errors=[])
+        mock_optimize.return_value = SimpleNamespace(
+            optimized_path="M0,0",
+            original_points=10,
+            optimized_points=5,
+            reduction_ratio=0.5,
+        )
+        mock_precheck.return_value = "motion point 0 (150,50,0) outside workspace 100x100mm"
+
+        resp = await handle_device_draw("a cat")
+        assert resp["status"] == "partial"
+        assert "Motion bounds precheck failed" in resp["error"]
+        assert resp["svg_path"] is None
 
     @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: p)
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
