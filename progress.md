@@ -2686,3 +2686,7 @@ Agent Worker path.
   - 公网：`/health` 200 ok、`/device/v1/health` 200 ok、`/v1/ops/summary` 200 critical（既有后端池）、`/v1/ops/metrics/prometheus` 200。
   - M3 指标在线：`lima_backend_retired_count=168`，per-backend `lima_backend_retired{backend=...}=1` 已 scrape。
   - 告警规则已复制至 VPS `/opt/lima-monitoring/prometheus/rules/backend_retirement_alerts.yml`；本机 `prometheus` systemd **inactive**（监控栈可能在京东云 117.72.118.95，需在该节点挂载 rule_files 后 reload）。
+- **京东云 Prometheus 告警挂载（2026-06-22）**：
+  - 节点 `117.72.118.95`：`rule_files: [rules/backend_retirement_alerts.yml]` 已写入 `prometheus.yml`，`promtool check config` SUCCESS（3 rules）。
+  - `systemctl restart prometheus` 后 `/api/v1/rules` 可见组 `lima_backend_retirement`（`LiMaBackendRetired` / `LiMaBackendRetiredCountHigh` / `LiMaBackendRetirementSpike`）。
+  - Scrape 仍指向 `https://chat.donglicao.com/v1/ops/metrics/prometheus`（生产 `lima_backend_retired_count=168` 可被规则评估）。
