@@ -79,58 +79,47 @@ def _score_answer(answer: str, keywords: list) -> bool:
     return False
 
 
-def run_eval(
-    adapter_path: str,
-    eval_set_path: str = EVAL_SET_PATH,
-    version: str | None = None,
-) -> dict:
-    if version is None:
-        version = _infer_version(adapter_path)
-    timestamp = datetime.now().isoformat()
-
+def _load_eval_domains(eval_set_path: str) -> tuple[list[dict], dict[str, list[dict]], int]:
+    """Load eval questions and group them by intent/domain."""
     with open(eval_set_path, "r", encoding="utf-8") as f:
         eval_set = json.load(f)
 
-    domain_items: dict = {}
+    domain_items: dict[str, list[dict]] = {}
     for item in eval_set:
         intent = item.get("intent", "unknown")
         domain_items.setdefault(intent, []).append(item)
 
-    domain_scores: dict = {}
-    total_correct = 0
-    total_questions = len(eval_set)
-    lm_unavailable_reason = None
+    return eval_set, domain_items, len(eval_set)
 
-    lm_available = True
+
+def _probe_lm_studio() -> tuple[bool, str | None]:
+    """Probe LM Studio availability; return (available, reason_or_none)."""
     try:
         _call_lm_studio("test", timeout=5)
+        return True, None
     except urllib.error.HTTPError:
-        pass
+        return True, None
     except urllib.error.URLError as probe_err:
-        lm_available = False
-        lm_unavailable_reason = f"LM Studio 不可用：{probe_err}"
-        print(f"[eval_loop] {lm_unavailable_reason}")
+        reason = f"LM Studio 不可用：{probe_err}"
+        print(f"[eval_loop] {reason}")
+        return False, reason
     except Exception:
-        lm_available = False
-        lm_unavailable_reason = "LM Studio 连接超时或未知错误"
-        print(f"[eval_loop] {lm_unavailable_reason}")
+        reason = "LM Studio 连接超时或未知错误"
+        print(f"[eval_loop] {reason}")
+        return False, reason
 
-    if not lm_available:
-        for domain in domain_items:
-            domain_scores[domain] = 0.0
-        for d in ("grbl_config", "cnc_trouble", "embedded_dev"):
-            domain_scores.setdefault(d, 0.0)
-        return {
-            "version": version,
-            "adapter_path": adapter_path,
-            "timestamp": timestamp,
-            "domain_scores": domain_scores,
-            "overall": 0.0,
-            "passed": False,
-            "rollback_reason": lm_unavailable_reason,
-            "total_questions": total_questions,
-            "correct_count": 0,
-        }
+
+def _ensure_all_domains(domain_scores: dict[str, float]) -> dict[str, float]:
+    """Make sure the three core domains are present in the score map."""
+    for d in ("grbl_config", "cnc_trouble", "embedded_dev"):
+        domain_scores.setdefault(d, 0.0)
+    return domain_scores
+
+
+def _score_domain_items(domain_items: dict[str, list[dict]]) -> tuple[dict[str, float], int]:
+    """Run each eval question through LM Studio and score by keyword presence."""
+    domain_scores: dict[str, float] = {}
+    total_correct = 0
 
     for domain, items in domain_items.items():
         correct = 0
@@ -144,24 +133,74 @@ def run_eval(
                 print(f"[eval_loop] 推理失败 ({item['query'][:30]}...): {e}")
         domain_scores[domain] = correct / len(items) if items else 0.0
 
-    for d in ("grbl_config", "cnc_trouble", "embedded_dev"):
-        domain_scores.setdefault(d, 0.0)
+    return domain_scores, total_correct
 
-    overall = (
-        domain_scores["grbl_config"] + domain_scores["cnc_trouble"] + domain_scores["embedded_dev"]
-    ) * DOMAIN_WEIGHT
 
+def _compute_overall(domain_scores: dict[str, float]) -> float:
+    return (domain_scores["grbl_config"] + domain_scores["cnc_trouble"] + domain_scores["embedded_dev"]) * DOMAIN_WEIGHT
+
+
+def _build_result(
+    version: str,
+    adapter_path: str,
+    timestamp: str,
+    total_questions: int,
+    domain_scores: dict[str, float],
+    total_correct: int,
+    passed: bool,
+    rollback_reason: str | None,
+) -> dict:
+    overall = _compute_overall(domain_scores) if passed else 0.0
     return {
         "version": version,
         "adapter_path": adapter_path,
         "timestamp": timestamp,
         "domain_scores": domain_scores,
         "overall": round(overall, 4),
-        "passed": True,
-        "rollback_reason": None,
+        "passed": passed,
+        "rollback_reason": rollback_reason,
         "total_questions": total_questions,
         "correct_count": total_correct,
     }
+
+
+def run_eval(
+    adapter_path: str,
+    eval_set_path: str = EVAL_SET_PATH,
+    version: str | None = None,
+) -> dict:
+    if version is None:
+        version = _infer_version(adapter_path)
+    timestamp = datetime.now().isoformat()
+
+    _eval_set, domain_items, total_questions = _load_eval_domains(eval_set_path)
+    lm_available, lm_unavailable_reason = _probe_lm_studio()
+
+    if not lm_available:
+        domain_scores = _ensure_all_domains({domain: 0.0 for domain in domain_items})
+        return _build_result(
+            version,
+            adapter_path,
+            timestamp,
+            total_questions,
+            domain_scores,
+            total_correct=0,
+            passed=False,
+            rollback_reason=lm_unavailable_reason,
+        )
+
+    domain_scores, total_correct = _score_domain_items(domain_items)
+    domain_scores = _ensure_all_domains(domain_scores)
+    return _build_result(
+        version,
+        adapter_path,
+        timestamp,
+        total_questions,
+        domain_scores,
+        total_correct=total_correct,
+        passed=True,
+        rollback_reason=None,
+    )
 
 
 def compare(new_result: dict) -> tuple:
