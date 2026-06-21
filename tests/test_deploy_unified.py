@@ -14,6 +14,18 @@ class _Channel:
     def recv_exit_status(self) -> int:
         return self._status
 
+    def shutdown_write(self) -> None:
+        pass
+
+
+class _Stdin:
+    def __init__(self) -> None:
+        self.writes: list[str] = []
+        self.channel = _Channel()
+
+    def write(self, data: str) -> None:
+        self.writes.append(data)
+
 
 class _Stream:
     def __init__(self, text: str = "", status: int = 0) -> None:
@@ -100,13 +112,17 @@ class _PrepareSsh:
     def connect(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def exec_command(self, command: str) -> tuple[None, _Stream, _Stream]:
+    def exec_command(self, command: str) -> tuple[_Stdin, _Stream, _Stream]:
         self.commands.append(command)
         if "df -Pm" in command:
-            return None, _Stream("disk_free_mb=2048\nmem_available_mb=512\n"), _Stream()
+            return _Stdin(), _Stream("disk_free_mb=2048\nmem_available_mb=512\n"), _Stream()
         if "tar --ignore-failed-read" in command:
-            return None, _Stream("/opt/lima-router/backups/unit-test-20260609_010203/runtime-before.tgz\n"), _Stream()
-        return None, _Stream(), _Stream()
+            return (
+                _Stdin(),
+                _Stream("/opt/lima-router/backups/unit-test-20260609_010203/runtime-before.tgz\n"),
+                _Stream(),
+            )
+        return _Stdin(), _Stream(), _Stream()
 
     def close(self) -> None:
         self.closed = True

@@ -3,7 +3,8 @@
 Listens on :8901-8908 (zhipu/github/aliyun/chinamobile/google/baidu/volcengine/longcat)
 Rewrites /v1/chat/completions to the correct upstream path"""
 
-import http.server, urllib.request, ssl, json, sys, threading
+import http.server, urllib.error, urllib.request, ssl, json, sys, threading
+from typing import cast
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -31,94 +32,114 @@ ctx = ssl.create_default_context()
 class ProxyHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
-    def do_POST(self):
-        port = self.server.server_address[1]
-        upstream_url, host = ROUTES.get(port, (None, None))
-        if not upstream_url:
-            self.send_error(404)
-            return
+    def _read_request_body(self) -> bytes:
+        """Read the request body respecting Content-Length or chunked encoding."""
         length = int(self.headers.get("Content-Length", 0))
         te = self.headers.get("Transfer-Encoding", "")
         if length > 0:
             if length > 10 * 1024 * 1024:
                 self.send_error(413)
-                return
-            body = self.rfile.read(length)
-        elif "chunked" in te.lower():
-            body = self._read_chunked()
-        else:
-            body = b""
+                return b""
+            return self.rfile.read(length)
+        if "chunked" in te.lower():
+            return self._read_chunked()
+        return b""
+
+    def _maybe_disable_thinking(self, body: bytes) -> bytes:
+        """DashScope-specific: disable thinking mode in the request body."""
+        try:
+            obj = json.loads(body)
+            obj["enable_thinking"] = False
+            return json.dumps(obj).encode()
+        except (json.JSONDecodeError, ValueError):
+            return body
+
+    def _maybe_convert_longcat_omni(self, body: bytes, upstream_url: str) -> tuple[bytes, dict, str]:
+        """LongCat-Omni: convert OpenAI format to Anthropic format when needed."""
+        headers = {"Content-Type": "application/json"}
+        try:
+            obj = json.loads(body)
+            if "Omni" in obj.get("model", ""):
+                upstream_url = "https://api.longcat.chat/anthropic/v1/messages"
+                msgs = [m for m in obj.get("messages", []) if m.get("role") != "system"]
+                anth_msgs = [
+                    {
+                        "role": m["role"],
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": m["content"] if isinstance(m["content"], str) else str(m["content"]),
+                            }
+                        ],
+                    }
+                    for m in msgs
+                ]
+                body = json.dumps(
+                    {"model": obj["model"], "messages": anth_msgs, "max_tokens": obj.get("max_tokens", 1024)}
+                ).encode()
+                headers["anthropic-version"] = "2023-06-01"
+                self._omni_convert = True
+            else:
+                self._omni_convert = False
+        except (json.JSONDecodeError, ValueError):
+            self._omni_convert = False
+        return body, headers, upstream_url
+
+    def _forward_request(self, req: urllib.request.Request, port: int):
+        """Send the upstream request and return the response object."""
+        if port in PROXY_PORTS:
+            proxy_handler = urllib.request.ProxyHandler({"https": PROXY_URL, "http": PROXY_URL})
+            opener = urllib.request.build_opener(proxy_handler)
+            return opener.open(req, timeout=30)
+        return urllib.request.urlopen(req, timeout=30, context=ctx)
+
+    def _transform_response(self, resp_body: bytes, port: int) -> bytes:
+        """Apply response rewrites for specific ports and Omni conversion."""
+        if port in REWRITE_RESPONSE_PORTS:
+            resp_body = self._rewrite_reasoning(resp_body)
+        if getattr(self, "_omni_convert", False):
+            resp_body = self._anthropic_to_openai(resp_body)
+        return resp_body
+
+    def _send_json_response(self, status: int, body: bytes) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        server_address = cast(tuple[str, int], self.server.server_address)
+        port = server_address[1]
+        upstream_url, host = ROUTES.get(port, (None, None))
+        if not upstream_url:
+            self.send_error(404)
+            return
+
+        body = self._read_request_body()
+        if not body and int(self.headers.get("Content-Length", 0)) > 10 * 1024 * 1024:
+            return
+
         if port == 8903 and body:
-            try:
-                obj = json.loads(body)
-                obj["enable_thinking"] = False
-                body = json.dumps(obj).encode()
-            except (json.JSONDecodeError, ValueError):
-                pass
+            body = self._maybe_disable_thinking(body)
+
         auth = self.headers.get("Authorization", "")
         headers = {"Content-Type": "application/json", "Authorization": auth}
-        # LongCat-Omni: convert OpenAI→Anthropic format
         if port == 8908 and body:
-            try:
-                obj = json.loads(body)
-                if "Omni" in obj.get("model", ""):
-                    upstream_url = "https://api.longcat.chat/anthropic/v1/messages"
-                    msgs = [m for m in obj.get("messages", []) if m.get("role") != "system"]
-                    anth_msgs = [
-                        {
-                            "role": m["role"],
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": m["content"] if isinstance(m["content"], str) else str(m["content"]),
-                                }
-                            ],
-                        }
-                        for m in msgs
-                    ]
-                    body = json.dumps(
-                        {"model": obj["model"], "messages": anth_msgs, "max_tokens": obj.get("max_tokens", 1024)}
-                    ).encode()
-                    headers["anthropic-version"] = "2023-06-01"
-                    self._omni_convert = True
-                else:
-                    self._omni_convert = False
-            except (json.JSONDecodeError, ValueError):
-                self._omni_convert = False
+            body, extra_headers, upstream_url = self._maybe_convert_longcat_omni(body, upstream_url)
+            headers.update(extra_headers)
         else:
             self._omni_convert = False
+
         req = urllib.request.Request(upstream_url, data=body, headers=headers)
         try:
-            if port in PROXY_PORTS:
-                proxy_handler = urllib.request.ProxyHandler({"https": PROXY_URL, "http": PROXY_URL})
-                opener = urllib.request.build_opener(proxy_handler)
-                resp = opener.open(req, timeout=30)
-            else:
-                resp = urllib.request.urlopen(req, timeout=30, context=ctx)
-            resp_body = resp.read()
-            if port in REWRITE_RESPONSE_PORTS:
-                resp_body = self._rewrite_reasoning(resp_body)
-            if getattr(self, "_omni_convert", False):
-                resp_body = self._anthropic_to_openai(resp_body)
-            self.send_response(resp.status)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(resp_body)))
-            self.end_headers()
-            self.wfile.write(resp_body)
+            resp = self._forward_request(req, port)
+            resp_body = self._transform_response(resp.read(), port)
+            self._send_json_response(resp.status, resp_body)
         except urllib.error.HTTPError as e:
-            err_body = e.read()
-            self.send_response(e.code)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(err_body)))
-            self.end_headers()
-            self.wfile.write(err_body)
+            self._send_json_response(e.code, e.read())
         except Exception as e:
-            err = json.dumps({"error": {"message": str(e)}}).encode()
-            self.send_response(502)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(err)))
-            self.end_headers()
-            self.wfile.write(err)
+            self._send_json_response(502, json.dumps({"error": {"message": str(e)}}).encode())
 
     def _anthropic_to_openai(self, resp_body):
         try:
