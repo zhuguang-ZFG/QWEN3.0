@@ -2802,20 +2802,25 @@ Agent Worker path.
 - **修复**：重写为 UTF-8 中文；补充 `scripts/firmware_hardware_gate.py --flash` 批量烧录引用。
 - **验证**：人工可读 + 与子模块 `partitions/v2/README.md` 一致。
 
-## 2026-06-22 继续优化 — MCP stdio 静默降级修复与部署/同步阻塞记录
+## 2026-06-22 继续优化 — MCP stdio 静默降级修复、VPS 部署与验证
 
 - **问题**：`lima_mcp_stdio/lima_code_query_mcp.py` 存在多处 `except Exception: pass`，违反 AGENTS.md 硬规则 1（禁止静默降级）。
 - **修复**：
   - 新增模块级 `logger = logging.getLogger(__name__)`。
   - 将初始化失败（`code_context` index、`sqlite_graph_store`）、检索失败（chroma、keyword）、解析失败（import parse、sibling scan、symbol trace）、输入错误（`json.JSONDecodeError`）全部改为 `logger.warning(...)` 并带上下文。
   - 修复 chroma search 结果类型误用：返回的是 `FileRecord` dataclass，原代码按 `dict.get` 读取导致 pyright warning；改为访问 `.path` 属性。
+  - 修复 `scripts/deploy_unified_preflight.py::create_remote_backup`：文件数过多时命令行超长（`Argument list too long`），改为通过 stdin 用 `tar -T -` 读取列表。
 - **验证**：
-  - `ruff check lima_mcp_stdio/lima_code_query_mcp.py` → clean。
-  - `ruff format --check lima_mcp_stdio/lima_code_query_mcp.py` → formatted。
-  - `pyright lima_mcp_stdio/lima_code_query_mcp.py` → 0 errors, 0 warnings。
+  - `ruff check lima_mcp_stdio/lima_code_query_mcp.py` / `scripts/deploy_unified_preflight.py` → clean。
+  - `pyright lima_mcp_stdio/lima_code_query_mcp.py` / `scripts/deploy_unified_preflight.py` → 0 errors, 0 warnings。
   - 聚焦测试：`tests/test_lima_mcp_stdio_core.py`、`tests/test_mimo_mcp_runner.py` → 20 passed。
   - 全量测试：`pytest -q` → **2230 passed, 4 skipped**。
-- **提交**：`fba1afa0` `fix(lima_mcp_stdio): replace silent except-pass with logger warnings in code query MCP`；已 push 到 GitHub `origin/main`。
-- **阻塞**：
-  - VPS 部署：`~/.ssh/id_ed25519` 私钥内容为占位符 `test`，paramiko 报 `Invalid key`；`LIMA_DEPLOY_PASS` 未设置，无法连接 `47.112.162.80`。
-  - Gitee 同步：`git@gitee.com:zhuguang-cn/QWEN3.0.git` push 报 `Permission denied (publickey)`；本地无 Gitee SSH key / `GITEE_TOKEN`。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core` → 2374 files uploaded, 0 failed；backup `/opt/lima-router/backups/unified-core-20260622_061847/runtime-before.tgz`；server restarted；Health OK。
+  - 公网 `/health` → status ok，所有启动 phase ok，`security.anonymous_access.allowed=false`。
+  - `scripts/verify_production_deploy.py` → **PASS**（/health、/device/v1/health、/v1/ops/metrics/prometheus、L2 login rate limit 429）。
+- **提交**：
+  - `fba1afa0` `fix(lima_mcp_stdio): replace silent except-pass ...`
+  - `fcbb3676` `docs: record 2026-06-22 MCP stdio fix ...`
+  - 已 push 到 GitHub `origin/main`。
+- **仍阻塞**：Gitee 同步仍缺 SSH key / `GITEE_TOKEN`。

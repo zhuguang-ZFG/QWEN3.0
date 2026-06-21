@@ -387,7 +387,7 @@ ruff check: clean（触及文件）
 - **设备网关**: chat.donglicao.com/device/v1/health = 200
 - **VPS 启动耗时**: 约 7 分钟（backend retirement / probe loop 历史数据分析预热），之后服务完全可用
 - **最近恢复操作**:
-  - 2026-06-22：修复 `lima_mcp_stdio/lima_code_query_mcp.py` 静默降级（`except Exception: pass` → `logger.warning`），修正 chroma `FileRecord` 类型误用；全量测试 2230 passed, 4 skipped；提交 `fba1afa0` 已 push GitHub。
+  - 2026-06-22：修复 `lima_mcp_stdio/lima_code_query_mcp.py` 静默降级与 chroma `FileRecord` 类型误用；修复 `scripts/deploy_unified_preflight.py` 大文件列表备份命令行超长问题；VPS 全量部署 2374 文件成功，backup `/opt/lima-router/backups/unified-core-20260622_061847/runtime-before.tgz`，Health OK，`verify_production_deploy.py` PASS。
   - 2026-06-21：部署 15 个 store/memory/notifier/gateway/lifespan 文件，备份 `/opt/lima-router/backups/unified-files-20260616_190649/runtime-before.tgz`
 
 ## 代码质量

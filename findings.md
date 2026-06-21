@@ -676,27 +676,28 @@
 - Gitee (`gitee`) push 仍失败：`git@gitee.com: Permission denied (publickey)`。已存在 `scripts/push_dual_remotes.py` 的 HTTPS fallback，但本次直接 `git push gitee main` 未触发 fallback。
 - VPS 部署：`deploy_unified_common.py::_connect_ssh` 先用 `key_filename=KEY` 连接，paramiko 报 `Invalid key`，异常被 `except paramiko.SSHException` 捕获后尝试密码，但仍抛出同一异常导致退出；需在有正确 SSH key 或 `LIMA_DEPLOY_PASS` 的环境重新执行，或通过 CI 部署。
 
-## 2026-06-22 OPS-018 MCP stdio 静默降级修复与部署阻塞
+## 2026-06-22 OPS-018 MCP stdio 静默降级修复与 VPS 部署
 
 **发现**
 - `lima_mcp_stdio/lima_code_query_mcp.py` 在初始化、检索、解析、输入处理等环节使用 `except Exception: pass`，违反 AGENTS.md 硬规则 1。
 - chroma search 结果类型误用：代码把 `FileRecord` dataclass 当 `dict` 用 `.get()` 读取 `path/content/score`。
+- `scripts/deploy_unified_preflight.py::create_remote_backup` 将全部文件作为 shell 参数传给 `tar`，文件数 >2000 时触发 `/bin/bash: Argument list too long`。
 
 **修复**
-- 所有 `except Exception: pass` 改为 `logger.warning(...)` 并带 `query/path/file/symbol` 上下文。
-- chroma 结果改为读取 `r.path`；移除不存在的 `content`/`score` 字段。
+- `lima_mcp_stdio/lima_code_query_mcp.py`：所有 `except Exception: pass` 改为 `logger.warning(...)` 并带上下文；chroma 结果改为读取 `r.path`。
+- `scripts/deploy_unified_preflight.py`：改用 `tar -T -` 通过 stdin 接收文件列表，避免命令行长度限制。
 
 **验证**
 - `ruff check`、`ruff format --check`、`pyright` 均 clean（0 errors, 0 warnings）。
 - 全量测试 2230 passed, 4 skipped。
+- VPS 部署：`python scripts/deploy_unified.py --slice core` → 2374 files uploaded, backup created, server restarted, Health OK。
+- 公网验证：`scripts/verify_production_deploy.py` → **PASS**。
 
-**阻塞**
-- VPS 部署：本地 `~/.ssh/id_ed25519` 私钥为占位符 `test`，`LIMA_DEPLOY_PASS` 未设置，paramiko `Invalid key`。
+**仍阻塞**
 - Gitee 同步：`git push gitee main` 报 `Permission denied (publickey)`，无 Gitee SSH key / `GITEE_TOKEN`。
 
 **建议**
-- 在 CI（GitHub Actions / 备用 self-hosted runner）配置真实 VPS SSH key 与 `GITEE_TOKEN`，实现无需本地凭证的自动双推送与 VPS 部署。
-- 本地开发环境如需手动部署，需向用户索取 `LIMA_DEPLOY_PASS` 或替换为有效 Ed25519 私钥。
+- 在 CI（GitHub Actions / 备用 self-hosted runner）配置 `GITEE_TOKEN`，实现无需本地凭证的自动 Gitee 同步。
 
 ## 2026-06-20 SEC-005 code review 全量修复详情
 

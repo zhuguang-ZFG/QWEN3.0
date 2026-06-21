@@ -39,15 +39,19 @@ def create_remote_backup(ssh, files: list[str], *, label: str) -> str:
     safe_label = _safe_backup_label(label)
     backup_dir = f"{REMOTE}/backups/{safe_label}-{time.strftime('%Y%m%d_%H%M%S')}"
     backup_file = f"{backup_dir}/runtime-before.tgz"
-    quoted_files = " ".join(shlex.quote(f) for f in files)
     command = (
         "set -eu; "
         f"mkdir -p {shlex.quote(backup_dir)}; "
         f"cd {shlex.quote(REMOTE)}; "
-        f"tar --ignore-failed-read -czf {shlex.quote(backup_file)} {quoted_files}; "
+        f"tar --ignore-failed-read -czf {shlex.quote(backup_file)} -T -; "
         f"echo {shlex.quote(backup_file)}"
     )
-    code, out, err = _exec(ssh, command)
+    stdin, stdout, stderr = ssh.exec_command(command)
+    stdin.write("\n".join(files))
+    stdin.channel.shutdown_write()
+    code = stdout.channel.recv_exit_status()
+    out = stdout.read().decode("utf-8", errors="replace").strip()
+    err = stderr.read().decode("utf-8", errors="replace").strip()
     if code != 0:
         raise RuntimeError(f"remote backup failed: {err or out}")
     return out.splitlines()[-1].strip()
