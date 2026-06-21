@@ -2909,3 +2909,21 @@ Agent Worker path.
   - `git rm --cached -r .guardian/`，从 git 索引移除已跟踪的 4 个 guardian JSON 文件（工作区保留）。
 - **验证**：`git status` 工作区不再显示 `.guardian/*` 修改。
 - **提交**：`dec41d00` `chore: ignore auto-generated .guardian/ and ARCHITECTURE_KNOWLEDGE.md`；已 push 到 GitHub `origin/main`。
+
+## 2026-06-22 继续优化 — 拆分剩余 long_function 并修复测试 mock
+
+- **目标**：继续降低函数级尺寸，处理 `check_code_size.py` 仍报告的前两名长函数，同时修复全量测试中暴露的 mock 不匹配。
+- **拆分函数**：
+  - `deploy/path_proxy.py::do_POST` → 提取 `_read_request_body`、`_maybe_disable_thinking`、`_maybe_convert_longcat_omni`、`_forward_request`、`_transform_response`、`_send_json_response`。
+  - `scripts/check_mcp_health.py::check_mcp_servers` → 提取 `_check_config_only_mcp`、`_check_python_mcp`、`_check_node_mcp`、`_check_uvx_mcp`、`_check_generic_mcp`、`_check_single_mcp_server`，保留原有（即使略显奇怪）的 Python 命令双重检查逻辑。
+- **类型修复**：
+  - `deploy/path_proxy.py` 显式 `cast` `server_address` 为 `tuple[str, int]`，并补充 `urllib.error` 导入，消除 pyright 错误。
+- **测试修复**：
+  - `tests/test_deploy_unified.py`：`_PrepareSsh.exec_command` 之前返回 `None` 作为 stdin，与 `scripts/deploy_unified_preflight.py::create_remote_backup` 使用的 `tar -T -` + `stdin.write` 不匹配。新增 `_Stdin` mock 并返回 `_Stdin()`，恢复测试通过。
+- **验证**：
+  - `ruff check` / `ruff format --check` → clean。
+  - `pyright` → `deploy/path_proxy.py` 仅保留既有的 `sys.stdout.reconfigure` warning，其余 0 errors。
+  - `scripts/check_mcp_health.py` 本地运行 → 15 个 MCP 服务器全部 OK 且 Cursor/Kimi 配置对称。
+  - 全量 `pytest -q` → **2274 passed, 4 skipped, 0 failed**。
+- **提交**：
+  - `5f03f33d` `refactor(deploy,scripts): split long functions and fix test mock`；已 push 到 GitHub `origin/main`（`5182d786..5f03f33d`）。
