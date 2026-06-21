@@ -347,3 +347,7 @@ data/eval/
 lima_mimo_mcp.egg-info/
 test_ws*.py
 .codegraph/.gitignore
+
+# === Guardian / architecture docs (auto-generated) ===
+.guardian/
+ARCHITECTURE_KNOWLEDGE.md
