@@ -3,16 +3,17 @@
 Translates free-form user descriptions into a constrained prompt tuned for
 Wanx / image-to-SVG / pen-plotter execution:
 - black lines only, pure white background
-- minimal line count, closed contours
-- vectorization-friendly spacing and stroke width
+- minimal line count, single-stroke / closed-contour hints for vectorization
+- vectorization-friendly spacing (no fixed px stroke width)
 """
 
 from __future__ import annotations
 
 
 SYSTEM_INSTRUCTION = (
-    "笔绘机简笔画：只用黑色线条，纯白背景，无阴影无填充无文字，"
-    "线条清晰连续粗细约2-3px，构图居中主体占60-80%，"
+    "笔绘机简笔画：只用黑色线条，纯白背景，无阴影无填充无文字，无渐变，"
+    "单笔连续线描风格（coloring book outline），每条线尽量一笔画成，"
+    "线条清晰连续，构图居中主体占60-80%，"
     "用最少的线条表达特征，避免密集交叉线和细碎纹理，"
     "封闭图形线条完全闭合，线条间距至少5px，图形轮廓优先内部细节从简"
 )

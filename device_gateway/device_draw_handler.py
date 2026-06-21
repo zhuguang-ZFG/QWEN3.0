@@ -112,7 +112,7 @@ async def _convert_and_optimize(
 ) -> Dict[str, Any]:
     """Convert image to SVG, validate, optimize and return the final payload."""
     converter = SVGConverter()
-    svg_result = await converter.convert_url_to_svg(image_url)
+    svg_result = await converter.convert_url_to_svg(image_url, skeletonize=True)
 
     if svg_result["status"] != "success":
         return _build_partial_response(
@@ -135,7 +135,14 @@ async def _convert_and_optimize(
             error=f"SVG validation failed: {', '.join(validation.errors)}",
         )
 
-    optimization = optimize_svg_path(svg_path, tolerance=2.0, target_size=(180, 180))
+    optimization = optimize_svg_path(
+        svg_path,
+        tolerance=2.0,
+        target_size=(180, 180),
+        close=not svg_result.get("skeleton_applied", False),
+    )
+    if svg_result.get("skeleton_applied"):
+        logger.info("Skeleton SVG optimized as open strokes (method=%s)", svg_result.get("thinning_method"))
     logger.info(
         f"Path optimized: {optimization.original_points} -> "
         f"{optimization.optimized_points} points ({optimization.reduction_ratio:.1%} reduction)"

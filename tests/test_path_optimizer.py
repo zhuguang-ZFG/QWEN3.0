@@ -80,15 +80,38 @@ def test_tolerance_effect():
     assert result_high.optimized_points <= result_low.optimized_points
 
 
-def test_path_format():
-    """测试输出路径格式"""
-    path = "M 10 10 L 50 50 L 90 10"
-    result = optimize_svg_path(path)
+def test_path_format_closed():
+    """测试闭合路径输出格式"""
+    path = "M 10 10 L 50 50 L 90 10 Z"
+    result = optimize_svg_path(path, close=True)
 
-    # 检查格式
     assert result.optimized_path.startswith("M")
     assert result.optimized_path.endswith("Z")
     assert "L" in result.optimized_path
+
+
+def test_open_path_stays_open():
+    """骨架/open stroke：无 Z 输入不应被优化器闭合"""
+    path = "M 10 10 L 50 50 L 90 10"
+    result = optimize_svg_path(path, close=False)
+
+    assert " Z" not in result.optimized_path
+    assert result.optimized_path.count("M") == 1
+
+
+def test_multi_subpath_open_strokes():
+    """多笔画开放路径：子路径分别优化，不应连成一笔"""
+    path = "M 0 0 L 10 0 M 50 0 L 60 0"
+    result = optimize_svg_path(path, close=False)
+
+    assert result.optimized_path.count("M") == 2
+    assert " Z" not in result.optimized_path
+
+
+def test_auto_close_when_input_has_z():
+    path = "M 0 0 L 10 0 L 10 10 Z"
+    result = optimize_svg_path(path)
+    assert result.optimized_path.endswith("Z")
 
 
 def test_single_point_path():

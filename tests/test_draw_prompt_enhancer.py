@@ -46,6 +46,26 @@ class TestEnhanceDrawingPrompt:
         assert "无文字" in result
 
 
+class TestEnhanceDrawingPromptSingleLineKeywords:
+    def test_includes_single_stroke_style(self):
+        result = enhance_drawing_prompt("猫")
+        assert "单笔连续" in result
+        assert "coloring book outline" in result
+
+    def test_includes_no_gradient(self):
+        result = enhance_drawing_prompt("树")
+        assert "无渐变" in result
+
+    def test_includes_one_stroke_hint(self):
+        result = enhance_drawing_prompt("鸟")
+        assert "一笔画成" in result
+
+    def test_no_fixed_line_width_hint(self):
+        result = enhance_drawing_prompt("花")
+        assert "2-3px" not in result
+        assert "粗细约" not in result
+
+
 @pytest.mark.parametrize(
     "complexity,expected_strokes",
     [

@@ -60,6 +60,16 @@ def _safe_float(token: str) -> float | None:
         return None
 
 
+def _parse_float_args(tokens: list[str], start: int, count: int) -> list[float] | None:
+    values: list[float] = []
+    for k in range(count):
+        value = _safe_float(tokens[start + k])
+        if value is None:
+            return None
+        values.append(value)
+    return values
+
+
 def _handle_ml(
     tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
 ) -> tuple[int, float, float, float, float]:
@@ -102,10 +112,10 @@ def _handle_cubic(
 ) -> tuple[int, float, float]:
     if i + 5 >= len(tokens):
         return len(tokens), cx, cy
-    coords = [_safe_float(tokens[i + k]) for k in range(6)]
-    if any(c is None for c in coords):
+    coords = _parse_float_args(tokens, i, 6)
+    if coords is None:
         return len(tokens), cx, cy
-    x1, y1, x2, y2, x, y = coords  # type: ignore[assignment]
+    x1, y1, x2, y2, x, y = coords
     i += 6
     if cmd == "c":
         x, y = cx + x * scale, cy + y * scale
@@ -126,10 +136,10 @@ def _handle_quad(
 ) -> tuple[int, float, float]:
     if i + 3 >= len(tokens):
         return len(tokens), cx, cy
-    coords = [_safe_float(tokens[i + k]) for k in range(4)]
-    if any(c is None for c in coords):
+    coords = _parse_float_args(tokens, i, 4)
+    if coords is None:
         return len(tokens), cx, cy
-    x1, y1, x, y = coords  # type: ignore[assignment]
+    x1, y1, x, y = coords
     i += 4
     if cmd == "q":
         x, y = cx + x * scale, cy + y * scale

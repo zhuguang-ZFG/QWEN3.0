@@ -18,7 +18,11 @@ class OptimizationResult:
 
 
 def optimize_svg_path(
-    path_data: str, tolerance: float = 2.0, target_size: tuple[float, float] = (180.0, 180.0)
+    path_data: str,
+    tolerance: float = 2.0,
+    target_size: tuple[float, float] = (180.0, 180.0),
+    *,
+    close: bool | None = None,
 ) -> OptimizationResult:
     """优化 SVG 路径
 
@@ -26,37 +30,58 @@ def optimize_svg_path(
         path_data: 原始 SVG path
         tolerance: 简化容差（像素）
         target_size: 目标尺寸 (width, height)
+        close: True 闭合路径（追加 Z）；False 保持开放单笔；None 按输入是否含 Z 推断
 
     Returns:
         OptimizationResult
     """
-    # 解析原始路径
-    points = _parse_points(path_data)
-    original_count = len(points)
+    subpaths = _split_subpaths(path_data)
+    if not subpaths:
+        return OptimizationResult(path_data, 0, 0, 0.0)
 
+    if close is None:
+        close = any("Z" in part.upper() for part in subpaths)
+
+    point_lists = [_parse_points(part) for part in subpaths]
+    original_count = sum(len(points) for points in point_lists)
     if original_count == 0:
         return OptimizationResult(path_data, 0, 0, 0.0)
 
-    # 1. 简化路径（Douglas-Peucker）
-    simplified = _simplify_points(points, tolerance)
+    simplified = [_simplify_points(points, tolerance) if len(points) >= 3 else points for points in point_lists]
+    combined = [point for points in simplified for point in points]
+    fitted = _apply_fit(combined, target_size)
 
-    # 2. 缩放适配
-    scaled = _scale_to_fit(simplified, target_size)
+    optimized_parts: list[str] = []
+    optimized_count = 0
+    offset = 0
+    for points in simplified:
+        chunk = fitted[offset : offset + len(points)]
+        offset += len(points)
+        if not chunk:
+            continue
+        optimized_parts.append(_rebuild_path(chunk, close=close))
+        optimized_count += len(chunk)
 
-    # 3. 居中
-    centered = _center_points(scaled, target_size)
-
-    # 4. 重建路径字符串
-    optimized_path = _rebuild_path(centered)
-    optimized_count = len(centered)
+    optimized_path = " ".join(optimized_parts)
     reduction = 1.0 - (optimized_count / original_count) if original_count > 0 else 0.0
-
     return OptimizationResult(
         optimized_path=optimized_path,
         original_points=original_count,
         optimized_points=optimized_count,
         reduction_ratio=reduction,
     )
+
+
+def _split_subpaths(path_data: str) -> list[str]:
+    """Split concatenated SVG paths at each moveto (M/m)."""
+    parts = re.split(r"(?=[Mm])", path_data.strip())
+    return [part.strip() for part in parts if part.strip()]
+
+
+def _apply_fit(points: list[tuple[float, float]], target_size: tuple[float, float]) -> list[tuple[float, float]]:
+    if not points:
+        return points
+    return _center_points(_scale_to_fit(points, target_size), target_size)
 
 
 def _parse_points(path_data: str) -> list[tuple[float, float]]:
@@ -176,7 +201,7 @@ def _center_points(points: list[tuple[float, float]], target_size: tuple[float, 
     return [(x + offset_x, y + offset_y) for x, y in points]
 
 
-def _rebuild_path(points: list[tuple[float, float]]) -> str:
+def _rebuild_path(points: list[tuple[float, float]], *, close: bool = True) -> str:
     """重建 SVG 路径字符串"""
     if not points:
         return ""
@@ -184,6 +209,6 @@ def _rebuild_path(points: list[tuple[float, float]]) -> str:
     path_parts = [f"M {points[0][0]:.2f} {points[0][1]:.2f}"]
     for x, y in points[1:]:
         path_parts.append(f"L {x:.2f} {y:.2f}")
-    path_parts.append("Z")
-
+    if close:
+        path_parts.append("Z")
     return " ".join(path_parts)

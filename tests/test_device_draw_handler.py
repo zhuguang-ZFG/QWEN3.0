@@ -96,7 +96,14 @@ class TestHandleDeviceDraw:
 
         mock_converter = MagicMock()
         mock_converter.convert_url_to_svg = AsyncMock(
-            return_value={"status": "success", "svg_path": "M0,0", "width": 100, "height": 200}
+            return_value={
+                "status": "success",
+                "svg_path": "M0,0",
+                "width": 100,
+                "height": 200,
+                "skeleton_applied": True,
+                "thinning_method": "skimage",
+            }
         )
         mock_converter_cls.return_value = mock_converter
 
@@ -113,6 +120,9 @@ class TestHandleDeviceDraw:
         assert resp["image_url"] == "http://img/1"
         assert resp["svg_path"] == "M0,0"
         mock_client.generate.assert_called_once()
+        mock_converter.convert_url_to_svg.assert_awaited_once_with("http://img/1", skeletonize=True)
+        mock_optimize.assert_called_once()
+        assert mock_optimize.call_args.kwargs.get("close") is False
 
     @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: p)
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")

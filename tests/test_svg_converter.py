@@ -46,6 +46,40 @@ async def test_convert_url_to_svg_success():
 
 
 @pytest.mark.asyncio
+async def test_convert_url_to_svg_skeleton_mode_open_paths():
+    """骨架模式端到端：粗线输入应产出无 Z 的开放路径。"""
+    pytest.importorskip("cv2")
+    from PIL import Image
+    import numpy as np
+
+    img_array = np.ones((100, 100, 3), dtype=np.uint8) * 255
+    cv2 = __import__("cv2")
+    cv2.line(img_array, (10, 50), (90, 50), (0, 0, 0), 8)
+    img = Image.fromarray(img_array)
+
+    img_bytes = BytesIO()
+    img.save(img_bytes, format="PNG")
+    img_bytes.seek(0)
+
+    mock_response = MagicMock()
+    mock_response.content = img_bytes.getvalue()
+    mock_response.raise_for_status = MagicMock()
+
+    with patch("xiaozhi_drawing.svg_converter.httpx.AsyncClient") as mock_client:
+        mock_instance = AsyncMock()
+        mock_instance.get = AsyncMock(return_value=mock_response)
+        mock_client.return_value.__aenter__.return_value = mock_instance
+
+        converter = SVGConverter()
+        result = await converter.convert_url_to_svg("https://example.com/image.jpg", skeletonize=True)
+
+        assert result["status"] == "success"
+        assert result["skeleton_applied"] is True
+        assert result["thinning_method"] in {"skimage", "ximgproc", "morphological"}
+        assert " Z" not in result["svg_path"]
+
+
+@pytest.mark.asyncio
 async def test_convert_url_to_svg_download_failed():
     """测试下载失败"""
     with patch("xiaozhi_drawing.svg_converter.httpx.AsyncClient") as mock_client:
