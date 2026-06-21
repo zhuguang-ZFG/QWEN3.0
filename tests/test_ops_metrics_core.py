@@ -238,3 +238,22 @@ def test_ops_correlate_accepts_generic_id(monkeypatch):
     data = response.json()
     assert data["target"] == "req-correlation-1"
     assert data["matched_count"] >= 1
+
+
+def test_prometheus_retirement_metrics_sync_and_counter(monkeypatch):
+    monkeypatch.setenv("LIMA_PROMETHEUS_METRICS", "1")
+    metrics = reload_prometheus_metrics()
+
+    metrics.record_backend_retirement_event("retired_one")
+    metrics.sync_retired_backends({"retired_one", "retired_two"})
+    text = metrics.generate_metrics().decode("utf-8")
+
+    assert "lima_backend_retirement_events_total" in text
+    assert 'backend="retired_one"' in text
+    assert "lima_backend_retired" in text
+    assert "lima_backend_retired_count" in text
+
+    metrics.sync_retired_backends({"retired_two"})
+    text_after = metrics.generate_metrics().decode("utf-8")
+    assert 'backend="retired_one"' in text_after
+    assert "lima_backend_retired_count" in text_after

@@ -139,6 +139,7 @@ def apply_retirement(action: dict) -> None:
         _mark_health_retired(backend)
         _save_retirement(backend, status, reason)
         _notify_retirement(backend, status, reason)
+        _record_retirement_metric(backend)
 
 
 def reactivate(backend: str) -> None:
@@ -239,3 +240,12 @@ def _notify_retirement(backend: str, status: str, reason: str) -> None:
         status,
         reason[:200],
     )
+
+
+def _record_retirement_metric(backend: str) -> None:
+    try:
+        from observability import prometheus_metrics
+
+        prometheus_metrics.record_backend_retirement_event(backend)
+    except Exception as exc:
+        logger.warning("Prometheus retirement metric skipped backend=%s: %s", backend, type(exc).__name__)

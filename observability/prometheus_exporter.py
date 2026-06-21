@@ -3,6 +3,8 @@
 Periodically updates Gauge metrics that reflect system state:
 - lima_backend_health{backend, status}
 - lima_backend_score{backend}
+- lima_backend_retired{backend}
+- lima_backend_retired_count
 """
 
 from __future__ import annotations
@@ -43,6 +45,10 @@ def _export_loop():
             for backend, status in health_map.items():
                 prometheus_metrics.record_backend_health(backend, str(status))
                 prometheus_metrics.record_backend_score(backend, float(scores.get(backend, 0.0)))
+
+            import backend_retirement
+
+            prometheus_metrics.sync_retired_backends(backend_retirement.get_retired_backends())
 
         except ImportError as exc:
             _log.warning("Prometheus gauge update skipped; health_tracker unavailable: %s", exc)

@@ -2662,3 +2662,22 @@ Agent Worker path.
 - **剩余风险/后续建议**：
   - `settings` 页「清除缓存」只清 storage，未清 `authCache`/`baseURL cache`；建议补充内存缓存失效或强制重启。
   - 全量 lint 仍有 ~1476 个历史问题，可排入后续格式化专项。
+
+## 2026-06-22 Tabbit 审查收尾 + device_logic + M3 退役告警
+
+- **目标**：关闭 Tabbit 深度审查云端 P0/P1 项；解除 `device_app_*` 对 `xiaozhi_compat` 的架构倒置；补 Prometheus 退役告警；文档化 v1→v2 固件 OTA 不兼容。
+- **已落地**：
+  1. `device_logic/` 平台层（db/auth/http/payloads/access/crud/activation/gateway/sms）；`xiaozhi_compat/*` 改为 re-export。
+  2. `backend_retirement.py` 跨 worker SQLite 重载；`capability_matrix` 词边界 code 信号；激活码 SQLite 表 `v2_activation_code`。
+  3. M3：`lima_backend_retired{backend}`、`lima_backend_retired_count`、`lima_backend_retirement_events_total`；`deploy/prometheus/backend_retirement_alerts.yml`。
+  4. 文档：`docs/FIRMWARE_V1_V2_OTA_MIGRATION_CN.md`。
+- **验证**：
+  - 全量 CI：`1962 passed, 18 skipped`（deploy 前本地）。
+  - M3 聚焦：`tests/test_ops_metrics_core.py::test_prometheus_retirement_metrics_sync_and_counter` + backend_retirement：**11 passed**。
+- **提交与推送**：
+  - `56d5bda` feat(device): extract device_logic layer and close Tabbit audit P0/P1 → **origin/main 已推送**。
+  - M3 + 固件文档：待本条目后第二次 commit。
+  - Gitee push：SSH key 缺失失败（需本地补推）。
+- **部署**：
+  - `scripts/deploy_unified.py` 因本地 `~/.ssh/id_ed25519` Invalid key 未能 SSH；公网 `/device/v1/health` 200，`/health` 偶发超时。
+  - 待 SSH 恢复后部署 `device_logic/`、`observability/prometheus_*.py`、`backend_retirement.py`、`deploy/prometheus/backend_retirement_alerts.yml`。

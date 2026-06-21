@@ -6,10 +6,14 @@ Exposes /v1/ops/metrics/prometheus as an OpenMetrics scrape target.
 Counters:
   lima_requests_total{backend, status}
   lima_backend_errors_total{backend, error_type}
+  lima_backend_retirement_events_total{backend}
   lima_device_tasks_total{capability, status}
 Histograms:
   lima_request_duration_ms{backend}
   lima_backend_latency_ms{backend}
+Gauges:
+  lima_backend_retired{backend}
+  lima_backend_retired_count
 """
 
 from __future__ import annotations
@@ -28,6 +32,7 @@ _registry: Any | None = None
 _counters: dict[str, Any] = {}
 _histograms: dict[str, Any] = {}
 _gauges: dict[str, Any] = {}
+_retired_backend_labels: set[str] = set()
 
 
 def is_enabled() -> bool:
@@ -87,6 +92,12 @@ def _ensure_instruments() -> None:
         ["capability", "status"],
         registry=registry,
     )
+    _counters["backend_retirement_events"] = counter(
+        "lima_backend_retirement_events_total",
+        "Backend retirement events applied",
+        ["backend"],
+        registry=registry,
+    )
     _histograms["request_duration"] = histogram(
         "lima_request_duration_ms",
         "Request duration",
@@ -111,6 +122,17 @@ def _ensure_instruments() -> None:
         "lima_backend_score",
         "Backend health score (0-1)",
         ["backend"],
+        registry=registry,
+    )
+    _gauges["backend_retired"] = gauge(
+        "lima_backend_retired",
+        "Backend manually retired from routing pools (1=retired, 0=active)",
+        ["backend"],
+        registry=registry,
+    )
+    _gauges["backend_retired_count"] = gauge(
+        "lima_backend_retired_count",
+        "Count of backends currently retired",
         registry=registry,
     )
     _registry = registry
@@ -175,6 +197,36 @@ def record_backend_score(backend: str, score: float) -> None:
     gauge = _gauges.get("backend_score")
     if gauge:
         gauge.labels(backend=backend).set(max(0.0, min(1.0, float(score))))
+
+
+def record_backend_retirement_event(backend: str) -> None:
+    """Increment retirement counter when a backend is newly retired."""
+    if not is_enabled():
+        return
+    _ensure_instruments()
+    counter = _counters.get("backend_retirement_events")
+    if counter:
+        counter.labels(backend=backend).inc()
+
+
+def sync_retired_backends(retired: set[str]) -> None:
+    """Sync per-backend retired gauges and aggregate count from backend_retirement."""
+    if not is_enabled():
+        return
+    _ensure_instruments()
+    retired_gauge = _gauges.get("backend_retired")
+    count_gauge = _gauges.get("backend_retired_count")
+    if not retired_gauge or not count_gauge:
+        return
+
+    normalized = {name for name in retired if name}
+    for backend in normalized - _retired_backend_labels:
+        retired_gauge.labels(backend=backend).set(1.0)
+    for backend in _retired_backend_labels - normalized:
+        retired_gauge.labels(backend=backend).set(0.0)
+    _retired_backend_labels.clear()
+    _retired_backend_labels.update(normalized)
+    count_gauge.set(float(len(normalized)))
 
 
 def generate_metrics() -> bytes:
