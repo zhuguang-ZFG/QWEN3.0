@@ -2842,4 +2842,16 @@ Agent Worker path.
   - `ruff check` / `ruff format --check` / `pyright` → clean。
   - 重跑 `PYTHONIOENCODING=utf-8 python scripts/lima_guardian.py --full-scan` → guardian `no_test_file` 警告从 4 个降至 2 个（仅剩 `tool_gateway/audit.py`、`tool_gateway/governance.py`）。
 - **提交**：`6426a74b` `test(device_logic): add tests for RateLimiter ...`；已 push 到 GitHub `origin/main`。
-- **待处理**：`tool_gateway/audit.py`、`tool_gateway/governance.py` 仍无测试；Gitee 同步仍缺凭证。
+
+## 2026-06-22 继续优化 — 补全 tool_gateway/audit.py、governance.py 单元测试，guardian 警告清零
+
+- **目标**：消除 guardian 最后 2 个 `no_test_file` 警告（`tool_gateway/audit.py`、`tool_gateway/governance.py`）。
+- **实现**：
+  - 新增 `tests/test_tool_gateway_audit.py`（17 个用例）：覆盖敏感 key 识别、文本/值脱敏、`audit_event` 内存与 SQLite 持久化、查询过滤与计数、内存缓冲裁剪、reset。
+  - 新增 `tests/test_tool_gateway_governance.py`（12 个用例）：覆盖 worker 注册/覆盖、心跳、查询、列表过滤、隔离、离线标记、reset；使用临时 SQLite DB 隔离。
+- **验证**：
+  - `pytest tests/test_tool_gateway_audit.py tests/test_tool_gateway_governance.py -v` → **29 passed**。
+  - `ruff` / `pyright` → clean。
+  - Guardian 全量扫描 → 警告 **0**，仅剩 5 个 `long_function` 提示。
+- **提交**：`65e324c9` `test(tool_gateway): add tests for audit and governance modules`；已 push 到 GitHub `origin/main`。
+- **仍阻塞**：Gitee 同步仍缺 SSH key / `GITEE_TOKEN`。

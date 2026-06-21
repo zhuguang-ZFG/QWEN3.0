@@ -742,5 +742,20 @@
 - Guardian 重扫后 `no_test_file` 警告从 4 个降至 2 个（仅剩 `tool_gateway/audit.py`、`tool_gateway/governance.py`）。
 
 **待处理**
-- `tool_gateway/audit.py`、`tool_gateway/governance.py` 仍缺测试。
 - Gitee 同步仍阻塞。
+
+## 2026-06-22 QUAL-020 补全 tool_gateway/audit.py、governance.py 单元测试
+
+**发现**
+- Guardian 全量扫描报告 `tool_gateway/audit.py`（5 个公开函数）和 `tool_gateway/governance.py`（7 个公开函数）未覆盖测试。
+
+**修复**
+- 新增 `tests/test_tool_gateway_audit.py`（17 用例）和 `tests/test_tool_gateway_governance.py`（12 用例），均使用临时 SQLite 路径隔离。
+
+**验证**
+- `pytest tests/test_tool_gateway_audit.py tests/test_tool_gateway_governance.py -v` → 29 passed。
+- `ruff` / `pyright` clean。
+- Guardian 重扫后 `no_test_file` 警告归零，总警告数 0。
+
+**仍阻塞**
+- Gitee 同步：`Permission denied (publickey)`。

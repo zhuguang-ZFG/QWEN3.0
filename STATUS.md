@@ -387,7 +387,7 @@ ruff check: clean（触及文件）
 - **设备网关**: chat.donglicao.com/device/v1/health = 200
 - **VPS 启动耗时**: 约 7 分钟（backend retirement / probe loop 历史数据分析预热），之后服务完全可用
 - **最近恢复操作**:
-  - 2026-06-22：修复 `lima_mcp_stdio/lima_code_query_mcp.py` 静默降级与 chroma `FileRecord` 类型误用；修复 `scripts/deploy_unified_preflight.py` 大文件列表备份命令行超长问题；VPS 全量部署 2374 文件成功，backup `/opt/lima-router/backups/unified-core-20260622_061847/runtime-before.tgz`，Health OK，`verify_production_deploy.py` PASS；补全 `device_logic/rate_limit.py` 单元测试 15 例，guardian `no_test_file` 降至 2 个。
+  - 2026-06-22：修复 `lima_mcp_stdio/lima_code_query_mcp.py` 静默降级与 chroma `FileRecord` 类型误用；修复 `scripts/deploy_unified_preflight.py` 大文件列表备份命令行超长问题；VPS 全量部署 2374 文件成功，backup `/opt/lima-router/backups/unified-core-20260622_061847/runtime-before.tgz`，Health OK，`verify_production_deploy.py` PASS；补全 `device_logic/rate_limit.py`、`tool_gateway/audit.py`、`tool_gateway/governance.py` 单元测试共 44 例，guardian `no_test_file` 警告归零。
   - 2026-06-21：部署 15 个 store/memory/notifier/gateway/lifespan 文件，备份 `/opt/lima-router/backups/unified-files-20260616_190649/runtime-before.tgz`
 
 ## 代码质量
