@@ -2681,3 +2681,8 @@ Agent Worker path.
 - **部署**：
   - `scripts/deploy_unified.py` 因本地 `~/.ssh/id_ed25519` Invalid key 未能 SSH；公网 `/device/v1/health` 200，`/health` 偶发超时。
   - 待 SSH 恢复后部署 `device_logic/`、`observability/prometheus_*.py`、`backend_retirement.py`、`deploy/prometheus/backend_retirement_alerts.yml`。
+- **VPS 部署补跑（2026-06-22）**：
+  - `deploy_unified.py` 366 files uploaded，backup `unified-files-20260622_035606`，`lima-router` active，Health OK。
+  - 公网：`/health` 200 ok、`/device/v1/health` 200 ok、`/v1/ops/summary` 200 critical（既有后端池）、`/v1/ops/metrics/prometheus` 200。
+  - M3 指标在线：`lima_backend_retired_count=168`，per-backend `lima_backend_retired{backend=...}=1` 已 scrape。
+  - 告警规则已复制至 VPS `/opt/lima-monitoring/prometheus/rules/backend_retirement_alerts.yml`；本机 `prometheus` systemd **inactive**（监控栈可能在京东云 117.72.118.95，需在该节点挂载 rule_files 后 reload）。
