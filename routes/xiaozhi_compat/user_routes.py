@@ -172,8 +172,6 @@ async def change_password(request: Request, authorization: str = Header(default=
         return err(4003, "Incorrect old password", 400)
 
     new_hash = _hash_password(new_password)
-    if new_hash is None:
-        return err(503, "Password hashing is unavailable", 503)
     with connect() as conn:
         conn.execute("UPDATE v2_account SET password_hash=? WHERE id=?", (new_hash, account["id"]))
         conn.commit()

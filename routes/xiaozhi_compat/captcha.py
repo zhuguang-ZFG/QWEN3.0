@@ -72,7 +72,7 @@ def verify_captcha(captcha_id: str | None, captcha_code: str | None) -> JSONResp
 
 def generate_captcha_image(code: str) -> bytes | None:
     """Render a simple PNG captcha image. Returns None if PIL is unavailable."""
-    if Image is None or ImageDraw is None:
+    if Image is None or ImageDraw is None or ImageFont is None:
         _log.warning("PIL is not installed: %s", _PIL_IMPORT_ERROR)
         return None
     try:

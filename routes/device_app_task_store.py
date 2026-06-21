@@ -11,8 +11,10 @@ from device_gateway.tasks import record_motion_event, task_snapshot
 from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState, WorkflowTransitionError
 from routes.device_app_task_payloads import require_device_owner
-from routes.xiaozhi_compat.gateway import dispatch_or_enqueue
-from routes.xiaozhi_compat.shared import connect, err, json_params, now, str_field
+from device_logic.gateway import dispatch_or_enqueue
+from device_logic.access import is_owner
+from device_logic.db import connect
+from device_logic.http import err, json_params, now, str_field
 
 _log = logging.getLogger(__name__)
 DB_TASK_SOURCES = {"client": "api"}

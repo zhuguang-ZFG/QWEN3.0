@@ -1,81 +1,17 @@
-"""Device access checks and supply parsing for XiaoZhi v1 compat."""
+"""Backward-compatible re-export — canonical implementation in device_logic.access."""
 
-from __future__ import annotations
+from device_logic.access import (
+    device_access,
+    expire_pending_transfers,
+    is_owner,
+    parse_supply_updates,
+    require_device_access,
+)
 
-from typing import Any
-
-import sqlite3
-from fastapi.responses import JSONResponse
-
-from .http_helpers import err, now, str_field
-
-
-def device_access(conn: sqlite3.Connection, account: dict[str, Any], device_id: str) -> bool:
-    if account.get("role") == "admin":
-        return True
-    row = conn.execute(
-        "SELECT 1 FROM v2_device_binding WHERE device_id=? AND account_id=? AND status='active'",
-        (device_id, account["id"]),
-    ).fetchone()
-    return row is not None
-
-
-def require_device_access(
-    conn: sqlite3.Connection,
-    account: dict[str, Any],
-    device_id: str,
-) -> JSONResponse | None:
-    if not device_access(conn, account, device_id):
-        return err(403, "Device is not bound to this account", 403)
-    return None
-
-
-def is_owner(conn: sqlite3.Connection, account: dict[str, Any], device_id: str) -> bool:
-    if account.get("role") == "admin":
-        return True
-    row = conn.execute(
-        """
-        SELECT 1 FROM v2_device_binding
-        WHERE device_id=? AND account_id=? AND bind_mode='owner' AND status='active'
-        """,
-        (device_id, account["id"]),
-    ).fetchone()
-    return row is not None
-
-
-def expire_pending_transfers(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        "UPDATE v2_device_transfer_request SET status='expired' WHERE status='pending' AND expires_at <= ?",
-        (now(),),
-    )
-
-
-def parse_supply_updates(body: dict[str, Any]) -> tuple[list[dict[str, Any]], JSONResponse | None]:
-    raw_items: list[dict[str, Any]] = []
-    if isinstance(body.get("supplies"), list):
-        raw_items.extend(item for item in body["supplies"] if isinstance(item, dict))
-    direct_type = str_field(body, "supplyType", "supply_type")
-    if direct_type:
-        raw_items.append(body)
-    for supply_type in ("pen", "paper", "battery"):
-        value = body.get(supply_type)
-        if isinstance(value, dict):
-            raw_items.append({"supplyType": supply_type, **value})
-    updates: dict[str, dict[str, Any]] = {}
-    for item in raw_items:
-        supply_type = str_field(item, "supplyType", "supply_type")
-        status = str_field(item, "status") or "unknown"
-        if not supply_type:
-            return [], err(400, "supplyType is required", 400)
-        if status not in {"normal", "low", "empty", "unknown"}:
-            return [], err(400, "invalid supply status", 400)
-        try:
-            level = float(item.get("level", 1.0))
-        except (TypeError, ValueError):
-            return [], err(400, "supply level must be numeric", 400)
-        if not 0.0 <= level <= 1.0:
-            return [], err(400, "supply level must be between 0.0 and 1.0", 400)
-        updates[supply_type] = {"supply_type": supply_type, "level": level, "status": status}
-    if not updates:
-        return [], err(400, "at least one supply update is required", 400)
-    return list(updates.values()), None
+__all__ = [
+    "device_access",
+    "expire_pending_transfers",
+    "is_owner",
+    "parse_supply_updates",
+    "require_device_access",
+]

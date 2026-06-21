@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import routes.xiaozhi_v1_compat as compat
+from device_logic.activation import reset_activation_store_for_tests
 
 
 def _token(account_id: str) -> str:
@@ -53,6 +54,7 @@ def _client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "xiaozhi.db"))
     monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
     compat._schema_ready_paths.clear()
+    reset_activation_store_for_tests()
     app = FastAPI()
     app.include_router(compat.router)
     _seed_base()

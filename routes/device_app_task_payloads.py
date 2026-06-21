@@ -6,7 +6,8 @@ from typing import Any
 
 from fastapi.responses import JSONResponse
 
-from routes.xiaozhi_compat.shared import err, is_owner, json_params, loads_json
+from device_logic.access import is_owner
+from device_logic.http import err, json_params, loads_json
 
 
 def task_row_payload(row) -> dict[str, Any]:

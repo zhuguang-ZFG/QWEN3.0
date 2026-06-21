@@ -31,6 +31,19 @@ STATUS_RETIRED = "retired"
 
 # Runtime overrides: backends removed from routing pools
 _retired_backends: set[str] = set()
+_RELOAD_INTERVAL_SEC = float(os.environ.get("LIMA_BACKEND_RETIREMENT_RELOAD_SEC", "300"))
+_last_reload_ts: float = time.time()
+
+
+def _maybe_reload_retired() -> None:
+    """Refresh in-memory retired set from SQLite (multi-worker sync)."""
+    global _last_reload_ts
+    now_ts = time.time()
+    if now_ts - _last_reload_ts < _RELOAD_INTERVAL_SEC:
+        return
+    _last_reload_ts = now_ts
+    _retired_backends.clear()
+    load_retired()
 
 
 def _mark_health_retired(backend: str) -> None:
@@ -151,11 +164,13 @@ def reactivate(backend: str) -> None:
 
 def is_retired(backend: str) -> bool:
     """Check if a backend is retired."""
+    _maybe_reload_retired()
     return backend in _retired_backends
 
 
 def get_retired_backends() -> set[str]:
     """Get all retired backends."""
+    _maybe_reload_retired()
     return set(_retired_backends)
 
 

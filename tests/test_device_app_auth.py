@@ -1,4 +1,4 @@
-from routes.xiaozhi_compat.shared import connect
+from device_logic.db import connect
 from device_app_helpers import client as make_client
 from device_app_helpers import seed_account_and_device
 

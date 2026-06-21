@@ -4,6 +4,8 @@ Extracted from routes/xiaozhi_v1_compat.py lines 784-949
 """
 
 import logging
+from typing import Any
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
@@ -49,7 +51,8 @@ async def submit_task(device_id: str, request: Request, authorization: str = Hea
     source = str_field(body, "source") or "api"
     if source not in ALLOWED_SOURCES:
         return err(400, "invalid source", 400)
-    params = body.get("params") if isinstance(body.get("params"), dict) else {}
+    raw_params = body.get("params")
+    params: dict[str, Any] = raw_params if isinstance(raw_params, dict) else {}
     member_id = str_field(body, "memberId", "member_id") or None
     with connect() as conn:
         denied = require_device_access(conn, account, device_id)
@@ -64,6 +67,8 @@ async def submit_task(device_id: str, request: Request, authorization: str = Hea
         task, error = build_gateway_task(device_id, intent, params, source, str_field(body, "requestId", "request_id"))
         if error:
             return error
+        if task is None:
+            return err(4003, "task build failed", 400)
         status = "pending" if task["workflow_state"] == TaskState.WAITING_APPROVAL.value else "approved"
         conn.execute(
             "INSERT INTO v2_task (id, device_id, account_id, member_id, intent, params, source, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",

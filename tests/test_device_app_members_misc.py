@@ -1,4 +1,4 @@
-from routes.xiaozhi_compat.shared import connect
+from device_logic.db import connect
 from device_app_helpers import client as make_client
 from device_app_helpers import headers, seed_account_and_device, seed_binding
 
@@ -25,12 +25,46 @@ def test_device_app_member_and_voiceprint_flow(tmp_path, monkeypatch):
     enrolled = client.post(
         "/device/v1/app/voiceprints/enroll",
         headers=headers("a-owner"),
-        json={"deviceId": "dev-1", "memberId": member["memberId"]},
+        json={
+            "deviceId": "dev-1",
+            "memberId": member["memberId"],
+            "audioId": "audio-1",
+            "sourceName": "child-1",
+            "introduce": "intro",
+        },
     )
     assert enrolled.status_code == 200, enrolled.text
     voiceprint = enrolled.json()
     assert voiceprint["memberId"] == member["memberId"]
     assert voiceprint["status"] == "verifying"
+    assert voiceprint["audioId"] == "audio-1"
+    assert voiceprint["sourceName"] == "child-1"
+    assert voiceprint["introduce"] == "intro"
+
+    listed = client.get("/device/v1/app/devices/dev-1/voiceprints", headers=headers("a-owner"))
+    assert listed.status_code == 200, listed.text
+    data = listed.json()
+    assert data["count"] == 1
+    assert data["voiceprints"][0]["sourceName"] == "child-1"
+    assert data["voiceprints"][0]["audioId"] == "audio-1"
+    assert data["voiceprints"][0]["introduce"] == "intro"
+
+    updated = client.put(
+        f"/device/v1/app/voiceprints/{voiceprint['voiceprintId']}",
+        headers=headers("a-owner"),
+        json={"sourceName": "updated", "introduce": "new-intro", "audioId": "audio-2"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["sourceName"] == "updated"
+    assert updated.json()["introduce"] == "new-intro"
+    assert updated.json()["audioId"] == "audio-2"
+
+    denied = client.put(
+        f"/device/v1/app/voiceprints/{voiceprint['voiceprintId']}",
+        headers=headers("a-other"),
+        json={"sourceName": "hacker"},
+    )
+    assert denied.status_code == 403
 
     deleted = client.delete(f"/device/v1/app/voiceprints/{voiceprint['voiceprintId']}", headers=headers("a-owner"))
     assert deleted.status_code == 200, deleted.text

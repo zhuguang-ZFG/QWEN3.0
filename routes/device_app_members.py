@@ -2,27 +2,23 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
-from routes.xiaozhi_compat.constants import ALLOWED_MEMBER_ROLES
-from routes.xiaozhi_compat.payloads import member_payload, voiceprint_payload
-from routes.xiaozhi_compat.shared import (
-    authorize,
-    connect,
-    err,
-    new_id,
-    ok,
-    read_body,
-    require_device_access,
-    str_field,
-)
+from device_logic.constants import ALLOWED_MEMBER_ROLES
+from device_logic.access import require_device_access
+from device_logic.auth import authorize
+from device_logic.db import connect
+from device_logic.http import err, new_id, read_body, str_field
+from device_logic.payloads import member_payload, voiceprint_payload
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-members"])
 
 
 @router.post("/members")
-async def create_member(request: Request, authorization: str = Header(default="")) -> JSONResponse:
+async def create_member(request: Request, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -51,7 +47,7 @@ async def create_member(request: Request, authorization: str = Header(default=""
 
 
 @router.get("/devices/{device_id}/members")
-async def list_members(device_id: str, authorization: str = Header(default="")) -> JSONResponse:
+async def list_members(device_id: str, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -67,7 +63,7 @@ async def list_members(device_id: str, authorization: str = Header(default="")) 
 
 
 @router.post("/voiceprints/enroll")
-async def enroll_voiceprint(request: Request, authorization: str = Header(default="")) -> JSONResponse:
+async def enroll_voiceprint(request: Request, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -76,6 +72,9 @@ async def enroll_voiceprint(request: Request, authorization: str = Header(defaul
         return body
     member_id = str_field(body, "memberId", "member_id")
     device_id = str_field(body, "deviceId", "device_id")
+    audio_id = str_field(body, "audioId", "audio_id")
+    label = str_field(body, "sourceName", "label")
+    introduce = str_field(body, "introduce")
     if not member_id or not device_id:
         return err(400, "memberId and deviceId are required", 400)
     with connect() as conn:
@@ -95,8 +94,11 @@ async def enroll_voiceprint(request: Request, authorization: str = Header(defaul
         if row is None:
             voiceprint_id = new_id()
             conn.execute(
-                "INSERT INTO v2_voiceprint (id, member_id, device_id, status) VALUES (?, ?, ?, 'verifying')",
-                (voiceprint_id, member_id, device_id),
+                """
+                INSERT INTO v2_voiceprint (id, member_id, device_id, audio_id, label, introduce, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'verifying')
+                """,
+                (voiceprint_id, member_id, device_id, audio_id, label, introduce),
             )
             conn.execute("UPDATE v2_member SET voiceprint_id=? WHERE id=?", (voiceprint_id, member_id))
             conn.commit()
@@ -104,8 +106,62 @@ async def enroll_voiceprint(request: Request, authorization: str = Header(defaul
     return voiceprint_payload(row, member["name"])
 
 
+@router.get("/devices/{device_id}/voiceprints")
+async def list_voiceprints(device_id: str, authorization: str = Header(default="")) -> Any:
+    """List voiceprints for a device, joined with member names."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with connect() as conn:
+        denied = require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        rows = conn.execute(
+            """
+            SELECT v.*, m.name AS member_name
+            FROM v2_voiceprint v
+            JOIN v2_member m ON v.member_id = m.id
+            WHERE v.device_id=? AND v.status!='disabled' AND m.status='active'
+            ORDER BY v.created_at ASC
+            """,
+            (device_id,),
+        ).fetchall()
+    return {
+        "voiceprints": [voiceprint_payload(row, row["member_name"]) for row in rows],
+        "count": len(rows),
+    }
+
+
+@router.put("/voiceprints/{voiceprint_id}")
+async def update_voiceprint(voiceprint_id: str, request: Request, authorization: str = Header(default="")) -> Any:
+    """Update voiceprint label/introduce metadata."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    label = str_field(body, "sourceName", "label")
+    introduce = str_field(body, "introduce")
+    audio_id = str_field(body, "audioId", "audio_id")
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM v2_voiceprint WHERE id=? AND status!='disabled'", (voiceprint_id,)).fetchone()
+        if row is None:
+            return err(404, "voiceprint not found", 404)
+        denied = require_device_access(conn, account, row["device_id"])
+        if denied:
+            return denied
+        conn.execute(
+            "UPDATE v2_voiceprint SET label=?, introduce=?, audio_id=? WHERE id=?",
+            (label, introduce, audio_id, voiceprint_id),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM v2_voiceprint WHERE id=?", (voiceprint_id,)).fetchone()
+    return voiceprint_payload(row)
+
+
 @router.delete("/voiceprints/{voiceprint_id}")
-async def delete_voiceprint(voiceprint_id: str, authorization: str = Header(default="")) -> JSONResponse:
+async def delete_voiceprint(voiceprint_id: str, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account

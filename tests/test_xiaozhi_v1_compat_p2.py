@@ -232,3 +232,16 @@ def test_cancel_transfer_put_alias(tmp_path, monkeypatch):
     )
     cancelled = _json(client.put(f"/api/v1/transfers/{transfer['id']}/cancel", headers=_headers("a-owner")))
     assert cancelled["status"] == "cancelled"
+
+
+def test_hash_password_requires_bcrypt(monkeypatch):
+    import device_logic.auth as auth_mod
+
+    monkeypatch.setattr(auth_mod, "bcrypt", None)
+    monkeypatch.setattr(auth_mod, "_BCRYPT_IMPORT_ERROR", ImportError("no bcrypt"))
+
+    try:
+        auth_mod._hash_password("secret")
+        raise AssertionError("expected RuntimeError")
+    except RuntimeError as exc:
+        assert "bcrypt is required" in str(exc)

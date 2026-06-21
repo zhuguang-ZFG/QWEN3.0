@@ -85,6 +85,17 @@ CREATE INDEX IF NOT EXISTS idx_v2_binding_device ON v2_device_binding(device_id)
 CREATE INDEX IF NOT EXISTS idx_v2_binding_account ON v2_device_binding(account_id);
 
 -- ============================================================
+-- 3a. v2_activation_code - 设备注册激活码（SQLite 持久化，多 worker 安全）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_activation_code (
+    code            TEXT PRIMARY KEY,
+    mac_address     TEXT NOT NULL DEFAULT '',
+    expires_at      REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_activation_expires ON v2_activation_code(expires_at);
+
+-- ============================================================
 -- 4. v2_member - 家庭成员
 -- ============================================================
 CREATE TABLE IF NOT EXISTS v2_member (
@@ -116,6 +127,9 @@ CREATE TABLE IF NOT EXISTS v2_voiceprint (
     embedding_dim   INTEGER,                    -- 向量维度
     sample_count    INTEGER DEFAULT 0,          -- 录入样本数
     confidence      REAL DEFAULT 0.0,           -- 置信度阈值
+    label           TEXT,                       -- 说话人显示名称
+    introduce       TEXT,                       -- 说话人简介
+    audio_id        TEXT,                       -- 关联音频ID
     status          TEXT DEFAULT 'enrolled'
         CHECK (status IN ('enrolled', 'verifying', 'disabled')),
     created_at      TEXT DEFAULT (datetime('now')),

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 
 from device_gateway import store as store_mod
@@ -20,15 +20,11 @@ from routes.device_app_task_store import (
     record_rejection,
     reject_task_row,
 )
-from routes.xiaozhi_compat.gateway import dispatch_or_enqueue
-from routes.xiaozhi_compat.shared import (
-    authorize,
-    connect,
-    err,
-    read_body,
-    require_device_access,
-    str_field,
-)
+from device_logic.gateway import dispatch_or_enqueue
+from device_logic.access import require_device_access
+from device_logic.auth import authorize
+from device_logic.db import connect
+from device_logic.http import err, read_body, str_field
 from routes.device_app_task_payloads import (
     merge_task_lists,
     require_device_owner,
@@ -151,7 +147,12 @@ async def _create_structured_task(
 
 
 @router.get("/tasks")
-async def list_tasks(device_id: str, authorization: str = Header(default=""), status: str = "", limit: int = 20):
+async def list_tasks(
+    device_id: str,
+    authorization: str = Header(default=""),
+    status: str = "",
+    limit: int = Query(20, ge=1, le=100),
+):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account

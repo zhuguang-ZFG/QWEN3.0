@@ -6,8 +6,9 @@ LiMa Capability Matrix — 后端能力矩阵 + 精细路由
 """
 
 import json
-import os
 import logging
+import os
+import re
 
 logger = logging.getLogger("capability_matrix")
 
@@ -125,31 +126,51 @@ _load_matrix()
 
 # ── 意图分类 ─────────────────────────────────────────────────────────────────
 
-_CODE_SIGNALS = [
+_CHINESE_SIGNALS = ["中文", "chinese", "翻译", "解释一下", "什么是", "怎么"]
+_REASONING_SIGNALS = ["计算", "推理", "数学", "逻辑", "证明", "分析", "calculate", "math", "prove", "logic", "reason"]
+
+# ponytail: ASCII tokens use word boundaries so "barcode" does not match "code".
+_CODE_WORD_SIGNALS = frozenset(
+    {
+        "code",
+        "function",
+        "bug",
+        "error",
+        "fix",
+        "compile",
+        "debug",
+        "implement",
+        "refactor",
+        "exception",
+        "traceback",
+    }
+)
+_CODE_SUBSTRING_SIGNALS = (
     "代码",
-    "code",
     "函数",
-    "function",
-    "bug",
-    "error",
-    "fix",
-    "def ",
-    "class ",
-    "import ",
-    "```",
-    "compile",
-    "debug",
     "实现",
-    "implement",
-    "refactor",
     "重构",
+    "```",
     "TypeError",
     "ValueError",
     "Exception",
-    "traceback",
-]
-_CHINESE_SIGNALS = ["中文", "chinese", "翻译", "解释一下", "什么是", "怎么"]
-_REASONING_SIGNALS = ["计算", "推理", "数学", "逻辑", "证明", "分析", "calculate", "math", "prove", "logic", "reason"]
+)
+_CODE_PREFIX_SIGNALS = ("def ", "class ", "import ")
+
+
+def _has_code_signal(query: str, q_lower: str) -> bool:
+    for prefix in _CODE_PREFIX_SIGNALS:
+        if prefix in q_lower:
+            return True
+    for signal in _CODE_SUBSTRING_SIGNALS:
+        haystack = q_lower if signal.isascii() else query
+        needle = signal.lower() if signal.isascii() else signal
+        if needle in haystack:
+            return True
+    for word in _CODE_WORD_SIGNALS:
+        if re.search(rf"\b{re.escape(word)}\b", q_lower):
+            return True
+    return False
 
 
 def classify_intent(query: str, messages: list[dict] = None) -> str:
@@ -160,7 +181,7 @@ def classify_intent(query: str, messages: list[dict] = None) -> str:
     q = query.lower()
     total_ctx = sum(len(m.get("content", "")) for m in messages if isinstance(m.get("content"), str))
 
-    if any(kw in q for kw in _CODE_SIGNALS):
+    if _has_code_signal(query, q):
         return "code"
 
     cn_chars = sum(1 for c in query if "一" <= c <= "鿿")

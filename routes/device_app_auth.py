@@ -7,19 +7,10 @@ import os
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
-from routes.xiaozhi_compat.shared import (
-    account_payload,
-    authorize,
-    connect,
-    err,
-    make_token,
-    new_id,
-    now,
-    ok,
-    read_body,
-    str_field,
-)
-from routes.xiaozhi_compat.sms import login_code_error, sms_verification_payload, validate_login_code
+from device_logic.auth import account_payload, authorize, make_token
+from device_logic.db import connect
+from device_logic.http import err, new_id, now, read_body, str_field
+from device_logic.sms import login_code_error, sms_verification_payload, validate_login_code
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-auth"])
 _STATIC_LOGIN_DEV_ENV = "LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE"

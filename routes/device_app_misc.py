@@ -2,34 +2,27 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
-from routes.xiaozhi_compat.access import (
+from device_logic.access import (
     expire_pending_transfers,
     is_owner,
     parse_supply_updates,
-)
-from routes.xiaozhi_compat.payloads import self_check_payload, supply_payload, transfer_payload
-from routes.xiaozhi_compat.shared import (
-    authorize,
-    connect,
-    err,
-    expires_at,
-    new_id,
-    now,
-    ok,
-    query_int,
-    read_body,
     require_device_access,
-    str_field,
 )
+from device_logic.auth import authorize
+from device_logic.db import connect
+from device_logic.http import err, expires_at, new_id, now, query_int, read_body, str_field
+from device_logic.payloads import self_check_payload, supply_payload, transfer_payload
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-misc"])
 
 
 @router.post("/devices/{device_id}/transfer")
-async def request_transfer(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
+async def request_transfer(device_id: str, request: Request, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -63,7 +56,7 @@ async def request_transfer(device_id: str, request: Request, authorization: str 
 
 
 @router.get("/transfers/pending")
-async def list_pending_transfers(authorization: str = Header(default="")) -> JSONResponse:
+async def list_pending_transfers(authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -78,7 +71,7 @@ async def list_pending_transfers(authorization: str = Header(default="")) -> JSO
 
 
 @router.post("/transfers/{transfer_id}/accept")
-async def accept_transfer(transfer_id: str, authorization: str = Header(default="")) -> JSONResponse:
+async def accept_transfer(transfer_id: str, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -117,7 +110,7 @@ async def accept_transfer(transfer_id: str, authorization: str = Header(default=
 
 
 @router.post("/transfers/{transfer_id}/cancel")
-async def cancel_transfer(transfer_id: str, authorization: str = Header(default="")) -> JSONResponse:
+async def cancel_transfer(transfer_id: str, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -139,7 +132,7 @@ async def cancel_transfer(transfer_id: str, authorization: str = Header(default=
 
 
 @router.get("/devices/{device_id}/self-checks")
-async def list_self_checks(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
+async def list_self_checks(device_id: str, request: Request, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -155,7 +148,7 @@ async def list_self_checks(device_id: str, request: Request, authorization: str 
 
 
 @router.put("/devices/{device_id}/supplies")
-async def update_supplies(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
+async def update_supplies(device_id: str, request: Request, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -192,7 +185,7 @@ async def update_supplies(device_id: str, request: Request, authorization: str =
 
 
 @router.get("/devices/{device_id}/supplies")
-async def get_supplies(device_id: str, authorization: str = Header(default="")) -> JSONResponse:
+async def get_supplies(device_id: str, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account

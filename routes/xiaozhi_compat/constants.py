@@ -1,16 +1,15 @@
-"""Shared constants for XiaoZhi v1 compatibility API."""
+"""Backward-compatible re-export — canonical implementation in device_logic.constants."""
 
-ALLOWED_TASKS = frozenset({"run_path", "draw_image", "home", "calibrate"})
-ALLOWED_SOURCES = frozenset({"api", "voice", "scheduled"})
-ALLOWED_MEMBER_ROLES = frozenset({"child", "parent", "guest"})
-ALLOWED_TASK_STATUSES = frozenset(
-    {
-        "pending",
-        "approved",
-        "running",
-        "completed",
-        "failed",
-        "cancelled",
-        "rejected",
-    }
+from device_logic.constants import (
+    ALLOWED_MEMBER_ROLES,
+    ALLOWED_SOURCES,
+    ALLOWED_TASK_STATUSES,
+    ALLOWED_TASKS,
 )
+
+__all__ = [
+    "ALLOWED_MEMBER_ROLES",
+    "ALLOWED_SOURCES",
+    "ALLOWED_TASK_STATUSES",
+    "ALLOWED_TASKS",
+]

@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+import time
 
 os.environ["LIMA_BACKEND_RETIREMENT_DB"] = os.path.join(tempfile.gettempdir(), "test_retirement.db")
 os.environ["LIMA_BACKEND_PROFILE_DB"] = os.path.join(tempfile.gettempdir(), "test_retirement_profiles.db")
@@ -37,6 +38,9 @@ def test_check_retirement_low_success_rate():
 
 
 def test_apply_retirement():
+    br.reactivate("test_backend")
+    br._retired_backends.clear()
+    br._last_reload_ts = time.time()
     bp._profiles.clear()
     assert not br.is_retired("test_backend")
     br.apply_retirement(
@@ -52,6 +56,7 @@ def test_apply_retirement():
 
 def test_apply_retirement_is_idempotent(monkeypatch):
     br._retired_backends.clear()
+    br._last_reload_ts = time.time()
     calls = {"save": 0, "notify": 0}
 
     monkeypatch.setattr(br, "_save_retirement", lambda *a, **k: calls.__setitem__("save", calls["save"] + 1))
@@ -127,3 +132,19 @@ def test_recovery_snapshot_keeps_retired_out_of_probe_candidates():
 
     assert snapshot["retired_list"] == ["retired_one"]
     assert snapshot["probe_candidates"] == ["dead_one", "degraded_one"]
+
+
+def test_is_retired_reloads_from_sqlite(monkeypatch):
+    br._retired_backends.clear()
+    br._last_reload_ts = 0.0
+    monkeypatch.setattr(br, "_RELOAD_INTERVAL_SEC", 0.0)
+    br.apply_retirement(
+        {
+            "action": "retire",
+            "backend": "reload_sync_backend",
+            "reason": "test",
+            "status": "retired",
+        }
+    )
+    br._retired_backends.clear()
+    assert br.is_retired("reload_sync_backend")

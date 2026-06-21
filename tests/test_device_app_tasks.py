@@ -1,4 +1,4 @@
-from routes.xiaozhi_compat.shared import connect
+from device_logic.db import connect
 from device_app_helpers import client as make_client
 from device_app_helpers import headers, seed_account_and_device, seed_binding
 
@@ -34,6 +34,16 @@ def test_device_app_task_list_and_detail_are_scoped_to_bound_devices(tmp_path, m
 
     assert client.get("/device/v1/app/tasks?device_id=dev-1", headers=headers("a-other")).status_code == 403
     assert client.get("/device/v1/app/tasks/task-001", headers=headers("a-other")).status_code == 403
+
+
+def test_device_app_task_list_rejects_invalid_limit(tmp_path, monkeypatch):
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    seed_binding()
+
+    response = client.get("/device/v1/app/tasks?device_id=dev-1&limit=-1", headers=headers("a-owner"))
+
+    assert response.status_code == 422
 
 
 def test_device_app_create_task_uses_native_gateway_route(tmp_path, monkeypatch):
