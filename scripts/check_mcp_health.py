@@ -9,10 +9,16 @@ LiMa MCP 健康巡检 — 验证所有 MCP 服务器在线可用。
 
 from __future__ import annotations
 
+# 修复 GBK 终端下的 emoji 输出崩溃（Windows 默认终端 + cron 环境）
+import io
+import sys
+
+if sys.stdout.encoding and sys.stdout.encoding.upper() == "GBK":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
 import json
 import os
 import subprocess
-import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
