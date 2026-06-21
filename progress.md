@@ -2867,4 +2867,12 @@ Agent Worker path.
   - `pytest tests/test_lima_mcp_stdio_core.py -v` → 14 passed。
   - Guardian 全量扫描 → `long_function` 从 5 个降至 4 个，`lima_code_query_mcp.py::handle_request` 不再上榜。
 - **提交**：`bd83d0f1` `refactor(lima_mcp_stdio): extract tool schema and dispatcher from handle_request`；已 push 到 GitHub `origin/main`。
-- **仍阻塞**：Gitee 同步仍缺 SSH key / `GITEE_TOKEN`。
+
+## 2026-06-22 运维调整 — 移除 Gitee 同步
+
+- **原因**：本地无有效 Gitee SSH key / token，用户决定不再维护 Gitee 镜像。
+- **操作**：
+  - 删除本地生成的 Gitee 专用 SSH key：`~/.ssh/id_ed25519_gitee`、`~/.ssh/id_ed25519_gitee.pub`。
+  - 删除 `~/.ssh/config` 中的 `Host gitee.com` 配置。
+  - 移除 git remote：`git remote remove gitee`。
+- **结果**：项目仅保留 GitHub `origin` 作为 upstream。

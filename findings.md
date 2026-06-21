@@ -775,3 +775,16 @@
 
 **仍阻塞**
 - Gitee 同步：`Permission denied (publickey)`。
+
+## 2026-06-22 OPS-022 移除 Gitee 同步
+
+**原因**
+- 本地无有效 Gitee SSH key / token；用户决定不再维护 Gitee 镜像，仅保留 GitHub upstream。
+
+**操作**
+- 删除本地 Gitee SSH key：`~/.ssh/id_ed25519_gitee` + `.pub`。
+- 删除 `~/.ssh/config` 中 `Host gitee.com` 段落。
+- 移除 git remote `gitee`。
+
+**结果**
+- 仓库仅保留 `origin`（GitHub）。
