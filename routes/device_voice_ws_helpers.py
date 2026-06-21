@@ -62,6 +62,78 @@ async def handle_audio_chunk(
     return True
 
 
+def _get_vad_state(device_id: str) -> tuple[Any, Any] | None:
+    """Return (vad_state, vad_provider) for *device_id*, initializing if needed."""
+    try:
+        from device_voice.vad import VADState
+    except ImportError:
+        _log.warning("device_voice.vad not available")
+        return None
+
+    if device_id not in _audio_registry:
+        from device_voice import get_vad_provider
+
+        vad = get_vad_provider()
+        _audio_registry[device_id] = (VADState(), vad)
+
+    return _audio_registry[device_id]
+
+
+async def _detect_utterance(
+    websocket: WebSocket,
+    device_id: str,
+    pcm_chunk: bytes,
+    vad_state: Any,
+    vad_provider: Any,
+) -> bool:
+    """Feed chunk to VAD and return True if an utterance has ended."""
+    from device_voice.vad import VADModelUnavailableError
+
+    try:
+        vad_provider.detect(pcm_chunk, vad_state)
+    except VADModelUnavailableError:
+        _log.warning("device=%s VAD model unavailable; dropping audio chunk", device_id)
+        await websocket.send_json(voice_status_frame(device_id, "error", error="vad_model_unavailable"))
+        return False
+
+    return len(vad_state.speech_buffer) > 0
+
+
+async def _process_utterance(
+    websocket: WebSocket,
+    device_id: str,
+    pcm_data: bytes,
+) -> None:
+    """Run dialogue pipeline for a completed utterance and send replies."""
+    await websocket.send_json(voice_status_frame(device_id, "transcribing"))
+
+    try:
+        from device_voice.dialogue import process_voice_utterance
+
+        client_ip = _client_ip_from_websocket(websocket)
+        result = await process_voice_utterance(pcm_data, device_id, client_ip=client_ip)
+    except Exception:
+        _log.warning("device=%s dialogue pipeline failed", device_id, exc_info=True)
+        await websocket.send_json(voice_status_frame(device_id, "idle"))
+        return
+
+    transcript = result.get("transcript", "")
+    reply_audio = result.get("reply_audio", b"")
+
+    if transcript:
+        await websocket.send_json(voice_status_frame(device_id, "speaking", transcript=transcript))
+
+    voiceprint_result = result.get("voiceprint")
+    if voiceprint_result:
+        shadow_store.update_voiceprint_result(device_id, voiceprint_result)
+
+    if reply_audio:
+        await websocket.send_json(audio_reply_frame(device_id))
+        await websocket.send_bytes(reply_audio)
+
+    await websocket.send_json(voice_status_frame(device_id, "idle"))
+
+
 async def _feed_audio_to_pipeline(
     websocket: WebSocket,
     device_id: str,
@@ -74,68 +146,21 @@ async def _feed_audio_to_pipeline(
     if not VOICE_ENABLED:
         return
 
-    try:
-        from device_voice.vad import VADModelUnavailableError, VADState
-    except ImportError:
-        _log.warning("device_voice.vad not available")
+    state_pair = _get_vad_state(device_id)
+    if state_pair is None:
+        return
+    vad_state, vad_provider = state_pair
+
+    if not await _detect_utterance(websocket, device_id, pcm_chunk, vad_state, vad_provider):
         return
 
-    if device_id not in _audio_registry:
-        from device_voice import get_vad_provider
-
-        vad = get_vad_provider()
-        _audio_registry[device_id] = (VADState(), vad)
-
-    vad_state, vad_provider = _audio_registry[device_id]
-
-    # Feed chunk through VAD
-    try:
-        vad_provider.detect(pcm_chunk, vad_state)
-    except VADModelUnavailableError:
-        _log.warning("device=%s VAD model unavailable; dropping audio chunk", device_id)
-        await websocket.send_json(voice_status_frame(device_id, "error", error="vad_model_unavailable"))
-        return
-
-    # Check for utterance end
     utterance_ended = is_end or vad_provider.is_utterance_end(vad_state)
+    if not utterance_ended:
+        return
 
-    if utterance_ended and len(vad_state.speech_buffer) > 0:
-        pcm_data = bytes(vad_state.speech_buffer)
-        vad_provider.reset(vad_state)
-
-        # Send listening->transcribing status
-        await websocket.send_json(voice_status_frame(device_id, "transcribing"))
-
-        # Run dialogue pipeline
-        try:
-            from device_voice.dialogue import process_voice_utterance
-
-            client_ip = _client_ip_from_websocket(websocket)
-            result = await process_voice_utterance(pcm_data, device_id, client_ip=client_ip)
-        except Exception:
-            _log.warning("device=%s dialogue pipeline failed", device_id, exc_info=True)
-            await websocket.send_json(voice_status_frame(device_id, "idle"))
-            return
-
-        transcript = result.get("transcript", "")
-        reply_audio = result.get("reply_audio", b"")
-
-        # Send transcript status
-        if transcript:
-            await websocket.send_json(voice_status_frame(device_id, "speaking", transcript=transcript))
-
-        # Update shadow with voiceprint result
-        voiceprint_result = result.get("voiceprint")
-        if voiceprint_result:
-            shadow_store.update_voiceprint_result(device_id, voiceprint_result)
-
-        # Send audio reply: metadata (JSON) then binary PCM
-        if reply_audio:
-            await websocket.send_json(audio_reply_frame(device_id))
-            await websocket.send_bytes(reply_audio)
-
-        # Return to idle
-        await websocket.send_json(voice_status_frame(device_id, "idle"))
+    pcm_data = bytes(vad_state.speech_buffer)
+    vad_provider.reset(vad_state)
+    await _process_utterance(websocket, device_id, pcm_data)
 
 
 def _cleanup_audio_registry(device_id: str) -> None:

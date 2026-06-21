@@ -83,91 +83,112 @@ def get_top_functions():
 # ========== 文档生成 ==========
 
 
-def build_architecture_doc():
-    lines = []
-    lines.append("# LiMa 全栈架构知识库")
-    lines.append(f"*自动生成: {datetime.now().strftime('%Y-%m-%d %H:%M')}*")
-    lines.append(f"*数据源: CodeGraph (40,760 节点, 84,332 边) | 代码分析*")
-    lines.append("")
+_SUBSYSTEMS = [
+    ("routes", "FastAPI 路由层，设备/WebSocket/管理 API"),
+    ("device_gateway", "设备网关，WebSocket 连接/会话/任务/协议"),
+    ("device_intelligence", "设备 AI 能力（影子/知识/工具）"),
+    ("device_voice", "音频流处理"),
+    ("device_memory", "设备记忆"),
+    ("device_support", "设备辅助功能"),
+    ("device_workflow", "设备工作流"),
+    ("device_ledger", "设备账本"),
+    ("device_policy", "设备策略"),
+    ("context_pipeline", "AI 请求上下文构建流水线"),
+    ("routing_selector", "AI 后端路由选择"),
+    ("routing_ml", "路由智能调度"),
+    ("routing_loop", "路由主循环"),
+    ("session_memory", "会话记忆管理"),
+    ("search_gateway", "搜索网关"),
+    ("local_retrieval", "本地检索"),
+    ("observability", "可观测性"),
+    ("fleet", "设备车队管理"),
+    ("infra", "基础设施"),
+    ("backends_registry", "AI 后端注册表"),
+    ("provider_automation", "提供商自动化"),
+    ("provider_inventory", "提供商清单"),
+    ("provider_probe", "提供商探针"),
+    ("tool_gateway", "工具网关"),
+    ("response_cleaner", "响应清洗"),
+    ("lima_mcp_stdio", "MCP 服务器实现"),
+    ("esp32S_XYZ", "ESP32 固件 + 小智服务端 + Java 管理端"),
+    ("tests", "测试"),
+    ("packages", "第三方包"),
+]
 
-    # ===== 1. 系统构成 =====
-    lines.append("## 1. 系统构成")
-    lines.append("")
-    lines.append("| 子系统 | 说明 | 规模 |")
-    lines.append("|--------|------|------|")
-    dir_sizes = defaultdict(int)
+
+_KEY_ROUTES = [
+    ("routes/device_gateway_ws.py", "WebSocket 设备网关，设备虚实连接"),
+    ("routes/device_proxy.py", "设备代理"),
+    ("routes/device_files.py", "设备文件"),
+    ("routes/query_device_handler.py", "设备查询"),
+    ("routes/task_handler.py", "任务处理"),
+    ("routes/ota_handler.py", "OTA 升级"),
+    ("routes/admin_api.py", "管理 API"),
+    ("routes/system_endpoints.py", "系统端点"),
+    ("routes/xiaozhi_compat/", "小智兼容层"),
+]
+
+
+def _dir_size_map() -> dict[str, int]:
+    dir_sizes: dict[str, int] = defaultdict(int)
     for fp, kind, cnt in get_dir_symbols():
         top = fp.split("/")[0] if "/" in fp else fp.split("\\")[0]
         dir_sizes[top] += cnt
+    return dir_sizes
 
-    subsystems = [
-        ("routes", "FastAPI 路由层，设备/WebSocket/管理 API"),
-        ("device_gateway", "设备网关，WebSocket 连接/会话/任务/协议"),
-        ("device_intelligence", "设备 AI 能力（影子/知识/工具）"),
-        ("device_voice", "音频流处理"),
-        ("device_memory", "设备记忆"),
-        ("device_support", "设备辅助功能"),
-        ("device_workflow", "设备工作流"),
-        ("device_ledger", "设备账本"),
-        ("device_policy", "设备策略"),
-        ("context_pipeline", "AI 请求上下文构建流水线"),
-        ("routing_selector", "AI 后端路由选择"),
-        ("routing_ml", "路由智能调度"),
-        ("routing_loop", "路由主循环"),
-        ("session_memory", "会话记忆管理"),
-        ("search_gateway", "搜索网关"),
-        ("local_retrieval", "本地检索"),
-        ("observability", "可观测性"),
-        ("fleet", "设备车队管理"),
-        ("infra", "基础设施"),
-        ("backends_registry", "AI 后端注册表"),
-        ("provider_automation", "提供商自动化"),
-        ("provider_inventory", "提供商清单"),
-        ("provider_probe", "提供商探针"),
-        ("tool_gateway", "工具网关"),
-        ("response_cleaner", "响应清洗"),
-        ("lima_mcp_stdio", "MCP 服务器实现"),
-        ("esp32S_XYZ", "ESP32 固件 + 小智服务端 + Java 管理端"),
-        ("tests", "测试"),
-        ("packages", "第三方包"),
+
+def _build_header() -> list[str]:
+    return [
+        "# LiMa 全栈架构知识库",
+        f"*自动生成: {datetime.now().strftime('%Y-%m-%d %H:%M')}*",
+        "*数据源: CodeGraph (40,760 节点, 84,332 边) | 代码分析*",
+        "",
     ]
-    for name, desc in subsystems:
+
+
+def _build_system_composition_section(dir_sizes: dict[str, int]) -> list[str]:
+    lines = ["## 1. 系统构成", ""]
+    lines.extend(["| 子系统 | 说明 | 规模 |", "|--------|------|------|"])
+    for name, desc in _SUBSYSTEMS:
         size = dir_sizes.get(name, 0)
         if size:
             lines.append(f"| {name} | {desc} | {size} 符号 |")
-
     lines.append("")
+    return lines
 
-    # ===== 2. 代码分布 =====
-    lines.append("## 2. 代码分布")
-    lines.append("")
+
+def _build_code_distribution_section() -> list[str]:
+    lines = ["## 2. 代码分布", ""]
     for kind, cnt in get_kinds_distribution()[:15]:
         lines.append(f"- **{kind}**: {cnt}")
     lines.append("")
+    return lines
 
-    # ===== 3. 设备连接层 =====
-    lines.append("## 3. 设备连接架构")
-    lines.append("")
-    lines.append("```mermaid")
-    lines.append("graph TB")
-    lines.append("  Device[ESP32 设备] -->|WebSocket| WS[device_gateway_ws.py]")
-    lines.append("  WS --> SessionMgmt[SessionRegistry / DeviceSession]")
-    lines.append("  SessionMgmt -->|心跳/状态| Heartbeat[device_gateway/sessions]")
-    lines.append("  SessionMgmt -->|任务下发| TaskService[device_gateway/task_service]")
-    lines.append("  TaskService -->|通知| Notifier[RedisDeviceTaskNotifier]")
-    lines.append("  TaskService -->|存储| TaskStore[RedisDeviceTaskStore]")
-    lines.append("  WS -->|协议解析| Protocol[ProtocolFamily / ProtocolSchema]")
-    lines.append("  Protocol -->|路由| Route[routing_loop / routing_selector]")
-    lines.append("  Route -->|AI 后端| Backend[backends_registry 170+]")
-    lines.append("  Backend -->|流式响应| Response[response_cleaner]")
-    lines.append("  Response --> WS")
-    lines.append("```")
-    lines.append("")
 
-    # ===== 4. 协议类清单 =====
-    lines.append("## 4. 设备网关核心类")
-    lines.append("")
-    protos = extract_protocol_classes()
+def _build_device_connection_section() -> list[str]:
+    return [
+        "## 3. 设备连接架构",
+        "",
+        "```mermaid",
+        "graph TB",
+        "  Device[ESP32 设备] -->|WebSocket| WS[device_gateway_ws.py]",
+        "  WS --> SessionMgmt[SessionRegistry / DeviceSession]",
+        "  SessionMgmt -->|心跳/状态| Heartbeat[device_gateway/sessions]",
+        "  SessionMgmt -->|任务下发| TaskService[device_gateway/task_service]",
+        "  TaskService -->|通知| Notifier[RedisDeviceTaskNotifier]",
+        "  TaskService -->|存储| TaskStore[RedisDeviceTaskStore]",
+        "  WS -->|协议解析| Protocol[ProtocolFamily / ProtocolSchema]",
+        "  Protocol -->|路由| Route[routing_loop / routing_selector]",
+        "  Route -->|AI 后端| Backend[backends_registry 170+]",
+        "  Backend -->|流式响应| Response[response_cleaner]",
+        "  Response --> WS",
+        "```",
+        "",
+    ]
+
+
+def _build_protocol_classes_section(protos: list[dict]) -> list[str]:
+    lines = ["## 4. 设备网关核心类", ""]
     for p in protos:
         methods_str = ", ".join(p["methods"][:8])
         doc = p["doc"].replace("\n", " ")[:100]
@@ -177,40 +198,47 @@ def build_architecture_doc():
         if methods_str:
             lines.append(f"  方法: `{methods_str}`")
         lines.append("")
+    return lines
 
-    # ===== 5. 关键模块 =====
-    lines.append("## 5. 关键路由模块")
-    lines.append("")
-    key_routes = [
-        ("routes/device_gateway_ws.py", "WebSocket 设备网关，设备虚实连接"),
-        ("routes/device_proxy.py", "设备代理"),
-        ("routes/device_files.py", "设备文件"),
-        ("routes/query_device_handler.py", "设备查询"),
-        ("routes/task_handler.py", "任务处理"),
-        ("routes/ota_handler.py", "OTA 升级"),
-        ("routes/admin_api.py", "管理 API"),
-        ("routes/system_endpoints.py", "系统端点"),
-        ("routes/xiaozhi_compat/", "小智兼容层"),
-    ]
-    for path, desc in key_routes:
+
+def _build_key_routes_section() -> list[str]:
+    lines = ["## 5. 关键路由模块", ""]
+    for path, desc in _KEY_ROUTES:
         lines.append(f"- **{path}**: {desc}")
+    return lines
 
-    # ===== 6. 配置/路由架构 =====
-    lines.append("\n## 6. AI 路由流水线")
-    lines.append("")
-    lines.append("```mermaid")
-    lines.append("graph LR")
-    lines.append("  C[ContextPipeline] -->|构建上下文| RC[routing_classifier]")
-    lines.append("  RC -->|分类| RS[routing_selector]")
-    lines.append("  RS -->|过滤/排序| E[routing_executor]")
-    lines.append("  E -->|调用| H[http_caller]")
-    lines.append("  H -->|流式| P[provider_probe]")
-    lines.append("  P -->|降级| RS")
-    lines.append("  H -->|结果| CL[response_cleaner]")
-    lines.append("  CL -->|返回| WS[device_gateway]")
-    lines.append("```")
-    lines.append("")
 
+def _build_routing_pipeline_section() -> list[str]:
+    return [
+        "",
+        "## 6. AI 路由流水线",
+        "",
+        "```mermaid",
+        "graph LR",
+        "  C[ContextPipeline] -->|构建上下文| RC[routing_classifier]",
+        "  RC -->|分类| RS[routing_selector]",
+        "  RS -->|过滤/排序| E[routing_executor]",
+        "  E -->|调用| H[http_caller]",
+        "  H -->|流式| P[provider_probe]",
+        "  P -->|降级| RS",
+        "  H -->|结果| CL[response_cleaner]",
+        "  CL -->|返回| WS[device_gateway]",
+        "```",
+        "",
+    ]
+
+
+def build_architecture_doc() -> str:
+    dir_sizes = _dir_size_map()
+    protos = extract_protocol_classes()
+    lines: list[str] = []
+    lines.extend(_build_header())
+    lines.extend(_build_system_composition_section(dir_sizes))
+    lines.extend(_build_code_distribution_section())
+    lines.extend(_build_device_connection_section())
+    lines.extend(_build_protocol_classes_section(protos))
+    lines.extend(_build_key_routes_section())
+    lines.extend(_build_routing_pipeline_section())
     return "\n".join(lines)
 
 

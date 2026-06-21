@@ -52,13 +52,9 @@ class DoubaoASRProvider(ASRProvider):
 
         _log.info("DoubaoASRProvider initialized cluster=%s", self._cluster)
 
-    async def transcribe(self, audio_data: bytes, *, sample_rate: int = 16000) -> str:
-        """Recognize a complete utterance and return the transcript."""
-        if not audio_data:
-            return ""
-
-        reqid = str(uuid.uuid4())
-        request_payload = {
+    def _build_request_payload(self, audio_data: bytes, sample_rate: int) -> dict:
+        """Build the initial JSON payload for the Doubao ASR websocket."""
+        return {
             "app": {
                 "appid": self._appid,
                 "cluster": self._cluster,
@@ -66,7 +62,7 @@ class DoubaoASRProvider(ASRProvider):
             },
             "user": {"uid": str(uuid.uuid4())},
             "request": {
-                "reqid": reqid,
+                "reqid": str(uuid.uuid4()),
                 "show_utterances": False,
                 "sequence": 1,
             },
@@ -80,39 +76,52 @@ class DoubaoASRProvider(ASRProvider):
             },
         }
 
-        headers = {"Authorization": f"Bearer; {self._access_token}"}
+    async def _send_initial_request(self, ws, audio_data: bytes, sample_rate: int) -> None:
+        """Send the configuration frame and validate the server ack."""
+        payload = self._build_request_payload(audio_data, sample_rate)
+        await ws.send(build_request_frame(payload))
+        response = cast(bytes, await ws.recv())
+        result = parse_response(response)
+        code = result.get("payload_msg", {}).get("code")
+        if code not in (_SUCCESS_CODE, _NO_VOICE_CODE):
+            raise _map_doubao_error(code, result.get("payload_msg", {}))
 
+    async def _stream_audio_chunks(self, ws, audio_data: bytes) -> None:
+        """Stream raw audio chunks to the ASR websocket."""
+        chunk_size = 3200  # 100ms of 16-bit mono @ 16kHz
+        total = len(audio_data)
+        for offset in range(0, total, chunk_size):
+            is_last = offset + chunk_size >= total
+            chunk = audio_data[offset : offset + chunk_size]
+            await ws.send(build_audio_frame(chunk, is_last=is_last))
+
+    async def _read_final_transcript(self, ws) -> str:
+        """Read the final ASR response and return the transcript text."""
+        response = cast(bytes, await ws.recv())
+        result = parse_response(response)
+        payload = result.get("payload_msg", {})
+        code = payload.get("code")
+        if code == _NO_VOICE_CODE:
+            return ""
+        if code != _SUCCESS_CODE:
+            raise _map_doubao_error(code, payload)
+
+        results = payload.get("result", [])
+        if results:
+            return results[0].get("text", "").strip()
+        return ""
+
+    async def transcribe(self, audio_data: bytes, *, sample_rate: int = 16000) -> str:
+        """Recognize a complete utterance and return the transcript."""
+        if not audio_data:
+            return ""
+
+        headers = {"Authorization": f"Bearer; {self._access_token}"}
         try:
             async with websockets.connect(_WS_URL, additional_headers=headers) as ws:
-                await ws.send(build_request_frame(request_payload))
-                response = cast(bytes, await ws.recv())
-                result = parse_response(response)
-                payload = result.get("payload_msg", {})
-                code = payload.get("code")
-                if code not in (_SUCCESS_CODE, _NO_VOICE_CODE):
-                    raise _map_doubao_error(code, payload)
-
-                # Stream audio chunks to the server.
-                chunk_size = 3200  # 100ms of 16-bit mono @ 16kHz
-                total = len(audio_data)
-                for offset in range(0, total, chunk_size):
-                    is_last = offset + chunk_size >= total
-                    chunk = audio_data[offset : offset + chunk_size]
-                    await ws.send(build_audio_frame(chunk, is_last=is_last))
-
-                response = cast(bytes, await ws.recv())
-                result = parse_response(response)
-                payload = result.get("payload_msg", {})
-                code = payload.get("code")
-                if code == _NO_VOICE_CODE:
-                    return ""
-                if code != _SUCCESS_CODE:
-                    raise _map_doubao_error(code, payload)
-
-                results = payload.get("result", [])
-                if results:
-                    return results[0].get("text", "").strip()
-                return ""
+                await self._send_initial_request(ws, audio_data, sample_rate)
+                await self._stream_audio_chunks(ws, audio_data)
+                return await self._read_final_transcript(ws)
         except websockets.WebSocketException as exc:
             error_text = str(exc).lower()
             if "401" in error_text or "403" in error_text:

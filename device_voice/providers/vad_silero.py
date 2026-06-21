@@ -76,6 +76,52 @@ class SileroVADProvider(VADProvider):
         _log.info("SileroVAD model loaded from %s", model_path)
         return True
 
+    def _init_onnx_state(self, state: VADState) -> None:
+        """Initialize SileroVAD ONNX hidden/context tensors if needed."""
+        if state.onnx_state is None or state.onnx_context is None:
+            state.onnx_state = np.zeros((2, 1, 128), dtype=np.float32)
+            state.onnx_context = np.zeros((1, 64), dtype=np.float32)
+
+    def _run_onnx_frame(self, frame: bytes, state: VADState) -> float:
+        """Run a single audio frame through SileroVAD and return speech probability."""
+        assert self._session is not None
+        audio_int16 = np.frombuffer(frame, dtype=np.int16)
+        audio_float32 = audio_int16.astype(np.float32) / 32768.0
+        audio_input = np.concatenate([state.onnx_context, audio_float32.reshape(1, -1)], axis=1).astype(np.float32)
+
+        ort_inputs = {
+            "input": audio_input,
+            "state": state.onnx_state,
+            "sr": np.array(16000, dtype=np.int64),
+        }
+        out, new_state = self._session.run(None, ort_inputs)
+        state.onnx_state = new_state
+        state.onnx_context = audio_input[:, -64:]
+        return float(np.asarray(out).item())
+
+    def _update_state_from_voice(self, is_voice: bool, frame: bytes, state: VADState) -> None:
+        """Update VAD state given the voice/silence decision for one frame."""
+        state.last_is_voice = is_voice
+        state.voice_window.append(is_voice)
+        if len(state.voice_window) > self._frame_window:
+            state.voice_window.pop(0)
+
+        if is_voice:
+            state.speech_buffer.extend(frame)
+            state.is_speaking = True
+            state.silence_frames = 0
+            state.last_voice_time_ms = time.monotonic() * 1000
+        else:
+            state.silence_frames += 1
+
+    def _classify_speech(self, speech_prob: float, state: VADState) -> bool:
+        """Apply dual-threshold logic to the raw speech probability."""
+        if speech_prob >= self._threshold:
+            return True
+        if speech_prob <= self._threshold_low:
+            return False
+        return state.last_is_voice
+
     def detect(self, audio_chunk: bytes, state: VADState) -> bool:
         """Process PCM audio chunk and update VAD state.
 
@@ -91,9 +137,7 @@ class SileroVADProvider(VADProvider):
                 f"(download from {_MODEL_URL})"
             )
 
-        if state.onnx_state is None or state.onnx_context is None:
-            state.onnx_state = np.zeros((2, 1, 128), dtype=np.float32)
-            state.onnx_context = np.zeros((1, 64), dtype=np.float32)
+        self._init_onnx_state(state)
 
         has_voice = False
         offset = 0
@@ -101,42 +145,10 @@ class SileroVADProvider(VADProvider):
             frame = audio_chunk[offset : offset + _FRAME_BYTES]
             offset += _FRAME_BYTES
 
-            audio_int16 = np.frombuffer(frame, dtype=np.int16)
-            audio_float32 = audio_int16.astype(np.float32) / 32768.0
-            audio_input = np.concatenate([state.onnx_context, audio_float32.reshape(1, -1)], axis=1).astype(np.float32)
-
-            ort_inputs = {
-                "input": audio_input,
-                "state": state.onnx_state,
-                "sr": np.array(16000, dtype=np.int64),
-            }
-            out, new_state = self._session.run(None, ort_inputs)
-            state.onnx_state = new_state
-            state.onnx_context = audio_input[:, -64:]
-
-            speech_prob = out.item()
-            # Dual-threshold
-            if speech_prob >= self._threshold:
-                is_voice = True
-            elif speech_prob <= self._threshold_low:
-                is_voice = False
-            else:
-                is_voice = state.last_is_voice
-
-            state.last_is_voice = is_voice
-            state.voice_window.append(is_voice)
-            if len(state.voice_window) > self._frame_window:
-                state.voice_window.pop(0)
-
+            speech_prob = self._run_onnx_frame(frame, state)
+            is_voice = self._classify_speech(speech_prob, state)
+            self._update_state_from_voice(is_voice, frame, state)
             has_voice = state.voice_window.count(True) >= self._frame_window
-
-            if is_voice:
-                state.speech_buffer.extend(frame)
-                state.is_speaking = True
-                state.silence_frames = 0
-                state.last_voice_time_ms = time.monotonic() * 1000
-            else:
-                state.silence_frames += 1
 
         state.total_frames += 1
         return has_voice
