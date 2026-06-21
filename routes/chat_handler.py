@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from fastapi import HTTPException
 
@@ -23,10 +23,29 @@ from routes.chat_response_finalize import finalize_success_response
 if TYPE_CHECKING:
     from context_pipeline.tracing import RequestTrace as Trace
 
+from lima_constants import MODEL_ID
+
 _log = logging.getLogger(__name__)
-_model_id = "lima-1.3"
-_record_request: Callable[..., None] = lambda *a, **kw: None
-_record_fallback: Callable[..., None] | None = None
+_model_id = MODEL_ID
+_injected = False
+
+
+def _require_injected(name: str) -> None:
+    raise RuntimeError(f"routes.chat_handler.inject_deps() was not called; missing {name}")
+
+
+def _unconfigured_record_request(*args: Any, **kwargs: Any) -> None:
+    if not _injected:
+        _require_injected("record_request")
+
+
+def _unconfigured_record_fallback(*args: Any, **kwargs: Any) -> None:
+    if not _injected:
+        _require_injected("record_fallback")
+
+
+_record_request: Callable[..., None] = _unconfigured_record_request
+_record_fallback: Callable[..., None] = _unconfigured_record_fallback
 _build_pollinations_url: Callable[[str, str], str] | None = None
 
 
@@ -37,11 +56,12 @@ def inject_deps(
     record_fallback: Callable[..., None],
     build_pollinations_url: Callable[[str, str], str],
 ) -> None:
-    global _model_id, _record_request, _record_fallback, _build_pollinations_url
+    global _model_id, _record_request, _record_fallback, _build_pollinations_url, _injected
     _model_id = model_id
     _record_request = record_request
     _record_fallback = record_fallback
     _build_pollinations_url = build_pollinations_url
+    _injected = True
     _inject_chat_fallback_deps(
         model_id=model_id,
         record_request=record_request,
@@ -65,7 +85,7 @@ async def _try_early_response(
     ctx: ChatRunContext,
     req: ChatRequest,
     model_id: str,
-) -> dict | None:
+) -> Any | None:
     image_resp = await maybe_image_response(
         ctx,
         req,

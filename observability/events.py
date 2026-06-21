@@ -11,6 +11,7 @@ import hashlib
 import time
 import uuid
 from dataclasses import dataclass, field
+from typing import Any
 
 _SENSITIVE_METADATA_KEYS = (
     "prompt",
@@ -53,13 +54,14 @@ class LiMaEvent:
     cost_class: str = ""
     prompt_tokens: int = 0
     completion_tokens: int = 0
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.route_reason = _sanitize_text(self.route_reason)
         self.failure_class = _sanitize_label(self.failure_class)
         self.cost_class = _sanitize_label(self.cost_class)
-        self.metadata = _sanitize_metadata(self.metadata)
+        cleaned = _sanitize_metadata(self.metadata)
+        self.metadata = cleaned if isinstance(cleaned, dict) else {}
 
 
 def request_start_event(request_id: str = "", session_id: str = "") -> LiMaEvent:

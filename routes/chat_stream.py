@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Callable
+from typing import Any, AsyncGenerator, Callable
 
 import routing_intent
 from orchestrate import orchestrate
@@ -85,7 +85,7 @@ def _ensure_fallback_content(content: str, messages: list) -> str:
     return content
 
 
-async def _stream_sentences(chat_id: str, content: str) -> None:
+async def _stream_sentences(chat_id: str, content: str) -> AsyncGenerator[str, None]:
     """Yield sentence chunks followed by finish markers."""
     for sentence in _split_sentences(content):
         yield build_stream_chunk(chat_id, sentence)
@@ -154,7 +154,7 @@ async def _stream_orchestration(
     *,
     sys_prompt_preview: str,
     ide_source: str,
-) -> None:
+) -> AsyncGenerator[str, None]:
     """Stream orchestration route result as sentence chunks."""
     result = await _authoritative_route(
         query,
@@ -176,7 +176,7 @@ async def _stream_speculative(
     sys_prompt_preview: str,
     ide_source: str,
     prefer: str | None,
-) -> None:
+) -> AsyncGenerator[str, None]:
     """Try speculative streaming and fall back to authoritative route if needed."""
     from response_cleaner import clean_response
 
@@ -214,7 +214,7 @@ async def stream_response(
     use_thinking: bool = False,
     messages: list | None = None,
     prefer: str | None = None,
-):
+) -> AsyncGenerator[str, None]:
     """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
     messages = messages or []
 

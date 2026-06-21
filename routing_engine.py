@@ -11,7 +11,6 @@ LiMa Routing Engine — 统一路由入口
 
 from __future__ import annotations
 
-import json
 import time
 from typing import Callable
 
@@ -31,6 +30,7 @@ from routing_engine_context import (
 )
 from routing_engine_execute_strategy import execute_with_strategy
 from routing_engine_post import get_injected_ids, post_route
+from lima_constants import MODEL_ID
 from routing_engine_types import PickResult, RouteResult
 from routing_selector import select
 
@@ -58,7 +58,7 @@ def inject_skills(
     )
 
 
-def respond(result: RouteResult, fmt: str = "openai", model: str = "lima-1.3") -> dict:
+def respond(result: RouteResult, fmt: str = "openai", model: str = MODEL_ID) -> dict:
     chat_id = make_chat_id()
     if fmt == "anthropic":
         return build_anthropic_response(chat_id, result.answer, result.backend, model)
@@ -84,14 +84,14 @@ def pick_backend(
     req_type = classify(
         query, messages, fmt=fmt, ide_source=ide_source, system_prompt=system_prompt, headers=headers or {}
     )
-    scenario = classify_scenario(query, messages, ide_source=ide_source, request_type=req_type)
+    scenario = classify_scenario(messages, query=query, ide_source=ide_source, request_type=req_type)
 
     recalled_backend = try_recall_backend(messages, scenario)
     messages, retrieval_text = inject_retrieval_context(messages)
     messages, _code_context_text = inject_coding_context(messages, scenario, query)
     complexity_info = assess_complexity(messages, ide_source)
 
-    sticky_key = sticky_session.compute_key(model or "default", json.dumps(messages, ensure_ascii=False))
+    sticky_key = sticky_session.compute_key(model or "default", messages)
 
     hmap = health_tracker.get_health_map()
     backends = select(

@@ -17,9 +17,18 @@ IDLE_TTL = 300  # 5 分钟无活动过期
 PREFIX_BYTES = 512
 
 
-def compute_key(model: str, messages_json: str) -> str:
+def compute_key(model: str, messages: list[dict] | str) -> str:
     """计算会话亲和 key: model + 对话前缀 hash"""
-    prefix = messages_json[:PREFIX_BYTES].encode("utf-8", errors="ignore")
+    if isinstance(messages, str):
+        prefix = messages[:PREFIX_BYTES].encode("utf-8", errors="ignore")
+    else:
+        first = messages[0] if messages else {}
+        role = first.get("role", "") if isinstance(first, dict) else ""
+        content = first.get("content", "") if isinstance(first, dict) else ""
+        if isinstance(content, list):
+            content = " ".join(block.get("text", "") for block in content if isinstance(block, dict))
+        prefix_str = f"{role}{content}"
+        prefix = prefix_str[:PREFIX_BYTES].encode("utf-8", errors="ignore")
     h = hashlib.blake2b(prefix, digest_size=8).hexdigest()
     return f"{model}:{h}"
 

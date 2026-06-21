@@ -19,7 +19,12 @@ import websockets
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SMOKE_DIR = Path(__file__).resolve().parent
+if str(SMOKE_DIR) not in sys.path:
+    sys.path.insert(0, str(SMOKE_DIR))
 load_dotenv(PROJECT_ROOT / ".env")
+
+import ws_ticket_http
 
 
 LIMA_HOST = os.environ.get("LIMA_VERIFY_HOST", "chat.donglicao.com")
@@ -79,7 +84,8 @@ async def _test_gemini_live(api_key: str) -> dict:
         ws_url = f"{proto}://{LIMA_HOST}{url}"
     else:
         ws_url = url
-    ws_url += ("&" if "?" in ws_url else "?") + f"authorization=Bearer {api_key}"
+    ticket = ws_ticket_http.issue_chat_ws_ticket(LIMA_HOST, api_key)
+    ws_url = ws_ticket_http.ws_url_with_ticket(ws_url, ticket)
 
     try:
         async with websockets.connect(ws_url, additional_headers={"User-Agent": "LiMaSmoke/1.0"}) as ws:
@@ -158,7 +164,8 @@ async def _test_digital_human_ws() -> dict:
     if not device_id:
         device_id = "web-tester"
 
-    ws_url = f"wss://{LIMA_HOST}/device/v1/ws?authorization=Bearer {token}"
+    ticket = ws_ticket_http.issue_device_ws_ticket(LIMA_HOST, device_id, token)
+    ws_url = ws_ticket_http.ws_url_with_ticket(f"wss://{LIMA_HOST}/device/v1/ws", ticket)
     try:
         async with websockets.connect(ws_url, additional_headers={"User-Agent": "LiMaSmoke/1.0"}) as ws:
             await ws.send(

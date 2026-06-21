@@ -146,7 +146,8 @@ def correlate_by_id(target_id: str, limit: int = 50) -> list[dict[str, Any]]:
     target = str(target_id).strip()
     with _lock:
         matched = [
-            e for e in _events
+            e
+            for e in _events
             if target == (e.request_id or "") or target == (e.task_id or "") or target == (e.device_id or "")
         ]
     return [e.to_dict() for e in matched[-limit:]]

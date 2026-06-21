@@ -3,10 +3,11 @@
 import logging
 
 import budget_manager
+from tests.budget_manager_helpers import reset_budget_manager_state, set_budget_usage_for_tests
 
 
 def setup_function():
-    budget_manager.reset_for_tests()
+    reset_budget_manager_state()
 
 
 def test_cf_backends_have_budget_config():
@@ -36,9 +37,9 @@ def test_google_flash_has_budget_config():
 
 
 def test_cf_pool_usage_aggregates_cf_prefix():
-    budget_manager.set_usage_for_tests("cf_qwen_coder", 100)
-    budget_manager.set_usage_for_tests("cf_llama4", 50)
-    budget_manager.set_usage_for_tests("google_flash", 200)
+    set_budget_usage_for_tests("cf_qwen_coder", 100)
+    set_budget_usage_for_tests("cf_llama4", 50)
+    set_budget_usage_for_tests("google_flash", 200)
     used, limit = budget_manager.get_cf_pool_usage()
     assert used == 150
     assert limit == budget_manager.CF_ACCOUNT_DAILY_LIMIT
@@ -46,13 +47,13 @@ def test_cf_pool_usage_aggregates_cf_prefix():
 
 def test_cf_pool_status_warning_at_70_percent():
     threshold = int(budget_manager.CF_ACCOUNT_DAILY_LIMIT * 0.7)
-    budget_manager.set_usage_for_tests("cf_qwen_coder", threshold)
+    set_budget_usage_for_tests("cf_qwen_coder", threshold)
     assert budget_manager.get_cf_pool_status() == "warning"
 
 
 def test_get_usage_summary_groups_cf_and_google():
-    budget_manager.set_usage_for_tests("cf_qwen_coder", 42)
-    budget_manager.set_usage_for_tests("google_flash_lite", 10)
+    set_budget_usage_for_tests("cf_qwen_coder", 42)
+    set_budget_usage_for_tests("google_flash_lite", 10)
     summary = budget_manager.get_usage_summary()
     assert "Cloudflare" in summary
     assert "Google" in summary
@@ -62,15 +63,15 @@ def test_get_usage_summary_groups_cf_and_google():
 
 
 def test_get_total_requests_today_sums_budgeted_usage():
-    budget_manager.set_usage_for_tests("cf_qwen_coder", 10)
-    budget_manager.set_usage_for_tests("google_flash", 5)
+    set_budget_usage_for_tests("cf_qwen_coder", 10)
+    set_budget_usage_for_tests("google_flash", 5)
     assert budget_manager.get_total_requests_today() == 15
 
 
 def test_record_usage_logs_on_warning_cross(caplog):
     cfg = budget_manager.BACKEND_BUDGETS["cf_qwen_coder"]
     warn_used = int(cfg.daily_limit * cfg.warn_at)
-    budget_manager.set_usage_for_tests("cf_qwen_coder", warn_used - 1)
+    set_budget_usage_for_tests("cf_qwen_coder", warn_used - 1)
     with caplog.at_level(logging.WARNING):
         budget_manager.record_usage("cf_qwen_coder")
     assert "budget warning backend=cf_qwen_coder" in caplog.text
@@ -78,7 +79,7 @@ def test_record_usage_logs_on_warning_cross(caplog):
 
 def test_record_usage_logs_on_exhausted_cross(caplog):
     cfg = budget_manager.BACKEND_BUDGETS["cf_qwen_coder"]
-    budget_manager.set_usage_for_tests("cf_qwen_coder", cfg.daily_limit - 1)
+    set_budget_usage_for_tests("cf_qwen_coder", cfg.daily_limit - 1)
     with caplog.at_level(logging.WARNING):
         budget_manager.record_usage("cf_qwen_coder")
     assert "budget exhausted backend=cf_qwen_coder" in caplog.text
@@ -86,7 +87,7 @@ def test_record_usage_logs_on_exhausted_cross(caplog):
 
 def test_record_usage_logs_cf_pool_warning(caplog):
     threshold = int(budget_manager.CF_ACCOUNT_DAILY_LIMIT * budget_manager.CF_ACCOUNT_WARN_AT)
-    budget_manager.set_usage_for_tests("cf_qwen_coder", threshold - 1)
+    set_budget_usage_for_tests("cf_qwen_coder", threshold - 1)
     with caplog.at_level(logging.WARNING):
         budget_manager.record_usage("cf_qwen_coder")
     assert "cf pool budget warning" in caplog.text

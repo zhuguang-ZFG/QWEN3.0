@@ -99,6 +99,15 @@ def test_drawing_history_pagination():
     assert data["limit"] == 2
 
 
+def test_drawing_history_rejects_invalid_pagination():
+    response = _client().get(
+        "/device/v1/devices/dev-1/history?limit=-1&offset=-1",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 422
+
+
 def test_drawing_history_requires_auth():
     """查询绘图历史需要认证"""
     response = _client().get("/device/v1/devices/dev-1/history")

@@ -64,6 +64,21 @@ def test_openai_endpoint_rejects_malformed_json(monkeypatch):
     assert response.json()["error"]["message"] == "valid JSON body required"
 
 
+def test_openai_endpoint_rejects_invalid_chat_schema(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+
+    client = TestClient(server.app, raise_server_exceptions=False)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": "Bearer test-key"},
+        json={"model": "lima-1.3", "messages": "not-a-list"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["type"] == "invalid_request_error"
+    assert "messages" in response.json()["error"]["message"]
+
+
 def test_public_demo_chat_fails_closed(monkeypatch):
     monkeypatch.delenv("LIMA_PUBLIC_DEMO_ENABLED", raising=False)
 

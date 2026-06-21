@@ -18,9 +18,8 @@ from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconn
 
 from access_guard import (
     WS_QUERY_PARAM_TOKEN_WARNING,
+    authenticate_websocket,
     configured_api_keys,
-    extract_websocket_token,
-    is_token_valid,
 )
 
 _log = logging.getLogger(__name__)
@@ -51,10 +50,10 @@ async def gemini_live_proxy(
             detail="Gemini Live is not configured on this server.",
         )
 
-    token, used_query_param = extract_websocket_token(websocket, authorization)
-    if used_query_param:
+    authorized, auth_method = authenticate_websocket(websocket, authorization)
+    if auth_method == "query":
         _log.warning(WS_QUERY_PARAM_TOKEN_WARNING, websocket.url.path)
-    if not is_token_valid(token):
+    if not authorized:
         if not configured_api_keys():
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -18,6 +18,8 @@ _log = logging.getLogger(__name__)
 VOICEPRINT_MODE = os.environ.get("LIMA_VOICEPRINT_MODE", "local").strip().lower()
 VOICEPRINT_API_URL = os.environ.get("LIMA_VOICEPRINT_API_URL", "").strip()
 VOICEPRINT_API_KEY = os.environ.get("LIMA_VOICEPRINT_API_KEY", "").strip()
+
+
 def _parse_similarity_threshold() -> float:
     raw = os.environ.get("LIMA_VOICEPRINT_SIMILARITY_THRESHOLD", "0.6")
     try:
@@ -66,9 +68,7 @@ class VoiceprintProvider:
     async def identify_speaker(self, wav_data: bytes, device_id: str) -> SpeakerIdentity:
         from device_voice.voiceprint_policy import _identify_speaker_impl
 
-        return await _identify_speaker_impl(
-            self, wav_data, device_id, SIMILARITY_THRESHOLD, _cosine_similarity
-        )
+        return await _identify_speaker_impl(self, wav_data, device_id, SIMILARITY_THRESHOLD, _cosine_similarity)
 
     async def register_speaker(self, wav_data: bytes, member_id: str, device_id: str) -> Optional[list[float]]:
         if not self.enabled:

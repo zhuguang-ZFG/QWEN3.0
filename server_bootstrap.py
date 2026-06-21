@@ -9,7 +9,8 @@ import threading
 import time
 import urllib.request
 
-MODEL_ID = "lima-1.3"
+from lima_constants import MODEL_ID
+
 MODEL_CREATED = int(time.time())
 MAX_BODY_SIZE = 32 * 1024 * 1024  # 32MB — Claude Code sends large contexts
 

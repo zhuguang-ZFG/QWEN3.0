@@ -17,10 +17,29 @@ from device_gateway.tasks import (
     requeue_pending_tasks,
 )
 
+from device_ws_ticket import consume as consume_device_ws_ticket
+
 _log = logging.getLogger(__name__)
 
 
+def _ws_state(websocket: WebSocket) -> dict:
+    return websocket.scope.setdefault("state", {})
+
+
+def ticket_device_id(websocket: WebSocket) -> str | None:
+    value = _ws_state(websocket).get("ticket_device_id")
+    return str(value) if value else None
+
+
 def extract_ws_token(websocket: WebSocket) -> str:
+    ticket = websocket.query_params.get("ticket", "").strip()
+    if ticket:
+        redeemed = consume_device_ws_ticket(ticket)
+        if redeemed:
+            device_id, token = redeemed
+            _ws_state(websocket)["ticket_device_id"] = device_id
+            return token
+
     authorization = websocket.headers.get("authorization", "")
     if authorization.lower().startswith("bearer "):
         return authorization[7:].strip()
@@ -34,7 +53,7 @@ def extract_ws_token(websocket: WebSocket) -> str:
     if token.lower().startswith("bearer "):
         return token[7:].strip()
     if token:
-        _log.warning("device WS token query param missing Bearer prefix")
+        _log.warning("device WS token query param exposes secret; prefer POST /device/v1/ws/ticket")
         return token
     auth_query = websocket.query_params.get("authorization", "").strip()
     if auth_query.lower().startswith("bearer "):

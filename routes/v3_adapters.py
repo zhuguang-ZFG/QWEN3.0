@@ -115,7 +115,10 @@ def v3_call_stream(backend, messages, max_tokens, ide):
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
             scenario = classify_scenario(
-                query, messages, ide_source=ide if is_ide else "", request_type="ide" if is_ide else "chat"
+                messages,
+                query=query,
+                ide_source=ide if is_ide else "",
+                request_type="ide" if is_ide else "chat",
             )
             if scenario == "coding":
                 digest = build_context_digest(query, messages, ide_source=ide)
@@ -162,7 +165,10 @@ def v3_call_api(backend, messages, max_tokens, ide):
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
             scenario = classify_scenario(
-                query, messages, ide_source=ide if is_ide else "", request_type="ide" if is_ide else "chat"
+                messages,
+                query=query,
+                ide_source=ide if is_ide else "",
+                request_type="ide" if is_ide else "chat",
             )
             if scenario == "coding":
                 from lima_context import build_context_digest
@@ -202,7 +208,10 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncItera
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
             scenario = classify_scenario(
-                query, messages, ide_source=ide if is_ide else "", request_type="ide" if is_ide else "chat"
+                messages,
+                query=query,
+                ide_source=ide if is_ide else "",
+                request_type="ide" if is_ide else "chat",
             )
             if scenario == "coding":
                 digest = build_context_digest(query, messages, ide_source=ide)
@@ -254,7 +263,10 @@ async def v3_call_api_async(backend, messages, max_tokens, ide):
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
             scenario = classify_scenario(
-                query, messages, ide_source=ide if is_ide else "", request_type="ide" if is_ide else "chat"
+                messages,
+                query=query,
+                ide_source=ide if is_ide else "",
+                request_type="ide" if is_ide else "chat",
             )
             if scenario == "coding":
                 from lima_context import build_context_digest

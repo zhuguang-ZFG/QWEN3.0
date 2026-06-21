@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from routes.device_gateway import _reset_for_tests, router
+from routes.device_gateway import router
+from routes.device_gateway_helpers import _reset_for_tests
 
 
 def _client(monkeypatch) -> TestClient:

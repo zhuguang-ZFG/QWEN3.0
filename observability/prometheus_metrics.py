@@ -77,9 +77,7 @@ def _ensure_instruments() -> None:
 
 
 def _register_counters(counter, registry) -> None:
-    _counters["requests"] = counter(
-        "lima_requests_total", "Total requests", ["backend", "status"], registry=registry
-    )
+    _counters["requests"] = counter("lima_requests_total", "Total requests", ["backend", "status"], registry=registry)
     _counters["backend_errors"] = counter(
         "lima_backend_errors_total", "Backend errors", ["backend", "error_type"], registry=registry
     )

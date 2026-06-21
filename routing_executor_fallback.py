@@ -20,9 +20,9 @@ _log = logging.getLogger(__name__)
 def _select_fallback_candidates(backends: list[str]) -> list[str]:
     """Pick up to 3 healthy, in-budget candidates for mass fallback."""
     health_tracker.detect_and_reset_mass_failure()
-    return [
-        b for b in backends[:8] if not health_tracker.is_cooled_down(b) and budget_manager.is_budget_available(b)
-    ][:3]
+    return [b for b in backends[:8] if not health_tracker.is_cooled_down(b) and budget_manager.is_budget_available(b)][
+        :3
+    ]
 
 
 def _serial_fallback_attempt(

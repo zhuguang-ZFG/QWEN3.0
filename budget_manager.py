@@ -20,7 +20,7 @@ from budget_token_telemetry import (
     reset_token_usage,
 )
 
-logger = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 # ── 预算配置 ─────────────────────────────────────────────────────────────────
 
@@ -187,18 +187,6 @@ def get_all_budgets() -> dict[str, dict]:
         return result
 
 
-def reset_for_tests() -> None:
-    with _lock:
-        _usage.clear()
-    reset_token_usage()
-
-
-def set_usage_for_tests(backend: str, used: int) -> None:
-    with _lock:
-        _check_reset()
-        _usage[backend] = used
-
-
 # Re-export cost-class and token telemetry APIs for backward compatibility.
 __all__ = [
     "BACKEND_BUDGETS",
@@ -219,7 +207,5 @@ __all__ = [
     "is_budget_available",
     "record_token_usage",
     "record_usage",
-    "reset_for_tests",
-    "set_usage_for_tests",
     "should_track_cost",
 ]

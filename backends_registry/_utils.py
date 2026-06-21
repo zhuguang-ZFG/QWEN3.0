@@ -20,8 +20,6 @@ def legacy_free_enabled(name: str) -> bool:
     if lima_name in os.environ:
         return env_truthy(lima_name)
     if legacy_name in os.environ and env_truthy(legacy_name):
-        logger.warning(
-            "%s is deprecated; use %s instead", legacy_name, lima_name
-        )
+        logger.warning("%s is deprecated; use %s instead", legacy_name, lima_name)
         return True
     return False

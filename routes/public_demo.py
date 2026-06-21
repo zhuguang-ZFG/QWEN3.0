@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
+from routes.async_compat import maybe_await
 from routes.json_body import read_json_object
 
 router = APIRouter()
@@ -153,11 +154,13 @@ async def public_demo_chat(request: Request):
         return body
     sanitized = _validate_public_demo_body(body)
     chat_req = ChatRequest(**sanitized)
-    return await _dep("handle_chat")(
-        chat_req,
-        fmt="openai",
-        client_ip=client_key,
-        ide_source="public_demo",
-        sys_prompt_preview=extract_system_preview(sanitized["messages"]),
-        request_headers=dict(request.headers),
+    return await maybe_await(
+        _dep("handle_chat")(
+            chat_req,
+            fmt="openai",
+            client_ip=client_key,
+            ide_source="public_demo",
+            sys_prompt_preview=extract_system_preview(sanitized["messages"]),
+            request_headers=dict(request.headers),
+        )
     )

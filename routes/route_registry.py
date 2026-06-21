@@ -65,8 +65,14 @@ def _try_include(
             inject(mod)
         loaded[module_key] = True
         return True
-    except Exception as exc:
+    except ModuleNotFoundError as exc:
+        if exc.name != import_path:
+            raise
         logging.warning("[STARTUP] %s module not loaded: %s", module_key, exc)
+        loaded[module_key] = False
+        return False
+    except ImportError as exc:
+        logging.warning("[STARTUP] %s module import failed: %s", module_key, exc)
         loaded[module_key] = False
         return False
 
@@ -116,8 +122,10 @@ def _register_admin_and_static_routes(app: FastAPI, deps: RouteRegistryDeps) -> 
     app.include_router(admin_router)
 
     from routes.static_files import router as static_files_router
+    from routes.upload import router as upload_router
 
     app.include_router(static_files_router)
+    app.include_router(upload_router)
 
     from routes.digital_human import mount_static_files, router as digital_human_router
 
@@ -147,6 +155,7 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     from routes.device_app_misc import router as device_app_misc_router
     from routes.device_app_auth import router as device_app_auth_router
     from routes.device_app_tasks import router as device_app_tasks_router
+    from routes.device_app_chat import router as device_app_chat_router
 
     app.include_router(device_gateway_router)
     app.include_router(device_app_router)
@@ -154,12 +163,14 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     app.include_router(device_app_misc_router)
     app.include_router(device_app_auth_router)
     app.include_router(device_app_tasks_router)
+    app.include_router(device_app_chat_router)
     loaded_modules["device_gateway"] = True
     loaded_modules["device_app_api"] = True
     loaded_modules["device_app_members"] = True
     loaded_modules["device_app_misc"] = True
     loaded_modules["device_app_auth"] = True
     loaded_modules["device_app_tasks"] = True
+    loaded_modules["device_app_chat"] = True
 
 
 def _register_voice_routes(app: FastAPI, loaded_modules: dict) -> None:

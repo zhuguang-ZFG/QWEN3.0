@@ -20,10 +20,16 @@ from device_logic.activation import ACTIVATION_TTL_SECONDS
 from device_logic.access import require_device_access
 from device_logic.auth import authorize
 from device_logic.db import connect
+from device_logic.device_sn import validate_device_sn
 from device_logic.http import err, new_id, now, read_body, str_field
 from device_logic.payloads import device_payload
+from device_logic.rate_limit import RateLimiter
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app"])
+
+# L2 fix: rate-limit device registration to 5 calls per 60 s per account.
+# Prevents activation-code flooding and unbounded SQLite row creation.
+_register_limiter = RateLimiter(max_calls=5, window_seconds=60)
 
 
 def _device_error(exc: DeviceLogicError) -> JSONResponse:
@@ -35,6 +41,9 @@ async def register_device(request: Request, authorization: str = Header(default=
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
+    # L2 fix: rate-limit per account — blocks flooding before reading the request body.
+    if not _register_limiter.is_allowed(account["id"]):
+        return err(429, "Too many registration requests — try again later", 429)
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body
@@ -54,6 +63,13 @@ async def bind_device(request: Request, authorization: str = Header(default=""))
     activation_code = str_field(body, "activationCode", "activation_code")
     if not device_sn or not activation_code:
         return err(400, "deviceSn and activationCode are required", 400)
+    # Q2 fix: validate device_sn format BEFORE consuming the activation code.
+    # N1 made check_activation_code() DELETE the code on success, so a bad SN would
+    # silently burn the one-time code without binding any device.
+    try:
+        device_sn = validate_device_sn(device_sn)
+    except DeviceLogicError as exc:
+        return _device_error(exc)
     if not check_activation_code(activation_code):
         return err(4004, "Invalid activation code", 400)
     try:

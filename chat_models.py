@@ -5,7 +5,7 @@ from typing import Optional, Union
 from pydantic import BaseModel, Field
 
 
-MODEL_ID = "lima-1.3"
+from lima_constants import MODEL_ID
 
 
 class Message(BaseModel):

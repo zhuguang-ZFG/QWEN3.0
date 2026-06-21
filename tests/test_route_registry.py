@@ -44,6 +44,12 @@ def test_registry_marks_device_app_api_loaded():
     assert server._loaded_modules.get("device_app_tasks") is True
 
 
+def test_server_registers_ops_prometheus_metrics_route():
+    paths = {route.path for route in server.app.routes if isinstance(route, APIRoute)}
+    assert "/v1/ops/metrics/prometheus" in paths
+    assert server._loaded_modules.get("ops_metrics") is True
+
+
 def test_server_registers_xiaozhi_v1_compat_routes():
     paths = _api_paths()
 
@@ -83,6 +89,23 @@ def test_server_can_opt_in_to_xiaozhi_v1_compat_routes(monkeypatch):
     paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
     assert "/api/v1/login" in paths
     assert deps.loaded_modules.get("xiaozhi_v1_compat") is True
+
+
+def test_try_include_reraises_unexpected_module_errors(monkeypatch):
+    import importlib
+    from fastapi import FastAPI
+    import pytest
+
+    def boom(_import_path: str):
+        raise NameError("bad optional route")
+
+    monkeypatch.setattr(importlib, "import_module", boom)
+    loaded = {}
+
+    with pytest.raises(NameError):
+        route_registry._try_include(FastAPI(), loaded, "routes.bad_optional", "bad_optional")
+
+    assert "bad_optional" not in loaded
 
 
 def test_register_all_routes_is_idempotent_on_fresh_app():

@@ -26,7 +26,7 @@ __all__ = ["get_memory_store", "inject_memory_store", "router"]
 
 
 @router.get("/{device_id}/hints", dependencies=[Depends(require_private_api_key)])
-async def get_planner_hints(device_id: str) -> dict[str, Any]:
+async def get_planner_hints(device_id: str) -> JSONResponse:
     """Retrieve active memory hints for the planner."""
     store = get_memory_store()
     hints = recall_planner_hints(store, device_id)
@@ -34,7 +34,7 @@ async def get_planner_hints(device_id: str) -> dict[str, Any]:
 
 
 @router.get("/{device_id}/warnings", dependencies=[Depends(require_private_api_key)])
-async def get_warnings(device_id: str) -> dict[str, Any]:
+async def get_warnings(device_id: str) -> JSONResponse:
     """Retrieve active failure warnings for a device."""
     store = get_memory_store()
     warnings = get_device_failure_warnings(store, device_id)
@@ -45,7 +45,7 @@ async def get_warnings(device_id: str) -> dict[str, Any]:
 
 
 @router.get("/{device_id}/list", dependencies=[Depends(require_private_api_key)])
-async def list_memories(device_id: str) -> dict[str, Any]:
+async def list_memories(device_id: str) -> JSONResponse:
     """List all memories for a device."""
     store = get_memory_store()
     entries = store.list_by_device(device_id, include_expired=False)
@@ -59,7 +59,7 @@ async def list_memories(device_id: str) -> dict[str, Any]:
 
 
 @router.delete("/{device_id}/reset", dependencies=[Depends(require_private_api_key)])
-async def reset_memories(device_id: str) -> dict[str, Any]:
+async def reset_memories(device_id: str) -> JSONResponse:
     """Delete all memories for a device."""
     store = get_memory_store()
     count = store.reset(device_id)
@@ -68,7 +68,7 @@ async def reset_memories(device_id: str) -> dict[str, Any]:
 
 
 @router.post("/{device_id}/disable", dependencies=[Depends(require_private_api_key)])
-async def disable_memory(device_id: str, request: Request) -> dict[str, Any]:
+async def disable_memory(device_id: str, request: Request) -> JSONResponse:
     """Disable a specific memory entry."""
     body = await read_json_object(request, openai_error=False)
     if isinstance(body, JSONResponse):
@@ -82,7 +82,7 @@ async def disable_memory(device_id: str, request: Request) -> dict[str, Any]:
 
 
 @router.post("/{device_id}/export", dependencies=[Depends(require_private_api_key)])
-async def export_memories(device_id: str) -> dict[str, Any]:
+async def export_memories(device_id: str) -> JSONResponse:
     """Export all memories for a device as JSON."""
     store = get_memory_store()
     data = store.export(device_id)
@@ -90,7 +90,7 @@ async def export_memories(device_id: str) -> dict[str, Any]:
 
 
 @router.post("/{device_id}/consolidate", dependencies=[Depends(require_private_api_key)])
-async def trigger_consolidation(device_id: str) -> dict[str, Any]:
+async def trigger_consolidation(device_id: str) -> JSONResponse:
     """Trigger episode consolidation for a device."""
     store = get_memory_store()
     results = consolidate_task_episodes(store, device_id)

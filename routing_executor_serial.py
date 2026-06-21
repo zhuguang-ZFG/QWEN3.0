@@ -59,14 +59,10 @@ def _call_one_backend_serial(
         if answer and len(answer.strip()) > 5:
             health_tracker.record_success(backend, latency_ms)
             budget_manager.record_usage(backend)
-            _record_attempt(
-                backend, scenario, request_type, tools, attempt_label, True, latency_ms
-            )
+            _record_attempt(backend, scenario, request_type, tools, attempt_label, True, latency_ms)
             return answer
         health_tracker.record_failure(backend, error_code=None)
-        _record_attempt(
-            backend, scenario, request_type, tools, attempt_label, False, latency_ms, response_empty=True
-        )
+        _record_attempt(backend, scenario, request_type, tools, attempt_label, False, latency_ms, response_empty=True)
         return None
     except Exception as e:
         latency_ms = (time.time() - t_backend) * 1000

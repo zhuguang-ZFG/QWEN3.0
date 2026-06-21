@@ -52,7 +52,6 @@ async def process_voice_utterance(
     except Exception:
         _log.warning("device=%s voiceprint identification skipped", device_id, exc_info=True)
 
-
     asr_start = time.monotonic()
     transcript = await _run_asr(pcm_data, cfg)
     asr_ms = (time.monotonic() - asr_start) * 1000

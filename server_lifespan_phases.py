@@ -59,7 +59,7 @@ async def start_probe_loop() -> None:
 async def start_device_gateway_runtime() -> None:
     async with PhaseTimer("device_gateway.runtime.start"):
         try:
-            from routes.device_gateway import start_device_gateway_runtime
+            from routes.device_gateway_helpers import start_device_gateway_runtime
 
             await start_device_gateway_runtime()
         except ImportError as exc:
@@ -195,7 +195,7 @@ async def stop_session_memory_daemon() -> None:
 
 async def stop_device_gateway_runtime() -> None:
     try:
-        from routes.device_gateway import stop_device_gateway_runtime
+        from routes.device_gateway_helpers import stop_device_gateway_runtime
 
         await stop_device_gateway_runtime()
     except ImportError as exc:

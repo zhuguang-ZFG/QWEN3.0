@@ -12,6 +12,7 @@ class _FakeWebSocket:
     def __init__(self, headers: dict[str, str] | None = None, query: dict[str, str] | None = None) -> None:
         self.headers = Headers(headers or {})
         self.query_params = QueryParams(query or {})
+        self.scope = {"state": {}}
 
 
 @pytest.mark.parametrize(

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from collections import defaultdict
+from importlib import import_module
+from importlib.util import find_spec
 
 from observability.events import LiMaEvent
 
@@ -33,6 +36,19 @@ _session_backends: dict[str, str] = {}
 MAX_SESSIONS = 1000
 
 _start_time: float = time.time()
+_openobserve_unavailable_warned = False
+
+
+def _openobserve_enabled() -> bool:
+    return os.environ.get("OPENOBSERVE_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+
+
+def _openobserve_available() -> bool:
+    return find_spec("observability.openobserve_sink") is not None
+
+
+def _openobserve_status() -> dict[str, bool]:
+    return {"enabled": _openobserve_enabled(), "available": _openobserve_available()}
 
 
 def record(event: LiMaEvent) -> None:
@@ -72,14 +88,21 @@ def record(event: LiMaEvent) -> None:
             _token_completion[event.backend] += event.completion_tokens
             _token_requests[event.backend] += 1
 
-    try:
-        from observability.openobserve_sink import maybe_export_event
+    if _openobserve_enabled():
+        _export_openobserve(event)
 
+
+def _export_openobserve(event: LiMaEvent) -> None:
+    global _openobserve_unavailable_warned
+    try:
+        maybe_export_event = import_module("observability.openobserve_sink").maybe_export_event
         maybe_export_event(event)
-    except ImportError:
-        logger.debug("openobserve sink unavailable")
+    except ImportError as exc:
+        if not _openobserve_unavailable_warned:
+            logger.warning("openobserve export enabled but sink unavailable: %s", exc)
+            _openobserve_unavailable_warned = True
     except Exception:
-        logger.debug("openobserve export skipped", exc_info=True)
+        logger.warning("openobserve export failed", exc_info=True)
 
 
 def _prune_sessions() -> None:
@@ -119,6 +142,7 @@ def get_metrics_snapshot() -> dict:
             "backends": backend_stats,
             "failure_class_counts": dict(top_failures),
             "event_type_counts": dict(_event_type_counts),
+            "openobserve": _openobserve_status(),
         }
 
 
@@ -155,10 +179,11 @@ def _percentile(samples: list[float], p: int) -> float:
 
 def reset_metrics() -> None:
     """Clear all metrics state. For test isolation only."""
-    global _total_requests, _start_time
+    global _total_requests, _start_time, _openobserve_unavailable_warned
     with _lock:
         _total_requests = 0
         _start_time = time.time()
+        _openobserve_unavailable_warned = False
         _success.clear()
         _failure.clear()
         _failure_class_counts.clear()

@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi.routing import APIRoute
 
 import server
+from scripts.guardian_test_index import ROUTES_CONTRACT_TEST, find_test_file
 from scripts.lima_guardian import CodeScanner, _check_route_registration
 
 
@@ -29,3 +30,20 @@ def test_guardian_flags_truly_unregistered_route_file(tmp_path, monkeypatch):
     findings = CodeScanner.scan_file(orphan)
     types = {f["type"] for f in findings}
     assert "route_unregistered" in types
+
+
+def test_find_test_file_recognizes_ops_metrics_package_import():
+    hit = find_test_file("routes/ops_metrics/prometheus.py")
+    assert hit is not None
+    assert "ops_metrics" in hit.replace("\\", "/")
+
+
+def test_find_test_file_recognizes_routes_auth_contract():
+    hit = find_test_file("routes/health_dashboard.py")
+    assert hit == ROUTES_CONTRACT_TEST
+
+
+def test_find_test_file_recognizes_module_specific_admin_tests():
+    hit = find_test_file("routes/admin_api.py")
+    assert hit is not None
+    assert "admin" in hit.replace("\\", "/")

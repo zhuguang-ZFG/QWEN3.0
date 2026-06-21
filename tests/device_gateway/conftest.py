@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from routes.device_gateway import _reset_for_tests
+from routes.device_gateway_helpers import _reset_for_tests
 
 
 @pytest.fixture(autouse=True)

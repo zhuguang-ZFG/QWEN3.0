@@ -14,7 +14,7 @@ _log = logging.getLogger(__name__)
 
 
 # Simplified quality/stub wrappers (device-first refactor 2026-06-15)
-def quality_check(answer: str, query, backend: str, **kwargs) -> tuple:
+def quality_check(answer: str, query_or_complexity, backend: str, **kwargs) -> tuple:
     """Always pass - device scenario doesn't need complex quality gates."""
     return (True, 1.0, [])
 
@@ -129,9 +129,29 @@ async def _try_fallback_candidates(
     return None
 
 
-_record_request: Callable[..., None] = lambda *a, **kw: None
-_record_fallback: Callable[..., None] = lambda *a, **kw: None
-_model_id = "lima-1.3"
+from lima_constants import MODEL_ID
+
+_log = logging.getLogger(__name__)
+_injected = False
+
+
+def _require_injected(name: str) -> None:
+    raise RuntimeError(f"routes.chat_fallback.inject_deps() was not called; missing {name}")
+
+
+def _unconfigured_record_request(*args, **kwargs) -> None:
+    if not _injected:
+        _require_injected("record_request")
+
+
+def _unconfigured_record_fallback(*args, **kwargs) -> None:
+    if not _injected:
+        _require_injected("record_fallback")
+
+
+_record_request: Callable[..., None] = _unconfigured_record_request
+_record_fallback: Callable[..., None] = _unconfigured_record_fallback
+_model_id = MODEL_ID
 
 
 def inject_deps(
@@ -140,10 +160,11 @@ def inject_deps(
     record_request: Callable[..., None],
     record_fallback: Callable[..., None],
 ) -> None:
-    global _model_id, _record_request, _record_fallback
+    global _model_id, _record_request, _record_fallback, _injected
     _model_id = model_id
     _record_request = record_request
     _record_fallback = record_fallback
+    _injected = True
 
 
 @dataclass
@@ -168,7 +189,10 @@ class QualityFallbackRequest:
 async def resolve_quality_fallback(req: QualityFallbackRequest) -> JSONResponse:
     """Run same-tier and upgrade-chain fallback; return success or honest failure."""
     fallback_intent = req.intent_name if req.intent_name != "unknown" else "unknown"
-    fallback_backend = default_route(req.query, req.ide_source) if req.backend == "unknown" else req.backend
+    fallback_backend = req.backend
+    if req.backend == "unknown":
+        routed = default_route(req.query, req.ide_source)
+        fallback_backend = routed[0] if isinstance(routed, tuple) else str(routed)
 
     # Same-tier retry
     same_tier = get_same_tier_backends(fallback_backend)

@@ -64,7 +64,8 @@ def lima_client(monkeypatch: Any, tmp_path: Path) -> TestClient:
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     monkeypatch.setenv("LIMA_OUTCOME_DB", str(tmp_path / "outcome.db"))
 
-    from routes.device_gateway import router, _reset_for_tests
+    from routes.device_gateway import router
+    from routes.device_gateway_helpers import _reset_for_tests
 
     _reset_for_tests()
     app = FastAPI()

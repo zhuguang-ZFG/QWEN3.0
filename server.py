@@ -26,6 +26,7 @@ from vision_handler import (
     _stream_vision_response,
 )
 from http_body_limit import BodySizeLimitMiddleware
+from lima_constants import MODEL_VERSION
 from server_bootstrap import (
     MAX_BODY_SIZE,
     MODEL_CREATED,
@@ -35,14 +36,18 @@ from server_bootstrap import (
 )
 from server_lifespan import lifespan
 
-app = FastAPI(title="LiMa", version="1.3", description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容", lifespan=lifespan)
+app = FastAPI(
+    title="LiMa",
+    version=MODEL_VERSION,
+    description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
+    lifespan=lifespan,
+)
 
-# Sentry error tracking
 _sentry_dsn = os.environ.get("SENTRY_DSN", "")
 if _sentry_dsn:
     try:
-        import sentry_sdk  # type: ignore[reportMissingImports]
-        from sentry_sdk.integrations.fastapi import FastApiIntegration  # type: ignore[reportMissingImports]
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
 
         sentry_sdk.init(
             dsn=_sentry_dsn,
@@ -70,9 +75,6 @@ _detect_ide = _rt_mod.detect_ide
 _elapsed_ms = _rt_mod.elapsed_ms
 FALLBACK_LOG = _rt_mod.FALLBACK_LOG
 
-# REMOVED 2026-06-09: routes.tool_forward (编码助手专属功能)
-# 战略转型为智能设备服务端，删除编码助手相关代码
-
 from routes.images import build_pollinations_url as _build_pollinations_url
 
 from routes.chat_handler import handle_chat as _handle_chat, inject_deps as _inject_chat_handler_deps
@@ -88,9 +90,6 @@ _inject_chat_stream_deps(
     last_resort_call=_last_resort_call,
     build_pollinations_url=_build_pollinations_url,
 )
-
-# REMOVED 2026-06-09: routes.anthropic_stream (编码助手专属功能)
-# 战略转型为智能设备服务端，删除编码助手相关代码
 
 from routes.route_registry import RouteRegistryDeps, register_all_routes
 

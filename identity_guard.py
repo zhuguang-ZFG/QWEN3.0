@@ -7,98 +7,7 @@ LiMa Identity Guard — 身份/能力问题拦截器
 
 import re
 
-# ── 身份问题检测模式 ─────────────────────────────────────────────────────────
-
-_IDENTITY_PATTERNS = [
-    # 中文身份问题
-    r"你是谁",
-    r"你叫什么",
-    r"你是什么",
-    r"你是什么模型",
-    r"你的名字",
-    r"你是哪个",
-    r"你是哪家",
-    r"谁开发的你",
-    r"谁做的你",
-    r"你是ai吗",
-    r"你是人工智能吗",
-    r"你是机器人吗",
-    r"你背后是什么",
-    r"你用的什么模型",
-    r"你基于什么",
-    r"你的创造者",
-    r"谁创造.*你",
-    r"你的开发者",
-    r"你的母公司",
-    r"你属于.*公司",
-    r"你是.*公司的",
-    r"你的父公司",
-    r"你的父母",
-    r"你的爸",
-    r"你的妈",
-    r"你从哪来",
-    r"你的身世",
-    r"你的出身",
-    r"你的来历",
-    r"你是.*开发",
-    r"你.*哪个公司",
-    r"你.*哪家公司",
-    r"动力巢",
-    r"donglicao",
-    r"powernest",
-    r"你是gpt吗",
-    r"你是claude吗",
-    r"你是deepseek吗",
-    r"你是llama吗",
-    r"你是gemini吗",
-    r"你是qwen吗",
-    r"你是chatgpt",
-    r"你是通义",
-    r"你是文心",
-    # 英文身份问题
-    r"who are you",
-    r"what are you",
-    r"what model",
-    r"what is your name",
-    r"your name",
-    r"what AI",
-    r"are you (gpt|claude|gemini|deepseek|qwen|llama|meta)",
-    r"which (model|llm|ai)",
-    r"who made you",
-    r"who built you",
-    r"who created you",
-    r"what company",
-    r"your (creator|developer|maker)",
-    r"who.*develop",
-    r"who.*own",
-    r"parent company",
-]
-
-_CAPABILITY_PATTERNS = [
-    # 中文能力问题
-    r"你能做什么",
-    r"你有什么能力",
-    r"你会什么",
-    r"你能帮我做什么",
-    r"你的功能",
-    r"你擅长什么",
-    r"你可以做什么",
-    r"介绍一下你自己",
-    r"自我介绍",
-    # 英文能力问题
-    r"what can you do",
-    r"what are your capabilities",
-    r"what are you capable of",
-    r"introduce yourself",
-    r"tell me about yourself",
-    r"what do you do",
-    r"what are your (skills|abilities|features)",
-]
-
-_identity_re = re.compile("|".join(_IDENTITY_PATTERNS), re.IGNORECASE)
-_capability_re = re.compile("|".join(_CAPABILITY_PATTERNS), re.IGNORECASE)
-
-# ── 预设回答（owner / 默认：完整能力） ───────────────────────────────────────
+from identity_guard_patterns import matches_capability_question, matches_identity_question
 
 IDENTITY_ANSWER_CN = """我是 LiMa（力码），由深圳市动力巢科技有限公司开发的智能助手。
 
@@ -194,10 +103,10 @@ def detect_identity_question(query: str, *, channel_role: str = "default") -> st
     is_cn = _is_chinese(q)
     id_cn, id_en, cap_cn, cap_en = _answers_for_role(channel_role)
 
-    if _identity_re.search(q):
+    if matches_identity_question(q):
         return id_cn if is_cn else id_en
 
-    if _capability_re.search(q):
+    if matches_capability_question(q):
         return cap_cn if is_cn else cap_en
 
     return None

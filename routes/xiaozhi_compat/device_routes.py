@@ -1,4 +1,4 @@
-"""Device management routes for XiaoZhi v1 compatibility API."""
+"""XiaoZhi v1 compatibility routes — now delegates to device_logic shared layer."""
 
 from __future__ import annotations
 
@@ -16,22 +16,14 @@ from device_logic import (
     unbind_device as logic_unbind_device,
     update_device_row,
 )
-from device_logic.activation import ACTIVATION_TTL_SECONDS
+from device_logic.access import require_device_access
+from device_logic.auth import authorize
+from device_logic.db import connect
+from device_logic.device_sn import validate_device_sn  # Q2-compat fix
+from device_logic.payloads import device_payload
+from .shared import err, new_id, now, ok, read_body, str_field
 
-from .shared import (
-    authorize,
-    connect,
-    device_payload,
-    err,
-    new_id,
-    now,
-    ok,
-    read_body,
-    require_device_access,
-    str_field,
-)
-
-router = APIRouter()
+router = APIRouter(tags=["xiaozhi-compat"])
 
 
 def _device_error(exc: DeviceLogicError) -> JSONResponse:
@@ -47,7 +39,7 @@ async def register_device(request: Request, authorization: str = Header(default=
     if isinstance(body, JSONResponse):
         return body
     activation_code = new_activation_code(str_field(body, "macAddress", "mac_address"))
-    return ok({"activationCode": activation_code, "code": activation_code, "expiresIn": ACTIVATION_TTL_SECONDS})
+    return ok({"activationCode": activation_code, "code": activation_code})
 
 
 @router.post("/devices/bind")
@@ -62,6 +54,13 @@ async def bind_device(request: Request, authorization: str = Header(default=""))
     activation_code = str_field(body, "activationCode", "activation_code")
     if not device_sn or not activation_code:
         return err(400, "deviceSn and activationCode are required", 400)
+    # Q2-compat fix: validate SN format BEFORE consuming the one-time activation code.
+    # N1 made check_activation_code() DELETE the code on success, so a bad SN would
+    # silently burn the code without binding any device.
+    try:
+        device_sn = validate_device_sn(device_sn)
+    except DeviceLogicError as exc:
+        return _device_error(exc)
     if not check_activation_code(activation_code):
         return err(4004, "Invalid activation code", 400)
     try:

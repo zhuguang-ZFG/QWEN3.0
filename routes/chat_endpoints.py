@@ -10,12 +10,14 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import ValidationError
 
 import rate_limiter
 from access_guard import require_public_or_private_api_key
 from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
 from response_builder import build_response, make_chat_id
+from routes.async_compat import maybe_await
 from routes.json_body import read_json_object
 from vision_handler import detect_vision_request
 
@@ -47,14 +49,21 @@ def _model_id() -> str:
     return str(_dep("model_id"))
 
 
-async def _maybe_await(value: Any) -> Any:
-    if hasattr(value, "__await__"):
-        return await value
-    return value
-
-
 async def _read_json_body(request: Request) -> dict[str, Any] | JSONResponse:
     return await read_json_object(request, openai_error=True)
+
+
+def _invalid_chat_request(exc: ValidationError) -> JSONResponse:
+    details = []
+    for error in exc.errors()[:3]:
+        loc = ".".join(str(part) for part in error.get("loc", ()))
+        msg = str(error.get("msg", "invalid value"))
+        details.append(f"{loc}: {msg}" if loc else msg)
+    message = "; ".join(details) or "invalid chat request"
+    return JSONResponse(
+        status_code=400,
+        content={"error": {"message": message, "type": "invalid_request_error"}},
+    )
 
 
 async def _handle_vision_shortcut(
@@ -72,7 +81,7 @@ async def _handle_vision_shortcut(
     from chat_request_utils import extract_last_user_text
 
     query_text = extract_last_user_text(raw_messages)
-    vision_result = await _maybe_await(_call("vision_route", raw_messages, body.get("max_tokens", 4096), ide_source))
+    vision_result = await maybe_await(_call("vision_route", raw_messages, body.get("max_tokens", 4096), ide_source))
     if not vision_result:
         return None
     content = vision_result["answer"]
@@ -141,15 +150,20 @@ async def chat_completions(request: Request):
         _log.info("Tool call request routed through standard chat pipeline (native forwarding removed)")
         # Fall through to standard chat_req handling below
 
-    chat_req = ChatRequest(**body)
+    try:
+        chat_req = ChatRequest(**body)
+    except ValidationError as exc:
+        return _invalid_chat_request(exc)
     if body.get("thinking", False):
         chat_req.thinking = True
 
-    return await _dep("handle_chat")(
-        chat_req,
-        fmt="openai",
-        client_ip=client_ip,
-        ide_source=ide_source,
-        sys_prompt_preview=sys_prompt_preview,
-        request_headers=dict(request.headers),
+    return await maybe_await(
+        _dep("handle_chat")(
+            chat_req,
+            fmt="openai",
+            client_ip=client_ip,
+            ide_source=ide_source,
+            sys_prompt_preview=sys_prompt_preview,
+            request_headers=dict(request.headers),
+        )
     )

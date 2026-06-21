@@ -66,7 +66,7 @@ async def _run_startup_phases() -> None:
             )
             record_startup_error(phase_fn.__name__, exc)
             set_startup_status("error")
-            return
+            raise RuntimeError(f"Critical startup phase {phase_fn.__name__!r} failed: {exc}") from exc
 
     mark_critical_done()
     set_startup_status("warming")

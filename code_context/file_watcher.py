@@ -89,9 +89,11 @@ class FileWatcher:
         of individual changes for auditing.
         """
         current_mtimes: dict[str, float] = {}
+        current_hashes: dict[str, str] = {}
         for path in self._walk_files():
             try:
                 current_mtimes[path] = os.path.getmtime(path)
+                current_hashes[path] = self.compute_content_hash(path)
             except OSError:
                 continue
 
@@ -106,6 +108,9 @@ class FileWatcher:
             elif mtime > old_mtime:
                 changes.append(FileChange(path, "modified", old_mtime, mtime))
                 changed_paths.append(path)
+            elif current_hashes.get(path, "") != self._manifest.file_hashes.get(path, ""):
+                changes.append(FileChange(path, "modified", old_mtime, mtime))
+                changed_paths.append(path)
 
         for old_path in self._manifest.file_mtimes:
             if old_path not in current_mtimes:
@@ -115,6 +120,7 @@ class FileWatcher:
         self._manifest = ScanManifest(
             scanned_at=time.time(),
             total_files=len(current_mtimes),
+            file_hashes=current_hashes,
             file_mtimes=current_mtimes,
         )
 

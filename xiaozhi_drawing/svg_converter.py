@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 # ── 图像下载 ───────────────────────────────────────────────────────────────────
 
+
 async def _download_image(image_url: str) -> BytesIO:
     """Download image from URL."""
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -32,6 +33,7 @@ async def _download_image(image_url: str) -> BytesIO:
 
 
 # ── 图像预处理 ─────────────────────────────────────────────────────────────────
+
 
 def _preprocess_image(image_data: BytesIO) -> tuple:
     """Load, resize, gray, blur, and Otsu-threshold the image."""
@@ -46,6 +48,7 @@ def _preprocess_image(image_data: BytesIO) -> tuple:
 
 
 # ── 骨架化 ─────────────────────────────────────────────────────────────────────
+
 
 def _thin_morphological(binary: np.ndarray) -> np.ndarray:
     """Pure-OpenCV iterative morphological thinning fallback.
@@ -92,6 +95,7 @@ def _thin_binary(binary: np.ndarray) -> tuple[np.ndarray, str]:
 
 
 # ── 路径提取 ───────────────────────────────────────────────────────────────────
+
 
 def _contour_to_svg_path(contour: np.ndarray, *, closed: bool = True) -> str:
     """Convert an OpenCV contour to SVG path string.
@@ -181,6 +185,7 @@ def _svg_payload(
 
 
 # ── 转换器主类 ─────────────────────────────────────────────────────────────────
+
 
 class SVGConverter:
     """图像 → SVG 路径转换器"""

@@ -59,7 +59,9 @@ class RedisDeviceTaskNotifier:
         if self._task is not None and not self._task.done():
             return
         self._pubsub = self._redis.pubsub()
-        await self._pubsub.subscribe(self._channel)
+        pubsub = self._pubsub
+        assert pubsub is not None
+        await pubsub.subscribe(self._channel)
         self._task = asyncio.create_task(self._listen(callback))
 
     async def stop(self) -> None:

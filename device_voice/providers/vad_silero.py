@@ -103,9 +103,7 @@ class SileroVADProvider(VADProvider):
 
             audio_int16 = np.frombuffer(frame, dtype=np.int16)
             audio_float32 = audio_int16.astype(np.float32) / 32768.0
-            audio_input = np.concatenate(
-                [state.onnx_context, audio_float32.reshape(1, -1)], axis=1
-            ).astype(np.float32)
+            audio_input = np.concatenate([state.onnx_context, audio_float32.reshape(1, -1)], axis=1).astype(np.float32)
 
             ort_inputs = {
                 "input": audio_input,

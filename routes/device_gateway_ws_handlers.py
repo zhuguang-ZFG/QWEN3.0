@@ -35,6 +35,7 @@ from routes.device_gateway_dispatch import (
     extract_ws_token,
     record_motion_event_observability,
     send_ws_error,
+    ticket_device_id,
 )
 from routes.device_voice_ws_helpers import (
     _cleanup_audio_registry,
@@ -71,6 +72,15 @@ async def handle_hello(
 ) -> tuple[str | None, DeviceSession | None, bool]:
     device_id = message["device_id"]
     token = extract_ws_token(websocket)
+    bound_device_id = ticket_device_id(websocket)
+    if bound_device_id and bound_device_id != device_id:
+        _log.warning("device hello ticket device mismatch expected=%r got=%r", bound_device_id, device_id)
+        await send_ws_error(
+            websocket,
+            ProtocolError("E_UNAUTHORIZED_DEVICE", "device ticket does not match device_id", request_id),
+        )
+        await websocket.close(code=1008)
+        return None, None, False
     if not validate_device_token(device_id, token):
         _log.warning("device hello auth failed device=%r token_len=%d", device_id, len(token))
         await send_ws_error(

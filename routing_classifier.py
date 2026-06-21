@@ -14,7 +14,7 @@ def classify(
     fmt: str = "openai",
     ide_source: str = "",
     system_prompt: str = "",
-    headers: dict = None,
+    headers: dict | None = None,
 ) -> str:
     """判断请求类型: ide / chat / vision / image"""
     headers = headers or {}
@@ -116,11 +116,14 @@ _EN_CODE_SIGNALS = (
 _FILE_EXT_RE = re.compile(r"\w+\.(?:py|js|ts|tsx|jsx|go|rs|java|c|cpp)\b")
 
 
-def classify_scenario(messages, query=None, ide_source=None, request_type=None) -> str:
+def classify_scenario(
+    messages: list[dict] | None,
+    *,
+    query: str | None = None,
+    ide_source: str | None = None,
+    request_type: str | None = None,
+) -> str:
     """判断场景: coding / chat。决定走质量路径还是速度路径。"""
-    if isinstance(messages, str) and isinstance(query, list):
-        messages, query = query, messages
-
     if request_type == "ide":
         return "coding"
     if ide_source and ide_source.lower() in _IDE_SOURCES:
@@ -142,7 +145,7 @@ def classify_scenario(messages, query=None, ide_source=None, request_type=None) 
     return "chat"
 
 
-def _extract_text(messages, query) -> str:
+def _extract_text(messages: list[dict] | None, query: str | None) -> str:
     last_content = ""
     if messages:
         last = messages[-1]

@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
 from device_intelligence.shadow import shadow_store
-from device_gateway.auth import token_configured
+from device_gateway.auth import token_configured, validate_device_token
 from device_gateway.protocol import (
     PROTOCOL_VERSION,
     ProtocolError,
@@ -24,28 +24,25 @@ from device_gateway.sessions import registry
 from device_gateway.store import configure_task_store_from_env, task_store_health
 from device_ledger.store import configure_ledger_store_from_env, ledger_store_health
 from device_memory.store import configure_memory_store_from_env, memory_store_health
-from device_gateway.notifier import (
-    configure_notifier_from_env,
-    notifier_health,
-    start_task_notifier,
-    stop_task_notifier,
-)
 from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
 from device_gateway.health import build_device_gateway_health
-from device_gateway.tasks import (
-    ack_processing_task,
-    pending_count,
-    record_motion_event,
-    reset_tasks_for_tests,
-)
+from device_gateway.tasks import ack_processing_task, record_motion_event
 from routes.device_gateway_dispatch import (
     dispatch_task_to_session,
     drain_pending_tasks,
     notify_local_session_task_available,
     record_motion_event_observability,
 )
+from routes.device_gateway_helpers import (
+    _record_device_task_evidence,
+    _reset_for_tests,
+    start_device_gateway_runtime,
+    stop_device_gateway_runtime,
+)
 from routes.device_gateway_ws import handle_device_ws
 from routes.json_body import read_json_object
+
+import device_ws_ticket
 
 router = APIRouter(prefix="/device/v1")
 
@@ -157,37 +154,26 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
     )
 
 
-def _record_device_task_evidence(
-    *,
-    device_id: str,
-    task: dict[str, Any],
-    status: str,
-    request_id: str = "",
-) -> None:
-    from observability.capability_evidence import record_evidence_safe
+@router.post("/ws/ticket")
+async def create_device_ws_ticket(request: Request) -> JSONResponse:
+    """Exchange a device token for a short-lived WebSocket ticket."""
+    body = await read_json_object(request)
+    device_id = str(body.get("device_id", "")).strip()
+    header_token = request.headers.get("authorization", "")
+    from access_guard import extract_bearer_token
 
-    record_evidence_safe(
-        loop="device_gateway",
-        request_id=request_id or str(task.get("request_id", "")),
-        task_id=str(task.get("task_id", "")),
-        device_id=device_id,
-        entrypoint="/device/v1/tasks",
-        status=status,
-        evidence=["device_task_created"],
-        rollback="delete pending task queue for test device if smoke-generated",
+    token = extract_bearer_token(header_token) or str(body.get("token", "")).strip()
+    if not device_id or not validate_device_token(device_id, token):
+        return JSONResponse(
+            status_code=401,
+            content=error_frame(ProtocolError("E_UNAUTHORIZED_DEVICE", "device token is invalid")),
+        )
+    return JSONResponse(
+        {
+            "ticket": device_ws_ticket.issue(device_id, token),
+            "expires_in": device_ws_ticket.TTL_SECONDS,
+        }
     )
-
-
-async def start_device_gateway_runtime() -> None:
-    configure_task_store_from_env()
-    configure_memory_store_from_env()
-    configure_ledger_store_from_env()
-    configure_notifier_from_env()
-    await start_task_notifier(notify_local_session_task_available)
-
-
-async def stop_device_gateway_runtime() -> None:
-    await stop_task_notifier()
 
 
 @router.websocket("/ws")
@@ -243,8 +229,8 @@ async def device_task_list(
 async def device_drawing_history(
     device_id: str,
     artifact_type: str = "",
-    limit: int = 20,
-    offset: int = 0,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ) -> JSONResponse:
     """查询设备绘图历史"""
     from device_artifacts.store import artifacts_for_device
@@ -278,9 +264,3 @@ async def device_drawing_history(
             "limit": limit,
         }
     )
-
-
-def _reset_for_tests() -> None:
-    registry.clear()
-    reset_tasks_for_tests()
-    shadow_store.reset()

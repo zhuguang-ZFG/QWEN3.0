@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from dataclasses import dataclass
+from pathlib import Path
+
+SMOKE_DIR = Path(__file__).resolve().parent
+if str(SMOKE_DIR) not in sys.path:
+    sys.path.insert(0, str(SMOKE_DIR))
+
+import ws_ticket_http
 
 
 @dataclass(frozen=True)
@@ -20,7 +28,10 @@ async def run_hardware_smoke(host: str, device_id: str, token: str) -> SmokeResu
     except ImportError as exc:
         raise RuntimeError("Install websockets to run hardware smoke") from exc
 
-    ws_url = f"wss://{host}/device/v1/ws?authorization=Bearer {token}"
+    ws_url = ws_ticket_http.ws_url_with_ticket(
+        f"wss://{host}/device/v1/ws",
+        ws_ticket_http.issue_device_ws_ticket(host, device_id, token),
+    )
     hello = {
         "type": "hello",
         "protocol": "lima-device-v1",

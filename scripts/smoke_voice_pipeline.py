@@ -17,6 +17,12 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+SMOKE_DIR = Path(__file__).resolve().parent
+if str(SMOKE_DIR) not in sys.path:
+    sys.path.insert(0, str(SMOKE_DIR))
+
+import ws_ticket_http
+
 LIMA_HOST = os.environ.get("LIMA_VERIFY_HOST", "chat.donglicao.com")
 
 
@@ -40,7 +46,8 @@ def _mask(value: str) -> str:
 
 
 async def _test_text_pipeline(api_key: str) -> dict:
-    url = f"wss://{LIMA_HOST}/v1/voice?authorization=Bearer {api_key}"
+    ticket = ws_ticket_http.issue_chat_ws_ticket(LIMA_HOST, api_key)
+    url = ws_ticket_http.ws_url_with_ticket(f"wss://{LIMA_HOST}/v1/voice", ticket)
     try:
         async with websockets.connect(url, additional_headers={"User-Agent": "LiMaSmoke/1.0"}) as ws:
             await ws.send(json.dumps({"type": "text", "text": "你好，请简短介绍一下自己。"}))

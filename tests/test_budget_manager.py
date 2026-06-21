@@ -1,10 +1,11 @@
 """Tests for budget_manager.py — cost class, token telemetry, quota scoring."""
 
 import budget_manager
+from tests.budget_manager_helpers import reset_budget_manager_state, set_budget_usage_for_tests
 
 
 def setup_function():
-    budget_manager.reset_for_tests()
+    reset_budget_manager_state()
 
 
 # ── Cost class ─────────────────────────────────────────────────────────────────
@@ -86,24 +87,24 @@ def test_remaining_quota_score_no_config():
 
 
 def test_remaining_quota_score_exhausted():
-    budget_manager.set_usage_for_tests("longcat_lite", 3000)
+    set_budget_usage_for_tests("longcat_lite", 3000)
     assert budget_manager.get_remaining_quota_score("longcat_lite") == 0.0
 
 
 def test_budget_status_normal_warning_exhausted():
     assert budget_manager.get_budget_status("longcat_lite") == "normal"
 
-    budget_manager.set_usage_for_tests("longcat_lite", 2500)  # 2500/3000 > 0.8 → warning
+    set_budget_usage_for_tests("longcat_lite", 2500)  # 2500/3000 > 0.8 → warning
     assert budget_manager.get_budget_status("longcat_lite") == "warning"
 
-    budget_manager.set_usage_for_tests("longcat_lite", 3000)  # exhausted
+    set_budget_usage_for_tests("longcat_lite", 3000)  # exhausted
     assert budget_manager.get_budget_status("longcat_lite") == "exhausted"
     assert budget_manager.is_budget_available("longcat_lite") is False
 
 
 def test_reset_clears_all_state():
     budget_manager.record_token_usage("github_gpt4o", prompt_tokens=100)
-    budget_manager.set_usage_for_tests("longcat_lite", 500)
-    budget_manager.reset_for_tests()
+    set_budget_usage_for_tests("longcat_lite", 500)
+    reset_budget_manager_state()
     assert budget_manager.get_token_usage("github_gpt4o")["requests"] == 0
     assert budget_manager.get_budget_status("longcat_lite") == "normal"

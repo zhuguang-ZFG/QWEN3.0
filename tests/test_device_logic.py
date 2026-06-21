@@ -69,7 +69,7 @@ def test_activation_code_one_time_use(tmp_path, monkeypatch):
     _schema_ready_paths.clear()
     reset_activation_store_for_tests()
     code = new_activation_code("dd:ee:ff")
-    assert check_activation_code(code) is True   # first use → valid and consumed
+    assert check_activation_code(code) is True  # first use → valid and consumed
     assert check_activation_code(code) is False  # replay → code deleted, blocked
 
 

@@ -338,10 +338,7 @@ async def extract_content(
 
 def _redact_headers(headers: dict[str, str]) -> dict[str, str]:
     """Remove sensitive headers from captured network requests."""
-    return {
-        k: "<redacted>" if k.lower() in _SENSITIVE_HEADERS else v
-        for k, v in headers.items()
-    }
+    return {k: "<redacted>" if k.lower() in _SENSITIVE_HEADERS else v for k, v in headers.items()}
 
 
 @app.post("/network-intercept")

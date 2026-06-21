@@ -99,7 +99,7 @@ def _prepare_run(
     workspace: str | None,
     session_continue: bool,
     timeout: int | None,
-) -> tuple[Path, Path, Path, list[Path], str, int, Path] | dict[str, Any]:
+) -> tuple[Path, Path, Path, list[Path], str | None, int, Path] | dict[str, Any]:
     """Resolve workspace, brief, and attachments. Returns context tuple or error dict."""
     ws = resolve_workspace(workspace)
     artifact_dir = _artifact_dir(ws)

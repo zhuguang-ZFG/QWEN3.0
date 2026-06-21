@@ -34,7 +34,7 @@ def test_classify_never_crashes(query: str, fmt: str, ide_source: str):
 def test_classify_scenario_never_crashes(query: str, ide_source: str):
     """classify_scenario() should return a valid scenario string."""
     messages = [{"role": "user", "content": query}] if query else []
-    result = classify_scenario(query, messages, ide_source=ide_source)
+    result = classify_scenario(messages, query=query, ide_source=ide_source)
     assert isinstance(result, str)
     assert result in ("chat", "coding", "tool_use", "image", "identity", "unknown")
 

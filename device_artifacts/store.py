@@ -99,6 +99,8 @@ def artifacts_for_device(
     offset: int = 0,
 ) -> list[ArtifactRecord]:
     """Query artifacts by device_id with pagination."""
+    limit = max(1, min(int(limit), 100))
+    offset = max(0, int(offset))
     with artifact_store._lock:
         records = []
         for record in artifact_store._records:

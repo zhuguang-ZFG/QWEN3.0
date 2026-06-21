@@ -277,3 +277,14 @@ def test_event_type_counts_accurate():
     assert snapshot["event_type_counts"]["request_start"] == 3
     assert snapshot["event_type_counts"]["backend_call"] == 5
     assert snapshot["event_type_counts"]["backend_error"] == 2
+
+
+def test_openobserve_enabled_without_sink_is_visible(monkeypatch, caplog):
+    monkeypatch.setenv("OPENOBSERVE_ENABLED", "1")
+
+    record(request_start_event("r-openobserve"))
+
+    snapshot = get_metrics_snapshot()
+    assert snapshot["openobserve"]["enabled"] is True
+    assert snapshot["openobserve"]["available"] is False
+    assert "openobserve export enabled but sink unavailable" in caplog.text

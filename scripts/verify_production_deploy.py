@@ -66,7 +66,9 @@ def main() -> int:
             status, body = _get(path)
             data = json.loads(body)
             ok = status == 200 and data.get("status") == "ok"
-            print(f"OK  {path} -> {status} status={data.get('status')}" if ok else f"FAIL {path} -> {status} {body[:120]}")
+            print(
+                f"OK  {path} -> {status} status={data.get('status')}" if ok else f"FAIL {path} -> {status} {body[:120]}"
+            )
             if not ok:
                 failures.append(path)
         except Exception as exc:

@@ -27,7 +27,8 @@ from device_gateway.tasks import (
     pending_count,
     task_snapshot,
 )
-from routes.device_gateway import _reset_for_tests, router
+from routes.device_gateway import router
+from routes.device_gateway_helpers import _reset_for_tests
 
 
 @pytest.fixture(autouse=True)

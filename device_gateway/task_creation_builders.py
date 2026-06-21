@@ -10,6 +10,13 @@ from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState
 
 from .model_routing import CONTROL_CAPABILITIES
+from .task_creation_errors import (
+    _build_error_task,
+    _handle_dispatch_blocked,
+    _handle_policy_error,
+    _next_task_id,
+    _null_guard_error_task,
+)
 from .task_draw_params import build_run_params_async
 from .task_recorder import (
     record_preview_artifact as _record_preview_artifact,
@@ -19,9 +26,19 @@ from .task_recorder import (
 from . import store as store_mod
 from . import task_deps as deps
 
-
-def _next_task_id() -> str:
-    return store_mod.task_store.next_task_id()
+__all__ = [
+    "_resolve_route_context",
+    "_handle_policy_error",
+    "_handle_dispatch_blocked",
+    "_build_error_task",
+    "_run_task_simulation",
+    "_build_run_params_or_error",
+    "_validate_params_or_error",
+    "_apply_route_policy_or_blocked",
+    "_assemble_motion_task",
+    "_create_task_from_voice_task",
+    "_next_task_id",
+]
 
 
 def _resolve_route_context(
@@ -42,89 +59,6 @@ def _resolve_route_context(
         resolved_profile=resolved,
     )
     return resolved, route_policy
-
-
-def _handle_policy_error(
-    device_id: str,
-    voice_task: dict,
-    request_id: str | None,
-    route_policy: dict,
-    capability: str,
-    policy_error: str,
-) -> dict[str, Any]:
-    """Build and record a policy-error task."""
-    return _build_error_task(
-        device_id,
-        voice_task,
-        request_id,
-        route_policy,
-        capability,
-        policy_error,
-        f"route_policy validation failed: {policy_error}",
-        "failed",
-        "route_policy_invalid",
-    )
-
-
-def _handle_dispatch_blocked(
-    device_id: str,
-    voice_task: dict,
-    request_id: str | None,
-    route_policy: dict,
-    capability: str,
-    resolved: Any,
-) -> dict[str, Any]:
-    """Build and record a dispatch-blocked task."""
-    task = _build_error_task(
-        device_id,
-        voice_task,
-        request_id,
-        route_policy,
-        capability,
-        "fw_incompatible",
-        resolved.routing_hints.get("block_reason") or route_policy.get("block_reason", "firmware incompatible"),
-        "blocked",
-        "dispatch_blocked",
-    )
-    task["profile_routing"] = {
-        "profile_id": resolved.profile.profile_id,
-        "complete": resolved.complete,
-        "fw_compatible": resolved.fw_compatible,
-        "max_path_points": resolved.profile.max_path_points,
-        "max_feed": resolved.profile.max_feed,
-    }
-    return task
-
-
-def _build_error_task(
-    device_id: str,
-    voice_task: dict,
-    request_id: str | None,
-    route_policy: dict,
-    capability: str,
-    error_code: str,
-    error_reason: str,
-    status: str,
-    scenario: str,
-) -> dict[str, Any]:
-    """Build a failed/blocked motion task."""
-    task_id = _next_task_id()
-    task = {
-        "type": "motion_task",
-        "task_id": task_id,
-        "device_id": device_id,
-        "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
-        "source": voice_task.get("source", "voice"),
-        "params": {},
-        "route_policy": route_policy,
-        "error": {"code": error_code, "reason": error_reason},
-    }
-    if request_id:
-        task["request_id"] = request_id
-    store_mod.task_store.create_task_state(task, status=status)
-    _record_task_created(task, status=status)
-    _record_route_evidence_artifact(task, scenario=scenario)
-    return task
 
 
 def _run_task_simulation(task: dict[str, Any], sanitized: dict, device_id: str) -> dict[str, Any]:
@@ -272,22 +206,28 @@ async def _create_task_from_voice_task(
     capability: str,
 ) -> dict[str, Any]:
     """Create a task from a voice task intent."""
-    run_params, error_task = await _build_run_params_or_error(
-        device_id, voice_task, request_id, route_policy, capability, params
-    )
+    ctx = (device_id, voice_task, request_id, route_policy, capability)
+
+    run_params, error_task = await _build_run_params_or_error(*ctx, params)
     if error_task:
         return error_task
+    if guard := _null_guard_error_task(*ctx, run_params, "task_build_failed", "task build failed", "task_build_failed"):
+        return guard
 
-    sanitized, error_task = await _validate_params_or_error(
-        device_id, voice_task, request_id, route_policy, capability, run_params
-    )
+    sanitized, error_task = await _validate_params_or_error(*ctx, run_params)
     if error_task:
         return error_task
+    if guard := _null_guard_error_task(
+        *ctx, sanitized, "task_validation_failed", "task validation failed", "task_validation_failed"
+    ):
+        return guard
 
-    policy_dict, error_task = _apply_route_policy_or_blocked(
-        device_id, voice_task, request_id, route_policy, capability, sanitized
-    )
+    policy_dict, error_task = _apply_route_policy_or_blocked(*ctx, sanitized)
     if error_task:
         return error_task
+    if guard := _null_guard_error_task(
+        *ctx, policy_dict, "task_policy_failed", "task policy failed", "task_policy_failed"
+    ):
+        return guard
 
-    return _assemble_motion_task(device_id, voice_task, request_id, route_policy, capability, sanitized, policy_dict)
+    return _assemble_motion_task(*ctx, sanitized, policy_dict)

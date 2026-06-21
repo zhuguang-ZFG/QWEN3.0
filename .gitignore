@@ -79,6 +79,7 @@ LIMA-external/
 *_opencode.py
 *_cache_patch.py
 data/*.db
+data/uploads/
 data/*.db-shm
 data/*.db-wal
 data/lima_routing_weights.json

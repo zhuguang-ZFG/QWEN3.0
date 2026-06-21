@@ -9,7 +9,8 @@ from backends_registry import BACKENDS
 
 DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 
-MODEL_ID = "lima-1.3"
+from lima_constants import MODEL_ID
+
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
 

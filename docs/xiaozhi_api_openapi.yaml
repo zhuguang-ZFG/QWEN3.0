@@ -1,1318 +1,2909 @@
 openapi: "3.0.3"
+
 info:
+
   title: LiMa Smart Device Cloud API
+
   description: |
-    OpenAPI specification for LiMa's replacement of XiaoZhi (小智) server APIs.
+
+    OpenAPI specification for LiMa's replacement of XiaoZhi (å°æº) server APIs.
+
     Covers the P0/P1 core interfaces for device management, user authentication,
+
     task dispatch, and family member management.
 
+
+
     **Phase 0 migration scope:** 28 core endpoints across 6 domains.
+
     Original source: XiaoZhi Java Spring Boot controllers (27 Controller files).
+
   version: "1.0.0"
+
   contact:
+
     name: LiMa Team
+
     url: https://donglicao.com
 
+
+
 servers:
-  - url: https://api.donglicao.com/v1
-    description: Production API server
-  - url: http://localhost:8080/v1
+
+  - url: https://chat.donglicao.com
+
+    description: Production API server (LiMa native `/device/v1/app/*`, upload `/upload`, XiaoZhi compat `/api/v1/*`)
+
+  - url: http://localhost:8080
+
     description: Local development
 
+
+
 tags:
+
   - name: Auth
+
     description: User authentication (P0)
+
   - name: Device
+
     description: Device binding and management (P0)
+
   - name: Task
+
     description: Motion/capability task dispatch (P0)
+
   - name: Member
+
     description: Family member management (P1)
+
   - name: Voiceprint
+
     description: Voiceprint enrollment and management (P1)
+
   - name: Transfer
+
     description: Device transfer between accounts (P1)
+
   - name: Supply
+
     description: Device consumable status (P2)
+
   - name: SelfCheck
+
     description: Device self-check diagnostics (P2)
 
-# ── Security ────────────────────────────────────────────────────────
+
+
+# ââ Security ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
 security:
+
   - bearerAuth: []
 
+
+
 components:
+
   securitySchemes:
+
     bearerAuth:
+
       type: http
+
       scheme: bearer
+
       bearerFormat: JWT
+
       description: |
+
         JWT token obtained from `/auth/login`. Include in Authorization header.
 
-  # ── Schemas ──────────────────────────────────────────────────────
+
+
+  # ââ Schemas ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
   schemas:
-    # ── Common ──
+
+    # ââ Common ââ
+
     ErrorResponse:
+
       type: object
+
       properties:
+
         code:
+
           type: integer
+
           description: Error code
+
         message:
+
           type: string
+
           description: Human-readable error message
 
+
+
     Result:
+
       type: object
+
       description: Generic success response wrapper
+
       properties:
+
         code:
+
           type: integer
+
           example: 0
+
         data:
+
           description: Response payload (varies by endpoint)
 
-    # ── Auth ──
+
+
+    # ââ Auth ââ
+
     LoginRequest:
+
       type: object
+
       required: [phone, code]
+
       properties:
+
         phone:
+
           type: string
+
           pattern: '^\+?[0-9]{10,15}$'
+
           example: "+86-13800138000"
+
           description: Phone number with optional country code
+
         code:
+
           type: string
+
           minLength: 4
+
           maxLength: 6
+
           example: "123456"
+
           description: SMS verification code
 
+
+
     LoginResponse:
+
       type: object
+
       properties:
+
         token:
+
           type: string
+
           description: JWT access token
+
         expiresIn:
+
           type: integer
+
           example: 86400
+
           description: Token expiry in seconds
 
+
+
     RegisterRequest:
+
       type: object
+
       required: [phone, code]
+
       properties:
+
         phone:
+
           type: string
+
           pattern: '^\+?[0-9]{10,15}$'
+
         code:
+
           type: string
+
           minLength: 4
+
           maxLength: 6
+
         nickname:
+
           type: string
+
           maxLength: 50
+
+
 
     SmsVerificationRequest:
+
       type: object
+
       required: [mobile, captchaId, captcha]
+
       properties:
+
         mobile:
+
           type: string
+
           pattern: '^\+?[0-9]{10,15}$'
+
         captchaId:
+
           type: string
+
           description: UUID of the captcha image
+
         captcha:
+
           type: string
+
           minLength: 4
+
           maxLength: 6
+
+
 
     UserInfo:
+
       type: object
+
       properties:
+
         id:
+
           type: string
+
           format: uuid
+
         phone:
+
           type: string
+
         nickname:
+
           type: string
+
         avatarUrl:
+
           type: string
+
           format: uri
+
         role:
+
           type: string
+
           enum: [user, admin]
+
         status:
+
           type: string
+
           enum: [active, disabled, deleted]
+
         createdAt:
+
           type: string
+
           format: date-time
 
-    # ── Device ──
+
+
+    # ââ Device ââ
+
     DeviceRegisterRequest:
+
       type: object
+
       required: [macAddress]
+
       properties:
+
         macAddress:
+
           type: string
+
           pattern: '^([0-9A-Fa-f]{2}[:-]?){5}([0-9A-Fa-f]{2})$'
+
           example: "AA:BB:CC:DD:EE:FF"
+
           description: Device MAC address
 
+
+
     DeviceRegisterResponse:
+
       type: object
+
       properties:
+
         code:
+
           type: string
+
           minLength: 6
+
           maxLength: 6
+
           example: "482931"
+
           description: 6-digit activation code to enter on device
 
+
+
     DeviceInfo:
+
       type: object
+
       properties:
+
         id:
+
           type: string
+
           format: uuid
+
         deviceSn:
+
           type: string
+
           description: Device serial number
+
         model:
+
           type: string
+
           enum: [esp32s3_xyz, esp32c3_mini]
+
         firmwareVer:
+
           type: string
+
         hardwareVer:
+
           type: string
+
         status:
+
           type: string
+
           enum: [online, offline, maintenance, retired]
+
         lastHeartbeat:
+
           type: string
+
           format: date-time
+
         mqttTopic:
+
           type: string
+
         metadata:
+
           type: string
+
           description: JSON string with extended properties
 
+
+
     DeviceUpdateRequest:
+
       type: object
+
       properties:
+
         nickname:
+
           type: string
+
         firmwareVer:
+
           type: string
+
+
 
     DeviceManualAddRequest:
+
       type: object
+
       required: [deviceSn, model]
+
       properties:
+
         deviceSn:
-          type: string
-        model:
+
           type: string
 
-    # ── Task ──
+        model:
+
+          type: string
+
+
+
+    # ââ Task ââ
+
     TaskSubmitRequest:
+
       type: object
+
       required: [capability]
+
       properties:
+
         capability:
+
           type: string
+
           enum: [run_path, draw_image, home, calibrate]
+
           description: Task capability / intent
+
         params:
+
           type: object
+
           description: Capability-specific parameters
+
           properties:
+
             path:
+
               type: array
+
               items:
+
                 $ref: '#/components/schemas/PathPoint'
+
             feed:
+
               type: number
+
               description: Feed rate in mm/min
+
             imageUrl:
+
               type: string
+
               format: uri
+
               description: Image URL for draw_image tasks
+
         source:
+
           type: string
+
           enum: [api, voice, scheduled]
+
           default: api
+
         memberId:
+
           type: string
+
           format: uuid
+
           description: Optional family member who initiated the task
 
+
+
     PathPoint:
+
       type: object
+
       required: [x, y]
+
       properties:
+
         x:
+
           type: number
+
           description: X coordinate in mm
+
         y:
+
           type: number
+
           description: Y coordinate in mm
+
         z:
+
           type: number
+
           default: 0
+
           description: Z coordinate in mm (pen up/down)
 
+
+
     TaskInfo:
+
       type: object
+
       properties:
+
         id:
+
           type: string
+
           format: uuid
+
         deviceId:
+
           type: string
+
           format: uuid
+
         capability:
+
           type: string
+
         params:
+
           type: string
+
           description: JSON string of task parameters
+
         source:
+
           type: string
+
           enum: [api, voice, scheduled]
+
         status:
+
           type: string
+
           enum: [pending, approved, running, completed, failed, cancelled, rejected]
+
         progress:
+
           type: number
+
           minimum: 0
+
           maximum: 1
+
         errorMsg:
+
           type: string
+
         memberId:
+
           type: string
+
           format: uuid
+
         createdAt:
+
           type: string
+
           format: date-time
+
         startedAt:
+
           type: string
+
           format: date-time
+
         completedAt:
+
           type: string
+
           format: date-time
+
+
 
     TaskApproveRequest:
+
       type: object
+
       properties:
+
         comment:
+
           type: string
+
           description: Optional approval comment
 
-    # ── Member ──
+
+
+    # ââ Member ââ
+
     MemberCreateRequest:
+
       type: object
+
       required: [deviceId, name]
+
       properties:
+
         deviceId:
+
           type: string
+
           format: uuid
+
         name:
+
           type: string
+
           maxLength: 50
-          example: "小明"
+
+          example: "å°æ"
+
         role:
+
           type: string
+
           enum: [child, parent, guest]
+
           default: child
+
         avatarUrl:
+
           type: string
+
           format: uri
+
+
 
     MemberInfo:
+
       type: object
+
       properties:
+
         id:
+
           type: string
+
           format: uuid
+
         accountId:
+
           type: string
+
           format: uuid
+
         deviceId:
+
           type: string
+
           format: uuid
+
         name:
+
           type: string
+
         role:
+
           type: string
+
           enum: [child, parent, guest]
+
         avatarUrl:
+
           type: string
+
           format: uri
+
         voiceprintId:
+
           type: string
+
           format: uuid
+
         status:
+
           type: string
+
           enum: [active, disabled]
+
         createdAt:
+
           type: string
+
           format: date-time
 
-    # ── Voiceprint ──
+
+
+    # ââ Voiceprint ââ
+
     VoiceprintEnrollRequest:
+
       type: object
+
       required: [memberId, deviceId]
+
       properties:
+
         memberId:
+
           type: string
+
           format: uuid
+
         deviceId:
+
           type: string
+
           format: uuid
+
+
 
     VoiceprintInfo:
+
       type: object
+
       properties:
+
         id:
+
           type: string
+
           format: uuid
+
         memberId:
+
           type: string
+
           format: uuid
+
         memberName:
+
           type: string
+
         deviceId:
+
           type: string
+
           format: uuid
+
         sampleCount:
+
           type: integer
+
           minimum: 0
+
         confidence:
+
           type: number
+
           minimum: 0
+
           maximum: 1
+
         status:
+
           type: string
+
           enum: [enrolled, verifying, disabled]
+
         createdAt:
+
           type: string
+
           format: date-time
 
-    # ── Transfer ──
+
+
+    # ââ Transfer ââ
+
     TransferRequest:
+
       type: object
+
       required: [deviceId, toPhone]
+
       properties:
+
         deviceId:
+
           type: string
+
           format: uuid
+
         toPhone:
+
           type: string
+
           pattern: '^\+?[0-9]{10,15}$'
+
           description: Phone number of the receiving account
 
+
+
     TransferInfo:
+
       type: object
+
       properties:
+
         id:
+
           type: string
+
           format: uuid
+
         deviceId:
+
           type: string
+
           format: uuid
+
         fromAccountId:
+
           type: string
+
           format: uuid
+
         toAccountId:
+
           type: string
+
           format: uuid
+
         status:
+
           type: string
+
           enum: [pending, accepted, cancelled, expired]
+
         reason:
+
           type: string
+
         expiresAt:
+
           type: string
-          format: date-time
-        createdAt:
-          type: string
+
           format: date-time
 
-    # ── Supply ──
+        createdAt:
+
+          type: string
+
+          format: date-time
+
+
+
+    # ââ Supply ââ
+
     SupplyUpdateRequest:
+
       type: object
+
       properties:
+
         pen:
+
           type: object
+
           properties:
+
             level:
+
               type: number
+
               minimum: 0
+
               maximum: 1
+
             status:
+
               type: string
+
               enum: [normal, low, empty]
+
         paper:
+
           type: object
+
           properties:
+
             level:
+
               type: number
+
               minimum: 0
+
               maximum: 1
+
             status:
+
               type: string
+
               enum: [normal, low, empty]
+
         battery:
+
           type: object
+
           properties:
+
             level:
+
               type: number
+
               minimum: 0
+
               maximum: 1
+
             status:
+
               type: string
+
               enum: [normal, low, empty]
+
+
 
     SupplyInfo:
+
       type: object
+
       properties:
+
         id:
+
           type: string
+
           format: uuid
+
         deviceId:
+
           type: string
+
           format: uuid
+
         supplyType:
+
           type: string
+
           enum: [pen, paper, battery]
+
         level:
+
           type: number
+
         status:
+
           type: string
+
           enum: [normal, low, empty, unknown]
 
-    # ── SelfCheck ──
+
+
+    # ââ SelfCheck ââ
+
     SelfCheckInfo:
+
       type: object
+
       properties:
+
         id:
+
           type: string
+
           format: uuid
+
         deviceId:
+
           type: string
+
           format: uuid
+
         checkType:
+
           type: string
+
           enum: [startup, periodic, manual]
+
         result:
+
           type: string
+
           enum: [pass, fail, warning]
+
         details:
+
           type: string
+
           description: JSON details of check results
+
         durationMs:
+
           type: integer
+
         triggeredBy:
+
           type: string
+
           enum: [system, user, api]
+
         createdAt:
+
           type: string
+
           format: date-time
 
-    # ── Account ──
+
+
+    # ââ Account ââ
+
     AccountDeleteResponse:
+
       type: object
+
       properties:
+
         deletedAt:
+
           type: string
+
           format: date-time
+
           description: Soft-delete timestamp
 
-# ── Paths ──────────────────────────────────────────────────────────
+
+
+# ââ Paths ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
 paths:
-  # ══════════════════════════════════════════════════════════════════�?  # P0: Auth
-  # ══════════════════════════════════════════════════════════════════�?  /auth/login:
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # P0: Auth
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /auth/login:
+
     post:
+
       tags: [Auth]
+
       summary: Login (phone + SMS code)
+
       description: |
-        **P0** �?Primary login endpoint for device owners.
+
+        **P0** â?Primary login endpoint for device owners.
+
         Authenticates via phone number and SMS verification code, returns JWT token.
+
       operationId: login
+
       security: []
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/LoginRequest'
+
       responses:
+
         '200':
+
           description: Login successful
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/LoginResponse'
+
         '401':
+
           description: Invalid credentials
+
           content:
+
             application/json:
+
               schema:
+
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /auth/register:
+
+
+  /device/v1/app/auth/register:
+
     post:
+
       tags: [Auth]
+
       summary: Register new account
+
       description: |
-        **P0** �?Register a new user account with phone number and SMS code.
+
+        **P0** â?Register a new user account with phone number and SMS code.
+
       operationId: register
+
       security: []
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/RegisterRequest'
+
       responses:
+
         '200':
+
           description: Registration successful
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/LoginResponse'
+
         '400':
+
           description: Validation error (e.g., phone already registered)
+
           content:
+
             application/json:
+
               schema:
+
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /auth/sms-verification:
+
+
+  /device/v1/app/auth/sms-verification:
+
     post:
+
       tags: [Auth]
+
       summary: Send SMS verification code
+
       description: |
-        **P0** �?Send SMS verification code to phone. Requires captcha validation first.
+
+        **P0** â?Send SMS verification code to phone. Requires captcha validation first.
+
       operationId: sendSmsCode
+
       security: []
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/SmsVerificationRequest'
+
       responses:
+
         '200':
+
           description: SMS code sent
+
         '400':
+
           description: Captcha validation failed
+
           content:
+
             application/json:
+
               schema:
+
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /auth/captcha:
+
+
+  /api/v1/auth/captcha:
+
     get:
+
       tags: [Auth]
+
       summary: Get captcha image
+
       description: Retrieve a captcha image for SMS verification anti-abuse.
+
       operationId: getCaptcha
+
       security: []
+
       parameters:
+
         - name: uuid
+
           in: query
+
           required: true
+
           schema:
+
             type: string
+
           description: Unique identifier for this captcha session
+
       responses:
+
         '200':
+
           description: Captcha image (PNG/JPEG)
+
           content:
+
             image/png: {}
 
-  /auth/me:
+
+
+  /device/v1/app/auth/me:
+
     get:
+
       tags: [Auth]
+
       summary: Get current user info
+
       operationId: getUserInfo
+
       responses:
+
         '200':
+
           description: User info
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/UserInfo'
 
-  /auth/change-password:
+
+
+  /api/v1/auth/change-password:
+
     put:
+
       tags: [Auth]
+
       summary: Change password
+
       operationId: changePassword
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               type: object
+
               required: [oldPassword, newPassword]
+
               properties:
+
                 oldPassword:
+
                   type: string
+
                 newPassword:
+
                   type: string
+
                   minLength: 6
+
       responses:
+
         '200':
+
           description: Password changed
 
-  /auth/account/delete:
+
+
+  /device/v1/app/auth/account/delete:
+
     post:
+
       tags: [Auth]
+
       summary: Delete account (soft)
+
       description: |
-        **P1** �?Soft-delete the current account. Device bindings are unbound, data is anonymized.
+
+        **P1** â?Soft-delete the current account. Device bindings are unbound, data is anonymized.
+
       operationId: deleteAccount
+
       responses:
+
         '200':
+
           description: Account soft-deleted
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/AccountDeleteResponse'
 
-  # ══════════════════════════════════════════════════════════════════�?  # P0: Device Binding & Management
-  # ══════════════════════════════════════════════════════════════════�?  /devices/register:
+
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # P0: Device Binding & Management
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /devices/register:
+
     post:
+
       tags: [Device]
+
       summary: Register device (get activation code)
+
       description: |
-        **P0** �?Register a new device by MAC address and receive a 6-digit activation code.
+
+        **P0** â?Register a new device by MAC address and receive a 6-digit activation code.
+
         The user enters this code on the device to complete pairing.
+
       operationId: registerDevice
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/DeviceRegisterRequest'
+
       responses:
+
         '200':
+
           description: Activation code generated
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/DeviceRegisterResponse'
 
-  /devices/bind:
+
+
+  /device/v1/app/devices/bind:
+
     post:
+
       tags: [Device]
+
       summary: Bind a device
+
       description: |
-        **P0** �?Bind a device to the current account using serial number and activation code.
+
+        **P0** â?Bind a device to the current account using serial number and activation code.
+
       operationId: bindDevice
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               type: object
+
               required: [deviceSn, activationCode]
+
               properties:
+
                 deviceSn:
+
                   type: string
+
                   description: Device serial number
+
                 activationCode:
+
                   type: string
+
                   minLength: 6
+
                   maxLength: 6
+
                   description: 6-digit code from /devices/register
+
       responses:
+
         '200':
+
           description: Device bound successfully
+
         '400':
+
           description: Invalid code or device already bound
+
           content:
+
             application/json:
+
               schema:
+
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /devices:
+
+
+  /device/v1/app/devices:
+
     get:
+
       tags: [Device]
+
       summary: List bound devices
+
       operationId: listDevices
+
       responses:
+
         '200':
+
           description: List of devices
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         type: array
+
                         items:
+
                           $ref: '#/components/schemas/DeviceInfo'
 
-  /devices/{deviceId}:
+
+
+  /device/v1/app/devices/{deviceId}:
+
     get:
+
       tags: [Device]
+
       summary: Get device details
+
       operationId: getDevice
+
       parameters:
+
         - name: deviceId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
       responses:
+
         '200':
+
           description: Device details
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/DeviceInfo'
 
+
+
     put:
+
       tags: [Device]
+
       summary: Update device info
+
       operationId: updateDevice
+
       parameters:
+
         - name: deviceId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/DeviceUpdateRequest'
+
       responses:
+
         '200':
+
           description: Device updated
 
-  /devices/{deviceId}/unbind:
+
+
+  /device/v1/app/devices/{deviceId}/unbind:
+
     post:
+
       tags: [Device]
+
       summary: Unbind device
+
       operationId: unbindDevice
+
       parameters:
+
         - name: deviceId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
       responses:
+
         '200':
+
           description: Device unbound
 
-  /devices/manual-add:
+
+
+  /device/v1/app/devices/manual-add:
+
     post:
+
       tags: [Device]
+
       summary: Manually add device
+
       description: Admin-only endpoint for manually registering a device by serial number.
+
       operationId: manualAddDevice
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/DeviceManualAddRequest'
+
       responses:
+
         '200':
+
           description: Device added
 
-  # ══════════════════════════════════════════════════════════════════�?  # P0: Task Dispatch
-  # ══════════════════════════════════════════════════════════════════�?  /devices/{deviceId}/tasks:
+
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # P0: Task Dispatch
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /devices/{deviceId}/tasks:
+
     post:
+
       tags: [Task]
+
       summary: Submit a motion/capability task
+
       description: |
-        **P0** �?Submit a task to a bound device. Supports `run_path` (draw path),
+
+        **P0** â?Submit a task to a bound device. Supports `run_path` (draw path),
+
         `draw_image` (AI image-to-path), `home`, and `calibrate` intents.
+
       operationId: submitTask
+
       parameters:
+
         - name: deviceId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/TaskSubmitRequest'
+
       responses:
+
         '200':
+
           description: Task submitted
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/TaskInfo'
+
         '400':
+
           description: Invalid parameters or device offline
+
           content:
+
             application/json:
+
               schema:
+
                 $ref: '#/components/schemas/ErrorResponse'
 
+
+
     get:
+
       tags: [Task]
+
       summary: List tasks for device
+
       operationId: listTasks
+
       parameters:
+
         - name: deviceId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
         - name: status
+
           in: query
+
           schema:
+
             type: string
+
             enum: [pending, approved, running, completed, failed, cancelled, rejected]
+
         - name: limit
+
           in: query
+
           schema:
+
             type: integer
+
             default: 20
+
             maximum: 100
+
       responses:
+
         '200':
+
           description: List of tasks
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         type: array
+
                         items:
+
                           $ref: '#/components/schemas/TaskInfo'
 
-  /tasks/{taskId}:
+
+
+  /device/v1/app/tasks/{taskId}:
+
     get:
+
       tags: [Task]
+
       summary: Get task details
+
       operationId: getTask
+
       parameters:
+
         - name: taskId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
       responses:
+
         '200':
+
           description: Task details
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/TaskInfo'
 
-  /tasks/{taskId}/approve:
+
+
+  /device/v1/app/tasks/{taskId}/approve:
+
     post:
+
       tags: [Task]
+
       summary: Approve a pending voice task
+
       description: |
-        **P1** �?Primary session approves a pending voice-initiated task (e.g., child's voice request).
+
+        **P1** â?Primary session approves a pending voice-initiated task (e.g., child's voice request).
+
       operationId: approveTask
+
       parameters:
+
         - name: taskId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
       requestBody:
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/TaskApproveRequest'
+
       responses:
+
         '200':
+
           description: Task approved, dispatched to device
 
-  /tasks/{taskId}/reject:
+
+
+  /device/v1/app/tasks/{taskId}/reject:
+
     post:
+
       tags: [Task]
+
       summary: Reject a pending voice task
+
       operationId: rejectTask
+
       parameters:
+
         - name: taskId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
       responses:
+
         '200':
+
           description: Task rejected
 
-  /devices/{deviceId}/tasks/pending:
+
+
+  /device/v1/app/devices/{deviceId}/tasks/pending:
+
     get:
+
       tags: [Task]
+
       summary: List pending voice tasks
+
       description: |
-        **P1** �?List pending voice tasks waiting for primary account approval.
+
+        **P1** â?List pending voice tasks waiting for primary account approval.
+
       operationId: listPendingVoiceTasks
+
       parameters:
+
         - name: deviceId
+
           in: path
+
           required: true
+
           schema:
+
             type: string
+
             format: uuid
+
       responses:
+
         '200':
+
           description: Pending tasks
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         type: array
+
                         items:
+
                           $ref: '#/components/schemas/TaskInfo'
 
-  # ══════════════════════════════════════════════════════════════════�?  # P1: Family Members
-  # ══════════════════════════════════════════════════════════════════�?  /members:
+
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # P1: Family Members
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /members:
+
     post:
+
       tags: [Member]
+
       summary: Create family member
+
       description: |
-        **P1** �?Create a family member profile on a bound device (e.g., child).
+
+        **P1** â?Create a family member profile on a bound device (e.g., child).
+
       operationId: createMember
+
       requestBody:
+
         required: true
+
         content:
+
           application/json:
+
             schema:
+
               $ref: '#/components/schemas/MemberCreateRequest'
+
       responses:
+
         '200':
+
           description: Member created
+
           content:
+
             application/json:
+
               schema:
+
                 allOf:
+
                   - $ref: '#/components/schemas/Result'
+
                   - properties:
+
                       data:
+
                         $ref: '#/components/schemas/MemberInfo'
 
-  /devices/{deviceId}/members:
+
+
+  /device/v1/app/devices/{deviceId}/members:
+
     get:
+
       tags: [Member]
+
       summary: List members on device
+
       operationId: listMembers
+
+      parameters:
+
+        - name: deviceId
+
+          in: path
+
+          required: true
+
+          schema:
+
+            type: string
+
+            format: uuid
+
+      responses:
+
+        '200':
+
+          description: List of members
+
+          content:
+
+            application/json:
+
+              schema:
+
+                allOf:
+
+                  - $ref: '#/components/schemas/Result'
+
+                  - properties:
+
+                      data:
+
+                        type: array
+
+                        items:
+
+                          $ref: '#/components/schemas/MemberInfo'
+
+
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # P1: Voiceprint
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /device/v1/app/voiceprints/enroll:
+
+    post:
+
+      tags: [Voiceprint]
+
+      summary: Enroll voiceprint
+
+      description: |
+
+        **P1** â?Start voiceprint enrollment for a family member on a device.
+
+        The actual audio samples are collected via MQTT/WebSocket.
+
+      operationId: enrollVoiceprint
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              $ref: '#/components/schemas/VoiceprintEnrollRequest'
+
+      responses:
+
+        '200':
+
+          description: Enrollment started
+
+          content:
+
+            application/json:
+
+              schema:
+
+                allOf:
+
+                  - $ref: '#/components/schemas/Result'
+
+                  - properties:
+
+                      data:
+
+                        $ref: '#/components/schemas/VoiceprintInfo'
+
+
+
+  /device/v1/app/voiceprints/{voiceprintId}:
+
+    delete:
+
+      tags: [Voiceprint]
+
+      summary: Delete voiceprint
+
+      description: Soft-delete a voiceprint and anonymize matching data.
+
+      operationId: deleteVoiceprint
+
+      parameters:
+
+        - name: voiceprintId
+
+          in: path
+
+          required: true
+
+          schema:
+
+            type: string
+
+            format: uuid
+
+      responses:
+
+        '200':
+
+          description: Voiceprint deleted
+
+
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # P1: Device Transfer
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /devices/{deviceId}/transfer:
+
+    post:
+
+      tags: [Transfer]
+
+      summary: Request device transfer
+
+      description: |
+
+        **P1** â?Initiate a device transfer to another account (by phone number).
+
+        The recipient has 48 hours to accept.
+
+      operationId: requestTransfer
+
+      parameters:
+
+        - name: deviceId
+
+          in: path
+
+          required: true
+
+          schema:
+
+            type: string
+
+            format: uuid
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              $ref: '#/components/schemas/TransferRequest'
+
+      responses:
+
+        '200':
+
+          description: Transfer requested
+
+          content:
+
+            application/json:
+
+              schema:
+
+                allOf:
+
+                  - $ref: '#/components/schemas/Result'
+
+                  - properties:
+
+                      data:
+
+                        $ref: '#/components/schemas/TransferInfo'
+
+
+
+  /device/v1/app/transfers/pending:
+
+    get:
+
+      tags: [Transfer]
+
+      summary: List pending incoming transfers
+
+      operationId: listPendingTransfers
+
+      responses:
+
+        '200':
+
+          description: Pending transfers
+
+          content:
+
+            application/json:
+
+              schema:
+
+                allOf:
+
+                  - $ref: '#/components/schemas/Result'
+
+                  - properties:
+
+                      data:
+
+                        type: array
+
+                        items:
+
+                          $ref: '#/components/schemas/TransferInfo'
+
+
+
+  /device/v1/app/transfers/{transferId}/accept:
+
+    post:
+
+      tags: [Transfer]
+
+      summary: Accept transfer
+
+      operationId: acceptTransfer
+
+      parameters:
+
+        - name: transferId
+
+          in: path
+
+          required: true
+
+          schema:
+
+            type: string
+
+            format: uuid
+
+      responses:
+
+        '200':
+
+          description: Transfer accepted, device ownership changed
+
+
+
+  /device/v1/app/transfers/{transferId}/cancel:
+
+    post:
+
+      tags: [Transfer]
+
+      summary: Cancel transfer
+
+      operationId: cancelTransfer
+
+      parameters:
+
+        - name: transferId
+
+          in: path
+
+          required: true
+
+          schema:
+
+            type: string
+
+            format: uuid
+
+      responses:
+
+        '200':
+
+          description: Transfer cancelled
+
+
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # P2: Consumable Supplies
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /devices/{deviceId}/supplies:
+
+    put:
+
+      tags: [Supply]
+
+      summary: Update consumable status
+
+      description: Update pen/paper/battery levels and status for a device.
+
+      operationId: updateSupplies
+
+      parameters:
+
+        - name: deviceId
+
+          in: path
+
+          required: true
+
+          schema:
+
+            type: string
+
+            format: uuid
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              $ref: '#/components/schemas/SupplyUpdateRequest'
+
+      responses:
+
+        '200':
+
+          description: Supplies updated
+
+
+
+    get:
+
+      tags: [Supply]
+
+      summary: Get consumable status
+
+      operationId: getSupplies
+
+      parameters:
+
+        - name: deviceId
+
+          in: path
+
+          required: true
+
+          schema:
+
+            type: string
+
+            format: uuid
+
+      responses:
+
+        '200':
+
+          description: Supply status list
+
+          content:
+
+            application/json:
+
+              schema:
+
+                allOf:
+
+                  - $ref: '#/components/schemas/Result'
+
+                  - properties:
+
+                      data:
+
+                        type: array
+
+                        items:
+
+                          $ref: '#/components/schemas/SupplyInfo'
+
+
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # P2: Self-Check Diagnostics
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /devices/{deviceId}/self-checks:
+
+    get:
+
+      tags: [SelfCheck]
+
+      summary: List self-check history
+
+      description: List recent self-check diagnostic results for a bound device.
+
+      operationId: listSelfChecks
+
+      parameters:
+
+        - name: deviceId
+
+          in: path
+
+          required: true
+
+          schema:
+
+            type: string
+
+            format: uuid
+
+        - name: limit
+
+          in: query
+
+          schema:
+
+            type: integer
+
+            default: 20
+
+            maximum: 100
+
+      responses:
+
+        '200':
+
+          description: Self-check history
+
+          content:
+
+            application/json:
+
+              schema:
+
+                allOf:
+
+                  - $ref: '#/components/schemas/Result'
+
+                  - properties:
+
+                      data:
+
+                        type: array
+
+                        items:
+
+                          $ref: '#/components/schemas/SelfCheckInfo'
+
+
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  # Health
+
+  # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ?  /health:
+
+    get:
+
+      tags: [Device]
+
+      summary: Health check
+
+      description: Returns server health status.
+
+      operationId: healthCheck
+
+      security: []
+
+      responses:
+
+        '200':
+
+          description: Server healthy
+
+          content:
+
+            application/json:
+
+              schema:
+
+                type: object
+
+                properties:
+
+                  status:
+
+                    type: string
+
+                    example: "ok"
+
+                  version:
+
+                    type: string
+
+                    example: "1.0.0"
+
+                  uptime:
+
+                    type: number
+
+                    description: Server uptime in seconds
+
+  # ═══════════════════════════════════════════════════════════════════
+  # P1: Device app chat history (manager-mobile)
+  # ═══════════════════════════════════════════════════════════════════
+  /device/v1/app/devices/{deviceId}/chat-sessions:
+    get:
+      tags: [Chat]
+      summary: List chat sessions for a device
+      operationId: listChatSessions
       parameters:
         - name: deviceId
           in: path
           required: true
           schema:
             type: string
-            format: uuid
       responses:
         '200':
-          description: List of members
+          description: List of chat sessions
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/Result'
-                  - properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/MemberInfo'
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChatSession"
+                  total:
+                    type: integer
+                  count:
+                    type: integer
 
-  # ══════════════════════════════════════════════════════════════════�?  # P1: Voiceprint
-  # ══════════════════════════════════════════════════════════════════�?  /voiceprints/enroll:
-    post:
-      tags: [Voiceprint]
-      summary: Enroll voiceprint
-      description: |
-        **P1** �?Start voiceprint enrollment for a family member on a device.
-        The actual audio samples are collected via MQTT/WebSocket.
-      operationId: enrollVoiceprint
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/VoiceprintEnrollRequest'
+  /device/v1/app/devices/{deviceId}/chat-sessions/{sessionId}/messages:
+    get:
+      tags: [Chat]
+      summary: Get messages for a chat session
+      operationId: getChatMessages
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          description: Enrollment started
+          description: Session messages
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/Result'
-                  - properties:
-                      data:
-                        $ref: '#/components/schemas/VoiceprintInfo'
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChatMessage"
+                  count:
+                    type: integer
 
-  /voiceprints/{voiceprintId}:
-    delete:
+  /device/v1/app/devices/{deviceId}/chat-history:
+    get:
+      tags: [Chat]
+      summary: List audio-capable chat history for voiceprint selection
+      operationId: listChatHistory
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audio-capable chat history entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chatHistory:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChatHistoryEntry"
+                  count:
+                    type: integer
+
+  /device/v1/app/devices/{deviceId}/audio/{audioId}:
+    get:
+      tags: [Chat]
+      summary: Get audio metadata
+      operationId: getAudioInfo
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: audioId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audio metadata including playback URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audioId:
+                    type: string
+                  url:
+                    type: string
+                  contentType:
+                    type: string
+
+  /device/v1/app/devices/{deviceId}/voiceprints:
+    get:
       tags: [Voiceprint]
-      summary: Delete voiceprint
-      description: Soft-delete a voiceprint and anonymize matching data.
-      operationId: deleteVoiceprint
+      summary: List voiceprints for a device
+      operationId: listVoiceprints
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of voiceprints
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  voiceprints:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/VoiceprintInfo"
+                  count:
+                    type: integer
+
+  /device/v1/app/voiceprints/{voiceprintId}:
+    put:
+      tags: [Voiceprint]
+      summary: Update voiceprint metadata
+      operationId: updateVoiceprint
       parameters:
         - name: voiceprintId
           in: path
           required: true
           schema:
             type: string
-            format: uuid
-      responses:
-        '200':
-          description: Voiceprint deleted
-
-  # ══════════════════════════════════════════════════════════════════�?  # P1: Device Transfer
-  # ══════════════════════════════════════════════════════════════════�?  /devices/{deviceId}/transfer:
-    post:
-      tags: [Transfer]
-      summary: Request device transfer
-      description: |
-        **P1** �?Initiate a device transfer to another account (by phone number).
-        The recipient has 48 hours to accept.
-      operationId: requestTransfer
-      parameters:
-        - name: deviceId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransferRequest'
+              type: object
+              properties:
+                sourceName:
+                  type: string
+                introduce:
+                  type: string
+                audioId:
+                  type: string
       responses:
         '200':
-          description: Transfer requested
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/Result'
-                  - properties:
-                      data:
-                        $ref: '#/components/schemas/TransferInfo'
+          description: Voiceprint updated
 
-  /transfers/pending:
-    get:
-      tags: [Transfer]
-      summary: List pending incoming transfers
-      operationId: listPendingTransfers
-      responses:
-        '200':
-          description: Pending transfers
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/Result'
-                  - properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/TransferInfo'
-
-  /transfers/{transferId}/accept:
+  /upload:
     post:
-      tags: [Transfer]
-      summary: Accept transfer
-      operationId: acceptTransfer
-      parameters:
-        - name: transferId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Transfer accepted, device ownership changed
-
-  /transfers/{transferId}/cancel:
-    post:
-      tags: [Transfer]
-      summary: Cancel transfer
-      operationId: cancelTransfer
-      parameters:
-        - name: transferId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Transfer cancelled
-
-  # ══════════════════════════════════════════════════════════════════�?  # P2: Consumable Supplies
-  # ══════════════════════════════════════════════════════════════════�?  /devices/{deviceId}/supplies:
-    put:
-      tags: [Supply]
-      summary: Update consumable status
-      description: Update pen/paper/battery levels and status for a device.
-      operationId: updateSupplies
-      parameters:
-        - name: deviceId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      tags: [Upload]
+      summary: Upload an image file
+      operationId: uploadFile
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/SupplyUpdateRequest'
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
       responses:
         '200':
-          description: Supplies updated
-
-    get:
-      tags: [Supply]
-      summary: Get consumable status
-      operationId: getSupplies
-      parameters:
-        - name: deviceId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Supply status list
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/Result'
-                  - properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/SupplyInfo'
-
-  # ══════════════════════════════════════════════════════════════════�?  # P2: Self-Check Diagnostics
-  # ══════════════════════════════════════════════════════════════════�?  /devices/{deviceId}/self-checks:
-    get:
-      tags: [SelfCheck]
-      summary: List self-check history
-      description: List recent self-check diagnostic results for a bound device.
-      operationId: listSelfChecks
-      parameters:
-        - name: deviceId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-            maximum: 100
-      responses:
-        '200':
-          description: Self-check history
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/Result'
-                  - properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/SelfCheckInfo'
-
-  # ══════════════════════════════════════════════════════════════════�?  # Health
-  # ══════════════════════════════════════════════════════════════════�?  /health:
-    get:
-      tags: [Device]
-      summary: Health check
-      description: Returns server health status.
-      operationId: healthCheck
-      security: []
-      responses:
-        '200':
-          description: Server healthy
+          description: File uploaded
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status:
+                  code:
+                    type: integer
+                  message:
                     type: string
-                    example: "ok"
-                  version:
-                    type: string
-                    example: "1.0.0"
-                  uptime:
-                    type: number
-                    description: Server uptime in seconds
+                  data:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                      name:
+                        type: string
+                      size:
+                        type: integer
+                      token:
+                        type: string
+                        description: HMAC download token (also embedded in url query)
+
+  /uploads/{filename}:
+    get:
+      tags: [Upload]
+      summary: Download a previously uploaded file
+      operationId: serveUploadedFile
+      security: []
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: false
+          schema:
+            type: string
+          description: HMAC time-limited access token returned by POST /upload
+      responses:
+        '200':
+          description: File content
+        '401':
+          description: Missing or invalid token (unless LIMA_UPLOAD_PUBLIC_GET=1)
+        '404':
+          description: File not found
+
+components:
+  schemas:
+    ChatSession:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        title:
+          type: string
+        chatCount:
+          type: integer
+        createdAt:
+          type: string
+    ChatMessage:
+      type: object
+      properties:
+        chatType:
+          type: integer
+        content:
+          type: string
+        audioId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+    ChatHistoryEntry:
+      type: object
+      properties:
+        content:
+          type: string
+        audioId:
+          type: string

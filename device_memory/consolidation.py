@@ -8,12 +8,12 @@ import time
 from typing import Any
 
 from device_memory.schemas import MemoryEntry, MemoryType
-from device_memory.store import MemoryStore
+from device_memory.store import MemoryStoreBackend
 
 _log = logging.getLogger(__name__)
 
 
-def consolidate_task_episodes(store: MemoryStore, device_id: str) -> list[MemoryEntry]:
+def consolidate_task_episodes(store: MemoryStoreBackend, device_id: str) -> list[MemoryEntry]:
     """Analyze task episodes for a device and produce/update procedure-confidence memories.
 
     Returns any newly created or updated confidence entries.
