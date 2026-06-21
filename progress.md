@@ -2711,3 +2711,32 @@ Agent Worker path.
   - `promtool check rules` SUCCESS（3 rules）；`promtool check config` SUCCESS；`prometheus` **active**。
   - `/api/v1/rules` 组 `lima_backend_retirement` 仅含：**Spike / CountRising / Burst**（旧版 `LiMaBackendRetired` / `CountHigh` 已清除）。
 - **待提交**：L5/M6 本地改动 + 本 progress 条目（未 push）。
+
+## 2026-06-22 VPS 深度清理结项 + 完整部署验证
+
+### VPS 深度清理（三轮，已完成）
+
+| 阶段 | 磁盘可用 | 使用率 | 主要动作 |
+|------|----------|--------|----------|
+| 清理前 | ~675MB | 99% | pip/playwright/journal/旧 syslog 等 |
+| 第一轮后 | ~4.0GB | 90% | 同上 + 旧 `messages-*` 轮转 |
+| 第二轮后 | ~5.7GB | 85% | modelscope/huggingface/chroma_db/旧备份 |
+| 第三轮后 | **~6.0GB** | **84%** | 删除 `esp32S_XYZ`、`.git`、`tests`、`docs`（生产不需要） |
+| **当前（2026-06-22 复核）** | **6.0GB** | **84%** | `backups` 12MB；`esp32`/`.git`/`tests` 已不存在 |
+
+服务：`lima-router` active；本机 `/health` → `ok`。
+
+### 完整部署验证（2026-06-22）
+
+| 检查项 | 结果 |
+|--------|------|
+| `GET /health` | ✅ 200 `ok` |
+| `GET /device/v1/health` | ✅ 200 `ok` |
+| `GET /v1/ops/metrics/prometheus`（Bearer） | ✅ 200；`lima_backend_retired_count=168` |
+| **L1** `validate_device_sn`（VPS 本机 import） | ✅ 非法 SN → **4002** / HTTP 400 |
+| **L2** `allow_device_auth`（VPS 本机单进程） | ✅ 第 21 次 login 限流触发 |
+| **L2** 公网 21 次 `/auth/login` | ⚠️ 未出现 429（多 uvicorn worker 内存计数分散，**非回归**） |
+
+验证脚本：`scripts/verify_production_deploy.py`（公网 health + metrics + L2 探针；L1/L2 逻辑复核走 VPS SSH）。
+
+**待跟进**：L2 若需跨 worker 一致限流，需 Redis/共享存储（backlog，非本次阻塞）。
