@@ -2822,5 +2822,24 @@ Agent Worker path.
 - **提交**：
   - `fba1afa0` `fix(lima_mcp_stdio): replace silent except-pass ...`
   - `fcbb3676` `docs: record 2026-06-22 MCP stdio fix ...`
+  - `486e840e` `fix(deploy): avoid Argument list too long ...`
+  - `463917a9` `fix(scripts): deduplicate GBK stdout workaround in check_mcp_health.py`
   - 已 push 到 GitHub `origin/main`。
 - **仍阻塞**：Gitee 同步仍缺 SSH key / `GITEE_TOKEN`。
+
+## 2026-06-22 继续优化 — 补全 device_logic/rate_limit.py 单元测试
+
+- **目标**：消除 guardian `no_test_file` 警告中 `device_logic\rate_limit.py`（5 个公开函数未覆盖）。
+- **实现**：新增 `tests/test_device_logic_rate_limit.py`，覆盖：
+  - 构造函数参数校验（正/负边界）
+  - `is_allowed` 允许/拒绝、key 隔离、滑动窗口过期
+  - `check` 通过 / 抛出 `RateLimitExceeded`
+  - `reset` / `reset_all`
+  - `remaining` 递减与不记录调用
+  - 多线程并发安全
+- **验证**：
+  - `pytest tests/test_device_logic_rate_limit.py -v` → **15 passed**。
+  - `ruff check` / `ruff format --check` / `pyright` → clean。
+  - 重跑 `PYTHONIOENCODING=utf-8 python scripts/lima_guardian.py --full-scan` → guardian `no_test_file` 警告从 4 个降至 2 个（仅剩 `tool_gateway/audit.py`、`tool_gateway/governance.py`）。
+- **提交**：`6426a74b` `test(device_logic): add tests for RateLimiter ...`；已 push 到 GitHub `origin/main`。
+- **待处理**：`tool_gateway/audit.py`、`tool_gateway/governance.py` 仍无测试；Gitee 同步仍缺凭证。

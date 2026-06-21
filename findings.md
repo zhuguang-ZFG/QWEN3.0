@@ -727,3 +727,20 @@
 
 **后续建议**
 - 在 `http_caller.py` 增加集中式 scheme 策略门控：拒绝 `http://` 调用，除非后端标记 `insecure_http: true` 且对应 opt-in flag 已启用。本次未实现，因为涉及更广泛的调用路径和错误处理改造。
+
+## 2026-06-22 QUAL-019 补全 device_logic/rate_limit.py 单元测试
+
+**发现**
+- Guardian 全量扫描报告 `device_logic\rate_limit.py` 无测试文件（5 个公开函数未覆盖）。
+
+**修复**
+- 新增 `tests/test_device_logic_rate_limit.py`，15 个用例覆盖构造、`is_allowed`、`check`、`reset`/`reset_all`、`remaining`、线程安全。
+
+**验证**
+- `pytest tests/test_device_logic_rate_limit.py -v` → 15 passed。
+- `ruff` / `pyright` clean。
+- Guardian 重扫后 `no_test_file` 警告从 4 个降至 2 个（仅剩 `tool_gateway/audit.py`、`tool_gateway/governance.py`）。
+
+**待处理**
+- `tool_gateway/audit.py`、`tool_gateway/governance.py` 仍缺测试。
+- Gitee 同步仍阻塞。
