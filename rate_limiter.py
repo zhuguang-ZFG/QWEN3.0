@@ -5,6 +5,8 @@ from __future__ import annotations
 import threading
 import time
 
+import rate_limiter_redis
+
 WINDOW = 60
 MAX_PER_WINDOW = 120
 MAX_TRACKED_IPS = 50_000
@@ -57,6 +59,10 @@ def check_rate_limit(ip: str, multiplier: int = 1) -> bool:
 
 def check_keyed_rate_limit(key: str, *, max_per_window: int, window: float = WINDOW) -> bool:
     """Sliding-window limiter keyed by arbitrary string (e.g. device auth action + IP)."""
+    redis_result = rate_limiter_redis.check_keyed(key, max_per_window=max_per_window, window=window)
+    if redis_result is not None:
+        return redis_result
+
     now = time.time()
     limit = max(1, max_per_window)
     with _keyed_lock:
@@ -95,3 +101,4 @@ def reset(ip: str | None = None) -> None:
     with _keyed_lock:
         if ip is None:
             _keyed_requests.clear()
+    rate_limiter_redis.reset()

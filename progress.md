@@ -2740,3 +2740,17 @@ Agent Worker path.
 验证脚本：`scripts/verify_production_deploy.py`（公网 health + metrics + L2 探针；L1/L2 逻辑复核走 VPS SSH）。
 
 **待跟进**：L2 若需跨 worker 一致限流，需 Redis/共享存储（backlog，非本次阻塞）。
+
+## 2026-06-22 L2 跨 worker Redis 限流 + Cloudflare 真实 IP
+
+- **实现**：
+  - `rate_limiter_redis.py`：`LIMA_DEVICE_REDIS_URL` / `LIMA_DEVICE_AUTH_RATE_REDIS=1` 时用 Redis 固定窗口计数（跨 worker）。
+  - `rate_limiter.check_keyed_rate_limit()` 优先 Redis，失败或未配置时回退进程内内存。
+  - `routes/request_tracking.client_ip`：优先 `CF-Connecting-IP` / `X-Real-IP`，修复 CF 后 XFF 误用边缘 IP 导致限流失效。
+- **VPS 运维**：
+  - `.env` 追加 `LIMA_DEVICE_REDIS_URL=redis://127.0.0.1:6379/0`、`LIMA_DEVICE_AUTH_RATE_REDIS=1`。
+  - nginx：`CF-Connecting-IP` 透传 + `/etc/nginx/conf.d/00-cloudflare-realip.conf`（`real_ip_header CF-Connecting-IP` + CF IP 段）。
+- **验证**：
+  - 单测：`tests/test_rate_limiter.py`（含 Redis fake）、`tests/test_request_tracking_client_ip.py` → **pass**。
+  - VPS 本机 21 次 login → **429**；公网 `scripts/verify_production_deploy.py` → **PASS**（L2 第 5 次 429，因前序探测已计数）。
+  - Redis key 样例：`lima:keyed_rate:device_auth:login:<client_ip>:<bucket>`（客户端 IP 稳定为真实来源，非 CF 边缘轮转）。

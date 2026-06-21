@@ -23,6 +23,10 @@ FALLBACK_LOG = os.path.join(_DATA_DIR, "fallback_log.jsonl")
 TRUSTED_PROXIES = {"127.0.0.1", "::1", "10.0.0.1"}
 
 
+def _forwarded_for_chain(header_value: str) -> list[str]:
+    return [part.strip() for part in header_value.split(",") if part.strip()]
+
+
 def inject_state(stats: dict, stats_lock: threading.Lock) -> None:
     """Called once from server.py to wire in shared mutable state."""
     global _stats, _stats_lock
@@ -71,10 +75,17 @@ def get_ip_location(ip: str) -> str:
 def client_ip(request: Request) -> str:
     """统一 IP 提取：可信代理后用 XFF，否则用 direct IP。"""
     direct = request.client.host if request.client else ""
-    if direct in TRUSTED_PROXIES:
-        xff = request.headers.get("x-forwarded-for", "")
-        if xff:
-            return xff.split(",")[0].strip()
+    if direct not in TRUSTED_PROXIES:
+        return direct
+    cf_ip = request.headers.get("cf-connecting-ip", "").strip()
+    if cf_ip and cf_ip not in TRUSTED_PROXIES:
+        return cf_ip
+    real_ip = request.headers.get("x-real-ip", "").strip()
+    if real_ip and real_ip not in TRUSTED_PROXIES:
+        return real_ip
+    chain = _forwarded_for_chain(request.headers.get("x-forwarded-for", ""))
+    if chain:
+        return chain[0]
     return direct
 
 

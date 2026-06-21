@@ -100,3 +100,50 @@ def test_keyed_rate_limiter_enforces_per_key_limit(monkeypatch):
     assert rate_limiter.check_keyed_rate_limit("device_auth:register:1.2.3.4", max_per_window=2) is True
     assert rate_limiter.check_keyed_rate_limit("device_auth:register:1.2.3.4", max_per_window=2) is False
     assert rate_limiter.check_keyed_rate_limit("device_auth:register:5.6.7.8", max_per_window=2) is True
+
+
+class _FakeRateRedis:
+    def __init__(self) -> None:
+        self.values: dict[str, int] = {}
+        self.ttl: dict[str, int] = {}
+
+    def incr(self, key: str) -> int:
+        self.values[key] = int(self.values.get(key, 0)) + 1
+        return self.values[key]
+
+    def expire(self, key: str, seconds: int) -> bool:
+        self.ttl[key] = seconds
+        return True
+
+    def scan_iter(self, match: str):
+        prefix = match[:-1] if match.endswith("*") else match
+        for key in list(self.values):
+            if key.startswith(prefix):
+                yield key
+
+    def delete(self, *keys: str) -> int:
+        removed = 0
+        for key in keys:
+            if key in self.values:
+                del self.values[key]
+                removed += 1
+            self.ttl.pop(key, None)
+        return removed
+
+
+def test_keyed_rate_limit_redis_backend(monkeypatch):
+    import rate_limiter_redis as redis_backend
+
+    fake = _FakeRateRedis()
+    monkeypatch.setenv("LIMA_DEVICE_AUTH_RATE_REDIS", "1")
+    monkeypatch.setenv("LIMA_DEVICE_AUTH_RATE_REDIS_URL", "redis://127.0.0.1:6379/0")
+    redis_backend.set_test_client(fake)
+    rate_limiter.reset()
+
+    key = "device_auth:login:203.0.113.50"
+    assert rate_limiter.check_keyed_rate_limit(key, max_per_window=2) is True
+    assert rate_limiter.check_keyed_rate_limit(key, max_per_window=2) is True
+    assert rate_limiter.check_keyed_rate_limit(key, max_per_window=2) is False
+
+    redis_backend.set_test_client(None)
+    rate_limiter.reset()

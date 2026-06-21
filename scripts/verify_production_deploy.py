@@ -24,6 +24,20 @@ def _load_key() -> str:
     return os.environ.get("LIMA_API_KEY", "").strip()
 
 
+def _load_redis_url() -> str:
+    env_path = ROOT / ".env"
+    if env_path.is_file():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("LIMA_DEVICE_AUTH_RATE_REDIS_URL="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+            if line.startswith("LIMA_DEVICE_REDIS_URL="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return (
+        os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS_URL", "").strip()
+        or os.environ.get("LIMA_DEVICE_REDIS_URL", "").strip()
+    )
+
+
 def _get(path: str, *, bearer: str = "") -> tuple[int, str]:
     headers = dict(UA)
     if bearer:
@@ -100,10 +114,20 @@ def main() -> int:
             print(f"OK  L2 login rate limit (public) -> 429 on attempt {i + 1}/{probe}")
             break
     if not got_429:
-        print(
-            f"WARN L2 public probe: no 429 after {probe} attempts (last={last_status}); "
-            "multi-worker in-memory limiter — verify on VPS with device_logic.auth_rate"
+        flag = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS", "auto").strip().lower()
+        redis_url = _load_redis_url()
+        strict = flag in {"1", "true", "redis", "on", "yes"} or (flag == "auto" and bool(redis_url))
+        msg = (
+            f"FAIL L2 public probe: no 429 after {probe} attempts (last={last_status})"
+            if strict
+            else (
+                f"WARN L2 public probe: no 429 after {probe} attempts (last={last_status}); "
+                "enable LIMA_DEVICE_AUTH_RATE_REDIS + Redis URL for cross-worker limits"
+            )
         )
+        print(msg)
+        if strict:
+            failures.append("l2_rate_limit")
 
     print("---")
     if failures:
