@@ -2927,3 +2927,25 @@ Agent Worker path.
   - 全量 `pytest -q` → **2274 passed, 4 skipped, 0 failed**。
 - **提交**：
   - `5f03f33d` `refactor(deploy,scripts): split long functions and fix test mock`；已 push 到 GitHub `origin/main`（`5182d786..5f03f33d`）。
+- **提交**：`c376a695` `docs(progress): record long-function split and test mock fix`；已 push 到 GitHub `origin/main`。
+
+## 2026-06-22 继续优化 — 拆分 `scripts/eval_loop_core.py::run_eval`
+
+- **目标**：处理当前 `check_code_size.py` 报告的最长函数 `scripts/eval_loop_core.py::run_eval`（83 行）。
+- **拆分**：
+  - `_load_eval_domains`：加载 eval 数据集并按 intent 分组。
+  - `_probe_lm_studio`：探测 LM Studio 可用性，返回 `(available, reason)`。
+  - `_ensure_all_domains`：确保核心域存在于分数映射中。
+  - `_score_domain_items`：对每个域的问题调用 LM Studio 并基于关键词评分。
+  - `_compute_overall`：计算加权总分。
+  - `_build_result`：组装最终 result dict。
+  - `run_eval` 从 83 行降至约 25 行，仅负责编排。
+- **行为保留**：LM Studio 探测时遇到 `urllib.error.HTTPError` 仍视为可用，与原逻辑一致。
+- **验证**：
+  - `ruff check / format` → clean。
+  - `pyright scripts/eval_loop_core.py` → 0 errors, 0 warnings。
+  - 模块 import 正常。
+  - 全量 `pytest -q` → **2274 passed, 4 skipped, 0 failed**。
+  - `check_code_size.py` 的 >50 行函数从 89 个降至 **88 个**。
+- **提交**：
+  - `37590fba` `refactor(scripts): split eval_loop_core::run_eval into helpers`；已 push 到 GitHub `origin/main`（`c376a695..37590fba`）。
