@@ -255,99 +255,98 @@ class LimaCodeQuery:
 
 # ===== MCP 协议实现 =====
 
+_TOOLS_SCHEMA = [
+    {
+        "name": "search_code",
+        "description": "语义搜索 LiMa 代码库，返回相关文件和符号",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "搜索关键词（支持模块名、函数名、概念）"},
+                "limit": {"type": "integer", "description": "返回结果数（默认8）"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "get_module_context",
+        "description": "获取模块结构信息：类、函数、导入关系",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "相对项目根目录的 Python 文件路径，如 routes/chat_handler.py",
+                }
+            },
+            "required": ["path"],
+        },
+    },
+    {
+        "name": "find_related",
+        "description": "找关联文件：基于导入关系和目录相邻",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "文件路径"},
+                "max_results": {"type": "integer", "description": "最大返回数"},
+            },
+            "required": ["path"],
+        },
+    },
+    {
+        "name": "trace_symbol",
+        "description": "跨文件追踪符号定义和引用",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "symbol_name": {"type": "string", "description": "符号名（函数/类/变量名）"},
+                "max_results": {"type": "integer"},
+            },
+            "required": ["symbol_name"],
+        },
+    },
+]
+
+
 code_query = LimaCodeQuery()
+
+
+def _handle_tool_call(tool_name: str, tool_args: dict) -> dict:
+    """Dispatch a single MCP tool call and wrap the result for JSON-RPC."""
+    if tool_name == "search_code":
+        result = code_query.search_code(tool_args.get("query", ""), tool_args.get("limit", 8))
+    elif tool_name == "get_module_context":
+        result = code_query.get_module_context(tool_args.get("path", ""))
+    elif tool_name == "find_related":
+        result = code_query.find_related(tool_args.get("path", ""), tool_args.get("max_results", 10))
+    elif tool_name == "trace_symbol":
+        result = code_query.trace_symbol(tool_args.get("symbol_name", ""), tool_args.get("max_results", 15))
+    else:
+        result = {"error": f"Unknown tool: {tool_name}"}
+
+    return {
+        "jsonrpc": "2.0",
+        "id": None,
+        "result": {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False, indent=1)}]},
+    }
 
 
 def handle_request(request: dict) -> dict:
     """处理 MCP JSON-RPC 请求"""
     req_id = request.get("id")
     method = request.get("method", "")
-    params = request.get("params", {})
-    tool_name = params.get("name", "")
-    tool_args = params.get("arguments", {})
 
-    # 工具列表
     if method == "tools/list":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "tools": [
-                    {
-                        "name": "search_code",
-                        "description": "语义搜索 LiMa 代码库，返回相关文件和符号",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "query": {"type": "string", "description": "搜索关键词（支持模块名、函数名、概念）"},
-                                "limit": {"type": "integer", "description": "返回结果数（默认8）"},
-                            },
-                            "required": ["query"],
-                        },
-                    },
-                    {
-                        "name": "get_module_context",
-                        "description": "获取模块结构信息：类、函数、导入关系",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "path": {
-                                    "type": "string",
-                                    "description": "相对项目根目录的 Python 文件路径，如 routes/chat_handler.py",
-                                }
-                            },
-                            "required": ["path"],
-                        },
-                    },
-                    {
-                        "name": "find_related",
-                        "description": "找关联文件：基于导入关系和目录相邻",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "path": {"type": "string", "description": "文件路径"},
-                                "max_results": {"type": "integer", "description": "最大返回数"},
-                            },
-                            "required": ["path"],
-                        },
-                    },
-                    {
-                        "name": "trace_symbol",
-                        "description": "跨文件追踪符号定义和引用",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "symbol_name": {"type": "string", "description": "符号名（函数/类/变量名）"},
-                                "max_results": {"type": "integer"},
-                            },
-                            "required": ["symbol_name"],
-                        },
-                    },
-                ]
-            },
-        }
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": _TOOLS_SCHEMA}}
 
-    # 工具调用
-    elif method == "tools/call":
-        if tool_name == "search_code":
-            result = code_query.search_code(tool_args.get("query", ""), tool_args.get("limit", 8))
-        elif tool_name == "get_module_context":
-            result = code_query.get_module_context(tool_args.get("path", ""))
-        elif tool_name == "find_related":
-            result = code_query.find_related(tool_args.get("path", ""), tool_args.get("max_results", 10))
-        elif tool_name == "trace_symbol":
-            result = code_query.trace_symbol(tool_args.get("symbol_name", ""), tool_args.get("max_results", 15))
-        else:
-            result = {"error": f"Unknown tool: {tool_name}"}
+    if method == "tools/call":
+        params = request.get("params", {})
+        response = _handle_tool_call(params.get("name", ""), params.get("arguments", {}))
+        response["id"] = req_id
+        return response
 
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False, indent=1)}]},
-        }
-
-    # 健康检查
-    elif method == "initialize":
+    if method == "initialize":
         return {
             "jsonrpc": "2.0",
             "id": req_id,
