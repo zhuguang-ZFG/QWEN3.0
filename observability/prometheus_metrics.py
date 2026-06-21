@@ -70,27 +70,21 @@ def _ensure_instruments() -> None:
 
     client = _load_client()
     registry = client["CollectorRegistry"](auto_describe=True)
-    counter = client["Counter"]
-    gauge = client["Gauge"]
-    histogram = client["Histogram"]
+    _register_counters(client["Counter"], registry)
+    _register_histograms(client["Histogram"], registry)
+    _register_gauges(client["Gauge"], registry)
+    _registry = registry
 
+
+def _register_counters(counter, registry) -> None:
     _counters["requests"] = counter(
-        "lima_requests_total",
-        "Total requests",
-        ["backend", "status"],
-        registry=registry,
+        "lima_requests_total", "Total requests", ["backend", "status"], registry=registry
     )
     _counters["backend_errors"] = counter(
-        "lima_backend_errors_total",
-        "Backend errors",
-        ["backend", "error_type"],
-        registry=registry,
+        "lima_backend_errors_total", "Backend errors", ["backend", "error_type"], registry=registry
     )
     _counters["device_tasks"] = counter(
-        "lima_device_tasks_total",
-        "Device tasks",
-        ["capability", "status"],
-        registry=registry,
+        "lima_device_tasks_total", "Device tasks", ["capability", "status"], registry=registry
     )
     _counters["backend_retirement_events"] = counter(
         "lima_backend_retirement_events_total",
@@ -98,6 +92,9 @@ def _ensure_instruments() -> None:
         ["backend"],
         registry=registry,
     )
+
+
+def _register_histograms(histogram, registry) -> None:
     _histograms["request_duration"] = histogram(
         "lima_request_duration_ms",
         "Request duration",
@@ -112,6 +109,9 @@ def _ensure_instruments() -> None:
         buckets=[100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000],
         registry=registry,
     )
+
+
+def _register_gauges(gauge, registry) -> None:
     _gauges["backend_health"] = gauge(
         "lima_backend_health",
         "Backend health status (1=healthy, 0.5=degraded, 0=dead)",
@@ -135,7 +135,6 @@ def _ensure_instruments() -> None:
         "Count of backends currently retired",
         registry=registry,
     )
-    _registry = registry
 
 
 def record_request(backend: str, status: str, duration_ms: float) -> None:

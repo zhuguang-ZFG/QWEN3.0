@@ -1,43 +1,43 @@
 # LiMa backend retirement alerting rules (M3).
-# Mount under Prometheus rule_files, e.g.:
-#   rule_files:
-#     - /opt/lima-monitoring/prometheus/rules/backend_retirement_alerts.yml
-#
-# Scrape target: https://chat.donglicao.com/v1/ops/metrics/prometheus (Bearer auth)
+# Event-driven only — baseline retired inventory (e.g. count=168) must NOT page.
+# Mount: rule_files: [rules/backend_retirement_alerts.yml]
+# Scrape: https://chat.donglicao.com/v1/ops/metrics/prometheus
 
 groups:
   - name: lima_backend_retirement
     rules:
-      - alert: LiMaBackendRetired
-        expr: lima_backend_retired == 1
+      - alert: LiMaBackendRetirementSpike
+        expr: increase(lima_backend_retirement_events_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: lima-router
+        annotations:
+          summary: "New backend retirement: {{ $labels.backend }}"
+          description: >-
+            A backend was newly retired in the last 15 minutes. Review /v1/ops/summary
+            and probe before POST /v1/ops/backends/reactivate.
+
+      - alert: LiMaBackendRetiredCountRising
+        expr: delta(lima_backend_retired_count[1h]) > 0
         for: 5m
         labels:
           severity: warning
           service: lima-router
         annotations:
-          summary: "LiMa backend {{ $labels.backend }} is retired"
+          summary: "Retired backend count increased (now {{ $value }})"
           description: >-
-            Backend {{ $labels.backend }} has been removed from routing pools for at least 5 minutes.
-            Review /v1/ops/summary and probe before POST /v1/ops/backends/reactivate.
+            lima_backend_retired_count rose within the past hour. Check probe_candidates
+            in /v1/ops/summary for recovery candidates.
 
-      - alert: LiMaBackendRetiredCountHigh
-        expr: lima_backend_retired_count > 0
-        for: 10m
-        labels:
-          severity: warning
-          service: lima-router
-        annotations:
-          summary: "{{ $value }} LiMa backend(s) retired"
-          description: >-
-            lima_backend_retired_count={{ $value }} for 10m. Check recovery.probe_candidates in /v1/ops/summary.
-
-      - alert: LiMaBackendRetirementSpike
-        expr: increase(lima_backend_retirement_events_total[15m]) > 0
+      - alert: LiMaBackendRetirementBurst
+        expr: sum(increase(lima_backend_retirement_events_total[1h])) >= 3
         for: 0m
         labels:
-          severity: info
+          severity: critical
           service: lima-router
         annotations:
-          summary: "New backend retirement on {{ $labels.backend }}"
+          summary: "Burst of backend retirements (>=3 in 1h)"
           description: >-
-            lima_backend_retirement_events_total increased in the last 15 minutes for {{ $labels.backend }}.
+            Multiple backends were retired within one hour. Investigate provider health,
+            probe results, and recent ops/backend_retirement actions.
