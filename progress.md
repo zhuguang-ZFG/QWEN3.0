@@ -2854,4 +2854,17 @@ Agent Worker path.
   - `ruff` / `pyright` → clean。
   - Guardian 全量扫描 → 警告 **0**，仅剩 5 个 `long_function` 提示。
 - **提交**：`65e324c9` `test(tool_gateway): add tests for audit and governance modules`；已 push 到 GitHub `origin/main`。
+
+## 2026-06-22 继续优化 — 拆分 lima_code_query_mcp.py 过长 handle_request
+
+- **目标**：降低 guardian `long_function` 提示数量；`lima_mcp_stdio/lima_code_query_mcp.py::handle_request` 原 101 行。
+- **实现**：
+  - 提取 `_TOOLS_SCHEMA` 模块级常量，包含 4 个 MCP 工具的 inputSchema。
+  - 新增 `_handle_tool_call(tool_name, tool_args)` 分发器，处理 `tools/call` 的 4 个工具 + unknown tool。
+  - `handle_request` 只保留 JSON-RPC 方法分发，行数降至约 30 行。
+- **验证**：
+  - `ruff` / `pyright` → clean。
+  - `pytest tests/test_lima_mcp_stdio_core.py -v` → 14 passed。
+  - Guardian 全量扫描 → `long_function` 从 5 个降至 4 个，`lima_code_query_mcp.py::handle_request` 不再上榜。
+- **提交**：`bd83d0f1` `refactor(lima_mcp_stdio): extract tool schema and dispatcher from handle_request`；已 push 到 GitHub `origin/main`。
 - **仍阻塞**：Gitee 同步仍缺 SSH key / `GITEE_TOKEN`。

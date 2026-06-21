@@ -759,3 +759,19 @@
 
 **仍阻塞**
 - Gitee 同步：`Permission denied (publickey)`。
+
+## 2026-06-22 MAINT-021 拆分 lima_code_query_mcp.py handle_request
+
+**发现**
+- Guardian `long_function` 提示包含 `lima_mcp_stdio/lima_code_query_mcp.py::handle_request`（101 行）。
+
+**修复**
+- 提取 `_TOOLS_SCHEMA` 常量和 `_handle_tool_call` 分发函数；`handle_request` 仅负责 JSON-RPC 方法路由。
+
+**验证**
+- `ruff` / `pyright` clean。
+- `pytest tests/test_lima_mcp_stdio_core.py` 14 passed。
+- Guardian 重扫后 `long_function` 从 5 个降至 4 个。
+
+**仍阻塞**
+- Gitee 同步：`Permission denied (publickey)`。
