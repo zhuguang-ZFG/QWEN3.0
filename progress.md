@@ -2754,3 +2754,9 @@ Agent Worker path.
   - 单测：`tests/test_rate_limiter.py`（含 Redis fake）、`tests/test_request_tracking_client_ip.py` → **pass**。
   - VPS 本机 21 次 login → **429**；公网 `scripts/verify_production_deploy.py` → **PASS**（L2 第 5 次 429，因前序探测已计数）。
   - Redis key 样例：`lima:keyed_rate:device_auth:login:<client_ip>:<bucket>`（客户端 IP 稳定为真实来源，非 CF 边缘轮转）。
+
+## 2026-06-22 Backlog L4 — 生产环境禁用匿名 API 访问
+
+- **实现**：`access_guard.allow_anonymous_access()` 在 `LIMA_RUNTIME_ENV=production` 时强制返回 False（即使 `LIMA_ALLOW_ANONYMOUS=1`）；`anonymous_access_status()` 供 `/health` 暴露 `env_enabled` / `production_blocked` / `allowed`。
+- **验证**：`tests/test_access_guard.py` + `tests/test_system_endpoints.py::test_health_includes_anonymous_access_security` → **27 passed**（聚焦套件）。
+- **部署**：VPS 已部署 `access_guard.py`、`routes/system_endpoints.py`；当前 VPS 仅有 `LIMA_ALLOW_ANONYMOUS=1`、未设 `LIMA_RUNTIME_ENV=production`，故匿名仍可用（开发/demo 行为）；设 production 后自动阻断。

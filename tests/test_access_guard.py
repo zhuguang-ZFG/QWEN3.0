@@ -73,8 +73,25 @@ def test_private_api_key_rejects_anonymous_even_when_public_anonymous_enabled(mo
 def test_public_api_key_allows_anonymous_when_enabled(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "private-key")
     monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
+    monkeypatch.delenv("LIMA_RUNTIME_ENV", raising=False)
 
     assert access_guard.require_public_or_private_api_key("") is None
+
+
+def test_production_blocks_anonymous_even_when_env_enabled(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "private-key")
+    monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
+    monkeypatch.setenv("LIMA_RUNTIME_ENV", "production")
+
+    assert access_guard.allow_anonymous_access() is False
+    status = access_guard.anonymous_access_status()
+    assert status["env_enabled"] is True
+    assert status["production_blocked"] is True
+    assert status["allowed"] is False
+
+    with pytest.raises(HTTPException) as exc:
+        access_guard.require_public_or_private_api_key("")
+    assert exc.value.status_code == 401
 
 
 def test_private_api_key_still_validates_explicit_key_when_anonymous_enabled(monkeypatch):

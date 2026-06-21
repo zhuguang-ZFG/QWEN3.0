@@ -87,3 +87,20 @@ def test_health_returns_503_when_startup_status_is_error(monkeypatch):
 
     assert response.status_code == 503
     assert response.json()["status"] == "degraded"
+    assert response.json()["startup"]["errors"] == []
+    assert response.json()["startup"]["error_count"] == 1
+    assert response.json()["startup"]["error_phases"] == ["unit"]
+
+
+def test_health_includes_anonymous_access_security(monkeypatch):
+    monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
+    monkeypatch.setenv("LIMA_RUNTIME_ENV", "production")
+
+    client = TestClient(server.app)
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    security = response.json()["security"]["anonymous_access"]
+    assert security["env_enabled"] is True
+    assert security["production_blocked"] is True
+    assert security["allowed"] is False

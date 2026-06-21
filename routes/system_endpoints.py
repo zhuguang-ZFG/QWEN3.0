@@ -6,20 +6,23 @@ import os
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 
-from access_guard import require_private_api_key
+from access_guard import anonymous_access_status, extract_bearer_token, is_token_valid, require_private_api_key
 from backends_registry import BACKENDS
 import health_state
 import health_tracker
 import server_lifespan
+import ws_ticket
 
 _SHOW_HEALTH_ERRORS = os.environ.get("LIMA_HEALTH_SHOW_ERRORS", "0").strip().lower() in {"1", "true", "yes"}
 
 router = APIRouter()
 
-_model_id = "lima-1.3"
+from lima_constants import MODEL_ID
+
+_model_id = MODEL_ID
 _model_created = int(time.time())
 _loaded_modules: dict[str, Any] = {}
 _PUBLIC_MODEL_NAME = os.environ.get("PUBLIC_MODEL_NAME", "LiMa")
@@ -50,6 +53,15 @@ def inject_state(*, model_id: str, model_created: int, loaded_modules: dict[str,
     _loaded_modules = loaded_modules
 
 
+def _startup_error_phases(errors: list[Any]) -> list[str]:
+    phases: list[str] = []
+    for error in errors:
+        phase = str(error.get("phase", "unknown")) if isinstance(error, dict) else "unknown"
+        if phase not in phases:
+            phases.append(phase)
+    return phases
+
+
 @router.get("/v1/models", dependencies=[Depends(require_private_api_key)])
 async def list_models():
     models = [
@@ -70,10 +82,20 @@ async def list_models():
     return {"object": "list", "data": models}
 
 
+@router.post("/v1/ws/ticket")
+async def create_ws_ticket(authorization: str = Header(default="")) -> dict[str, int | str]:
+    """Exchange a private API key for a short-lived WebSocket ticket."""
+    token = extract_bearer_token(authorization)
+    if not is_token_valid(token):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return {"ticket": ws_ticket.issue(), "expires_in": ws_ticket.TTL_SECONDS}
+
+
 @router.get("/health")
 async def health():
     state = server_lifespan.get_startup_state()
     phases = list(server_lifespan.STARTUP_PHASES)
+    startup_errors = state.get("errors", [])
     startup_status = state["status"]
     overall_status = "ok"
     if startup_status == "error":
@@ -91,7 +113,12 @@ async def health():
             "status": startup_status,
             "phases": phases,
             "pending_warm": state.get("pending_warm", []),
-            "errors": state.get("errors", []) if _SHOW_HEALTH_ERRORS else [],
+            "errors": startup_errors if _SHOW_HEALTH_ERRORS else [],
+            "error_count": len(startup_errors),
+            "error_phases": _startup_error_phases(startup_errors),
+        },
+        "security": {
+            "anonymous_access": anonymous_access_status(),
         },
     }
     if startup_status == "error":

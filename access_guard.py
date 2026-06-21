@@ -1,11 +1,18 @@
 """API key guards for LiMa public and internal endpoints."""
 
+import logging
 import os
 import secrets
 
 from fastapi import Header, HTTPException, WebSocket
 
+import ws_ticket
+from runtime_env import is_production_runtime
 
+_log = logging.getLogger(__name__)
+
+# ponytail: WS_QUERY_PARAM_TOKEN_WARNING — logged on every legacy query-param auth use so
+# nginx/log-pipelines can surface deprecation drift before the path is removed.
 WS_QUERY_PARAM_TOKEN_WARNING = "Token supplied via query param for %s; ensure nginx access_log is off"
 
 
@@ -27,13 +34,30 @@ def is_private_access_configured() -> bool:
     return bool(configured_api_keys())
 
 
-def allow_anonymous_access() -> bool:
-    """Whether public endpoints may be used without an API key."""
+def _anonymous_access_env_enabled() -> bool:
     return os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower() in {
         "1",
         "true",
         "yes",
         "on",
+    }
+
+
+def allow_anonymous_access() -> bool:
+    """Whether public endpoints may be used without an API key."""
+    if is_production_runtime():
+        return False
+    return _anonymous_access_env_enabled()
+
+
+def anonymous_access_status() -> dict[str, bool]:
+    """Health/ops snapshot for anonymous demo access configuration."""
+    env_enabled = _anonymous_access_env_enabled()
+    production = is_production_runtime()
+    return {
+        "allowed": allow_anonymous_access(),
+        "env_enabled": env_enabled,
+        "production_blocked": production and env_enabled,
     }
 
 
@@ -50,12 +74,10 @@ def extract_websocket_token(
     websocket: WebSocket,
     query_authorization: str = "",
 ) -> tuple[str, bool]:
-    """Extract bearer token from a WebSocket header or query param.
+    """Extract bearer token from a WebSocket header or legacy query param.
 
-    Browsers cannot set custom headers on WebSocket connections, so the
-    ``authorization`` query parameter is allowed as a fallback.  Returns the
-    extracted token and a boolean indicating whether the query parameter was
-    used.
+    Prefer ``authenticate_websocket()`` for new code; it also accepts one-time
+    ``?ticket=`` values from ``POST /v1/ws/ticket``.
     """
     header_token = extract_bearer_token(websocket.headers.get("authorization", ""))
     query_auth = query_authorization.strip()
@@ -63,6 +85,32 @@ def extract_websocket_token(
     if not header_token and query_token:
         return query_token, True
     return header_token, False
+
+
+def authenticate_websocket(
+    websocket: WebSocket,
+    query_authorization: str = "",
+) -> tuple[bool, str]:
+    """Authorize a WebSocket connection.
+
+    Returns ``(authorized, method)`` where method is ``header``, ``ticket``,
+    ``query`` (legacy), or ``none``.
+    """
+    header_token = extract_bearer_token(websocket.headers.get("authorization", ""))
+    if is_token_valid(header_token):
+        return True, "header"
+
+    ticket = websocket.query_params.get("ticket", "").strip()
+    if ticket and ws_ticket.consume(ticket):
+        return True, "ticket"
+
+    query_token = extract_bearer_token(query_authorization.strip())
+    if query_token and is_token_valid(query_token):
+        # ponytail: legacy path — warn on every use so log-pipelines catch deprecation drift.
+        _log.warning(WS_QUERY_PARAM_TOKEN_WARNING, websocket.url.path)
+        return True, "query"
+
+    return False, "none"
 
 
 def constant_time_equals(a: str, b: str) -> bool:
