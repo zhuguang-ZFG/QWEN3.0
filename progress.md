@@ -2634,3 +2634,31 @@ Agent Worker path.
   - `tests/test_community_free_optin.py` + `tests/test_backend_registry.py`：**50 passed**。
   - 全量测试（排除 `tests/test_token_health.py`）：**1879 passed, 18 skipped, 0 failed**。
 - **提交**：待提交（本次全量修复）。
+
+## 2026-06-21 Manager-mobile Phase 1 quick wins 完成
+
+- **目标**：对 `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile` 进行 Phase 1 速赢优化，缩小包体积并提升启动/列表性能。
+- **已落地改动**：
+  1. 清理产物与旧页面：删除旧 `dist`、移除未使用的 `pages/login/index`、`pages/register`、`pages/forgot-password`。
+  2. 移除未使用依赖：`@tanstack/vue-query`、`js-cookie`、`z-paging`、`dayjs`、`abortcontroller-polyfill`。
+  3. 清理 alova 调试日志，生产构建已默认 `drop console`。
+  4. 内存缓存 token/language：新增 `src/utils/authCache.ts`，避免每次请求读 storage。
+  5. Pinia 异步持久化：`store/index.ts` 使用 `uni.setStorage` 异步写入；`store/lang.ts` 去重手动 storage 写入。
+  6. 缓存 baseURL/uploadURL/envVersion：覆盖地址变更时同步失效缓存。
+  7. 列表业务 key：`chat/chat.vue`、`chat-history/detail.vue`、`v2/device-detail/index.vue` 增加 `:key`。
+  8. Mine 页并行请求 + 10s 设备列表缓存。
+  9. i18n 懒加载：默认中文同步加载，其他语言动态 import；`createApp` 改为 async 等待初始化，避免非中文启动闪现 fallback。
+  10. wot-design-uni 白名单：产物组件从 98 个源组件降到 22 个 dist 组件。
+  11. 修复全部 type-check 错误：`chat.ts`、`chat.vue`、`demo/index.vue`、`create.vue`。
+- **验证证据**：
+  - `pnpm type-check`：0 错误。
+  - `pnpm build:mp-weixin`：构建成功，`dist/build/mp-weixin` 2.4M，`common/vendor.js` ~139KB，`wot-design-uni` 组件 22 个。
+  - 本次新增/重点修改文件 lint：0 errors / 0 warnings（`authCache.ts`、`alova.ts`、`i18n/index.ts`、`main.ts`、`utils/index.ts`、`mine.vue`）。
+  - `device-detail/index.vue` 等历史文件仍有大量既有 style lint 问题，非本次引入。
+- **提交与推送**：
+  - 子模块分支 `perf/phase1-quick-wins`：commit `5e14d9b` 已 push 到 `origin`。
+  - 父仓库 `main`：commit `69c51823` 已 push 到 `origin`。
+  - Gitee (`gitee`) SSH push 仍因本地无 key 失败，需在有 SSH key 的环境补推。
+- **剩余风险/后续建议**：
+  - `settings` 页「清除缓存」只清 storage，未清 `authCache`/`baseURL cache`；建议补充内存缓存失效或强制重启。
+  - 全量 lint 仍有 ~1476 个历史问题，可排入后续格式化专项。
