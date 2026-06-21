@@ -8,9 +8,11 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
 from device_logic.auth import account_payload, authorize, make_token
+from device_logic.auth_rate import allow_device_auth
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, read_body, str_field
 from device_logic.sms import login_code_error, sms_verification_payload, validate_login_code
+from routes.request_tracking import client_ip
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-auth"])
 _STATIC_LOGIN_DEV_ENV = "LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE"
@@ -43,6 +45,8 @@ def _wechat_openid_from_code(code: str) -> str:
 
 @router.post("/auth/login")
 async def login(request: Request):
+    if not allow_device_auth("login", client_ip(request)):
+        return err(429, "Too many login attempts", 429)
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body
@@ -96,6 +100,8 @@ async def login(request: Request):
 
 @router.post("/auth/register")
 async def register(request: Request):
+    if not allow_device_auth("register", client_ip(request)):
+        return err(429, "Too many registration attempts", 429)
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body
@@ -126,6 +132,8 @@ async def register(request: Request):
 
 @router.post("/auth/sms-verification")
 async def sms_verification(request: Request):
+    if not allow_device_auth("sms", client_ip(request)):
+        return err(429, "Too many SMS verification requests", 429)
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body

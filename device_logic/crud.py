@@ -6,6 +6,7 @@ import json
 import sqlite3
 from typing import Any
 
+from device_logic.device_sn import validate_device_sn
 from device_logic.errors import DeviceLogicError
 from device_logic.updates import parse_device_updates, sql_set_clause
 
@@ -85,6 +86,7 @@ def bind_device(
     metadata: Any,
     new_id,
 ) -> dict[str, Any]:
+    device_sn = validate_device_sn(device_sn)
     owner = conn.execute(
         """
         SELECT account_id
@@ -186,6 +188,7 @@ def manual_add_device(
     metadata: Any,
     new_id,
 ) -> sqlite3.Row:
+    device_sn = validate_device_sn(device_sn)
     existing = conn.execute("SELECT * FROM v2_device WHERE device_sn=?", (device_sn,)).fetchone()
     if existing is not None:
         raise DeviceLogicError(409, "device with this serial number already exists", 409)

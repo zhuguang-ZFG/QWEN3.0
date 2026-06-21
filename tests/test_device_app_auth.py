@@ -79,6 +79,29 @@ def test_device_app_auth_fails_closed_without_configured_login_code(tmp_path, mo
     assert logged_in.status_code == 503
 
 
+def test_device_app_auth_register_rate_limited(tmp_path, monkeypatch):
+    import rate_limiter
+
+    rate_limiter.reset()
+    client, _store = make_client(tmp_path, monkeypatch)
+    monkeypatch.setenv("LIMA_XIAOZHI_LOGIN_CODE", "000000")
+    monkeypatch.setenv("LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE", "1")
+    monkeypatch.setenv("LIMA_DEVICE_AUTH_REGISTER_PER_MIN", "2")
+
+    for idx in range(2):
+        response = client.post(
+            "/device/v1/app/auth/register",
+            json={"phone": f"1399{idx}", "code": "000000", "nickname": "u"},
+        )
+        assert response.status_code == 200, response.text
+
+    blocked = client.post(
+        "/device/v1/app/auth/register",
+        json={"phone": "13999", "code": "000000", "nickname": "u"},
+    )
+    assert blocked.status_code == 429
+
+
 def test_device_app_auth_rejects_wechat_code_login_without_dev_flag(tmp_path, monkeypatch):
     client, _store = make_client(tmp_path, monkeypatch)
     monkeypatch.delenv("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", raising=False)

@@ -8,7 +8,8 @@ from device_logic.activation import (
     new_activation_code,
     reset_activation_store_for_tests,
 )
-from device_logic.crud import bind_device
+from device_logic.crud import bind_device, manual_add_device
+from device_logic.device_sn import validate_device_sn
 from device_logic.errors import DeviceLogicError
 from device_logic.updates import parse_device_updates, sql_set_clause
 
@@ -74,3 +75,58 @@ def test_activation_code_one_time_use(tmp_path, monkeypatch):
 
 def test_activation_ttl_constant():
     assert ACTIVATION_TTL_SECONDS == 600
+
+
+def test_validate_device_sn_accepts_common_formats():
+    assert validate_device_sn("SN-LOGIC-1") == "SN-LOGIC-1"
+    assert validate_device_sn("  AA:BB:CC:DD:EE:FF  ") == "AA:BB:CC:DD:EE:FF"
+
+
+def test_validate_device_sn_rejects_invalid():
+    with pytest.raises(DeviceLogicError, match="invalid deviceSn"):
+        validate_device_sn("")
+    with pytest.raises(DeviceLogicError, match="invalid deviceSn"):
+        validate_device_sn("'; DROP TABLE--")
+    with pytest.raises(DeviceLogicError, match="invalid deviceSn"):
+        validate_device_sn("x" * 65)
+
+
+def test_bind_device_rejects_invalid_sn(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "sn.db"))
+    from device_logic.db import _schema_ready_paths, connect
+    from device_logic.http import new_id
+
+    _schema_ready_paths.clear()
+    with connect() as conn:
+        conn.execute("INSERT INTO v2_account (id, phone) VALUES ('acc-sn', '10002')")
+        conn.commit()
+        with pytest.raises(DeviceLogicError, match="invalid deviceSn"):
+            bind_device(
+                conn,
+                account_id="acc-sn",
+                device_sn="bad sn!",
+                model="esp32s3_xyz",
+                firmware_ver="",
+                hardware_ver="",
+                metadata=None,
+                new_id=new_id,
+            )
+
+
+def test_manual_add_device_rejects_invalid_sn(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "sn-manual.db"))
+    from device_logic.db import _schema_ready_paths, connect
+    from device_logic.http import new_id
+
+    _schema_ready_paths.clear()
+    with connect() as conn:
+        with pytest.raises(DeviceLogicError, match="invalid deviceSn"):
+            manual_add_device(
+                conn,
+                device_sn="",
+                model="esp32s3_xyz",
+                firmware_ver="",
+                hardware_ver="",
+                metadata=None,
+                new_id=new_id,
+            )
