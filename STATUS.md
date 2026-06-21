@@ -5,15 +5,24 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-18
+> Updated: 2026-06-22
 > Branch: `main`
-> Scale: 约 1021 个 Python 文件 / 全仓 630 文件已格式化
-> Tests: 全量 1860 passed / 4 skipped / 0 failed；ruff check clean；ruff format clean
+> Scale: 约 1021 个 Python 文件 / 全仓 905 文件已格式化
+> Tests: 全量 2230 passed / 4 skipped / 0 failed；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
-> VPS smoke：`https://chat.donglicao.com/health` 200 且 `startup.status=ready`；`/device/v1/health` 200 且 `protocol=lima-device-v1`；`xiaozhi_v1_compat=false`。注意：`/health` 在启动错误时可能返回 503；`/device/v1/health` 在生产环境未就绪时可能返回 503；`/v1/chat/completions` 默认 rate limiter 为 60s/120 请求（IDE 来源倍率 5），超限时返回 429。
+> VPS smoke：未执行（本地 SSH key 无效且 `LIMA_DEPLOY_PASS` 未配置，部署脚本无法连接 VPS）。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted（图片域名白名单已落地；WebSocket query-param token 已加 `access_log off` 与 warning 日志）。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-22）测试修复、device_gateway 拆分与当前 WIP 合并
+
+- **测试修复**：`tests/test_rate_limit.py::test_sliding_window_evicts_old_calls` 时间值修正；`routes/xiaozhi_compat/device_routes.py` 移除重复 `/api/v1` prefix，修复 8 个小智兼容层 404 失败。
+- **代码尺寸**：`routes/device_gateway.py`（310→270 行）拆出 `routes/device_gateway_helpers.py`，承载 lifecycle/evidence/test-reset 辅助函数；生产代码 >300 行文件从 8 个降至 7 个（剩余为 scripts/ 分析脚本、lima_mcp_stdio/ MCP 工具与一个测试文件）。
+- **类型修复**：`lima_mcp_stdio/lima_code_query_mcp.py`、`mimo_runner.py`、`__init__.py` 修复 pyright errors。
+- **验证**：全量 `pytest -q` → **2230 passed, 4 skipped**；`ruff check .` / `ruff format --check` clean；`pyright routes/ lima_mcp_stdio/` 0 errors。
+- **提交推送**：Commit `9da0805c` 已 push 到 GitHub `origin main`；Gitee push 因 SSH key 缺失失败。
+- **阻塞项**：VPS 部署需补充有效 SSH key 或 `LIMA_DEPLOY_PASS`。
 
 ### 最近完成（2026-06-18）flaky test 修复 + U1 route_policy 拒绝证据补齐
 

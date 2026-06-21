@@ -141,6 +141,11 @@ frp/
 *.zip
 *.pkl
 
+# === 自动生成的本地索引/报告 ===
+/.codebase-*.json
+/_verify.txt
+/ARCHITECTURE_KNOWLEDGE.md
+
 # === 构建产物 ===
 net/new-site/out/
 net/new-site/node_modules/

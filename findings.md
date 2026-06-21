@@ -3,6 +3,17 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-22 继续优化切片结项
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| NEXT-1 | test | `test_rate_limit.py::test_sliding_window_evicts_old_calls` 时间值与滑动窗口语义不匹配，已修正 | Closed |
+| NEXT-2 | test | `routes/xiaozhi_compat/device_routes.py` 重复 `prefix="/api/v1"` 导致 8 个兼容层测试 404，已移除 | Closed |
+| NEXT-3 | code_size | `routes/device_gateway.py` 310 行超标，已拆出 `routes/device_gateway_helpers.py` | Closed |
+| NEXT-4 | type | `lima_mcp_stdio` 3 个 pyright errors 已修复 | Closed |
+| NEXT-5 | deploy | 本地 `~/.ssh/id_ed25519` 被 paramiko 报 `Invalid key`，`LIMA_DEPLOY_PASS` 未设置，VPS 部署无法完成 | Open |
+| NEXT-6 | git | Gitee (`gitee`) push 失败：`Permission denied (publickey)` | Open |
+
 ## 2026-06-20 工作区清理与 redis_store 瘦身
 
 | ID | Area | Finding | Status |
