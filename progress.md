@@ -5,6 +5,29 @@
 > Updated: 2026-06-22
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-22 项目文档更新与过时文档清理（完成）
+
+- **目标**：响应「更新项目文档；清理过时文档」指令，刷新入口文档、修正过时命令与模块引用、归档历史草稿文档。
+- **文档更新**：
+  - 重写根 `README.md`：从个人编码助手描述更新为「多后端 AI 路由 + AI 智能硬件云端服务」；修正启动命令为 `uvicorn server:app --port 8080`；修正部署命令为 `python scripts/deploy_unified.py --slice core`；移除 `smart_router.py`、`device_schema.py`、MQTT 为主等过时描述；补充 WebSocket 设备网关、`device_app_api`、匿名免费聊天、退役模块说明。
+  - 刷新 `STATUS.md`：测试计数更新为 **2319 passed / 18 skipped / 0 failed**；新增「文档更新与过时文档清理」「VPS 本地部署修复」「代码审查问题按优先级修复」三段最近完成；修正 VPS 启动耗时为约 8 秒；更新最近恢复操作。
+  - 更新 `docs/DEPLOY_AND_RELEASE_CONVENTION.md`：部署命令改为 `python scripts/deploy_unified.py --slice core`；`LIMA_DEPLOY_KEY_PATH` 示例改为 `~/.ssh/lima_deploy_ed25519`；默认上传方式改为 tar/scp；本地测试命令同步为 `python -m pytest --tb=short -q`。
+  - 修正 `docs/ARCHITECTURE.md` Phase 表：Phase 2 改为 ✅ 完成，Phase 5 改为进行中。
+  - 更新 `docs/README.md`：日期改为 2026-06-22；在运维与发布段补充 `DEPLOY_AND_RELEASE_CONVENTION.md`；做梦模式文档链接更新为归档路径。
+- **过时文档归档**：
+  - 将 4 个做梦模式草稿文档从 `docs/` 根目录移至 `docs/archive/dream_mode/`：
+    - `DREAM_MODE_ALL_SUBSYSTEMS_CN.md`
+    - `DREAM_MODE_ERRATA_CN.md`
+    - `DREAM_MODE_PROMPT_ENGINEERING_CN.md`
+    - `DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md`
+- **工作区清理**：删除未跟踪的 `coverage_output.txt`。
+- **验证**：
+  - `ruff check .` clean。
+  - 文档内部链接已目视检查，无断裂。
+- **Git 提交与推送**：
+  - Commit `???`：`docs: refresh README/STATUS/deploy convention, archive dream-mode drafts`。
+  - GitHub (`origin`) push 成功。
+
 ## 2026-06-22 代码审查问题按优先级修复（完成）
 
 - **目标**：响应「审查所有代码质量」指令，按 Critical → High → Medium → Low 优先级修复 `.omk/CODE_REVIEW_ISSUES.md` 中的问题。

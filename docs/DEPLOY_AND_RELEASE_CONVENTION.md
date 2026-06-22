@@ -28,13 +28,13 @@
 
 ```bash
 # 生产代码改动 → 全量测试
-python -m pytest tests/ -q --ignore=tests/test_ci_gates.py
+python -m pytest --tb=short -q
 
 # 纯文档/脚本 → focused 测试
 python -m pytest tests/test_<related>.py -v
 
 # 补充检查（按需）
-ruff check . --config ruff.toml
+ruff check .
 ```
 
 **通过标准**: 0 failed，新测试覆盖新增代码 80%+。
@@ -53,8 +53,8 @@ git diff --stat
 ### Step 3: VPS 部署
 
 ```bash
-# 标准部署（推荐）
-python scripts/deploy_unified.py
+# 标准部署（推荐）：读取 .env 中的 LIMA_DEPLOY_KEY_PATH / LIMA_DEPLOY_USE_TAR
+python scripts/deploy_unified.py --slice core
 
 # 仅上传指定文件（不重启）
 python scripts/deploy_unified.py --files <file1> <file2> --no-restart
@@ -66,14 +66,15 @@ python scripts/deploy_unified.py --dry-run
 **部署前必须**:
 - 记录当前版本（`git log --oneline -1`）
 - 记录备份位置（VPS `/opt/lima-router/backups/`）
+- 确认 `.env` 中 `LIMA_DEPLOY_KEY_PATH` 指向有效私钥
 - 确认 SSH 使用 `RejectPolicy`（非 `AutoAddPolicy`）
 
 **部署流程**:
 1. 自动检查 VPS 磁盘和内存容量
 2. 在 VPS 上创建 tar 备份
-3. SFTP 上传新文件
+3. 默认使用 tar/scp 批量上传（环境 `LIMA_DEPLOY_USE_TAR=1`），失败时回退到 SFTP
 4. `systemctl restart lima-router`
-5. 轮询 `/health` 等待服务就绪（最长 90s）
+5. 轮询 `/health` 等待服务就绪（最长 120s，可通过 `LIMA_DEPLOY_HEALTH_WAIT_S` 调整）
 
 ### Step 4: VPS 验证
 
@@ -162,10 +163,12 @@ python scripts/push_dual_remotes.py
 
 | 切片 | 部署脚本 | 说明 |
 |------|----------|------|
-| 标准部署 | `scripts/deploy_unified.py` | 容量检查 + 备份 + SFTP + 重启 + health 等待 |
+| 标准部署 | `scripts/deploy_unified.py --slice core` | 容量检查 + 备份 + tar/scp 上传 + 重启 + health 等待 |
+| 指定切片 | `scripts/deploy_unified.py --slice phase_a/phase_b/all` | 按切片部署 |
+| 指定文件 | `scripts/deploy_unified.py --files a.py b.py` | 仅上传指定文件 |
 | JDCloud 探测 | `scripts/check_jdcloud_node.py` | 只读烟雾，不部署 |
 | 预提交门禁 | `scripts/run_pre_commit_check.py` | ruff + pytest 本地门禁 |
-| 双远程推送 | `scripts/push_dual_remotes.py` | GitHub + Gitee 同步 |
+| 双远程推送 | `scripts/push_dual_remotes.py` | GitHub + Gitee 同步（Gitee 已退役） |
 
 ---
 
@@ -173,9 +176,10 @@ python scripts/push_dual_remotes.py
 
 ```bash
 # VPS 部署
-LIMA_DEPLOY_KEY_PATH=~/.ssh/id_ed25519    # SSH 私钥
-LIMA_DEPLOY_KNOWN_HOSTS=~/.ssh/known_hosts # SSH 主机密钥
-LIMA_DEPLOY_NOTIFY=1                       # 保留兼容开关；Telegram 通知已退役
+LIMA_DEPLOY_KEY_PATH=~/.ssh/lima_deploy_ed25519  # SSH 私钥
+LIMA_DEPLOY_KNOWN_HOSTS=~/.ssh/known_hosts       # SSH 主机密钥
+LIMA_DEPLOY_USE_TAR=1                            # 使用 tar/scp 批量上传（推荐）
+LIMA_DEPLOY_NOTIFY=1                             # 保留兼容开关；Telegram 通知已退役
 
 # VPS 上运行时
 LIMA_DRY_RUN=1                             # 默认关闭真实执行

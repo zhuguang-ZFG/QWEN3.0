@@ -8,13 +8,50 @@
 > Updated: 2026-06-22
 > Branch: `main`
 > Scale: 约 1021 个 Python 文件 / 全仓 905 文件已格式化
-> Tests: 全量 2318 passed / 18 skipped / 1 failed（`test_session_memory_device_draw` 预存失败）；ruff check clean；ruff format clean
+> Tests: 全量 2319 passed / 18 skipped / 0 failed；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
 > CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；提示词工程 5 项高优先级安全问题已关闭（P0-1~P0-5）。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-22）项目文档更新与过时内容清理
+
+- **目标**：响应「更新项目文档；清理过时文档」指令，刷新根 README、STATUS、部署约定、架构文档等入口文档，移除明显过时的命令、端口、模块引用。
+- **根 README.md 重写**：
+  - 从个人编码助手后端描述更新为「多后端 AI 路由 + AI 智能硬件云端服务」。
+  - 修正启动命令为 `python -m uvicorn server:app --host 0.0.0.0 --port 8080`。
+  - 修正部署命令为 `python scripts/deploy_unified.py --slice core`。
+  - 移除不存在的 `smart_router.py`、`device_schema.py`、MQTT 为主等描述；补充 WebSocket 设备网关、`device_app_api`、小智兼容层默认关闭等现状。
+  - 补充核心文档索引表与退役模块说明。
+- **STATUS.md 刷新**：测试计数更新为 **2319 passed / 18 skipped / 0 failed**；新增本段文档清理记录。
+- **docs/DEPLOY_AND_RELEASE_CONVENTION.md 更新**：
+  - 默认部署命令改为 `python scripts/deploy_unified.py`（tar/scp 上传，SFTP 为 fallback）。
+  - `LIMA_DEPLOY_KEY_PATH` 示例改为 `~/.ssh/lima_deploy_ed25519`（原 `id_ed25519` 已损坏）。
+  - 移除已不存在的 `--target` / `--profile` 参数引用；补充 `--files` 与 `--dry-run` 用法。
+  - 本地测试命令同步为 `python -m pytest --tb=short -q`。
+- **docs/ARCHITECTURE.md 修正**：Phase 表中 Phase 2 状态改为 ✅ 完成；Phase 3/4/5 状态改为按当前 roadmap 待执行/进行中。
+- **docs/README.md**：更新日期为 2026-06-22；在运维与发布段补充 `DEPLOY_AND_RELEASE_CONVENTION.md` 链接。
+- **工作区清理**：删除未跟踪的 `coverage_output.txt`。
+- **验证**：`ruff check .` clean；`pyright STATUS.md README.md` 不适用；文档链接已目视检查。
+
+### 最近完成（2026-06-22）VPS 本地部署修复
+
+- **问题**：本地 `python scripts/deploy_unified.py --slice core` 失败，paramiko 报 `~/.ssh/id_ed25519` 为 `Invalid key`；检查发现私钥文件内容被替换为占位符 `test`。
+- **修复**：
+  - 生成新的部署密钥 `~/.ssh/lima_deploy_ed25519`，使用 VPS root 密码将其公钥写入远端 `~/.ssh/authorized_keys`。
+  - `scripts/deploy_unified.py` 增加 `python-dotenv` 加载 `.env`，本地部署自动读取 `LIMA_DEPLOY_KEY_PATH` 与 `LIMA_DEPLOY_USE_TAR`。
+  - `.env` 追加 `LIMA_DEPLOY_KEY_PATH=~/.ssh/lima_deploy_ed25519` 与 `LIMA_DEPLOY_USE_TAR=1`。
+- **验证**：
+  - 简化命令 `python scripts/deploy_unified.py --slice core` → **1372 uploaded, 0 failed, health OK**。
+  - 服务已重启，公网 `/health` 200 ready。
+- **提交**：`4f7937b1` 已 push 到 `origin/main`。
+
+### 最近完成（2026-06-22）代码审查问题按优先级修复
+
+- 详见 `progress.md` 2026-06-22 代码审查修复条目：`.env.example` 补充品牌变量、`routes/system_endpoints.py` 改用 `brand_config`、response_cleaner 去硬编码、`device_gateway/intent.py` 利用 `_DANGEROUS_CAPABILITIES`、`session_memory/store_promote.py` 排序确定化、`prompt_engineering/layers.py` docstring 层号修正。
+- 提交 `2b918322` 与 `f05c6f92` 已 push 到 `origin/main`。
 
 ### 最近完成（2026-06-22）提示词工程强化（P0-1 ~ P0-5）
 
@@ -415,8 +452,10 @@ ruff check: clean（触及文件）
 - **备用节点**: JDCloud 117.72.118.95
 - **公网健康检查**: chat.donglicao.com/health = 200（2026-06-16 19:15 恢复；此前因 `device_ledger.store` 缺失 `configure_ledger_store_from_env` 导致 systemd 反复崩溃）
 - **设备网关**: chat.donglicao.com/device/v1/health = 200
-- **VPS 启动耗时**: 约 7 分钟（backend retirement / probe loop 历史数据分析预热），之后服务完全可用
+- **VPS 启动耗时**: 约 8 秒（`server_lifespan` 关键阶段完成后即可 ready；warm 阶段在后台异步运行）
 - **最近恢复操作**:
+  - 2026-06-22（文档与部署修复）：重写根 README；刷新 STATUS、docs/DEPLOY_AND_RELEASE_CONVENTION.md、docs/ARCHITECTURE.md、docs/README.md；删除未跟踪 `coverage_output.txt`；修复本地部署密钥损坏问题，生成 `~/.ssh/lima_deploy_ed25519` 并配置 `.env`；简化命令 `python scripts/deploy_unified.py --slice core` 成功部署 1372 文件，health OK。
+  - 2026-06-22（代码审查修复）：按优先级修复 `.omk/CODE_REVIEW_ISSUES.md` 中 7 项问题；全量 pytest 2319 passed / 18 skipped / 0 failed；commit `2b918322`、`f05c6f92` push 成功。
   - 2026-06-22：修复 `lima_mcp_stdio/lima_code_query_mcp.py` 静默降级与 chroma `FileRecord` 类型误用；拆分其过长 `handle_request` 及 5 个其他 `long_function`（architecture doc、audio pipeline、ASR/VAD/transcribe、memory consolidation）；修复 `scripts/deploy_unified_preflight.py` 大文件列表备份命令行超长问题；VPS 两次全量部署 2374 文件均成功，backup `/opt/lima-router/backups/unified-core-20260622_070210/runtime-before.tgz`，Health OK，`verify_production_deploy.py` PASS；补全 `device_logic/rate_limit.py`、`tool_gateway/audit.py`、`tool_gateway/governance.py` 单元测试共 44 例，guardian 报告清零（0 错误 / 0 警告 / 0 提示）；移除 Gitee remote 与相关 SSH 配置，仅保留 GitHub `origin`；将 `.guardian/` 和 `ARCHITECTURE_KNOWLEDGE.md` 加入 `.gitignore` 并从索引移除已跟踪的 guardian 文件；`esp32S_XYZ` submodule 有大量未提交修改待用户决定。
   - 2026-06-21：部署 15 个 store/memory/notifier/gateway/lifespan 文件，备份 `/opt/lima-router/backups/unified-files-20260616_190649/runtime-before.tgz`
 
@@ -438,7 +477,7 @@ ruff check: clean（触及文件）
 
 ## 已知技术债务与注意事项
 
-- **启动时间**：VPS 启动需约 7 分钟，主要消耗在 backend profile / retirement 历史数据分析；这些初始化目前阻塞 lifespan 完成，导致 health 等待较长。后续应改为后台预热或并行启动。
+- **启动时间**：VPS 关键启动阶段已完成优化，/health ready 约 8 秒；backend profile / retirement 历史数据分析等 warm 阶段在后台异步运行，不再阻塞 ready。
 - **本地/远程双环境**：Windows 本地代理后端、FRP `:8088`、VPS 直接后端共存，新增后端需明确拓扑归属
 - **context_pipeline 膨胀**：Hot 五模块外仍有大量 Cold 实验代码；见 `docs/CODEBASE_SUBSYSTEM_TIER_CN.md` P0–P4 建议
 - **findings 历史**：2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`；当前 findings.md 仅保留 2026-06-09 战略转型后记录

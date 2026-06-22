@@ -136,8 +136,8 @@ Client → POST /device/v1/tasks → device_gateway → intent.resolve
 | Phase | 目标 | 状态 |
 |-------|------|------|
 | Phase 0 | 战略转型 + 基础设施 | ✅ 完成 |
-| Phase 1 | 核心设备服务 + 路由契约 | ✅ 阶段 1 关闭 |
-| Phase 2 | 按角色准入 AI 绘图/写字模型 | 进行中 |
+| Phase 1 | 核心设备服务 + 路由契约 | ✅ 完成 |
+| Phase 2 | 按角色准入 AI 绘图/写字模型 | ✅ 完成 |
 | Phase 3 | 设备配置文件路由输入 | 待开始 |
 | Phase 4 | 通用 LLM 路由加固 | 待开始 |
-| Phase 5 | AI 到运动发布门 | 待开始 |
+| Phase 5 | AI 到运动发布门 | 进行中 |

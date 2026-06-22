@@ -1,79 +1,25 @@
-# LiMa（力码）—— AI 智能设备云端服务
+# LiMa（力码）—— AI 智能硬件云端服务
 
-> 深圳市动力巢科技有限公司 (www.donglicao.com)
+> 深圳市动力巢科技有限公司（www.donglicao.com）
 
-**最新更新**: 2026-06-09 战略转型 —— 从个人编码助手后端 → AI 智能设备统一云端服务平台
+LiMa 是一个多后端 AI 路由服务器，同时为 AI 绘图机、写字机等智能硬件提供云端控制平面。
 
-**核心理念：让 AI 硬件更智能**
-
-为 AI 绘图机、写字机等智能设备提供云端大脑，让每个家庭拥有会画画、会写字的智能伙伴。
-
----
-
-## 项目定位
-
-LiMa 是 **AI 智能硬件的云端大脑**，为 AI 绘图机、写字机等智能设备提供：
-
-- **智能理解**：自然语言 → 设备指令（AI 驱动）
-- **任务编排**：复杂任务分解与执行（绘图路径规划、字体渲染）
-- **设备网关**：MQTT 双向通信，实时状态监控
-- **多模型路由**：OpenRouter、OpenAI、本地模型智能调度
-
-### 核心场景
-
-1. **AI 绘图机**：「画一只猫」→ SVG 生成 → 路径优化 → G-code → ESP32 执行
-2. **AI 写字机**：「写首诗」→ 诗歌生成 → 字体渲染 → 笔画轨迹 → 机械臂书写
-3. **未来扩展**：语音交互、视觉识别、多设备协同
-
----
-
-## 架构（战略转型后）
-
-```
-小程序/App/Web 控制台
-          │ HTTPS/WebSocket
-          ▼
-   FastAPI (LiMa Core)
-    ┌──────┴──────┐
-    │  API Layer  │
-    │ - Chat API (OpenAI 兼容)
-    │ - Device Gateway (MQTT/WebSocket)
-    │ - Task Queue (绘图/写字)
-    └──────┬──────┘
-    ┌──────┴──────┐
-    │ Business Logic │
-    │ - AI Router (多模型调度)
-    │ - Drawing Engine (SVG → G-code)
-    │ - Writing Engine (字体渲染)
-    └──────┬──────┘
-    ┌──────┴──────┐
-    │ Infrastructure │
-    │ - SQLite (设备状态/任务队列)
-    │ - Prometheus (监控告警)
-    └──────┬──────┘
-           │ MQTT
-           ▼
-    ESP32 设备 (绘图机/写字机)
-```
+- **AI 路由**：根据请求类型、健康状态、预算与质量评分，智能路由到 170+ 个 AI 后端（Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare、阿里云等）。
+- **设备云端**：为 ESP32 绘图机/写字机提供任务派发、路径规划、状态监控与 OTA。
+- **公网入口**：https://chat.donglicao.com（支持匿名免费聊天，无需 API Key）。
 
 ---
 
 ## 技术栈
 
-- **后端**: Python 3.10 + FastAPI + uvicorn
-- **数据库**: SQLite（设备状态、任务队列、会话记忆）
-- **通信**: MQTT（设备 ↔ 云端双向）
-- **AI**: OpenRouter（多模型聚合）、OpenAI、本地模型
-- **部署**: 阿里云 + 京东云（双 VPS 高可用）
-- **监控**: Prometheus + Grafana
-
----
-
-## 支持的设备
-
-- **ESP32 绘图机**：XY 平台，单笔画绘制
-- **ESP32 写字机**：中文汉字书写
-- **扩展支持**（规划中）：激光雕刻、3D 打印、机械臂
+- **运行时**：Python 3.10 + FastAPI + uvicorn
+- **HTTP 客户端**：httpx
+- **数据**：SQLite（语义缓存、会话记忆）、Redis（设备任务队列）
+- **通信**：WebSocket / MQTT（设备双向通信）
+- **代码检查**：ruff（目标 py310，行宽 120）
+- **类型检查**：pyright
+- **测试**：pytest（asyncio_mode=auto）
+- **容器**：Docker + docker-compose
 
 ---
 
@@ -89,68 +35,57 @@ pip install -r requirements_server.txt
 
 ```bash
 cp .env.example .env
-# 编辑 .env 设置 LIMA_API_KEY、OPENROUTER_API_KEY 等
+# 编辑 .env，至少设置 LIMA_API_KEYS、CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_TOKEN
 ```
 
 ### 3. 启动服务
 
 ```bash
-python server.py
+python -m uvicorn server:app --host 0.0.0.0 --port 8080
 ```
-
-服务默认运行在 `http://localhost:8000`
 
 ### 4. 健康检查
 
 ```bash
-curl http://localhost:8000/health
+curl http://127.0.0.1:8080/health
 ```
 
 ---
 
-## API 端点
+## 主要 API
 
-### OpenAI 兼容端点
+### OpenAI 兼容聊天
 
 ```bash
 POST /v1/chat/completions
 ```
 
-支持 OpenAI SDK 直接接入：
-
-```python
-import openai
-
-client = openai.OpenAI(
-    base_url="http://localhost:8000/v1",
-    api_key="your-lima-api-key"
-)
-
-response = client.chat.completions.create(
-    model="lima-1.3",
-    messages=[{"role": "user", "content": "画一只猫"}]
-)
-```
-
-### 设备网关端点（已实现）
+示例：
 
 ```bash
-POST /api/v1/devices/register      # 设备注册
-POST /api/v1/devices/bind          # 设备绑定
-GET  /api/v1/devices               # 设备列表
-POST /device/v1/tasks              # 下发任务
-GET  /device/v1/tasks/{task_id}    # 查询任务
-POST /device/v1/draw               # 绘图任务
-POST /device/v1/write              # 写字任务
+curl -s http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $LIMA_API_KEY" \
+  -d '{
+    "model": "lima-1.3",
+    "messages": [{"role": "user", "content": "你好"}]
+  }'
+```
+
+### 设备网关
+
+```bash
+GET  /device/v1/health           # 设备网关健康
+POST /device/v1/tasks            # 下发任务（写字/绘图/控制）
+GET  /device/v1/tasks/{task_id}  # 查询任务
+WS   /device/v1/ws               # 设备 WebSocket 长连接
 ```
 
 ### 管理端点
 
 ```bash
-GET  /health               # 健康检查
-GET  /admin/status         # 系统状态
-GET  /admin/backends       # 后端列表
-POST /admin/reload         # 热重载配置
+GET /v1/status        # 后端与熔断状态（需 private API key）
+GET /health           # 服务健康
 ```
 
 ---
@@ -160,45 +95,55 @@ POST /admin/reload         # 热重载配置
 ### 本地开发
 
 ```bash
-python server.py
+python -m uvicorn server:app --host 0.0.0.0 --port 8080
 ```
 
 ### 生产部署（VPS）
 
 ```bash
-# 阿里云 VPS
-python scripts/deploy_unified.py --target aliyun --profile lima-prod
+# 标准全量部署
+python scripts/deploy_unified.py --slice core
 
-# 京东云 VPS（备用）
-python scripts/deploy_unified.py --target jdcloud --profile lima-probe
+# 仅上传指定文件（不重启）
+python scripts/deploy_unified.py --files <file1> <file2> --no-restart
+
+# 仅检查会部署哪些文件
+python scripts/deploy_unified.py --dry-run
 ```
 
-详见 [DEPLOY_AND_RELEASE_CONVENTION.md](docs/DEPLOY_AND_RELEASE_CONVENTION.md)
+部署依赖 `.env` 中的 `LIMA_DEPLOY_KEY_PATH` 与 `LIMA_DEPLOY_USE_TAR=1`。
+
+详见 [`docs/DEPLOY_AND_RELEASE_CONVENTION.md`](docs/DEPLOY_AND_RELEASE_CONVENTION.md)。
 
 ---
 
 ## 项目结构
 
 ```
-D:\QWEN3.0\
-├── server.py                  # FastAPI 主入口
-├── routes/                    # 路由模块
-│   ├── device_gateway.py      # 设备网关（Day 3-5 新建）
-│   ├── chat_endpoints.py      # Chat API
-│   └── admin.py               # 管理端点
-├── routing_engine.py          # 多模型路由引擎
-├── smart_router.py            # 智能意图理解
-├── session_memory/            # 会话记忆
-├── device_schema.py           # 设备数据模型（Day 3 新建）
-├── migrations/                # 数据库迁移（Day 3 新建）
-├── deploy/                    # 部署脚本
-├── scripts/                   # 工具脚本
-├── tests/                     # 测试
-└── docs/                      # 文档
-    ├── ESP32S_XYZ_MANAGEMENT_CN.md      # ESP32 管理（中文权威版）
-    ├── ESP32S_XYZ_INTEGRATION_GUIDE.md  # 设备集成指南
-    ├── ESP32S_XYZ_PROTOCOL_ADAPTER_DESIGN.md  # 协议适配设计
-    └── ARCHITECTURE.md                  # 系统架构
+.
+├── server.py                  # FastAPI 入口
+├── server_bootstrap.py        # 运行时常量与终极降级
+├── server_lifespan.py         # 异步生命周期
+├── routing_engine.py          # AI 路由权威入口
+├── router_v3/                 # 后端池
+├── routing_selector/          # 后端排序与选择
+├── routing_executor.py        # 后端执行（串/并行 + 降级）
+├── http_caller.py             # HTTP 传输层
+├── backends_registry/         # 170+ 后端注册
+├── routes/                    # FastAPI 路由
+│   ├── chat_endpoints.py
+│   ├── device_gateway.py
+│   ├── device_app_api.py
+│   ├── system_endpoints.py
+│   └── xiaozhi_v1_compat.py   # 小智 App 兼容层（默认关闭）
+├── device_gateway/            # 设备协议、任务、路径规划
+├── session_memory/            # 持久记忆与学习循环
+├── context_pipeline/          # 检索与代码上下文注入
+├── skills/                    # 可注入技能 Markdown
+├── chat-web/                  # Web 聊天前端
+├── scripts/                   # 工具、部署、冒烟脚本
+├── tests/                     # 测试套件
+└── docs/                      # 文档索引与架构说明
 ```
 
 ---
@@ -207,84 +152,56 @@ D:\QWEN3.0\
 
 | 文档 | 说明 |
 |------|------|
-| [CLAUDE.md](CLAUDE.md) | 项目开发规范（必读） |
-| [STATUS.md](STATUS.md) | 项目状态 |
-| [AGENTS.md](AGENTS.md) | 协作规范 |
-| [ESP32S_XYZ_MANAGEMENT_CN.md](docs/ESP32S_XYZ_MANAGEMENT_CN.md) | ESP32 管理 |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 系统架构 |
-| [DEPLOY_AND_RELEASE_CONVENTION.md](docs/DEPLOY_AND_RELEASE_CONVENTION.md) | 部署与发布规范 |
+| [`STATUS.md`](STATUS.md) | 当前项目状态、已完成里程碑、部署健康 |
+| [`AGENTS.md`](AGENTS.md) | 开发约定、命令、Git/部署规则 |
+| [`CLAUDE.md`](CLAUDE.md) | 精简开发规则与仓库统计 |
+| [`docs/README.md`](docs/README.md) | 文档索引与必读顺序 |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 系统架构与模块边界 |
+| [`docs/REQUEST_PIPELINE_AUTHORITY_CN.md`](docs/REQUEST_PIPELINE_AUTHORITY_CN.md) | 18 步请求处理管线 |
+| [`docs/DEPLOY_AND_RELEASE_CONVENTION.md`](docs/DEPLOY_AND_RELEASE_CONVENTION.md) | 部署与发布约定 |
+| [`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) | 设备开发、联调、验证入口 |
+| [`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md) | 当前活跃路线图 |
 
 ---
 
 ## 开发规范
 
-### 代码质量
-
 - Python 3.10+ 类型注解
 - 单文件 ≤300 行，函数 ≤50 行
 - 禁止裸 `except Exception: pass`
-- 禁止降级处理（失败必须报错）
+- 新能力默认关闭，需显式 env flag 开启
+- 文档类产物默认使用中文
 
-### Git 工作流
+完整规范见 [`AGENTS.md`](AGENTS.md)。
 
-```bash
-# 1. 功能分支开发
-git checkout -b feat/your-feature
+---
 
-# 2. 本地测试
-pytest
-
-# 3. 提交（包含 Co-Authored-By）
-git commit -m "feat: your feature
-
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
-
-# 4. 推送 origin（GitHub）
-git push origin feat/your-feature
-
-# 5. 同步 gitee
-git push gitee feat/your-feature
-```
-
-### 测试
+## 测试
 
 ```bash
-# 运行所有测试
-pytest
+# 全量测试
+python -m pytest --tb=short -q
 
-# 运行特定测试
-pytest tests/test_device_gateway.py
+# 聚焦测试
+python -m pytest tests/test_routing_engine.py -v
 
-# 覆盖率报告
-pytest --cov=. --cov-report=html
+# 预提交门禁
+python scripts/run_pre_commit_check.py --full
 ```
 
 ---
 
-## 战略转型（2026-06-09）
+## 退役说明
 
-### 从编码助手 → 设备云端服务
+以下模块已移除或归档：
 
-**删除的功能**：
-- Agent Runtime（自主任务执行）
-- Tool Forwarding（工具调用）
-- Code Quality Gate（代码质量门控）
-- Semantic Cache（语义缓存）
+- Telegram bot/operator 通知
+- GitHub/Gitee webhook 路由
+- Anthropic `/v1/messages` 兼容层
+- `channel_gateway`（微信绑定层）
+- `lima_mcp/` HTTP MCP 路由
 
-**保留的核心**：
-- 多模型路由（OpenRouter、OpenAI、本地模型）
-- 设备网关（MQTT 双向通信）
-- 会话记忆（SQLite）
-- 监控告警（Prometheus）
-
-**新增的功能**（Phase 1-3，Day 3-10）：
-- 设备状态管理（心跳、错误日志）
-- 任务队列（绘图、写字）
-- 路径规划（SVG → G-code）
-- MQTT 协议扩展
-
-详见：
-- [战略转型计划](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+详见 [`STATUS.md`](STATUS.md)「退役模块」。
 
 ---
 
@@ -294,12 +211,4 @@ MIT License
 
 ---
 
-## 联系方式
-
-- **开发者**: zhuguang-ZFG
-- **GitHub**: https://github.com/zhuguang-ZFG/lima
-- **Gitee**: https://gitee.com/zhuguang-zfg/lima
-
----
-
-**LiMa —— 让 AI 硬件更智能！** 🤖✨
+**LiMa —— 让 AI 硬件更智能。**

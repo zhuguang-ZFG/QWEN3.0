@@ -1,7 +1,7 @@
 # LiMa 文档索引
 
-> 更新日期：2026-06-18
-> 项目定位：AI 智能设备统一云端服务
+> 更新日期：2026-06-22
+> 项目定位：多后端 AI 路由 + AI 智能硬件云端服务
 >
 > **权威规则**：本索引列出当前有效的文档。若某文档被标注为“历史/归档”，则以当前有效文档为准；若存在冲突，以本索引中“当前状态”与“路线图”两类文档为最新依据。
 
@@ -42,8 +42,8 @@
 | 请求管线权威说明 | [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) |
 | 路由引擎设计 | [`archive/ROUTING_ENGINE_DESIGN.md`](archive/ROUTING_ENGINE_DESIGN.md)（历史归档） |
 | 可观测事件 | [`OBSERVABILITY_EVENTS_CN.md`](OBSERVABILITY_EVENTS_CN.md) |
-| 做梦模式子系统隐喻（草稿） | [`DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md`](DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md) + [`DREAM_MODE_ALL_SUBSYSTEMS_CN.md`](DREAM_MODE_ALL_SUBSYSTEMS_CN.md) + [`DREAM_MODE_PROMPT_ENGINEERING_CN.md`](DREAM_MODE_PROMPT_ENGINEERING_CN.md) |
-| 做梦模式勘误（SSOT 校正） | [`DREAM_MODE_ERRATA_CN.md`](DREAM_MODE_ERRATA_CN.md) |
+| 做梦模式子系统隐喻（草稿） | [`archive/dream_mode/DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md`](archive/dream_mode/DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md) + [`archive/dream_mode/DREAM_MODE_ALL_SUBSYSTEMS_CN.md`](archive/dream_mode/DREAM_MODE_ALL_SUBSYSTEMS_CN.md) + [`archive/dream_mode/DREAM_MODE_PROMPT_ENGINEERING_CN.md`](archive/dream_mode/DREAM_MODE_PROMPT_ENGINEERING_CN.md) |
+| 做梦模式勘误（SSOT 校正） | [`archive/dream_mode/DREAM_MODE_ERRATA_CN.md`](archive/dream_mode/DREAM_MODE_ERRATA_CN.md) |
 
 ## 设备与模型
 
@@ -63,6 +63,7 @@
 | --- | --- |
 | 工作区卫生 | [`WORKSPACE_HYGIENE.md`](WORKSPACE_HYGIENE.md) |
 | 在线分发 | [`ONLINE_DISTRIBUTIONS_CN.md`](ONLINE_DISTRIBUTIONS_CN.md) |
+| 部署与发布约定 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
 | 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
 | AI→Motion 发布证据模板 | [`release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`](release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md) |
 | draw_generated 主链路接入 | [`release_evidence/2026-06-18-draw-generated-handler-integration.md`](release_evidence/2026-06-18-draw-generated-handler-integration.md) |
