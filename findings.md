@@ -3,6 +3,21 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-22 免费聊天匿名访问修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| ANON-1 | auth | 生产环境 `access_guard.allow_anonymous_access()` 在 `LIMA_RUNTIME_ENV=production` 时强制返回 `False`，导致 `LIMA_ALLOW_ANONYMOUS=1` 被忽略，匿名用户无法聊天 | Closed |
+| ANON-2 | frontend | `chat-web/chat-api.js` 在每次发送消息前调用 `ensureApiKey()`，无 Key 时强制弹窗，与“免费聊天”产品定位冲突 | Closed |
+| ANON-3 | ux | API Key 弹窗标题为“需要 API Key”，描述暗示必须输入 Key，容易误导用户 | Closed |
+| ANON-4 | test | `tests/test_access_guard.py::test_production_blocks_anonymous_even_when_env_enabled` 与系统健康检查测试仍断言生产环境应阻断匿名访问，与产品需求不符 | Closed |
+
+**修复摘要**
+- `access_guard.py`：移除生产运行时的强制阻断；`anonymous_access_status()` 的 `production_blocked` 改为 `production and env_enabled and not allowed`。
+- 前端：`chat-web/chat-api.js` 移除 `ensureApiKey()`；`chat-web/chat-ui.js` 允许留空清除 Key；`chat-web/index.html` 弹窗文案改为“设置 API Key（可选）”，静态资源 cache-bust 升级到 `?v=3`。
+- 测试：更新 `tests/test_access_guard.py`、`tests/test_system_endpoints.py` 断言；聚焦测试先 RED（2 failed）后 GREEN（27 passed）。
+- 部署：GitHub Actions `Deploy` workflow（run `27942136224`）完整通过；公网 `/health` 显示 `anonymous_access.allowed=true`、`production_blocked=false`；匿名 `POST /v1/chat/completions` 成功返回。
+
 ## 2026-06-22 继续优化切片结项
 
 | ID | Area | Finding | Status |

@@ -8,12 +8,27 @@
 > Updated: 2026-06-22
 > Branch: `main`
 > Scale: 约 1021 个 Python 文件 / 全仓 905 文件已格式化
-> Tests: 全量 2257+ passed / 32 skipped / 0 failed；ruff check clean；ruff format clean
+> Tests: 全量 2305 passed / 18 skipped / 0 failed；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
-> CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets（`VPS_SSH_KEY`、`VPS_HOST`、`LIMA_DEPLOY_PASS`、`JDCLOUD_HOST`、`JDCLOUD_SSH_PASSWORD`、`LIMA_API_KEY`）已配置；首次自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已触发并执行中。
+> CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted（图片域名白名单已落地；WebSocket query-param token 已加 `access_log off` 与 warning 日志）。
+> 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-22）免费聊天匿名访问修复
+
+- **问题**：用户确认 LiMa 星云聊天为免费、无需 API Key，但生产环境因 `LIMA_RUNTIME_ENV=production` 被 `access_guard.py` 强制阻断匿名访问；`/health.security.anonymous_access.allowed=false`，`/v1/chat/completions` 不带 Key 返回 401。
+- **修复**：
+  - `access_guard.py`：移除生产运行时的强制 `False`，`LIMA_ALLOW_ANONYMOUS=1` 在生产环境同样生效。
+  - 前端：`chat-web/chat-api.js` 移除发送消息前的强制 Key 弹窗；`chat-web/chat-ui.js` 允许留空清除 Key；`chat-web/index.html` 弹窗文案改为“设置 API Key（可选）”，静态资源 cache-bust 升级到 `?v=3`。
+  - 测试：`tests/test_access_guard.py`、`tests/test_system_endpoints.py` 更新断言；聚焦测试先 RED 后 GREEN。
+- **验证**：
+  - 全量 `pytest -q` → **2305 passed, 18 skipped, 0 failed**。
+  - GitHub Actions `Deploy` workflow（run `27942136224`）完整通过：Aliyun 主服务、chat-web 静态文件、公网冒烟、JDCloud probe。
+  - 公网 `/health` → `security.anonymous_access.allowed=true`、`production_blocked=false`。
+  - 公网匿名 `POST /v1/chat/completions`（无 Authorization）成功返回响应。
+- **提交**：`241f360a`（代码修复）、`62645339`（progress 记录）、`5a6110ab`（.env.example 注释更新）已 push 到 `origin/main`。
 
 ### 最近完成（2026-06-22）测试修复、device_gateway 拆分与当前 WIP 合并
 
