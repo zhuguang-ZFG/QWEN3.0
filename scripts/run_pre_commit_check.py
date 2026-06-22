@@ -171,6 +171,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = quick_commands(changed_paths, ci=args.ci)
     if args.full:
         basetemp = str(ROOT / "tmp" / f"pytest-run-precommit-full-{uuid.uuid4().hex}")
+        Path(basetemp).parent.mkdir(parents=True, exist_ok=True)
         commands.append(full_pytest_command(basetemp=basetemp))
 
     run_code_size_check()
