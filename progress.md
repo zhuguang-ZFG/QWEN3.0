@@ -2949,3 +2949,19 @@ Agent Worker path.
   - `check_code_size.py` 的 >50 行函数从 89 个降至 **88 个**。
 - **提交**：
   - `37590fba` `refactor(scripts): split eval_loop_core::run_eval into helpers`；已 push 到 GitHub `origin/main`（`c376a695..37590fba`）。
+
+## 2026-06-22 继续优化 — 拆分 `scripts/verify_production_deploy.py::main`
+
+- **目标**：处理 `check_code_size.py` 当前 Top 长函数 `scripts/verify_production_deploy.py::main`（80 行）。
+- **拆分**：
+  - `_check_health_path(path)`：探测单个健康端点，成功返回 `None`，失败返回路径名。
+  - `_check_metrics(bearer)`：探测 `/v1/ops/metrics/prometheus`，校验关键指标存在性。
+  - `_check_l2_rate_limit()`：公共登录接口 L2 限流探测，根据 `LIMA_DEVICE_AUTH_RATE_REDIS` 与 Redis URL 决定严格/警告模式。
+  - `main` 仅负责加载 key、编排探测、汇总失败项并返回退出码。
+- **验证**：
+  - `ruff check / format` → clean。
+  - `pyright scripts/verify_production_deploy.py` → 0 errors, 0 warnings。
+  - 模块 import 正常。
+  - 全量 `pytest -q` → **2287 passed, 4 skipped, 0 failed**。
+- **提交**：
+  - `707d354e` `refactor(scripts): split verify_production_deploy::main into helpers`；已 push 到 GitHub `origin/main`（`e0f9867d..707d354e`）。
