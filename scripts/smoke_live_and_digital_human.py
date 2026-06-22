@@ -151,86 +151,99 @@ async def _test_gemini_live(api_key: str) -> dict:
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
 
-async def _test_digital_human_ws() -> dict:
+def _load_digital_human_creds() -> tuple[str, str, str | None]:
+    """Return (device_id, token, error_or_none)."""
     device_id = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "").strip()
     token = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip()
-
     if not token:
-        return {
-            "ok": False,
-            "error": "LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN not set; supply a device token in .env",
-        }
+        return "", "", "LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN not set; supply a device token in .env"
+    return device_id or "web-tester", token, None
 
-    if not device_id:
-        device_id = "web-tester"
 
+async def _connect_digital_human_ws(device_id: str, token: str):
+    """Open a WebSocket to the digital-human endpoint."""
     ticket = ws_ticket_http.issue_device_ws_ticket(LIMA_HOST, device_id, token)
     ws_url = ws_ticket_http.ws_url_with_ticket(f"wss://{LIMA_HOST}/device/v1/ws", ticket)
+    return await websockets.connect(ws_url, additional_headers={"User-Agent": "LiMaSmoke/1.0"})
+
+
+async def _send_hello(ws, device_id: str) -> dict:
+    """Send hello and wait for hello_ack; returns {ok, ack_obj?}."""
+    await ws.send(
+        json.dumps(
+            {
+                "type": "hello",
+                "protocol": "lima-device-v1",
+                "device_id": device_id,
+                "fw_rev": "smoke-test",
+                "capabilities": ["audio", "text_chat"],
+            }
+        )
+    )
+    ack = await asyncio.wait_for(ws.recv(), timeout=10)
+    ack_obj = json.loads(ack)
+    if ack_obj.get("type") != "hello_ack":
+        return {"ok": False, "error": f"expected hello_ack, got {ack_obj.get('type')}", "ack": ack_obj}
+    return {"ok": True, "ack_obj": ack_obj}
+
+
+def _summarize_digital_human_response(obj: dict) -> str:
+    """Summarize a single response message for logging."""
+    summary = obj.get("type", "unknown")
+    if obj.get("type") == "voice_status":
+        summary = f"voice_status({obj.get('status')}, transcript={obj.get('transcript', '')[:40]!r})"
+    elif obj.get("type") == "error":
+        summary = f"error({obj.get('code')}: {obj.get('message')})"
+    return summary
+
+
+async def _run_transcript_pipeline(ws, device_id: str) -> list[str]:
+    """Send a transcript and collect pipeline responses until audio/error/timeout."""
+    await ws.send(json.dumps({"type": "transcript", "device_id": device_id, "text": "你好，请简短介绍一下自己。"}))
+    responses: list[str] = []
     try:
-        async with websockets.connect(ws_url, additional_headers={"User-Agent": "LiMaSmoke/1.0"}) as ws:
-            await ws.send(
-                json.dumps(
-                    {
-                        "type": "hello",
-                        "protocol": "lima-device-v1",
-                        "device_id": device_id,
-                        "fw_rev": "smoke-test",
-                        "capabilities": ["audio", "text_chat"],
-                    }
-                )
-            )
-            ack = await asyncio.wait_for(ws.recv(), timeout=10)
-            ack_obj = json.loads(ack)
-            if ack_obj.get("type") != "hello_ack":
-                return {
-                    "ok": False,
-                    "error": f"expected hello_ack, got {ack_obj.get('type')}",
-                    "ack": ack_obj,
-                }
+        while True:
+            msg = await asyncio.wait_for(ws.recv(), timeout=60)
+            if isinstance(msg, bytes):
+                responses.append(f"<binary audio chunk {len(msg)} bytes>")
+                break
+            obj = json.loads(msg)
+            responses.append(_summarize_digital_human_response(obj))
+            if obj.get("type") in ("audio_reply", "error"):
+                break
+    except asyncio.TimeoutError:
+        responses.append("<no further response within 60s>")
+    return responses
 
-            # Try a text transcript to see if the LLM+TTS pipeline responds.
-            await ws.send(
-                json.dumps(
-                    {
-                        "type": "transcript",
-                        "device_id": device_id,
-                        "text": "你好，请简短介绍一下自己。",
-                    }
-                )
-            )
-            responses: list[str] = []
-            try:
-                while True:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=60)
-                    if isinstance(msg, bytes):
-                        responses.append(f"<binary audio chunk {len(msg)} bytes>")
-                        break
-                    obj = json.loads(msg)
-                    summary = obj.get("type", "unknown")
-                    if obj.get("type") == "voice_status":
-                        summary = f"voice_status({obj.get('status')}, transcript={obj.get('transcript', '')[:40]!r})"
-                    elif obj.get("type") == "error":
-                        summary = f"error({obj.get('code')}: {obj.get('message')})"
-                    responses.append(summary)
-                    if obj.get("type") == "audio_reply":
-                        break
-                    if obj.get("type") == "error":
-                        break
-            except asyncio.TimeoutError:
-                responses.append("<no further response within 60s>")
 
+def _build_digital_human_error(exc: Exception) -> dict:
+    """Normalize WebSocket / timeout / other errors into a result dict."""
+    if isinstance(exc, websockets.exceptions.InvalidStatus):
+        return {"ok": False, "error": f"WebSocket handshake failed: {exc.status_code}"}
+    if isinstance(exc, asyncio.TimeoutError):
+        return {"ok": False, "error": "timeout waiting for hello_ack"}
+    return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+async def _test_digital_human_ws() -> dict:
+    device_id, token, error = _load_digital_human_creds()
+    if error:
+        return {"ok": False, "error": error}
+
+    try:
+        async with await _connect_digital_human_ws(device_id, token) as ws:
+            hello = await _send_hello(ws, device_id)
+            if not hello["ok"]:
+                return hello
+            responses = await _run_transcript_pipeline(ws, device_id)
             return {
                 "ok": True,
                 "device_id": device_id,
-                "hello_ack_keys": list(ack_obj.keys()),
+                "hello_ack_keys": list(hello["ack_obj"].keys()),
                 "pipeline_responses": responses,
             }
-    except websockets.exceptions.InvalidStatus as exc:
-        return {"ok": False, "error": f"WebSocket handshake failed: {exc.status_code}"}
-    except asyncio.TimeoutError:
-        return {"ok": False, "error": "timeout waiting for hello_ack"}
     except Exception as exc:  # noqa: BLE001
-        return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+        return _build_digital_human_error(exc)
 
 
 async def main() -> int:
