@@ -6654,3 +6654,27 @@ Agent Worker path.
   - `check_code_size.py`：>300 行文件从 10 降至 **9**；>50 行函数保持 **76**。
 - **Git**：本轮待提交。
 - **剩余**：生产核心代码尺寸已达标；剩余 >300 行文件均为脚本 / 开发工具 / 测试。
+
+
+## 2026-06-21 LiMa 第二轮瘦身计划（Ponytail 原则）
+
+- **目标**：延续第一轮瘦身，按 Ponytail 原则继续裁剪代码库。
+- **阶段 1 — 删除空目录**：
+  - 删除 8 个仅含 `__pycache__/` 的空目录（`data_workbench/`、`converters/`、`mastery_loop/`、`reverse_gateway/`、`sandbox/`、`research_radar/`、`research/`、`developer_skills/`），零生产引用。
+- **阶段 2 — 拆分 5 个低风险生产 >50 行函数**：
+  - `prompt_engineering/layers.py::build_skill_layer`（55→1 行）：将 `skill_map` 字典提取为模块级常量 `_SKILL_LAYER_MAP`。
+  - `session_memory/outcome_ledger/db.py::_get_conn`（57→23 行）：提取 `_ensure_schema()` 和 `_ensure_indexes()`。
+  - `routing_engine_post.py::post_route`（58→23 行）：提取 `_record_routing_event()` 和 `_notify_feedback_bridge()`。
+  - `device_voice/providers/tts_doubao.py::synthesize`（56→40 行）：提取 `_build_doubao_request()`。
+  - `device_voice/providers/tts_mimo.py::synthesize`（55→36 行）：提取 `_build_mimo_request()` 和 `_extract_mimo_audio()`。
+- **阶段 3 — 拆分 3 个 MCP 服务器**（开发工具，不参与生产请求路径）：
+  - `lima_mcp_stdio/lima_ops_mcp.py`（461→209 行）：提取 5 个 `tool_*` 函数到 `lima_ops_tools.py`，采用依赖注入模式。
+  - `lima_mcp_stdio/lima_code_query_mcp.py`（385→161 行）：提取 `LimaCodeQuery` 类到 `lima_code_query_core.py`。
+  - `lima_mcp_stdio/lima_codegraph_mcp.py`（381→103 行）：提取 `tool_*` 函数 + DB 连接到 `lima_codegraph_tools.py`。
+- **阶段 4**：合并重复跳过 — `connect_redis` 提升（`rate_limiter` 使用不同模式）和 `estimate_tokens` 包装函数（仅 5 行每个，收益微乎其微）按 Ponytail 原则保持现状。
+- **验证**：
+  - `ruff check .`：clean。
+  - `pyright`：0 errors。
+  - `check_code_size.py`：>300 行文件从 9 降至 **7**；>50 行函数从 76 降至 **75**。
+  - 聚焦测试：5 个拆分函数各自测试全部通过。
+- **Git**：本轮待提交。

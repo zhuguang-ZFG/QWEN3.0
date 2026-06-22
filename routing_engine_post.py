@@ -10,6 +10,58 @@ from route_post_process import apply_post_route_integrations
 _log = logging.getLogger(__name__)
 
 
+def _record_routing_event(
+    final_backend: str,
+    scenario: str,
+    req_type: str,
+    ms: int,
+    success: bool,
+    fallback_used: bool,
+) -> None:
+    """记录 routing_decision 事件到 agent_events。"""
+    try:
+        from routes.agent_events import record_event
+
+        record_event(
+            "routing_decision",
+            {
+                "backend": final_backend,
+                "scenario": scenario,
+                "req_type": req_type,
+                "latency_ms": ms,
+                "success": success,
+                "fallback_used": fallback_used,
+            },
+        )
+    except Exception as exc:
+        _log.debug("routing_decision event record failed: %s", type(exc).__name__)
+
+
+def _notify_feedback_bridge(
+    scenario: str,
+    messages: list[dict],
+    final_backend: str,
+    success: bool,
+    ms: int,
+    fallback_used: bool,
+) -> None:
+    """通知 feedback_bridge 请求完成。"""
+    try:
+        from routing_loop.feedback_bridge import on_request_complete
+
+        on_request_complete(
+            request_id=make_chat_id(),
+            scenario=scenario,
+            messages=messages,
+            backend=final_backend,
+            success=success,
+            latency_ms=float(ms),
+            fallback_used=fallback_used,
+        )
+    except Exception as _fb_exc:
+        _log.warning("feedback_bridge error: %s", _fb_exc)
+
+
 def post_route(
     answer: str | None,
     final_backend: str,
@@ -37,37 +89,8 @@ def post_route(
     )
     success = bool(answer and len(answer) > 5)
 
-    try:
-        from routes.agent_events import record_event
-
-        record_event(
-            "routing_decision",
-            {
-                "backend": final_backend,
-                "scenario": scenario,
-                "req_type": req_type,
-                "latency_ms": ms,
-                "success": success,
-                "fallback_used": fallback_used,
-            },
-        )
-    except Exception as exc:
-        _log.debug("routing_decision event record failed: %s", type(exc).__name__)
-
-    try:
-        from routing_loop.feedback_bridge import on_request_complete
-
-        on_request_complete(
-            request_id=make_chat_id(),
-            scenario=scenario,
-            messages=messages,
-            backend=final_backend,
-            success=success,
-            latency_ms=float(ms),
-            fallback_used=fallback_used,
-        )
-    except Exception as _fb_exc:
-        _log.warning("feedback_bridge error: %s", _fb_exc)
+    _record_routing_event(final_backend, scenario, req_type, ms, success, fallback_used)
+    _notify_feedback_bridge(scenario, messages, final_backend, success, ms, fallback_used)
 
 
 def get_injected_ids(original: list[dict], modified: list[dict]) -> list[str]:

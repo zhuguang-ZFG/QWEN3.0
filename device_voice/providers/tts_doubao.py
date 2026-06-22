@@ -66,13 +66,9 @@ class DoubaoTTSProvider(TTSProvider):
     def default_voice(self) -> str:
         return self._voice
 
-    async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
-        """Synthesize text into audio bytes (PCM by default)."""
-        if not text or not text.strip():
-            return b""
-
-        v = voice or self._voice
-        request_json = {
+    def _build_doubao_request(self, text: str, voice: str) -> dict:
+        """Build the request body dict for the Doubao TTS API."""
+        return {
             "app": {
                 "appid": self._appid,
                 "token": self._access_token,
@@ -80,7 +76,7 @@ class DoubaoTTSProvider(TTSProvider):
             },
             "user": {"uid": "1"},
             "audio": {
-                "voice_type": v,
+                "voice_type": voice,
                 "encoding": self._encoding,
                 "speed_ratio": 1.0,
                 "volume_ratio": 1.0,
@@ -95,6 +91,14 @@ class DoubaoTTSProvider(TTSProvider):
                 "frontend_type": "unitTson",
             },
         }
+
+    async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
+        """Synthesize text into audio bytes (PCM by default)."""
+        if not text or not text.strip():
+            return b""
+
+        v = voice or self._voice
+        request_json = self._build_doubao_request(text, v)
 
         try:
             async with httpx.AsyncClient(timeout=60) as client:

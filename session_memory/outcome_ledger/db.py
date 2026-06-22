@@ -10,14 +10,8 @@ import uuid
 from session_memory.outcome_ledger.config import get_db_path
 
 
-def _get_conn() -> sqlite3.Connection:
-    """Open the outcome DB, ensure schema/indexes, and return a connection."""
-    db_path = get_db_path()
-    db_dir = os.path.dirname(db_path)
-    if db_dir:
-        os.makedirs(db_dir, exist_ok=True)
-    conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA journal_mode=WAL")
+def _ensure_schema(conn: sqlite3.Connection) -> None:
+    """Create the outcomes table and run idempotent ALTER TABLE migrations."""
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS outcomes (
@@ -61,10 +55,26 @@ def _get_conn() -> sqlite3.Connection:
             conn.execute(f"ALTER TABLE outcomes ADD COLUMN {col} {col_type}")
         except sqlite3.OperationalError:
             pass  # column already exists
+
+
+def _ensure_indexes(conn: sqlite3.Connection) -> None:
+    """Create indexes on the outcomes table (idempotent)."""
     conn.execute("CREATE INDEX IF NOT EXISTS idx_outcomes_source ON outcomes(source, recorded_at DESC)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_outcomes_task ON outcomes(task_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_outcomes_loop ON outcomes(loop, outcome)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_outcomes_unlearned ON outcomes(learned, recorded_at)")
+
+
+def _get_conn() -> sqlite3.Connection:
+    """Open the outcome DB, ensure schema/indexes, and return a connection."""
+    db_path = get_db_path()
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    _ensure_schema(conn)
+    _ensure_indexes(conn)
     conn.commit()
     return conn
 

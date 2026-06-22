@@ -130,12 +130,9 @@ class MiMoTTSProvider(TTSProvider):
     def default_voice(self) -> str:
         return self._voice
 
-    async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
-        """Synthesize text to PCM bytes via MiMo chat completions endpoint."""
-        if not text or not text.strip():
-            return b""
-
-        request_json: dict[str, Any] = {
+    def _build_mimo_request(self, text: str, voice: str) -> dict[str, Any]:
+        """Build the request JSON dict for the MiMo chat completions endpoint."""
+        return {
             "model": self._model,
             "messages": [
                 {"role": "user", "content": ""},
@@ -146,6 +143,20 @@ class MiMoTTSProvider(TTSProvider):
                 "voice": voice or self._voice,
             },
         }
+
+    def _extract_mimo_audio(self, data: dict) -> str:
+        """Extract the base64-encoded audio data from the MiMo response."""
+        audio_b64 = data.get("choices", [{}])[0].get("message", {}).get("audio", {}).get("data")
+        if not audio_b64:
+            raise VoiceProviderError(f"MiMo TTS response did not contain audio data: {data}")
+        return audio_b64
+
+    async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
+        """Synthesize text to PCM bytes via MiMo chat completions endpoint."""
+        if not text or not text.strip():
+            return b""
+
+        request_json = self._build_mimo_request(text, voice)
 
         headers = {
             "Content-Type": "application/json",
@@ -172,10 +183,7 @@ class MiMoTTSProvider(TTSProvider):
         except Exception as exc:
             raise VoiceProviderError(f"MiMo TTS returned invalid JSON: {exc}") from exc
 
-        audio_b64 = data.get("choices", [{}])[0].get("message", {}).get("audio", {}).get("data")
-        if not audio_b64:
-            raise VoiceProviderError(f"MiMo TTS response did not contain audio data: {data}")
-
+        audio_b64 = self._extract_mimo_audio(data)
         audio_bytes = base64.b64decode(audio_b64)
         _log.debug("MiMoTTS synthesized %d bytes model=%s", len(audio_bytes), self._model)
 
