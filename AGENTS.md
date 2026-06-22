@@ -234,12 +234,12 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 | `STATUS.md` | 当前项目状态 |
 | `CLAUDE.md` | 精简开发规则 + 仓库统计 |
 | `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` | 18 步流水线 + 模块归属矩阵 |
-| `docs/ROUTING_ENGINE_DESIGN.md` | routing_engine.py 设计决策 |
+| `docs/archive/ROUTING_ENGINE_DESIGN.md` | routing_engine.py 设计决策（已归档） |
 | `docs/ARCHITECTURE.md` | 系统架构 |
 | `docs/DEPLOY_AND_RELEASE_CONVENTION.md` | 部署/发布硬规则 |
 | `docs/LIMA_MEMORY_CN.md` | 长期项目记忆 |
 | `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 当前优化路线图 |
-| `task_plan.md` | 当前任务计划 + 证据 |
+| `docs/archive/task_plan.md` | 历史任务计划（已归档） |
 | `findings.md` | 事实发现和运维结论 |
 | `progress.md` | 执行进度日志 |
 

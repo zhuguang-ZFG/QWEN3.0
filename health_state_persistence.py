@@ -116,8 +116,8 @@ def save_health_state() -> None:
             if conn is not None:
                 try:
                     conn.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning("Failed to close DB connection in save_health_state: %s", exc)
 
 
 def load_health_state() -> int:
@@ -167,8 +167,8 @@ def load_health_state() -> int:
         if conn is not None:
             try:
                 conn.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Failed to close DB connection in load_health_state: %s", exc)
 
 
 def save_on_change() -> None:

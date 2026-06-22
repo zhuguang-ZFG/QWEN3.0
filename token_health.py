@@ -110,8 +110,8 @@ def save_token_status(results: list[dict]) -> None:
         if conn is not None:
             try:
                 conn.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Failed to close DB connection in save_token_status: %s", exc)
 
 
 def alert_expired_tokens() -> None:

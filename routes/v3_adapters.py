@@ -140,7 +140,9 @@ def v3_call_stream(backend, messages, max_tokens, ide):
                                     "content": str(messages[-1].get("content", "")) + ctx_summary,
                                 }
                 except ImportError:
-                    pass
+                    logging.getLogger(__name__).warning(
+                        "think_plan_context not available; coding prompt enhancement disabled"
+                    )
             else:
                 sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
     except Exception as e:
@@ -233,7 +235,9 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncItera
                                     "content": str(messages[-1].get("content", "")) + ctx_summary,
                                 }
                 except ImportError:
-                    pass
+                    logging.getLogger(__name__).warning(
+                        "think_plan_context not available; coding prompt enhancement disabled"
+                    )
             else:
                 sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
     except Exception as e:

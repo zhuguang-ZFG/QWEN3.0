@@ -133,13 +133,13 @@ def _collect_device_gateway() -> dict[str, Any]:
 
         device["sessions"] = registry.count()
     except ImportError:
-        pass
+        _log.warning("device_gateway.sessions.registry not available; session count unavailable")
     try:
         from device_gateway.tasks import pending_count
 
         device["pending_tasks"] = pending_count()
     except ImportError:
-        pass
+        _log.warning("device_gateway.tasks.pending_count not available; pending task count unavailable")
     try:
         from device_gateway.store import task_store_health
 
@@ -147,13 +147,13 @@ def _collect_device_gateway() -> dict[str, Any]:
         device["store_backend"] = th.get("backend", "unknown")
         device["shared"] = th.get("shared_across_processes", False)
     except ImportError:
-        pass
+        _log.warning("device_gateway.store.task_store_health not available; store health unavailable")
     try:
         from device_gateway.notifier import notifier_health
 
         device["bus"] = notifier_health()
     except ImportError:
-        pass
+        _log.warning("device_gateway.notifier.notifier_health not available; bus health unavailable")
     return device
 
 
@@ -168,7 +168,7 @@ def _collect_agent_workers() -> dict[str, Any]:
         agent["total_completed"] = sum(w.total_completed for w in workers)
         agent["total_failed"] = sum(w.total_failed for w in workers)
     except ImportError:
-        pass
+        _log.warning("tool_gateway.governance.list_workers not available; agent worker stats unavailable")
     return agent
 
 
@@ -185,7 +185,7 @@ def _collect_backend_errors(
 
             state = get_backend_state(name)
         except ImportError:
-            pass
+            _log.warning("health_tracker.get_backend_state not available; backend error details unavailable")
         if state.get("last_error_class"):
             errors[name] = {
                 "error_class": state.get("last_error_class"),
@@ -203,7 +203,7 @@ def _collect_learning() -> dict[str, Any]:
 
         learning["prompt_recall"] = recall_stats()
     except ImportError:
-        pass
+        _log.warning("session_memory.prompt_recall.recall_stats not available; prompt recall stats unavailable")
     try:
         from context_pipeline.routing_weights import get_routing_weights
 
@@ -216,7 +216,7 @@ def _collect_learning() -> dict[str, Any]:
             "top_scenarios": scenarios[:10],
         }
     except ImportError:
-        pass
+        _log.warning("context_pipeline.routing_weights not available; routing weights stats unavailable")
     try:
         from session_memory.eval_gate import revision_check
 
@@ -229,7 +229,7 @@ def _collect_learning() -> dict[str, Any]:
             "promoted_active": len([c for c in revision.get("promotable", []) if c.get("promoted")]),
         }
     except ImportError:
-        pass
+        _log.warning("session_memory.eval_gate.revision_check not available; eval gate stats unavailable")
     try:
         from session_memory.learning_loop import get_eval_candidates, get_prompt_profile_stats
 
@@ -238,7 +238,7 @@ def _collect_learning() -> dict[str, Any]:
             "prompt_profile_keys": len(get_prompt_profile_stats()),
         }
     except ImportError:
-        pass
+        _log.warning("session_memory.learning_loop not available; learning loop stats unavailable")
     return learning
 
 
@@ -261,7 +261,7 @@ def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
 
         retrieval_traces = get_recent_traces(limit=5)
     except ImportError:
-        pass
+        _log.warning("context_pipeline.retrieval_trace.get_recent_traces not available; retrieval traces unavailable")
 
     recent_tasks = recent_agent_tasks(limit=5)
 

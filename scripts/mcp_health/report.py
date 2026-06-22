@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from datetime import datetime
 from typing import Any
 
 from scripts.mcp_health.config import MCPHealth, TOAST_SCRIPT
+
+_log = logging.getLogger(__name__)
 
 
 def print_report(results: list[MCPHealth], source_count: int):
@@ -56,4 +59,4 @@ def show_toast(title: str, msg: str):
             capture_output=True,
         )
     except Exception:
-        pass
+        _log.warning("PowerShell toast notification failed", exc_info=True)

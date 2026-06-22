@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import sqlite3
 from dataclasses import dataclass
@@ -36,7 +37,7 @@ def get_db_path() -> str:
         if isinstance(facade_path, str) and facade_path:
             return facade_path
     except ImportError:
-        pass
+        logging.getLogger(__name__).warning("session_memory.store facade not available; using default DB path")
     return _DB_PATH
 
 
@@ -49,7 +50,7 @@ def set_db_path(path: str) -> None:
 
         store_facade._DB_PATH = path
     except ImportError:
-        pass
+        logging.getLogger(__name__).warning("session_memory.store facade not available; set_db_path fallback disabled")
 
 
 def _get_conn() -> sqlite3.Connection:

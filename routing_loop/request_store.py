@@ -6,9 +6,9 @@ closed-loop feedback system: request → route → execute → log → train →
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-import pickle
 import sqlite3
 import time
 from dataclasses import dataclass
@@ -98,7 +98,7 @@ class RequestStore:
     ) -> None:
         """Append one request record to the log."""
         try:
-            fv_blob = pickle.dumps(feature_vector) if feature_vector else None
+            fv_blob = json.dumps(feature_vector).encode() if feature_vector else None
             conn = self._get_conn()
             conn.execute(
                 """INSERT INTO request_log
@@ -184,7 +184,7 @@ class RequestStore:
         fv = None
         if row[7]:  # feature_vector column
             try:
-                fv = pickle.loads(row[7])
+                fv = json.loads(row[7])
             except Exception as exc:
                 _log.debug("routing_loop/request_store.py: {}", type(exc).__name__)
         return RequestRecord(

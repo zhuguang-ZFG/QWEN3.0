@@ -239,8 +239,8 @@ def save_profiles() -> None:
             if conn is not None:
                 try:
                     conn.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log.warning("Failed to close DB connection in save_profiles: %s", exc)
 
 
 def load_profiles() -> int:
@@ -277,8 +277,8 @@ def load_profiles() -> int:
         if conn is not None:
             try:
                 conn.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.warning("Failed to close DB connection in load_profiles: %s", exc)
 
 
 def save_on_interval(interval_sec: int = 300) -> None:

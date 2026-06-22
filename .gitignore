@@ -12,6 +12,8 @@ venv/
 __pycache__/
 *.pyc
 .env
+.env.local
+*_local.env
 .lima-data/
 tmp/
 .pytest_temp/
@@ -79,6 +81,8 @@ LIMA-external/
 *_opencode.py
 *_cache_patch.py
 data/*.db
+*.sqlite
+*.sqlite3
 data/uploads/
 data/*.db-shm
 data/*.db-wal
@@ -191,6 +195,8 @@ frp/frpc.toml
 pay_orders.db
 sessions.db
 feedback_queue.json
+*.pem
+*.key
 
 # PE-B-1 codesearch local index
 .codesearch.db/

@@ -1,5 +1,6 @@
 """Server request context staging."""
 
+import logging
 from dataclasses import dataclass
 
 from response_builder import messages_to_dicts
@@ -50,7 +51,8 @@ def build_prompt_context(
         memory_recall_meta = recall.meta()
         memory_session_id = recall.session_id
     except ImportError:
-        pass
+        logger = logging.getLogger(__name__)
+        logger.warning("session_memory.prompt_recall not available; memory recall disabled")
 
     return ServerPromptContext(
         request_messages=request_messages,

@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
 var state={stats:null,logs:[],backends:[],model:null,traces:[],agents:[],health:{backends:[],summary:{}},fallbackAnalysis:null,keyUrl:{backends:[],key_pools:{}},_poolFilter:'all',_loading:false};
 function authFetch(url,opts){opts=opts||{};opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});opts.credentials='same-origin';return fetch(url,opts)}
 function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function escJs(v){return String(v==null?'':v).replace(/\\\\/g,'\\\\\\\\').replace(/"/g,'\\"').replace(/'/g,"\\'").replace(/\\n/g,' ')}
+function escJs(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/\\\\/g,'\\\\\\\\').replace(/"/g,'\\"').replace(/'/g,"\\'").replace(/\n/g,' ')}
 function badge(text,type){type=type||'off';return '<span class="badge badge-'+type+'">'+esc(text)+'</span>'}
 function fmtUptime(s){s=Number(s||0);if(s<60)return s+'s';if(s<3600)return Math.floor(s/60)+'m '+s%60+'s';var d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return(d?d+'d ':'')+h+'h '+m+'m'}
 function toast(msg,type){type=type||'ok';var el=document.getElementById('toast');el.textContent=msg;el.style.borderColor=type==='err'?'rgba(239,68,68,0.5)':type==='warn'?'rgba(245,158,11,0.5)':'rgba(6,182,212,0.4)';el.classList.add('show');setTimeout(function(){el.classList.remove('show')},4200)}

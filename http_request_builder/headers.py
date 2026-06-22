@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from typing import Any
@@ -57,7 +58,8 @@ def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
         if override:
             return override, f"override:{backend}"
     except ImportError:
-        pass
+        logger = logging.getLogger(__name__)
+        logger.warning("routes.token_sync.get_token_override not available; token override disabled")
 
     provider = _key_pool_provider(backend, backend_cfg)
     if provider:

@@ -32,37 +32,39 @@ function addMessage(role, content, meta) {
   return msg;
 }
 
-function formatContent(text) {
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(str) {
+  // HTML-attribute context escaping for URL values.
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function isAllowedImageUrl(url) {
   const allowedImageDomains = [
     'image.pollinations.ai',
     'chat.donglicao.com',
     'api.donglicao.com'
   ];
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    return allowedImageDomains.some(domain => u.hostname === domain);
+  } catch (e) {
+    return false;
   }
-  function escapeAttr(str) {
-    // The URL has already been globally HTML-escaped above; only quote-escaping
-    // is needed for safe attribute embedding.
-    return String(str)
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-  function isAllowedImageUrl(url) {
-    try {
-      const u = new URL(url);
-      if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-      return allowedImageDomains.some(domain => u.hostname === domain);
-    } catch (e) {
-      return false;
-    }
-  }
-  return text
+}
+
+function formatContent(text) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (match, alt, url) => {
       if (!isAllowedImageUrl(url)) {

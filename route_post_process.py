@@ -27,7 +27,7 @@ def _post_narrative_reframe(
 
         reframe_for_handoff(messages_injected, backends[0], final_backend)
     except ImportError:
-        pass
+        logger.warning("context_pipeline.narrative not available; narrative reframe disabled")
     except Exception as exc:
         _warn("narrative", exc)
 
@@ -160,7 +160,7 @@ def _post_observability(
             )
         )
     except ImportError:
-        pass
+        logger.warning("observability.metrics/events not available; observability recording disabled")
     except Exception as exc:
         _warn("observability", exc)
 

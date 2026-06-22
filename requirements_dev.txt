@@ -1,0 +1,8 @@
+# LiMa development/test/lint dependencies
+# Install: pip install -r requirements_dev.txt
+
+# Test and static analysis tools (moved from requirements_server.txt)
+hypothesis>=6.0
+pyright>=1.1.0
+deptry>=0.20
+pytest-timeout>=2.0

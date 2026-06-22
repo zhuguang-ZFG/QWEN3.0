@@ -198,8 +198,8 @@ def load_retired() -> int:
         if conn is not None:
             try:
                 conn.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Failed to close DB connection in load_retired: %s", exc)
 
 
 def get_recovery_snapshot(
@@ -243,8 +243,8 @@ def _save_retirement(backend: str, status: str, reason: str) -> None:
         if conn is not None:
             try:
                 conn.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Failed to close DB connection in load_retired: %s", exc)
 
 
 def _notify_retirement(backend: str, status: str, reason: str) -> None:

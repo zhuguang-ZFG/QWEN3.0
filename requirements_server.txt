@@ -12,11 +12,14 @@ redis>=5.0
 python-multipart>=0.0.9
 
 # Dev / CI (test runner, type checking, dead-dep scanning)
-hypothesis>=6.0
-pyright>=1.1.0
-deptry>=0.20
+# Moved to requirements_dev.txt
+# hypothesis>=6.0
+# pyright>=1.1.0
+# deptry>=0.20
+# pytest-timeout>=2.0
+
+# Runtime metrics export
 prometheus_client>=0.20
-pytest-timeout>=2.0
 
 # Optional: MQTT device transport
 paho-mqtt>=2.0

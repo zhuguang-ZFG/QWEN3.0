@@ -90,6 +90,7 @@ jobs:
           LIMA_JDCLOUD_SERVER: ${{ secrets.JDCLOUD_HOST }}
           JDCLOUD_HOST: ${{ secrets.JDCLOUD_HOST }}
         run: |
-          host="${LIMA_JDCLOUD_SERVER:-117.72.118.95}"
+          host="${LIMA_JDCLOUD_SERVER}"
+          if [ -z "$host" ]; then echo "ERROR: LIMA_JDCLOUD_SERVER or JDCLOUD_HOST secret must be set"; exit 1; fi
           ssh-keyscan -H "$host" >> ~/.ssh/known_hosts
           python scripts/deploy_jdcloud_probe.py

@@ -13,7 +13,11 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-SEARXNG_URL = os.environ.get("SEARXNG_URL", "http://127.0.0.1:8081")
+SEARXNG_URL = (
+    os.environ.get("SEARXNG_URL")
+    or os.environ.get("SEARXNG_BASE_URL")
+    or "http://127.0.0.1:8081"
+)
 
 SEARCH_QUERIES = [
     # English

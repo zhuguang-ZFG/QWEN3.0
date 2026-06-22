@@ -9,12 +9,17 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements_server.txt
 FROM python:3.10-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -r -s /bin/false -d /app lima
 
 COPY --from=builder /install /usr/local
 
 WORKDIR /app
 COPY . .
+
+RUN chown -R lima:lima /app && chmod -R o-w /app
+
+USER lima
 
 EXPOSE 8080
 
