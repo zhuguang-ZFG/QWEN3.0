@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import math
-import os
+from context_pipeline._project_root import _detect_project_root
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -254,15 +254,3 @@ def _score_file(terms: list[str], file_info: dict) -> float:
     size_factor = 1.0 / (1.0 + math.log1p(size / 5000))
 
     return score * size_factor
-
-
-def _detect_project_root() -> str:
-    env_root = os.environ.get("LIMA_PROJECT_ROOT", "")
-    if env_root and os.path.isdir(env_root):
-        return env_root
-    cwd = os.getcwd()
-    candidates = [cwd, "/opt/lima-router", "D:/GIT"]
-    for p in candidates:
-        if os.path.isdir(p) and os.path.exists(os.path.join(p, "routing_engine.py")):
-            return p
-    return cwd

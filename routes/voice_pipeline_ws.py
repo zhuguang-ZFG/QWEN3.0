@@ -16,6 +16,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 
+from routes.ws_common import _client_ip_from_websocket
+
 from access_guard import (
     WS_QUERY_PARAM_TOKEN_WARNING,
     authenticate_websocket,
@@ -202,18 +204,6 @@ class _VoiceSession:
                 await self.worker_task
             except asyncio.CancelledError:
                 pass
-
-
-def _client_ip_from_websocket(websocket: WebSocket) -> str:
-    """Best-effort client IP extraction from WS scope/headers."""
-    scope = websocket.scope
-    client = scope.get("client")
-    if isinstance(client, (list, tuple)) and len(client) >= 1:
-        return str(client[0])
-    forwarded = websocket.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return websocket.headers.get("x-real-ip", "127.0.0.1")
 
 
 class _SimpleEnergyVAD:

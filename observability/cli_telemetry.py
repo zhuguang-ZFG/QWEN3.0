@@ -1,6 +1,7 @@
 """Sanitized developer-tool CLI telemetry aggregation."""
 
 from __future__ import annotations
+from common.type_helpers import _number
 
 import json
 import logging
@@ -24,17 +25,6 @@ def _telemetry_path() -> Path:
 def _short(value: Any, limit: int = 80) -> str:
     text = str(value or "")
     return text[:limit]
-
-
-def _number(value: Any, default: float = 0.0) -> float:
-    if isinstance(value, bool):
-        return default
-    if isinstance(value, int | float):
-        return float(value)
-    try:
-        return float(str(value))
-    except (TypeError, ValueError):
-        return default
 
 
 def _int(value: Any, default: int = 0) -> int:

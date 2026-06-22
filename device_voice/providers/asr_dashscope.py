@@ -21,6 +21,8 @@ import threading
 import time
 from collections.abc import AsyncIterator
 
+from device_voice.providers._env import _get_dashscope_api_key
+
 from device_voice.asr import ASRProvider
 from device_voice.exceptions import (
     AuthenticationError,
@@ -34,17 +36,6 @@ _log = logging.getLogger(__name__)
 _DEFAULT_MODEL = "fun-asr-realtime"
 _DEFAULT_FORMAT = "pcm"
 _CHUNK_SIZE = 3200  # 100ms of 16-bit mono @ 16kHz
-
-
-def _get_api_key() -> str:
-    """Return DashScope API key from explicit var or ALIYUN_API_KEY fallback."""
-    key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
-    if key:
-        return key
-    key = os.environ.get("ALIYUN_API_KEY", "").strip()
-    if key:
-        return key
-    return ""
 
 
 class _RecognitionCallback:
@@ -94,7 +85,7 @@ class DashScopeASRProvider(ASRProvider):
     """DashScope speech recognition using ALIYUN_API_KEY / DASHSCOPE_API_KEY."""
 
     def __init__(self) -> None:
-        self._api_key = _get_api_key()
+        self._api_key = _get_dashscope_api_key()
         self._model = os.environ.get("DASHSCOPE_ASR_MODEL", _DEFAULT_MODEL).strip()
 
         if not self._api_key:

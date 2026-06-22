@@ -5,6 +5,7 @@ ids, and small metadata fields with secret-like values redacted.
 """
 
 from __future__ import annotations
+from common.type_helpers import _safe_int
 
 import hashlib
 import os
@@ -216,13 +217,6 @@ def _parse_backend_kind(value: Any) -> IndexBackendKind:
         return IndexBackendKind(str(value))
     except ValueError:
         return IndexBackendKind.IN_MEMORY_TOKEN
-
-
-def _safe_int(value: Any) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return 0
 
 
 def _dict_or_empty(value: Any) -> dict[str, Any]:

@@ -186,6 +186,60 @@
 
 
 
+## 2026-06-22 LiMa 第五轮瘦身计划
+
+- **目标**：在前四轮瘦身基础上继续降低冗余，聚焦低风险、非热路径的重复 fixtures、运维脚本、MCP 工具模块和跨模块小 helper。
+
+- **阶段 1 — 合并重复测试 fixtures**：
+
+  - 新建 `tests/device_gateway_profile/conftest.py`，将 `_mock_device_draw` 从 7 个 `test_device_gateway_profile_*.py` 提取；将测试文件移入该子目录，添加 `__init__.py` 使其成为包。
+
+  - 新建 `tests/xiaozhi_v1_compat/helpers.py`，将 `_token`、`_headers`、`_json`、`_client` 从 6 个 `test_xiaozhi_v1_compat_*.py` 提取；将测试文件移入该子目录，添加 `__init__.py`；`test_xiaozhi_v1_compat_p2.py` 保留自定义 `_seed_base`，`_client` 支持 `seed_base` 参数注入。
+
+- **阶段 2 — 拆分 `scripts/check_mcp_health.py`**：
+
+  - 新建 `scripts/mcp_health/` 包：`config.py`（MCPHealth、常量、配置加载、对称性检查）、`checkers.py`（所有 `_check_*` 与 `check_mcp_servers`）、`report.py`（`print_report`、`show_toast`）。
+
+  - `scripts/check_mcp_health.py` 仅保留 CLI `main()`；通过 `sys.path.insert(0, ...)` 支持直接脚本运行。
+
+- **阶段 3 — 拆分 `lima_mcp_stdio/lima_ops_tools.py`**：
+
+  - 新建 `lima_mcp_stdio/ops/` 包：`_helpers.py`、5 个按工具分治的模块（`server_status.py`、`device_connections.py`、`tail_log.py`、`health_check.py`、`restart_service.py`）。
+
+  - `lima_mcp_stdio/lima_ops_tools.py` 改为 re-export facade，保持 `lima_ops_mcp.py` 导入路径不变。
+
+- **阶段 4 — 拆分 `scripts/analyze_test_coverage.py`**：
+
+  - 新建 `scripts/coverage/` 包：`analyzer.py`（`CORE_MODULES`、`get_all_functions`、`get_test_files_importing_module`、`get_test_functions`、`analyze`）、`skeleton.py`（`generate_tests`）。
+
+  - 修复原脚本中 `("搜索网关")` 单元素元组 bug（实际为字符串），删除已不存在的 `search_gateway` 条目。
+
+  - `scripts/analyze_test_coverage.py` 仅保留 CLI `main()`。
+
+- **阶段 5 — 提取跨模块重复 helper**：
+
+  - 新建 `routes/ws_common.py`：`_client_ip_from_websocket`；`routes/device_voice_ws_helpers.py` 和 `routes/voice_pipeline_ws.py` 改为导入。
+
+  - 新建 `device_voice/providers/_env.py`：`_get_env_with_aliases`、`_get_dashscope_api_key`；4 个 voice provider 改为导入。
+
+  - 新建 `context_pipeline/_project_root.py`：`_detect_project_root`；`context_pipeline/code_context_injection.py` 和 `semantic_code_retrieval.py` 改为导入。
+
+  - 新建 `common/type_helpers.py`：`_safe_int`、`_number`；4 个模块改为导入。
+
+- **验证**：
+
+  - `python -m pytest --tb=short -q` → **2315 passed, 18 skipped, 0 failed**。
+
+  - `ruff check .` → 0 errors。
+
+  - `npx pyright` 触及文件 → 0 errors（warnings 为可选依赖 `nls`/`dashscope`/`sentry_sdk` 缺失及 `run_ssh=None` 既有模式）。
+
+  - `scripts/check_code_size.py` → >300 行文件从 6 降至 **3**（剩余 `routes/admin_ui/panels.py`、2 个测试文件）；>50 行函数 72（总数持平，因工具拆分后文件数增加但各文件仍含长函数，后续可继续拆分）。
+
+- **Git**：待提交推送。
+
+
+
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 
 

@@ -23,6 +23,8 @@ import time
 from collections.abc import AsyncIterator
 from typing import Any
 
+from device_voice.providers._env import _get_env_with_aliases
+
 from device_voice.asr import ASRProvider
 from device_voice.exceptions import (
     AuthenticationError,
@@ -90,15 +92,6 @@ class _StreamingRecognizerState(_RecognizerState):
             with self.lock:
                 self.final_text = result
                 self.stream_results.append(result)
-
-
-def _get_env_with_aliases(*aliases: str) -> str:
-    """Return the first non-empty environment variable value."""
-    for name in aliases:
-        value = os.environ.get(name, "").strip()
-        if value:
-            return value
-    return ""
 
 
 def _get_token(ak_id: str, ak_secret: str, region: str) -> str:

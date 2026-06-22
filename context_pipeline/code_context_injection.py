@@ -7,7 +7,7 @@ explicitly mentioned in the query, using keyword scoring + graph expansion.
 from __future__ import annotations
 
 import logging
-import os
+from context_pipeline._project_root import _detect_project_root
 import re
 from pathlib import Path
 
@@ -15,18 +15,6 @@ _log = logging.getLogger(__name__)
 
 _MAX_CONTEXT_CHARS = 4000
 _MAX_FILES = 8
-
-
-def _detect_project_root() -> str:
-    env_root = os.environ.get("LIMA_PROJECT_ROOT", "")
-    if env_root and os.path.isdir(env_root):
-        return env_root
-    cwd = os.getcwd()
-    candidates = [cwd, "/opt/lima-router", "D:/GIT"]
-    for p in candidates:
-        if os.path.isdir(p) and os.path.exists(os.path.join(p, "routing_engine.py")):
-            return p
-    return cwd
 
 
 _PROJECT_ROOT = _detect_project_root()

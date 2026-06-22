@@ -6,6 +6,7 @@ manual admission.
 """
 
 from __future__ import annotations
+from common.type_helpers import _safe_int
 
 import time
 from dataclasses import dataclass, field
@@ -241,13 +242,6 @@ def _parse_enum(enum_type: type[Enum], value: Any, fallback: Any) -> Any:
         return enum_type(str(value))
     except ValueError:
         return fallback
-
-
-def _safe_int(value: Any) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return 0
 
 
 def _string_list(value: Any) -> list[str]:

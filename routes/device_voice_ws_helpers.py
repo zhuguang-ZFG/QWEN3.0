@@ -9,6 +9,8 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from routes.ws_common import _client_ip_from_websocket
+
 from device_intelligence.shadow import shadow_store
 from device_voice.audio_stream import AudioConfig, pcm_to_wav
 from device_gateway.protocol import voice_status_frame, audio_reply_frame
@@ -166,18 +168,6 @@ async def _feed_audio_to_pipeline(
 def _cleanup_audio_registry(device_id: str) -> None:
     """Remove audio pipeline state for a disconnected device."""
     _audio_registry.pop(device_id, None)
-
-
-def _client_ip_from_websocket(websocket: WebSocket) -> str:
-    """Best-effort client IP extraction from WS scope/headers."""
-    scope = websocket.scope
-    client = scope.get("client")
-    if isinstance(client, (list, tuple)) and len(client) >= 1:
-        return str(client[0])
-    forwarded = websocket.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return websocket.headers.get("x-real-ip", "127.0.0.1")
 
 
 async def _extract_and_store_voiceprint_embedding(

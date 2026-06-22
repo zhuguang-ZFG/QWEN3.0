@@ -21,6 +21,8 @@ import wave
 from collections.abc import AsyncIterator
 from typing import Any
 
+from device_voice.providers._env import _get_dashscope_api_key
+
 from device_voice.exceptions import (
     AuthenticationError,
     ConfigurationError,
@@ -34,22 +36,11 @@ _log = logging.getLogger(__name__)
 _DEFAULT_MODEL = "sambert-zhichu-v1"
 
 
-def _get_api_key() -> str:
-    """Return DashScope API key from explicit var or ALIYUN_API_KEY fallback."""
-    key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
-    if key:
-        return key
-    key = os.environ.get("ALIYUN_API_KEY", "").strip()
-    if key:
-        return key
-    return ""
-
-
 class DashScopeTTSProvider(TTSProvider):
     """DashScope text-to-speech using ALIYUN_API_KEY / DASHSCOPE_API_KEY."""
 
     def __init__(self) -> None:
-        self._api_key = _get_api_key()
+        self._api_key = _get_dashscope_api_key()
         self._model = os.environ.get("DASHSCOPE_TTS_MODEL", _DEFAULT_MODEL).strip()
 
         if not self._api_key:
