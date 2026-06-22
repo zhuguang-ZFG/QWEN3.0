@@ -63,9 +63,7 @@ def _deploy_with_rsync(files: list[str]) -> dict:
     ssh_cmd_parts = ["ssh", *_ssh_options(KEY, os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS"))]
     ssh_cmd = " ".join(ssh_cmd_parts)
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", prefix="lima-deploy-files-", suffix=".txt", delete=False
-    ) as list_file:
+    with tempfile.NamedTemporaryFile(mode="w", prefix="lima-deploy-files-", suffix=".txt", delete=False) as list_file:
         for f in existing:
             list_file.write(f"{f}\n")
         list_path = list_file.name
