@@ -57,7 +57,7 @@ def restart_server() -> bool:
                     print(logs)
                 return False
 
-            code, out, err = _ssh_exec(ssh, "curl -sS -m 5 http://127.0.0.1:8080/health")
+            code, out, err = _ssh_exec(ssh, "curl -sS -m 30 http://127.0.0.1:8080/health")
             last_detail = out or err or f"curl exit {code}"
             if code == 0:
                 try:
