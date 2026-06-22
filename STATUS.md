@@ -8,13 +8,28 @@
 > Updated: 2026-06-22
 > Branch: `main`
 > Scale: 约 1021 个 Python 文件 / 全仓 905 文件已格式化
-> Tests: 全量 2305 passed / 18 skipped / 0 failed；ruff check clean；ruff format clean
+> Tests: 全量 2318 passed / 18 skipped / 1 failed（`test_session_memory_device_draw` 预存失败）；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
 > CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
-> 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted（图片域名白名单已落地；WebSocket query-param token 已加 `access_log off` 与 warning 日志）。
+> 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；提示词工程 5 项高优先级安全问题已关闭（P0-1~P0-5）。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-22）提示词工程强化（P0-1 ~ P0-5）
+
+- **问题**：提示词审计发现 5 项高优先级改进点：安全基线不完整、硬编码品牌/能力、设备控制缺少危险操作限制、Skills frontmatter 缺失、无版本追踪。
+- **P0-1 统一安全基线**：`prompt_engineering/layers.py` 新增 `build_safety_baseline()`，覆盖全部 6 个 scenario（coding/chat/vision/device 场景均含身份保护和系统指令保密）。
+- **P0-2 品牌/能力配置化**：新建 `brand_config.py` 集中管理公司名、产品名、UA、能力列表（支持 `env` 覆盖）；`identity_guard.py`、`prompt_engineering/layers.py`、`http_request_builder.py` 改为引用配置常量。
+- **P0-3 设备控制加固**：`device_gateway/intent.py` 新增 `_ALLOWED_CAPABILITIES` / `_DANGEROUS_CAPABILITIES` 白名单/黑名单；LLM replan 解析后校验能力必须在白名单内；`skills/device/control.md` 和 prompt layers 同步更新。
+- **P0-4 Skills frontmatter 规范**：补全 `skills/code/guide.md` 等 4 个缺失 frontmatter 的文件；新增 `tests/test_skills_integrity.py` CI 门禁。
+- **P0-5 提示词版本追踪**：`prompt_engineering/layers.py` 新增 `PROMPT_VERSION = "lima-prompts-v1.1"`；`compose_system_prompt()` 末尾追加 `<!-- version.scenario -->` 标记。
+- **验证**：
+  - 新增测试 4 组 11 个用例；全量 `pytest -q` → **2318 passed / 18 skipped / 1 failed**（1 个预存失败非本次引入）。
+  - `ruff check` / `pyright` 全部 clean。
+  - CI 中 `ruff format --check` 格式修复已推送（`d9dd5af8`）。
+  - Deploy workflow 已触发执行中。
+- **提交**：`5f78b3d4`、`e5e21692`、`a1fd97a5`、`d9dd5af8` 已 push 到 `origin/main`。
 
 ### 最近完成（2026-06-22）免费聊天匿名访问修复
 

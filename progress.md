@@ -3155,3 +3155,9 @@ Agent Worker path.
   - 全量 `pytest -q` → **2318 passed / 18 skipped / 1 failed**（1 个 `test_session_memory_device_draw` 预存失败，非本次引入）。
   - `ruff check`、`pyright` 针对修改文件 clean。
 - **提交**：`5f78b3d4`（P0-1~P0-3）、`e5e21692`（P0-4~P0-5）已 push 到 `origin/main`。
+
+## 2026-06-22 CI/CD ruff format 修复
+
+- **问题**：GitHub Actions `Deploy` workflow run `27944711020` 在 `ruff format --check` 步骤失败，2 个文件（`device_gateway/intent.py`、`tests/test_device_intent_hardening.py`）需要重新格式化。
+- **修复**：本地 `ruff format` 两个文件并提交推送。
+- **提交**：`d9dd5af8` 已 push 到 `origin/main`；Deploy workflow 已重新触发。
