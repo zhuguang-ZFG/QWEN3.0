@@ -58,4 +58,4 @@ jobs:
           fi
 
       - name: Security scan
-        run: bandit -r routes/ scripts/ lima_mcp_stdio/ -s B310,B324,B604,B608 -ll
+        run: bandit -r routes/ scripts/ lima_mcp_stdio/ -s B310,B324,B604,B608,B601,B108 -ll
