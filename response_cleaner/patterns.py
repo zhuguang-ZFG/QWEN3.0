@@ -3,7 +3,6 @@
 import re
 
 import brand_config
-from backends_constants import PUBLIC_MODEL_NAME
 
 # Brand names to replace with LiMa (sorted by priority: specific → general)
 _BRANDS = [
@@ -123,7 +122,7 @@ def _build_brand_re(brand: str) -> re.Pattern:
     return re.compile(rf"{escaped}", re.I)
 
 
-BRAND_PATTERNS = [(_build_brand_re(b), PUBLIC_MODEL_NAME) for b in _BRANDS]
+BRAND_PATTERNS = [(_build_brand_re(b), brand_config.PUBLIC_MODEL_NAME) for b in _BRANDS]
 
 IDENTITY_PATTERNS = [
     # English: "I am [X], made by [Y]" — but don't match "I am LiMa"
@@ -132,28 +131,37 @@ IDENTITY_PATTERNS = [
         "I am an AI language model",
     ),
     # English: "developed/created/trained by [Company]"
-    (re.compile(r"(?:developed|created|trained|made|built|powered) by\s+[\w\s\-\.]+", re.I), f"developed by {brand_config.COMPANY_NAME_EN}"),
+    (
+        re.compile(r"(?:developed|created|trained|made|built|powered) by\s+[\w\s\-\.]+", re.I),
+        f"developed by {brand_config.COMPANY_NAME_EN}",
+    ),
     # Chinese: "我是 [X]的[AI/语言]模型"
     (
         re.compile(
             r"我是(?:由|一个|一款)[\w\s\-\.一-鿿()（）]+?(?:开发|训练|创建|制作|创造|推出|提供)的(?:\s*(?:AI|人工智能|大语言|语言|对话))?\s*模型",
             re.I,
         ),
-        f"我是{PUBLIC_MODEL_NAME}",
+        f"我是{brand_config.PUBLIC_MODEL_NAME}",
     ),
     # Chinese: "我是一个 [AI/语言/大] 模型"
-    (re.compile(r"我是(?:一个|一款)\s*(?:AI|人工智能|大语言|语言|对话)\s*模型", re.I), f"我是{PUBLIC_MODEL_NAME}"),
+    (
+        re.compile(r"我是(?:一个|一款)\s*(?:AI|人工智能|大语言|语言|对话)\s*模型", re.I),
+        f"我是{brand_config.PUBLIC_MODEL_NAME}",
+    ),
     # Chinese: "我的模型是由 [X] 开发的"
     (
         re.compile(r"我的模型是由[\w\s\-\.一-鿿()（）]+?(?:开发|训练|创建|制作|创造)", re.I),
-        f"我的模型是由{PUBLIC_MODEL_NAME}团队开发",
+        f"我的模型是由{brand_config.PUBLIC_MODEL_NAME}团队开发",
     ),
     # Chinese: "我叫 [X]"
-    (re.compile(r"我叫\s*[\w\-\.\s]+?(?:，|。|！|$)", re.I), f"我叫{PUBLIC_MODEL_NAME}，"),
+    (re.compile(r"我叫\s*[\w\-\.\s]+?(?:，|。|！|$)", re.I), f"我叫{brand_config.PUBLIC_MODEL_NAME}，"),
     # Chinese: "名为 [X] 的模型"
-    (re.compile(r"(?:一个)?名为\s*[\w\-\.\s]+?\s*的(?:模型|大模型)", re.I), f"{PUBLIC_MODEL_NAME}"),
+    (re.compile(r"(?:一个)?名为\s*[\w\-\.\s]+?\s*的(?:模型|大模型)", re.I), f"{brand_config.PUBLIC_MODEL_NAME}"),
     # Chinese: "作为 [X] 模型"
-    (re.compile(r"作为(?:一个|一款)\s*(?:AI|人工智能|大语言|语言|对话)?\s*模型", re.I), f"作为{PUBLIC_MODEL_NAME}"),
+    (
+        re.compile(r"作为(?:一个|一款)\s*(?:AI|人工智能|大语言|语言|对话)?\s*模型", re.I),
+        f"作为{brand_config.PUBLIC_MODEL_NAME}",
+    ),
     # "General Language Model" → "General Purpose Language Model"
     (re.compile(r"General Language Model", re.I), "General Purpose Language Model"),
     # "a large language model trained/developed by [X]"
@@ -168,17 +176,17 @@ IDENTITY_PATTERNS = [
             r"Codestral|Mistral|Gemma|ERNIE|Doubao|GLM|Meta\s*AI)\b",
             re.I,
         ),
-        f"As {PUBLIC_MODEL_NAME}",
+        f"As {brand_config.PUBLIC_MODEL_NAME}",
     ),
     # English: "This is Claude/GPT/..."
     (
         re.compile(r"\bThis\s+is\s+(?:Claude|Gemini|GPT(?:-[\d\.]+)?|ChatGPT|Qwen|DeepSeek|Llama|Kimi)\b", re.I),
-        f"This is {PUBLIC_MODEL_NAME}",
+        f"This is {brand_config.PUBLIC_MODEL_NAME}",
     ),
     # English: "Claude/GPT here"
     (
         re.compile(r"\b(?:Claude|Gemini|GPT(?:-[\d\.]+)?|ChatGPT|Qwen|DeepSeek|Llama|Kimi)\s+here\b", re.I),
-        f"{PUBLIC_MODEL_NAME} here",
+        f"{brand_config.PUBLIC_MODEL_NAME} here",
     ),
 ]
 

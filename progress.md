@@ -5,6 +5,29 @@
 > Updated: 2026-06-22
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-22 深度代码审查问题逐一修复（完成）
+
+- **目标**：响应「深度代码审查」「逐一修复」指令，处理 `.omk/CODE_REVIEW_ISSUES.md` 中 7 项新发现的问题。
+- **修复内容**：
+  - `tests/test_prompt_engineering.py`：
+    - 将 `test_compose_system_prompt_has_all_five_layers` 重命名为 `test_compose_system_prompt_has_all_six_layers`，新增 `[安全基线]` 层断言，避免测试通过巧合通过。
+    - 将 `test_compose_system_prompt_includes_version_marker` 从 `for` 循环改写为 `@pytest.mark.parametrize`，增强失败隔离。
+  - `device_gateway/profiles.py`：移除 `_cap_param` 未使用的 `resolved` 参数，并同步更新调用处。
+  - `progress.md`：修正函数拆分描述，与实际 helper `_apply_approval_gate()` / `_cap_param()` 保持一致。
+  - `prompt_engineering/layers.py`：
+    - 设备控制角色提示词的危险指令黑名单改为从 `device_gateway.intent._DANGEROUS_CAPABILITIES` 派生，确保与 capability 校验同源。
+    - 聊天场景角色提示词的能力列表改为从 `brand_config.CAPABILITY_BULLETS_CN` 派生，避免硬编码与中心配置漂移。
+  - `response_cleaner/patterns.py`：`PUBLIC_MODEL_NAME` 改为仅从 `brand_config` 导入，消除与 `backends_constants` 的双来源。
+  - `skills_injector.py` / `tests/test_skills_integrity.py`：将 `_parse_frontmatter` 提升为公共 `parse_frontmatter`，消除测试对私有符号的依赖。
+- **附加测试加固**（跑全量时发现）：
+  - `tests/test_deploy_unified.py`：SFTP 目录测试强制 `LIMA_DEPLOY_USE_TAR=0`，避免本地 `.env` 启用 tar 模式时测试失败。
+  - `tests/test_tool_gateway_governance.py`：心跳时间戳断言从 `>` 改为 `>=`，消除同一时钟 tick 导致的 flaky 失败。
+- **验证**：
+  - 聚焦测试：`tests/test_prompt_engineering.py` + `tests/test_skills_integrity.py` + `tests/test_device_gateway_profile_constraints.py` + `tests/test_response_cleaner.py` → **59 passed**。
+  - 全量 `pytest -q` → **2324 passed, 18 skipped, 0 failed**。
+  - `ruff check` / `pyright`（修改文件） → 0 errors / 0 warnings。
+- **Git**：待提交。
+
 ## 2026-06-22 生产代码 >50 行函数拆分（首轮 3 个安全目标）
 
 - **目标**：在代码审查修复和文档清理后，继续拆分生产代码中 >50 行的超长函数，降低维护风险。
@@ -13,7 +36,7 @@
   - 暂不拆分（测试弱或缺失）：`pick_backend`、`bridge_stream`、`post_route`、`record_probe_result`、`expand_context`
 - **拆分实现**：
   - `routes/chat_response_finalize.py`：提取 `_fire_side_effects()`（5 个 side effect + log_sys_prompt 集中到一个函数），`finalize_success_response` 从 58 行降至约 20 行。
-  - `device_gateway/profiles.py`：提取 `_apply_approval_gate()`、`_cap_path_points()`、`_cap_feed_rate()` 三个约束 helper，`apply_profile_constraints` 从 60 行降至约 30 行。
+  - `device_gateway/profiles.py`：提取 `_apply_approval_gate()` 与 `_cap_param()` 约束 helper，路径点截断保留内联以保留语义，`apply_profile_constraints` 从 60 行降至约 30 行。
   - `device_gateway/model_routing.py`：提取 `_classify_capability(capability, params)` 实现 capability→policy 调度，`resolve_device_route_policy` 从 58 行降至约 40 行。
 - **验证**：
   - 聚焦测试 24 passed（8 finalize + 7 profile_constraints + 4 route_resolution + 4 route_policy_backend + 1 misc）。

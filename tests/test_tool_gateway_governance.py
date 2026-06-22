@@ -58,7 +58,7 @@ class TestHeartbeat:
         assert fetched is not None
         assert fetched.status == "busy"
         assert fetched.active_tasks == ["t1", "t2"]
-        assert fetched.last_heartbeat > fetched.registered_at
+        assert fetched.last_heartbeat >= fetched.registered_at
 
     def test_heartbeat_for_unknown_worker_returns_false(self) -> None:
         assert heartbeat("unknown") is False

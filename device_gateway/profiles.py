@@ -132,7 +132,7 @@ def _apply_approval_gate(task: dict[str, Any], resolved: ResolvedProfile) -> str
     return None
 
 
-def _cap_param(task: dict[str, Any], key: str, limit: float | int, resolved: ResolvedProfile) -> str | None:
+def _cap_param(task: dict[str, Any], key: str, limit: float | int) -> str | None:
     """Cap a numeric task param to a profile limit. Returns simplification note or None."""
     params = task.get("params", {})
     if not isinstance(params, dict):
@@ -166,9 +166,7 @@ def apply_profile_constraints(
             task["params"] = params
             simplifications.append(f"cap_path_points:{len(path)}→{resolved.profile.max_path_points}")
 
-    for note in (
-        _cap_param(task, "feed", resolved.profile.max_feed, resolved),
-    ):
+    for note in (_cap_param(task, "feed", resolved.profile.max_feed),):
         if note:
             simplifications.append(note)
 

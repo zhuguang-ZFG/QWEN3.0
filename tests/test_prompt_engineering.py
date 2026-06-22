@@ -137,10 +137,12 @@ def test_compose_system_prompt_chat_no_context():
     assert "[上下文]" not in prompt
 
 
-def test_compose_system_prompt_has_all_five_layers():
+def test_compose_system_prompt_has_all_six_layers():
     prompt = compose_system_prompt(ide="Kiro", scenario="coding", code_context="server.py | embeddings")
     layers_found = 0
     if "编程助手" in prompt:
+        layers_found += 1
+    if "[安全基线]" in prompt:
         layers_found += 1
     if "编码实现" in prompt:
         layers_found += 1
@@ -150,7 +152,7 @@ def test_compose_system_prompt_has_all_five_layers():
         layers_found += 1
     if "[质量门控]" in prompt:
         layers_found += 1
-    assert layers_found == 5
+    assert layers_found == 6
 
 
 @pytest.mark.parametrize(
@@ -166,10 +168,13 @@ def test_compose_system_prompt_includes_safety_baseline_for_all_scenarios(scenar
     assert "LiMa" in prompt
 
 
-def test_compose_system_prompt_includes_version_marker():
+@pytest.mark.parametrize(
+    "scenario",
+    ["coding", "chat", "vision", "device_draw", "device_write", "device_control"],
+)
+def test_compose_system_prompt_includes_version_marker(scenario):
     """Every composed system prompt must include a version marker for A/B tracking."""
     from prompt_engineering.layers import PROMPT_VERSION
 
-    for scenario in ("coding", "chat", "vision", "device_draw", "device_write", "device_control"):
-        prompt = compose_system_prompt(ide="", scenario=scenario)
-        assert f"<!-- {PROMPT_VERSION}" in prompt, f"Missing version marker in {scenario}: {prompt[-200:]}"
+    prompt = compose_system_prompt(ide="", scenario=scenario)
+    assert f"<!-- {PROMPT_VERSION}" in prompt, f"Missing version marker in {scenario}: {prompt[-200:]}"

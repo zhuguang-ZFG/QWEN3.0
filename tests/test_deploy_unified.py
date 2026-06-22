@@ -131,6 +131,7 @@ class _PrepareSsh:
 def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
     import scripts.deploy_unified_deploy as deploy_mod
 
+    monkeypatch.setenv("LIMA_DEPLOY_USE_TAR", "0")
     sftp = _Sftp()
     ssh = _DeploySsh(sftp)
     monkeypatch.setattr(deploy_mod.paramiko, "SSHClient", lambda: ssh)

@@ -37,7 +37,7 @@ IDE_COVERAGE = {
 # ─── YAML frontmatter 解析 (零依赖) ───────────────────────────────────────────
 
 
-def _parse_frontmatter(text: str) -> tuple[dict, str]:
+def parse_frontmatter(text: str) -> tuple[dict, str]:
     """解析 --- ... --- frontmatter，返回 (meta, body)"""
     if not text.startswith("---"):
         return {}, text
@@ -72,7 +72,7 @@ def load_skills_from_dir(skills_dir: str) -> list[dict]:
         try:
             with open(fpath, encoding="utf-8") as f:
                 raw = f.read()
-            meta, body = _parse_frontmatter(raw)
+            meta, body = parse_frontmatter(raw)
             if not meta or "id" not in meta:
                 continue
             skills.append(

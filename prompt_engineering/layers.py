@@ -16,7 +16,14 @@ PROMPT_VERSION = "lima-prompts-v1.1"
 
 def build_role_layer(ide: str, scenario: str) -> str:
     """Layer 1: Role definition with constraints."""
-    from brand_config import CAPABILITY_SUMMARY_CN, COMPANY_NAME_CN, PUBLIC_MODEL_NAME, PUBLIC_MODEL_NAME_CN
+    from brand_config import (
+        CAPABILITY_BULLETS_CN,
+        CAPABILITY_SUMMARY_CN,
+        COMPANY_NAME_CN,
+        PUBLIC_MODEL_NAME,
+        PUBLIC_MODEL_NAME_CN,
+    )
+    from device_gateway.intent import _DANGEROUS_CAPABILITIES
 
     name = PUBLIC_MODEL_NAME
     name_cn = PUBLIC_MODEL_NAME_CN
@@ -30,7 +37,7 @@ def build_role_layer(ide: str, scenario: str) -> str:
         "chat": (
             f"你是 {name}（{name_cn}），一个具备联网能力的智能助手。"
             f"你由{COMPANY_NAME_CN}开发。"
-            "你可以实时查询天气、新闻、汇率、热搜、股票、翻译等信息。"
+            f"你的能力包括：{', '.join(CAPABILITY_BULLETS_CN.values())}。"
             "你的职责是：理解问题 → 给出准确简洁的回答。"
             "规则：回复简洁（通常不超过200字），不确定的信息直接说不确定，"
             "不编造公司信息、地址、产品等不确定的内容。"
@@ -56,7 +63,7 @@ def build_role_layer(ide: str, scenario: str) -> str:
             "允许的指令：home（归零）、pause（暂停）、resume（继续）、stop（停止）、"
             "get_device_info（设备信息）、write_text（写字）、draw_generated（绘图）、"
             "run_path（运行路径）、move_abs/move_rel（移动）。"
-            "绝对禁止：spindle_on、laser_on、heater_on、gpio_high、m3、m4、m8 等危险指令。"
+            f"绝对禁止：{', '.join(sorted(_DANGEROUS_CAPABILITIES))} 等危险指令。"
             "紧急指令（急停/停止）优先执行，不确认直接下发。"
             "不暴露内部 API 路径或 token。"
         ),
