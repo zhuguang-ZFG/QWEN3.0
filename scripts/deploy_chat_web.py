@@ -18,6 +18,14 @@ from pathlib import Path
 import paramiko
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from scripts.deploy_common import (
+    KEY,
+    SERVER,
+    configure_ssh_host_keys,
+)
+
 CHAT_WEB_DIR = PROJECT_ROOT / "chat-web"
 REMOTE_HOST = os.environ.get("LIMA_DEPLOY_HOST", "root@47.112.162.80")
 REMOTE_DIR = "/var/www/chat"
@@ -34,12 +42,6 @@ FILES = [
 
 
 def _connect() -> paramiko.SSHClient:
-    from scripts.deploy_common import (
-        KEY,
-        SERVER,
-        configure_ssh_host_keys,
-    )
-
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
