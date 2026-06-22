@@ -16,12 +16,12 @@
 
 ## 待处理项
 
-- [ ] 扫描仓库中所有 `except ImportError: pass` 的静默降级，按 AGENTS.md 硬规则改为 `logger.warning`（2026-06-22 审计约 188 处）。
 - [ ] 审查 `scripts/` 目录中 60 个脚本，删除明确不再使用的一次性脚本。
-- [ ] 评估 `local_retrieval/` 是否可被 `sqlite3` FTS5 替代，减少自定义索引代码。
 
 ## 已结项
 
 - [x] 2026-06-22：删除 `search_gateway/` 整包（零生产引用）。
 - [x] 2026-06-22：`lima_mcp_stdio/` 移出生产部署路径。
 - [x] 2026-06-22：合并 `estimate_tokens()` 重复实现。
+- [x] 2026-06-22：扫描 `except ImportError: pass` 静默降级 → 生产代码 0 处（全部已有处理逻辑）。
+- [x] 2026-06-22：用 sqlite3 FTS5 替换 `local_retrieval/` 自定义索引（新建 `fts_index.py`，`production_index.py` 改用 FTS5）。

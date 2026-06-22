@@ -1,6 +1,7 @@
 """Local retrieval lab without heavy runtime dependencies."""
 
 from local_retrieval.chunking import Chunker, CodeAwareChunker, SimpleTextChunker, TextChunk
+from local_retrieval.fts_index import FtsIndex
 from local_retrieval.index import InMemoryTokenIndex, LocalRetrievalIndex, RetrievalHit
 from local_retrieval.leann_adapter import (
     LeannAdapterConfig,
@@ -19,6 +20,7 @@ __all__ = [
     "ChunkRecord",
     "Chunker",
     "CodeAwareChunker",
+    "FtsIndex",
     "IndexBackendKind",
     "IndexManifest",
     "IndexedDocument",

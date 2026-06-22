@@ -270,6 +270,52 @@
 
 
 
+## 2026-06-22 LiMa 第六轮瘦身计划（进行中）
+
+- **目标**：在前五轮瘦身基础上，继续降低冗余和自定义代码，聚焦 PONYTAIL-DEBT 待处理项和低垂果实。
+
+- **阶段 1 — 更新 PONYTAIL-DEBT.md**：
+
+  - `except ImportError: pass` 扫描结果为 **0 处**（生产代码全部有处理逻辑），将该条目标记为已结项。
+
+- **阶段 2 — 删除未使用的一次性脚本**：
+
+  - 审查 `scripts/` 目录，删除 11 个未使用脚本：`eval_loop.py`、`eval_loop_core.py`、`eval_loop_paths.py`、`extract_api_contract.py`、`inventory_cloudflare_models.py`、`inventory_gitee_ai_models.py`、`inventory_google_models.py`、`inventory_mcp_registries.py`、`test_redis_from_local.py`、`test_shared_memory_search.py`、`reverse_proxy_keepalive.py`。
+
+  - 同时删除 `scripts/eval_loop/` 目录（含 `default_eval_set.json`）。
+
+  - 预计减少约 1,157 行代码。
+
+- **阶段 3 — 用 sqlite3 FTS5 替换 `local_retrieval/` 自定义索引**：
+
+  - 新建 `local_retrieval/fts_index.py`（~190 行）：基于 `:memory:` sqlite3 数据库 + FTS5 虚拟表，实现 `LocalRetrievalIndex` 接口，使用 BM25 排序代替自定义 term frequency 评分。
+
+  - 更新 `context_pipeline/production_index.py`：改用 `FtsIndex` 替代 `InMemoryTokenIndex`。
+
+  - 更新 `local_retrieval/__init__.py`：导出 `FtsIndex`。
+
+  - 新增 6 个 FTS5 测试用例（`tests/test_local_retrieval_index.py`）。
+
+- **验证**：
+
+  - `python -m pytest --tb=short -q` → **2321 passed, 18 skipped, 0 failed**（新增 6 个 FTS5 测试）。
+
+  - `ruff check .` → 0 errors。
+
+  - `npx pyright`（修改文件）→ 0 errors，0 warnings。
+
+  - `scripts/check_code_size.py` → >300 行文件 3，>50 行函数 72（与第五轮一致）。
+
+- **PONYTAIL-DEBT 更新**：
+
+  - 待处理项从 3 降至 1（仅剩「审查 scripts/ 目录」）。
+
+  - 已结项新增 2 条：`except ImportError: pass` 扫描、`local_retrieval/` FTS5 替换。
+
+- **Git**：待提交推送。
+
+
+
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 
 
