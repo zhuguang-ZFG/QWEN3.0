@@ -1,7 +1,10 @@
+"""Tests for the provider probe browser microservice."""
+
 from fastapi.testclient import TestClient
 import pytest
 
 from provider_probe import browser_service
+from provider_probe import browser_lifecycle
 
 pytestmark = pytest.mark.offline_probe
 
@@ -9,7 +12,7 @@ pytestmark = pytest.mark.offline_probe
 def test_browser_launch_options_include_configured_executable(monkeypatch):
     monkeypatch.setenv("PROBE_CHROMIUM_EXECUTABLE", "/usr/bin/google-chrome")
 
-    options = browser_service._browser_launch_options()
+    options = browser_lifecycle._browser_launch_options()
 
     assert options["executable_path"] == "/usr/bin/google-chrome"
     assert options["headless"] is True
@@ -20,6 +23,7 @@ def test_ready_reports_browser_launch_failure(monkeypatch):
     async def fail_browser():
         raise RuntimeError("Executable doesn't exist at /root/.cache/ms-playwright/chromium")
 
+    # Monkeypatch the local reference in browser_service, not the source module.
     monkeypatch.setattr(browser_service, "_get_browser", fail_browser)
 
     response = TestClient(browser_service.app).get("/ready")
