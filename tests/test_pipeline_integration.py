@@ -26,7 +26,10 @@ class TestRoutingBridge:
         assert result.backend == "groq"
 
     def test_record_outcome(self):
+        # Should not raise
         record_routing_outcome("groq", 150, True, "coding")
+        record_routing_outcome("groq", 200, False, "coding")
+        record_routing_outcome("nvidia", 100, True, "chat", skip_weights=True)
 
     def test_get_metrics_snapshot(self):
         snap = get_metrics_snapshot()

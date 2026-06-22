@@ -1,4 +1,12 @@
-"""Injectable dependencies for device task creation (test monkeypatch surface)."""
+"""Injectable dependencies for device task creation (test monkeypatch surface).
+
+This module exists to provide a clean monkeypatch surface for tests.
+Importing through here instead of directly lets tests replace individual
+dependencies without side effects on other importers.
+
+ponytail: kept intentionally despite 18-line size — removes need for
+  complex dependency injection framework in test code.
+"""
 
 from __future__ import annotations
 

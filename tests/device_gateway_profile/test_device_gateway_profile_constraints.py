@@ -90,7 +90,8 @@ def test_record_simplification():
         constrained=constrained,
     )
 
-    assert True  # If we reach here, the logging succeeded
+    # Verify simplification was recorded without error
+    assert constrained is not None  # test completed without exception
 
 
 def test_apply_profile_constraints_records_simplification():

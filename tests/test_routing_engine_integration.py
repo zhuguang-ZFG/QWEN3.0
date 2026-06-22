@@ -1,17 +1,20 @@
 """
-测试路由引擎集成 - 测试路由引擎的各个组件和集成路径
+测试路由引擎集成 — 注意：以下测试仅验证 RouteResult 数据类构造，
+并非真正的路由引擎端到端集成测试。真正的集成测试请参考
+tests/test_pick_backend.py 和 tests/test_routing_engine_reexports.py。
 """
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from routing_engine import (
+    PickResult,
     RouteResult,
 )
 
 
 class TestRoutingEngineIntegration(unittest.TestCase):
-    """路由引擎集成测试套件 - 覆盖路由引擎的所有集成路径"""
+    """RouteResult 数据类构造测试（非集成测试）。"""
 
     def setUp(self):
         """每个测试前的初始化"""
