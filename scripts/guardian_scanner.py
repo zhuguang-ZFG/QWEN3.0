@@ -12,7 +12,9 @@ from pathlib import Path
 
 from scripts.guardian_test_index import find_test_file
 
-PROJECT = Path("D:/QWEN3.0")
+from scripts.repo_root import repo_root
+
+PROJECT = repo_root()
 CODEGRAPH_DB = str(PROJECT / ".codegraph" / "codegraph.db")
 
 log = logging.getLogger(__name__)

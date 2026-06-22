@@ -48,6 +48,7 @@ def _route(method: str, path: str) -> APIRoute | None:
 
 @pytest.fixture
 def api_client(monkeypatch) -> TestClient:
+    monkeypatch.setenv("LIMA_API_KEY", "test-api-key-contract")
     monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
     monkeypatch.setenv("LIMA_ADMIN_TOKEN", "admin-contract-token")
     monkeypatch.delenv("LIMA_ALLOW_ANONYMOUS", raising=False)

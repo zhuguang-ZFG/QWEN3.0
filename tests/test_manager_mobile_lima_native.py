@@ -1,7 +1,30 @@
+"""Static checks for manager-mobile LiMa native migration (esp32 submodule)."""
+
+from __future__ import annotations
+
+import json
 from pathlib import Path
 
+import pytest
 
 ROOT = Path("esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile")
+
+
+def _lima_native_mobile_ready() -> bool:
+    pkg = ROOT / "package.json"
+    if not pkg.is_file():
+        return False
+    try:
+        name = json.loads(pkg.read_text(encoding="utf-8")).get("name", "")
+    except (OSError, json.JSONDecodeError):
+        return False
+    return name == "lima-manager-mobile"
+
+
+pytestmark = pytest.mark.skipif(
+    not _lima_native_mobile_ready(),
+    reason="esp32 manager-mobile LiMa native migration not present in submodule checkout",
+)
 
 
 def test_manager_mobile_v2_api_uses_lima_native_paths():

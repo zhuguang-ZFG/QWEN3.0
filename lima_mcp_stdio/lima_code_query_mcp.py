@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 # 项目根目录
-PROJECT_ROOT = Path("D:/QWEN3.0")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s:%(name)s:%(message)s")

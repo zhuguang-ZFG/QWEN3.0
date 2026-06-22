@@ -187,9 +187,14 @@ def test_run_idf_build_uses_idf_source_tree_tool_entrypoint(workspace_tmp: Path,
 
 
 def _create_exported_idf_layout(workspace_tmp: Path) -> dict[str, Path]:
+    import sys
+
     idf_source = workspace_tmp / "esp-idf"
     idf_python_env = workspace_tmp / ".espressif" / "python_env" / "idf5.5_py3.12_env"
-    idf_python = idf_python_env / "Scripts" / "python.exe"
+    if sys.platform == "win32":
+        idf_python = idf_python_env / "Scripts" / "python.exe"
+    else:
+        idf_python = idf_python_env / "bin" / "python"
     ninja_dir = workspace_tmp / ".espressif" / "tools" / "ninja" / "1.12.1"
     esp_rom_elf_dir = workspace_tmp / ".espressif" / "tools" / "esp-rom-elfs" / "20241011"
     openocd_scripts = (

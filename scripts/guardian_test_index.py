@@ -7,7 +7,9 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-PROJECT = Path("D:/QWEN3.0")
+from scripts.repo_root import repo_root
+
+PROJECT = repo_root()
 TEST_DIR = PROJECT / "tests"
 ROUTES_CONTRACT_TEST = "tests/test_routes_auth_contract.py"
 
