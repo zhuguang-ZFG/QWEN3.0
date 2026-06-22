@@ -16,15 +16,34 @@ import device_gateway.intent as dgi
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-ALLOWED = frozenset({
-    "home", "pause", "resume", "stop", "get_device_info",
-    "write_text", "draw_generated", "run_path", "move_abs", "move_rel",
-})
+ALLOWED = frozenset(
+    {
+        "home",
+        "pause",
+        "resume",
+        "stop",
+        "get_device_info",
+        "write_text",
+        "draw_generated",
+        "run_path",
+        "move_abs",
+        "move_rel",
+    }
+)
 
-DANGEROUS = frozenset({
-    "spindle_on", "laser_on", "heater_on", "gpio_high",
-    "m3", "m4", "m8", "spindle_cw", "spindle_ccw",
-})
+DANGEROUS = frozenset(
+    {
+        "spindle_on",
+        "laser_on",
+        "heater_on",
+        "gpio_high",
+        "m3",
+        "m4",
+        "m8",
+        "spindle_cw",
+        "spindle_ccw",
+    }
+)
 
 
 def _mock_llm_call(monkeypatch, response_json: dict):

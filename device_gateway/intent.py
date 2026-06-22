@@ -18,16 +18,35 @@ from typing import Any
 _log = logging.getLogger(__name__)
 
 # ── Safety: capabilities whitelist and dangerous blacklist ────────────────────
-_ALLOWED_CAPABILITIES = frozenset({
-    "home", "pause", "resume", "stop", "get_device_info",
-    "write_text", "draw_generated", "run_path", "move_abs", "move_rel",
-    "rejected",
-})
+_ALLOWED_CAPABILITIES = frozenset(
+    {
+        "home",
+        "pause",
+        "resume",
+        "stop",
+        "get_device_info",
+        "write_text",
+        "draw_generated",
+        "run_path",
+        "move_abs",
+        "move_rel",
+        "rejected",
+    }
+)
 
-_DANGEROUS_CAPABILITIES = frozenset({
-    "spindle_on", "laser_on", "heater_on", "gpio_high",
-    "m3", "m4", "m8", "spindle_cw", "spindle_ccw",
-})
+_DANGEROUS_CAPABILITIES = frozenset(
+    {
+        "spindle_on",
+        "laser_on",
+        "heater_on",
+        "gpio_high",
+        "m3",
+        "m4",
+        "m8",
+        "spindle_cw",
+        "spindle_ccw",
+    }
+)
 
 # ── Command patterns ─────────────────────────────────────────────────────────
 # Each pattern is (regex, capability, param_map_fn)
