@@ -18,7 +18,9 @@ def _clean_state(monkeypatch, tmp_path):
     test_keys_path.write_text(json.dumps({"keys": []}), encoding="utf-8")
     monkeypatch.setattr(ck_mod, "_KEYS_PATH", test_keys_path)
     monkeypatch.setattr(ck_mod, "_DATA_DIR", tmp_path)
-    ck_mod._usage.clear()
+    ck_mod._tracker._keys_path = test_keys_path
+    ck_mod._tracker._usage.clear()
+    ck_mod._tracker._rpm_window.clear()
     yield
 
 
@@ -369,6 +371,37 @@ def test_api_create_rejects_invalid_allowed_urls():
             "allowed_urls": ["/v1/chat", 123],
         },
     )
+    assert resp.status_code == 400
+
+
+def test_api_create_rejects_invalid_quotas():
+    """Create/update reject malformed or negative quota fields."""
+    from fastapi.testclient import TestClient
+
+    app = _make_app()
+    client = TestClient(app)
+
+    resp = client.post(
+        "/admin/api/client-keys",
+        json={"label": "bad-quota", "quota_daily": "abc"},
+    )
+    assert resp.status_code == 400
+
+    resp = client.post(
+        "/admin/api/client-keys",
+        json={"label": "negative-quota", "quota_monthly": -1},
+    )
+    assert resp.status_code == 400
+
+    resp = client.post(
+        "/admin/api/client-keys",
+        json={"label": "negative-rpm", "rate_limit_rpm": -5},
+    )
+    assert resp.status_code == 400
+
+    resp = client.post("/admin/api/client-keys", json={"label": "update-target"})
+    kid = resp.json()["key_id"]
+    resp = client.put(f"/admin/api/client-keys/{kid}", json={"quota_daily": "x"})
     assert resp.status_code == 400
 
 
