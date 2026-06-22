@@ -21,6 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -34,11 +35,16 @@ jobs:
 
       - name: Write deploy key
         run: |
+          if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "ERROR: secrets.VPS_SSH_KEY is not configured" >&2
+            exit 1
+          fi
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
       - name: Deploy Aliyun primary (LiMa Router)
+        timeout-minutes: 10
         env:
           LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
           LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts
@@ -46,7 +52,23 @@ jobs:
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
           python scripts/deploy_unified.py --slice all
 
+      - name: Deploy Chat Web static files
+        if: secrets.VPS_HOST != ''
+        timeout-minutes: 5
+        env:
+          LIMA_DEPLOY_HOST: root@${{ secrets.VPS_HOST }}
+        run: python scripts/deploy_chat_web.py
+
+      - name: Verify production deployment
+        if: secrets.LIMA_API_KEY != ''
+        timeout-minutes: 5
+        env:
+          LIMA_API_KEY: ${{ secrets.LIMA_API_KEY }}
+        run: python scripts/verify_production_deploy.py
+
       - name: Deploy JDCloud provider probe
+        if: secrets.JDCLOUD_HOST != ''
+        timeout-minutes: 10
         env:
           LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
           LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts

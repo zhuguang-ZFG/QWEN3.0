@@ -15,6 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -35,17 +36,26 @@ jobs:
           pip install -r requirements_server.txt
           pip install pytest pytest-asyncio pytest-mock ruff bandit pyright
 
-      - name: Ruff lint
-        run: ruff check .
+      - name: Ruff lint and format check
+        run: |
+          ruff check .
+          ruff format --check
 
-      - name: Ruff format check
-        run: ruff format --check
+      - name: Pre-commit gate (CI mode)
+        run: python scripts/run_pre_commit_check.py --ci --full
 
-      - name: Pyright type check (authority files)
+      - name: Type check authority files
         run: pyright server.py routing_engine.py routes/chat_endpoints.py
 
-      - name: Bandit security scan
-        run: bandit -r routes/ -s B310,B324,B604,B608 -ll
+      - name: Type check changed Python files
+        run: |
+          files=$(git diff --name-only --diff-filter=ACMRT HEAD~1 HEAD -- '*.py' '*.pyi' | tr '\n' ' ')
+          if [ -n "$files" ]; then
+            echo "Running pyright on changed files: $files"
+            pyright $files
+          else
+            echo "No Python files changed"
+          fi
 
-      - name: Pytest
-        run: python -m pytest --tb=short -q --ignore=tests/test_memory_daemon_ctl.py --ignore=tests/test_semantic_code_retrieval.py --ignore=tests/test_healthcheck_ping.py --ignore=tests/test_deploy_unified.py
+      - name: Security scan
+        run: bandit -r routes/ scripts/ lima_mcp_stdio/ -s B310,B324,B604,B608 -ll

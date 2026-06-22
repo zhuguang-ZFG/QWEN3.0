@@ -52,13 +52,69 @@ def staged_python_files(root: Path = ROOT) -> list[str]:
     ]
 
 
-def quick_commands(staged_paths: Sequence[str], *, python: str = sys.executable) -> list[list[str]]:
-    """Build quick pre-commit commands."""
+def changed_python_files_ci(root: Path = ROOT) -> list[str]:
+    """Return changed Python paths for a CI run (HEAD~1..HEAD).
+
+    Works for both ``push`` (HEAD~1 is the previous commit) and GitHub PR merge
+    commits (HEAD~1 is the base branch).
+    """
+    has_parent = (
+        subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD~1"],
+            cwd=root,
+            capture_output=True,
+            check=False,
+        ).returncode
+        == 0
+    )
+
+    if has_parent:
+        result = subprocess.run(
+            [
+                "git",
+                "diff",
+                "--name-only",
+                "-z",
+                "--diff-filter=ACMRT",
+                "HEAD~1",
+                "HEAD",
+                "--",
+                "*.py",
+                "*.pyi",
+            ],
+            cwd=root,
+            capture_output=True,
+            check=False,
+        )
+    else:
+        # Shallow clone with a single commit: fall back to all tracked Python files.
+        result = subprocess.run(
+            ["git", "ls-files", "-z", "*.py", "*.pyi"],
+            cwd=root,
+            capture_output=True,
+            check=False,
+        )
+
+    if result.returncode != 0:
+        stderr = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"git diff HEAD~1..HEAD failed: {stderr}")
+    return [
+        path
+        for path in result.stdout.decode("utf-8", errors="replace").split("\0")
+        if path and path.endswith((".py", ".pyi"))
+    ]
+
+
+def quick_commands(changed_paths: Sequence[str], *, python: str = sys.executable, ci: bool = False) -> list[list[str]]:
+    """Build quick pre-commit / CI commands."""
     commands = [
         [python, "scripts/run_ruff_check.py"],
-        ["git", "diff", "--cached", "--check"],
     ]
-    compile_paths = [path for path in staged_paths if path.endswith(".py")]
+    if ci:
+        commands.append(["git", "diff", "--check", "HEAD~1", "HEAD"])
+    else:
+        commands.append(["git", "diff", "--cached", "--check"])
+    compile_paths = [path for path in changed_paths if path.endswith(".py")]
     if compile_paths:
         commands.append([python, "-m", "py_compile", *compile_paths])
     return commands
@@ -96,18 +152,23 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="also run the CI-style pytest command after quick checks",
     )
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="run in CI mode using HEAD~1..HEAD instead of staged changes",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     try:
-        staged_paths = staged_python_files()
+        changed_paths = changed_python_files_ci() if args.ci else staged_python_files()
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 1
 
-    commands = quick_commands(staged_paths)
+    commands = quick_commands(changed_paths, ci=args.ci)
     if args.full:
         basetemp = str(ROOT / "tmp" / f"pytest-run-precommit-full-{uuid.uuid4().hex}")
         commands.append(full_pytest_command(basetemp=basetemp))

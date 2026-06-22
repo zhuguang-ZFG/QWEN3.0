@@ -3042,3 +3042,26 @@ Agent Worker path.
 - **提交**：
   - `9333910c` `refactor(scripts): split smoke_live_and_digital_human::_test_gemini_live`；已 push 到 GitHub `origin/main`。
   - `adf3a6a9` `refactor(scripts): move smoke test helpers to separate module`；已 push 到 GitHub `origin/main`（`9b1f145d..adf3a6a9`）。
+## 2026-06-21 CI/CD 正常化 — 修复 GitHub Actions 工作流
+
+- **目标**：让 `.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 对齐 `AGENTS.md`/`docs/ECC_WORKFLOW_CN.md` 的硬规则，修复当前漂移和缺失步骤。
+- **改动**：
+  - `scripts/run_pre_commit_check.py`：新增 `--ci` 模式，使用 `HEAD~1..HEAD` 代替 `git diff --cached`，可在 GitHub Actions `push`/`pull_request` 事件中正确识别变更文件。
+  - `.github/workflows/test.yml`：
+    - 将 CRLF 行尾改为 LF。
+    - 统一使用 `scripts/run_pre_commit_check.py --ci --full` 跑 ruff、git diff 检查、py_compile、pytest、代码尺寸警告。
+    - 新增 `pyright` 对变更 `.py/.pyi` 文件的类型检查。
+    - 扩展 `bandit` 扫描范围为 `routes/ scripts/ lima_mcp_stdio/`。
+  - `.github/workflows/deploy.yml`：
+    - 写 SSH key 前增加空 `secrets.VPS_SSH_KEY` 检查，避免生成 0 字节私钥。
+    - Aliyun 部署步骤增加 `timeout-minutes: 10`。
+    - 新增 chat-web 静态资源自动部署步骤 `scripts/deploy_chat_web.py`。
+    - 新增部署后真实公网冒烟步骤 `scripts/verify_production_deploy.py`（需 `LIMA_API_KEY`）。
+    - JDCloud 探测步骤改为 `secrets.JDCLOUD_HOST` 非空才执行。
+  - `docs/DEPLOY_AND_RELEASE_CONVENTION.md`：将 closeout 流程从 8 步改为 7 步，移除强制的 Gitee 同步，与 `findings.md` OPS-022 保持一致。
+  - `STATUS.md`：更新 CI/CD 状态为“工作流已修复，等待 GitHub Secrets 配置后自动触发部署验证”。
+- **验证**：
+  - 本地 `.venv310/Scripts/python.exe scripts/run_pre_commit_check.py --ci` 通过（ruff clean、git diff --check clean、代码尺寸仅 warning）。
+  - `ruff check .`、`ruff format --check` clean。
+  - 全量 `pytest -q` → **2300+ passed, 4 skipped, 0 failed**（基线未变）。
+- **提交**：待 `VPS_SSH_KEY`、`VPS_HOST`、`LIMA_API_KEY` 等 Secret 配置后触发 `deploy.yml` 进行端到端验证。

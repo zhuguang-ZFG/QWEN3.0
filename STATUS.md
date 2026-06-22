@@ -5,12 +5,12 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-22
+> Updated: 2026-06-21
 > Branch: `main`
 > Scale: 约 1021 个 Python 文件 / 全仓 905 文件已格式化
 > Tests: 全量 2230 passed / 4 skipped / 0 failed；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
-> VPS smoke：未执行（本地 SSH key 无效且 `LIMA_DEPLOY_PASS` 未配置，部署脚本无法连接 VPS）。
+> CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复；新增 Secret 空值保护、chat-web 自动部署、部署后真实公网冒烟。等待 GitHub Secrets（`VPS_SSH_KEY`、`VPS_HOST`、`LIMA_API_KEY`）配置后自动触发部署验证。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted（图片域名白名单已落地；WebSocket query-param token 已加 `access_log off` 与 warning 日志）。
 
 ## 当前项目状态

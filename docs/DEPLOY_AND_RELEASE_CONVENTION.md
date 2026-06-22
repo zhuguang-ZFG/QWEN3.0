@@ -4,13 +4,13 @@
 
 ## 核心原则
 
-**里程碑切片完成后，自动执行 VPS 部署 + 验证 + GitHub/Gitee 上传，无需逐项请示。**
+**里程碑切片完成后，自动执行 VPS 部署 + 验证 + GitHub 上传，无需逐项请示。**
 
 例外：用户明确说"不要部署""不要提交""只本地检查"时跳过对应步骤。
 
 ---
 
-## 完整 Closeout 流程（8 步）
+## 完整 Closeout 流程（7 步）
 
 ```text
 1. 本地门禁
@@ -20,8 +20,9 @@
 5. 证据落盘
 6. Git commit
 7. GitHub 上传
-8. Gitee 同步
 ```
+
+> **Gitee 同步已退役**：`findings.md` OPS-022 已记录移除 `gitee` remote，不再作为强制步骤。如有特殊需要，可手动执行 `python scripts/push_dual_remotes.py`。
 
 ### Step 1: 本地门禁
 
@@ -143,13 +144,15 @@ git push origin HEAD
 git push -u origin HEAD
 ```
 
-### Step 8: Gitee 同步
+### Step 8（已退役）: Gitee 同步
+
+Gitee 镜像同步已不再是强制 closeout 步骤。`findings.md` OPS-022 已记录移除 `gitee` remote。
+
+如仍有手动同步需求：
 
 ```bash
-# 推送到 Gitee 镜像
-git push gitee HEAD
-
-# 或使用双推脚本（如有）
+# 需要先确认本地存在 gitee remote
+git remote get-url gitee
 python scripts/push_dual_remotes.py
 ```
 

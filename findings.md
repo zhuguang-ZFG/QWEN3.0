@@ -11,8 +11,8 @@
 | NEXT-2 | test | `routes/xiaozhi_compat/device_routes.py` 重复 `prefix="/api/v1"` 导致 8 个兼容层测试 404，已移除 | Closed |
 | NEXT-3 | code_size | `routes/device_gateway.py` 310 行超标，已拆出 `routes/device_gateway_helpers.py` | Closed |
 | NEXT-4 | type | `lima_mcp_stdio` 3 个 pyright errors 已修复 | Closed |
-| NEXT-5 | deploy | 本地 `~/.ssh/id_ed25519` 被 paramiko 报 `Invalid key`，`LIMA_DEPLOY_PASS` 未设置，VPS 部署无法完成 | Open |
-| NEXT-6 | git | Gitee (`gitee`) push 失败：`Permission denied (publickey)` | Open |
+| NEXT-5 | deploy | 本地 `~/.ssh/id_ed25519` 被 paramiko 报 `Invalid key`，`LIMA_DEPLOY_PASS` 未设置；CI 已增加空 Secret 保护，等待 GitHub Secrets (`VPS_SSH_KEY`/`VPS_HOST`) 配置后自动验证 | Open |
+| NEXT-6 | git | Gitee (`gitee`) push 失败：`Permission denied (publickey)`；用户决定不再维护 Gitee 镜像，remote 已移除 | Closed |
 
 ## 2026-06-20 工作区清理与 redis_store 瘦身
 
