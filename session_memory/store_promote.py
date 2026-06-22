@@ -42,14 +42,14 @@ def query_by_type(memory_type: str, limit: int = 10, session_id: str | None = No
         rows = conn.execute(
             "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type "
             "FROM memories WHERE memory_type = ? AND session_id = ? "
-            "ORDER BY timestamp DESC LIMIT ?",
+            "ORDER BY timestamp DESC, id DESC LIMIT ?",
             (memory_type, session_id, limit),
         ).fetchall()
     else:
         rows = conn.execute(
             "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type "
             "FROM memories WHERE memory_type = ? "
-            "ORDER BY timestamp DESC LIMIT ?",
+            "ORDER BY timestamp DESC, id DESC LIMIT ?",
             (memory_type, limit),
         ).fetchall()
     conn.close()
