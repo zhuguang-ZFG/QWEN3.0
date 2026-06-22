@@ -25,8 +25,13 @@
   - GitHub (`origin`) push 成功：`ce153219..2b918322`。
   - 本地 `.git/info/exclude` 已忽略 `.omk/`，故 `.omk/CODE_REVIEW_ISSUES.md` 未纳入版本控制。
 - **VPS 部署**：
-  - 本地 `python scripts/deploy_unified.py --slice core` 失败：`~/.ssh/id_ed25519` 被 paramiko 报 `Invalid key`，且 `.env` 中 `LIMA_DEPLOY_PASS` 未设置，无法回退到密码认证。
-  - GitHub Actions `Deploy` 工作流使用仓库 secrets，不受本地 SSH key 影响；本次推送触发的新运行应能正常部署。
+  - 问题诊断：`~/.ssh/id_ed25519` 内容被替换为占位符 `test`，paramiko 报 `Invalid key`。
+  - 修复：生成新的部署密钥 `~/.ssh/lima_deploy_ed25519`，使用 VPS root 密码将其公钥写入 `~/.ssh/authorized_keys`。
+  - `scripts/deploy_unified.py` 增加 `python-dotenv` 加载 `.env`，使本地部署命令自动读取 `LIMA_DEPLOY_KEY_PATH` 与 `LIMA_DEPLOY_USE_TAR`。
+  - `.env` 追加 `LIMA_DEPLOY_KEY_PATH=~/.ssh/lima_deploy_ed25519` 与 `LIMA_DEPLOY_USE_TAR=1`。
+  - 验证：
+    - 首次 `LIMA_DEPLOY_USE_TAR=1 LIMA_DEPLOY_KEY_PATH=~/.ssh/lima_deploy_ed25519 python scripts/deploy_unified.py --slice core` → **Deploy OK**（1372 uploaded, health OK）。
+    - 简化命令 `.venv310/Scripts/python scripts/deploy_unified.py --slice core` → **Deploy OK**（1372 uploaded, health OK）。
 
 ## 2026-06-22 继续优化：修复测试失败、拆分 device_gateway、合并当前 WIP（完成）
 
