@@ -1,4 +1,4 @@
-FROM python:3.10-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 
@@ -6,7 +6,7 @@ COPY requirements_server.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements_server.txt
 
 # --- runtime ---
-FROM python:3.10-slim
+FROM python:3.14-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
