@@ -33,58 +33,69 @@ class DeploymentInventory:
     smoke_commands: list[str] = field(default_factory=list)
 
 
+def _scan_backends(inventory: DeploymentInventory) -> None:
+    """Scan and populate backends-related fields (services, backup_dir)."""
+    inventory.services = [
+        ServiceEntry(
+            name="lima-router",
+            port=8080,
+            protocol="http",
+            description="LiMa main API server",
+            systemd_unit="lima-router.service",
+        ),
+        ServiceEntry(
+            name="lima-voice",
+            port=8091,
+            protocol="http",
+            description="Voice gateway",
+            systemd_unit="lima-voice.service",
+        ),
+        ServiceEntry(
+            name="nginx-https",
+            port=443,
+            protocol="https",
+            description="nginx HTTPS edge for chat.donglicao.com",
+        ),
+        ServiceEntry(
+            name="nginx-frp",
+            port=8088,
+            protocol="http",
+            description="FRP tunnel to Windows local router",
+        ),
+        ServiceEntry(
+            name="new-api",
+            port=3003,
+            protocol="http",
+            description="New API gateway on localhost",
+        ),
+    ]
+    inventory.backup_dir = "/opt/lima-router/backups"
+
+
+def _scan_routes(inventory: DeploymentInventory) -> None:
+    """Scan and populate routes-related fields (smoke_commands, rollback_steps)."""
+    inventory.smoke_commands = [
+        "curl -s https://chat.donglicao.com/health",
+        "curl -s http://47.112.162.80:8088/health",
+        "curl -s -H 'Authorization: Bearer $LIMA_API_KEY' "
+        "-H 'Content-Type: application/json' "
+        "https://chat.donglicao.com/v1/chat/completions "
+        '-d \'{"model":"lima-1.3","messages":[{"role":"user","content":"hi"}]}\'',
+    ]
+    inventory.rollback_steps = [
+        "ls /opt/lima-router/backups/  # list available backups",
+        "cp -r /opt/lima-router/backups/<date>/* /opt/lima-router/",
+        "systemctl restart lima-router",
+        "curl -s https://chat.donglicao.com/health",
+    ]
+
+
 def build_inventory() -> DeploymentInventory:
-    return DeploymentInventory(
-        services=[
-            ServiceEntry(
-                name="lima-router",
-                port=8080,
-                protocol="http",
-                description="LiMa main API server",
-                systemd_unit="lima-router.service",
-            ),
-            ServiceEntry(
-                name="lima-voice",
-                port=8091,
-                protocol="http",
-                description="Voice gateway",
-                systemd_unit="lima-voice.service",
-            ),
-            ServiceEntry(
-                name="nginx-https",
-                port=443,
-                protocol="https",
-                description="nginx HTTPS edge for chat.donglicao.com",
-            ),
-            ServiceEntry(
-                name="nginx-frp",
-                port=8088,
-                protocol="http",
-                description="FRP tunnel to Windows local router",
-            ),
-            ServiceEntry(
-                name="new-api",
-                port=3003,
-                protocol="http",
-                description="New API gateway on localhost",
-            ),
-        ],
-        backup_dir="/opt/lima-router/backups",
-        smoke_commands=[
-            "curl -s https://chat.donglicao.com/health",
-            "curl -s http://47.112.162.80:8088/health",
-            "curl -s -H 'Authorization: Bearer $LIMA_API_KEY' "
-            "-H 'Content-Type: application/json' "
-            "https://chat.donglicao.com/v1/chat/completions "
-            '-d \'{"model":"lima-1.3","messages":[{"role":"user","content":"hi"}]}\'',
-        ],
-        rollback_steps=[
-            "ls /opt/lima-router/backups/  # list available backups",
-            "cp -r /opt/lima-router/backups/<date>/* /opt/lima-router/",
-            "systemctl restart lima-router",
-            "curl -s https://chat.donglicao.com/health",
-        ],
-    )
+    """Build the deployment inventory by scanning backends and routes."""
+    inv = DeploymentInventory()
+    _scan_backends(inv)
+    _scan_routes(inv)
+    return inv
 
 
 def format_inventory_markdown(inv: DeploymentInventory) -> str:

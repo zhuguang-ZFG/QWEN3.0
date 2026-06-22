@@ -11,6 +11,30 @@ import time
 from typing import Optional
 
 
+def _filter_servers(servers: dict | None, host: str | None) -> dict:
+    """根据 host 过滤服务器字典。
+
+    host 为 None 时返回全部；servers 为 None 时返回空字典。
+    匹配规则：host 是 shost 或 label 的子串。
+    """
+    if servers is None:
+        return {}
+    if host is None:
+        return servers
+    return {sh: info for sh, info in servers.items() if host in sh or host in info.get("label", "")}
+
+
+def _format_result(label: str, shost: str | None = None, body: str = "", summary: bool = True) -> str:
+    """格式化单条结果。
+
+    summary=True  返回紧凑格式  → [label] body
+    summary=False 返回详细块头  → \n=== label (shost) ===
+    """
+    if summary:
+        return f"[{label}] {body}"
+    return f"\n=== {label} ({shost}) ==="
+
+
 def tool_server_status(
     host: str | None = None,
     summary: bool = True,
@@ -21,14 +45,9 @@ def tool_server_status(
     """查看服务器 LiMa 进程状态"""
     if logger is None:
         logger = logging.getLogger(__name__)
-    if servers is None:
-        servers = {}
-
     results = []
-    for shost, info in servers.items():
-        if host and host not in shost and host not in info.get("label", ""):
-            continue
 
+    for shost, info in _filter_servers(servers, host).items():
         label = info["label"]
 
         if summary:
@@ -40,12 +59,17 @@ def tool_server_status(
             docker_count = run_ssh(shost, "docker ps -q 2>/dev/null | wc -l")
             ws_count = run_ssh(shost, "ss -tnp | grep -E ':8080|:8000' | grep ESTAB | wc -l")
             results.append(
-                f"[{label}] uptime:{uptime or '?'} | mem:{mem or '?'} | cpu:{cpu or '?'} | "
-                f"proc:{(proc_count or '').strip() or '0'} | ver:{ver or 'N/A'} | "
-                f"docker:{(docker_count or '').strip() or '0'} | ws:{(ws_count or '').strip() or '0'}"
+                _format_result(
+                    label,
+                    shost,
+                    f"uptime:{uptime or '?'} | mem:{mem or '?'} | cpu:{cpu or '?'} | "
+                    f"proc:{(proc_count or '').strip() or '0'} | ver:{ver or 'N/A'} | "
+                    f"docker:{(docker_count or '').strip() or '0'} | ws:{(ws_count or '').strip() or '0'}",
+                    summary=True,
+                )
             )
         else:
-            results.append(f"\n=== {label} ({shost}) ===")
+            results.append(_format_result(label, shost, summary=False))
             uptime = run_ssh(shost, "uptime")
             if uptime:
                 results.append(f"  Uptime: {uptime}")
@@ -65,9 +89,7 @@ def tool_server_status(
             )
             if ver:
                 results.append(f"  Version: {ver}")
-            docker = run_ssh(
-                shost, "docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null || echo 'no docker'"
-            )
+            docker = run_ssh(shost, "docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null || echo 'no docker'")
             if docker:
                 for d in docker.split("\n"):
                     results.append(f"  Docker: {d}")
@@ -85,14 +107,9 @@ def tool_device_connections(
     """查看实时设备连接"""
     if logger is None:
         logger = logging.getLogger(__name__)
-    if servers is None:
-        servers = {}
     results = []
 
-    for shost, info in servers.items():
-        if host and host not in shost and host not in info.get("label", ""):
-            continue
-
+    for shost, info in _filter_servers(servers, host).items():
         label = info["label"]
 
         if summary:
@@ -104,12 +121,17 @@ def tool_device_connections(
                 " || tail -1 /var/log/lima/app.log 2>/dev/null | grep -c session || echo '0'",
             )
             results.append(
-                f"[{label}] ws:{(ws or '').strip() or '0'}"
-                f" redis:{(redis or '').strip() or '0'}"
-                f" sessions:{(sessions or '').strip() or '0'}"
+                _format_result(
+                    label,
+                    shost,
+                    f"ws:{(ws or '').strip() or '0'}"
+                    f" redis:{(redis or '').strip() or '0'}"
+                    f" sessions:{(sessions or '').strip() or '0'}",
+                    summary=True,
+                )
             )
         else:
-            results.append(f"\n=== {label} ({shost}) ===")
+            results.append(_format_result(label, shost, summary=False))
             ws = run_ssh(shost, "ss -tnp | grep -E ':8080|:8000' | grep ESTAB | wc -l")
             if ws:
                 results.append(f"  WebSocket: {ws.strip()}")
@@ -142,8 +164,6 @@ def tool_tail_log(
     """按模块查看实时日志"""
     if logger is None:
         logger = logging.getLogger(__name__)
-    if servers is None:
-        servers = {}
     results = []
 
     log_paths = [
@@ -153,10 +173,7 @@ def tool_tail_log(
         f"/root/lima/logs/latest.log",
     ]
 
-    for shost, info in servers.items():
-        if host and host not in shost and host not in info.get("label", ""):
-            continue
-
+    for shost, info in _filter_servers(servers, host).items():
         label = info["label"]
 
         if summary:
@@ -165,20 +182,23 @@ def tool_tail_log(
                 exists = run_ssh(shost, f"test -f {lp} && echo 'yes' || echo 'no'")
                 if exists and "yes" in exists:
                     total = run_ssh(shost, f"wc -l < {lp}")
-                    errors = run_ssh(
-                        shost, f"grep -ci 'error\\|exception\\|traceback' {lp} || echo 0"
-                    )
+                    errors = run_ssh(shost, f"grep -ci 'error\\|exception\\|traceback' {lp} || echo 0")
                     results.append(
-                        f"[{label}/{module}] total_lines:{total.strip() or '?'}"
-                        f" error_lines:{errors.strip() or '0'}"
-                        f" set summary=False to expand"
+                        _format_result(
+                            f"{label}/{module}",
+                            shost,
+                            f"total_lines:{total.strip() or '?'}"
+                            f" error_lines:{errors.strip() or '0'}"
+                            f" set summary=False to expand",
+                            summary=True,
+                        )
                     )
                     found = True
                     break
             if not found:
-                results.append(f"[{label}/{module}] (no log file)")
+                results.append(_format_result(f"{label}/{module}", shost, "(no log file)", summary=True))
         else:
-            results.append(f"\n=== {label} ({shost}) ===")
+            results.append(_format_result(label, shost, summary=False))
             found = False
             for lp in log_paths:
                 exists = run_ssh(shost, f"test -f {lp} && echo 'yes' || echo 'no'")
@@ -190,9 +210,7 @@ def tool_tail_log(
                         found = True
                         break
             if not found:
-                journal = run_ssh(
-                    shost, f"journalctl -u lima* --no-pager -n {lines} 2>/dev/null || echo 'no journal'"
-                )
+                journal = run_ssh(shost, f"journalctl -u lima* --no-pager -n {lines} 2>/dev/null || echo 'no journal'")
                 if journal and "no journal" not in journal:
                     results.append(f"  journald:")
                     results.append(journal)
@@ -212,14 +230,9 @@ def tool_health_check(
     """关键端点健康检查"""
     if logger is None:
         logger = logging.getLogger(__name__)
-    if servers is None:
-        servers = {}
     results = []
 
-    for shost, info in servers.items():
-        if host and host not in shost and host not in info.get("label", ""):
-            continue
-
+    for shost, info in _filter_servers(servers, host).items():
         label = info["label"]
 
         if summary:
@@ -237,10 +250,12 @@ def tool_health_check(
             )
             ok_count = sum(1 for c in [health, models, device] if c in ("200", "204"))
             results.append(
-                f"[{label}] /health:{health} /models:{models} /device:{device} | ok:{ok_count}/3"
+                _format_result(
+                    label, shost, f"/health:{health} /models:{models} /device:{device} | ok:{ok_count}/3", summary=True
+                )
             )
         else:
-            results.append(f"\n=== {label} ({shost}) ===")
+            results.append(_format_result(label, shost, summary=False))
             health = run_ssh(
                 shost,
                 "curl -s -o /dev/null -w '%{http_code} %{time_total}s'"
@@ -281,16 +296,11 @@ def tool_restart_service(
     """安全重启 LiMa 服务（带健康检查）"""
     if logger is None:
         logger = logging.getLogger(__name__)
-    if servers is None:
-        servers = {}
     results = []
 
-    for shost, info in servers.items():
-        if host and host not in shost and host not in info.get("label", ""):
-            continue
-
+    for shost, info in _filter_servers(servers, host).items():
         label = info["label"]
-        results.append(f"\n=== {label} ({shost}) ===")
+        results.append(_format_result(label, shost, summary=False))
 
         # 检查当前状态
         current = run_ssh(

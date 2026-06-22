@@ -17,6 +17,40 @@ class OptimizationResult:
     reduction_ratio: float
 
 
+
+def _optimize_curve_phases(
+    point_lists: list[list[tuple[float, float]]],
+    tolerance: float,
+) -> list[list[tuple[float, float]]]:
+    """曲线优化阶段：对每个子路径的点序列执行 Douglas-Peucker 简化"""
+    return [_simplify_points(points, tolerance) if len(points) >= 3 else points for points in point_lists]
+
+
+def _optimize_line_phases(
+    simplified: list[list[tuple[float, float]]],
+    target_size: tuple[float, float],
+    *,
+    close: bool,
+) -> tuple[str, int]:
+    """直线优化阶段：合并、缩放居中并重建为 L 指令 SVG 路径"""
+    combined = [point for points in simplified for point in points]
+    fitted = _apply_fit(combined, target_size)
+
+    optimized_parts: list[str] = []
+    optimized_count = 0
+    offset = 0
+    for points in simplified:
+        chunk = fitted[offset : offset + len(points)]
+        offset += len(points)
+        if not chunk:
+            continue
+        optimized_parts.append(_rebuild_path(chunk, close=close))
+        optimized_count += len(chunk)
+
+    optimized_path = " ".join(optimized_parts)
+    return optimized_path, optimized_count
+
+
 def optimize_svg_path(
     path_data: str,
     tolerance: float = 2.0,
@@ -47,22 +81,8 @@ def optimize_svg_path(
     if original_count == 0:
         return OptimizationResult(path_data, 0, 0, 0.0)
 
-    simplified = [_simplify_points(points, tolerance) if len(points) >= 3 else points for points in point_lists]
-    combined = [point for points in simplified for point in points]
-    fitted = _apply_fit(combined, target_size)
-
-    optimized_parts: list[str] = []
-    optimized_count = 0
-    offset = 0
-    for points in simplified:
-        chunk = fitted[offset : offset + len(points)]
-        offset += len(points)
-        if not chunk:
-            continue
-        optimized_parts.append(_rebuild_path(chunk, close=close))
-        optimized_count += len(chunk)
-
-    optimized_path = " ".join(optimized_parts)
+    simplified = _optimize_curve_phases(point_lists, tolerance)
+    optimized_path, optimized_count = _optimize_line_phases(simplified, target_size, close=close)
     reduction = 1.0 - (optimized_count / original_count) if original_count > 0 else 0.0
     return OptimizationResult(
         optimized_path=optimized_path,

@@ -103,6 +103,26 @@ def task_fit_score(backend: str, request_type: str, scenario: str = "") -> float
     return 0.6
 
 
+def _apply_penalty(
+    base_score: float,
+    reputation: float,
+    learned: float,
+    quota_score: float,
+) -> float:
+    """Apply weighted penalty components (reputation, learned weight, quota) to base score."""
+    return (
+        base_score
+        + reputation * 0.15
+        + learned * 0.10
+        + max(0.0, min(quota_score, 1.0)) * 0.05
+    )
+
+
+def _apply_boost(scored: float, profile_bonus: float) -> float:
+    """Apply profile composite bonus and return rounded score."""
+    return round(scored + profile_bonus * 0.05, 6)
+
+
 def effective_score(
     backend: str,
     request_type: str,
@@ -145,18 +165,14 @@ def effective_score(
     except (ImportError, Exception):
         profile_bonus = 0.5
 
-    # Composite: health 35%, stability 20%, latency 15%, reputation 15%, learned 10%, quota 5%
-    score = (
+    # Base: health 35%, stability 20%, latency 15% — core performance metrics
+    base_score = (
         _norm_score(health_score) * 0.35
         + stability_score(state) * 0.20
         + latency_score(avg_latency_ms) * 0.15
-        + reputation * 0.15
-        + learned * 0.10
-        + max(0.0, min(quota_score, 1.0)) * 0.05
     )
-    # Small bonus from profile composite score
-    score += profile_bonus * 0.05
-    return round(score, 6)
+    scored = _apply_penalty(base_score, reputation, learned, quota_score)
+    return _apply_boost(scored, profile_bonus)
 
 
 def rank_backends(

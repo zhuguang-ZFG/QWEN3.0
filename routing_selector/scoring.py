@@ -13,6 +13,23 @@ from routing_selector.helpers import _is_strong_coding_tool_backend
 _log = logging.getLogger(__name__)
 
 
+def _score_health(backend: str, hmap: dict) -> float:
+    """Health component: returns a multiplier based on backend health status."""
+    health = hmap.get(backend, "healthy")
+    if health == "dead":
+        return 0.0
+    if health == "degraded":
+        return 0.5
+    return 1.0
+
+
+def _score_sticky(backend: str, sticky_map: dict) -> float:
+    """Sticky session component: returns a recency multiplier based on last success time."""
+    last_success = sticky_map.get("last_success", 0)
+    age = time.time() - last_success if last_success else 300
+    return max(0, 1.0 - min(age / 60, 1.0))
+
+
 def _compute_backend_score(
     backend: str,
     base: float,
@@ -26,19 +43,20 @@ def _compute_backend_score(
     """Compute a single backend's health/latency/recency score."""
     import backends_registry as reg
 
+    health_factor = _score_health(backend, health_map)
+    if health_factor == 0.0:
+        return 0.0
+
     state = health_tracker.get_backend_state(backend)
     consec_fails = state.get("consecutive_failures", 0)
-    last_success = state.get("last_success", 0)
-    avg_lat = latency_map.get(backend, 1500)
-    health = health_map.get(backend, "healthy")
-    latency_score = max(0.1, 1.0 - min(avg_lat / 3000, 1.0))
     error_penalty = min(consec_fails * 0.15, 0.9)
-    age = time.time() - last_success if last_success else 300
-    recency_bonus = max(0, 1.0 - min(age / 60, 1.0))
-    if health == "dead":
-        score = 0.0
-    elif health == "degraded":
-        score = base * 0.5 * latency_score * recency_bonus
+    recency_bonus = _score_sticky(backend, state)
+
+    avg_lat = latency_map.get(backend, 1500)
+    latency_score = max(0.1, 1.0 - min(avg_lat / 3000, 1.0))
+
+    if health_factor < 1.0:
+        score = base * health_factor * latency_score * recency_bonus
     else:
         score = base * latency_score * (1 - error_penalty) * recency_bonus
     try:

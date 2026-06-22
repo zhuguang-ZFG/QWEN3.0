@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from routes.admin_auth import verify_admin, verify_csrf
 
 router = APIRouter()
+
+_log = logging.getLogger(__name__)
 
 
 @router.get("/api/agent-tasks", dependencies=[Depends(verify_admin)])
@@ -82,4 +85,5 @@ def _get_task_store():
 
         return _store
     except (ImportError, AttributeError):
+        _log.warning("routes.agent_tasks._store unavailable; agent tasks disabled")
         return None

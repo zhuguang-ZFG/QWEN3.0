@@ -285,6 +285,7 @@ wx_key_tool/
 /deploy/jdcloud/quick_deploy.sh
 /deploy/jdcloud/remote_deploy.sh
 /deploy/jdcloud/ssh_helper.sh
+/deploy/path_proxy.py
 /deploy/deploy_prometheus_metrics.py
 /deploy/deploy_prometheus_metrics.sh
 

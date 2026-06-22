@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from routes.admin_auth import verify_admin, verify_csrf
 
 router = APIRouter()
+
+_log = logging.getLogger(__name__)
 
 
 @router.get("/api/devices", dependencies=[Depends(verify_admin)])
@@ -18,12 +21,13 @@ async def admin_devices():
         devices = get_all_devices()
         return {"devices": devices}
     except (ImportError, AttributeError):
-        pass
+        _log.warning("device_gateway.registry unavailable; falling back to task store")
     try:
         from device_gateway.store import task_store_health
 
         return {"devices": [], "_note": "task_store only: " + str(task_store_health())}
     except ImportError:
+        _log.warning("device_gateway.store unavailable; returning empty device list")
         return {"devices": []}
 
 
@@ -37,6 +41,7 @@ async def admin_device_detail(device_id: str):
             raise HTTPException(404, "Device not found")
         return dev
     except ImportError:
+        _log.warning("device_gateway.registry.get_device unavailable")
         raise HTTPException(503, "Device gateway not available")
 
 
@@ -48,4 +53,5 @@ async def admin_restart_device(device_id: str):
         await restart_device(device_id)
         return {"ok": True, "device_id": device_id}
     except ImportError:
+        _log.warning("device_gateway.registry.restart_device unavailable")
         raise HTTPException(503, "Device gateway not available")

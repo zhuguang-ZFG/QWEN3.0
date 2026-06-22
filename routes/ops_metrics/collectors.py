@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
 from fastapi import Request
 
 from .formatters import redacted, top_backend_counts, top_backend_details
+
+_log = logging.getLogger(__name__)
 
 
 def app_stats(request: Request) -> dict[str, Any]:
@@ -22,6 +25,7 @@ def recent_agent_tasks(limit: int = 5) -> list[dict[str, Any]]:
     try:
         from routes.agent_tasks import _store
     except ImportError:
+        _log.warning("routes.agent_tasks._store unavailable; agent tasks empty")
         return []
 
     try:

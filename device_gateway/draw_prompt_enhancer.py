@@ -44,6 +44,31 @@ def _apply_refinement_hint(user_prompt: str, conversation_context: str) -> str:
     return f"基于上一轮，{user_prompt}"
 
 
+def _build_style_hint(style: str, medium: str) -> str:
+    """Build a style description hint string.
+
+    Args:
+        style: drawing style (e.g. 简约, 可爱, 写实轮廓).
+        medium: medium description string (e.g. "中复杂度（约20笔画）").
+
+    Returns:
+        Combined style hint string.
+    """
+    return f"{style}风格，{medium}"
+
+
+def _build_subject_expansion(subject: str) -> str:
+    """Wrap a subject into a drawing instruction fragment.
+
+    Args:
+        subject: the user's subject/prompt.
+
+    Returns:
+        Subject expansion string like "画一个{subject}的简笔画".
+    """
+    return f"画一个{subject}的简笔画"
+
+
 def enhance_drawing_prompt(
     user_prompt: str,
     *,
@@ -90,9 +115,10 @@ def enhance_drawing_prompt(
         parts.append(retry_hint)
 
     prefix = "。".join(parts)
+    medium_desc = f"{complexity}复杂度（{strokes}）"
     return (
         f"{prefix}。"
-        f"画一个{user_prompt}的简笔画，"
-        f"{style}风格，{complexity}复杂度（{strokes}），"
+        f"{_build_subject_expansion(user_prompt)}，"
+        f"{_build_style_hint(style, medium_desc)}，"
         "纯黑白线条图，纯白背景，无文字。"
     )

@@ -6678,3 +6678,30 @@ Agent Worker path.
   - `check_code_size.py`：>300 行文件从 9 降至 **7**；>50 行函数从 76 降至 **75**。
   - 聚焦测试：5 个拆分函数各自测试全部通过。
 - **Git**：本轮待提交。
+
+## 2026-06-21 LiMa 第三轮瘦身计划（Ponytail 原则）
+
+- **阶段 1 — 删除死代码 + 修复静默降级**：
+  - 删除 3 个孤儿文件：`tool_gateway/auth.py`（12 行）、`tool_gateway/registry.py`（170 行）、`routes/xiaozhi_compat/activation.py`（15 行）→ **-197 行**。
+  - 将 `deploy/path_proxy.py` 加入 `.gitignore`（deploy/jdcloud/ 的脚本已受忽略）。
+  - 修复 3 处静默降级违规（违反 AGENTS.md 硬规则）：
+    - `routes/admin_extra_devices.py`（3 处 `except`）→ 添加 `_log.warning`
+    - `routes/admin_extra_agent_tasks.py`（1 处 `except`）→ 添加 `_log.warning`
+    - `routes/ops_metrics/collectors.py`（1 处 `except`）→ 添加 `_log.warning`
+- **阶段 2 — 拆分 6 个中等风险生产 >50 行函数**：
+  - `route_scorer.py::effective_score`（54→25 行）：提取 `_apply_penalty()` 和 `_apply_boost()`。
+  - `routing_selector/scoring.py::_compute_backend_score`（53→20 行）：提取 `_score_health()` 和 `_score_sticky()`。
+  - `xiaozhi_drawing/path_optimizer.py::optimize_svg_path`（53→16 行）：提取 `_optimize_curve_phases()` 和 `_optimize_line_phases()`。
+  - `deployment/inventory.py::build_inventory`（52→6 行）：提取 `_scan_backends()` 和 `_scan_routes()`。
+  - `device_gateway/draw_prompt_enhancer.py::enhance_drawing_prompt`（52→22 行）：提取 `_build_style_hint()` 和 `_build_subject_expansion()`。
+  - `lima_mcp_stdio/prompt_compress_mcp.py::compress_code`（62→18 行）：提取 `_strip_docstrings()`、`_strip_comments()`、`_collapse_blanks()`。
+- **阶段 3 — 消除 3 个 >300 行文件**：
+  - `lima_mcp_stdio/lima_ops_tools.py`（332→~292 行）：提取共享 helper `_filter_servers()` 和 `_format_result()`，消除 5 个 tool 函数中的重复模式。
+  - `scripts/lima_feature_planner.py`（359→~280 行）：将 `PATTERNS` 字典（~80 行模板数据）提取到 `scripts/lima_feature_planner_patterns.py`。
+  - `lima_mcp_stdio/prompt_compress_mcp.py`（321→211 行）：将 MCP 协议层（`handle_request` + `main` + `TOOLS`）提取到 `prompt_compress_server.py`。
+- **验证**：
+  - `ruff check .`：clean。
+  - `pyright`：0 errors。
+  - `check_code_size.py`：>300 行文件从 7 降至 **5**；>50 行函数从 75 降至 **72**。
+  - 聚焦测试 45 个：全部通过。
+- **Git**：本轮待提交。

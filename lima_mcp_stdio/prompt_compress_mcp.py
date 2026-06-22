@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
-"""
-Prompt Compressor MCP — 零依赖，通用文本/代码/JSON 压缩。
+"""Prompt compression functions — zero-dependency text/code/JSON compressors."""
 
-工具：
-- compress_text: 压缩长文本（提取关键句，去除冗余）
-- compress_code: 压缩代码（去注释/空行/缩短标识符）
-- compress_json: 压缩结构化数据（去 null/默认值，数组省略中间项）
-- compress_context: 智能上下文压缩（全文分析，保留结构但极度精简）
-
-所有工具自动判断是否值得压缩，短文本不作处理。
-"""
+from __future__ import annotations
 
 import json
 import re
-import sys
 
 
 def _should_compress(text: str, min_chars: int = 200) -> tuple[bool, int]:
@@ -74,68 +65,82 @@ def compress_text(text: str, target_ratio: float = 0.3, preserve_first_n: int = 
     return "\n".join(head) + "\n" + summary + "\n" + "\n".join(tail)
 
 
+def _strip_docstrings(code: str) -> tuple[str, int]:
+    """Remove multi-line docstrings (\"\"\" / ''') from code. Returns (code, removed_count)."""
+    lines = code.split("\n")
+    result = []
+    in_docstring = False
+    removed = 0
+    for line in lines:
+        stripped = line.strip()
+        if in_docstring:
+            if '"""' in stripped or "'''" in stripped:
+                in_docstring = False
+            removed += 1
+            continue
+        if stripped.startswith('"""') or stripped.startswith("'''"):
+            if stripped.count('"""') == 1 and stripped.count("'''") == 1:
+                in_docstring = True
+                removed += 1
+                continue
+        result.append(line)
+    return "\n".join(result), removed
+
+
+def _strip_comments(code: str) -> tuple[str, int]:
+    """Remove #-comment lines, preserving TODO/FIXME/HACK/XXX/NOTE/IMPORTANT. Returns (code, removed_count)."""
+    lines = code.split("\n")
+    result = []
+    removed = 0
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            if re.search(r"(TODO|FIXME|HACK|XXX|NOTE|IMPORTANT)", stripped, re.IGNORECASE):
+                result.append(line)
+            else:
+                removed += 1
+            continue
+        result.append(line)
+    return "\n".join(result), removed
+
+
+def _collapse_blanks(code: str) -> tuple[str, int]:
+    """Collapse consecutive blank lines to at most 2. Returns (code, removed_count)."""
+    lines = code.split("\n")
+    result = []
+    empty_count = 0
+    removed = 0
+    for line in lines:
+        if line.strip():
+            result.append(line)
+            empty_count = 0
+        else:
+            empty_count += 1
+            if empty_count <= 2:
+                result.append(line)
+            else:
+                removed += 1
+    return "\n".join(result), removed
+
+
 def compress_code(code: str) -> str:
     """压缩代码：去注释/空行/简化文档字符串"""
     needs, tokens = _should_compress(code)
     if not needs:
         return code
 
-    lines = code.split("\n")
-    result = []
-    in_docstring = False
-    removed = {"doc_lines": 0, "comment_lines": 0, "empty_lines": 0}
-
-    for line in lines:
-        stripped = line.strip()
-
-        # 文档字符串
-        if in_docstring:
-            if '"""' in stripped or "'''" in stripped:
-                in_docstring = False
-                removed["doc_lines"] += 1
-            else:
-                removed["doc_lines"] += 1
-            continue
-        if stripped.startswith('"""') or stripped.startswith("'''"):
-            if stripped.count('"""') == 1 and stripped.count("'''") == 1:
-                in_docstring = True
-                removed["doc_lines"] += 1
-                continue
-
-        # 单行注释（保留重要注释）
-        if stripped.startswith("#"):
-            if re.search(r"(TODO|FIXME|HACK|XXX|NOTE|IMPORTANT)", stripped, re.IGNORECASE):
-                result.append(line)
-            else:
-                removed["comment_lines"] += 1
-            continue
-
-        # 空行（保留最多连续2个）
-        if not stripped:
-            removed["empty_lines"] += 1
-            continue
-
-        result.append(line)
-
-    # 合并空行（保留最大2个连续）
-    final = []
-    empty_count = 0
-    for line in result:
-        if line.strip():
-            final.append(line)
-            empty_count = 0
-        else:
-            empty_count += 1
-            if empty_count <= 2:
-                final.append(line)
+    before = code
+    code, doc_removed = _strip_docstrings(code)
+    code, comment_removed = _strip_comments(code)
+    code, blank_removed = _collapse_blanks(code)
 
     header = (
-        f"\n/* compressed: removed {removed['doc_lines']} doc lines + "
-        f"{removed['comment_lines']} comment lines + "
-        f"{removed['empty_lines']} blank lines. "
-        f"{len(code.splitlines())} -> {len(final)} lines */\n"
+        f"\n/* compressed: removed {doc_removed} doc lines + "
+        f"{comment_removed} comment lines + "
+        f"{blank_removed} blank lines. "
+        f"{len(before.splitlines())} -> {len(code.splitlines())} lines */\n"
     )
-    return header + "\n".join(final)
+    return header + code
 
 
 def compress_json(data_str: str, max_items: int = 8) -> str:
@@ -202,120 +207,5 @@ def compress_context(text: str) -> str:
         return compress_text(text)
 
 
-# ========== MCP 协议 ==========
-
-TOOLS = {
-    "compress_text": {
-        "description": "压缩长文本/日志。保留首尾关键行 + 中间抽取含 error/warning 的关键句。短文本不处理。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "text": {"type": "string", "description": "要压缩的文本"},
-                "target_ratio": {"type": "number", "description": "目标压缩比 (0.1-0.5)", "default": 0.3},
-            },
-            "required": ["text"],
-        },
-    },
-    "compress_code": {
-        "description": "压缩代码：去除注释/文档字符串/多余空行，保留 TODO/FIXME 等重要注释。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "code": {"type": "string", "description": "要压缩的代码"},
-            },
-            "required": ["code"],
-        },
-    },
-    "compress_json": {
-        "description": "压缩 JSON/结构化数据：去 null/默认值，数组只保留首尾各 N 项，深度>5 截断。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "json_str": {"type": "string", "description": "JSON 字符串"},
-                "max_items": {"type": "integer", "description": "数组保留最大项数", "default": 8},
-            },
-            "required": ["json_str"],
-        },
-    },
-    "compress_context": {
-        "description": "智能压缩：自动检测文本/代码/JSON/日志类型，选最优策略。通用入口。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "text": {"type": "string", "description": "任意长文本"},
-            },
-            "required": ["text"],
-        },
-    },
-}
-
-
-def handle_request(req: dict) -> dict:
-    method = req.get("method")
-    req_id = req.get("id")
-
-    if method == "initialize":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {"tools": {}},
-                "serverInfo": {"name": "prompt-compress", "version": "1.0.0"},
-            },
-        }
-
-    if method == "tools/list":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "tools": [
-                    {"name": k, "description": v["description"], "inputSchema": v["inputSchema"]}
-                    for k, v in TOOLS.items()
-                ]
-            },
-        }
-
-    if method == "tools/call":
-        tool = req["params"]["name"]
-        args = req["params"].get("arguments", {})
-        try:
-            if tool == "compress_text":
-                text = compress_text(args["text"], args.get("target_ratio", 0.3))
-            elif tool == "compress_code":
-                text = compress_code(args["code"])
-            elif tool == "compress_json":
-                text = compress_json(args["json_str"], args.get("max_items", 8))
-            elif tool == "compress_context":
-                text = compress_context(args["text"])
-            else:
-                raise ValueError(f"Unknown tool: {tool}")
-            return {
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "result": {"content": [{"type": "text", "text": text}]},
-            }
-        except Exception as e:
-            return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(e)}}
-
-    return {"jsonrpc": "2.0", "id": req_id, "result": {}}
-
-
-def main():
-    for line in sys.stdin:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            req = json.loads(line)
-            resp = handle_request(req)
-            if resp and "id" in resp and resp["id"] is not None:
-                sys.stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
-                sys.stdout.flush()
-        except json.JSONDecodeError:
-            continue
-
-
-if __name__ == "__main__":
-    main()
+# 从协议层导入，避免循环导入 — 协议层在运行时懒加载本模块的函数
+from lima_mcp_stdio.prompt_compress_server import handle_request, main  # noqa: F401
