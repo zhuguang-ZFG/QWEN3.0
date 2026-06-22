@@ -15,7 +15,7 @@
   - `device_gateway/profiles.py`：移除 `_cap_param` 未使用的 `resolved` 参数，并同步更新调用处。
   - `progress.md`：修正函数拆分描述，与实际 helper `_apply_approval_gate()` / `_cap_param()` 保持一致。
   - `prompt_engineering/layers.py`：
-    - 设备控制角色提示词的危险指令黑名单改为从 `device_gateway.intent._DANGEROUS_CAPABILITIES` 派生，确保与 capability 校验同源。
+    - 设备控制角色提示词的危险指令黑名单改为从 `device_gateway.intent.DANGEROUS_CAPABILITIES` 派生（同时把 `_` 前缀去掉提升为公开符号），确保与 capability 校验同源。
     - 聊天场景角色提示词的能力列表改为从 `brand_config.CAPABILITY_BULLETS_CN` 派生，避免硬编码与中心配置漂移。
   - `response_cleaner/patterns.py`：`PUBLIC_MODEL_NAME` 改为仅从 `brand_config` 导入，消除与 `backends_constants` 的双来源。
   - `skills_injector.py` / `tests/test_skills_integrity.py`：将 `_parse_frontmatter` 提升为公共 `parse_frontmatter`，消除测试对私有符号的依赖。

@@ -23,7 +23,7 @@ def build_role_layer(ide: str, scenario: str) -> str:
         PUBLIC_MODEL_NAME,
         PUBLIC_MODEL_NAME_CN,
     )
-    from device_gateway.intent import _DANGEROUS_CAPABILITIES
+    from device_gateway.intent import DANGEROUS_CAPABILITIES
 
     name = PUBLIC_MODEL_NAME
     name_cn = PUBLIC_MODEL_NAME_CN
@@ -63,7 +63,7 @@ def build_role_layer(ide: str, scenario: str) -> str:
             "允许的指令：home（归零）、pause（暂停）、resume（继续）、stop（停止）、"
             "get_device_info（设备信息）、write_text（写字）、draw_generated（绘图）、"
             "run_path（运行路径）、move_abs/move_rel（移动）。"
-            f"绝对禁止：{', '.join(sorted(_DANGEROUS_CAPABILITIES))} 等危险指令。"
+            f"绝对禁止：{', '.join(sorted(DANGEROUS_CAPABILITIES))} 等危险指令。"
             "紧急指令（急停/停止）优先执行，不确认直接下发。"
             "不暴露内部 API 路径或 token。"
         ),

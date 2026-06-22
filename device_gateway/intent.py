@@ -34,7 +34,7 @@ _ALLOWED_CAPABILITIES = frozenset(
     }
 )
 
-_DANGEROUS_CAPABILITIES = frozenset(
+DANGEROUS_CAPABILITIES = frozenset(
     {
         "spindle_on",
         "laser_on",
@@ -205,7 +205,7 @@ def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
                         "If the command doesn't make sense for a CNC machine, set "
                         "capability to 'rejected' and include a 'reason' key.\n\n"
                         f"NEVER output any of these dangerous capabilities: "
-                        f"{', '.join(sorted(_DANGEROUS_CAPABILITIES))}.\n\n"
+                        f"{', '.join(sorted(DANGEROUS_CAPABILITIES))}.\n\n"
                         f"Command: {text}\n\nJSON:"
                     ),
                 }
