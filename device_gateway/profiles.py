@@ -122,7 +122,6 @@ def enrich_route_policy_with_profile(
 
 
 def _apply_approval_gate(task: dict[str, Any], resolved: ResolvedProfile) -> str | None:
-    """Gate approval for incomplete profiles. Returns simplification note or None."""
     if not resolved.complete and task.get("route_policy", {}).get("model_required"):
         policy = dict(task.get("route_policy", {}))
         if not policy.get("approval_required"):
@@ -133,29 +132,16 @@ def _apply_approval_gate(task: dict[str, Any], resolved: ResolvedProfile) -> str
     return None
 
 
-def _cap_path_points(task: dict[str, Any], resolved: ResolvedProfile) -> str | None:
-    """Cap path points to profile limit. Returns simplification note or None."""
-    params = task.get("params", {})
-    if not isinstance(params, dict) or "path" not in params:
-        return None
-    path = params.get("path", [])
-    if isinstance(path, list) and len(path) > resolved.profile.max_path_points:
-        params["path"] = path[: resolved.profile.max_path_points]
-        task["params"] = params
-        return f"cap_path_points:{len(path)}→{resolved.profile.max_path_points}"
-    return None
-
-
-def _cap_feed_rate(task: dict[str, Any], resolved: ResolvedProfile) -> str | None:
-    """Cap feed rate to profile limit. Returns simplification note or None."""
+def _cap_param(task: dict[str, Any], key: str, limit: float | int, resolved: ResolvedProfile) -> str | None:
+    """Cap a numeric task param to a profile limit. Returns simplification note or None."""
     params = task.get("params", {})
     if not isinstance(params, dict):
         return None
-    feed = params.get("feed")
-    if isinstance(feed, (int, float)) and feed > resolved.profile.max_feed:
-        params["feed"] = resolved.profile.max_feed
+    value = params.get(key)
+    if isinstance(value, (int, float)) and value > limit:
+        params[key] = limit
         task["params"] = params
-        return f"cap_feed:{feed}→{resolved.profile.max_feed}"
+        return f"cap_{key}:{value}→{limit}"
     return None
 
 
@@ -163,20 +149,25 @@ def apply_profile_constraints(
     task: dict[str, Any],
     resolved: ResolvedProfile,
 ) -> dict[str, Any]:
-    """Apply profile constraints to a task's route_policy and metadata.
-
-    - Downgrades draw_generated to approval-gated when profile is incomplete.
-    - Caps path points and feed to profile limits.
-    - Adds profile routing metadata to the task.
-    - Records simplification decisions for audit trail.
-    """
+    """Apply profile constraints to a task's route_policy and metadata."""
     original_task = json.loads(json.dumps(task))
     simplifications: list[str] = []
 
+    gate = _apply_approval_gate(task, resolved)
+    if gate:
+        simplifications.append(gate)
+
+    # Cap path points if task has path data
+    params = task.get("params", {})
+    if isinstance(params, dict) and "path" in params:
+        path = params.get("path", [])
+        if isinstance(path, list) and len(path) > resolved.profile.max_path_points:
+            params["path"] = path[: resolved.profile.max_path_points]
+            task["params"] = params
+            simplifications.append(f"cap_path_points:{len(path)}→{resolved.profile.max_path_points}")
+
     for note in (
-        _apply_approval_gate(task, resolved),
-        _cap_path_points(task, resolved),
-        _cap_feed_rate(task, resolved),
+        _cap_param(task, "feed", resolved.profile.max_feed, resolved),
     ):
         if note:
             simplifications.append(note)
