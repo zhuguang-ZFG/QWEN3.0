@@ -6,6 +6,8 @@ Layer 3 (Skill): Task-specific capabilities with activation triggers
 Layer 4 (Workflow): Multi-step execution with quality gates
 Layer 5 (Context): Code/project context injection
 Layer 6 (Quality Gate): Output constraints and self-verification
+
+Composition order in compose_system_prompt: 1 → 2 → 3 → 4 → 5 (optional) → 6.
 """
 
 # Bump this when any layer template changes (for A/B tracking and rollback).
@@ -72,7 +74,7 @@ def build_role_layer(ide: str, scenario: str) -> str:
 
 
 def build_skill_layer(scenario: str) -> str:
-    """Layer 2: Task-specific skill activation."""
+    """Layer 3: Task-specific skill activation."""
     skill_map = {
         "coding": (
             "[技能] 编码实现\n"
@@ -129,7 +131,7 @@ def build_skill_layer(scenario: str) -> str:
 
 
 def build_workflow_layer(scenario: str) -> str:
-    """Layer 3: Multi-step execution workflow."""
+    """Layer 4: Multi-step execution workflow."""
     workflow_map = {
         "coding": (
             "[工作流]\n"
@@ -174,7 +176,7 @@ def build_workflow_layer(scenario: str) -> str:
 
 
 def build_safety_baseline() -> str:
-    """Universal safety baseline applied to every scenario."""
+    """Layer 2: Universal safety baseline applied to every scenario."""
     from brand_config import PUBLIC_MODEL_NAME
 
     return (
@@ -189,7 +191,7 @@ def build_safety_baseline() -> str:
 
 
 def build_quality_gate(scenario: str) -> str:
-    """Layer 5: Output constraints and self-verification."""
+    """Layer 6: Output constraints and self-verification."""
     gate_map = {
         "coding": (
             "[质量门控]\n"

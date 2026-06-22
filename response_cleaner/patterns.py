@@ -2,6 +2,7 @@
 
 import re
 
+import brand_config
 from backends_constants import PUBLIC_MODEL_NAME
 
 # Brand names to replace with LiMa (sorted by priority: specific → general)
@@ -131,7 +132,7 @@ IDENTITY_PATTERNS = [
         "I am an AI language model",
     ),
     # English: "developed/created/trained by [Company]"
-    (re.compile(r"(?:developed|created|trained|made|built|powered) by\s+[\w\s\-\.]+", re.I), "developed by DongLiCao"),
+    (re.compile(r"(?:developed|created|trained|made|built|powered) by\s+[\w\s\-\.]+", re.I), f"developed by {brand_config.COMPANY_NAME_EN}"),
     # Chinese: "我是 [X]的[AI/语言]模型"
     (
         re.compile(
@@ -158,7 +159,7 @@ IDENTITY_PATTERNS = [
     # "a large language model trained/developed by [X]"
     (
         re.compile(r"(?:a\s+)?large language model (?:trained|developed|created) by\s+[\w\s\-\.]+", re.I),
-        "large language model developed by DongLiCao",
+        f"large language model developed by {brand_config.COMPANY_NAME_EN}",
     ),
     # English: "As Claude/GPT/Gemini, ..."
     (

@@ -204,9 +204,8 @@ def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
                         "params (object with text/prompt/x/y/z as needed). "
                         "If the command doesn't make sense for a CNC machine, set "
                         "capability to 'rejected' and include a 'reason' key.\n\n"
-                        "NEVER output any of these dangerous capabilities: "
-                        "spindle_on, laser_on, heater_on, gpio_high, m3, m4, m8, "
-                        "spindle_cw, spindle_ccw.\n\n"
+                        f"NEVER output any of these dangerous capabilities: "
+                        f"{', '.join(sorted(_DANGEROUS_CAPABILITIES))}.\n\n"
                         f"Command: {text}\n\nJSON:"
                     ),
                 }

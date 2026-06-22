@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 
+import brand_config
 from access_guard import anonymous_access_status, extract_bearer_token, is_token_valid, require_private_api_key
 from backends_registry import BACKENDS
 import health_state
@@ -25,7 +26,7 @@ from lima_constants import MODEL_ID
 _model_id = MODEL_ID
 _model_created = int(time.time())
 _loaded_modules: dict[str, Any] = {}
-_PUBLIC_MODEL_NAME = os.environ.get("PUBLIC_MODEL_NAME", "LiMa")
+_PUBLIC_MODEL_NAME = brand_config.PUBLIC_MODEL_NAME
 
 
 def _circuit_breaker_status() -> dict:

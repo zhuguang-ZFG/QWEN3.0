@@ -105,4 +105,10 @@ def test_identity_answers_use_brand_config():
     assert brand_config.COMPANY_SHORT_CN in identity_guard.SHORT_LEAK_REPLACEMENT_CN
     assert brand_config.COMPANY_NAME_EN in identity_guard.SHORT_LEAK_REPLACEMENT_EN
     assert brand_config.PUBLIC_MODEL_NAME in identity_guard.IDENTITY_ANSWER_CN
+    assert brand_config.PUBLIC_MODEL_NAME in identity_guard.IDENTITY_ANSWER_EN
     assert brand_config.PUBLIC_MODEL_NAME in identity_guard.CAPABILITY_ANSWER_CN
+    assert brand_config.PUBLIC_MODEL_NAME in identity_guard.CAPABILITY_ANSWER_EN
+    assert brand_config.PUBLIC_MODEL_NAME in identity_guard.IDENTITY_ANSWER_GUEST_CN
+    assert brand_config.PUBLIC_MODEL_NAME in identity_guard.IDENTITY_ANSWER_GUEST_EN
+    assert brand_config.PUBLIC_MODEL_NAME in identity_guard.CAPABILITY_ANSWER_GUEST_CN
+    assert brand_config.PUBLIC_MODEL_NAME in identity_guard.CAPABILITY_ANSWER_GUEST_EN

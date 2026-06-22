@@ -5,6 +5,25 @@
 > Updated: 2026-06-22
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-22 代码审查问题按优先级修复（完成）
+
+- **目标**：响应「审查所有代码质量」指令，按 Critical → High → Medium → Low 优先级修复 `.omk/CODE_REVIEW_ISSUES.md` 中的问题。
+- **修复内容**：
+  - `.env.example`：新增品牌身份配置段，记录 `PUBLIC_MODEL_NAME`、`PUBLIC_MODEL_NAME_CN`、`COMPANY_NAME_CN`、`COMPANY_NAME_EN`、`COMPANY_SHORT_CN`、`LIMA_USER_AGENT`。
+  - `routes/system_endpoints.py`：改为从 `brand_config` 导入 `PUBLIC_MODEL_NAME`，消除与中心配置的分裂。
+  - `response_cleaner/patterns.py`：将硬编码的 `"DongLiCao"` 替换为 `brand_config.COMPANY_NAME_EN`。
+  - `tests/test_identity_hardening.py`：扩展 `test_identity_answers_use_brand_config`，覆盖全部 10 个 identity/capability/guest/short 回答常量。
+  - `device_gateway/intent.py`：`_DANGEROUS_CAPABILITIES` 现在用于构造 LLM 提示中的禁用能力清单，消除死代码。
+  - `session_memory/store_promote.py`：`auto_promote_candidates` 的 `ORDER BY` 补全 `id DESC`，与 `query_by_type` 保持一致。
+  - `prompt_engineering/layers.py`：修正各 layer 函数 docstring 编号，使其与 `compose_system_prompt` 实际组合顺序一致。
+- **验证**：
+  - `ruff check`（修改文件） → 0 errors。
+  - `pyright`（修改文件） → 0 errors, 0 warnings。
+  - 全量 `pytest -q` → **2319 passed, 18 skipped, 0 failed**。
+- **Git 提交与推送**：
+  - Commit `???`：`fix(review): address code review findings by priority — brand config, dead code, ordering, docs`。
+  - GitHub (`origin`) push 成功。
+
 ## 2026-06-22 继续优化：修复测试失败、拆分 device_gateway、合并当前 WIP（完成）
 
 - **目标**：响应「继续优化，部署验证提交」指令，在既有大量 WIP 基础上修复测试失败，完成代码尺寸拆分，跑通全量测试与代码门禁，提交并推送。

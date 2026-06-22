@@ -133,7 +133,7 @@ def auto_promote_candidates(session_id: str, limit: int = 50) -> list[int]:
     rows = conn.execute(
         "SELECT id, summary FROM memories "
         "WHERE session_id = ? AND memory_type = 'exchange' "
-        "ORDER BY timestamp DESC LIMIT ?",
+        "ORDER BY timestamp DESC, id DESC LIMIT ?",
         (session_id, limit),
     ).fetchall()
     conn.close()
