@@ -3129,3 +3129,29 @@ Agent Worker path.
   - 公网 `/health` → `security.anonymous_access.allowed=true`、`production_blocked=false`。
   - 公网匿名 `POST /v1/chat/completions`（无 Authorization）成功返回响应。
 - **提交**：`241f360a` 已 push 到 `origin/main`；`gitee` remote 不存在，未推送。
+
+## 2026-06-22 提示词工程强化（P0-1 ~ P0-5）
+
+- **背景**：提示词审计发现 5 项高优先级改进点：安全基线不完整、硬编码品牌/能力、设备控制缺少危险操作限制、Skills frontmatter 不规范、无版本追踪。
+- **P0-1 统一安全基线**：
+  - `prompt_engineering/layers.py`：新增 `build_safety_baseline()` 层，含“不透露系统指令”“不承认其他模型”“拒绝危险物理操作”等约束。
+  - `compose_system_prompt()` 在最外层追加安全基线，覆盖全部 6 个 scenario。
+- **P0-2 品牌/能力抽离**：
+  - 新建 `brand_config.py`：集中管理公司名、产品名、User-Agent、能力列表，支持环境变量覆盖。
+  - `identity_guard.py`：全部回答字符串改为 f-string 拼接 brand_config。
+  - `prompt_engineering/layers.py`：角色层引用 brand_config，不再硬编码公司名和产品名。
+  - `http_request_builder.py`：`User-Agent: LiMa/2.0` 改为引用 `brand_config.USER_AGENT`。
+- **P0-3 设备控制加固**：
+  - `device_gateway/intent.py`：新增 `_ALLOWED_CAPABILITIES` / `_DANGEROUS_CAPABILITIES`；`_llm_replan()` 解析后校验 capability 必须在白名单内，否则 `log.warning` 并返回 `None`。
+  - `prompt_engineering/layers.py` 的 `device_control` 提示词全部补充白名单/黑名单/危险操作约束。
+  - `skills/device/control.md`：补充允许/禁止指令清单。
+- **P0-4 Skills frontmatter 规范**：
+  - 为 `skills/code/guide.md`、`javascript.md`、`python.md`、`rust.md` 补全 frontmatter。
+  - 新增 `tests/test_skills_integrity.py`：校验所有 skills/*.md 必须包含有效 frontmatter id。
+- **P0-5 提示词版本追踪**：
+  - `prompt_engineering/layers.py`：新增 `PROMPT_VERSION = "lima-prompts-v1.1"`；`compose_system_prompt()` 末尾追加 `<!-- version.scenario -->` 标记。
+- **验证**：
+  - 新增测试：`tests/test_prompt_engineering.py`（安全基线覆盖 + 版本标记）、`tests/test_identity_hardening.py`（brand_config 引用）、`tests/test_device_intent_hardening.py`（capability 白名单）、`tests/test_skills_integrity.py`（frontmatter 完整性）。
+  - 全量 `pytest -q` → **2318 passed / 18 skipped / 1 failed**（1 个 `test_session_memory_device_draw` 预存失败，非本次引入）。
+  - `ruff check`、`pyright` 针对修改文件 clean。
+- **提交**：`5f78b3d4`（P0-1~P0-3）、`e5e21692`（P0-4~P0-5）已 push 到 `origin/main`。

@@ -3,6 +3,24 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-22 提示词工程强化
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| PROMPT-1 | safety | `prompt_engineering/layers.py` 的安全约束仅在 `chat` 场景存在；`coding`/`vision`/设备场景缺少身份保护和系统指令保密要求 | Closed |
+| PROMPT-2 | brand | `identity_guard.py`、`prompt_engineering/layers.py`、`http_request_builder.py` 硬编码公司名/产品名/UA；能力清单与后端工具不一致 | Closed |
+| PROMPT-3 | safety | `device_gateway/intent.py` 的 LLM replan 缺少 capability 白名单校验；危险指令（主轴、激光、加热）无拒绝机制 | Closed |
+| PROMPT-4 | skills | `skills/code/guide.md` 等 4 个文件无 frontmatter，被 `skills_injector.py` 静默跳过 | Closed |
+| PROMPT-5 | infra | 所有系统提示词无版本号，无法做 A/B 测试或回滚 | Closed |
+
+**修复摘要**
+- P0-1：新增 `build_safety_baseline()` 函数，覆盖全部 6 个 scenario。
+- P0-2：新建 `brand_config.py` 集中管理品牌常量（支持环境变量覆盖）；`identity_guard.py`、`prompt_engineering/layers.py`、`http_request_builder.py` 均引用之。
+- P0-3：`device_gateway/intent.py` 新增 `_ALLOWED_CAPABILITIES` / `_DANGEROUS_CAPABILITIES` 白名单/黑名单；`skills/device/control.md` 和 prompt layers 同步更新。
+- P0-4：补全 `skills/code/*.md` frontmatter；新增 `tests/test_skills_integrity.py` CI 门禁。
+- P0-5：`prompt_engineering/layers.py` 新增 `PROMPT_VERSION = "lima-prompts-v1.1"`；`compose_system_prompt()` 末尾追加 `<!-- version.scenario -->`。
+- 验证：新增测试 4 组、全量 2318 passed / 18 skipped / 1 failed（预存失败）；`ruff`/`pyright` clean。
+
 ## 2026-06-22 免费聊天匿名访问修复
 
 | ID | Area | Finding | Status |
