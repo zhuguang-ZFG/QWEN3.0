@@ -11,7 +11,24 @@ __all__ = [
     "detect_image_intent",
     "detect_thinking_intent",
     "analyze_intent",
+    "intent_to_prompt_scenario",
 ]
+
+# Map granular device intents to prompt_engineering scenario keys.
+_DEVICE_PROMPT_SCENARIOS = {
+    "device_draw": "device_draw",
+    "device_write": "device_write",
+    "device_home": "device_control",
+    "device_stop": "device_control",
+    "device_status": "device_control",
+    "device_task_query": "device_control",
+    "device_control": "device_control",
+}
+
+
+def intent_to_prompt_scenario(intent: str) -> str | None:
+    """Map analyze_intent output to prompt_engineering/layers scenario."""
+    return _DEVICE_PROMPT_SCENARIOS.get(intent)
 
 # ── Legacy-compatible intent analyzer (ported from router_classifier.py) ──────
 
@@ -71,11 +88,27 @@ _SIGNALS: dict[str, dict[str, list[str]]] = {
     "trivial": {
         "identity": ["你好", "hello", "hi", "谢谢", "再见", "在吗"],
     },
+    "device_draw": {
+        "identity": ["画", "draw", "plotter", "笔绘", "绘个", "生成图片"],
+        "tools": ["简笔画", "线条", "黑白", "g-code"],
+        "action": ["画一只", "画一个", "画张", "plot"],
+    },
+    "device_write": {
+        "identity": ["写", "write", "写字", "书写", "写一行"],
+        "tools": ["字体", "笔画", "汉字", "calligraphy"],
+        "action": ["写个", "写一句", "写首诗"],
+    },
+    "device_control": {
+        "identity": ["回家", "回原点", "停止", "急停", "home", "stop", "emergency"],
+        "tools": ["g28", "m5", "归位"],
+        "action": ["回", "停", "急停"],
+    },
 }
 
 _SIGNAL_WEIGHTS = {
     "identity": 3.0,
     "tools": 2.0,
+    "action": 2.0,
     "complexity": 1.5,
     "context": 1.5,
     "config": 1.0,

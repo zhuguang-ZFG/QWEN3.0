@@ -7,7 +7,8 @@ from dataclasses import dataclass
 
 from chat_models import ChatRequest, extract_system_prompt
 from device_mode import should_skip_context_pipeline
-from response_builder import messages_to_dicts
+from prompt_engineering.device_intent_prompt import merge_device_intent_system_prompt
+from response_builder import extract_query, messages_to_dicts
 from server_context import build_prompt_context, messages_with_system_context
 
 _log = logging.getLogger(__name__)
@@ -107,6 +108,14 @@ def prepare_chat_preflight(
     request_messages = prompt_ctx.request_messages
     prompt_context_messages = prompt_ctx.prompt_context_messages
     system_prompt = prompt_ctx.system_prompt
+
+    query = extract_query(req.messages)
+    system_prompt = merge_device_intent_system_prompt(
+        query,
+        system_prompt,
+        ide_source=ide_source,
+    )
+    prompt_context_messages = messages_with_system_context(request_messages, system_prompt)
 
     try:
         request_messages, prompt_context_messages = apply_token_budget(req, request_messages, system_prompt, ide_source)

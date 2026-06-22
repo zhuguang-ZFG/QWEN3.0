@@ -6,9 +6,12 @@ import pytest
 
 from session_memory.device_draw_memory import (
     DEVICE_DRAW_FAILED,
+    DEVICE_DRAW_TURN,
+    format_device_draw_conversation_context,
     list_device_draw_failures,
     record_device_draw_failure,
-    reset_device_draw_failures,
+    record_device_draw_turn,
+    reset_device_draw_session,
 )
 from session_memory.store import _get_conn, query_by_type, set_db_path
 
@@ -20,9 +23,9 @@ def isolated_session_db(tmp_path):
     conn.execute("DELETE FROM memories")
     conn.commit()
     conn.close()
-    reset_device_draw_failures()
+    reset_device_draw_session()
     yield
-    reset_device_draw_failures()
+    reset_device_draw_session()
 
 
 def test_record_and_list_device_draw_failures():
@@ -48,3 +51,16 @@ def test_prunes_old_entries_beyond_limit():
     ]
     entries = query_by_type(DEVICE_DRAW_FAILED, session_id="device:dev-2")
     assert len(entries) == 5
+
+
+def test_record_and_format_device_draw_turns():
+    record_device_draw_turn("dev-3", "画一只猫", status="success")
+    record_device_draw_turn("dev-3", "再画大一点", status="success")
+
+    context = format_device_draw_conversation_context("dev-3", exclude_prompt="再画大一点")
+    assert "画一只猫" in context
+    assert "[success]" in context
+    assert "再画大一点" not in context
+
+    entries = query_by_type(DEVICE_DRAW_TURN, session_id="device:dev-3")
+    assert len(entries) == 2

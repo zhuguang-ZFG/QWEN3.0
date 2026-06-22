@@ -99,6 +99,7 @@ MEMORY_TYPES = (
     "reference_pattern",
     "user_pref",
     "device_draw_failed",
+    "device_draw_turn",
 )
 
 

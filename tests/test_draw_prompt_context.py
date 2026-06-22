@@ -62,3 +62,11 @@ def test_failed_prompt_history_persists_across_reads():
     first = get_failed_draw_prompts("dev-persist")
     second = get_failed_draw_prompts("dev-persist")
     assert first == second == ["一只复杂的龙"]
+
+
+def test_get_draw_conversation_context_from_turns():
+    from device_gateway.draw_prompt_context import get_draw_conversation_context, record_device_draw_turn
+
+    record_device_draw_turn("dev-ctx", "画一只猫", status="success")
+    context = get_draw_conversation_context("dev-ctx", "再画大一点")
+    assert "画一只猫" in context

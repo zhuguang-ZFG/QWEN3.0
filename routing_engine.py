@@ -22,7 +22,7 @@ import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
 from response_builder import build_anthropic_response, build_response, make_chat_id
 from routing_classifier import classify, classify_scenario
-from routing_intent import analyze_intent
+from routing_intent import analyze_intent, intent_to_prompt_scenario
 from routing_engine_context import (
     assess_complexity,
     auto_compress,
@@ -119,6 +119,7 @@ def pick_backend(
     intent_result = analyze_intent(query, system_prompt=system_prompt, ide=ide_source)
     intent = str(intent_result.get("intent", "chat"))
     route_role = intent if intent.startswith("device_") else ""
+    prompt_scenario = intent_to_prompt_scenario(intent) or scenario
 
     messages_injected = inject_skills(
         messages,
@@ -127,7 +128,7 @@ def pick_backend(
         system_prompt=system_prompt,
         intent=intent,
         route_role=route_role,
-        scenario=scenario,
+        scenario=prompt_scenario,
     )
     messages_injected = auto_compress(messages_injected, backends, system_prompt)
 

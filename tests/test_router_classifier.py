@@ -63,6 +63,17 @@ def test_analyze_intent_device_status():
     assert result["intent"] == "device_status"
 
 
+def test_intent_to_prompt_scenario_maps_stop_to_device_control():
+    assert intent.intent_to_prompt_scenario("device_stop") == "device_control"
+    assert intent.intent_to_prompt_scenario("device_draw") == "device_draw"
+    assert intent.intent_to_prompt_scenario("chat") is None
+
+
+def test_analyze_intent_signal_device_draw_when_rules_miss():
+    result = intent.analyze_intent("帮我画个房子")
+    assert result["intent"] in ("device_draw", "image_gen")
+
+
 def test_detect_thinking_intent_patterns():
     assert intent.detect_thinking_intent("think step by step about this proof") is True
     assert intent.detect_thinking_intent("hello world") is False

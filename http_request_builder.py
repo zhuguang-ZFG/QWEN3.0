@@ -192,7 +192,7 @@ def _build_body(
     model = backend_cfg["model"]
     fmt = backend_cfg["fmt"]
 
-    sys_text = _enrich_system_prompt(system_prompt, ide, fmt)
+    sys_text = _enrich_system_prompt(system_prompt, ide, fmt, messages)
     sys_text, messages = _apply_prefix_cache(sys_text, messages)
 
     if fmt == "anthropic":
@@ -213,16 +213,42 @@ def _build_body(
     return json.dumps(body).encode()
 
 
-def _enrich_system_prompt(system_prompt: str, ide: str, fmt: str) -> str:
+def _extract_user_query(messages: list[dict] | None) -> str:
+    if not messages:
+        return ""
+    last = messages[-1]
+    if not isinstance(last, dict):
+        return ""
+    content = last.get("content", "")
+    if isinstance(content, list):
+        return " ".join(
+            block.get("text", "") for block in content if isinstance(block, dict) and block.get("type") == "text"
+        ).strip()
+    return str(content or "").strip()
+
+
+def _enrich_system_prompt(
+    system_prompt: str,
+    ide: str,
+    fmt: str,
+    messages: list[dict] | None = None,
+) -> str:
     """Apply IDE-aware system prompt composition."""
     if not ide or ide in ("unknown", "\u672a\u77e5"):
         return system_prompt
+    from prompt_engineering.device_intent_prompt import merge_device_intent_system_prompt
+
+    query = _extract_user_query(messages)
+    merged = merge_device_intent_system_prompt(query, system_prompt, ide_source=ide)
+    if merged != system_prompt:
+        return merged
+
     from prompt_engineering.layers import compose_system_prompt
 
-    scenario = "coding" if fmt != "anthropic" or ide else "chat"
+    base_scenario = "coding" if fmt != "anthropic" or ide else "chat"
     return compose_system_prompt(
         ide=ide,
-        scenario=scenario,
+        scenario=base_scenario,
         code_context=system_prompt if system_prompt else "",
     )
 

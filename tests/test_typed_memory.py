@@ -45,7 +45,8 @@ class TestTypedMemory:
 
         assert "routing_lesson" in MEMORY_TYPES
         assert "device_draw_failed" in MEMORY_TYPES
-        assert len(MEMORY_TYPES) == 11
+        assert "device_draw_turn" in MEMORY_TYPES
+        assert len(MEMORY_TYPES) == 12
 
 
 class TestMemoryDaemon:

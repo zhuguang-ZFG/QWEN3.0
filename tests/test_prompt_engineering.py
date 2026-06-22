@@ -69,6 +69,17 @@ def test_build_quality_gate_vision():
     assert "图像实际内容" in gate
 
 
+def test_build_role_layer_device_control():
+    role = build_role_layer("", "device_control")
+    assert "设备控制助手" in role
+    assert "急停" in role
+
+
+def test_build_workflow_layer_device_control():
+    workflow = build_workflow_layer("device_control")
+    assert "急停失败" in workflow
+
+
 def test_build_role_layer_device_draw():
     role = build_role_layer("", "device_draw")
     assert "绘图助手" in role

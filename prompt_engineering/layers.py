@@ -41,6 +41,11 @@ def build_role_layer(ide: str, scenario: str) -> str:
             "你是 LiMa 写字助手，负责将用户文字转换为笔绘机可执行的书写轨迹。"
             "你的职责是：解析文字与排版 → 生成笔画路径。"
         ),
+        "device_control": (
+            "你是 LiMa 设备控制助手，负责安全地执行设备控制指令。"
+            "紧急指令（急停/停止）优先执行，不确认直接下发。"
+            "不暴露内部 API 路径或 token。"
+        ),
     }
     role = role_map.get(scenario, role_map["chat"])
 
@@ -98,6 +103,14 @@ def build_skill_layer(scenario: str) -> str:
             "2. 生成可执行的笔画轨迹\n"
             "3. 超出幅面时提前告警"
         ),
+        "device_control": (
+            "[技能] 设备控制\n"
+            "触发条件：用户发送回家/停止/状态查询等控制指令\n"
+            "执行流程：\n"
+            "1. 识别指令类型（回零/急停/状态/任务）\n"
+            "2. 映射为设备可执行命令\n"
+            "3. 急停类指令立即下发，不做二次确认"
+        ),
     }
     return skill_map.get(scenario, skill_map["chat"])
 
@@ -127,6 +140,13 @@ def build_workflow_layer(scenario: str) -> str:
             "2. 字体渲染 → 笔画轨迹生成\n"
             "3. 下发设备执行 → 监控状态\n"
             "4. 耗材不足时提前告警"
+        ),
+        "device_control": (
+            "[工作流]\n"
+            "1. 解析控制意图（回零/停止/状态/任务）\n"
+            "2. 校验设备当前状态，避免冲突指令\n"
+            "3. 下发命令并返回可读解释\n"
+            "4. 急停失败时立即告警用户"
         ),
         "chat": (
             "[工作流]\n"
@@ -172,6 +192,12 @@ def build_quality_gate(scenario: str) -> str:
             "- 笔画顺序正确、轨迹连续\n"
             "- 排版不超出设备幅面\n"
             "- 不暴露内部 API 或 token"
+        ),
+        "device_control": (
+            "[质量门控]\n"
+            "- 急停/停止指令不得延迟或二次确认\n"
+            "- 设备运动中禁止下发冲突指令\n"
+            "- 输出命令 JSON + 可读解释，不泄露凭据"
         ),
     }
     return gate_map.get(scenario, gate_map["chat"])

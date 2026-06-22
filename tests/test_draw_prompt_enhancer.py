@@ -55,6 +55,13 @@ class TestEnhanceDrawingPrompt:
         assert "过于复杂的森林" in result
         assert "生成失败" in result
 
+    def test_includes_conversation_context(self):
+        context = "近期绘图对话：\n- 画一只猫 [success]"
+        result = enhance_drawing_prompt("再画大一点", conversation_context=context)
+        assert "【对话上下文】" in result
+        assert "画一只猫" in result
+        assert "基于上一轮" in result
+
 
 class TestEnhanceDrawingPromptSingleLineKeywords:
     def test_includes_single_stroke_style(self):

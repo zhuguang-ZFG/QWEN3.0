@@ -9,6 +9,7 @@ Wanx / image-to-SVG / pen-plotter execution:
 
 from __future__ import annotations
 
+import re
 
 SYSTEM_INSTRUCTION = (
     "你是 LiMa 绘图助手，专为 ESP32 笔绘机生成可执行的简笔画指令。"
@@ -38,6 +39,14 @@ COMPLEXITY_STROKES = {
     "高": "约40笔画",
 }
 
+_REFINEMENT_RE = re.compile(r"再|大一点|小一点|改成|同样|还是|加点|减少|更.*一点|改.*黑白")
+
+
+def _apply_refinement_hint(user_prompt: str, conversation_context: str) -> str:
+    if not conversation_context or not _REFINEMENT_RE.search(user_prompt):
+        return user_prompt
+    return f"基于上一轮，{user_prompt}"
+
 
 def enhance_drawing_prompt(
     user_prompt: str,
@@ -46,6 +55,7 @@ def enhance_drawing_prompt(
     complexity: str = "中",
     device_type: str = "esp32_xy_plotter",
     previous_failed_prompts: list[str] | None = None,
+    conversation_context: str = "",
 ) -> str:
     """Wrap a user description with pen-plotter constraints.
 
@@ -55,6 +65,7 @@ def enhance_drawing_prompt(
         complexity: one of 低 / 中 / 高.
         device_type: device profile key in CAPABILITY_PROMPT_MAP.
         previous_failed_prompts: prior prompts that failed generation/vectorization.
+        conversation_context: recent successful/failed draw turns for this device.
 
     Returns:
         A constrained prompt ready for the image generation backend.
@@ -65,6 +76,8 @@ def enhance_drawing_prompt(
     if not user_prompt:
         user_prompt = "一个简单图形"
 
+    user_prompt = _apply_refinement_hint(user_prompt, conversation_context)
+
     strokes = COMPLEXITY_STROKES.get(complexity, COMPLEXITY_STROKES["中"])
     capability = CAPABILITY_PROMPT_MAP.get(device_type, "")
 
@@ -73,6 +86,8 @@ def enhance_drawing_prompt(
         retry_hint = f"注意：之前以下描述生成失败，请调整：{previous_failed_prompts[-1]}"
 
     parts = [SYSTEM_INSTRUCTION]
+    if conversation_context:
+        parts.append(f"【对话上下文】{conversation_context}")
     if capability:
         parts.append(capability)
     if retry_hint:

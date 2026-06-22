@@ -160,6 +160,7 @@ class TestHandleDeviceDraw:
             complexity="低",
             device_type="esp32_xy_plotter",
             previous_failed_prompts=None,
+            conversation_context="",
         )
         assert resp["image_url"] == "http://img/1"
         assert resp["svg_path"] == "M0,0"
@@ -228,6 +229,51 @@ class TestHandleDeviceDraw:
         resp2 = await handle_device_draw("a cat", device_id="dev-retry")
         assert mock_enhance.call_count == 2
         assert mock_enhance.call_args_list[1].kwargs.get("previous_failed_prompts") == ["a cat"]
+
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt")
+    @patch("device_gateway.device_draw_handler.DashScopeImageClient")
+    @patch("device_gateway.device_draw_handler.SVGConverter")
+    @patch("device_gateway.device_draw_handler.validate_svg_path")
+    @patch("device_gateway.device_draw_handler.optimize_svg_path")
+    @patch("device_gateway.device_draw_handler.precheck_draw_motion_path")
+    async def test_multi_turn_context_passed_on_second_draw(
+        self,
+        mock_precheck,
+        mock_optimize,
+        mock_validate,
+        mock_converter_cls,
+        mock_client_cls,
+        mock_enhance,
+    ):
+        mock_enhance.return_value = "enhanced prompt"
+        mock_client = MagicMock()
+        mock_client.generate.return_value = {
+            "status": "success",
+            "images": [{"url": "http://img/1"}],
+        }
+        mock_client_cls.return_value = mock_client
+
+        mock_converter = MagicMock()
+        mock_converter.convert_url_to_svg = AsyncMock(
+            return_value={"status": "success", "svg_path": "M0,0", "width": 100, "height": 200}
+        )
+        mock_converter_cls.return_value = mock_converter
+        mock_validate.return_value = SimpleNamespace(valid=True, errors=[])
+        mock_optimize.return_value = SimpleNamespace(
+            optimized_path="M0,0",
+            original_points=10,
+            optimized_points=5,
+            reduction_ratio=0.5,
+        )
+        mock_precheck.return_value = None
+
+        await handle_device_draw("画一只猫", device_id="dev-multi")
+        await handle_device_draw("再画大一点", device_id="dev-multi")
+
+        second_call = mock_enhance.call_args_list[1]
+        assert second_call.args[0] == "再画大一点"
+        context = second_call.kwargs.get("conversation_context", "")
+        assert "画一只猫" in context
 
     @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p, **kwargs: p)
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
