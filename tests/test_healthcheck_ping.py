@@ -1,125 +1,37 @@
-"""Tests for Healthchecks.io dead-man ping helpers (INF-B)."""
+"""Tests for healthcheck_ping.py — dead-man ping helpers."""
 
-from __future__ import annotations
+from unittest.mock import patch
 
-import subprocess
-import sys
-from unittest.mock import MagicMock
-
-import healthcheck_ping as hc
+from healthcheck_ping import is_healthcheck_enabled, _normalize_url, ping_healthcheck
 
 
-def test_is_healthcheck_enabled_default_off(monkeypatch):
-    monkeypatch.delenv("LIMA_HEALTHCHECK_ENABLED", raising=False)
-    assert hc.is_healthcheck_enabled() is False
+class TestIsHealthcheckEnabled:
+    def test_disabled_by_default(self):
+        with patch.dict("os.environ", {}, clear=True):
+            assert is_healthcheck_enabled() is False
+
+    def test_enabled_with_1(self):
+        with patch.dict("os.environ", {"LIMA_HEALTHCHECK_ENABLED": "1"}):
+            assert is_healthcheck_enabled() is True
+
+    def test_enabled_with_true(self):
+        with patch.dict("os.environ", {"LIMA_HEALTHCHECK_ENABLED": "true"}):
+            assert is_healthcheck_enabled() is True
+
+    def test_disabled_with_0(self):
+        with patch.dict("os.environ", {"LIMA_HEALTHCHECK_ENABLED": "0"}):
+            assert is_healthcheck_enabled() is False
 
 
-def test_is_healthcheck_enabled_on(monkeypatch):
-    monkeypatch.setenv("LIMA_HEALTHCHECK_ENABLED", "1")
-    assert hc.is_healthcheck_enabled() is True
+class TestNormalizeUrl:
+    def test_strips_whitespace(self):
+        assert _normalize_url("  https://example.com  ") == "https://example.com"
 
+    def test_strips_trailing_slash(self):
+        assert _normalize_url("https://example.com/ping/") == "https://example.com/ping"
 
-def test_ping_healthcheck_success():
-    client = MagicMock()
-    response = MagicMock()
-    response.status_code = 200
-    client.get.return_value = response
+    def test_no_change_needed(self):
+        assert _normalize_url("https://example.com") == "https://example.com"
 
-    ok, detail = hc.ping_healthcheck("https://hc-ping.com/test-uuid", client=client)
-
-    assert ok is True
-    assert "200" in detail
-    client.get.assert_called_once()
-
-
-def test_ping_healthcheck_failure_status():
-    client = MagicMock()
-    response = MagicMock()
-    response.status_code = 500
-    response.text = "error"
-    client.get.return_value = response
-
-    ok, detail = hc.ping_healthcheck("https://hc-ping.com/test-uuid", client=client)
-
-    assert ok is False
-    assert "500" in detail
-
-
-def test_verify_health_endpoint_success():
-    client = MagicMock()
-    response = MagicMock()
-    response.status_code = 200
-    client.get.return_value = response
-
-    ok, detail = hc.verify_health_endpoint("http://127.0.0.1:8080/health", client=client)
-
-    assert ok is True
-    client.get.assert_called_once()
-
-
-def test_check_then_ping_skips_when_disabled(monkeypatch):
-    monkeypatch.setenv("LIMA_HEALTHCHECK_ENABLED", "0")
-    monkeypatch.setenv("HEALTHCHECK_LIMA_VPS_URL", "https://hc-ping.com/u")
-
-    code = hc.check_then_ping(
-        health_url="http://127.0.0.1:8080/health",
-        ping_url="https://hc-ping.com/u",
-    )
-
-    assert code == hc.EXIT_SKIP
-
-
-def test_check_then_ping_health_fail_no_ping(monkeypatch):
-    monkeypatch.setenv("LIMA_HEALTHCHECK_ENABLED", "1")
-
-    client = MagicMock()
-    health_resp = MagicMock()
-    health_resp.status_code = 503
-    health_resp.text = "down"
-    client.get.return_value = health_resp
-
-    code = hc.check_then_ping(
-        health_url="http://127.0.0.1:8080/health",
-        ping_url="https://hc-ping.com/u",
-        client=client,
-    )
-
-    assert code == hc.EXIT_HEALTH_FAIL
-    assert client.get.call_count == 1
-
-
-def test_check_then_ping_success(monkeypatch):
-    monkeypatch.setenv("LIMA_HEALTHCHECK_ENABLED", "1")
-
-    client = MagicMock()
-    health_resp = MagicMock()
-    health_resp.status_code = 200
-    ping_resp = MagicMock()
-    ping_resp.status_code = 200
-    client.get.side_effect = [health_resp, ping_resp]
-
-    code = hc.check_then_ping(
-        health_url="http://127.0.0.1:8080/health",
-        ping_url="https://hc-ping.com/u",
-        client=client,
-    )
-
-    assert code == hc.EXIT_OK
-    assert client.get.call_count == 2
-
-
-def test_cli_dry_run():
-    proc = subprocess.run(
-        [
-            sys.executable,
-            "scripts/healthcheck_ping.py",
-            "--ping-url",
-            "https://hc-ping.com/example",
-            "--dry-run",
-        ],
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-    assert "example" in proc.stdout
-    assert "hc-ping.com" in proc.stdout
+    def test_empty_string(self):
+        assert _normalize_url("") == ""

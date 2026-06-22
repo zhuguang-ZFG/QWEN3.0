@@ -1,4 +1,9 @@
-"""Admin API: client API key management (in-memory panel state)."""
+"""Admin API: client API key management (in-memory panel state).
+
+ponytail: in-memory only. Keys are lost on server restart.
+  Upgrade path: persist to SQLite (session_memory/store_db.py) or Redis
+  when multi-node admin panel is required.
+"""
 
 from __future__ import annotations
 
