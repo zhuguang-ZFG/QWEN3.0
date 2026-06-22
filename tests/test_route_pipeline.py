@@ -59,11 +59,13 @@ def test_route_full_pipeline_with_call_fn_mock(
 
     mock_call_fn = MagicMock(return_value="backend1 response")
 
-    result = route(
-        query="test query",
-        messages=[{"role": "user", "content": "test message"}],
-        call_fn=mock_call_fn,
-    )
+    with patch("routing_engine.analyze_intent") as mock_analyze_intent:
+        mock_analyze_intent.return_value = {"intent": "device_stop"}
+        result = route(
+            query="test query",
+            messages=[{"role": "user", "content": "test message"}],
+            call_fn=mock_call_fn,
+        )
 
     mock_classify.assert_called_once()
     mock_classify_scenario.assert_called_once()
@@ -73,7 +75,7 @@ def test_route_full_pipeline_with_call_fn_mock(
     assert result.backend == "backend1"
     assert result.answer == "final answer"
     assert result.request_type == "chat"
-    assert result.scenario == "general"
+    assert result.scenario == "device_control"
 
 
 @patch("routing_engine.classify")
