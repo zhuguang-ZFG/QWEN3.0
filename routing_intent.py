@@ -30,6 +30,7 @@ def intent_to_prompt_scenario(intent: str) -> str | None:
     """Map analyze_intent output to prompt_engineering/layers scenario."""
     return _DEVICE_PROMPT_SCENARIOS.get(intent)
 
+
 # ── Legacy-compatible intent analyzer (ported from router_classifier.py) ──────
 
 _DEVICE_RULES = [

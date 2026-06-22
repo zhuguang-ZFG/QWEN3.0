@@ -187,12 +187,7 @@ def build_quality_gate(scenario: str) -> str:
             "- 复杂度必须在设备笔画上限内\n"
             "- 不自作主张添加文字或颜色"
         ),
-        "device_write": (
-            "[质量门控]\n"
-            "- 笔画顺序正确、轨迹连续\n"
-            "- 排版不超出设备幅面\n"
-            "- 不暴露内部 API 或 token"
-        ),
+        "device_write": ("[质量门控]\n- 笔画顺序正确、轨迹连续\n- 排版不超出设备幅面\n- 不暴露内部 API 或 token"),
         "device_control": (
             "[质量门控]\n"
             "- 急停/停止指令不得延迟或二次确认\n"

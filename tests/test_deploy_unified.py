@@ -166,6 +166,42 @@ def test_main_returns_failure_without_restart_when_upload_fails(monkeypatch):
     assert deploy_unified.main() == 1
 
 
+def test_main_rolls_back_when_health_check_fails(monkeypatch):
+    rollback_calls: list[str] = []
+    restart_calls: list[str] = []
+
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py"])
+    monkeypatch.setattr(
+        deploy_unified,
+        "prepare_remote_deploy",
+        lambda files, label: {
+            "ok": True,
+            "capacity": {},
+            "backup_path": "/opt/lima-router/backups/unit/runtime-before.tgz",
+        },
+    )
+    monkeypatch.setattr(
+        deploy_unified,
+        "deploy_files",
+        lambda files, dry_run=False: {"uploaded": 1, "failed": [], "skipped": []},
+    )
+
+    def _restart() -> bool:
+        restart_calls.append("restart")
+        return len(restart_calls) > 1
+
+    monkeypatch.setattr(deploy_unified, "restart_server", _restart)
+    monkeypatch.setattr(
+        deploy_unified,
+        "restore_remote_backup",
+        lambda backup_path: rollback_calls.append(backup_path) or True,
+    )
+
+    assert deploy_unified.main() == 1
+    assert rollback_calls == ["/opt/lima-router/backups/unit/runtime-before.tgz"]
+    assert restart_calls == ["restart", "restart"]
+
+
 def test_main_dry_run_does_not_open_remote_preflight(monkeypatch):
     calls: list[str] = []
     monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py", "--dry-run"])
@@ -242,4 +278,19 @@ def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
     assert result["backup_path"] == "/opt/lima-router/backups/unit-test-20260609_010203/runtime-before.tgz"
     assert any("df -Pm" in command for command in ssh.commands)
     assert any("tar --ignore-failed-read" in command for command in ssh.commands)
+    assert ssh.closed is True
+
+
+def test_restore_remote_backup_extracts_tar(monkeypatch):
+    import scripts.deploy_unified_common as common_mod
+    import scripts.deploy_unified_preflight as preflight_mod
+
+    ssh = _PrepareSsh()
+    monkeypatch.setattr(common_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(common_mod, "configure_ssh_host_keys", lambda client: None)
+
+    ok = preflight_mod.restore_remote_backup("/opt/lima-router/backups/unit/runtime-before.tgz")
+
+    assert ok is True
+    assert any("tar -xzf" in command for command in ssh.commands)
     assert ssh.closed is True

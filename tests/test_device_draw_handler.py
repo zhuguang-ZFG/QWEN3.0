@@ -152,7 +152,9 @@ class TestHandleDeviceDraw:
         )
         mock_precheck.return_value = None
 
-        resp = await handle_device_draw("a cat", device_id="dev-1", user_preferences={"style": "可爱", "complexity": "低"})
+        resp = await handle_device_draw(
+            "a cat", device_id="dev-1", user_preferences={"style": "可爱", "complexity": "低"}
+        )
         assert resp["status"] == "success"
         mock_enhance.assert_called_once_with(
             "a cat",

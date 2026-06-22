@@ -10,6 +10,9 @@ import paramiko
 SERVER = "47.112.162.80"
 REMOTE = "/opt/lima-router"
 KEY = os.path.expanduser(os.environ.get("LIMA_DEPLOY_KEY_PATH", "~/.ssh/id_ed25519"))
+JDCLOUD_SERVER = os.environ.get("LIMA_JDCLOUD_SERVER") or os.environ.get("JDCLOUD_HOST") or "117.72.118.95"
+JDCLOUD_USER = os.environ.get("JDCLOUD_USER", "root")
+JDCLOUD_REMOTE_PROBE = "/opt/lima-probe"
 
 
 def notify_enabled() -> bool:

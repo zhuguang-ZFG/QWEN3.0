@@ -78,3 +78,25 @@ def prepare_remote_deploy(files: list[str], *, label: str) -> dict[str, object]:
         }
     finally:
         ssh.close()
+
+
+def restore_remote_backup(backup_path: str) -> bool:
+    """Extract a pre-deploy tar backup back into REMOTE."""
+    if not backup_path:
+        return False
+    ssh = _connect_ssh()
+    try:
+        command = (
+            "set -eu; "
+            f"test -f {shlex.quote(backup_path)}; "
+            f"cd {shlex.quote(REMOTE)}; "
+            f"tar -xzf {shlex.quote(backup_path)}"
+        )
+        code, out, err = _exec(ssh, command)
+        if code != 0:
+            print(f"rollback failed: {err or out}")
+            return False
+        print(f"rollback restored from {backup_path}")
+        return True
+    finally:
+        ssh.close()

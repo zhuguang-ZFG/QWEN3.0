@@ -24,13 +24,9 @@ SYSTEM_INSTRUCTION = (
 
 CAPABILITY_PROMPT_MAP = {
     "esp32_xy_plotter": (
-        "设备能力：XY平台单笔画绘制，支持G-code，不支持颜色填充。"
-        "线条粗细固定，请在设计中注意线条密度避免卡笔。"
+        "设备能力：XY平台单笔画绘制，支持G-code，不支持颜色填充。线条粗细固定，请在设计中注意线条密度避免卡笔。"
     ),
-    "esp32_writing_machine": (
-        "设备能力：中文汉字书写，支持多种字体，可连续书写多行。"
-        "注意汉字笔画顺序和连笔处理。"
-    ),
+    "esp32_writing_machine": ("设备能力：中文汉字书写，支持多种字体，可连续书写多行。注意汉字笔画顺序和连笔处理。"),
 }
 
 COMPLEXITY_STROKES = {

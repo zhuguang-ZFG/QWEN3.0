@@ -41,7 +41,7 @@ from scripts.deploy_unified_common import (
     parse_capacity_output,
     capacity_result,
 )
-from scripts.deploy_unified_preflight import prepare_remote_deploy
+from scripts.deploy_unified_preflight import prepare_remote_deploy, restore_remote_backup
 from scripts.deploy_unified_deploy import deploy_files
 from scripts.deploy_unified_restart import restart_server
 
@@ -78,6 +78,7 @@ def main() -> int:
     files = list(dict.fromkeys(files))
 
     print(f"Deploying {len(files)} files ({args.slice})...")
+    backup_path = ""
     if not args.dry_run:
         backup_label = "unified-files" if args.files else f"unified-{args.slice}"
         try:
@@ -91,6 +92,7 @@ def main() -> int:
             return 1
         print(f"Capacity: {preflight['capacity']}")
         print(f"Backup: {preflight['backup_path']}")
+        backup_path = str(preflight["backup_path"])
 
     results = deploy_files(files, dry_run=args.dry_run)
 
@@ -111,6 +113,12 @@ def main() -> int:
         print(f"Health: {'OK' if ok else 'FAILED'} (wait up to {HEALTH_WAIT_SECONDS}s)")
 
         if not ok:
+            if backup_path:
+                print(f"\nHealth check failed; rolling back from {backup_path}...")
+                if restore_remote_backup(backup_path):
+                    restart_server()
+                else:
+                    print("Rollback failed")
             return 1
 
         notify_text = format_deploy_ok(

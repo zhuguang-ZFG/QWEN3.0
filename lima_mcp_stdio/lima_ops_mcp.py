@@ -76,7 +76,7 @@ def tool_server_status(host: str | None = None, summary: bool = True) -> str:
 
         if summary:
             uptime = run_ssh(shost, "uptime | sed 's/.*up//;s/,.*//'")
-            mem = run_ssh(shost, "free -h | awk 'NR==2{print \"mem:\"$3\"/\"$2}'")
+            mem = run_ssh(shost, 'free -h | awk \'NR==2{print "mem:"$3"/"$2}\'')
             cpu = run_ssh(shost, "top -bn1 | grep 'Cpu(s)' | awk '{print \"cpu:\"$2\"%\"}'")
             proc_count = run_ssh(shost, "ps aux | grep -E 'python|uvicorn|gunicorn' | grep -v grep | wc -l")
             ver = run_ssh(shost, "cat /opt/lima/VERSION 2>/dev/null || echo 'N/A'")
@@ -102,7 +102,9 @@ def tool_server_status(host: str | None = None, summary: bool = True) -> str:
             mem = run_ssh(shost, "free -h | head -2")
             if mem:
                 results.append(f"  {mem}")
-            ver = run_ssh(shost, "cat /opt/lima/VERSION 2>/dev/null || cat /root/lima/VERSION 2>/dev/null || echo 'N/A'")
+            ver = run_ssh(
+                shost, "cat /opt/lima/VERSION 2>/dev/null || cat /root/lima/VERSION 2>/dev/null || echo 'N/A'"
+            )
             if ver:
                 results.append(f"  Version: {ver}")
             docker = run_ssh(shost, "docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null || echo 'no docker'")
@@ -131,7 +133,9 @@ def tool_device_connections(host: str | None = None, summary: bool = True) -> st
                 shost,
                 "grep -c 'session_start' /var/log/lima/access.log 2>/dev/null || tail -1 /var/log/lima/app.log 2>/dev/null | grep -c session || echo '0'",
             )
-            results.append(f"[{label}] ws:{(ws or '').strip() or '0'} redis:{(redis or '').strip() or '0'} sessions:{(sessions or '').strip() or '0'}")
+            results.append(
+                f"[{label}] ws:{(ws or '').strip() or '0'} redis:{(redis or '').strip() or '0'} sessions:{(sessions or '').strip() or '0'}"
+            )
         else:
             results.append(f"\n=== {label} ({shost}) ===")
             ws = run_ssh(shost, "ss -tnp | grep -E ':8080|:8000' | grep ESTAB | wc -l")
@@ -178,7 +182,9 @@ def tool_tail_log(module: str, lines: int = 30, host: str | None = None, summary
                 if exists and "yes" in exists:
                     total = run_ssh(shost, f"wc -l < {lp}")
                     errors = run_ssh(shost, f"grep -ci 'error\\|exception\\|traceback' {lp} || echo 0")
-                    results.append(f"[{label}/{module}] total_lines:{total.strip() or '?'} error_lines:{errors.strip() or '0'} set summary=False to expand")
+                    results.append(
+                        f"[{label}/{module}] total_lines:{total.strip() or '?'} error_lines:{errors.strip() or '0'} set summary=False to expand"
+                    )
                     found = True
                     break
             if not found:
@@ -218,24 +224,43 @@ def tool_health_check(host: str | None = None, summary: bool = True) -> str:
         label = info["label"]
 
         if summary:
-            health = run_ssh(shost, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health 2>/dev/null || echo 'N/A'")
-            models = run_ssh(shost, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/v1/models 2>/dev/null || echo 'N/A'")
-            device = run_ssh(shost, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/device/v1/status 2>/dev/null || echo 'N/A'")
+            health = run_ssh(
+                shost, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health 2>/dev/null || echo 'N/A'"
+            )
+            models = run_ssh(
+                shost,
+                "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/v1/models 2>/dev/null || echo 'N/A'",
+            )
+            device = run_ssh(
+                shost,
+                "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/device/v1/status 2>/dev/null || echo 'N/A'",
+            )
             ok_count = sum(1 for c in [health, models, device] if c in ("200", "204"))
             results.append(f"[{label}] /health:{health} /models:{models} /device:{device} | ok:{ok_count}/3")
         else:
             results.append(f"\n=== {label} ({shost}) ===")
-            health = run_ssh(shost, "curl -s -o /dev/null -w '%{http_code} %{time_total}s' http://localhost:8080/health 2>/dev/null || echo 'N/A'")
+            health = run_ssh(
+                shost,
+                "curl -s -o /dev/null -w '%{http_code} %{time_total}s' http://localhost:8080/health 2>/dev/null || echo 'N/A'",
+            )
             if health and health != "N/A":
                 code, t = health.split()
-                results.append(f"  {'OK' if code in ('200','204') else 'FAIL'} /health: {code} ({t}s)")
-            models = run_ssh(shost, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/v1/models 2>/dev/null || echo 'N/A'")
+                results.append(f"  {'OK' if code in ('200', '204') else 'FAIL'} /health: {code} ({t}s)")
+            models = run_ssh(
+                shost,
+                "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/v1/models 2>/dev/null || echo 'N/A'",
+            )
             if models and models != "N/A":
-                results.append(f"  {'OK' if models in ('200','204') else 'FAIL'} /v1/models: {models}")
-            device = run_ssh(shost, "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/device/v1/status 2>/dev/null || echo 'N/A'")
+                results.append(f"  {'OK' if models in ('200', '204') else 'FAIL'} /v1/models: {models}")
+            device = run_ssh(
+                shost,
+                "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/device/v1/status 2>/dev/null || echo 'N/A'",
+            )
             if device and device != "N/A":
                 results.append(f"  {'OK' if device == '200' else 'WARN'} /device/v1/status: {device}")
-            ssl = run_ssh(shost, "curl -sk -o /dev/null -w '%{http_code}' https://localhost:443/health 2>/dev/null || echo 'N/A'")
+            ssl = run_ssh(
+                shost, "curl -sk -o /dev/null -w '%{http_code}' https://localhost:443/health 2>/dev/null || echo 'N/A'"
+            )
             if ssl and ssl != "N/A":
                 results.append(f"  {'OK' if ssl == '200' else 'WARN'} SSL: {ssl}")
 
@@ -299,7 +324,11 @@ TOOLS = {
             "type": "object",
             "properties": {
                 "host": {"type": "string", "description": "可选: 服务器过滤（aliyun/jdcloud）"},
-                "summary": {"type": "boolean", "description": "摘要模式：只返回一行关键指标（uptime/mem/cpu/proc/ws）。省 70% token。", "default": True}
+                "summary": {
+                    "type": "boolean",
+                    "description": "摘要模式：只返回一行关键指标（uptime/mem/cpu/proc/ws）。省 70% token。",
+                    "default": True,
+                },
             },
         },
     },
@@ -309,7 +338,11 @@ TOOLS = {
             "type": "object",
             "properties": {
                 "host": {"type": "string", "description": "可选: 服务器过滤"},
-                "summary": {"type": "boolean", "description": "摘要模式：只返回 ws/redis/session 数字。省 50% token。", "default": True}
+                "summary": {
+                    "type": "boolean",
+                    "description": "摘要模式：只返回 ws/redis/session 数字。省 50% token。",
+                    "default": True,
+                },
             },
         },
     },
@@ -321,7 +354,11 @@ TOOLS = {
                 "module": {"type": "string", "description": "模块名: app/gateway/ota/proxy 等"},
                 "lines": {"type": "integer", "description": "行数", "default": 30},
                 "host": {"type": "string", "description": "可选: 服务器过滤"},
-                "summary": {"type": "boolean", "description": "摘要模式：只返回行数+错误数汇总。省 80% token。summary=False 展开详情。", "default": True}
+                "summary": {
+                    "type": "boolean",
+                    "description": "摘要模式：只返回行数+错误数汇总。省 80% token。summary=False 展开详情。",
+                    "default": True,
+                },
             },
             "required": ["module"],
         },
@@ -332,7 +369,11 @@ TOOLS = {
             "type": "object",
             "properties": {
                 "host": {"type": "string", "description": "可选: 服务器过滤"},
-                "summary": {"type": "boolean", "description": "摘要模式：单行 ok/3 状态。省 60% token。", "default": True}
+                "summary": {
+                    "type": "boolean",
+                    "description": "摘要模式：单行 ok/3 状态。省 60% token。",
+                    "default": True,
+                },
             },
         },
     },

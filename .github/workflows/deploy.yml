@@ -38,10 +38,21 @@ jobs:
           printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Deploy via unified manifest
+      - name: Deploy Aliyun primary (LiMa Router)
         env:
           LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
           LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts
         run: |
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
           python scripts/deploy_unified.py --slice all
+
+      - name: Deploy JDCloud provider probe
+        env:
+          LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
+          LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts
+          LIMA_JDCLOUD_SERVER: ${{ secrets.JDCLOUD_HOST }}
+          JDCLOUD_HOST: ${{ secrets.JDCLOUD_HOST }}
+        run: |
+          host="${LIMA_JDCLOUD_SERVER:-117.72.118.95}"
+          ssh-keyscan -H "$host" >> ~/.ssh/known_hosts
+          python scripts/deploy_jdcloud_probe.py

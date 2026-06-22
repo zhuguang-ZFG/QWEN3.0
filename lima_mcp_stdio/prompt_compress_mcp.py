@@ -24,8 +24,8 @@ def _should_compress(text: str, min_chars: int = 200) -> tuple[bool, int]:
 
 # ========== 压缩器 ==========
 
-def compress_text(text: str, target_ratio: float = 0.3, preserve_first_n: int = 3,
-                  preserve_last_n: int = 2) -> str:
+
+def compress_text(text: str, target_ratio: float = 0.3, preserve_first_n: int = 3, preserve_last_n: int = 2) -> str:
     """压缩长文本：保留首N行+末M行 + 中间抽取关键句"""
     needs, tokens = _should_compress(text)
     if not needs:
@@ -45,9 +45,9 @@ def compress_text(text: str, target_ratio: float = 0.3, preserve_first_n: int = 
 
     # 中间部分：抽取包含关键词的行（error/exception/warning/fail/import/def/class/route/@）
     keywords = re.compile(
-        r'(error|exception|traceback|warning|fail|critical|timeout|'
-        r'def\s|class\s|import\s|from\s|@|route|include|return|raise)',
-        re.IGNORECASE
+        r"(error|exception|traceback|warning|fail|critical|timeout|"
+        r"def\s|class\s|import\s|from\s|@|route|include|return|raise)",
+        re.IGNORECASE,
     )
     middle = lines[preserve_first_n:-preserve_last_n] if preserve_last_n > 0 else lines[preserve_first_n:]
 
@@ -67,7 +67,7 @@ def compress_text(text: str, target_ratio: float = 0.3, preserve_first_n: int = 
     result = head + sampled + tail
     summary = (
         f"\n[... compressed from {len(lines)} lines to {len(result)} lines "
-        f"(ratio ~{max(1, int(len(result)/max(1,len(lines))*100))}%), "
+        f"(ratio ~{max(1, int(len(result) / max(1, len(lines)) * 100))}%), "
         f"use detail=True to expand ...]\n"
     )
 
@@ -104,7 +104,7 @@ def compress_code(code: str) -> str:
 
         # 单行注释（保留重要注释）
         if stripped.startswith("#"):
-            if re.search(r'(TODO|FIXME|HACK|XXX|NOTE|IMPORTANT)', stripped, re.IGNORECASE):
+            if re.search(r"(TODO|FIXME|HACK|XXX|NOTE|IMPORTANT)", stripped, re.IGNORECASE):
                 result.append(line)
             else:
                 removed["comment_lines"] += 1
@@ -154,8 +154,11 @@ def compress_json(data_str: str, max_items: int = 8) -> str:
             return "..."
         if isinstance(obj, dict):
             # 去掉值为 null/None/空列表/空字符串 的字段
-            cleaned = {k: _compress_obj(v, depth + 1) for k, v in obj.items()
-                       if v is not None and v != [] and v != "" and v != {}}
+            cleaned = {
+                k: _compress_obj(v, depth + 1)
+                for k, v in obj.items()
+                if v is not None and v != [] and v != "" and v != {}
+            }
             return cleaned
         elif isinstance(obj, list):
             if len(obj) > max_items:
@@ -177,7 +180,7 @@ def compress_context(text: str) -> str:
         return text
 
     # 判断类型
-    is_code = bool(re.search(r'(^|\n)(def |class |import |from |@|# |/\*|-- )', text[:500]))
+    is_code = bool(re.search(r"(^|\n)(def |class |import |from |@|# |/\*|-- )", text[:500]))
     is_json = text.strip().startswith("{") or text.strip().startswith("[")
 
     samples = text[:100]
@@ -189,11 +192,13 @@ def compress_context(text: str) -> str:
     else:
         # 文本类：根据不同场景调整参数
         # 日志 → 保留 error 行
-        if re.search(r'(ERROR|WARN|TRACE|\[.*\]|\d{4}-\d{2}-\d{2})', samples):
+        if re.search(r"(ERROR|WARN|TRACE|\[.*\]|\d{4}-\d{2}-\d{2})", samples):
             lines = text.split("\n")
-            error_lines = [l for l in lines if re.search(r'(error|exception|traceback|warn|fail)', l, re.IGNORECASE)]
+            error_lines = [l for l in lines if re.search(r"(error|exception|traceback|warn|fail)", l, re.IGNORECASE)]
             if error_lines:
-                return f"[... compressed: {len(lines)} lines -> {len(error_lines)} key lines ...]\n" + "\n".join(error_lines)
+                return f"[... compressed: {len(lines)} lines -> {len(error_lines)} key lines ...]\n" + "\n".join(
+                    error_lines
+                )
         return compress_text(text)
 
 
@@ -251,7 +256,8 @@ def handle_request(req: dict) -> dict:
 
     if method == "initialize":
         return {
-            "jsonrpc": "2.0", "id": req_id,
+            "jsonrpc": "2.0",
+            "id": req_id,
             "result": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
@@ -261,7 +267,8 @@ def handle_request(req: dict) -> dict:
 
     if method == "tools/list":
         return {
-            "jsonrpc": "2.0", "id": req_id,
+            "jsonrpc": "2.0",
+            "id": req_id,
             "result": {
                 "tools": [
                     {"name": k, "description": v["description"], "inputSchema": v["inputSchema"]}
@@ -285,7 +292,8 @@ def handle_request(req: dict) -> dict:
             else:
                 raise ValueError(f"Unknown tool: {tool}")
             return {
-                "jsonrpc": "2.0", "id": req_id,
+                "jsonrpc": "2.0",
+                "id": req_id,
                 "result": {"content": [{"type": "text", "text": text}]},
             }
         except Exception as e:
