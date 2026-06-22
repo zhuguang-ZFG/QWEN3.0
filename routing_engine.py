@@ -79,6 +79,32 @@ def respond(result: RouteResult, fmt: str = "openai", model: str = MODEL_ID) -> 
     return resp
 
 
+def _enrich_with_intent_and_skills(
+    messages: list[dict],
+    query: str,
+    system_prompt: str,
+    ide_source: str,
+    backends: list[str],
+) -> tuple[list[dict], str]:
+    """Analyze intent, inject skills, compress. Returns (messages, prompt_scenario)."""
+    intent_result = analyze_intent(query, system_prompt=system_prompt, ide=ide_source)
+    intent = str(intent_result.get("intent", "chat"))
+    route_role = intent if intent.startswith("device_") else ""
+    prompt_scenario = intent_to_prompt_scenario(intent) or ""
+
+    messages_out = inject_skills(
+        messages,
+        backend=backends[0] if backends else "",
+        ide_source=ide_source,
+        system_prompt=system_prompt,
+        intent=intent,
+        route_role=route_role,
+        scenario=prompt_scenario,
+    )
+    messages_out = auto_compress(messages_out, backends, system_prompt)
+    return messages_out, prompt_scenario
+
+
 def pick_backend(
     query: str,
     messages: list[dict],
@@ -116,27 +142,13 @@ def pick_backend(
         complexity=complexity_info,
     )
 
-    intent_result = analyze_intent(query, system_prompt=system_prompt, ide=ide_source)
-    intent = str(intent_result.get("intent", "chat"))
-    route_role = intent if intent.startswith("device_") else ""
-    prompt_scenario = intent_to_prompt_scenario(intent) or scenario
-
-    messages_injected = inject_skills(
-        messages,
-        backend=backends[0] if backends else "",
-        ide_source=ide_source,
-        system_prompt=system_prompt,
-        intent=intent,
-        route_role=route_role,
-        scenario=prompt_scenario,
-    )
-    messages_injected = auto_compress(messages_injected, backends, system_prompt)
+    messages, prompt_scenario = _enrich_with_intent_and_skills(messages, query, system_prompt, ide_source, backends)
 
     backend = backends[0] if backends else "longcat_chat"
     return PickResult(
         backend=backend,
         backends=backends,
-        messages=messages_injected,
+        messages=messages,
         request_type=req_type,
         scenario=prompt_scenario,
         retrieval_context=retrieval_text or "",

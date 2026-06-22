@@ -31,21 +31,24 @@
 - **已执行（阶段 4-5）**：
   - 拆分 `prompt_engineering/layers.py::build_role_layer`（64→27 行）：提取 `_build_role_text()` 负责 scenario→role 映射，主函数只处理 IDE 后缀。
   - 拆分 `device_gateway/intent.py::parse_command`（59→41 行）：提取 `_extract_pattern_params()` 和 `_make_result()` helper，消除重复的字典构造。
+  - 拆分 `routing_engine.py::pick_backend`（63→47 行）：提取 `_enrich_with_intent_and_skills()` 负责意图分析 + 技能注入 + 压缩。
+  - 拆分 `routes/ops_metrics/backend_ops.py::ops_backend_probe`（61→40 行）：提取 `_probe_backend()` 和 `_maybe_reactivate()` helper。
   - 更新 `AGENTS.md`：新增 Ponytail 治理条款（决策阶梯、不可删除边界、`ponytail:` 注释规范）。
   - 新增 `PONYTAIL-DEBT.md`：记录当前 6 处 `ponytail:` 标记和 3 项待处理技术债。
 - **验证**（阶段 4-5 后）：
-  - 聚焦测试：`tests/test_prompt_engineering.py` + `tests/test_device_intent_hardening.py` + `tests/test_run_path_intent.py` → **57 passed**。
+  - 聚焦测试（prompt/engine/intent/ops_metrics/authority）：**87 passed**。
   - 全量 `pytest -q` → **2,315 passed / 18 skipped / 0 failed**。
   - `ruff check .` / `pyright`（修改文件） → 0 errors / 0 warnings。
-  - `scripts/check_code_size.py` → >300 行文件 11，>50 行函数 86（从 88 降至 86）。
+  - `scripts/check_code_size.py` → >300 行文件 11，>50 行函数 84（从 90 降至 84）。
 - **Git**：
   - Commit `d8d734ba`：`refactor(slim): deduplicate estimate_tokens via context_pipeline.token_budget`。
   - Commit `865392bd`：`docs(ponytail): add governance clause to AGENTS.md and PONYTAIL-DEBT.md`。
   - Commit `20552b66`：`refactor(slim): split build_role_layer and parse_command into helpers`。
+  - Commit `78aeba3e`：`docs(progress): update LiMa slimming phase 4-5 evidence`。
   - GitHub (`origin`) push 成功：`d8d734ba..20552b66`。
-- **剩余阶段**：
-  - 阶段 4 续：继续拆分剩余 >50 行函数（优先有测试覆盖的：routing_engine.py::pick_backend、streaming_bridge.py::bridge_stream 等）。
-  - 阶段 3 续：清理一次性脚本、合并重复工具函数（`_sanitize_text`、Redis store 等）。
+- **剩余**：
+  - 继续拆分剩余 >50 行函数（streaming_bridge::bridge_stream、session_memory 等，共 84 个）。
+  - 清理一次性脚本、合并重复工具函数（`_sanitize_text`、Redis store 等）。
 
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 

@@ -49,6 +49,36 @@ async def ops_backend_reactivate(request: Request) -> JSONResponse:
     return JSONResponse({"ok": True, "backend": backend, "status": "healthy"})
 
 
+def _probe_backend(backend: str, timeout_sec: float) -> tuple[dict, JSONResponse | None]:
+    """Probe one backend, return (result, error_response). error_response is None on success."""
+    try:
+        from backend_probe_loop import probe_and_record_backend
+
+        return probe_and_record_backend(backend, ignore_cooldown=True, timeout_sec=timeout_sec), None
+    except ImportError:
+        return {}, JSONResponse({"error": "backend_probe_loop module not loaded"}, status_code=503)
+    except Exception as exc:
+        logger.warning("manual backend probe failed backend=%s: %s", backend, type(exc).__name__)
+        return {}, JSONResponse({"error": "backend probe failed"}, status_code=500)
+
+
+def _maybe_reactivate(backend: str, result: dict, reactivate_on_success: bool) -> tuple[bool, JSONResponse | None]:
+    """Optionally reactivate backend after probe. Returns (reactivated, error_response)."""
+    status = str(result.get("status", "unknown"))
+    if status != "healthy" or not reactivate_on_success:
+        return False, None
+    try:
+        from backend_retirement import reactivate
+
+        reactivate(backend)
+        return True, None
+    except ImportError:
+        return False, JSONResponse({"error": "backend_retirement module not loaded"}, status_code=503)
+    except Exception as exc:
+        logger.warning("probe-based backend reactivation failed backend=%s: %s", backend, type(exc).__name__)
+        return False, JSONResponse({"error": "backend reactivation failed"}, status_code=500)
+
+
 @router.post("/backends/probe", dependencies=[Depends(require_private_api_key)])
 async def ops_backend_probe(request: Request) -> JSONResponse:
     """Probe one backend and record the evidence before any recovery action."""
@@ -66,35 +96,17 @@ async def ops_backend_probe(request: Request) -> JSONResponse:
         return JSONResponse({"error": "valid timeout_sec required"}, status_code=400)
     if timeout_sec <= 0 or timeout_sec > 120:
         return JSONResponse({"error": "timeout_sec must be between 0 and 120"}, status_code=400)
-    try:
-        from backend_probe_loop import probe_and_record_backend
 
-        result = probe_and_record_backend(
-            backend,
-            ignore_cooldown=True,
-            timeout_sec=timeout_sec,
-        )
-    except ImportError:
-        return JSONResponse({"error": "backend_probe_loop module not loaded"}, status_code=503)
-    except Exception as exc:
-        logger.warning("manual backend probe failed backend=%s: %s", backend, type(exc).__name__)
-        return JSONResponse({"error": "backend probe failed"}, status_code=500)
+    result, err = _probe_backend(backend, timeout_sec)
+    if err is not None:
+        return err
+
+    reactivated, err = _maybe_reactivate(backend, result, reactivate_on_success)
+    if err is not None:
+        return err
 
     status = str(result.get("status", "unknown"))
     healthy = status == "healthy"
-    reactivated = False
-    if healthy and reactivate_on_success:
-        try:
-            from backend_retirement import reactivate
-
-            reactivate(backend)
-            reactivated = True
-        except ImportError:
-            return JSONResponse({"error": "backend_retirement module not loaded"}, status_code=503)
-        except Exception as exc:
-            logger.warning("probe-based backend reactivation failed backend=%s: %s", backend, type(exc).__name__)
-            return JSONResponse({"error": "backend reactivation failed"}, status_code=500)
-
     if healthy:
         recommended = "reactivated" if reactivated else "reactivate_with_evidence"
     elif status == "unknown":
