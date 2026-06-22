@@ -13,6 +13,6 @@ websockets>=14.0                 # already pulled by uvicorn[standard] usually
 edge-tts>=6.1
 funasr>=1.1
 onnxruntime>=1.16
-modelscope>=1.15
+modelscope>=1.37.1
 torch>=2.0
 torchaudio>=2.0
