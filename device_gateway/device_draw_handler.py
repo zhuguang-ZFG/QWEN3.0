@@ -205,30 +205,8 @@ def _finalize_draw_response(
     return response
 
 
-async def handle_device_draw(
-    prompt: str, device_id: Optional[str] = None, user_preferences: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
-    """
-    处理设备绘图请求
-
-    Args:
-        prompt: 用户绘图描述
-        device_id: 设备 ID
-        user_preferences: 用户偏好（模型、尺寸等）
-
-    Returns:
-        {
-            'status': 'success' | 'failed',
-            'image_url': str,
-            'svg_path': str | None,
-            'width': int,
-            'height': int,
-            'model': str,
-            'error': str | None
-        }
-    """
-    prefs = user_preferences or {}
-    # wanx-v1 is deprecated/ unavailable; use the current working model.
+def _resolve_draw_request(prefs: dict, device_id: str | None, prompt: str) -> dict:
+    """Resolve drawing request config and log the request."""
     model = prefs.get("model", "wanx2.1-t2i-turbo")
     size = prefs.get("size", "1024*1024")
     device_type = resolve_device_type(device_id, prefs)
@@ -241,7 +219,21 @@ async def handle_device_draw(
         f"Device {device_id} draw request: {prompt[:50]}... "
         f"(model={model}, device_type={device_type}, context_turns={conversation_context.count(chr(10))})"
     )
+    return {
+        "model": model,
+        "size": size,
+        "device_type": device_type,
+        "style": style,
+        "complexity": complexity,
+        "failed_prompts": failed_prompts,
+        "conversation_context": conversation_context,
+    }
 
+
+async def _try_preset_or_generate(
+    prompt: str, device_id: str | None, config: dict
+) -> dict[str, Any]:
+    """Try preset shape first; fall back to AI image generation."""
     preset = _try_preset_shape(prompt)
     if preset:
         if preset.get("status") != "success":
@@ -251,28 +243,41 @@ async def handle_device_draw(
     try:
         result = await _generate_image(
             prompt,
-            model,
-            size,
-            device_type=device_type,
-            style=style,
-            complexity=complexity,
-            previous_failed_prompts=failed_prompts or None,
-            conversation_context=conversation_context,
+            config["model"],
+            config["size"],
+            device_type=config["device_type"],
+            style=config["style"],
+            complexity=config["complexity"],
+            previous_failed_prompts=config.get("failed_prompts") or None,
+            conversation_context=config.get("conversation_context"),
         )
         if result["status"] != "success" or not result["images"]:
             record_failed_draw_prompt(device_id, prompt, error=str(result.get("error") or "Unknown error"))
             return _finalize_draw_response(
                 device_id,
                 prompt,
-                _build_failed_response(model, result.get("error", "Unknown error")),
+                _build_failed_response(config["model"], result.get("error", "Unknown error")),
             )
 
         image_url = result["images"][0]["url"]
-        response = await _convert_and_optimize(image_url, model)
+        response = await _convert_and_optimize(image_url, config["model"])
         if response.get("status") != "success":
             record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, response)
     except Exception as e:
         logger.error(f"Device draw failed: {e}")
         record_failed_draw_prompt(device_id, prompt, error=str(e))
-        return _finalize_draw_response(device_id, prompt, _build_failed_response(model, str(e)))
+        return _finalize_draw_response(device_id, prompt, _build_failed_response(config["model"], str(e)))
+
+
+async def handle_device_draw(
+    prompt: str, device_id: Optional[str] = None, user_preferences: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Handle a device drawing request.
+
+    Tries preset shape matching first; falls back to AI image generation
+    via DashScope then SVG conversion and optimization.
+    """
+    prefs = user_preferences or {}
+    config = _resolve_draw_request(prefs, device_id, prompt)
+    return await _try_preset_or_generate(prompt, device_id, config)

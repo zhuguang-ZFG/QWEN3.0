@@ -46,17 +46,17 @@
   - Commit `20552b66`：`refactor(slim): split build_role_layer and parse_command into helpers`。
   - Commit `78aeba3e`：`docs(progress): update LiMa slimming phase 4-5 evidence`。
   - GitHub (`origin`) push 成功：`d8d734ba..20552b66`。
-- **后续拆分（剩余 4 个生产函数）**：
-  - `routing_ml/routing_trainer.py::try_train`（59→44 行）：提取 `_ensure_model()` 和 `_run_training_epochs()`。
-  - `session_memory/learning_loop/ingest.py::ingest_task_outcome`（59→31 行）：提取 `_record_to_ledger()` 和 `_record_capability_evidence()`。
-  - `context_pipeline/graph_context_expander.py::expand_context`（58→30 行）：提取 `_expand_one_seed()`。
-  - `streaming_bridge.py::bridge_stream`（59→38 行）：提取 `_wait_for_first_chunk()`。
+- **后续拆分（handle_device_draw + _sanitize_text 合并）**：
+  - `device_gateway/device_draw_handler.py::handle_device_draw`（71→23 行）：提取 `_resolve_draw_request()` 和 `_try_preset_or_generate()`。
+  - 合并 `_sanitize_text` 重复实现：`tool_gateway/audit.py` 改为从 `observability/events` 导入，消除 1 处重复 inline redact 逻辑。
 - **最新验证**：
-  - >50 行函数从 90 降至 **78**（累计减 12 个）。
-- **Git**：本轮待提交。
+  - >50 行函数从 90 降至 **77**（累计减 13 个）。
+**Git**：
+  - `218ad82a`：`refactor(slim): split 4 production functions — try_train, ingest, expand, bridge_stream`。
+  - 本轮待提交（handle_device_draw + sanitize_text）。
 - **剩余**：
-  - 剩余 78 个 >50 行函数中生产函数仅剩 <5 个（`routing_engine_post::post_route` 等）；其余均在脚本/测试/开发工具中。
-  - 清理一次性脚本、合并重复工具函数（`_sanitize_text`、Redis store 等）。
+  - 剩余 77 个 >50 行函数中生产函数已降至极少数（`http_async::call_api_async`、`streaming::bridge_stream_async` 等，多为异步桥梁函数）。
+  - 清理一次性脚本、合并 Redis store 等可择机处理。
 
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 

@@ -32,17 +32,7 @@ def _db_path() -> str:
     return os.environ.get("LIMA_AUDIT_DB", os.path.join(_DB_DIR, "tool_audit.db"))
 
 
-def _sanitize_text(value: object) -> str:
-    text = str(value)
-    try:
-        from session_memory.redact import sanitize_for_display
-
-        return sanitize_for_display(text)
-    except ImportError:
-        lowered = text.lower()
-        if "bearer " in lowered or "sk-" in lowered or "cookie" in lowered:
-            return "[REDACTED]"
-        return text
+from observability.events import _sanitize_text
 
 
 def _is_sensitive_key(key: str) -> bool:
