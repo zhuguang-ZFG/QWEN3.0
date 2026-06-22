@@ -54,7 +54,7 @@ jobs:
           LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
           LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts
           LIMA_DEPLOY_PASS: ${{ secrets.LIMA_DEPLOY_PASS }}
-          LIMA_DEPLOY_USE_RSYNC: "1"
+          LIMA_DEPLOY_USE_TAR: "1"
         run: |
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
           python scripts/deploy_unified.py --slice all
