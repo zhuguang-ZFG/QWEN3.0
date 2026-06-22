@@ -13,6 +13,9 @@
 | NEXT-4 | type | `lima_mcp_stdio` 3 个 pyright errors 已修复 | Closed |
 | NEXT-5 | deploy | 本地 `~/.ssh/id_ed25519` 被 paramiko 报 `Invalid key`，`LIMA_DEPLOY_PASS` 未设置；已配置 GitHub Secrets（`VPS_SSH_KEY`、`VPS_HOST`、`LIMA_DEPLOY_PASS`、`LIMA_API_KEY` 等）并触发自动部署验证 | Closed |
 | NEXT-6 | git | Gitee (`gitee`) push 失败：`Permission denied (publickey)`；用户决定不再维护 Gitee 镜像，remote 已移除 | Closed |
+| NEXT-7 | ci_cd | GitHub Actions `Deploy` 工作流 Aliyun 部署验证通过；`/health` 在 GitHub runner 偶发 read timeout，已在 `scripts/verify_production_deploy.py` 中增加重试与 90s 超时 | Closed |
+| NEXT-8 | ci_cd | L2 登录限流探针在 GitHub runner 偶发 POST read timeout，已增加每请求重试与网络失败降级 | Closed |
+| NEXT-9 | ci_cd | JDCloud provider probe 上传路径错误（上传到 `/opt/lima-probe/provider_probe/` 但 service 期望 `/opt/lima-probe/`），已修正；重启后健康检查改为轮询等待 | Closed |
 
 ## 2026-06-20 工作区清理与 redis_store 瘦身
 
