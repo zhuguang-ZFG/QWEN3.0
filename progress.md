@@ -3111,3 +3111,21 @@ Agent Worker path.
   - `pyright scripts/run_pre_commit_check.py` 0 errors。
   - 全量 pytest 与 CI 一致 ignore 列表 → **2281 passed / 18 skipped / 0 failed**。
 - **提交**：`97c1ce9f`、`d22b3101`、`9415607f`、`2dc92c83` 已 push 到 `origin/main`。
+
+## 2026-06-22 免费聊天修复：解除生产环境匿名访问阻断
+
+- **背景**：用户确认 LiMa 星云聊天为免费、无需 API Key；但生产环境因 `LIMA_RUNTIME_ENV=production` 被 `access_guard.py` 强制阻断匿名访问，`/health.security.anonymous_access.allowed=false`，`/v1/chat/completions` 不带 Key 返回 401。
+- **修复**：
+  - `access_guard.py`：移除 `allow_anonymous_access()` 中生产环境的强制 `False`；`anonymous_access_status()` 的 `production_blocked` 改为 `production and env_enabled and not allowed`。
+  - `tests/test_access_guard.py`、`tests/test_system_endpoints.py`：更新断言，生产环境在 `LIMA_ALLOW_ANONYMOUS=1` 时应允许匿名。
+  - `chat-web/chat-api.js`：移除发送消息前的 `ensureApiKey()` 强制弹窗。
+  - `chat-web/chat-ui.js`：`confirmApiKey()` 允许留空并清除已保存的 Key。
+  - `chat-web/index.html`：Key 弹窗文案改为“设置 API Key（可选）”，脚本 cache-bust 升级到 `?v=3`。
+- **验证**：
+  - 聚焦测试 `tests/test_access_guard.py tests/test_system_endpoints.py` → 先 RED（2 failed）后 GREEN（27 passed）。
+  - 全量 `pytest -q` → **2305 passed / 18 skipped / 0 failed**。
+  - `ruff check`、`pyright` 针对修改文件 clean。
+  - GitHub Actions `Deploy` workflow 触发并部署（run `27942136224`）。
+  - 公网 `/health` → `security.anonymous_access.allowed=true`、`production_blocked=false`。
+  - 公网匿名 `POST /v1/chat/completions`（无 Authorization）成功返回响应。
+- **提交**：`241f360a` 已 push 到 `origin/main`；`gitee` remote 不存在，未推送。
