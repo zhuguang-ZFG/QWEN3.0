@@ -71,13 +71,19 @@ class RedisDeviceTaskNotifier:
                 await self._task
         self._task = None
         if self._pubsub is not None:
-            with contextlib.suppress(Exception):
+            try:
                 await self._pubsub.unsubscribe(self._channel)
-            with contextlib.suppress(Exception):
+            except Exception as exc:
+                _log("notifier_unsubscribe_error", str(exc))
+            try:
                 await self._pubsub.close()
+            except Exception as exc:
+                _log("notifier_pubsub_close_error", str(exc))
         self._pubsub = None
-        with contextlib.suppress(Exception):
+        try:
             await self._redis.aclose()
+        except Exception as exc:
+            _log("notifier_redis_close_error", str(exc))
 
     async def _listen(self, callback: TaskAvailableCallback) -> None:
         assert self._pubsub is not None

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any
 
 from device_ledger.events import DuplicateLedgerEvent, LedgerEvent
@@ -11,6 +12,9 @@ from device_ledger.store import _replay_from_events
 from device_gateway.redis_store_codec import connect_redis
 
 _log = logging.getLogger(__name__)
+
+# Default Redis key TTL for ledger entries (seconds)
+_DEFAULT_LEDGER_TTL = int(os.environ.get("LIMA_REDIS_LEDGER_TTL", "7776000"))  # 90 days
 
 
 class RedisLedgerStore:
@@ -30,8 +34,13 @@ class RedisLedgerStore:
         if added == 0:
             raise DuplicateLedgerEvent(f"duplicate ledger event id: {event.event_id}")
         encoded = json.dumps(event.to_dict())
-        self._redis.rpush(self._task_key(event.task_id), encoded)
-        self._redis.rpush(self._device_key(event.device_id), encoded)
+        task_key = self._task_key(event.task_id)
+        device_key = self._device_key(event.device_id)
+        self._redis.rpush(task_key, encoded)
+        self._redis.expire(task_key, _DEFAULT_LEDGER_TTL)
+        self._redis.rpush(device_key, encoded)
+        self._redis.expire(device_key, _DEFAULT_LEDGER_TTL)
+        self._redis.expire(self._event_ids_key(), _DEFAULT_LEDGER_TTL)
 
     def events_for_task(self, task_id: str) -> list[LedgerEvent]:
         return self._events_from_key(self._task_key(task_id), context=f"task_id={task_id}")

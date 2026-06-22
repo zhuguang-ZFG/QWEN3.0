@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import html
+
 from routes.admin_ui import panels, templates
 
 
 def render_admin_login(error_msg: str = "") -> str:
     """Return the admin login page HTML."""
-    err = f'<p style="color:#f87171;margin:12px 0">{error_msg}</p>' if error_msg else ""
+    safe_msg = html.escape(error_msg) if error_msg else ""
+    err = f'<p style="color:#f87171;margin:12px 0">{safe_msg}</p>' if safe_msg else ""
     return f"""\
 <!DOCTYPE html>
 <html lang="zh-CN"><head>

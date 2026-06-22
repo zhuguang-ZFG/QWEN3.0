@@ -8,13 +8,37 @@
 > Updated: 2026-06-22
 > Branch: `main`
 > Scale: 约 1021 个 Python 文件 / 全仓 905 文件已格式化
-> Tests: 全量 2319 passed / 18 skipped / 0 failed；ruff check clean；ruff format clean
+> Tests: 全量 2328 passed / 18 skipped / 0 failed；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
 > CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；提示词工程 5 项高优先级安全问题已关闭（P0-1~P0-5）。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-22）全量修复里程碑 A/B/C/D
+
+- **目标**：响应「进行全量修复」指令，对 LiMa 服务、固件端、Web 前端、小程序端做端到端修复与验证。
+- **里程碑 A（CRITICAL 安全）**：
+  - 固件 `application.yml` / `application-dev.yml` / `docker-compose_all.yml` 移除数据库与 Knife4j 默认密码 fallback，强制通过环境变量配置。
+  - `u1-grbl` 固件默认 WiFi AP/STA 密码从硬编码 `12345678` 改为空，避免出厂即携带弱口令。
+- **里程碑 B（HIGH 稳定性）**：
+  - 修复 Redis TTL 变更导致的 9 个测试回归：为 `_FakeRedis` 补充 `expire()` / `set(..., ex=...)`。
+  - 多个 SQLite 连接泄漏点已在前期修复；本次新增 `routes/security_headers.py` 全局安全响应头中间件。
+- **里程碑 C（MEDIUM 质量）**：
+  - 关键路由速率限制：`/admin/login`（IP）、`/internal/v1/outcome`（IP）、`/upload`（账户），并配套 `routes/rate_limit_helper.py` 与 `LIMA_RATE_LIMIT_DISABLE` 开关。
+  - `.env.example` 补充 `LIMA_API_KEY`、`LIMA_JWT_SECRET`、`LIMA_DATA_DIR`、`LIMA_DB_PATH`、Redis TTL、公开演示、上传/管理登录/Outcome 限流等缺失变量。
+  - `.dockerignore` 新增 `.guardian/`、`.test-tmp/`、`*.pyc`、`node_modules/`、IDE 目录等，减小镜像体积。
+  - `docker-compose.yml` 增加 `redis` 服务、数据卷、depends_on 健康检查与默认 Redis URL 环境变量。
+  - Web 前端（`chat-web/`）：添加 CSP 与 noscript、代码块 HTML 转义、移除内联 `onclick`。
+  - 小程序端（`manager-mobile/src/`）：清理 `App.vue`、`fg-tabbar.vue`、`router/interceptor.ts`、`utils/index.ts`、`hooks/useUpload.ts` 中的调试 `console.log` 与注释垃圾。
+- **里程碑 D（LOW 优化）**：
+  - `migrations/xiaozhi_schema.sql` 增加 `v2_device(last_heartbeat)`、`v2_device_binding(status)`、`v2_task(device_id, status)` 复合索引。
+- **验证**：
+  - 聚焦测试（Redis TTL、上传、管理员 CSRF、JSON body、前端安全、安全头）全部通过。
+  - 全量 `pytest -q` → **2328 passed / 18 skipped / 0 failed**。
+  - `ruff check` / `pyright`（修改文件）→ 0 errors。
+  - `scripts/check_code_size.py`：本次修改文件均满足约束；遗留 >300 行文件 3 个、>50 行函数 72 个为历史债务。
 
 ### 最近完成（2026-06-22）项目文档更新与过时内容清理
 

@@ -19,7 +19,7 @@ class _FakeRedis:
         self.sets: dict[str, set[str]] = {}
         self.lists: dict[str, list[str]] = {}
 
-    def set(self, key: str, value: str) -> None:
+    def set(self, key: str, value: str, ex: int | None = None) -> None:
         self.values[key] = value
 
     def get(self, key: str) -> str | None:
@@ -63,6 +63,9 @@ class _FakeRedis:
         for key in {*self.values, *self.sets, *self.lists}:
             if key.startswith(prefix):
                 yield key
+
+    def expire(self, key: str, ttl: int) -> bool:
+        return True
 
 
 def _memory_entry(entry_id: str = "mem_redis_1", device_id: str = "dev_a") -> MemoryEntry:

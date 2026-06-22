@@ -71,7 +71,7 @@ function formatContent(text) {
       return `<div class="media-card"><img src="${escapeAttr(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
     })
     .replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-      return `<div class="code-card"><div class="code-header"><div class="code-lights"><span></span><span></span><span></span></div><button class="copy-btn" onclick="copyCode(this)">复制</button></div><pre><code>${code}</code></pre></div>`;
+      return `<div class="code-card"><div class="code-header"><div class="code-lights"><span></span><span></span><span></span></div><button class="copy-btn" data-action="copy-code">复制</button></div><pre><code>${escapeHtml(code)}</code></pre></div>`;
     })
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -79,7 +79,7 @@ function formatContent(text) {
 }
 
 function attachCodeCopy(root) {
-  root.querySelectorAll('.copy-btn').forEach(btn => {
+  root.querySelectorAll('.copy-btn[data-action="copy-code"]').forEach(btn => {
     btn.addEventListener('click', () => copyCode(btn));
   });
 }

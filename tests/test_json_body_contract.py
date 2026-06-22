@@ -91,3 +91,22 @@ def test_outcome_ingest_rejects_malformed_json_after_auth(monkeypatch):
 
     assert response.status_code == 400
     assert response.json()["error"] == "valid JSON body required"
+
+
+def test_outcome_ingest_rate_limited(monkeypatch):
+    import rate_limiter
+    import routes.outcome_ingest as outcome_mod
+
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr(outcome_mod, "_OUTCOME_MAX_PER_MIN", 1)
+    rate_limiter.reset()
+
+    client = TestClient(server.app)
+    headers = {"Authorization": "Bearer test-key", "Content-Type": "application/json"}
+
+    ok = client.post("/internal/v1/outcome", headers=headers, json={"source": "ci", "event_type": "test"})
+    assert ok.status_code == 200, ok.text
+
+    blocked = client.post("/internal/v1/outcome", headers=headers, json={"source": "ci", "event_type": "test"})
+    assert blocked.status_code == 429
+    assert "rate_limit_error" in blocked.json()["error"]["type"]

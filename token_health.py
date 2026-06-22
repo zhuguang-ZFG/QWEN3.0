@@ -86,6 +86,7 @@ def get_expired_tokens() -> list[dict]:
 
 def save_token_status(results: list[dict]) -> None:
     """Save token check results to SQLite."""
+    conn = None
     try:
         os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
         conn = sqlite3.connect(DB_PATH, timeout=5)
@@ -103,9 +104,14 @@ def save_token_status(results: list[dict]) -> None:
                 (r["backend"], r.get("status", "unknown"), time.time(), r.get("error", "")),
             )
         conn.commit()
-        conn.close()
     except Exception as exc:
         logger.warning("Failed to save token health: %s", exc)
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def alert_expired_tokens() -> None:

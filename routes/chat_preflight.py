@@ -95,7 +95,7 @@ def prepare_chat_preflight(
     try:
         run_input_guardrails(req)
     except ImportError:
-        _log.debug("context_pipeline.guardrails not installed; skipping input guardrails")
+        _log.warning("context_pipeline.guardrails not installed; skipping input guardrails")
 
     prompt_ctx = build_prompt_context(
         req,
@@ -120,12 +120,12 @@ def prepare_chat_preflight(
     try:
         request_messages, prompt_context_messages = apply_token_budget(req, request_messages, system_prompt, ide_source)
     except ImportError:
-        _log.debug("token budget module not installed; skipping apply_token_budget")
+        _log.warning("token budget module not installed; skipping apply_token_budget")
 
     try:
         system_prompt, prompt_context_messages = adapt_identity_prompt(system_prompt, client_ip, request_messages)
     except ImportError:
-        _log.debug("identity adapter not installed; skipping adapt_identity_prompt")
+        _log.warning("identity adapter not installed; skipping adapt_identity_prompt")
 
     return ChatPreflightResult(
         request_messages=request_messages,

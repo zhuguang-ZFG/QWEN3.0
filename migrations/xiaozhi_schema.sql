@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS v2_device (
 
 CREATE INDEX IF NOT EXISTS idx_v2_device_sn ON v2_device(device_sn);
 CREATE INDEX IF NOT EXISTS idx_v2_device_status ON v2_device(status);
+CREATE INDEX IF NOT EXISTS idx_v2_device_heartbeat ON v2_device(last_heartbeat);
 
 -- ============================================================
 -- 3. v2_device_binding - 设备绑定关系
@@ -83,6 +84,7 @@ CREATE TABLE IF NOT EXISTS v2_device_binding (
 
 CREATE INDEX IF NOT EXISTS idx_v2_binding_device ON v2_device_binding(device_id);
 CREATE INDEX IF NOT EXISTS idx_v2_binding_account ON v2_device_binding(account_id);
+CREATE INDEX IF NOT EXISTS idx_v2_binding_status ON v2_device_binding(status);
 
 -- ============================================================
 -- 3a. v2_activation_code - 设备注册激活码（SQLite 持久化，多 worker 安全）
@@ -163,6 +165,7 @@ CREATE TABLE IF NOT EXISTS v2_task (
 
 CREATE INDEX IF NOT EXISTS idx_v2_task_device ON v2_task(device_id);
 CREATE INDEX IF NOT EXISTS idx_v2_task_status ON v2_task(status);
+CREATE INDEX IF NOT EXISTS idx_v2_task_device_status ON v2_task(device_id, status);
 CREATE INDEX IF NOT EXISTS idx_v2_task_created ON v2_task(created_at);
 
 -- ============================================================

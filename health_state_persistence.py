@@ -67,6 +67,7 @@ def _ensure_tables(conn: sqlite3.Connection) -> None:
 def save_health_state() -> None:
     """Persist health state to SQLite."""
     with _lock:
+        conn = None
         try:
             conn = _get_conn()
             _ensure_tables(conn)
@@ -109,15 +110,21 @@ def save_health_state() -> None:
                 )
 
             conn.commit()
-            conn.close()
         except Exception as exc:
             logger.warning("Failed to save health state: %s", exc)
+        finally:
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
 
 def load_health_state() -> int:
     """Load health state from SQLite. Returns count of loaded entries."""
     if not os.path.exists(_DB_PATH):
         return 0
+    conn = None
     try:
         conn = _get_conn()
         _ensure_tables(conn)
@@ -151,12 +158,17 @@ def load_health_state() -> int:
                     last_failure=row[6],
                 )
 
-        conn.close()
         logger.info("Loaded health state: %d backends", count)
         return count
     except Exception as exc:
         logger.warning("Failed to load health state: %s", exc)
         return 0
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def save_on_change() -> None:
@@ -164,4 +176,4 @@ def save_on_change() -> None:
     try:
         save_health_state()
     except Exception as exc:
-        _log.debug("health_state.py: {}", type(exc).__name__)
+        _log.warning("health_state.py save failed: %s", type(exc).__name__)

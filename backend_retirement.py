@@ -182,6 +182,7 @@ def load_retired() -> int:
     """Load retired backends from SQLite."""
     if not os.path.exists(DB_PATH):
         return 0
+    conn = None
     try:
         conn = sqlite3.connect(DB_PATH, timeout=5)
         count = 0
@@ -189,11 +190,16 @@ def load_retired() -> int:
             _retired_backends.add(row[0])
             _mark_health_retired(row[0])
             count += 1
-        conn.close()
         return count
     except Exception as exc:
         logger.warning("Failed to load retired backends: %s", type(exc).__name__)
         return 0
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def get_recovery_snapshot(
@@ -214,6 +220,7 @@ def get_recovery_snapshot(
 
 def _save_retirement(backend: str, status: str, reason: str) -> None:
     """Save retirement record to SQLite."""
+    conn = None
     try:
         os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
         conn = sqlite3.connect(DB_PATH, timeout=5)
@@ -230,9 +237,14 @@ def _save_retirement(backend: str, status: str, reason: str) -> None:
             (backend, status, reason, time.time()),
         )
         conn.commit()
-        conn.close()
     except Exception as exc:
         logger.warning("Failed to save retirement: %s", exc)
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def _notify_retirement(backend: str, status: str, reason: str) -> None:

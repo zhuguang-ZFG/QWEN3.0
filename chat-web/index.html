@@ -6,9 +6,15 @@
   <title>LiMa 星云 — AI 智能设备星云系统控制台</title>
   <meta name="description" content="LiMa 星云系统控制台 — 管理 AI 绘图机、写字机与 2D 数字人，一句话开始创作">
   <meta name="theme-color" content="#0a0a0f">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.pollinations.ai https://chat.donglicao.com https://api.donglicao.com; connect-src 'self'; font-src 'self'; upgrade-insecure-requests;">
   <link rel="stylesheet" href="styles.css?v=nebula2">
 </head>
 <body>
+  <noscript>
+    <div style="padding:2rem;text-align:center;background:#0a0a0f;color:#e2e8f0;">
+      请启用 JavaScript 以使用 LiMa 星云控制台。
+    </div>
+  </noscript>
   <!-- SOLAR SYSTEM BACKGROUND -->
   <canvas id="solar-canvas"></canvas>
   <!-- SIDEBAR OVERLAY (mobile) -->

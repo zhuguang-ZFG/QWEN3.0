@@ -26,6 +26,7 @@ from vision_handler import (
 )
 from http_body_limit import BodySizeLimitMiddleware
 from lima_constants import MODEL_VERSION
+from routes.security_headers import SecurityHeadersMiddleware
 from server_bootstrap import (
     MAX_BODY_SIZE,
     MODEL_CREATED,
@@ -59,6 +60,7 @@ if _sentry_dsn:
         _boot_log.warning("SENTRY_DSN is set but sentry_sdk is not installed; error tracking disabled")
 
 app.add_middleware(BodySizeLimitMiddleware, max_body_size=MAX_BODY_SIZE)
+app.add_middleware(SecurityHeadersMiddleware)
 
 _stats, _stats_lock, _backend_enabled, _loaded_modules = create_runtime_state()
 app.state.stats = _stats

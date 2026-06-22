@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 import uuid
 from pathlib import Path
@@ -12,10 +13,13 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from routes.upload_tokens import public_upload_get_enabled, upload_access_token, verify_upload_access_token
 from routes.xiaozhi_compat.auth import authorize
+from routes.rate_limit_helper import check_key_limit
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+_UPLOAD_MAX_PER_MIN = int(os.environ.get("LIMA_UPLOAD_PER_MIN", "30"))
 
 _BASE_DIR = Path(__file__).resolve().parent.parent
 _UPLOAD_DIR = _BASE_DIR / "data" / "uploads"
@@ -76,17 +80,8 @@ def _safe_upload_path(filename: str, *, allowed_extensions: frozenset[str] | Non
     return candidate
 
 
-@router.post("/upload")
-async def upload_file(
-    request: Request,
-    file: UploadFile = File(...),
-    authorization: str = Header(default=""),
-) -> JSONResponse:
-    """Upload an image file and return its public URL."""
-    account = authorize(authorization)
-    if isinstance(account, JSONResponse):
-        return account
-
+def _validate_upload(file: UploadFile, content: bytes) -> JSONResponse | None:
+    """Validate filename, extension, size, and image signature."""
     if not file.filename:
         return JSONResponse({"code": 400, "message": "filename is required"}, status_code=400)
 
@@ -97,7 +92,6 @@ async def upload_file(
             status_code=400,
         )
 
-    content = await file.read()
     if len(content) > _MAX_SIZE_BYTES:
         return JSONResponse(
             {"code": 413, "message": f"file size exceeds {_MAX_SIZE_BYTES / 1024 / 1024}MB"},
@@ -106,7 +100,12 @@ async def upload_file(
 
     if not _matches_image_signature(content, ext):
         return JSONResponse({"code": 400, "message": "file content does not match image type"}, status_code=400)
+    return None
 
+
+def _store_upload(file: UploadFile, content: bytes, request: Request) -> JSONResponse:
+    """Persist the uploaded image and return its public URL."""
+    ext = _extension(file.filename or "")
     stored_name = f"{uuid.uuid4().hex}.{ext}"
     stored_path = _UPLOAD_DIR / stored_name
     stored_path.write_bytes(content)
@@ -128,6 +127,30 @@ async def upload_file(
             },
         }
     )
+
+
+@router.post("/upload")
+async def upload_file(
+    request: Request,
+    file: UploadFile = File(...),
+    authorization: str = Header(default=""),
+) -> JSONResponse:
+    """Upload an image file and return its public URL."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+
+    rate_limit_key = account.get("id") if isinstance(account, dict) else None
+    rate_limit_response = check_key_limit(f"upload:{rate_limit_key or 'anonymous'}", _UPLOAD_MAX_PER_MIN)
+    if rate_limit_response is not None:
+        return rate_limit_response
+
+    content = await file.read()
+    validation_error = _validate_upload(file, content)
+    if validation_error is not None:
+        return validation_error
+
+    return _store_upload(file, content, request)
 
 
 def _upload_get_allowed(filename: str, token: str, authorization: str) -> bool:

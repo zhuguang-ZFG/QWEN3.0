@@ -12,6 +12,39 @@
 
 
 
+## 2026-06-22 LiMa 全量修复 — 里程碑 A/B/C/D
+
+
+
+- **目标**：响应「进行全量修复」指令，对 LiMa 服务、固件、Web 前端、小程序端做端到端修复与验证。
+
+- **里程碑 A（CRITICAL 安全）**：
+  - 固件 `application.yml` / `application-dev.yml` / `docker-compose_all.yml` 移除 `DB_PASSWORD` 与 `KNIFE4J_PASSWORD` 默认 fallback，强制通过环境变量配置。
+  - `esp32S_XYZ/firmware/u1-grbl/Grbl_Esp32/src/WebUI/WifiConfig.h` 默认 WiFi 密码从 `12345678` 改为空字符串并加注释说明需通过 WebUI 或构建宏配置。
+
+- **里程碑 B（HIGH 稳定性）**：
+  - 修复 Redis TTL 变更引入的 9 个测试回归：为 `tests/test_device_gateway_redis_store.py` 与 `tests/test_device_store_redis_backends.py` 的 `_FakeRedis` 增加 `expire()` 与 `set(..., ex=...)` 支持。
+  - 新增 `routes/security_headers.py` 全局安全响应头中间件（`X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy`、`Permissions-Policy`、`HSTS`）。
+
+- **里程碑 C（MEDIUM 质量）**：
+  - 关键路由速率限制：新增 `routes/rate_limit_helper.py`，为 `/admin/login`（`LIMA_ADMIN_LOGIN_PER_MIN`）、`/internal/v1/outcome`（`LIMA_OUTCOME_INGEST_PER_MIN`）、`/upload`（`LIMA_UPLOAD_PER_MIN`）添加滑动窗口限流，支持 `LIMA_RATE_LIMIT_DISABLE` 全局关闭。
+  - `.env.example` 补充核心缺失变量：`LIMA_API_KEY` / `LIMA_API_KEYS`、`LIMA_JWT_SECRET`、`LIMA_DATA_DIR`、`LIMA_DB_PATH`、`LIMA_DEVICE_TASK_STORE`、Redis TTL、公开演示开关、上传/限流相关变量等。
+  - `.dockerignore` 扩充排除项（`.guardian/`、`.test-tmp/`、`*.pyc`、`node_modules/`、IDE 配置等）。
+  - `docker-compose.yml` 增加 `redis` 服务、数据持久化卷、`depends_on` 健康检查、默认 Redis URL 环境变量。
+  - Web 前端：`chat-web/index.html` 添加 CSP meta 与 noscript；`chat-web/chat-messages.js` 对代码块内容做 HTML 转义并移除内联 `onclick`。
+  - 小程序端：清理 `App.vue`、`fg-tabbar.vue`、`router/interceptor.ts`、`utils/index.ts`、`hooks/useUpload.ts` 中的调试 `console.log`、注释掉的日志与无意义 `success` 回调。
+
+- **里程碑 D（LOW 优化）**：
+  - `migrations/xiaozhi_schema.sql` 新增索引：`idx_v2_device_heartbeat`、`idx_v2_binding_status`、`idx_v2_task_device_status`。
+
+- **验证**：
+  - 聚焦测试通过：Redis TTL、上传、管理员 CSRF、JSON body 合同、前端安全、安全头。
+  - 全量 `pytest -q` → **2328 passed / 18 skipped / 0 failed**。
+  - `ruff check .` clean；`pyright`（修改文件）0 errors（仅 `server.py` sentry_sdk 可选导入 warning）。
+  - `scripts/check_code_size.py`：本次修改文件均满足约束；遗留 >300 行文件 3 个、>50 行函数 72 个为历史债务。
+
+
+
 ## 2026-06-22 LiMa 瘦身计划 — Ponytail 原则（进行中）
 
 

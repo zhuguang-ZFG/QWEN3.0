@@ -147,6 +147,39 @@ def test_serve_rejects_unsafe_or_unknown_filename(upload_client, filename):
     assert response.status_code == 404
 
 
+def test_upload_rate_limited_per_account(upload_client, monkeypatch):
+    monkeypatch.setattr("routes.upload._UPLOAD_MAX_PER_MIN", 1)
+    import rate_limiter
+
+    rate_limiter.reset()
+
+    first = upload_client.post(
+        "/upload",
+        files={"file": ("test.png", io.BytesIO(_png_bytes()), "image/png")},
+        headers=_auth_headers(),
+    )
+    assert first.status_code == 200, first.text
+
+    blocked = upload_client.post(
+        "/upload",
+        files={"file": ("test2.png", io.BytesIO(_png_bytes()), "image/png")},
+        headers=_auth_headers(),
+    )
+    assert blocked.status_code == 429
+    assert "rate_limit_error" in blocked.json()["error"]["type"]
+
+    # A different account should still be allowed.
+    with connect() as conn:
+        conn.execute("INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)", ("a-upload-2", "13011", "uploader2"))
+        conn.commit()
+    allowed = upload_client.post(
+        "/upload",
+        files={"file": ("test3.png", io.BytesIO(_png_bytes()), "image/png")},
+        headers=_auth_headers("a-upload-2"),
+    )
+    assert allowed.status_code == 200, allowed.text
+
+
 @pytest.mark.asyncio
 async def test_serve_uploaded_file_blocks_path_traversal():
     response = await serve_uploaded_file("../../server.py")

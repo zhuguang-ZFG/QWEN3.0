@@ -40,7 +40,7 @@ def record_token_usage(backend: str, prompt_tokens: int = 0, completion_tokens: 
 
         _obs_record(token_usage_event(backend, prompt_tokens, completion_tokens, get_cost_class(backend)))
     except ImportError:
-        logger.debug("observability metrics unavailable: optional dependency not installed")
+        logger.warning("observability metrics unavailable: optional dependency not installed")
 
 
 def get_token_usage(backend: str = "") -> dict[str, Any]:

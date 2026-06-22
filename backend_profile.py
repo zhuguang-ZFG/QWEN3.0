@@ -195,6 +195,7 @@ def get_backend_summary() -> dict[str, dict]:
 def save_profiles() -> None:
     """Persist all profiles to SQLite."""
     with _lock:
+        conn = None
         try:
             conn = sqlite3.connect(DB_PATH, timeout=5)
             conn.execute("PRAGMA journal_mode=WAL")
@@ -232,9 +233,14 @@ def save_profiles() -> None:
                     ),
                 )
             conn.commit()
-            conn.close()
         except Exception as exc:
             logger.warning("Failed to save backend profiles: %s", exc)
+        finally:
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
 
 def load_profiles() -> int:
@@ -242,6 +248,7 @@ def load_profiles() -> int:
     global _profiles
     if not os.path.exists(DB_PATH):
         return 0
+    conn = None
     try:
         conn = sqlite3.connect(DB_PATH, timeout=5)
         cursor = conn.execute("SELECT * FROM backend_profiles")
@@ -261,12 +268,17 @@ def load_profiles() -> int:
             )
             _profiles[name] = profile
             count += 1
-        conn.close()
         logger.info("Loaded %d backend profiles from %s", count, DB_PATH)
         return count
     except Exception as exc:
         logger.warning("Failed to load backend profiles: %s", exc)
         return 0
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def save_on_interval(interval_sec: int = 300) -> None:
@@ -279,7 +291,7 @@ def save_on_interval(interval_sec: int = 300) -> None:
             try:
                 save_profiles()
             except Exception as exc:
-                _log.debug("backend_profile.py: {}", type(exc).__name__)
+                _log.warning("backend_profile.py save failed: %s", type(exc).__name__)
 
     t = threading.Thread(target=_save_loop, daemon=True)
     t.start()

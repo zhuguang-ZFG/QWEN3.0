@@ -8,6 +8,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def test_public_chat_has_content_security_policy() -> None:
+    text = (ROOT / "chat-web/index.html").read_text(encoding="utf-8")
+    assert "Content-Security-Policy" in text
+    assert "upgrade-insecure-requests" in text
+
+
+def test_public_chat_code_blocks_escape_html() -> None:
+    text = (ROOT / "chat-web/chat-messages.js").read_text(encoding="utf-8")
+    # Code captured from triple backticks must be HTML-escaped before insertion.
+    assert "<code>${escapeHtml(code)}</code>" in text
+    assert "onclick=\"copyCode" not in text
+
+
 def test_public_chat_renderer_does_not_restore_unescaped_image_attributes() -> None:
     """Markdown image support must not reintroduce raw user/model strings into innerHTML."""
     for rel in ("donglicao-site/chat.html", "chat-web/index.html"):

@@ -18,7 +18,7 @@ def _check_tree_sitter() -> bool:
         _TREE_SITTER_AVAILABLE = True
     except Exception:
         _TREE_SITTER_AVAILABLE = False
-        _log.debug("tree-sitter unavailable, using regex fallback")
+        _log.warning("tree-sitter unavailable, using regex fallback")
     return _TREE_SITTER_AVAILABLE
 
 
@@ -55,6 +55,7 @@ class ParserPool:
                 try:
                     self._parsers[lang_name] = get_parser(lang_name)
                 except Exception:
-                    _log.debug("tree-sitter parser unavailable for %s", lang_name)
+                    _log.warning("tree-sitter parser unavailable for %s", lang_name)
         except ImportError:
             self._use_tree_sitter = False
+            _log.warning("tree_sitter_languages not installed; code context fallback to regex")

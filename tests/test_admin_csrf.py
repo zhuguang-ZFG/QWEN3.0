@@ -106,3 +106,24 @@ def test_admin_toggle_backend_requires_csrf_for_cookie_session(monkeypatch):
         },
     )
     assert allowed.status_code in (200, 404)
+
+
+def test_admin_login_rate_limited(monkeypatch):
+    monkeypatch.setattr(admin_auth, "_ADMIN_TOKEN", "secret-admin-token")
+    monkeypatch.delenv("LIMA_ADMIN_TOKEN", raising=False)
+    monkeypatch.setattr(admin_routes, "_ADMIN_LOGIN_MAX_PER_MIN", 2)
+    import rate_limiter
+
+    rate_limiter.reset()
+
+    app = FastAPI()
+    app.include_router(admin_router)
+    client = TestClient(app, base_url="https://testserver")
+
+    for _ in range(2):
+        response = client.post("/admin/login", data={"token": "secret-admin-token"}, follow_redirects=False)
+        assert response.status_code == 303
+
+    blocked = client.post("/admin/login", data={"token": "secret-admin-token"}, follow_redirects=False)
+    assert blocked.status_code == 429
+    assert "rate_limit_error" in blocked.json()["error"]["type"]

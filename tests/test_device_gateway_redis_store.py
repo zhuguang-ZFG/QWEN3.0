@@ -79,6 +79,9 @@ class _FakeRedis:
     def time(self):
         return [self.now, 0]
 
+    def expire(self, key, ttl):
+        return True
+
     def delete(self, *keys):
         for key in keys:
             self.values.pop(key, None)

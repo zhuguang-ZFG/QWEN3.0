@@ -37,9 +37,9 @@ def _semantic_fallback(session_id: str, query: str, limit: int = 3) -> list:
 
         return search_memories_semantic(session_id, emb[0], limit=limit)
     except ImportError:
-        _log.debug("semantic search not available")
+        _log.warning("semantic search not available")
     except Exception:
-        _log.debug("semantic search failed", exc_info=True)
+        _log.warning("semantic search failed", exc_info=True)
     return []
 
 

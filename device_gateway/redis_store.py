@@ -4,12 +4,16 @@ from __future__ import annotations
 
 from copy import deepcopy
 import logging
+import os
 from typing import Any
 
 from device_gateway.redis_store_codec import connect_redis, decode_redis_json, encode_redis_json
 from device_gateway.redis_store_helpers import RedisStoreHelpers, _ACTIVE_STATUSES
 
 _log = logging.getLogger(__name__)
+
+# Default Redis key TTL for task state and queues (seconds)
+_DEFAULT_TASK_TTL = int(os.environ.get("LIMA_REDIS_TASK_TTL", "2592000"))  # 30 days
 
 
 class RedisDeviceTaskStore(RedisStoreHelpers):
@@ -105,6 +109,7 @@ class RedisDeviceTaskStore(RedisStoreHelpers):
     def enqueue_pending_task(self, device_id: str, task: dict[str, Any]) -> int:
         task["_enqueued_at"] = self._redis.time()[0]
         queue_depth = int(self._redis.rpush(self._queue_key(device_id), encode_redis_json(task)))
+        self._ensure_queue_ttl(device_id)
         state = self._read_task_state(task["task_id"]) or {"task": task, "status": "created", "events": []}
         state["task"] = deepcopy(task)
         state["status"] = "queued"
@@ -144,6 +149,7 @@ class RedisDeviceTaskStore(RedisStoreHelpers):
             self._remove_processing_task(device_id, task["task_id"])
         encoded = [encode_redis_json(task) for task in reversed(tasks)]
         queue_depth = int(self._redis.lpush(self._queue_key(device_id), *encoded))
+        self._ensure_queue_ttl(device_id)
         for task in tasks:
             state = self._read_task_state(task["task_id"]) or {"task": task, "status": "created", "events": []}
             state["task"] = deepcopy(task)
@@ -235,6 +241,7 @@ class RedisDeviceTaskStore(RedisStoreHelpers):
                     removed = self._redis.lrem(proc_key, 0, item)
                     if removed:
                         self._redis.lpush(pending_key, item)
+                        self._ensure_queue_ttl(device_id)
                         if state:
                             state["status"] = "queued"
                             state.pop("processing_started_at", None)

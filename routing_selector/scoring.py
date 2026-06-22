@@ -64,14 +64,14 @@ def _compute_backend_score(
 
         score *= get_routing_weights().get_weight(backend, scenario or request_type)
     except ImportError:
-        _log.debug("context_pipeline.routing_weights not available; using base score")
+        _log.warning("context_pipeline.routing_weights not available; using base score")
     if scenario == "coding":
         try:
             from coding_backend_scorer import get_coding_weight
 
             score *= get_coding_weight(backend)
         except ImportError:
-            _log.debug("coding_backend_scorer not available; skipping coding weight")
+            _log.warning("coding_backend_scorer not available; skipping coding weight")
         if needs_tools and _is_strong_coding_tool_backend(backend, reg.BACKENDS.get(backend, {})):
             score *= 1.25
     static_latency = _STATIC_LATENCY_ESTIMATE.get(backend)
@@ -131,5 +131,5 @@ def _apply_ml_boost(
                 if ml_backend in scores:
                     scores[ml_backend] *= 1.0 + ml_score * 0.3
             notify_request()
-    except (ImportError, Exception):
-        pass
+    except (ImportError, Exception) as exc:
+        _log.warning("routing_ml boost unavailable: %s", exc)

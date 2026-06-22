@@ -216,4 +216,4 @@ def _record_backend_attempt(**kwargs) -> None:
 
         record_backend_attempt(**kwargs)
     except ImportError:
-        logger.debug("observability.backend_telemetry not installed; backend telemetry skipped")
+        logger.warning("observability.backend_telemetry not installed; backend telemetry skipped")

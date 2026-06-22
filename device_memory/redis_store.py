@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from typing import Any, List, Optional
 
@@ -11,6 +12,9 @@ from device_memory.schemas import MemoryEntry, MemoryType
 from device_gateway.redis_store_codec import connect_redis
 
 _log = logging.getLogger(__name__)
+
+# Default Redis key TTL for device memory indexes (seconds)
+_DEFAULT_INDEX_TTL = int(os.environ.get("LIMA_REDIS_MEMORY_INDEX_TTL", "2592000"))  # 30 days
 
 
 class RedisMemoryStore:
@@ -21,8 +25,11 @@ class RedisMemoryStore:
         self._redis, self._prefix = connect_redis(redis_url, "RedisMemoryStore", client=client, key_prefix=key_prefix)
 
     def create(self, entry: MemoryEntry) -> str:
-        self._redis.set(self._entry_key(entry.id), entry.model_dump_json())
-        self._redis.sadd(self._device_key(entry.device_id), entry.id)
+        entry_ttl = max(1, int(entry.ttl_days * 86400))
+        self._redis.set(self._entry_key(entry.id), entry.model_dump_json(), ex=entry_ttl)
+        device_key = self._device_key(entry.device_id)
+        self._redis.sadd(device_key, entry.id)
+        self._redis.expire(device_key, _DEFAULT_INDEX_TTL)
         return entry.id
 
     def recall(self, device_id: str, key: str, memory_type: Optional[MemoryType] = None) -> Optional[MemoryEntry]:
@@ -79,7 +86,8 @@ class RedisMemoryStore:
             return False
         entry = MemoryEntry.model_validate_json(raw)
         updated = entry.model_copy(update={"disabled": True})
-        self._redis.set(self._entry_key(entry_id), updated.model_dump_json())
+        entry_ttl = max(1, int(updated.ttl_days * 86400))
+        self._redis.set(self._entry_key(entry_id), updated.model_dump_json(), ex=entry_ttl)
         return True
 
     def export(self, device_id: str) -> str:
