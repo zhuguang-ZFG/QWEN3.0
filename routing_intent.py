@@ -177,7 +177,7 @@ def _rule_classify(query: str) -> dict[str, Any] | None:
         return {
             "intent": best_intent,
             "complexity": 0.5,
-            "needs_code": best_intent is not None and "code" in best_intent,
+            "needs_code": best_intent in ("code_generation", "debugging"),
             "domain_keywords": [],
             "cnc_subdomain": "general",
             "source": "rules",

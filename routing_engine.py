@@ -138,7 +138,7 @@ def pick_backend(
         backends=backends,
         messages=messages_injected,
         request_type=req_type,
-        scenario=scenario,
+        scenario=prompt_scenario,
         retrieval_context=retrieval_text or "",
         sticky_key=sticky_key,
     )

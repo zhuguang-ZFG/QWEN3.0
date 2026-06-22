@@ -51,6 +51,8 @@ def test_analyze_intent_device_home():
 def test_analyze_intent_device_stop():
     result = intent.analyze_intent("急停")
     assert result["intent"] == "device_stop"
+    assert result["needs_code"] is False
+    assert isinstance(result["needs_code"], bool)
 
 
 def test_analyze_intent_device_write():
@@ -77,3 +79,20 @@ def test_analyze_intent_signal_device_draw_when_rules_miss():
 def test_detect_thinking_intent_patterns():
     assert intent.detect_thinking_intent("think step by step about this proof") is True
     assert intent.detect_thinking_intent("hello world") is False
+
+
+def test_pick_backend_scenario_uses_device_prompt_scenario(monkeypatch):
+    import routing_engine
+
+    monkeypatch.setattr(routing_engine, "classify", lambda *a, **k: "chat")
+    monkeypatch.setattr(routing_engine, "classify_scenario", lambda *a, **k: "chat")
+    monkeypatch.setattr(routing_engine, "try_recall_backend", lambda *a, **k: None)
+    monkeypatch.setattr(routing_engine, "inject_retrieval_context", lambda msgs: (msgs, ""))
+    monkeypatch.setattr(routing_engine, "inject_coding_context", lambda msgs, *a, **k: (msgs, ""))
+    monkeypatch.setattr(routing_engine, "assess_complexity", lambda *a, **k: {})
+    monkeypatch.setattr(routing_engine.sticky_session, "compute_key", lambda *a, **k: "k")
+    monkeypatch.setattr(routing_engine.health_tracker, "get_health_map", lambda: {})
+    monkeypatch.setattr(routing_engine, "select", lambda *a, **k: ["longcat_chat"])
+
+    picked = routing_engine.pick_backend("急停", [{"role": "user", "content": "急停"}])
+    assert picked.scenario == "device_control"
