@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import os
 from copy import deepcopy
-import threading
 from typing import Any, Protocol
+
+from device_gateway.store_utils import StoreConfigMixin
 
 from .events import DuplicateLedgerEvent, LedgerEvent
 
@@ -25,14 +26,14 @@ class LedgerStoreBackend(Protocol):
     def replay_task(self, task_id: str) -> dict[str, Any]: ...
 
 
-class InMemoryLedgerStore:
+class InMemoryLedgerStore(StoreConfigMixin):
     backend_name = "memory"
     shared_across_processes = False
 
     def __init__(self) -> None:
+        super().__init__()
         self._events: list[LedgerEvent] = []
         self._event_ids: set[str] = set()
-        self._lock = threading.RLock()
 
     def reset(self) -> None:
         with self._lock:

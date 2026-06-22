@@ -11,8 +11,9 @@ from collections import deque
 from copy import deepcopy
 import itertools
 import os
-import threading
 from typing import Any, Protocol
+
+from device_gateway.store_utils import StoreConfigMixin, StoreManager
 
 
 class DeviceTaskStore(Protocol):
@@ -54,15 +55,15 @@ class DeviceTaskStore(Protocol):
     def remove_pending_task(self, device_id: str, task_id: str) -> bool: ...
 
 
-class InMemoryDeviceTaskStore:
+class InMemoryDeviceTaskStore(StoreConfigMixin):
     backend_name = "memory"
     shared_across_processes = False
 
     def __init__(self) -> None:
+        super().__init__()
         self._counter = itertools.count(1)
         self._tasks: dict[str, dict[str, Any]] = {}
         self._pending_by_device: dict[str, deque[dict[str, Any]]] = {}
-        self._lock = threading.RLock()
 
     def reset(self) -> None:
         with self._lock:

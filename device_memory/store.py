@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import os
-import threading
 import time
 from typing import Any, List, Optional, Protocol
 
+from device_gateway.store_utils import StoreConfigMixin
 from device_memory.schemas import MemoryEntry, MemoryType
 
 
@@ -30,15 +30,15 @@ class MemoryStoreBackend(Protocol):
     def reset(self, device_id: str) -> int: ...
 
 
-class InMemoryMemoryStore:
+class InMemoryMemoryStore(StoreConfigMixin):
     """In-memory store for device memories (default single-process backend)."""
 
     backend_name = "memory"
     shared_across_processes = False
 
     def __init__(self) -> None:
+        super().__init__()
         self._memories: dict[str, MemoryEntry] = {}
-        self._lock = threading.RLock()
 
     def create(self, entry: MemoryEntry) -> str:
         with self._lock:
