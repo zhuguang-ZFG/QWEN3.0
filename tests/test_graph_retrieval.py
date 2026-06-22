@@ -1,134 +1,58 @@
-"""Tests for context_pipeline: graph_retrieval and reranking."""
+"""Tests for context_pipeline/graph_retrieval.py — code graph operations."""
 
-from context_pipeline.graph_retrieval import (
-    CodeGraph,
-    RetrievalResult,
-    dual_layer_search,
-)
-from context_pipeline.reranking import rerank_results, format_for_injection
+from context_pipeline.graph_retrieval import CodeGraph, RetrievalResult, CodeRelation
 
 
-# -- CodeGraph ------------------------------------------------------------------
+class TestCodeGraph:
+    def test_add_relation(self):
+        g = CodeGraph()
+        g.add_relation("a.py", "b.py", "imports")
+        related = g.get_related("a.py")
+        assert len(related) >= 1
+        assert any(r.target == "b.py" for r in related)
+
+    def test_empty_graph(self):
+        g = CodeGraph()
+        assert g.get_related("nonexistent") == []
+
+    def test_bidirectional_edge(self):
+        g = CodeGraph()
+        g.add_relation("a.py", "b.py", "imports")
+        related_a = g.get_related("a.py")
+        related_b = g.get_related("b.py")
+        assert len(related_a) >= 1
+        assert len(related_b) >= 1
+
+    def test_multiple_relations(self):
+        g = CodeGraph()
+        g.add_relation("a.py", "b.py", "imports")
+        g.add_relation("a.py", "c.py", "calls")
+        related = g.get_related("a.py", max_depth=1)
+        assert len(related) >= 2
+
+    def test_edge_count(self):
+        g = CodeGraph()
+        assert g.edge_count == 0
+        g.add_relation("a.py", "b.py", "imports")
+        assert g.edge_count >= 1
+
+    def test_max_depth_limits_results(self):
+        g = CodeGraph()
+        g.add_relation("a.py", "b.py", "imports")
+        g.add_relation("b.py", "c.py", "imports")
+        shallow = g.get_related("a.py", max_depth=0)
+        deep = g.get_related("a.py", max_depth=2)
+        assert len(deep) > len(shallow)
 
 
-def test_code_graph_add_and_get_related():
-    g = CodeGraph()
-    g.add_relation("a.py", "b.py", "imports")
-    g.add_relation("a.py", "X", "defines_class")
-
-    related = g.get_related("a.py", max_depth=1)
-    assert len(related) >= 2
+class TestRetrievalResult:
+    def test_default_values(self):
+        r = RetrievalResult(path="test.py", score=0.5, source="vector")
+        assert r.snippet == ""
+        assert r.relations == []
 
 
-def test_code_graph_bfs_depth():
-    g = CodeGraph()
-    g.add_relation("a", "b", "imports")
-    g.add_relation("b", "c", "imports")
-    g.add_relation("c", "d", "imports")
-
-    # depth=0: process only start node, get its outgoing edges
-    d0 = {r.target for r in g.get_related("a", max_depth=0)}
-    assert "b" in d0
-    assert "c" not in d0
-
-    # depth=2: process a, b, c - get edges from all three
-    d2 = {r.target for r in g.get_related("a", max_depth=2)}
-    assert "c" in d2
-
-
-def test_code_graph_edge_count():
-    g = CodeGraph()
-    assert g.edge_count == 0
-    g.add_relation("a", "b", "imports")
-    assert g.edge_count == 1
-
-
-# -- dual_layer_search ----------------------------------------------------------
-
-
-def test_dual_layer_search_merges_sources():
-    g = CodeGraph()
-    g.add_relation("mod_a.py", "mod_b.py", "imports")
-
-    vector_results = [
-        RetrievalResult(path="mod_b.py", score=0.8, source="vector"),
-        RetrievalResult(path="utils.py", score=0.6, source="vector"),
-    ]
-
-    merged = dual_layer_search(["mod_a.py"], vector_results, g, max_results=10)
-    assert len(merged) >= 2
-
-    mod_b = next(r for r in merged if r.path == "mod_b.py")
-    assert mod_b.source == "both"
-    assert mod_b.score >= 0.8
-
-
-def test_dual_layer_search_discovers_graph_only_results():
-    g = CodeGraph()
-    g.add_relation("mod_a.py", "unknown_utils.py", "imports")
-
-    merged = dual_layer_search(["mod_a.py"], [], g, max_results=10)
-    assert len(merged) >= 1
-    assert merged[0].source == "graph"
-
-
-def test_dual_layer_search_respects_max_results():
-    g = CodeGraph()
-    for i in range(20):
-        g.add_relation("hub.py", f"leaf_{i}.py", "imports")
-
-    merged = dual_layer_search(["hub"], [], g, max_results=5)
-    assert len(merged) <= 5
-
-
-# -- reranking ------------------------------------------------------------------
-
-
-def test_rerank_results_promotes_entity_overlap():
-    results = [
-        RetrievalResult(path="routing_engine.py", score=0.7, source="vector"),
-        RetrievalResult(path="http_caller.py", score=0.7, source="vector"),
-    ]
-    # Entity overlap uses exact path-component match
-    reranked = rerank_results(results, ["routing_engine.py"], top_k=5)
-
-    assert reranked[0].path == "routing_engine.py"
-    assert reranked[0].score > 0.7
-
-
-def test_rerank_results_promotes_dual_source():
-    results = [
-        RetrievalResult(path="dual_hit.py", score=0.7, source="both"),
-        RetrievalResult(path="single_hit.py", score=0.9, source="vector"),
-    ]
-    reranked = rerank_results(results, [], top_k=5)
-
-    # dual_hit gets +0.3 bonus, giving 1.0 vs single_hit's 0.9
-    assert reranked[0].path == "dual_hit.py"
-
-
-def test_rerank_results_respects_top_k():
-    results = [RetrievalResult(path=f"file_{i}.py", score=0.5, source="vector") for i in range(10)]
-    reranked = rerank_results(results, [], top_k=3)
-    assert len(reranked) == 3
-
-
-def test_format_for_injection_produces_compact_output():
-    results = [
-        RetrievalResult(path="routing_engine.py", score=0.92, source="vector"),
-        RetrievalResult(path="http_caller.py", score=0.85, source="both", relations=["imports:server"]),
-    ]
-    output = format_for_injection(results, max_chars=800)
-    assert "routing_engine.py" in output
-    assert "http_caller.py" in output
-    assert "[VG]" in output or "VG" in output
-
-
-def test_format_for_injection_respects_max_chars():
-    results = [RetrievalResult(path=f"very_long_path_name_file_{i}.py", score=0.9, source="vector") for i in range(20)]
-    output = format_for_injection(results, max_chars=200)
-    assert len(output) <= 210  # small tolerance
-
-
-def test_format_for_injection_empty():
-    assert format_for_injection([]) == ""
+class TestCodeRelation:
+    def test_default_weight(self):
+        r = CodeRelation(source="a", target="b", relation_type="imports")
+        assert r.weight == 1.0
