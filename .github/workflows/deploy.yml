@@ -35,25 +35,26 @@ jobs:
 
       - name: Write deploy key
         run: |
-          if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
-            echo "ERROR: secrets.VPS_SSH_KEY is not configured" >&2
-            exit 1
+          if [ -n "${{ secrets.VPS_SSH_KEY }}" ]; then
+            mkdir -p ~/.ssh
+            printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_ed25519
+          else
+            echo "WARNING: secrets.VPS_SSH_KEY is not set; deploy will fall back to password if LIMA_DEPLOY_PASS is configured"
           fi
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
 
       - name: Deploy Aliyun primary (LiMa Router)
         timeout-minutes: 10
         env:
           LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
           LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts
+          LIMA_DEPLOY_PASS: ${{ secrets.LIMA_DEPLOY_PASS }}
         run: |
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
           python scripts/deploy_unified.py --slice all
 
       - name: Deploy Chat Web static files
-        if: secrets.VPS_HOST != ''
+        if: secrets.VPS_SSH_KEY != '' && secrets.VPS_HOST != ''
         timeout-minutes: 5
         env:
           LIMA_DEPLOY_HOST: root@${{ secrets.VPS_HOST }}
@@ -72,6 +73,7 @@ jobs:
         env:
           LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
           LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts
+          LIMA_DEPLOY_PASS: ${{ secrets.LIMA_DEPLOY_PASS }}
           LIMA_JDCLOUD_SERVER: ${{ secrets.JDCLOUD_HOST }}
           JDCLOUD_HOST: ${{ secrets.JDCLOUD_HOST }}
         run: |
