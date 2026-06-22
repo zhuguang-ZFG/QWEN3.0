@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy the LiMa Chat Web static files to the VPS.
+"""Deploy the LiMa Chat Web static files to the VPS via paramiko.
 
 Source: chat-web/
 Target (VPS): /var/www/chat/
@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import argparse
 import os
-import subprocess
 import sys
 from pathlib import Path
+
+import paramiko
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CHAT_WEB_DIR = PROJECT_ROOT / "chat-web"
@@ -32,9 +33,38 @@ FILES = [
 ]
 
 
-def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
-    print("$", " ".join(cmd))
-    return subprocess.run(cmd, check=check)
+def _connect() -> paramiko.SSHClient:
+    from scripts.deploy_common import (
+        KEY,
+        SERVER,
+        configure_ssh_host_keys,
+    )
+
+    ssh = paramiko.SSHClient()
+    ssh.load_system_host_keys()
+    configure_ssh_host_keys(ssh)
+    user, host = REMOTE_HOST.split("@", 1) if "@" in REMOTE_HOST else ("root", REMOTE_HOST)
+    password = os.environ.get("LIMA_DEPLOY_PASS")
+    try:
+        ssh.connect(host, username=user, key_filename=KEY, timeout=15)
+    except paramiko.SSHException:
+        if not password:
+            raise
+        ssh.connect(host, username=user, password=password, timeout=15)
+    return ssh
+
+
+def _exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
+    print(f"$ {command}")
+    _stdin, stdout, stderr = ssh.exec_command(command)
+    code = stdout.channel.recv_exit_status()
+    out = stdout.read().decode("utf-8", errors="replace").strip()
+    err = stderr.read().decode("utf-8", errors="replace").strip()
+    if out:
+        print(out)
+    if err:
+        print(err, file=sys.stderr)
+    return code, out, err
 
 
 def deploy(dry_run: bool = False) -> int:
@@ -53,26 +83,26 @@ def deploy(dry_run: bool = False) -> int:
             print(f"  {CHAT_WEB_DIR / f} -> {REMOTE_HOST}:{REMOTE_DIR}/{f}")
         return 0
 
-    for f in FILES:
-        src = CHAT_WEB_DIR / f
-        backup_cmd = [
-            "ssh",
-            "-o",
-            "StrictHostKeyChecking=no",
-            REMOTE_HOST,
-            f"cp {REMOTE_DIR}/{f} {REMOTE_DIR}/{f}.bak.$(date +%Y%m%d%H%M%S) 2>/dev/null || true",
-        ]
-        run(backup_cmd)
-        run(["scp", str(src), f"{REMOTE_HOST}:{REMOTE_DIR}/{f}"])
+    ssh = _connect()
+    try:
+        sftp = ssh.open_sftp()
+        try:
+            for remote_name in FILES:
+                local = CHAT_WEB_DIR / remote_name
+                remote_path = f"{REMOTE_DIR}/{remote_name}"
+                backup_cmd = f"cp {remote_path} {remote_path}.bak.$(date +%Y%m%d%H%M%S) 2>/dev/null || true"
+                _exec(ssh, backup_cmd)
+                print(f"uploading {remote_name}...")
+                sftp.put(str(local), remote_path)
+        finally:
+            sftp.close()
 
-    reload_cmd = [
-        "ssh",
-        "-o",
-        "StrictHostKeyChecking=no",
-        REMOTE_HOST,
-        "nginx -t && systemctl reload nginx",
-    ]
-    run(reload_cmd)
+        code, _out, _err = _exec(ssh, "nginx -t && systemctl reload nginx")
+        if code != 0:
+            print("nginx reload failed", file=sys.stderr)
+            return code
+    finally:
+        ssh.close()
 
     print("Chat Web deployed successfully.")
     return 0
