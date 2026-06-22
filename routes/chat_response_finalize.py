@@ -67,23 +67,17 @@ def _safe_record_request(
     )
 
 
-async def finalize_success_response(
+def _fire_side_effects(
     ctx: ChatRunContext,
     req: ChatRequest,
-    result: dict,
-    intent: dict,
-    *,
-    model_id: str,
+    content: str,
+    backend: str,
+    intent_name: str,
+    duration_ms: int,
     record_request: RecordRequestFunc,
-) -> JSONResponse:
-    raw_answer = result.get("answer", "")
-    content = clean_response(raw_answer, result.get("backend", "")) or raw_answer
-    backend = result.get("backend", "unknown")
-    intent_name = intent.get("intent", "unknown")
-    duration_ms = int((time.time() - ctx.t0) * 1000)
-    raw_total_ms = result.get("total_ms")
-    total_ms = duration_ms if raw_total_ms is None else raw_total_ms
-
+    result: dict,
+) -> None:
+    """Fire all post-response side effects (memory, observability, evidence, logging)."""
     _safe_side_effect(
         "persist_session_memory",
         persist_session_memory,
@@ -118,6 +112,26 @@ async def finalize_success_response(
         backend=backend,
     )
     _log_system_prompt(req)
+
+
+async def finalize_success_response(
+    ctx: ChatRunContext,
+    req: ChatRequest,
+    result: dict,
+    intent: dict,
+    *,
+    model_id: str,
+    record_request: RecordRequestFunc,
+) -> JSONResponse:
+    raw_answer = result.get("answer", "")
+    content = clean_response(raw_answer, result.get("backend", "")) or raw_answer
+    backend = result.get("backend", "unknown")
+    intent_name = intent.get("intent", "unknown")
+    duration_ms = int((time.time() - ctx.t0) * 1000)
+    raw_total_ms = result.get("total_ms")
+    total_ms = duration_ms if raw_total_ms is None else raw_total_ms
+
+    _fire_side_effects(ctx, req, content, backend, intent_name, duration_ms, record_request, result)
 
     if ctx.fmt == "anthropic":
         return JSONResponse(build_anthropic_response(ctx.chat_id, content, backend, ctx.request_model or model_id))

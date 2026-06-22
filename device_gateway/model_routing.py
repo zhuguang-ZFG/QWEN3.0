@@ -64,6 +64,22 @@ def get_route_role_alternatives(route_role: str) -> list[dict[str, Any]]:
     return DEVICE_ROLE_PREFERENCES.get(route_role, [])
 
 
+def _classify_capability(capability: str, params: dict) -> dict[str, Any]:
+    """Map a device capability to a base route_policy."""
+    if capability in CONTROL_CAPABILITIES:
+        return _policy("device_control", False, "deterministic", "none")
+    if capability == "write_text":
+        return _policy("device_write", False, "deterministic", "preview_svg")
+    if capability == "draw_generated":
+        prompt = str(params.get("prompt", ""))
+        if looks_like_svg_path(prompt):
+            return _policy("device_vector", False, "svg_vector", "preview_svg")
+        return _policy("device_draw", True, "image_then_vector", "vector_path")
+    if capability == "run_path":
+        return _policy("device_vector", False, "provided_path", "preview_svg")
+    return _policy("device_unknown", True, "planner_required", "none")
+
+
 def resolve_device_route_policy(
     voice_task: dict[str, Any],
     device_id: str = "",
@@ -78,20 +94,7 @@ def resolve_device_route_policy(
     if not isinstance(params, dict):
         params = {}
 
-    if capability in CONTROL_CAPABILITIES:
-        policy = _policy("device_control", False, "deterministic", "none")
-    elif capability == "write_text":
-        policy = _policy("device_write", False, "deterministic", "preview_svg")
-    elif capability == "draw_generated":
-        prompt = str(params.get("prompt", ""))
-        if looks_like_svg_path(prompt):
-            policy = _policy("device_vector", False, "svg_vector", "preview_svg")
-        else:
-            policy = _policy("device_draw", True, "image_then_vector", "vector_path")
-    elif capability == "run_path":
-        policy = _policy("device_vector", False, "provided_path", "preview_svg")
-    else:
-        policy = _policy("device_unknown", True, "planner_required", "none")
+    policy = _classify_capability(capability, params)
 
     preferred = get_preferred_backend(policy["route_role"])
     policy["backend"] = preferred["backend"] if preferred else ""

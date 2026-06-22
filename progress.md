@@ -5,6 +5,21 @@
 > Updated: 2026-06-22
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-22 生产代码 >50 行函数拆分（首轮 3 个安全目标）
+
+- **目标**：在代码审查修复和文档清理后，继续拆分生产代码中 >50 行的超长函数，降低维护风险。
+- **筛选**：用 explore agent 分析 8 个候选函数，按测试覆盖率分优先级：
+  - 安全拆分（测试覆盖好）：`finalize_success_response`（8 测试）、`apply_profile_constraints`（3 测试文件）、`resolve_device_route_policy`（4 测试文件）
+  - 暂不拆分（测试弱或缺失）：`pick_backend`、`bridge_stream`、`post_route`、`record_probe_result`、`expand_context`
+- **拆分实现**：
+  - `routes/chat_response_finalize.py`：提取 `_fire_side_effects()`（5 个 side effect + log_sys_prompt 集中到一个函数），`finalize_success_response` 从 58 行降至约 20 行。
+  - `device_gateway/profiles.py`：提取 `_apply_approval_gate()`、`_cap_path_points()`、`_cap_feed_rate()` 三个约束 helper，`apply_profile_constraints` 从 60 行降至约 30 行。
+  - `device_gateway/model_routing.py`：提取 `_classify_capability(capability, params)` 实现 capability→policy 调度，`resolve_device_route_policy` 从 58 行降至约 40 行。
+- **验证**：
+  - 聚焦测试 24 passed（8 finalize + 7 profile_constraints + 4 route_resolution + 4 route_policy_backend + 1 misc）。
+  - 全量 `pytest -q` → **2319 passed, 18 skipped, 0 failed**。
+  - `ruff check` / `pyright` → 0 errors。
+
 ## 2026-06-22 项目文档更新与过时文档清理（完成）
 
 - **目标**：响应「更新项目文档；清理过时文档」指令，刷新入口文档、修正过时命令与模块引用、归档历史草稿文档。

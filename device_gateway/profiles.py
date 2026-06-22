@@ -121,6 +121,44 @@ def enrich_route_policy_with_profile(
     return enriched
 
 
+def _apply_approval_gate(task: dict[str, Any], resolved: ResolvedProfile) -> str | None:
+    """Gate approval for incomplete profiles. Returns simplification note or None."""
+    if not resolved.complete and task.get("route_policy", {}).get("model_required"):
+        policy = dict(task.get("route_policy", {}))
+        if not policy.get("approval_required"):
+            policy["approval_required"] = True
+            policy["approval_reason"] = "incomplete device profile"
+            task["route_policy"] = policy
+        return "approval_gate:incomplete_profile"
+    return None
+
+
+def _cap_path_points(task: dict[str, Any], resolved: ResolvedProfile) -> str | None:
+    """Cap path points to profile limit. Returns simplification note or None."""
+    params = task.get("params", {})
+    if not isinstance(params, dict) or "path" not in params:
+        return None
+    path = params.get("path", [])
+    if isinstance(path, list) and len(path) > resolved.profile.max_path_points:
+        params["path"] = path[: resolved.profile.max_path_points]
+        task["params"] = params
+        return f"cap_path_points:{len(path)}→{resolved.profile.max_path_points}"
+    return None
+
+
+def _cap_feed_rate(task: dict[str, Any], resolved: ResolvedProfile) -> str | None:
+    """Cap feed rate to profile limit. Returns simplification note or None."""
+    params = task.get("params", {})
+    if not isinstance(params, dict):
+        return None
+    feed = params.get("feed")
+    if isinstance(feed, (int, float)) and feed > resolved.profile.max_feed:
+        params["feed"] = resolved.profile.max_feed
+        task["params"] = params
+        return f"cap_feed:{feed}→{resolved.profile.max_feed}"
+    return None
+
+
 def apply_profile_constraints(
     task: dict[str, Any],
     resolved: ResolvedProfile,
@@ -135,32 +173,14 @@ def apply_profile_constraints(
     original_task = json.loads(json.dumps(task))
     simplifications: list[str] = []
 
-    if not resolved.complete and task.get("route_policy", {}).get("model_required"):
-        policy = dict(task.get("route_policy", {}))
-        if not policy.get("approval_required"):
-            policy["approval_required"] = True
-            policy["approval_reason"] = "incomplete device profile"
-            task["route_policy"] = policy
-        simplifications.append("approval_gate:incomplete_profile")
+    for note in (
+        _apply_approval_gate(task, resolved),
+        _cap_path_points(task, resolved),
+        _cap_feed_rate(task, resolved),
+    ):
+        if note:
+            simplifications.append(note)
 
-    # Cap path points if task has path data
-    params = task.get("params", {})
-    if isinstance(params, dict) and "path" in params:
-        path = params.get("path", [])
-        if isinstance(path, list) and len(path) > resolved.profile.max_path_points:
-            params["path"] = path[: resolved.profile.max_path_points]
-            task["params"] = params
-            simplifications.append(f"cap_path_points:{len(path)}→{resolved.profile.max_path_points}")
-
-    # Cap feed rate if exceeds profile limit
-    if isinstance(params, dict):
-        feed = params.get("feed")
-        if isinstance(feed, (int, float)) and feed > resolved.profile.max_feed:
-            params["feed"] = resolved.profile.max_feed
-            task["params"] = params
-            simplifications.append(f"cap_feed:{feed}→{resolved.profile.max_feed}")
-
-    # Record simplification if any changes were made
     if simplifications:
         constrained_task = json.loads(json.dumps(task))
         record_simplification(
