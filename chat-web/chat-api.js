@@ -6,7 +6,20 @@ function authHeaders() {
   return headers;
 }
 
+function ensureApiKey(onReady) {
+  // Prompt for an API key if none is stored, then run the callback.
+  if (getApiKey()) {
+    onReady();
+    return;
+  }
+  openApiKeyModal(() => onReady());
+}
+
 async function generateImage(prompt) {
+  ensureApiKey(() => _generateImageWithKey(prompt));
+}
+
+async function _generateImageWithKey(prompt) {
   if (isStreaming) return;
   isStreaming = true;
   abortController = new AbortController();
@@ -35,7 +48,7 @@ async function generateImage(prompt) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        addMessage('ai', '当前请求未授权。LiMa 星云免费体验可能暂时不可用，请稍后再试或联系管理员。');
+        addMessage('ai', 'API Key 无效或未提供，请点击右上角“Key”按钮设置。');
         isStreaming = false;
         setSendLoading(false);
         return;
@@ -76,6 +89,10 @@ async function sendMessage() {
     return;
   }
 
+  ensureApiKey(() => sendChat(text));
+}
+
+async function sendChat(text) {
   isStreaming = true;
   abortController = new AbortController();
   inputField.value = '';
@@ -102,7 +119,7 @@ async function sendMessage() {
 
     if (!response.ok) {
       if (response.status === 401) {
-        addMessage('ai', '当前请求未授权。LiMa 星云免费体验可能暂时不可用，请稍后再试或联系管理员。');
+        addMessage('ai', 'API Key 无效或未提供，请点击右上角“Key”按钮设置。');
         isStreaming = false;
         abortController = null;
         setSendLoading(false);
