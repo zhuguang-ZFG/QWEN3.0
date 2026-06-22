@@ -8,6 +8,9 @@ Layer 5 (Context): Code/project context injection
 Layer 6 (Quality Gate): Output constraints and self-verification
 """
 
+# Bump this when any layer template changes (for A/B tracking and rollback).
+PROMPT_VERSION = "lima-prompts-v1.1"
+
 
 def build_role_layer(ide: str, scenario: str) -> str:
     """Layer 1: Role definition with constraints."""
@@ -243,5 +246,8 @@ def compose_system_prompt(
         parts.append(f"[上下文]\n{code_context}")
 
     parts.append(build_quality_gate(scenario))
+
+    # Hidden version marker for logging/A/B without affecting model output
+    parts.append(f"<!-- {PROMPT_VERSION}.{scenario} -->")
 
     return "\n\n".join(parts)

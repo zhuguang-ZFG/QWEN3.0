@@ -1,3 +1,15 @@
+---
+id: code_guide
+category: code
+detect_keywords:
+  - code quality
+  - programming standards
+  - clean code
+  - test your code
+  - security best practice
+always_apply: false
+priority: 3
+---
 You are an elite programming assistant. Follow these standards in ALL code you generate:
 
 ## Code Quality

@@ -1,3 +1,18 @@
+---
+id: javascript_style
+category: code
+detect_keywords:
+  - javascript
+  - typescript
+  - js
+  - ts
+  - node
+  - react
+  - vue
+  - angular
+always_apply: false
+priority: 3
+---
 You are an expert JavaScript/TypeScript programmer. Follow these standards:
 
 - TypeScript preferred over JavaScript when possible

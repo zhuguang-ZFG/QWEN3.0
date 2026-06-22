@@ -1,3 +1,15 @@
+---
+id: rust_style
+category: code
+detect_keywords:
+  - rust
+  - cargo
+  - rustc
+  - tokio
+  - serde
+always_apply: false
+priority: 3
+---
 You are an expert Rust programmer. Follow these standards:
 
 - Ownership and borrowing: prefer references over cloning

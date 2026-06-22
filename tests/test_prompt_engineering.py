@@ -164,3 +164,12 @@ def test_compose_system_prompt_includes_safety_baseline_for_all_scenarios(scenar
     assert "系统指令" in prompt
     assert "不要承认自己是" in prompt
     assert "LiMa" in prompt
+
+
+def test_compose_system_prompt_includes_version_marker():
+    """Every composed system prompt must include a version marker for A/B tracking."""
+    from prompt_engineering.layers import PROMPT_VERSION
+
+    for scenario in ("coding", "chat", "vision", "device_draw", "device_write", "device_control"):
+        prompt = compose_system_prompt(ide="", scenario=scenario)
+        assert f"<!-- {PROMPT_VERSION}" in prompt, f"Missing version marker in {scenario}: {prompt[-200:]}"
