@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Sequence
@@ -170,8 +171,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     commands = quick_commands(changed_paths, ci=args.ci)
     if args.full:
-        basetemp = str(ROOT / "tmp" / f"pytest-run-precommit-full-{uuid.uuid4().hex}")
-        Path(basetemp).parent.mkdir(parents=True, exist_ok=True)
+        basetemp = str(Path(tempfile.gettempdir()) / f"pytest-run-precommit-full-{uuid.uuid4().hex}")
         commands.append(full_pytest_command(basetemp=basetemp))
 
     run_code_size_check()
