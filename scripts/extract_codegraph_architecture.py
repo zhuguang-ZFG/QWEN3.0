@@ -136,20 +136,72 @@ def get_module_dependencies():
     return intra, inter
 
 
+_NOISE_NAMES = {
+    "_",
+    "log",
+    "debug",
+    "info",
+    "warn",
+    "warning",
+    "error",
+    "bind",
+    "get",
+    "put",
+    "t",
+    "assert",
+    "isBlank",
+    "time",
+    "post",
+    "GetDeviceState",
+}
+
+
+def _build_call_maps(edges: list[tuple[str, str]]) -> tuple[defaultdict[str, int], defaultdict[str, list[str]]]:
+    """Build callee frequency and caller lookup maps from call edges."""
+    callee_counts: defaultdict[str, int] = defaultdict(int)
+    caller_map: defaultdict[str, list[str]] = defaultdict(list)
+    for src, tgt in edges:
+        callee_counts[tgt] += 1
+        caller_map[tgt].append(src)
+    return callee_counts, caller_map
+
+
+def _is_noise_node(name: str, count: int) -> bool:
+    """Filter out high-frequency logging/utility noise."""
+    return name in _NOISE_NAMES and count > 100
+
+
+def _fetch_top_callers(
+    conn: sqlite3.Connection, node_id: str, caller_map: dict[str, list[str]], limit: int = 5
+) -> list[str]:
+    """Return the names of the top callers for a given node."""
+    caller_names: list[str] = []
+    for cid in caller_map.get(node_id, [])[:limit]:
+        cname = conn.execute("SELECT name FROM nodes WHERE id=?", (cid,)).fetchone()
+        if cname:
+            caller_names.append(cname[0])
+    return caller_names
+
+
+def _format_chain_result(row: tuple, count: int, caller_names: list[str], category: str) -> dict:
+    """Package a single hot-node result dict."""
+    return {
+        "name": row[0],
+        "kind": row[3],
+        "file": row[2],
+        "category": category,
+        "called_count": count,
+        "callers": caller_names,
+    }
+
+
 def get_key_call_chains():
     """完整调用链（不含 esp32 日志噪音）"""
     conn = connect()
     edges = conn.execute("SELECT source, target FROM edges WHERE kind='calls'").fetchall()
     conn.close()
 
-    callee_counts = defaultdict(int)
-    caller_map = defaultdict(list)
-
-    for src, tgt in edges:
-        callee_counts[tgt] += 1
-        caller_map[tgt].append(src)
-
-    # 过滤：跳过 esp32 的 log/debug 等噪音
+    callee_counts, caller_map = _build_call_maps(edges)
     hot_nodes = sorted(callee_counts.items(), key=lambda x: -x[1])[:80]
 
     results = []
@@ -161,58 +213,20 @@ def get_key_call_chains():
             continue
 
         name = row[0]
-        # 跳过噪音（日志/工具函数）
-        if (
-            name
-            in (
-                "_",
-                "log",
-                "debug",
-                "info",
-                "warn",
-                "warning",
-                "error",
-                "bind",
-                "get",
-                "put",
-                "t",
-                "assert",
-                "isBlank",
-                "time",
-                "post",
-                "GetDeviceState",
-            )
-            and count > 100
-        ):
+        if _is_noise_node(name, count):
             continue
-
         if name in seen:
             continue
         seen.add(name)
+
         file_path = row[2]
         cat = categorize_file(file_path)
-
         # 只看核心 + 固件
         if cat not in ("core", "firmware", "code_context"):
             continue
 
-        callers = caller_map.get(node_id, [])
-        caller_names = []
-        for cid in callers[:5]:
-            cname = conn2.execute("SELECT name FROM nodes WHERE id=?", (cid,)).fetchone()
-            if cname:
-                caller_names.append(cname[0])
-
-        results.append(
-            {
-                "name": name,
-                "kind": row[3],
-                "file": file_path,
-                "category": cat,
-                "called_count": count,
-                "callers": caller_names,
-            }
-        )
+        caller_names = _fetch_top_callers(conn2, node_id, caller_map)
+        results.append(_format_chain_result(row, count, caller_names, cat))
 
     conn2.close()
     return results
