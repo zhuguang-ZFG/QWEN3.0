@@ -102,31 +102,27 @@ def probe_batch(backends: list[str]) -> list[dict]:
     return results
 
 
-def record_probe_result(result: dict) -> bool:
-    """Persist a probe result into health/profile/telemetry stores."""
-    backend = str(result.get("backend", ""))
-    if not backend:
-        return False
-    status = str(result.get("status", "unknown"))
-    success = status == "healthy"
-    latency_ms = int(result.get("latency_ms", 0) or 0)
-
-    recorded = False
+def _record_health_tracker(result: dict, backend: str, latency_ms: int, success: bool) -> bool:
+    """Record probe result in health_tracker. Returns True on success."""
     try:
         import health_tracker
 
         if success:
             health_tracker.record_success(backend, latency_ms)
-        elif status in ("failed", "empty"):
+        else:
             health_tracker.record_failure(
                 backend,
                 error_code=result.get("error_code"),
                 error_text=str(result.get("error", "")),
             )
-        recorded = True
+        return True
     except ImportError as exc:
         logger.warning("health_tracker unavailable; probe health not recorded: %s", exc)
+        return False
 
+
+def _record_backend_profile(result: dict, backend: str, latency_ms: int, success: bool) -> bool:
+    """Record probe result in backend_profile. Returns True on success."""
     try:
         import backend_profile
 
@@ -137,10 +133,14 @@ def record_probe_result(result: dict) -> bool:
             scenario="probe",
             response_len=int(result.get("response_len", 0) or 0),
         )
-        recorded = True
+        return True
     except ImportError as exc:
         logger.warning("backend_profile unavailable; probe profile not recorded: %s", exc)
+        return False
 
+
+def _record_backend_telemetry(result: dict, backend: str, status: str, latency_ms: int, success: bool) -> bool:
+    """Record probe result in backend telemetry. Returns True on success."""
     try:
         from observability.backend_telemetry import record_backend_attempt
 
@@ -156,9 +156,24 @@ def record_probe_result(result: dict) -> bool:
             phase="operator_probe",
             attempt="manual",
         )
-        recorded = True
+        return True
     except ImportError as exc:
         logger.warning("backend telemetry unavailable; probe attempt not recorded: %s", exc)
+        return False
+
+
+def record_probe_result(result: dict) -> bool:
+    """Persist a probe result into health/profile/telemetry stores."""
+    backend = str(result.get("backend", ""))
+    if not backend:
+        return False
+    status = str(result.get("status", "unknown"))
+    success = status == "healthy"
+    latency_ms = int(result.get("latency_ms", 0) or 0)
+
+    recorded = _record_health_tracker(result, backend, latency_ms, success)
+    recorded |= _record_backend_profile(result, backend, latency_ms, success)
+    recorded |= _record_backend_telemetry(result, backend, status, latency_ms, success)
     return recorded
 
 

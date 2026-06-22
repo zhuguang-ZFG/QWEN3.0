@@ -89,6 +89,52 @@ class EvalCandidate:
         }
 
 
+def _parse_one_pattern(
+    p: Any,
+    candidates: dict[str, EvalCandidate],
+    approvals: dict[str, dict[str, Any]],
+) -> None:
+    """Parse one reference pattern into a candidate or an approval record."""
+    summary = p.summary or ""
+    prefix = summary.split(" ", 1)[0] if summary else ""
+
+    try:
+        detail = json.loads(p.detail) if p.detail else {}
+    except json.JSONDecodeError:
+        detail = {}
+
+    if prefix.startswith("approved:"):
+        pattern_key = detail.get("pattern_key") or prefix.removeprefix("approved:")
+        approvals[pattern_key] = detail
+        return
+
+    backend = detail.get("backend", "")
+    scenario = detail.get("scenario", "")
+    key = detail.get("pattern_key") or (f"{backend}:{scenario}" if backend else prefix)
+
+    if key not in candidates:
+        candidates[key] = EvalCandidate(
+            pattern_key=key,
+            backend=backend,
+            scenario=scenario,
+            promoted=prefix.startswith("promoted:"),
+        )
+
+    c = candidates[key]
+    if prefix.startswith("candidate:"):
+        evidence_count = int(detail.get("evidence_count", 0) or 0)
+        c.evidence_count = max(c.evidence_count, evidence_count)
+        c.pass_count = max(c.pass_count, evidence_count)
+        c.last_task_id = detail.get("latest_task", c.last_task_id)
+    elif "task " in summary and ("succeeded" in summary or "needs_review" in summary):
+        c.pass_count += 1
+        c.evidence_count += 1
+        c.last_task_id = detail.get("latest_task", c.last_task_id)
+    elif "failed" in summary or "blocked" in summary:
+        c.fail_count += 1
+        c.evidence_count += 1
+
+
 def eval_candidates_from_memory(limit: int = 20) -> list[EvalCandidate]:
     """Extract eval candidates from reference_pattern typed memories."""
     try:
@@ -101,44 +147,7 @@ def eval_candidates_from_memory(limit: int = 20) -> list[EvalCandidate]:
     approvals: dict[str, dict[str, Any]] = {}
 
     for p in patterns:
-        summary = p.summary or ""
-        prefix = summary.split(" ", 1)[0] if summary else ""
-
-        try:
-            detail = json.loads(p.detail) if p.detail else {}
-        except json.JSONDecodeError:
-            detail = {}
-
-        if prefix.startswith("approved:"):
-            pattern_key = detail.get("pattern_key") or prefix.removeprefix("approved:")
-            approvals[pattern_key] = detail
-            continue
-
-        backend = detail.get("backend", "")
-        scenario = detail.get("scenario", "")
-        key = detail.get("pattern_key") or (f"{backend}:{scenario}" if backend else prefix)
-
-        if key not in candidates:
-            candidates[key] = EvalCandidate(
-                pattern_key=key,
-                backend=backend,
-                scenario=scenario,
-                promoted=prefix.startswith("promoted:"),
-            )
-
-        c = candidates[key]
-        if prefix.startswith("candidate:"):
-            evidence_count = int(detail.get("evidence_count", 0) or 0)
-            c.evidence_count = max(c.evidence_count, evidence_count)
-            c.pass_count = max(c.pass_count, evidence_count)
-            c.last_task_id = detail.get("latest_task", c.last_task_id)
-        elif "task " in summary and ("succeeded" in summary or "needs_review" in summary):
-            c.pass_count += 1
-            c.evidence_count += 1
-            c.last_task_id = detail.get("latest_task", c.last_task_id)
-        elif "failed" in summary or "blocked" in summary:
-            c.fail_count += 1
-            c.evidence_count += 1
+        _parse_one_pattern(p, candidates, approvals)
 
     for pattern_key, approval in approvals.items():
         candidate = candidates.setdefault(
