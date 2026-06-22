@@ -240,6 +240,36 @@
 
 
 
+## 2026-06-22 LiMa 第五轮瘦身收尾 — 删除遗漏的旧位置重复测试文件
+
+
+
+- **问题**：第五轮提交 `a3ff1d8f` 已创建 `tests/device_gateway_profile/` 与 `tests/xiaozhi_v1_compat/` 新包，但遗漏删除原根目录下的 13 个旧位置文件，导致重复测试仍被收集。
+
+- **处理**：
+
+  - 删除 `tests/test_device_gateway_profile_*.py`（7 个）。
+
+  - 删除 `tests/test_xiaozhi_v1_compat_*.py`（6 个）。
+
+  - 清理误创建的 `test_hello.py`。
+
+- **验证**：
+
+  - 全量 `python -m pytest --tb=short -q` → **2315 passed, 18 skipped, 0 failed**（与第五轮计划一致，无新增失败）。
+
+  - `ruff check .` → 0 errors。
+
+  - `scripts/check_code_size.py` → >300 行文件 3，>50 行函数 72。
+
+- **Git**：
+
+  - Commit `...`：`refactor(slimming): round 5 follow-up — remove duplicated old-location test files`。
+
+  - Push 到 origin + gitee。
+
+
+
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 
 
