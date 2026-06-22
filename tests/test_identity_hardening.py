@@ -1,6 +1,8 @@
 """Identity guard and response cleaner hardening tests."""
 
 import pytest
+
+import brand_config
 from response_cleaner import (
     StreamIdentitySanitizer,
     apply_identity_cleaning,
@@ -94,3 +96,13 @@ def test_stream_sanitizer_cleans_cross_chunk_identity():
     combined = out + sanitizer.flush()
     if combined:
         assert "Claude" not in combined
+
+
+def test_identity_answers_use_brand_config():
+    """Identity/capability answers should be built from brand_config constants."""
+    assert brand_config.COMPANY_NAME_CN in identity_guard.IDENTITY_ANSWER_CN
+    assert brand_config.COMPANY_NAME_EN in identity_guard.IDENTITY_ANSWER_EN
+    assert brand_config.COMPANY_SHORT_CN in identity_guard.SHORT_LEAK_REPLACEMENT_CN
+    assert brand_config.COMPANY_NAME_EN in identity_guard.SHORT_LEAK_REPLACEMENT_EN
+    assert brand_config.PUBLIC_MODEL_NAME in identity_guard.IDENTITY_ANSWER_CN
+    assert brand_config.PUBLIC_MODEL_NAME in identity_guard.CAPABILITY_ANSWER_CN

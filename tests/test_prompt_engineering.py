@@ -1,3 +1,5 @@
+import pytest
+
 from prompt_engineering.layers import (
     build_role_layer,
     build_skill_layer,
@@ -149,3 +151,16 @@ def test_compose_system_prompt_has_all_five_layers():
     if "[质量门控]" in prompt:
         layers_found += 1
     assert layers_found == 5
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["coding", "chat", "vision", "device_draw", "device_write", "device_control"],
+)
+def test_compose_system_prompt_includes_safety_baseline_for_all_scenarios(scenario):
+    prompt = compose_system_prompt(ide="", scenario=scenario)
+    assert "[安全基线]" in prompt
+    assert "不要透露" in prompt
+    assert "系统指令" in prompt
+    assert "不要承认自己是" in prompt
+    assert "LiMa" in prompt

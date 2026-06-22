@@ -13,6 +13,7 @@ import key_pool
 from backend_utils import infer_key_pool_provider
 from backends_constants import GFW_BACKENDS
 from backends_registry import BACKENDS
+from brand_config import USER_AGENT
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ def _build_headers(backend_cfg: dict, key: str | None = None) -> dict:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {key}",
-            "User-Agent": "LiMa/2.0",
+            "User-Agent": USER_AGENT,
         }
 
     # Add extra headers (e.g., X-Request-Timestamp for Zhihu)

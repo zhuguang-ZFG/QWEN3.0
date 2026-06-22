@@ -17,6 +17,18 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
+# ── Safety: capabilities whitelist and dangerous blacklist ────────────────────
+_ALLOWED_CAPABILITIES = frozenset({
+    "home", "pause", "resume", "stop", "get_device_info",
+    "write_text", "draw_generated", "run_path", "move_abs", "move_rel",
+    "rejected",
+})
+
+_DANGEROUS_CAPABILITIES = frozenset({
+    "spindle_on", "laser_on", "heater_on", "gpio_high",
+    "m3", "m4", "m8", "spindle_cw", "spindle_ccw",
+})
+
 # ── Command patterns ─────────────────────────────────────────────────────────
 # Each pattern is (regex, capability, param_map_fn)
 # Patterns are tried in order; first match wins.
@@ -169,10 +181,13 @@ def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
                         "You are a device command parser for a CNC writing machine. "
                         "Given a user command, output ONLY a JSON object with keys: "
                         "capability (one of: run_path, write_text, draw_generated, "
-                        "home, pause, resume, stop, get_device_info), "
+                        "home, pause, resume, stop, get_device_info, move_abs, move_rel, rejected), "
                         "params (object with text/prompt/x/y/z as needed). "
                         "If the command doesn't make sense for a CNC machine, set "
                         "capability to 'rejected' and include a 'reason' key.\n\n"
+                        "NEVER output any of these dangerous capabilities: "
+                        "spindle_on, laser_on, heater_on, gpio_high, m3, m4, m8, "
+                        "spindle_cw, spindle_ccw.\n\n"
                         f"Command: {text}\n\nJSON:"
                     ),
                 }
@@ -190,11 +205,15 @@ def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
             json_text = json_text.removesuffix("```").strip()
         parsed = _json.loads(json_text)
         if isinstance(parsed, dict) and "capability" in parsed:
+            capability = parsed["capability"]
+            if capability not in _ALLOWED_CAPABILITIES:
+                _log.warning("device llm planner returned unapproved capability: %s", capability)
+                return None
             return {
-                "capability": parsed["capability"],
+                "capability": capability,
                 "params": parsed.get("params", {}),
                 "source": "llm",
-                "explanation": f"LLM planned: {parsed.get('reason', parsed['capability'])}",
+                "explanation": f"LLM planned: {parsed.get('reason', capability)}",
             }
     except Exception as exc:
         _log.debug("device llm planner parse failed: %s", type(exc).__name__)
