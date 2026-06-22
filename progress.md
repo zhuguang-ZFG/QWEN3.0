@@ -2965,3 +2965,22 @@ Agent Worker path.
   - 全量 `pytest -q` → **2287 passed, 4 skipped, 0 failed**。
 - **提交**：
   - `707d354e` `refactor(scripts): split verify_production_deploy::main into helpers`；已 push 到 GitHub `origin/main`（`e0f9867d..707d354e`）。
+- **提交**：`1f999219` `docs(progress): record verify_production_deploy main split`；已 push 到 GitHub `origin/main`。
+
+## 2026-06-22 继续优化 — 拆分 `scripts/extract_codegraph_architecture.py::get_key_call_chains`
+
+- **目标**：处理 `check_code_size.py` 当前最长函数 `get_key_call_chains`（80 行）。
+- **拆分**：
+  - `_build_call_maps(edges)`：从调用边构建被调频率与调用者映射。
+  - `_is_noise_node(name, count)`：过滤高频日志/工具噪音节点。
+  - `_fetch_top_callers(conn, node_id, caller_map)`：查询前 5 个调用者名称。
+  - `_format_chain_result(row, count, caller_names, category)`：组装单条调用链结果。
+  - `get_key_call_chains` 仅负责查询、过滤、聚合，降至约 30 行。
+- **验证**：
+  - `ruff check / format` → clean。
+  - `pyright scripts/extract_codegraph_architecture.py` → 0 errors, 0 warnings。
+  - 模块 import 正常。
+  - 实际运行 `python scripts/extract_codegraph_architecture.py` → 成功生成 `ARCHITECTURE_KNOWLEDGE.md`（已 `.gitignore` 忽略）。
+  - 全量 `pytest -q` → **2292 passed, 4 skipped**；有 5 个失败来自工作区中无关的 WIP 修改（`device_gateway/device_draw_handler.py`、`skills_injector.py` 及其测试），非本次拆分引入。
+- **提交**：
+  - `07d30948` `refactor(scripts): split extract_codegraph_architecture::get_key_call_chains`；已 push 到 GitHub `origin/main`（`1f999219..07d30948`）。
