@@ -279,3 +279,24 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 ## Ponytail（顾问规则，LiMa 优先）
 
 本项目采用 [Ponytail](https://github.com/DietrichGebert/ponytail) 的「lazy senior dev」理念作为代码精简顾问。详情见 [`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md)。源文件位于 `reference/ponytail/`。
+
+### 新增代码/提交前自问（Ponytail 阶梯）
+
+1. 这个功能真的需要吗？（YAGNI）
+2. Python 标准库能直接做到吗？
+3. 平台/框架原生特性能直接做到吗？
+4. 已有依赖能直接做到吗？
+5. 能一行写完吗？
+6. 最后才写最小实现。
+
+### 不可删除的边界
+
+- 信任边界的输入验证（`access_guard.py`、`identity_guard.py`）
+- 防数据丢失的错误处理（`session_memory/` 持久化逻辑）
+- 安全措施（白/黑名单、secret 保护、无静默降级）
+- 测试门禁（`pytest`、`ruff check .`、`pyright`、`scripts/check_code_size.py`）
+- 文档同步（`STATUS.md` / `progress.md` / `findings.md`）
+
+### 简化标记
+
+如果使用 Ponytail 建议的捷径，且该捷径有已知上限（全局锁、O(n²) 扫描、朴素启发式），用 `ponytail:` 注释说明上限和升级路径，并记入 `PONYTAIL-DEBT.md`。
