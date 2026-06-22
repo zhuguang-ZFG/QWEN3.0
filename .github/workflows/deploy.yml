@@ -16,6 +16,11 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    env:
+      VPS_SSH_KEY_SET: ${{ secrets.VPS_SSH_KEY != '' }}
+      VPS_HOST_SET: ${{ secrets.VPS_HOST != '' }}
+      LIMA_API_KEY_SET: ${{ secrets.LIMA_API_KEY != '' }}
+      JDCLOUD_HOST_SET: ${{ secrets.JDCLOUD_HOST != '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -54,21 +59,21 @@ jobs:
           python scripts/deploy_unified.py --slice all
 
       - name: Deploy Chat Web static files
-        if: secrets.VPS_SSH_KEY != '' && secrets.VPS_HOST != ''
+        if: env.VPS_SSH_KEY_SET == 'true' && env.VPS_HOST_SET == 'true'
         timeout-minutes: 5
         env:
           LIMA_DEPLOY_HOST: root@${{ secrets.VPS_HOST }}
         run: python scripts/deploy_chat_web.py
 
       - name: Verify production deployment
-        if: secrets.LIMA_API_KEY != ''
+        if: env.LIMA_API_KEY_SET == 'true'
         timeout-minutes: 5
         env:
           LIMA_API_KEY: ${{ secrets.LIMA_API_KEY }}
         run: python scripts/verify_production_deploy.py
 
       - name: Deploy JDCloud provider probe
-        if: secrets.JDCLOUD_HOST != ''
+        if: env.JDCLOUD_HOST_SET == 'true'
         timeout-minutes: 10
         env:
           LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
