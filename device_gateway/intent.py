@@ -104,6 +104,36 @@ def resolve_direct_device_command(text: str) -> dict[str, Any] | None:
     return None
 
 
+def _extract_pattern_params(m: re.Match, text: str) -> dict[str, Any]:
+    """Extract typed params from a regex match groupdict."""
+    params: dict[str, Any] = {}
+    groupdict = m.groupdict()
+    for key in ("text", "prompt", "x", "y", "z", "dx", "dy"):
+        val = groupdict.get(key)
+        if val is None:
+            continue
+        if key in ("x", "y", "z", "dx", "dy"):
+            try:
+                params[key] = float(val)
+            except ValueError:
+                params[key] = val
+        else:
+            params[key] = val
+    if not params and m.lastgroup:
+        params["text"] = text[:40]
+    return params
+
+
+def _make_result(capability: str, params: dict[str, Any], confidence: float, explanation: str) -> dict[str, Any]:
+    return {
+        "capability": capability,
+        "params": params,
+        "source": "voice",
+        "confidence": confidence,
+        "explanation": explanation,
+    }
+
+
 def parse_command(text: str) -> dict[str, Any]:
     """Parse a voice/text command into a structured intent.
 
@@ -116,13 +146,12 @@ def parse_command(text: str) -> dict[str, Any]:
     """
     stripped = (text or "").strip()
     if not stripped:
-        return {
-            "capability": "write_text",
-            "params": {"text": "hello"},
-            "source": "voice",
-            "confidence": 0.0,
-            "explanation": "empty command, falling back to write_text",
-        }
+        return _make_result(
+            "write_text",
+            {"text": "hello"},
+            0.0,
+            "empty command, falling back to write_text",
+        )
 
     direct = resolve_direct_device_command(stripped)
     if direct:
@@ -133,36 +162,20 @@ def parse_command(text: str) -> dict[str, Any]:
     for pattern, capability, _param_map in _COMMAND_PATTERNS:
         m = pattern.match(stripped)
         if m:
-            params: dict[str, Any] = {}
-            groupdict = m.groupdict()
-            for key in ("text", "prompt", "x", "y", "z", "dx", "dy"):
-                val = groupdict.get(key)
-                if val is not None:
-                    # 坐标参数转换为浮点数
-                    if key in ("x", "y", "z", "dx", "dy"):
-                        try:
-                            params[key] = float(val)
-                        except ValueError:
-                            params[key] = val
-                    else:
-                        params[key] = val
-            if not params and m.lastgroup:
-                params["text"] = stripped[:40]
-            return {
-                "capability": capability,
-                "params": params,
-                "source": "voice",
-                "confidence": 0.9,
-                "explanation": f"pattern matched: {capability}",
-            }
+            params = _extract_pattern_params(m, stripped)
+            return _make_result(
+                capability,
+                params,
+                0.9,
+                f"pattern matched: {capability}",
+            )
 
-    return {
-        "capability": "write_text",
-        "params": {"text": stripped[:40]},
-        "source": "voice",
-        "confidence": 0.1,
-        "explanation": f"unknown command '{stripped[:40]}', falling back to write_text",
-    }
+    return _make_result(
+        "write_text",
+        {"text": stripped[:40]},
+        0.1,
+        f"unknown command '{stripped[:40]}', falling back to write_text",
+    )
 
 
 def resolve_voice_task(text: str) -> dict[str, Any]:

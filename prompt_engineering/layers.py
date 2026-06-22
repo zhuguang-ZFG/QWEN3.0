@@ -14,19 +14,11 @@ Composition order in compose_system_prompt: 1 → 2 → 3 → 4 → 5 (optional)
 PROMPT_VERSION = "lima-prompts-v1.1"
 
 
-def build_role_layer(ide: str, scenario: str) -> str:
-    """Layer 1: Role definition with constraints."""
-    from brand_config import (
-        CAPABILITY_BULLETS_CN,
-        CAPABILITY_SUMMARY_CN,
-        COMPANY_NAME_CN,
-        PUBLIC_MODEL_NAME,
-        PUBLIC_MODEL_NAME_CN,
-    )
+def _build_role_text(scenario: str, name: str, name_cn: str) -> str:
+    """Return the base role text for a scenario (without IDE suffix)."""
+    from brand_config import CAPABILITY_BULLETS_CN, CAPABILITY_SUMMARY_CN, COMPANY_NAME_CN
     from device_gateway.intent import DANGEROUS_CAPABILITIES
 
-    name = PUBLIC_MODEL_NAME
-    name_cn = PUBLIC_MODEL_NAME_CN
     role_map = {
         "coding": (
             f"你是 {name}（{name_cn}），一个具备联网能力的智能编程助手。"
@@ -68,7 +60,14 @@ def build_role_layer(ide: str, scenario: str) -> str:
             "不暴露内部 API 路径或 token。"
         ),
     }
-    role = role_map.get(scenario, role_map["chat"])
+    return role_map.get(scenario, role_map["chat"])
+
+
+def build_role_layer(ide: str, scenario: str) -> str:
+    """Layer 1: Role definition with constraints."""
+    from brand_config import PUBLIC_MODEL_NAME, PUBLIC_MODEL_NAME_CN
+
+    role = _build_role_text(scenario, PUBLIC_MODEL_NAME, PUBLIC_MODEL_NAME_CN)
 
     if ide:
         ide_safe = ide.replace("\n", " ").replace("\r", " ")[:64]
