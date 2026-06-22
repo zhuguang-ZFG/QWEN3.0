@@ -42,8 +42,7 @@
 | 请求管线权威说明 | [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) |
 | 路由引擎设计 | [`archive/ROUTING_ENGINE_DESIGN.md`](archive/ROUTING_ENGINE_DESIGN.md)（历史归档） |
 | 可观测事件 | [`OBSERVABILITY_EVENTS_CN.md`](OBSERVABILITY_EVENTS_CN.md) |
-| 做梦模式子系统隐喻（草稿） | [`archive/dream_mode/DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md`](archive/dream_mode/DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md) + [`archive/dream_mode/DREAM_MODE_ALL_SUBSYSTEMS_CN.md`](archive/dream_mode/DREAM_MODE_ALL_SUBSYSTEMS_CN.md) + [`archive/dream_mode/DREAM_MODE_PROMPT_ENGINEERING_CN.md`](archive/dream_mode/DREAM_MODE_PROMPT_ENGINEERING_CN.md) |
-| 做梦模式勘误（SSOT 校正） | [`archive/dream_mode/DREAM_MODE_ERRATA_CN.md`](archive/dream_mode/DREAM_MODE_ERRATA_CN.md) |
+
 
 ## 设备与模型
 
@@ -97,7 +96,6 @@
 | 最新准入报告 | [`model_admission/2026-06-17-device-drawing-writing.md`](model_admission/2026-06-17-device-drawing-writing.md) | 完整角色评测与路由偏好对齐 |
 | 历史切片 | [`superpowers/plans/`](superpowers/plans/) | 按里程碑记录，完成后即归档 |
 | 参考资料 | [`reference/`](reference/) | 外部项目/论文参考 |
-| 做梦模式固件/协议分析 | [`archive/dream_mode/`](archive/dream_mode/) | 学习产物，非当前决策依据；文件较长，仅作历史参考 |
 
 ## 工作日志
 

@@ -14,12 +14,16 @@
   - 更新 `docs/DEPLOY_AND_RELEASE_CONVENTION.md`：部署命令改为 `python scripts/deploy_unified.py --slice core`；`LIMA_DEPLOY_KEY_PATH` 示例改为 `~/.ssh/lima_deploy_ed25519`；默认上传方式改为 tar/scp；本地测试命令同步为 `python -m pytest --tb=short -q`。
   - 修正 `docs/ARCHITECTURE.md` Phase 表：Phase 2 改为 ✅ 完成，Phase 5 改为进行中。
   - 更新 `docs/README.md`：日期改为 2026-06-22；在运维与发布段补充 `DEPLOY_AND_RELEASE_CONVENTION.md`；做梦模式文档链接更新为归档路径。
-- **过时文档归档**：
-  - 将 4 个做梦模式草稿文档从 `docs/` 根目录移至 `docs/archive/dream_mode/`：
-    - `DREAM_MODE_ALL_SUBSYSTEMS_CN.md`
-    - `DREAM_MODE_ERRATA_CN.md`
-    - `DREAM_MODE_PROMPT_ENGINEERING_CN.md`
-    - `DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md`
+- **过时文档删除**：
+  - 删除全部 7 个做梦模式草稿文档（用户确认无价值）：
+    - `docs/archive/dream_mode/DREAM_MODE_ALL_SUBSYSTEMS_CN.md`
+    - `docs/archive/dream_mode/DREAM_MODE_ERRATA_CN.md`
+    - `docs/archive/dream_mode/DREAM_MODE_PROMPT_ENGINEERING_CN.md`
+    - `docs/archive/dream_mode/DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md`
+    - `docs/archive/dream_mode/DREAM_MODE_BUILD_PROTOCOL_CN.md`
+    - `docs/archive/dream_mode/DREAM_MODE_FIRMWARE_SERVER_INTERACTION_CN.md`
+    - `docs/archive/dream_mode/DREAM_MODE_FIRMWARE_SYSTEM_CN.md`
+  - `docs/README.md` 移除做梦模式相关索引行。
 - **工作区清理**：删除未跟踪的 `coverage_output.txt`。
 - **验证**：
   - `ruff check .` clean。
