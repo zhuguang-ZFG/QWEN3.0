@@ -19,6 +19,11 @@
   - 聚焦测试 24 passed（8 finalize + 7 profile_constraints + 4 route_resolution + 4 route_policy_backend + 1 misc）。
   - 全量 `pytest -q` → **2319 passed, 18 skipped, 0 failed**。
   - `ruff check` / `pyright` → 0 errors。
+  - `scripts/check_code_size.py`：`profiles.py` 306→297 行，回归修复后 ≤300；超长函数从 93 降至 90。
+- **Git 提交与推送**：
+  - Commit `1d635c62`：`refactor: split 3 production functions >50 lines`。
+  - Commit `dc9dd894`：`fix(profiles): compact helpers to stay under 300 lines`。
+  - GitHub (`origin`) push 成功：`4b4dfacc..dc9dd894`。
 
 ## 2026-06-22 项目文档更新与过时文档清理（完成）
 
