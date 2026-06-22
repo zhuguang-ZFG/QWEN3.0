@@ -3,7 +3,7 @@
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
 
-import sys, os, time as time, logging as _logging
+import sys, os, logging as _logging
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,7 +20,6 @@ except ImportError:
 from fastapi import FastAPI
 import uvicorn
 
-from chat_models import ChatRequest as ChatRequest, Message as Message
 from vision_handler import (
     _vision_route,
     _stream_vision_response,

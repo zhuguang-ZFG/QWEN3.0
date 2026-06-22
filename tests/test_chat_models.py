@@ -1,10 +1,9 @@
-import server
 from chat_models import ChatRequest, Message, extract_system_prompt
 
 
-def test_server_reexports_chat_models_for_compatibility():
-    assert server.Message is Message
-    assert server.ChatRequest is ChatRequest
+def test_chat_models_exports_message_and_chat_request():
+    assert Message is not None
+    assert ChatRequest is not None
 
 
 def test_extract_system_prompt_returns_first_non_empty_system_message():

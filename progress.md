@@ -126,6 +126,66 @@
 
 
 
+## 2026-06-22 LiMa 瘦身计划 — 阶段 1 收尾 + 阶段 2：Admin UI 面板合并与 server.py 死导入清理
+
+
+
+- **目标**：完成第四轮瘦身阶段 1 收尾，并执行阶段 2 清理 `server.py` 死导入。
+
+- **阶段 1 收尾**：
+
+  - 验证 `routes/admin_ui/panels.py` 存在，`__all__` 包含全部 14 个面板常量（OVERVIEW、TRAFFIC、BACKENDS、RETRIEVAL、MODEL、HEALTH、CLIENT_KEYS、KEYS、AGENTS、AGENT_TASKS、CONFIG、DEVICES、ALERTS、LIVE_LOGS）。
+
+  - 确认 `routes/admin_ui/panels/` 目录已彻底删除，无残留。
+
+- **阶段 2**：
+
+  - 编辑 `server.py`：
+
+    - 移除未使用的 `time` 导入：`import sys, os, time as time, logging as _logging` → `import sys, os, logging as _logging`。
+
+    - 删除未使用的 `ChatRequest` / `Message` 再导出：`from chat_models import ChatRequest as ChatRequest, Message as Message`。
+
+  - 修复 `tests/test_request_stats.py`：改用 `import time` 并 `monkeypatch.setattr(time, "time", ...)`，不再依赖 `server.time`。
+
+  - 修复 `tests/test_chat_models.py`：移除 `import server`；将 `test_server_reexports_chat_models_for_compatibility` 改为 `test_chat_models_exports_message_and_chat_request`，直接从 `chat_models` 验证 `Message` 与 `ChatRequest` 存在。
+
+  - 全库 grep 确认：仅 `docs/archive/` 历史文档仍保留旧引用，生产与测试代码已无 `server.Message` / `server.ChatRequest` / `server.time` 依赖。
+
+- **验证**：
+
+  - 聚焦测试：`python -m pytest tests/test_admin_ui.py tests/test_request_stats.py tests/test_chat_models.py -v` → **6 passed**。
+
+  - `ruff check server.py tests/test_request_stats.py tests/test_chat_models.py routes/admin_ui/panels.py routes/admin_ui/main.py` → 0 errors。
+
+  - `pyright`（通过 `npx pyright` 运行，因系统未安装全局 `pyright`）→ 0 errors，2 warnings 为 `sentry_sdk` 缺失导入（既有，非本次引入）。
+
+  - `scripts/check_code_size.py` → >300 行文件 6（含 `routes/admin_ui/panels.py` 368 行），>50 行函数 72。
+
+- **阶段 3 — 修复第三轮 MCP 拆分引入的测试回归**：
+
+  - 问题：`tests/test_lima_ops_summary.py` 在第三轮将 `tool_server_status` / `tool_health_check` 提取到 `lima_mcp_stdio/lima_ops_tools.py` 后，仍直接调用 `ops_mod.tool_server_status(summary=True)`，未注入 `run_ssh` 与 `servers`，导致返回 "⚠️ 无可用服务器" 而断言失败。
+
+  - 修复：
+
+    - 在 fixture 中将 `run_ssh` mock 从恒返 `None` 改为返回 canned 响应（`uptime`、`free`、`top`、curl HTTP 状态码等）。
+
+    - 两个 summary 测试显式传入 `run_ssh=ops_mod.run_ssh, servers=ops_mod.get_servers()`，匹配依赖注入模式。
+
+  - 验证：`python -m pytest tests/test_lima_ops_summary.py -v` → **4 passed**。
+
+- **最终全量验证**：
+
+  - `python -m pytest --tb=short -q` → **2315 passed, 18 skipped, 0 failed**。
+
+  - `ruff check .` → 0 errors。
+
+  - `npx pyright server.py tests/test_request_stats.py tests/test_chat_models.py tests/test_lima_ops_summary.py routes/admin_ui/panels.py routes/admin_ui/main.py` → 0 errors（2 warnings 为 `sentry_sdk` 可选依赖缺失，既有）。
+
+- **Git**：按 AGENTS.md 仅暂存相关文件，使用 conventional commit 提交并推送到 origin + gitee。
+
+
+
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 
 
