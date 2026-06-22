@@ -59,6 +59,34 @@ TOOLS = {
 }
 
 
+def _handle_tool_call(req_id, params, compress_text, compress_code, compress_json, compress_context):
+    """Dispatch a tools/call request to the appropriate compressor."""
+    tool = params["name"]
+    args = params.get("arguments", {})
+    try:
+        if tool == "compress_text":
+            text = compress_text(args["text"], args.get("target_ratio", 0.3))
+        elif tool == "compress_code":
+            text = compress_code(args["code"])
+        elif tool == "compress_json":
+            text = compress_json(args["json_str"], args.get("max_items", 8))
+        elif tool == "compress_context":
+            text = compress_context(args["text"])
+        else:
+            raise ValueError(f"Unknown tool: {tool}")
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {"content": [{"type": "text", "text": text}]},
+        }
+    except Exception as e:
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32603, "message": str(e)},
+        }
+
+
 def handle_request(req: dict) -> dict:
     # Lazy imports — compression module loads us first, so we import it at call time
     from lima_mcp_stdio.prompt_compress_mcp import (
@@ -99,30 +127,7 @@ def handle_request(req: dict) -> dict:
         }
 
     if method == "tools/call":
-        tool = req["params"]["name"]
-        args = req["params"].get("arguments", {})
-        try:
-            if tool == "compress_text":
-                text = compress_text(args["text"], args.get("target_ratio", 0.3))
-            elif tool == "compress_code":
-                text = compress_code(args["code"])
-            elif tool == "compress_json":
-                text = compress_json(args["json_str"], args.get("max_items", 8))
-            elif tool == "compress_context":
-                text = compress_context(args["text"])
-            else:
-                raise ValueError(f"Unknown tool: {tool}")
-            return {
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "result": {"content": [{"type": "text", "text": text}]},
-            }
-        except Exception as e:
-            return {
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "error": {"code": -32603, "message": str(e)},
-            }
+        return _handle_tool_call(req_id, req["params"], compress_text, compress_code, compress_json, compress_context)
 
     return {"jsonrpc": "2.0", "id": req_id, "result": {}}
 

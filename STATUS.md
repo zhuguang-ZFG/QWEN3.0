@@ -7,14 +7,27 @@
 
 > Updated: 2026-06-22
 > Branch: `main`
-> Scale: 约 1021 个 Python 文件 / 全仓 905 文件已格式化
-> Tests: 全量 2328 passed / 18 skipped / 0 failed；ruff check clean；ruff format clean
+> Scale: 约 1356 个 Python 文件 / 179,647 行
+> Tests: 全量 2402 passed / 19 skipped / 0 failed；ruff check clean；ruff format clean
+> Code Size: 零 >300 行文件；>50 行函数 57（历史债务，均为 54-78 行边界值）
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
 > CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；提示词工程 5 项高优先级安全问题已关闭（P0-1~P0-5）。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-22）第七轮瘦身 — 消除全部 >300 行文件
+
+- **目标**：响应「继续优化计划」指令，消除所有 >300 行文件，减少 >50 行函数数量，清理 PONYTAIL-DEBT。
+- **拆分 `routes/admin_ui/panels.py`（368→包）**：4 个子模块按逻辑分组（_metrics/_analysis/_admin/_system），消除唯一生产 >300 行文件。
+- **拆分 7 个生产超长函数**：deploy_unified::main（82→32）、fts_index::add_documents/search（68+62→38+35）、MCP ops 三工具（tail_log/health_check/server_status）、prompt_compress_server::handle_request、lima_code_query_core::search_code。
+- **拆分 6 个测试超长函数**：fake_u1 系列 4 个 + device_app_members + xiaozhi_v1_compat_task。
+- **拆分 3 个 >300 行测试文件**：test_routing_engine_post、test_device_draw_handler、test_p1_4_device_stability_gate。
+- **删除 9 个未使用脚本**（~732 行），PONYTAIL-DEBT 待处理项清零。
+- **附加修复**：test_mimo_mcp_runner Windows 平台断言；安装 hypothesis 依赖。
+- **验证**：全量 **2402 passed / 19 skipped / 0 failed**；ruff clean；**零 >300 行文件**；>50 行函数 57（从 73 降至 57）。
+- **详见** `progress.md` 2026-06-22 第七轮瘦身条目。
 
 ### 最近完成（2026-06-22）全量修复里程碑 A/B/C/D
 

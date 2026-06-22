@@ -3,54 +3,74 @@ from device_app_helpers import client as make_client
 from device_app_helpers import headers, seed_account_and_device, seed_binding
 
 
+def _create_and_assert_member(client, device_id: str, name: str, role: str) -> dict:
+    """Create a device member and assert basic fields."""
+    created = client.post(
+        "/device/v1/app/members",
+        headers=headers("a-owner"),
+        json={"deviceId": device_id, "name": name, "role": role},
+    )
+    assert created.status_code == 200, created.text
+    member = created.json()
+    assert member["deviceId"] == device_id
+    assert member["name"] == name
+    return member
+
+
+def _enroll_and_assert_voiceprint(
+    client, device_id: str, member_id: str, audio_id: str, source_name: str, introduce: str
+) -> dict:
+    """Enroll a voiceprint and assert returned fields."""
+    enrolled = client.post(
+        "/device/v1/app/voiceprints/enroll",
+        headers=headers("a-owner"),
+        json={
+            "deviceId": device_id,
+            "memberId": member_id,
+            "audioId": audio_id,
+            "sourceName": source_name,
+            "introduce": introduce,
+        },
+    )
+    assert enrolled.status_code == 200, enrolled.text
+    vp = enrolled.json()
+    assert vp["memberId"] == member_id
+    assert vp["status"] == "verifying"
+    assert vp["audioId"] == audio_id
+    assert vp["sourceName"] == source_name
+    assert vp["introduce"] == introduce
+    return vp
+
+
+def _list_and_assert_voiceprints(
+    client, device_id: str, expected_source: str, expected_audio: str, expected_intro: str
+) -> None:
+    """List voiceprints and assert the first entry matches expectations."""
+    listed = client.get(f"/device/v1/app/devices/{device_id}/voiceprints", headers=headers("a-owner"))
+    assert listed.status_code == 200, listed.text
+    data = listed.json()
+    assert data["count"] == 1
+    assert data["voiceprints"][0]["sourceName"] == expected_source
+    assert data["voiceprints"][0]["audioId"] == expected_audio
+    assert data["voiceprints"][0]["introduce"] == expected_intro
+
+
 def test_device_app_member_and_voiceprint_flow(tmp_path, monkeypatch):
     client, _store = make_client(tmp_path, monkeypatch)
     seed_account_and_device()
     seed_binding()
 
-    created = client.post(
-        "/device/v1/app/members",
-        headers=headers("a-owner"),
-        json={"deviceId": "dev-1", "name": "child-1", "role": "child"},
-    )
-    assert created.status_code == 200, created.text
-    member = created.json()
-    assert member["deviceId"] == "dev-1"
-    assert member["name"] == "child-1"
+    member = _create_and_assert_member(client, "dev-1", "child-1", "child")
 
     listed = client.get("/device/v1/app/devices/dev-1/members", headers=headers("a-owner"))
     assert listed.status_code == 200, listed.text
     assert listed.json()["members"][0]["memberId"] == member["memberId"]
 
-    enrolled = client.post(
-        "/device/v1/app/voiceprints/enroll",
-        headers=headers("a-owner"),
-        json={
-            "deviceId": "dev-1",
-            "memberId": member["memberId"],
-            "audioId": "audio-1",
-            "sourceName": "child-1",
-            "introduce": "intro",
-        },
-    )
-    assert enrolled.status_code == 200, enrolled.text
-    voiceprint = enrolled.json()
-    assert voiceprint["memberId"] == member["memberId"]
-    assert voiceprint["status"] == "verifying"
-    assert voiceprint["audioId"] == "audio-1"
-    assert voiceprint["sourceName"] == "child-1"
-    assert voiceprint["introduce"] == "intro"
-
-    listed = client.get("/device/v1/app/devices/dev-1/voiceprints", headers=headers("a-owner"))
-    assert listed.status_code == 200, listed.text
-    data = listed.json()
-    assert data["count"] == 1
-    assert data["voiceprints"][0]["sourceName"] == "child-1"
-    assert data["voiceprints"][0]["audioId"] == "audio-1"
-    assert data["voiceprints"][0]["introduce"] == "intro"
+    vp = _enroll_and_assert_voiceprint(client, "dev-1", member["memberId"], "audio-1", "child-1", "intro")
+    _list_and_assert_voiceprints(client, "dev-1", "child-1", "audio-1", "intro")
 
     updated = client.put(
-        f"/device/v1/app/voiceprints/{voiceprint['voiceprintId']}",
+        f"/device/v1/app/voiceprints/{vp['voiceprintId']}",
         headers=headers("a-owner"),
         json={"sourceName": "updated", "introduce": "new-intro", "audioId": "audio-2"},
     )
@@ -60,15 +80,15 @@ def test_device_app_member_and_voiceprint_flow(tmp_path, monkeypatch):
     assert updated.json()["audioId"] == "audio-2"
 
     denied = client.put(
-        f"/device/v1/app/voiceprints/{voiceprint['voiceprintId']}",
+        f"/device/v1/app/voiceprints/{vp['voiceprintId']}",
         headers=headers("a-other"),
         json={"sourceName": "hacker"},
     )
     assert denied.status_code == 403
 
-    deleted = client.delete(f"/device/v1/app/voiceprints/{voiceprint['voiceprintId']}", headers=headers("a-owner"))
+    deleted = client.delete(f"/device/v1/app/voiceprints/{vp['voiceprintId']}", headers=headers("a-owner"))
     assert deleted.status_code == 200, deleted.text
-    assert deleted.json() == {"voiceprintId": voiceprint["voiceprintId"], "status": "disabled"}
+    assert deleted.json() == {"voiceprintId": vp["voiceprintId"], "status": "disabled"}
 
 
 def test_device_app_transfer_self_check_and_supplies_flow(tmp_path, monkeypatch):

@@ -50,22 +50,8 @@ from scripts.deploy_unified_deploy import deploy_files
 from scripts.deploy_unified_restart import restart_server
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Unified LiMa deploy")
-    parser.add_argument(
-        "--slice",
-        choices=["core", "phase_a", "phase_b", "all"],
-        default="core",
-        help="Which slice to deploy",
-    )
-    parser.add_argument("--files", nargs="+", help="Specific files to deploy")
-    parser.add_argument("--dry-run", action="store_true", help="Show what would be deployed")
-    parser.add_argument("--no-restart", action="store_true", help="Skip server restart")
-    args = parser.parse_args()
-
-    files: list[str] = []
-    project_root = Path(__file__).resolve().parent.parent
-
+def _collect_files(args, project_root: Path) -> list[str]:
+    """Resolve the file list from CLI args."""
     if args.files:
         exclude_prefixes = tuple(f"{d}/" for d in _DEPLOY_EXCLUDES)
         files = expand_with_dependencies(args.files, project_root, exclude_patterns=exclude_prefixes)
@@ -73,31 +59,14 @@ def main() -> int:
         if added:
             print(f"  auto-added {len(added)} local dependencies: {', '.join(added)}")
     elif args.slice in ("core", "all"):
-        # Deploy the complete runtime tree to avoid the partial-deploy crash
-        # loops caused by stale/missing modules on the VPS.
         files = _collect_runtime_files(project_root)
     else:
         files = SLICE_FILES.get(args.slice, [])
+    return list(dict.fromkeys(files))
 
-    files = list(dict.fromkeys(files))
 
-    print(f"Deploying {len(files)} files ({args.slice})...")
-    backup_path = ""
-    if not args.dry_run:
-        backup_label = "unified-files" if args.files else f"unified-{args.slice}"
-        try:
-            preflight = prepare_remote_deploy(files, label=backup_label)
-        except RuntimeError as exc:
-            print(f"preflight failed: {exc}")
-            return 1
-        if not preflight["ok"]:
-            print(f"capacity check failed: {preflight['reason']}")
-            print(f"capacity: {preflight['capacity']}")
-            return 1
-        print(f"Capacity: {preflight['capacity']}")
-        print(f"Backup: {preflight['backup_path']}")
-        backup_path = str(preflight["backup_path"])
-
+def _execute_deploy(files: list[str], args, backup_path: str) -> int:
+    """Run deploy, handle restart, rollback, and notification."""
     results = deploy_files(files, dry_run=args.dry_run)
 
     print(
@@ -132,6 +101,42 @@ def main() -> int:
         print(f"\n{notify_text}")
 
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Unified LiMa deploy")
+    parser.add_argument(
+        "--slice",
+        choices=["core", "phase_a", "phase_b", "all"],
+        default="core",
+        help="Which slice to deploy",
+    )
+    parser.add_argument("--files", nargs="+", help="Specific files to deploy")
+    parser.add_argument("--dry-run", action="store_true", help="Show what would be deployed")
+    parser.add_argument("--no-restart", action="store_true", help="Skip server restart")
+    args = parser.parse_args()
+
+    project_root = Path(__file__).resolve().parent.parent
+    files = _collect_files(args, project_root)
+    print(f"Deploying {len(files)} files ({args.slice})...")
+
+    backup_path = ""
+    if not args.dry_run:
+        backup_label = "unified-files" if args.files else f"unified-{args.slice}"
+        try:
+            preflight = prepare_remote_deploy(files, label=backup_label)
+        except RuntimeError as exc:
+            print(f"preflight failed: {exc}")
+            return 1
+        if not preflight["ok"]:
+            print(f"capacity check failed: {preflight['reason']}")
+            print(f"capacity: {preflight['capacity']}")
+            return 1
+        print(f"Capacity: {preflight['capacity']}")
+        print(f"Backup: {preflight['backup_path']}")
+        backup_path = str(preflight["backup_path"])
+
+    return _execute_deploy(files, args, backup_path)
 
 
 if __name__ == "__main__":

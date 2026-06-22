@@ -50,6 +50,57 @@ class FtsIndex(LocalRetrievalIndex):
             """)
         return self._conn
 
+    def _index_single_file(self, path: str, conn: sqlite3.Connection, chunker) -> bool:
+        """Index one file into FTS5 and document list. Return True on success."""
+        try:
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
+        except (OSError, UnicodeDecodeError):
+            return False
+
+        chunks = chunker.chunk(content, path)
+        chunk_records = [
+            ChunkRecord(
+                chunk_id=chunk.chunk_id,
+                document_path=path,
+                chunk_index=int(chunk.metadata.get("chunk_index", idx)),
+                start_line=chunk.start_line,
+                end_line=chunk.end_line,
+                char_offset=chunk.char_offset,
+                char_length=chunk.char_length,
+                content_hash=_make_content_hash(chunk.text),
+            )
+            for idx, chunk in enumerate(chunks)
+        ]
+
+        self._documents.append(
+            IndexedDocument(
+                path=path,
+                file_hash=_make_content_hash(content),
+                file_size_bytes=len(content.encode()),
+                mtime=os.path.getmtime(path),
+                language=_guess_language(path),
+                chunks=chunk_records,
+            )
+        )
+
+        conn.executemany(
+            "INSERT INTO chunks (chunk_id, document_path, content, start_line, end_line, chunk_index) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    chunk.chunk_id,
+                    path,
+                    chunk.text,
+                    chunk.start_line,
+                    chunk.end_line,
+                    int(chunk.metadata.get("chunk_index", idx)),
+                )
+                for idx, chunk in enumerate(chunks)
+            ],
+        )
+        self._chunk_count += len(chunks)
+        return True
+
     def add_documents(self, paths: list[str]) -> int:
         conn = self._ensure_db()
         chunker = SimpleTextChunker(max_chars=self._max_chars)
@@ -57,56 +108,9 @@ class FtsIndex(LocalRetrievalIndex):
         existing_paths = []
 
         for path in paths:
-            try:
-                with open(path, encoding="utf-8") as f:
-                    content = f.read()
-            except (OSError, UnicodeDecodeError):
-                continue
-
-            chunks = chunker.chunk(content, path)
-            chunk_records = [
-                ChunkRecord(
-                    chunk_id=chunk.chunk_id,
-                    document_path=path,
-                    chunk_index=int(chunk.metadata.get("chunk_index", idx)),
-                    start_line=chunk.start_line,
-                    end_line=chunk.end_line,
-                    char_offset=chunk.char_offset,
-                    char_length=chunk.char_length,
-                    content_hash=_make_content_hash(chunk.text),
-                )
-                for idx, chunk in enumerate(chunks)
-            ]
-
-            self._documents.append(
-                IndexedDocument(
-                    path=path,
-                    file_hash=_make_content_hash(content),
-                    file_size_bytes=len(content.encode()),
-                    mtime=os.path.getmtime(path),
-                    language=_guess_language(path),
-                    chunks=chunk_records,
-                )
-            )
-
-            # Insert chunks into FTS5 table
-            conn.executemany(
-                "INSERT INTO chunks (chunk_id, document_path, content, start_line, end_line, chunk_index) VALUES (?, ?, ?, ?, ?, ?)",
-                [
-                    (
-                        chunk.chunk_id,
-                        path,
-                        chunk.text,
-                        chunk.start_line,
-                        chunk.end_line,
-                        int(chunk.metadata.get("chunk_index", idx)),
-                    )
-                    for idx, chunk in enumerate(chunks)
-                ],
-            )
-            self._chunk_count += len(chunks)
-            existing_paths.append(path)
-            count += 1
+            if self._index_single_file(path, conn, chunker):
+                existing_paths.append(path)
+                count += 1
 
         conn.commit()
 
@@ -119,22 +123,10 @@ class FtsIndex(LocalRetrievalIndex):
 
         return count
 
-    def search(self, query: str, top_k: int = 5) -> list[RetrievalHit]:
-        conn = self._ensure_db()
-        if not query.strip() or top_k <= 0:
-            return []
-
-        # FTS5 query: match against content column
-        # Use simple prefix matching for better recall
-        terms = query.strip().split()
-        if not terms:
-            return []
-
-        # Build FTS5 query: match any term
-        fts_query = " OR ".join(terms)
-
+    def _execute_fts_query(self, conn, fts_query, terms, top_k):
+        """Execute FTS5 MATCH query with LIKE fallback."""
         try:
-            cursor = conn.execute(
+            return conn.execute(
                 """
                 SELECT chunk_id, document_path, snippet(chunks, 2, '...', '...', '', 32) as snip,
                        rank, start_line, end_line
@@ -146,10 +138,9 @@ class FtsIndex(LocalRetrievalIndex):
                 (fts_query, top_k),
             )
         except sqlite3.OperationalError:
-            # If FTS5 query syntax fails, fall back to simple LIKE
             like_patterns = [f"%{term}%" for term in terms]
             conditions = " OR ".join(["content LIKE ?"] * len(terms))
-            cursor = conn.execute(
+            return conn.execute(
                 f"""
                 SELECT chunk_id, document_path, substr(content, 1, 150) as snip,
                        0 as rank, start_line, end_line
@@ -160,10 +151,21 @@ class FtsIndex(LocalRetrievalIndex):
                 (*like_patterns, top_k),
             )
 
+    def search(self, query: str, top_k: int = 5) -> list[RetrievalHit]:
+        conn = self._ensure_db()
+        if not query.strip() or top_k <= 0:
+            return []
+
+        terms = query.strip().split()
+        if not terms:
+            return []
+
+        fts_query = " OR ".join(terms)
+        cursor = self._execute_fts_query(conn, fts_query, terms, top_k)
+
         hits = []
         for row in cursor.fetchall():
             chunk_id, doc_path, snippet, rank, start_line, end_line = row
-            # BM25 rank is negative (lower is better), invert for display
             score = round(-rank, 4) if rank != 0 else 1.0
             reason = f"FTS5 BM25; chunk_lines: {start_line}-{end_line}"
             hits.append(

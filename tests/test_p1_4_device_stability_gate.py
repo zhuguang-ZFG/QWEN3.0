@@ -253,49 +253,5 @@ def test_correlation_events_recorded_on_motion():
     assert len(motion_events) >= 1, f"No correlation events found for {task['task_id']}"
 
 
-# ── Stability repeat loop ──────────────────────────────────────────────────────
-
-
-def test_stability_loop(request):
-    """Long-running fake-U8 stability smoke (--stability-rounds N)."""
-    rounds = request.config.getoption("--stability-rounds", default=0)
-    if rounds <= 0:
-        pytest.skip("Use --stability-rounds N to enable")
-
-    errors: list[str] = []
-    for i in range(rounds):
-        c = _client()
-        try:
-            _reset_for_tests()  # Clean state between rounds
-            with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-                ws.send_json(
-                    {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
-                )
-                ack = ws.receive_json()
-                assert ack["type"] == "hello_ack", f"round {i}: expected hello_ack"
-
-                ws.send_json({"type": "heartbeat", "device_id": "dev-1", "uptime_ms": i * 100})
-                assert ws.receive_json()["type"] == "heartbeat_ack"
-
-                ws.send_json({"type": "transcript", "device_id": "dev-1", "text": f"写LiMa_{i}"})
-                task = ws.receive_json()
-                assert task["type"] == "motion_task", f"round {i}: expected motion_task"
-
-                task_id = task["task_id"]
-                for phase in ("accepted", "running", "progress", "done"):
-                    ws.send_json({"type": "motion_event", "device_id": "dev-1", "task_id": task_id, "phase": phase})
-                    ack = ws.receive_json()
-                    assert ack["type"] == "motion_event_ack", f"round {i} phase {phase}"
-
-            # Check after WebSocket close (events flushed)
-            snap = task_snapshot(task_id)
-            assert snap is not None, f"round {i}: task snapshot missing for {task_id}"
-            event_phases = [e.get("phase") for e in snap.get("events", [])]
-            assert "done" in event_phases, f"round {i}: expected 'done' in {event_phases}, status={snap.get('status')}"
-        except Exception as exc:
-            errors.append(f"round {i}: {exc}")
-            _reset_for_tests()
-            if len(errors) >= 3:
-                break
-
-    assert not errors, f"Stability failures ({len(errors)}/{rounds}): {errors[:5]}"
+# NOTE: HTTP endpoint tests, multi-device, and stability loop moved to
+# test_p1_4_device_stability_gate_part2.py

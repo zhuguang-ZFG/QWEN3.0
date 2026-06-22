@@ -89,7 +89,7 @@ def test_build_command_puts_flags_before_message(monkeypatch):
 
     monkeypatch.setenv("MIMO_MCP_MIMO_BINARY", "/fake/mimo")
     cmd = build_command("do review", Path("D:/proj"), attach_files=[])
-    assert Path(cmd[0]).name.lower() == "mimo"
+    assert Path(cmd[0]).stem.lower() == "mimo"
     assert cmd[1] == "run"
     assert any(str(a).startswith("--dir=") for a in cmd)
     assert cmd[-1] == "do review"

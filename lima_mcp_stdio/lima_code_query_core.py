@@ -43,63 +43,63 @@ class LimaCodeQuery:
         except Exception as e:
             logger.warning("sqlite graph index init failed: %s", e)
 
-    def search_code(self, query: str, limit: int = 8) -> list[dict[str, Any]]:
-        """语义搜索代码 — 返回相关文件和关键符号"""
+    def _search_chroma(self, query, limit):
+        """ChromaDB vector search."""
         results = []
-
-        # 1. 尝试 chroma 向量搜索
         try:
             from code_context.chroma_vector_store import ChromaCodeIndex
 
             chroma = ChromaCodeIndex(
                 persist_directory=str(PROJECT_ROOT / ".lima-data"), collection_name="lima_code_index"
             )
-            chroma_results = chroma.search(query, limit=limit)
-            for r in chroma_results:
-                results.append(
-                    {
-                        "path": r.path,
-                        "source": "chroma",
-                    }
-                )
+            for r in chroma.search(query, limit=limit):
+                results.append({"path": r.path, "source": "chroma"})
         except Exception as e:
             logger.warning("chroma search failed for query %r: %s", query, e)
+        return results
 
-        # 2. 符号匹配（基于 index_store 的关键词搜索）
-        if self._index and len(results) < limit:
-            try:
-                keyword_results = self._index.search(query, limit=limit)
-                for r in keyword_results:
-                    symbols = [s.name for s in r.symbols]
-                    imports = [imp[0] for imp in r.imports]
-                    results.append(
-                        {
-                            "path": r.path,
-                            "symbols": symbols[:10],
-                            "imports": imports[:10],
-                            "mtime": r.mtime,
-                            "source": "keyword",
-                        }
-                    )
-            except Exception as e:
-                logger.warning("keyword index search failed for query %r: %s", query, e)
+    def _search_keyword(self, query, limit):
+        """Keyword search via index_store."""
+        results = []
+        if not self._index:
+            return results
+        try:
+            for r in self._index.search(query, limit=limit):
+                results.append({
+                    "path": r.path,
+                    "symbols": [s.name for s in r.symbols][:10],
+                    "imports": [imp[0] for imp in r.imports][:10],
+                    "mtime": r.mtime,
+                    "source": "keyword",
+                })
+        except Exception as e:
+            logger.warning("keyword index search failed for query %r: %s", query, e)
+        return results
 
-        # 3. 文件路径匹配（直接扫关键目录）
-        if len(results) < limit:
-            query_lower = query.lower()
-            KEY_DIRS = ["routes", "device_gateway", "device_intelligence", "context_pipeline", "session_memory"]
-            for d in KEY_DIRS:
-                dir_path = PROJECT_ROOT / d
-                if not dir_path.exists():
-                    continue
-                for py_file in dir_path.rglob("*.py"):
-                    if query_lower in py_file.stem.lower():
-                        results.append({"path": str(py_file.relative_to(PROJECT_ROOT)), "source": "path_match"})
-                    if len(results) >= limit * 2:
-                        break
+    def _search_path_match(self, query, limit):
+        """Filename match across key directories."""
+        results = []
+        query_lower = query.lower()
+        for d in ("routes", "device_gateway", "device_intelligence", "context_pipeline", "session_memory"):
+            dir_path = PROJECT_ROOT / d
+            if not dir_path.exists():
+                continue
+            for py_file in dir_path.rglob("*.py"):
+                if query_lower in py_file.stem.lower():
+                    results.append({"path": str(py_file.relative_to(PROJECT_ROOT)), "source": "path_match"})
                 if len(results) >= limit * 2:
                     break
+            if len(results) >= limit * 2:
+                break
+        return results
 
+    def search_code(self, query: str, limit: int = 8) -> list[dict[str, Any]]:
+        """语义搜索代码 — 返回相关文件和关键符号"""
+        results = self._search_chroma(query, limit)
+        if len(results) < limit:
+            results.extend(self._search_keyword(query, limit))
+        if len(results) < limit:
+            results.extend(self._search_path_match(query, limit))
         return results[:limit]
 
     def get_module_context(self, path: str) -> dict[str, Any]:

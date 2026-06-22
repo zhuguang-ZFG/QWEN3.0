@@ -12,6 +12,52 @@
 
 
 
+## 2026-06-22 LiMa 第七轮瘦身（完成）
+
+- **目标**：继续降低代码尺寸违规，消除所有 >300 行文件，减少 >50 行函数数量，清理 PONYTAIL-DEBT 最后一项。
+
+- **阶段 1 — 拆分 `routes/admin_ui/panels.py`（368→包）**：
+  - 拆为 `routes/admin_ui/panels/` 包（4 个子模块 + `__init__.py`），消除唯一生产 >300 行文件。
+  - `_metrics.py`（OVERVIEW/TRAFFIC/BACKENDS）、`_analysis.py`（RETRIEVAL/MODEL/HEALTH）、`_admin.py`（CLIENT_KEYS/KEYS/AGENTS/AGENT_TASKS）、`_system.py`（CONFIG/DEVICES/ALERTS/LIVE_LOGS）。
+  - 导入路径不变，`main.py` 的 `panels.OVERVIEW` 等仍正常工作。
+
+- **阶段 2 — 拆分生产代码超长函数**：
+  - `scripts/deploy_unified.py::main`（82→32 行）：提取 `_collect_files()` 和 `_execute_deploy()`。
+  - `local_retrieval/fts_index.py::add_documents`（68→38 行）：提取 `_index_single_file()`。`search`（62→35 行）：提取 `_execute_fts_query()`。
+  - `lima_mcp_stdio/ops/tail_log.py`（75→37 行）：提取 `_tail_summary()` 和 `_tail_full()`。
+  - `lima_mcp_stdio/ops/health_check.py`（73→33 行）：提取 `_health_summary()` 和 `_health_detail()`。
+  - `lima_mcp_stdio/ops/server_status.py`（70→33 行）：提取 `_status_summary()` 和 `_status_detail()`。
+  - `lima_mcp_stdio/prompt_compress_server.py::handle_request`（66→31 行）：提取 `_handle_tool_call()`。
+  - `lima_mcp_stdio/lima_code_query_core.py::search_code`（58→12 行）：提取 `_search_chroma()`、`_search_keyword()`、`_search_path_match()`。
+
+- **阶段 3 — 拆分测试代码超长函数（6 个）**：
+  - `test_fake_u1_cloud_draw_svg.py`：79→28 行（提取 5 个 helper）。
+  - `test_fake_u1_cloud_rejection.py`：69→31 行（提取 5 个 helper）。
+  - `test_fake_u1_cloud_write_text.py`：68→27 行（提取 4 个 helper）。
+  - `test_fake_u1_cloud_home.py`：62→29 行（提取 3 个 helper）。
+  - `test_device_app_members_misc.py`：66→34 行（提取 3 个 helper）。
+  - `test_xiaozhi_v1_compat_task.py`：63→30 行（提取 2 个 helper）。
+
+- **阶段 4 — 拆分 3 个 >300 行测试文件**：
+  - `test_routing_engine_post.py`（333→248 + 129 行）。
+  - `test_device_draw_handler.py`（330→236 + 123 行）。
+  - `test_p1_4_device_stability_gate.py`（301→257 + 156 行）。
+
+- **阶段 5 — 审查 scripts/ 目录删除未使用脚本**：
+  - 删除 9 个一次性脚本：`_audit_no_test.py`、`analyze_codegraph.py`、`codebase_indexer.py`、`embed_code_to_shared_memory.py`、`sync_code_to_shared_memory.py`、`verify_deployment.sh`、`setup_github_secrets.sh`、`smoke_voice_pipeline.py`、`install_codesearch_local.ps1`。合计约 -732 行。
+  - PONYTAIL-DEBT 待处理项清零。
+
+- **附加修复**：
+  - `tests/test_mimo_mcp_runner.py`：修复 Windows 平台 `mimo`→`mimo.cmd` 断言（`Path.name` 改为 `Path.stem`）。
+  - 安装 `hypothesis` 依赖，修复 `test_hypothesis_routing.py` 收集错误。
+
+- **验证**：
+  - 全量 `pytest -q` → **2402 passed, 19 skipped, 0 failed**。
+  - `ruff check .` → 0 errors。
+  - `scripts/check_code_size.py` → **零 >300 行文件**；>50 行函数 57（从 73 降至 57，减 16 个）。
+
+
+
 ## 2026-06-22 LiMa 全量修复 — 里程碑 A/B/C/D
 
 

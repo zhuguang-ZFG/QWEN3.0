@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
-
 from typing import Any
+
+from fastapi.testclient import TestClient
 
 from fake_u1_helpers import (
     fake_device_server,
@@ -15,21 +15,58 @@ from fake_u1_helpers import (
 )
 
 
+def _ws_send_hello(ws, device_id: str) -> None:
+    """Send a hello handshake and assert hello_ack."""
+    ws.send_json(
+        {
+            "type": "hello",
+            "protocol": "lima-device-v1",
+            "device_id": device_id,
+            "fw_rev": "u1-test",
+            "capabilities": ["run_path"],
+        }
+    )
+    assert ws.receive_json()["type"] == "hello_ack"
+
+
+def _bridge_and_run_motion(
+    ws, fake_device_server: dict[str, Any], device_id: str, task_msg: dict[str, Any], task_id: str
+) -> None:
+    """Bridge the LiMa motion_task into the fake U1 private protocol and run through done."""
+    assert _send_motion_event(ws, device_id, task_id, "accepted")["type"] == "motion_event_ack"
+    fds_response = _post_to_fake_device_server(
+        fake_device_server,
+        "/internal/v1/motion_task",
+        {
+            "device_id": device_id,
+            "task_id": task_id,
+            "capability": task_msg["capability"],
+            "route_policy": task_msg.get("route_policy", {}),
+            "params": task_msg.get("params", {}),
+        },
+    )
+    assert fds_response["code"] == 0
+    assert fds_response["data"]["status"] == "IDLE"
+    assert _send_motion_event(ws, device_id, task_id, "running")["type"] == "motion_event_ack"
+    assert _send_motion_event(ws, device_id, task_id, "done")["type"] == "motion_event_ack"
+
+
+def _assert_task_done(lima_client: TestClient, task_id: str) -> None:
+    """Assert the task has reached 'done' status."""
+    status_response = lima_client.get(
+        f"/device/v1/tasks/{task_id}",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert status_response.status_code == 200
+    assert status_response.json()["status"] == "done"
+
+
 def test_cloud_to_fake_u1_home_loop(lima_client: TestClient, fake_device_server: dict[str, Any]) -> None:
     """Cloud 'home' command executes on fake U1 and reaches terminal 'done' state."""
     device_id = "fake-u1-device"
 
     with lima_client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json(
-            {
-                "type": "hello",
-                "protocol": "lima-device-v1",
-                "device_id": device_id,
-                "fw_rev": "u1-test",
-                "capabilities": ["run_path"],
-            }
-        )
-        assert ws.receive_json()["type"] == "hello_ack"
+        _ws_send_hello(ws, device_id)
 
         response = lima_client.post(
             "/device/v1/tasks",
@@ -46,32 +83,9 @@ def test_cloud_to_fake_u1_home_loop(lima_client: TestClient, fake_device_server:
         assert task_msg["task_id"] == task_id
         assert task_msg["capability"] == "home"
 
-        assert _send_motion_event(ws, device_id, task_id, "accepted")["type"] == "motion_event_ack"
+        _bridge_and_run_motion(ws, fake_device_server, device_id, task_msg, task_id)
 
-        # Bridge the LiMa motion_task into the fake U1 private protocol.
-        fds_response = _post_to_fake_device_server(
-            fake_device_server,
-            "/internal/v1/motion_task",
-            {
-                "device_id": device_id,
-                "task_id": task_id,
-                "capability": task_msg["capability"],
-                "route_policy": task_msg.get("route_policy", {}),
-                "params": task_msg.get("params", {}),
-            },
-        )
-        assert fds_response["code"] == 0
-        assert fds_response["data"]["status"] == "IDLE"
-
-        assert _send_motion_event(ws, device_id, task_id, "running")["type"] == "motion_event_ack"
-        assert _send_motion_event(ws, device_id, task_id, "done")["type"] == "motion_event_ack"
-
-    status_response = lima_client.get(
-        f"/device/v1/tasks/{task_id}",
-        headers={"Authorization": "Bearer test-private-token"},
-    )
-    assert status_response.status_code == 200
-    assert status_response.json()["status"] == "done"
+    _assert_task_done(lima_client, task_id)
 
     from observability.capability_evidence import recent_evidence
 

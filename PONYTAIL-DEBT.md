@@ -16,7 +16,7 @@
 
 ## 待处理项
 
-- [ ] 审查 `scripts/` 目录中 60 个脚本，删除明确不再使用的一次性脚本。
+（无）
 
 ## 已结项
 
@@ -25,3 +25,4 @@
 - [x] 2026-06-22：合并 `estimate_tokens()` 重复实现。
 - [x] 2026-06-22：扫描 `except ImportError: pass` 静默降级 → 生产代码 0 处（全部已有处理逻辑）。
 - [x] 2026-06-22：用 sqlite3 FTS5 替换 `local_retrieval/` 自定义索引（新建 `fts_index.py`，`production_index.py` 改用 FTS5）。
+- [x] 2026-06-22：审查 `scripts/` 目录，删除 9 个未使用一次性脚本（~732 行）。
