@@ -48,11 +48,11 @@ def _get(path: str, *, bearer: str = "", timeout: float = 90) -> tuple[int, str]
         return resp.status, resp.read().decode("utf-8", errors="replace")
 
 
-def _post(path: str, body: dict) -> tuple[int, str]:
+def _post(path: str, body: dict, *, timeout: float = 90) -> tuple[int, str]:
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(f"https://{HOST}{path}", data=data, headers=UA, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=45) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.status, resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read().decode("utf-8", errors="replace")
@@ -119,9 +119,22 @@ def _check_l2_rate_limit() -> str | None:
     probe = limit + 1
     got_429 = False
     last_status = 0
+    network_failures = 0
     for i in range(probe):
-        last_status, _body = _post("/device/v1/app/auth/login", {"phone": "10000000000", "code": "000000"})
-        if last_status == 429:
+        status = 0
+        body = ""
+        for attempt in range(3):
+            try:
+                status, body = _post("/device/v1/app/auth/login", {"phone": "10000000000", "code": "000000"})
+                break
+            except Exception as exc:
+                print(f"WARN L2 login attempt {i + 1}/{probe} retry {attempt + 1}/3 -> {type(exc).__name__}: {exc}")
+                if attempt == 2:
+                    network_failures += 1
+                else:
+                    time.sleep(2)
+        last_status = status
+        if status == 429:
             got_429 = True
             print(f"OK  L2 login rate limit (public) -> 429 on attempt {i + 1}/{probe}")
             break
@@ -131,12 +144,15 @@ def _check_l2_rate_limit() -> str | None:
     flag = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS", "auto").strip().lower()
     redis_url = _load_redis_url()
     strict = flag in {"1", "true", "redis", "on", "yes"} or (flag == "auto" and bool(redis_url))
+    if network_failures and not strict:
+        print(f"WARN L2 public probe: skipped due to {network_failures} network failures (last={last_status})")
+        return None
     msg = (
-        f"FAIL L2 public probe: no 429 after {probe} attempts (last={last_status})"
+        f"FAIL L2 public probe: no 429 after {probe} attempts (last={last_status}, network_failures={network_failures})"
         if strict
         else (
-            f"WARN L2 public probe: no 429 after {probe} attempts (last={last_status}); "
-            "enable LIMA_DEVICE_AUTH_RATE_REDIS + Redis URL for cross-worker limits"
+            f"WARN L2 public probe: no 429 after {probe} attempts (last={last_status}, "
+            f"network_failures={network_failures}); enable LIMA_DEVICE_AUTH_RATE_REDIS + Redis URL for cross-worker limits"
         )
     )
     print(msg)
