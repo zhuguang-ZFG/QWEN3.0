@@ -30,7 +30,8 @@
   - 文档内部链接已目视检查，无断裂。
 - **Git 提交与推送**：
   - Commit `8a89e30e`：`docs: refresh README/STATUS/deploy convention, archive dream-mode drafts`。
-  - GitHub (`origin`) push 成功：`4f7937b1..8a89e30e`。
+  - Commit `95a8adb9`：`docs: remove dream-mode draft docs`。
+  - GitHub (`origin`) push 成功：`4f7937b1..95a8adb9`。
 
 ## 2026-06-22 代码审查问题按优先级修复（完成）
 
