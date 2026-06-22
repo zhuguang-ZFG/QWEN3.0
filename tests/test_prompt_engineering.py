@@ -1,6 +1,7 @@
 from prompt_engineering.layers import (
     build_role_layer,
     build_skill_layer,
+    build_workflow_layer,
     build_quality_gate,
     compose_system_prompt,
 )
@@ -68,6 +69,37 @@ def test_build_quality_gate_vision():
     assert "图像实际内容" in gate
 
 
+def test_build_role_layer_device_draw():
+    role = build_role_layer("", "device_draw")
+    assert "绘图助手" in role
+    assert "笔绘机" in role
+
+
+def test_build_skill_layer_device_write():
+    skill = build_skill_layer("device_write")
+    assert "设备写字" in skill
+
+
+def test_build_workflow_layer_device_write():
+    workflow = build_workflow_layer("device_write")
+    assert "字体渲染" in workflow
+    workflow = build_workflow_layer("coding")
+    assert "[工作流]" in workflow
+    assert "需求边界" in workflow
+    assert "类型注解" in workflow
+
+
+def test_build_workflow_layer_device_draw():
+    workflow = build_workflow_layer("device_draw")
+    assert "SVG 矢量化" in workflow
+    assert "G-code" in workflow
+
+
+def test_build_workflow_layer_unknown_falls_back_to_chat():
+    workflow = build_workflow_layer("unknown_scenario")
+    assert "理解用户问题核心" in workflow
+
+
 def test_compose_system_prompt_coding_with_ide_and_context():
     prompt = compose_system_prompt(
         ide="Claude Code",
@@ -77,6 +109,7 @@ def test_compose_system_prompt_coding_with_ide_and_context():
     assert "编程助手" in prompt
     assert "Claude Code" in prompt
     assert "编码实现" in prompt
+    assert "[工作流]" in prompt
     assert "routing_engine.py" in prompt
     assert "质量门控" in prompt
     assert "linter" in prompt
@@ -86,19 +119,22 @@ def test_compose_system_prompt_chat_no_context():
     prompt = compose_system_prompt(ide="", scenario="chat", code_context="")
     assert "联网能力" in prompt
     assert "技术问答" in prompt
+    assert "[工作流]" in prompt
     assert "质量门控" in prompt
     assert "[上下文]" not in prompt
 
 
-def test_compose_system_prompt_has_all_four_layers():
+def test_compose_system_prompt_has_all_five_layers():
     prompt = compose_system_prompt(ide="Kiro", scenario="coding", code_context="server.py | embeddings")
     layers_found = 0
     if "编程助手" in prompt:
         layers_found += 1
     if "编码实现" in prompt:
         layers_found += 1
+    if "[工作流]" in prompt:
+        layers_found += 1
     if "[上下文]" in prompt:
         layers_found += 1
     if "[质量门控]" in prompt:
         layers_found += 1
-    assert layers_found == 4
+    assert layers_found == 5

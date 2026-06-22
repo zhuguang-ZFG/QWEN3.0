@@ -45,6 +45,16 @@ class TestEnhanceDrawingPrompt:
         assert "无填充" in result
         assert "无文字" in result
 
+    def test_includes_device_capability(self):
+        result = enhance_drawing_prompt("猫", device_type="esp32_xy_plotter")
+        assert "XY平台" in result
+        assert "G-code" in result
+
+    def test_includes_retry_hint_from_failed_prompts(self):
+        result = enhance_drawing_prompt("猫", previous_failed_prompts=["过于复杂的森林"])
+        assert "过于复杂的森林" in result
+        assert "生成失败" in result
+
 
 class TestEnhanceDrawingPromptSingleLineKeywords:
     def test_includes_single_stroke_style(self):

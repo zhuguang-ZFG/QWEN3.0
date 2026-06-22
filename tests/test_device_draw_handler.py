@@ -14,6 +14,20 @@ from device_gateway.device_draw_handler import (
     _try_preset_shape,
     handle_device_draw,
 )
+from device_gateway.draw_prompt_context import reset_draw_prompt_history_for_tests
+from session_memory.store import _get_conn, set_db_path
+
+
+@pytest.fixture(autouse=True)
+def _reset_draw_history(tmp_path):
+    set_db_path(str(tmp_path / "device_draw_handler.db"))
+    conn = _get_conn()
+    conn.execute("DELETE FROM memories")
+    conn.commit()
+    conn.close()
+    reset_draw_prompt_history_for_tests()
+    yield
+    reset_draw_prompt_history_for_tests()
 
 
 class TestBuildResponses:
@@ -93,7 +107,7 @@ class TestPresetShape:
 
 
 class TestHandleDeviceDraw:
-    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: f"enhanced {p}")
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt")
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
     @patch("device_gateway.device_draw_handler.SVGConverter")
     @patch("device_gateway.device_draw_handler.validate_svg_path")
@@ -106,7 +120,9 @@ class TestHandleDeviceDraw:
         mock_validate,
         mock_converter_cls,
         mock_client_cls,
+        mock_enhance,
     ):
+        mock_enhance.return_value = "enhanced prompt"
         mock_client = MagicMock()
         mock_client.generate.return_value = {
             "status": "success",
@@ -136,8 +152,15 @@ class TestHandleDeviceDraw:
         )
         mock_precheck.return_value = None
 
-        resp = await handle_device_draw("a cat")
+        resp = await handle_device_draw("a cat", device_id="dev-1", user_preferences={"style": "可爱", "complexity": "低"})
         assert resp["status"] == "success"
+        mock_enhance.assert_called_once_with(
+            "a cat",
+            style="可爱",
+            complexity="低",
+            device_type="esp32_xy_plotter",
+            previous_failed_prompts=None,
+        )
         assert resp["image_url"] == "http://img/1"
         assert resp["svg_path"] == "M0,0"
         mock_client.generate.assert_called_once()
@@ -145,7 +168,7 @@ class TestHandleDeviceDraw:
         mock_optimize.assert_called_once()
         assert mock_optimize.call_args.kwargs.get("close") is False
 
-    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: p)
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p, **kwargs: p)
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
     @patch("device_gateway.device_draw_handler.SVGConverter")
     @patch("device_gateway.device_draw_handler.validate_svg_path")
@@ -191,18 +214,22 @@ class TestHandleDeviceDraw:
         assert "Motion bounds precheck failed" in resp["error"]
         assert resp["svg_path"] is None
 
-    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: p)
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt")
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
-    async def test_image_generation_failure(self, mock_client_cls):
+    async def test_image_generation_failure_records_retry_hint(self, mock_client_cls, mock_enhance):
+        mock_enhance.side_effect = lambda prompt, **kwargs: prompt
         mock_client = MagicMock()
         mock_client.generate.return_value = {"status": "failed", "error": "rate limited"}
         mock_client_cls.return_value = mock_client
 
-        resp = await handle_device_draw("a cat")
+        resp = await handle_device_draw("a cat", device_id="dev-retry")
         assert resp["status"] == "failed"
-        assert resp["error"] == "rate limited"
 
-    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: p)
+        resp2 = await handle_device_draw("a cat", device_id="dev-retry")
+        assert mock_enhance.call_count == 2
+        assert mock_enhance.call_args_list[1].kwargs.get("previous_failed_prompts") == ["a cat"]
+
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p, **kwargs: p)
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
     @patch("device_gateway.device_draw_handler.SVGConverter")
     async def test_svg_conversion_failure(self, mock_converter_cls, mock_client_cls):
@@ -221,7 +248,7 @@ class TestHandleDeviceDraw:
         assert resp["status"] == "partial"
         assert "cv2 missing" in resp["error"]
 
-    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: p)
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p, **kwargs: p)
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
     @patch("device_gateway.device_draw_handler.SVGConverter")
     @patch("device_gateway.device_draw_handler.validate_svg_path")
@@ -245,7 +272,7 @@ class TestHandleDeviceDraw:
         assert resp["status"] == "partial"
         assert "out of workspace" in resp["error"]
 
-    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p: p)
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p, **kwargs: p)
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
     async def test_exception_path(self, mock_client_cls):
         mock_client_cls.side_effect = RuntimeError("boom")

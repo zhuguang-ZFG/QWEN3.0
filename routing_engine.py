@@ -22,6 +22,7 @@ import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
 from response_builder import build_anthropic_response, build_response, make_chat_id
 from routing_classifier import classify, classify_scenario
+from routing_intent import analyze_intent
 from routing_engine_context import (
     assess_complexity,
     auto_compress,
@@ -47,7 +48,14 @@ __all__ = [
 
 
 def inject_skills(
-    messages: list[dict], *, backend: str = "", ide_source: str = "", system_prompt: str = ""
+    messages: list[dict],
+    *,
+    backend: str = "",
+    ide_source: str = "",
+    system_prompt: str = "",
+    intent: str = "",
+    route_role: str = "",
+    scenario: str = "",
 ) -> list[dict]:
     """根据后端能力和 IDE 注入 skills"""
     return skills_mod.apply_skills(
@@ -55,6 +63,9 @@ def inject_skills(
         messages=messages,
         system_prompt=system_prompt,
         ide_source=ide_source,
+        intent=intent,
+        route_role=route_role,
+        scenario=scenario,
     )
 
 
@@ -105,8 +116,18 @@ def pick_backend(
         complexity=complexity_info,
     )
 
+    intent_result = analyze_intent(query, system_prompt=system_prompt, ide=ide_source)
+    intent = str(intent_result.get("intent", "chat"))
+    route_role = intent if intent.startswith("device_") else ""
+
     messages_injected = inject_skills(
-        messages, backend=backends[0] if backends else "", ide_source=ide_source, system_prompt=system_prompt
+        messages,
+        backend=backends[0] if backends else "",
+        ide_source=ide_source,
+        system_prompt=system_prompt,
+        intent=intent,
+        route_role=route_role,
+        scenario=scenario,
     )
     messages_injected = auto_compress(messages_injected, backends, system_prompt)
 

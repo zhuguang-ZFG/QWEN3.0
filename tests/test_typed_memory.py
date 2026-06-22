@@ -44,8 +44,8 @@ class TestTypedMemory:
         from session_memory.store import MEMORY_TYPES
 
         assert "routing_lesson" in MEMORY_TYPES
-        assert "user_pref" in MEMORY_TYPES
-        assert len(MEMORY_TYPES) == 10
+        assert "device_draw_failed" in MEMORY_TYPES
+        assert len(MEMORY_TYPES) == 11
 
 
 class TestMemoryDaemon:

@@ -38,8 +38,29 @@ def test_analyze_intent_code_block_detect():
 
 def test_analyze_intent_default_fallback():
     result = intent.analyze_intent("xyz ambiguous request without strong signals")
-    assert result["intent"] == "unknown"
+    assert result["intent"] == "chat"
     assert result["source"] == "default_fallback"
+
+
+def test_analyze_intent_device_home():
+    result = intent.analyze_intent("帮我回家")
+    assert result["intent"] == "device_home"
+    assert result["confidence"] >= 0.90
+
+
+def test_analyze_intent_device_stop():
+    result = intent.analyze_intent("急停")
+    assert result["intent"] == "device_stop"
+
+
+def test_analyze_intent_device_write():
+    result = intent.analyze_intent("写一行生日快乐")
+    assert result["intent"] == "device_write"
+
+
+def test_analyze_intent_device_status():
+    result = intent.analyze_intent("设备在线吗")
+    assert result["intent"] == "device_status"
 
 
 def test_detect_thinking_intent_patterns():

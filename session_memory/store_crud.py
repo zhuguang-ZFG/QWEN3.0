@@ -167,4 +167,5 @@ MEMORY_TYPES = (
     "security_lesson",
     "reference_pattern",
     "user_pref",
+    "device_draw_failed",
 )

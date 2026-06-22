@@ -9,6 +9,11 @@ from xiaozhi_drawing.path_optimizer import optimize_svg_path
 from xiaozhi_drawing.preset_shapes import get_preset_svg
 
 from device_gateway.draw_prompt_enhancer import enhance_drawing_prompt
+from device_gateway.draw_prompt_context import (
+    get_failed_draw_prompts,
+    record_failed_draw_prompt,
+    resolve_device_type,
+)
 from device_gateway.draw_path_bounds import precheck_draw_motion_path
 
 logger = logging.getLogger(__name__)
@@ -103,9 +108,24 @@ def _try_preset_shape(prompt: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-async def _generate_image(prompt: str, model: str, size: str) -> Dict[str, Any]:
+async def _generate_image(
+    prompt: str,
+    model: str,
+    size: str,
+    *,
+    device_type: str = "esp32_xy_plotter",
+    style: str = "简约",
+    complexity: str = "中",
+    previous_failed_prompts: list[str] | None = None,
+) -> Dict[str, Any]:
     """Enhance prompt and generate an image via DashScope."""
-    enhanced_prompt = enhance_drawing_prompt(prompt)
+    enhanced_prompt = enhance_drawing_prompt(
+        prompt,
+        style=style,
+        complexity=complexity,
+        device_type=device_type,
+        previous_failed_prompts=previous_failed_prompts,
+    )
     logger.info(f"Enhanced prompt: {enhanced_prompt[:100]}...")
     client = DashScopeImageClient()
     return client.generate(prompt=enhanced_prompt, model=model, size=size, n=1)
@@ -191,20 +211,42 @@ async def handle_device_draw(
     # wanx-v1 is deprecated/ unavailable; use the current working model.
     model = prefs.get("model", "wanx2.1-t2i-turbo")
     size = prefs.get("size", "1024*1024")
+    device_type = resolve_device_type(device_id, prefs)
+    style = str(prefs.get("style", "简约"))
+    complexity = str(prefs.get("complexity", "中"))
+    failed_prompts = get_failed_draw_prompts(device_id)
 
-    logger.info(f"Device {device_id} draw request: {prompt[:50]}... (model={model})")
+    logger.info(
+        f"Device {device_id} draw request: {prompt[:50]}... "
+        f"(model={model}, device_type={device_type})"
+    )
 
     preset = _try_preset_shape(prompt)
     if preset:
+        if preset.get("status") != "success":
+            record_failed_draw_prompt(device_id, prompt, error=str(preset.get("error") or ""))
         return preset
 
     try:
-        result = await _generate_image(prompt, model, size)
+        result = await _generate_image(
+            prompt,
+            model,
+            size,
+            device_type=device_type,
+            style=style,
+            complexity=complexity,
+            previous_failed_prompts=failed_prompts or None,
+        )
         if result["status"] != "success" or not result["images"]:
+            record_failed_draw_prompt(device_id, prompt, error=str(result.get("error") or "Unknown error"))
             return _build_failed_response(model, result.get("error", "Unknown error"))
 
         image_url = result["images"][0]["url"]
-        return await _convert_and_optimize(image_url, model)
+        response = await _convert_and_optimize(image_url, model)
+        if response.get("status") != "success":
+            record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
+        return response
     except Exception as e:
         logger.error(f"Device draw failed: {e}")
+        record_failed_draw_prompt(device_id, prompt, error=str(e))
         return _build_failed_response(model, str(e))

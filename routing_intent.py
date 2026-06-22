@@ -15,7 +15,16 @@ __all__ = [
 
 # ── Legacy-compatible intent analyzer (ported from router_classifier.py) ──────
 
-_ANALYZE_RULES = [
+_DEVICE_RULES = [
+    (r"回家|home|回原点|归位", "device_home", 0.95),
+    (r"停止|stop|急停|emergency", "device_stop", 0.95),
+    (r"笔绘|plotter|笔绘机.*画|让机器画", "device_draw", 0.93),
+    (r"写一行|写个|写字|书写|write\s", "device_write", 0.92),
+    (r"查.*任务|task.*status|任务.*进度", "device_task_query", 0.90),
+    (r"设备.*状态|device.*status|在线.*吗", "device_status", 0.90),
+]
+
+_ANALYZE_RULES = _DEVICE_RULES + [
     (r"你是什么|什么模型|who are you|what model|你好|hello|hi$|hey$", "trivial", 0.95),
     (r"^.{1,5}$", "trivial", 0.90),
     (r"\$\d+|步数.*mm|steps.*mm|steps_per_mm", "grbl_config", 0.95),
@@ -238,7 +247,7 @@ def analyze_intent(
         return result
 
     return {
-        "intent": "unknown",
+        "intent": "chat",
         "complexity": 0.5,
         "needs_code": False,
         "domain_keywords": [],

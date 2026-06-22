@@ -12,6 +12,7 @@ def test_compute_stable_prefix_deterministic():
     assert p1 == p2
     assert "编程助手" in p1
     assert "编码实现" in p1
+    assert "[工作流]" in p1
     assert "质量门控" in p1
 
 
@@ -35,6 +36,7 @@ def test_build_cached_prompt_without_variable():
     prompt, prefix_hash = build_cached_prompt("Cursor", "coding")
     assert "编程助手" in prompt
     assert "编码实现" in prompt
+    assert "[工作流]" in prompt
     assert "质量门控" in prompt
     assert len(prefix_hash) == 12
 

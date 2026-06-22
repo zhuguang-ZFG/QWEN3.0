@@ -29,6 +29,9 @@ def test_inject_skills_with_mock_skills_injector():
             messages=[{"role": "user", "content": "test"}],
             system_prompt="test system prompt",
             ide_source="test_ide",
+            intent="",
+            route_role="",
+            scenario="",
         )
 
         assert len(result) == 2

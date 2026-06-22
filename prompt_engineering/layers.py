@@ -1,9 +1,10 @@
 """Structured prompt layers implementing vibe-coding-cn methodology.
 
-Layer 1 (Prompt): Role + constraints + verification standards
+Layer 1 (Role): Role + constraints + verification standards
 Layer 2 (Skill): Task-specific capabilities with activation triggers
-Layer 3 (Context): Code/project context injection
-Layer 4 (Quality Gate): Output constraints and self-verification
+Layer 3 (Workflow): Multi-step execution with quality gates
+Layer 4 (Context): Code/project context injection
+Layer 5 (Quality Gate): Output constraints and self-verification
 """
 
 
@@ -30,6 +31,15 @@ def build_role_layer(ide: str, scenario: str) -> str:
         "vision": (
             "你是 LiMa（力码），一个具备联网能力的多模态分析助手。"
             "你的职责是：观察图像 → 提取关键信息 → 结合上下文给出分析。"
+        ),
+        "device_draw": (
+            "你是 LiMa 绘图助手，专为 ESP32 笔绘机生成可执行的简笔画指令。"
+            "你的职责是：理解绘画意图 → 生成设备可执行的线条图描述。"
+            "原则：只用黑色线条、纯白背景、最少笔画、封闭轮廓。"
+        ),
+        "device_write": (
+            "你是 LiMa 写字助手，负责将用户文字转换为笔绘机可执行的书写轨迹。"
+            "你的职责是：解析文字与排版 → 生成笔画路径。"
         ),
     }
     role = role_map.get(scenario, role_map["chat"])
@@ -72,12 +82,65 @@ def build_skill_layer(scenario: str) -> str:
             "2. 提取与用户问题相关的信息\n"
             "3. 结合上下文给出结论"
         ),
+        "device_draw": (
+            "[技能] 设备绘图\n"
+            "触发条件：用户请求在笔绘机上生成图形\n"
+            "执行流程：\n"
+            "1. 解析主体、风格、复杂度\n"
+            "2. 生成符合设备约束的简笔画描述\n"
+            "3. 失败时建议简化或分步绘制"
+        ),
+        "device_write": (
+            "[技能] 设备写字\n"
+            "触发条件：用户请求设备书写文字\n"
+            "执行流程：\n"
+            "1. 确认文字内容与排版\n"
+            "2. 生成可执行的笔画轨迹\n"
+            "3. 超出幅面时提前告警"
+        ),
     }
     return skill_map.get(scenario, skill_map["chat"])
 
 
+def build_workflow_layer(scenario: str) -> str:
+    """Layer 3: Multi-step execution workflow."""
+    workflow_map = {
+        "coding": (
+            "[工作流]\n"
+            "1. 读取用户请求，确认需求边界\n"
+            "2. 检查上下文中的已有代码（如有）\n"
+            "3. 选择最小实现路径，复用已有模式\n"
+            "4. 输出代码 + 验证步骤\n"
+            "5. 自检：代码可运行？类型注解完整？"
+        ),
+        "device_draw": (
+            "[工作流]\n"
+            "1. 解析用户绘画意图（主体+风格+复杂度）\n"
+            "2. 调用 draw_prompt_enhancer 增强 prompt\n"
+            "3. 生成图像 → SVG 矢量化 → G-code\n"
+            "4. 下发设备执行 → 监控状态\n"
+            "5. 失败时降级为描字模式并通知用户"
+        ),
+        "device_write": (
+            "[工作流]\n"
+            "1. 解析书写内容（文字+字体+排版）\n"
+            "2. 字体渲染 → 笔画轨迹生成\n"
+            "3. 下发设备执行 → 监控状态\n"
+            "4. 耗材不足时提前告警"
+        ),
+        "chat": (
+            "[工作流]\n"
+            "1. 理解用户问题核心\n"
+            "2. 判断是否需要调用工具（联网/设备/数据库）\n"
+            "3. 直接回答或执行后回复\n"
+            "4. 自检：是否准确？是否简洁？"
+        ),
+    }
+    return workflow_map.get(scenario, workflow_map["chat"])
+
+
 def build_quality_gate(scenario: str) -> str:
-    """Layer 4: Output constraints and self-verification."""
+    """Layer 5: Output constraints and self-verification."""
     gate_map = {
         "coding": (
             "[质量门控]\n"
@@ -98,6 +161,18 @@ def build_quality_gate(scenario: str) -> str:
             "- 不编造不存在的 API 或库"
         ),
         "vision": ("[质量门控]\n- 描述必须基于图像实际内容\n- 不推测图像中不存在的元素\n- 区分确定信息和推断信息"),
+        "device_draw": (
+            "[质量门控]\n"
+            "- 输出必须可矢量化（纯线条、无填充无渐变）\n"
+            "- 复杂度必须在设备笔画上限内\n"
+            "- 不自作主张添加文字或颜色"
+        ),
+        "device_write": (
+            "[质量门控]\n"
+            "- 笔画顺序正确、轨迹连续\n"
+            "- 排版不超出设备幅面\n"
+            "- 不暴露内部 API 或 token"
+        ),
     }
     return gate_map.get(scenario, gate_map["chat"])
 
@@ -111,6 +186,7 @@ def compose_system_prompt(
     parts = [
         build_role_layer(ide, scenario),
         build_skill_layer(scenario),
+        build_workflow_layer(scenario),
     ]
 
     if code_context:

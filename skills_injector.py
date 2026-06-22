@@ -14,6 +14,7 @@ import os
 import glob as glob_mod
 
 from backends_constants import STRONG_MODELS
+import skills_registry
 
 logger = logging.getLogger(__name__)
 
@@ -152,26 +153,46 @@ def _trim_to_budget(text: str, max_tokens: int) -> str:
 # ─── 双模式入口 ───────────────────────────────────────────────────────────────
 
 
+def _skills_root(skills_dir: str) -> str:
+    return skills_dir or os.path.join(os.path.dirname(__file__), "skills")
+
+
 def apply_skills(
-    backend: str, messages: list[dict], system_prompt: str = "", ide_source: str = "", skills_dir: str = ""
+    backend: str,
+    messages: list[dict],
+    system_prompt: str = "",
+    ide_source: str = "",
+    skills_dir: str = "",
+    intent: str = "",
+    route_role: str = "",
+    scenario: str = "",
 ) -> list[dict]:
     """
     根据后端能力选择策略:
     - 强模型 → 目录模式 (只列 skill 名)
-    - 弱模型 → 补缺模式 (检测缺失，预注入)
+    - 弱模型 → registry 触发注入，否则检测缺失并预注入
     """
-    if skills_dir:
-        all_skills = load_skills_from_dir(skills_dir)
-    else:
-        all_skills = load_skills_from_dir(os.path.join(os.path.dirname(__file__), "skills"))
+    root = _skills_root(skills_dir)
+    all_skills = load_skills_from_dir(root)
+    registry_skills = skills_registry.load_registry_skills(root)
 
-    if not all_skills:
+    if not all_skills and not registry_skills:
         return list(messages)
 
     if backend in STRONG_MODELS:
-        return _directory_mode(messages, all_skills)
-    else:
-        return _injection_mode(messages, all_skills, system_prompt, ide_source)
+        catalog = all_skills or registry_skills
+        return _directory_mode(messages, catalog)
+
+    return _injection_mode(
+        messages,
+        all_skills,
+        system_prompt,
+        ide_source,
+        registry_skills=registry_skills,
+        intent=intent,
+        route_role=route_role,
+        scenario=scenario,
+    )
 
 
 def _directory_mode(messages: list[dict], all_skills: list[dict]) -> list[dict]:
@@ -186,8 +207,30 @@ def _directory_mode(messages: list[dict], all_skills: list[dict]) -> list[dict]:
     return result
 
 
-def _injection_mode(messages: list[dict], all_skills: list[dict], system_prompt: str, ide_source: str) -> list[dict]:
-    """弱模型: 检测缺失，预注入"""
+def _injection_mode(
+    messages: list[dict],
+    all_skills: list[dict],
+    system_prompt: str,
+    ide_source: str,
+    *,
+    registry_skills: list[dict],
+    intent: str = "",
+    route_role: str = "",
+    scenario: str = "",
+) -> list[dict]:
+    """弱模型: registry 触发优先，否则检测缺失并预注入"""
+    triggered = skills_registry.select_triggered_skills(
+        registry_skills,
+        intent=intent,
+        route_role=route_role,
+        scenario=scenario,
+    )
+    if triggered:
+        return inject_skills(messages, triggered)
+
+    if not all_skills:
+        return list(messages)
+
     relevant = _filter_by_ide(all_skills, ide_source)
     missing = detect_missing_skills(system_prompt, relevant)
     return inject_skills(messages, missing)

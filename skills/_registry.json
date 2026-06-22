@@ -1,0 +1,45 @@
+{
+  "skills": [
+    {
+      "id": "honest_uncertainty",
+      "path": "safety/honest_uncertainty.md",
+      "category": "safety",
+      "trigger": {"always": true},
+      "priority": 1,
+      "always_apply": true
+    },
+    {
+      "id": "device_drawing",
+      "path": "device/drawing.md",
+      "category": "device",
+      "trigger": {
+        "intent": ["device_draw"],
+        "route_role": ["device_draw"]
+      },
+      "priority": 10,
+      "always_apply": false
+    },
+    {
+      "id": "device_writing",
+      "path": "device/writing.md",
+      "category": "device",
+      "trigger": {
+        "intent": ["device_write"],
+        "route_role": ["device_write"]
+      },
+      "priority": 10,
+      "always_apply": false
+    },
+    {
+      "id": "device_control",
+      "path": "device/control.md",
+      "category": "device",
+      "trigger": {
+        "intent": ["device_home", "device_stop", "device_status", "device_task_query"],
+        "route_role": ["device_control"]
+      },
+      "priority": 10,
+      "always_apply": false
+    }
+  ]
+}

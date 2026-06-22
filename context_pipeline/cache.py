@@ -50,11 +50,17 @@ def compute_stable_prefix(ide: str, scenario: str) -> str:
     Same IDE+scenario always produces the same prefix content,
     maximizing prefix cache hits across requests.
     """
-    from prompt_engineering.layers import build_role_layer, build_skill_layer, build_quality_gate
+    from prompt_engineering.layers import (
+        build_role_layer,
+        build_skill_layer,
+        build_workflow_layer,
+        build_quality_gate,
+    )
 
     parts = [
         build_role_layer(ide, scenario),
         build_skill_layer(scenario),
+        build_workflow_layer(scenario),
         build_quality_gate(scenario),
     ]
     return "\n\n".join(parts)
