@@ -3020,3 +3020,25 @@ Agent Worker path.
   - 全量 `pytest -q` → **2300 passed, 4 skipped, 0 failed**。
 - **提交**：
   - `7a867d27` `refactor(scripts): split smoke_live_and_digital_human::_test_digital_human_ws`；已 push 到 GitHub `origin/main`（`e2417383..7a867d27`）。
+
+## 2026-06-22 继续优化 — 拆分 `scripts/smoke_live_and_digital_human.py::async _test_gemini_live` 并拆分模块
+
+- **目标**：处理 `check_code_size.py` 当前最长函数 `_test_gemini_live`（77 行），同时修复拆分后 `smoke_live_and_digital_human.py` 超过 300 行的文件级回归。
+- **拆分函数**：
+  - `_build_gemini_ws_url(cfg, api_key)`：解析 model 与带 ticket 的 WebSocket URL。
+  - `_send_gemini_setup(ws, model)`：发送 setup 并等待 setupComplete。
+  - `_summarize_gemini_message(obj)`：单条 Gemini 响应摘要。
+  - `_run_gemini_conversation(ws)`：发送提示并收集音频/文本响应。
+  - `_build_gemini_error(exc)`：统一错误字典。
+  - `_test_gemini_live` 仅负责编排，降至约 20 行。
+- **模块拆分**：
+  - 新增 `scripts/smoke_live_and_digital_human_tests.py`，存放 Gemini / 数字人测试实现及 helper。
+  - `scripts/smoke_live_and_digital_human.py` 仅保留通用工具与 `main`，恢复 ≤300 行。
+- **验证**：
+  - `ruff check / format` → clean。
+  - `pyright` 对两个文件均 0 errors, 0 warnings。
+  - 模块 import 正常。
+  - 全量 `pytest -q` → **2312 passed, 4 skipped, 0 failed**。
+- **提交**：
+  - `9333910c` `refactor(scripts): split smoke_live_and_digital_human::_test_gemini_live`；已 push 到 GitHub `origin/main`。
+  - `adf3a6a9` `refactor(scripts): move smoke test helpers to separate module`；已 push 到 GitHub `origin/main`（`9b1f145d..adf3a6a9`）。
