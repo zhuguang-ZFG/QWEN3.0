@@ -60,6 +60,32 @@ def notify_request() -> None:
         try_train()
 
 
+def _ensure_model(all_backends: list[str]) -> object:
+    """Get or create a routing model matching the given backend set."""
+    global _model
+    model = get_model()
+    if model is None or set(model.backend_names) != set(all_backends):
+        _log.info("routing_ml: creating new model for %d backends", len(all_backends))
+        model = create_model(all_backends)
+        _model = model
+    return model
+
+
+def _run_training_epochs(model: object, samples: list) -> float:
+    """Run TRAIN_EPOCHS over shuffled samples. Returns average loss."""
+    import random
+
+    losses = []
+    for _ in range(TRAIN_EPOCHS):
+        indices = list(range(len(samples)))
+        random.shuffle(indices)
+        for idx in indices:
+            s = samples[idx]
+            loss = train_step(model, s.features, s.target, lr=TRAIN_LR)
+            losses.append(loss)
+    return sum(losses) / len(losses) if losses else 0.0
+
+
 def try_train() -> bool:
     """Attempt a training round. Returns True if training happened."""
     global _state, _model
@@ -82,25 +108,9 @@ def try_train() -> bool:
         _log.debug("routing_ml: not enough samples (%d), skipping", len(samples))
         return False
 
-    model = get_model()
-    if model is None or set(model.backend_names) != set(all_backends):
-        _log.info("routing_ml: creating new model for %d backends", len(all_backends))
-        model = create_model(all_backends)
-        _model = model
+    model = _ensure_model(all_backends)
+    avg_loss = _run_training_epochs(model, samples)
 
-    # Train epochs
-    import random
-
-    losses = []
-    for _ in range(TRAIN_EPOCHS):
-        indices = list(range(len(samples)))
-        random.shuffle(indices)
-        for idx in indices:
-            s = samples[idx]
-            loss = train_step(model, s.features, s.target, lr=TRAIN_LR)
-            losses.append(loss)
-
-    avg_loss = sum(losses) / len(losses) if losses else 0.0
     _state.last_loss = avg_loss
     _state.last_train_time = time.time()
     _state.total_rounds += 1

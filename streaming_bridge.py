@@ -131,29 +131,18 @@ async def _first_chunk_empty(
         yield fallback
 
 
-async def bridge_stream(
+async def _wait_for_first_chunk(
+    q: queue_mod.Queue,
+    cancel: threading.Event,
+    thread: threading.Thread,
+    timeout: float,
     backend: str,
+    call_fn: CallApiFn,
     messages: list,
     max_tokens: int,
     ide: str,
-    call_stream_fn: CallStreamFn,
-    call_fn: CallApiFn,
-    first_chunk_timeout: float = 3.0,
 ) -> AsyncIterator[str]:
-    """Bridge a blocking stream iterator into async yields with sync fallback."""
-    timeout = _adaptive_timeout(backend, first_chunk_timeout)
-    q: queue_mod.Queue = queue_mod.Queue()
-    cancel = threading.Event()
-    thread = start_sync_stream_worker(
-        q,
-        cancel,
-        backend=backend,
-        messages=messages,
-        max_tokens=max_tokens,
-        ide=ide,
-        call_stream_fn=call_stream_fn,
-    )
-
+    """Wait for the first stream chunk. On timeout, fall back to sync call."""
     first = False
     start = time.time()
     while True:
@@ -180,6 +169,28 @@ async def bridge_stream(
         if fallback:
             yield fallback
         return
+
+
+async def bridge_stream(
+    backend: str,
+    messages: list,
+    max_tokens: int,
+    ide: str,
+    call_stream_fn: CallStreamFn,
+    call_fn: CallApiFn,
+    first_chunk_timeout: float = 3.0,
+) -> AsyncIterator[str]:
+    """Bridge a blocking stream iterator into async yields with sync fallback."""
+    timeout = _adaptive_timeout(backend, first_chunk_timeout)
+    q: queue_mod.Queue = queue_mod.Queue()
+    cancel = threading.Event()
+    thread = start_sync_stream_worker(
+        q, cancel, backend=backend, messages=messages,
+        max_tokens=max_tokens, ide=ide, call_stream_fn=call_stream_fn,
+    )
+
+    async for chunk in _wait_for_first_chunk(q, cancel, thread, timeout, backend, call_fn, messages, max_tokens, ide):
+        yield chunk
 
     while True:
         try:

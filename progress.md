@@ -46,8 +46,16 @@
   - Commit `20552b66`：`refactor(slim): split build_role_layer and parse_command into helpers`。
   - Commit `78aeba3e`：`docs(progress): update LiMa slimming phase 4-5 evidence`。
   - GitHub (`origin`) push 成功：`d8d734ba..20552b66`。
+- **后续拆分（剩余 4 个生产函数）**：
+  - `routing_ml/routing_trainer.py::try_train`（59→44 行）：提取 `_ensure_model()` 和 `_run_training_epochs()`。
+  - `session_memory/learning_loop/ingest.py::ingest_task_outcome`（59→31 行）：提取 `_record_to_ledger()` 和 `_record_capability_evidence()`。
+  - `context_pipeline/graph_context_expander.py::expand_context`（58→30 行）：提取 `_expand_one_seed()`。
+  - `streaming_bridge.py::bridge_stream`（59→38 行）：提取 `_wait_for_first_chunk()`。
+- **最新验证**：
+  - >50 行函数从 90 降至 **78**（累计减 12 个）。
+- **Git**：本轮待提交。
 - **剩余**：
-  - 继续拆分剩余 >50 行函数（streaming_bridge::bridge_stream、session_memory 等，共 84 个）。
+  - 剩余 78 个 >50 行函数中生产函数仅剩 <5 个（`routing_engine_post::post_route` 等）；其余均在脚本/测试/开发工具中。
   - 清理一次性脚本、合并重复工具函数（`_sanitize_text`、Redis store 等）。
 
 ## 2026-06-22 深度代码审查问题逐一修复（完成）

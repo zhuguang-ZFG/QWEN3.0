@@ -24,6 +24,50 @@ class ExpandedFile:
     relevance_reason: str
 
 
+def _expand_one_seed(
+    seed: str,
+    graph: object,
+    visited: set[str],
+    seed_files: list[str],
+    max_hops: int,
+    max_files: int,
+    expanded: list[ExpandedFile],
+) -> list[ExpandedFile] | None:
+    """Search one seed file in the graph and append related files. Returns expanded if max reached."""
+    seed_name = Path(seed).stem
+    if seed_name in visited:
+        return None
+    visited.add(seed_name)
+
+    try:
+        related = graph.search([seed_name], max_depth=max_hops, max_results=max_files)
+    except Exception:
+        return None
+
+    for r in related:
+        rpath = str(r.entity)
+        if rpath in visited or rpath in seed_files:
+            continue
+        visited.add(rpath)
+
+        rel_type = getattr(r, "relation_type", "related")
+        distance = getattr(r, "distance", 1)
+        reason = f"{rel_type} from {Path(seed).name} (depth {distance})"
+
+        expanded.append(
+            ExpandedFile(
+                file_path=rpath,
+                relationship_type=rel_type,
+                distance=distance,
+                relevance_reason=reason,
+            )
+        )
+
+        if len(expanded) >= max_files:
+            return expanded
+    return None
+
+
 def expand_context(
     seed_files: list[str],
     project_root: str = "",
@@ -50,35 +94,8 @@ def expand_context(
     visited: set[str] = set()
 
     for seed in seed_files:
-        seed_name = Path(seed).stem
-        if seed_name in visited:
-            continue
-        visited.add(seed_name)
-
-        try:
-            related = graph.search([seed_name], max_depth=max_hops, max_results=max_files)
-            for r in related:
-                rpath = str(r.entity)
-                if rpath in visited or rpath in seed_files:
-                    continue
-                visited.add(rpath)
-
-                rel_type = getattr(r, "relation_type", "related")
-                distance = getattr(r, "distance", 1)
-                reason = f"{rel_type} from {Path(seed).name} (depth {distance})"
-
-                expanded.append(
-                    ExpandedFile(
-                        file_path=rpath,
-                        relationship_type=rel_type,
-                        distance=distance,
-                        relevance_reason=reason,
-                    )
-                )
-
-                if len(expanded) >= max_files:
-                    return expanded
-        except Exception:
-            continue
+        done = _expand_one_seed(seed, graph, visited, seed_files, max_hops, max_files, expanded)
+        if done is not None:
+            return done
 
     return expanded

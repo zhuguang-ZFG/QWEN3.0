@@ -14,20 +14,8 @@ from .routing_channel import _feed_routing
 _log = logging.getLogger(__name__)
 
 
-def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
-    """Feed a completed task outcome into all four learning channels.
-
-    Returns a summary of what was learned (or gated).
-    """
-    result: dict[str, Any] = {
-        "task_id": outcome.task_id,
-        "memory": _feed_memory(outcome),
-        "prompt": _feed_prompt(outcome),
-        "routing": _feed_routing(outcome),
-        "eval": _feed_eval(outcome),
-    }
-
-    # Record to unified Outcome Ledger
+def _record_to_ledger(outcome: TaskOutcome) -> None:
+    """Record a completed task outcome to the unified Outcome Ledger."""
     try:
         from session_memory.outcome_ledger import record as ledger_record
 
@@ -55,6 +43,9 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
     except Exception as exc:
         _log.warning("outcome ledger record failed: %s", exc, exc_info=True)
 
+
+def _record_capability_evidence(outcome: TaskOutcome, result: dict) -> None:
+    """Record capability evidence for the learning loop."""
     try:
         from observability.capability_evidence import record_evidence_safe
 
@@ -71,6 +62,23 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
         )
     except Exception as exc:
         _log.warning("ops_learning evidence record failed: %s", exc, exc_info=True)
+
+
+def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
+    """Feed a completed task outcome into all four learning channels.
+
+    Returns a summary of what was learned (or gated).
+    """
+    result: dict[str, Any] = {
+        "task_id": outcome.task_id,
+        "memory": _feed_memory(outcome),
+        "prompt": _feed_prompt(outcome),
+        "routing": _feed_routing(outcome),
+        "eval": _feed_eval(outcome),
+    }
+
+    _record_to_ledger(outcome)
+    _record_capability_evidence(outcome, result)
 
     return result
 
