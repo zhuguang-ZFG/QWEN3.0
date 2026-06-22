@@ -251,4 +251,6 @@ def _filter_by_ide(skills: list[dict], ide_source: str) -> list[dict]:
 
 def estimate_tokens(text: str) -> int:
     """粗略估算: 1 token ≈ 4 字符"""
-    return max(1, len(text) // CHARS_PER_TOKEN)
+    from context_pipeline.token_budget import estimate_tokens as _estimate
+
+    return _estimate(text)

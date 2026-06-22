@@ -5,6 +5,34 @@
 > Updated: 2026-06-22
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-22 LiMa 瘦身计划 — Ponytail 原则（进行中）
+
+- **目标**：响应「规划 Lima 瘦身计划」指令，按 Ponytail 决策阶梯（YAGNI → stdlib → native → 已有依赖 → 一行 → 最小实现）审计并裁剪代码库。
+- **现状基线**（瘦身前）：
+  - 总 .py 文件 1,020，总代码行 123,017
+  - 根目录 .py 96 文件 / 13,136 行
+  - 测试 336 文件 / 32,492 行，脚本 60 文件 / 8,619 行
+  - >300 行文件 11，>50 行函数 90
+  - 全量 `pytest -q` → **2,324 passed / 18 skipped / 0 failed**
+- **已执行（阶段 1-2）**：
+  - 删除 `search_gateway/` 整包（11 文件，~1,500 行）：零生产引用，5 个 adapter 全部无人调用。
+  - 同步从 8 个脚本/分析器的模块清单中移除 `search_gateway`。
+  - 删除 `tests/test_search_gateway.py`、`tests/test_tinyfish_transport_safety.py`（随源码删除）。
+  - 从 `requirements_server.txt` 移除未使用依赖 `pybreaker>=1.0.0` 和 `alembic==1.13.1`。
+  - 将 `lima_mcp_stdio/` 加入 `scripts/deploy_unified_common.py` 的 `_DEPLOY_EXCLUDES`，使 18 文件 / 3,051 行不再进入 VPS 部署包（开发工具保留在仓库）。
+  - 合并 `estimate_tokens()` 重复实现：`context_compressor.py` 与 `skills_injector.py` 改为从 `context_pipeline.token_budget.estimate_tokens` 导入，消除 2 处重复。
+- **验证**：
+  - 全量 `pytest -q` → **2,315 passed / 18 skipped / 0 failed**（减少 9 个被删测试）。
+  - `ruff check .` / `pyright`（修改文件） → 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` → >300 行文件 11，>50 行函数 88（从 90 降至 88）。
+- **Git**：
+  - Commit `b6483d29`：`fix(slim): delete unused search_gateway package and remove pybreaker/alembic deps`（22 files, +9/-1,528）。
+  - GitHub (`origin`) push 成功：`b0b2b385..b6483d29`。
+- **剩余阶段**：
+  - 阶段 3：清理一次性脚本、合并重复工具函数（`_sanitize_text`、Redis store 等）。
+  - 阶段 4：拆分剩余 >300 行文件和 >50 行函数。
+  - 阶段 5：建立 Ponytail 持续治理机制（AGENTS.md 条款、CI 孤儿检测、PONYTAIL-DEBT.md）。
+
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 
 - **目标**：响应「深度代码审查」「逐一修复」指令，处理 `.omk/CODE_REVIEW_ISSUES.md` 中 7 项新发现的问题。

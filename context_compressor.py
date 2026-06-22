@@ -53,7 +53,9 @@ _COMPRESSION_PROMPT = (
 
 def estimate_tokens(text: str) -> int:
     """Rough token estimation: ~4 chars per token for mixed CN/EN text."""
-    return max(1, len(text) // CHARS_PER_TOKEN)
+    from context_pipeline.token_budget import estimate_tokens as _estimate
+
+    return _estimate(text)
 
 
 def get_context_limit(backend: str) -> int:
