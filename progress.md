@@ -28,10 +28,24 @@
 - **Git**：
   - Commit `b6483d29`：`fix(slim): delete unused search_gateway package and remove pybreaker/alembic deps`（22 files, +9/-1,528）。
   - GitHub (`origin`) push 成功：`b0b2b385..b6483d29`。
+- **已执行（阶段 4-5）**：
+  - 拆分 `prompt_engineering/layers.py::build_role_layer`（64→27 行）：提取 `_build_role_text()` 负责 scenario→role 映射，主函数只处理 IDE 后缀。
+  - 拆分 `device_gateway/intent.py::parse_command`（59→41 行）：提取 `_extract_pattern_params()` 和 `_make_result()` helper，消除重复的字典构造。
+  - 更新 `AGENTS.md`：新增 Ponytail 治理条款（决策阶梯、不可删除边界、`ponytail:` 注释规范）。
+  - 新增 `PONYTAIL-DEBT.md`：记录当前 6 处 `ponytail:` 标记和 3 项待处理技术债。
+- **验证**（阶段 4-5 后）：
+  - 聚焦测试：`tests/test_prompt_engineering.py` + `tests/test_device_intent_hardening.py` + `tests/test_run_path_intent.py` → **57 passed**。
+  - 全量 `pytest -q` → **2,315 passed / 18 skipped / 0 failed**。
+  - `ruff check .` / `pyright`（修改文件） → 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` → >300 行文件 11，>50 行函数 86（从 88 降至 86）。
+- **Git**：
+  - Commit `d8d734ba`：`refactor(slim): deduplicate estimate_tokens via context_pipeline.token_budget`。
+  - Commit `865392bd`：`docs(ponytail): add governance clause to AGENTS.md and PONYTAIL-DEBT.md`。
+  - Commit `20552b66`：`refactor(slim): split build_role_layer and parse_command into helpers`。
+  - GitHub (`origin`) push 成功：`d8d734ba..20552b66`。
 - **剩余阶段**：
-  - 阶段 3：清理一次性脚本、合并重复工具函数（`_sanitize_text`、Redis store 等）。
-  - 阶段 4：拆分剩余 >300 行文件和 >50 行函数。
-  - 阶段 5：建立 Ponytail 持续治理机制（AGENTS.md 条款、CI 孤儿检测、PONYTAIL-DEBT.md）。
+  - 阶段 4 续：继续拆分剩余 >50 行函数（优先有测试覆盖的：routing_engine.py::pick_backend、streaming_bridge.py::bridge_stream 等）。
+  - 阶段 3 续：清理一次性脚本、合并重复工具函数（`_sanitize_text`、Redis store 等）。
 
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 
