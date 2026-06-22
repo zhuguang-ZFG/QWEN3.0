@@ -50,7 +50,7 @@ def collect_probe_files(project_root: Path) -> list[tuple[Path, str]]:
         for path in sorted(probe_src.rglob("*")):
             if path.is_file() and "__pycache__" not in path.parts:
                 rel = path.relative_to(probe_src).as_posix()
-                pairs.append((path, f"{JDCLOUD_REMOTE_PROBE}/provider_probe/{rel}"))
+                pairs.append((path, f"{JDCLOUD_REMOTE_PROBE}/{rel}"))
     jdcloud_dir = project_root / "deploy" / "jdcloud"
     for name in ("lima-probe-browser.service", "lima-probe.service", "lima-probe.timer"):
         local = jdcloud_dir / name
@@ -81,13 +81,20 @@ def upload_probe_files(pairs: list[tuple[Path, str]], *, dry_run: bool) -> int:
 
 def restart_probe_services(*, dry_run: bool) -> bool:
     command = (
-        "set -eu; "
-        "pip3 install --break-system-packages -q httpx fastapi uvicorn pydantic || true; "
+        "set -e; "
+        "pip3 install --break-system-packages -q httpx fastapi uvicorn pydantic 2>&1 "
+        "| grep -v \"WARNING: Running pip as the 'root' user\" || true; "
         "systemctl daemon-reload; "
         "systemctl enable lima-probe-browser.service lima-probe.timer; "
         "systemctl restart lima-probe-browser.service; "
         "systemctl start lima-probe.timer; "
-        "curl -sf http://127.0.0.1:8092/health"
+        "if ! curl -sf http://127.0.0.1:8092/health; then "
+        "  echo '--- service status ---'; "
+        "  systemctl status lima-probe-browser.service --no-pager || true; "
+        "  echo '--- recent logs ---'; "
+        "  journalctl -u lima-probe-browser.service --no-pager -n 20 || true; "
+        "  exit 1; "
+        "fi"
     )
     if dry_run:
         print(f"  WOULD RUN: {command[:120]}...")
@@ -97,7 +104,7 @@ def restart_probe_services(*, dry_run: bool) -> bool:
     try:
         code, out, err = _exec(ssh, command)
         if code != 0:
-            print(f"JDCloud probe restart failed: {err or out}")
+            print(f"JDCloud probe restart failed (exit {code}): {err or out}")
             return False
         if out:
             print(out)
