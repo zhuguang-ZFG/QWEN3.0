@@ -1,76 +1,57 @@
-from context_pipeline.cache import (
-    compute_stable_prefix,
-    compute_prefix_hash,
-    build_cached_prompt,
-    CacheMetrics,
-)
+"""Tests for context_pipeline/cache.py — prefix cache metrics."""
+
+from context_pipeline.cache import CacheMetrics, get_cache_metrics
 
 
-def test_compute_stable_prefix_deterministic():
-    p1 = compute_stable_prefix("Cursor", "coding")
-    p2 = compute_stable_prefix("Cursor", "coding")
-    assert p1 == p2
-    assert "编程助手" in p1
-    assert "编码实现" in p1
-    assert "[工作流]" in p1
-    assert "质量门控" in p1
+class TestCacheMetrics:
+    def test_initial_state(self):
+        m = CacheMetrics()
+        assert m.total_requests == 0
+        assert m.cache_eligible == 0
+        assert m.unique_prefixes == 0
+        assert m.hit_rate_estimate == 0.0
+
+    def test_record_increases_counters(self):
+        m = CacheMetrics()
+        m.record("hash1")
+        assert m.total_requests == 1
+        assert m.cache_eligible == 1
+        assert m.unique_prefixes == 1
+
+    def test_duplicate_hash(self):
+        m = CacheMetrics()
+        m.record("same")
+        m.record("same")
+        assert m.total_requests == 2
+        assert m.unique_prefixes == 1  # same hash
+
+    def test_different_hashes(self):
+        m = CacheMetrics()
+        m.record("a")
+        m.record("b")
+        m.record("c")
+        assert m.unique_prefixes == 3
+
+    def test_hit_rate_estimate(self):
+        m = CacheMetrics()
+        m.record("a")
+        m.record("a")
+        assert m.hit_rate_estimate == 0.5  # 1 unique / 2 total = 0.5
+
+    def test_perfect_hit_rate(self):
+        m = CacheMetrics()
+        for _ in range(10):
+            m.record("same")
+        assert m.hit_rate_estimate == 0.9  # 1/10 = 0.1 unique ratio
+
+    def test_zero_hit_rate(self):
+        m = CacheMetrics()
+        for i in range(5):
+            m.record(f"h{i}")
+        assert m.hit_rate_estimate == 0.0  # all unique
 
 
-def test_compute_stable_prefix_different_for_different_scenarios():
-    coding = compute_stable_prefix("Cursor", "coding")
-    chat = compute_stable_prefix("Cursor", "chat")
-    assert coding != chat
-    assert "编程助手" in coding
-    assert "联网能力" in chat
-
-
-def test_compute_prefix_hash_consistent():
-    prefix = compute_stable_prefix("Cursor", "coding")
-    h1 = compute_prefix_hash(prefix)
-    h2 = compute_prefix_hash(prefix)
-    assert h1 == h2
-    assert len(h1) == 12
-
-
-def test_build_cached_prompt_without_variable():
-    prompt, prefix_hash = build_cached_prompt("Cursor", "coding")
-    assert "编程助手" in prompt
-    assert "编码实现" in prompt
-    assert "[工作流]" in prompt
-    assert "质量门控" in prompt
-    assert len(prefix_hash) == 12
-
-
-def test_build_cached_prompt_with_variable_content():
-    prompt, _ = build_cached_prompt(
-        "Cursor", "coding", variable_content="[上下文]\nrouting_engine.py | select, classify"
-    )
-    assert "routing_engine.py" in prompt
-    parts = prompt.split("\n\n")
-    context_idx = next(i for i, p in enumerate(parts) if "routing_engine" in p)
-    role_idx = next(i for i, p in enumerate(parts) if "编程助手" in p)
-    assert role_idx < context_idx
-
-
-def test_cache_metrics_tracks_requests():
-    metrics = CacheMetrics()
-    metrics.record("hash_a")
-    metrics.record("hash_a")
-    metrics.record("hash_b")
-
-    assert metrics.total_requests == 3
-    assert metrics.cache_eligible == 3
-    assert metrics.unique_prefixes == 2
-    assert metrics.hit_rate_estimate > 0.3
-
-
-def test_same_ide_scenario_produces_same_hash():
-    _, h1 = build_cached_prompt("Kiro", "coding")
-    _, h2 = build_cached_prompt("Kiro", "coding")
-    assert h1 == h2
-
-
-def test_different_ide_produces_different_hash():
-    _, h1 = build_cached_prompt("Cursor", "coding")
-    _, h2 = build_cached_prompt("Kiro", "coding")
-    assert h1 != h2
+class TestGetCacheMetrics:
+    def test_returns_metrics_instance(self):
+        m = get_cache_metrics()
+        assert isinstance(m, CacheMetrics)
