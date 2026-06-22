@@ -117,30 +117,15 @@ def pick_backend(
     preferred_backend: str = "",
 ) -> PickResult:
     """选路前半段：与 route() 共享 classify/inject/select/skills 管线，不执行 HTTP。"""
-    req_type = classify(
-        query, messages, fmt=fmt, ide_source=ide_source, system_prompt=system_prompt, headers=headers or {}
+    req_type, scenario, recall_attempt, retrieval_text = _classify_and_recall(
+        query, messages, fmt, ide_source, system_prompt, headers or {},
     )
-    scenario = classify_scenario(messages, query=query, ide_source=ide_source, request_type=req_type)
 
-    recall_attempt = try_recall_backend(messages, scenario)
-    messages, retrieval_text = inject_retrieval_context(messages)
-    messages, _code_context_text = inject_coding_context(messages, scenario, query)
-
-    sticky_key = sticky_session.compute_key(model or "default", messages)
-
-    hmap = health_tracker.get_health_map()
-    backends = select(
-        req_type,
-        hmap,
-        sticky_key=sticky_key,
-        scenario=scenario,
-        needs_tools=needs_tools,
-        recalled_backend=recall_attempt,
-        preferred_backend=preferred_backend or "",
+    sticky_key, backends = _select_backends(
+        req_type, scenario, recall_attempt, messages, needs_tools, preferred_backend, model,
     )
 
     messages, prompt_scenario = _enrich_with_intent_and_skills(messages, query, system_prompt, ide_source, backends)
-
     backend = backends[0] if backends else "longcat_chat"
     return PickResult(
         backend=backend,
@@ -151,6 +136,43 @@ def pick_backend(
         retrieval_context=retrieval_text or "",
         sticky_key=sticky_key,
     )
+
+
+def _classify_and_recall(
+    query: str,
+    messages: list[dict],
+    fmt: str,
+    ide_source: str,
+    system_prompt: str,
+    headers: dict,
+) -> tuple[str, str, str | None, str]:
+    """Classify request type/scenario and recall backend + retrieval context."""
+    req_type = classify(query, messages, fmt=fmt, ide_source=ide_source, system_prompt=system_prompt, headers=headers)
+    scenario = classify_scenario(messages, query=query, ide_source=ide_source, request_type=req_type)
+    recall_attempt = try_recall_backend(messages, scenario)
+    messages, retrieval_text = inject_retrieval_context(messages)
+    messages, _code_context_text = inject_coding_context(messages, scenario, query)
+    return req_type, scenario, recall_attempt, retrieval_text
+
+
+def _select_backends(
+    req_type: str,
+    scenario: str,
+    recall_attempt: str | None,
+    messages: list[dict],
+    needs_tools: bool,
+    preferred_backend: str,
+    model: str,
+) -> tuple[str, list[str]]:
+    """Select backends based on health, sticky session, and recall."""
+    sticky_key = sticky_session.compute_key(model or "default", messages)
+    hmap = health_tracker.get_health_map()
+    backends = select(
+        req_type, hmap, sticky_key=sticky_key, scenario=scenario,
+        needs_tools=needs_tools, recalled_backend=recall_attempt,
+        preferred_backend=preferred_backend or "",
+    )
+    return sticky_key, backends
 
 
 def _identity_shortcut(query: str, channel_role: str, t0: float) -> RouteResult | None:
