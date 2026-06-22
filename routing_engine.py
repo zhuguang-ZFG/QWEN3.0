@@ -24,7 +24,6 @@ from response_builder import build_anthropic_response, build_response, make_chat
 from routing_classifier import classify, classify_scenario
 from routing_intent import analyze_intent, intent_to_prompt_scenario
 from routing_engine_context import (
-    assess_complexity,
     auto_compress,
     inject_coding_context,
     try_recall_backend,
@@ -123,10 +122,9 @@ def pick_backend(
     )
     scenario = classify_scenario(messages, query=query, ide_source=ide_source, request_type=req_type)
 
-    recalled_backend = try_recall_backend(messages, scenario)
+    recall_attempt = try_recall_backend(messages, scenario)
     messages, retrieval_text = inject_retrieval_context(messages)
     messages, _code_context_text = inject_coding_context(messages, scenario, query)
-    complexity_info = assess_complexity(messages, ide_source)
 
     sticky_key = sticky_session.compute_key(model or "default", messages)
 
@@ -137,9 +135,8 @@ def pick_backend(
         sticky_key=sticky_key,
         scenario=scenario,
         needs_tools=needs_tools,
-        recalled_backend=recalled_backend,
+        recalled_backend=recall_attempt,
         preferred_backend=preferred_backend or "",
-        complexity=complexity_info,
     )
 
     messages, prompt_scenario = _enrich_with_intent_and_skills(messages, query, system_prompt, ide_source, backends)

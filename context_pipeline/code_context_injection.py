@@ -214,7 +214,7 @@ def _find_identifier_files(identifier: str) -> list[Path]:
             if p.exists():
                 results.append(p)
     except Exception as exc:
-        _log.debug("context_pipeline/code_context_injection.py: {}", type(exc).__name__)
+        _log.warning("code_context_injection graph search failed: %s", exc, exc_info=True)
 
     if not results:
         try:
@@ -227,6 +227,6 @@ def _find_identifier_files(identifier: str) -> list[Path]:
                 if p.exists():
                     results.append(p)
         except Exception as exc:
-            _log.debug("context_pipeline/code_context_injection.py: {}", type(exc).__name__)
+            _log.warning("code_context_injection index search failed: %s", exc, exc_info=True)
 
     return results

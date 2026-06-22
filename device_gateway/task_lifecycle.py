@@ -46,7 +46,7 @@ def mark_task_dispatched(task_id: str) -> None:
         if current == TaskState.READY_TO_DISPATCH:
             workflow.advance(task_id, TaskState.DISPATCHED)
     except Exception:
-        _log.debug("workflow advance skipped for legacy/missing task_id=%s", task_id, exc_info=True)
+        _log.warning("workflow advance skipped for legacy/missing task_id=%s", task_id, exc_info=True)
     snapshot = store_mod.task_store.task_snapshot(task_id)
     task = snapshot.get("task") if snapshot else None
     device_id = str(task.get("device_id", "")) if isinstance(task, dict) else ""

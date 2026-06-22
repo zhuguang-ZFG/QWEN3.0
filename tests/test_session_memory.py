@@ -1,9 +1,4 @@
 import os
-import tempfile
-
-
-os.environ["LIMA_SESSION_DB"] = tempfile.mktemp(suffix=".db")
-os.environ["LIMA_SESSION_MEMORY"] = "1"
 
 from session_memory.store import (
     save_memory,

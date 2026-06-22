@@ -37,8 +37,8 @@ async def bridge_stream_async(
     """Direct async streaming. No threads, no queues."""
     total_text = ""
     stream = call_stream_async_fn(backend, messages, max_tokens, ide)
-
     try:
+        total_text = ""
         while True:
             timeout = first_chunk_timeout if not total_text else chunk_timeout
             try:
@@ -52,34 +52,30 @@ async def bridge_stream_async(
     except Exception as exc:
         if not total_text:
             total_text = ""
-        _log.warning(
-            "async stream read failed backend=%s: %s",
-            backend,
-            type(exc).__name__,
-        )
+        _log.warning("async stream read failed backend=%s: %s", backend, type(exc).__name__)
     finally:
-        aclose = getattr(stream, "aclose", None)
-        if aclose:
-            try:
-                await aclose()
-            except Exception as exc:
-                _log.debug(
-                    "async stream aclose failed backend=%s: %s",
-                    backend,
-                    type(exc).__name__,
-                )
+        await _aclose_stream(stream, backend)
 
     if not total_text:
+        async for chunk in _async_fallback_to_api(backend, messages, max_tokens, ide, call_api_async_fn):
+            yield chunk
+
+
+async def _aclose_stream(stream, backend: str) -> None:
+    """Safely close an async generator."""
+    aclose = getattr(stream, "aclose", None)
+    if aclose:
         try:
-            result = await call_api_async_fn(backend, messages, max_tokens, ide)
-            if result and not str(result).startswith("[ERR]"):
-                yield str(result)
+            await aclose()
         except Exception as exc:
-            _log.warning(
-                "async stream fallback call failed backend=%s: %s",
-                backend,
-                type(exc).__name__,
-            )
+            _log.debug("async stream aclose failed backend=%s: %s", backend, type(exc).__name__)
+
+
+async def _async_fallback_to_api(
+    backend: str, messages: list, max_tokens: int, ide: str,
+    call_api_async_fn: CallApiAsyncFn,
+) -> AsyncIterator[str]:
+    """Fallback: non-streaming call when stream returned empty."""
 
 
 def _make_streamer(

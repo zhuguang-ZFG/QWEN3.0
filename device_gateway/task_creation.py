@@ -6,6 +6,8 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+from async_utils import run_coro_sync
+
 from .device_route_memory import record_route_decision
 from .intent import resolve_voice_task
 from . import task_deps as deps
@@ -25,13 +27,8 @@ from .task_creation_builders import (
 
 
 def _run_sync(coro):
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coro)
-    # ponytail: thread offload when called under pytest-asyncio / FastAPI loop
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        return pool.submit(asyncio.run, coro).result()
+    """Run a coroutine synchronously. Delegates to async_utils.run_coro_sync."""
+    return run_coro_sync(coro)
 
 
 async def project_to_motion_task_async(

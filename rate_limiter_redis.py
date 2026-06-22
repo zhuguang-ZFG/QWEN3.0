@@ -20,9 +20,11 @@ def _auth_rate_redis_flag() -> str:
 
 
 def _redis_url() -> str:
+    from config.db_config import DEVICE_REDIS_URL
+
     return (
         os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS_URL", "").strip()
-        or os.environ.get("LIMA_DEVICE_REDIS_URL", "").strip()
+        or DEVICE_REDIS_URL
     )
 
 

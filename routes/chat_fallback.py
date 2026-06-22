@@ -62,7 +62,7 @@ def _record_chat_evidence(*, request_id: str, backend: str, status: str, fallbac
             evidence=["chat_fallback"],
         )
     except Exception as exc:
-        _log.debug("capability evidence record skipped: %s", type(exc).__name__)
+        _log.warning("capability evidence record skipped: %s", exc)
 
 
 def _build_fallback_success_response(

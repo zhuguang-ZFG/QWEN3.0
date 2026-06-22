@@ -9,6 +9,8 @@ import sqlite3
 import time
 from collections import deque
 
+from config.db_config import HEALTH_STATE_DB as _DB_PATH
+
 from health_state import (
     LATENCY_WINDOW_SIZE,
     CooldownState,
@@ -21,8 +23,6 @@ from health_state import (
 
 logger = logging.getLogger(__name__)
 _log = logger
-
-_DB_PATH = os.environ.get("LIMA_HEALTH_STATE_DB", "data/health_state.db")
 
 
 def _get_conn() -> sqlite3.Connection:
@@ -71,53 +71,48 @@ def save_health_state() -> None:
         try:
             conn = _get_conn()
             _ensure_tables(conn)
-
-            # Health map
-            for backend, status in _health_map.items():
-                conn.execute(
-                    "INSERT OR REPLACE INTO health_states (backend, status, updated_at) VALUES (?, ?, ?)",
-                    (backend, status, time.time()),
-                )
-
-            # Cooldown states
-            for backend, state in _cooldown_states.items():
-                conn.execute(
-                    "INSERT OR REPLACE INTO cooldown_states VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        backend,
-                        state.consecutive_failures,
-                        state.current_cooldown,
-                        state.cooldown_until,
-                        state.last_error_code,
-                        state.state,
-                        state.last_error_class,
-                    ),
-                )
-
-            # Quality states
-            for backend, quality in _quality_states.items():
-                conn.execute(
-                    "INSERT OR REPLACE INTO quality_states VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        backend,
-                        json.dumps(list(quality.latencies)),
-                        quality.empty_count,
-                        quality.error_msg_count,
-                        quality.total_requests,
-                        quality.last_success,
-                        quality.last_failure,
-                    ),
-                )
-
+            _persist_health_map(conn)
+            _persist_cooldown_states(conn)
+            _persist_quality_states(conn)
             conn.commit()
         except Exception as exc:
             logger.warning("Failed to save health state: %s", exc)
         finally:
-            if conn is not None:
-                try:
-                    conn.close()
-                except Exception as exc:
-                    logger.warning("Failed to close DB connection in save_health_state: %s", exc)
+            _close_conn(conn)
+
+
+def _persist_health_map(conn: sqlite3.Connection) -> None:
+    for backend, status in _health_map.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO health_states (backend, status, updated_at) VALUES (?, ?, ?)",
+            (backend, status, time.time()),
+        )
+
+
+def _persist_cooldown_states(conn: sqlite3.Connection) -> None:
+    for backend, state in _cooldown_states.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO cooldown_states VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (backend, state.consecutive_failures, state.current_cooldown,
+             state.cooldown_until, state.last_error_code, state.state, state.last_error_class),
+        )
+
+
+def _persist_quality_states(conn: sqlite3.Connection) -> None:
+    for backend, quality in _quality_states.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO quality_states VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (backend, json.dumps(list(quality.latencies)), quality.empty_count,
+             quality.error_msg_count, quality.total_requests, quality.last_success, quality.last_failure),
+        )
+
+
+def _close_conn(conn: sqlite3.Connection | None) -> None:
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception as exc:
+            logger.warning("Failed to close DB connection: %s", exc)
 
 
 def load_health_state() -> int:

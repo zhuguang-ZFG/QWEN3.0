@@ -1,9 +1,3 @@
-import os
-import tempfile
-
-os.environ["LIMA_PROFILES_DIR"] = tempfile.mkdtemp()
-os.environ["LIMA_LESSONS_DIR"] = tempfile.mkdtemp()
-
 from user_identity.profile import UserProfile, load_profile, save_profile
 from user_identity.lessons import add_lesson, get_lessons, get_routing_lessons
 from user_identity.adapter import adapt_prompt_for_user

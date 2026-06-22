@@ -7,6 +7,7 @@ import logging
 from collections.abc import AsyncIterator
 
 import routing_engine
+from routing_engine import classify_scenario
 import http_caller
 
 
@@ -104,7 +105,6 @@ def v3_call_stream(backend, messages, max_tokens, ide):
     """V3 流式调用适配器。注入上下文增强 + 非真流式后端强制走非流式。"""
     sys_prompt = ""
     try:
-        from routing_engine import classify_scenario
         from lima_context import build_context_digest
 
         query = ""
@@ -158,7 +158,6 @@ def v3_call_api(backend, messages, max_tokens, ide):
     """V3 非流式调用适配器。含场景检测 + 反向约束。"""
     sys_prompt = ""
     try:
-        from routing_engine import classify_scenario
 
         query = next(
             (m["content"] for m in reversed(messages) if m.get("role") == "user" and isinstance(m.get("content"), str)),
@@ -197,51 +196,7 @@ def fake_stream(text: str, chunk_size: int = 30):
 
 async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncIterator[str]:
     """Async streaming adapter. Falls back to non-stream for fake-stream backends."""
-    sys_prompt = ""
-    try:
-        from routing_engine import classify_scenario
-        from lima_context import build_context_digest
-
-        query = ""
-        for m in reversed(messages):
-            if m.get("role") == "user" and isinstance(m.get("content"), str):
-                query = m["content"]
-                break
-        if query:
-            is_ide = bool(ide and ide not in ("unknown", ""))
-            scenario = classify_scenario(
-                messages,
-                query=query,
-                ide_source=ide if is_ide else "",
-                request_type="ide" if is_ide else "chat",
-            )
-            if scenario == "coding":
-                digest = build_context_digest(query, messages, ide_source=ide)
-                if digest:
-                    sys_prompt = digest
-                # Layer think/plan on top of context (not instead of)
-                try:
-                    from think_plan_context import enhance_coding_prompt, needs_plan
-
-                    if needs_plan(query):
-                        tpc = enhance_coding_prompt(query, messages)
-                        if tpc.get("system_prompt"):
-                            sys_prompt = tpc["system_prompt"] + "\n\n" + sys_prompt
-                        if tpc.get("context_files"):
-                            ctx_summary = "\nRelated files: " + ", ".join(tpc["context_files"][:5])
-                            if messages and messages[-1].get("role") == "user":
-                                messages[-1] = {
-                                    **messages[-1],
-                                    "content": str(messages[-1].get("content", "")) + ctx_summary,
-                                }
-                except ImportError:
-                    logging.getLogger(__name__).warning(
-                        "think_plan_context not available; coding prompt enhancement disabled"
-                    )
-            else:
-                sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
-    except Exception as e:
-        logging.warning(f"[V3_CALL_STREAM_ASYNC] context enhance: {type(e).__name__}: {e}")
+    sys_prompt = _build_async_stream_prompt(messages, ide)
 
     if backend in FAKE_STREAM_BACKENDS:
         result = await http_caller.call_api_async(backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
@@ -254,11 +209,50 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncItera
         yield chunk
 
 
+def _build_async_stream_prompt(messages: list, ide: str) -> str:
+    """Build system prompt for async stream: coding context or plain-text constraint."""
+    sys_prompt = ""
+    try:
+        from routing_engine import classify_scenario
+        from lima_context import build_context_digest
+
+        query = next(
+            (m["content"] for m in reversed(messages) if m.get("role") == "user" and isinstance(m.get("content"), str)),
+            "",
+        )
+        if query:
+            is_ide = bool(ide and ide not in ("unknown", ""))
+            scenario = classify_scenario(
+                messages, query=query, ide_source=ide if is_ide else "", request_type="ide" if is_ide else "chat",
+            )
+            if scenario == "coding":
+                digest = build_context_digest(query, messages, ide_source=ide)
+                if digest:
+                    sys_prompt = digest
+                try:
+                    from think_plan_context import enhance_coding_prompt, needs_plan
+
+                    if needs_plan(query):
+                        tpc = enhance_coding_prompt(query, messages)
+                        if tpc.get("system_prompt"):
+                            sys_prompt = tpc["system_prompt"] + "\n\n" + sys_prompt
+                        if tpc.get("context_files"):
+                            ctx_summary = "\nRelated files: " + ", ".join(tpc["context_files"][:5])
+                            if messages and messages[-1].get("role") == "user":
+                                messages[-1] = {**messages[-1], "content": str(messages[-1].get("content", "")) + ctx_summary}
+                except ImportError:
+                    logging.getLogger(__name__).info("think_plan_context not installed; skipping plan enhancement")
+            else:
+                sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
+    except Exception as e:
+        logging.warning(f"[V3_CALL_STREAM_ASYNC] context enhance: {type(e).__name__}: {e}")
+    return sys_prompt
+
+
 async def v3_call_api_async(backend, messages, max_tokens, ide):
     """Async non-streaming adapter."""
     sys_prompt = ""
     try:
-        from routing_engine import classify_scenario
 
         query = next(
             (m["content"] for m in reversed(messages) if m.get("role") == "user" and isinstance(m.get("content"), str)),

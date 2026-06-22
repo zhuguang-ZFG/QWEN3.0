@@ -166,5 +166,5 @@ def get_extractor(language: str = "python") -> AstExtractor | None:
         if language in extractor.supported_languages:
             return extractor
     except Exception as exc:
-        _log.debug("code_context/ast_adapter.py: {}", type(exc).__name__)
+        _log.warning("ast_adapter tree parsing failed: %s", exc, exc_info=True)
     return None

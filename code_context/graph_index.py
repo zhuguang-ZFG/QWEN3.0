@@ -140,12 +140,13 @@ def build_graph_index() -> GraphIndex:
     Prefers SqliteGraphIndex (persistent) when LIMA_DATA_DIR is set.
     Falls back to InMemoryGraphIndex for zero-config usage.
     """
-    data_dir = os.environ.get("LIMA_DATA_DIR", "")
+    from config.db_config import LIMA_DATA_DIR as data_dir
+
     if data_dir:
         try:
             from code_context.sqlite_graph_store import SqliteGraphIndex
 
             return SqliteGraphIndex()
         except Exception as exc:
-            _log.debug("code_context/graph_index.py: {}", type(exc).__name__)
+            _log.warning("graph_index BFS traversal failed: %s", exc, exc_info=True)
     return InMemoryGraphIndex()

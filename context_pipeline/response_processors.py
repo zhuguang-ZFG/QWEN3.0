@@ -51,7 +51,7 @@ def code_validation_processor(ctx: ResponseContext) -> ResponseContext:
             ctx.quality_ok = False
             ctx.quality_issues.extend(vr.issues[:5])
     except Exception as exc:
-        _log.debug("context_pipeline/response_processors.py: {}", type(exc).__name__)
+        _log.warning("response_processors failed: %s", exc, exc_info=True)
 
     return ctx
 

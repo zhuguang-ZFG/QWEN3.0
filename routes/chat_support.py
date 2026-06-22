@@ -75,9 +75,9 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
             if result:
                 return {"answer": result, "backend": alt, "thinking_mode": True}
         except asyncio.TimeoutError:
-            _log.debug("thinking alt backend timeout backend=%s", alt)
+            _log.warning("thinking alt backend timeout backend=%s", alt)
         except Exception as exc:
-            _log.debug("thinking alt backend failed backend=%s: %s", alt, type(exc).__name__)
+            _log.warning("thinking alt backend failed backend=%s: %s", alt, exc)
     return None
 
 

@@ -11,7 +11,9 @@ from typing import Any
 
 
 def data_dir() -> Path:
-    return Path(os.environ.get("LIMA_DATA_DIR", "data"))
+    from config.db_config import LIMA_DATA_DIR
+
+    return Path(LIMA_DATA_DIR) if LIMA_DATA_DIR else Path("data")
 
 
 def extract_model_ids(inventory: dict[str, Any]) -> set[str]:

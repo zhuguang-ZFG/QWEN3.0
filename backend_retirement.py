@@ -11,10 +11,10 @@ import os
 import sqlite3
 import time
 
+from config.db_config import BACKEND_RETIREMENT_DB as DB_PATH
+
 logger = logging.getLogger(__name__)
 _log = logger
-
-DB_PATH = os.environ.get("LIMA_BACKEND_RETIREMENT_DB", "data/backend_retirement.db")
 
 # Retirement thresholds
 CONSECUTIVE_FAILURES_DEGRADED = 10

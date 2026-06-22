@@ -154,7 +154,7 @@ def _exec_subtask(
             )
             return {"task": task_query, "answer": answer, "backend": hint, "ms": int((time.time() - t0) * 1000)}
         except Exception as exc:
-            _log.debug("orchestrate hint backend failed hint=%s: %s", hint, type(exc).__name__)
+            _log.warning("orchestrate hint backend failed hint=%s: %s", hint, exc)
 
     r = _route_via_engine(
         task_query,

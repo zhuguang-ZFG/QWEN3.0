@@ -1,11 +1,6 @@
 """Tests for backend_retirement.py — automatic degradation module."""
 
-import os
-import tempfile
 import time
-
-os.environ["LIMA_BACKEND_RETIREMENT_DB"] = os.path.join(tempfile.gettempdir(), "test_retirement.db")
-os.environ["LIMA_BACKEND_PROFILE_DB"] = os.path.join(tempfile.gettempdir(), "test_retirement_profiles.db")
 
 import backend_retirement as br
 import backend_profile as bp

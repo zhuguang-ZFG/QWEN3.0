@@ -53,7 +53,7 @@ def _build_message(*, code: int, quick: bool, source: str) -> str:
             for name in blocked[:5]:
                 lines.append(f"· {name}: avg={scores.get(name, 0):.0f}")
     except Exception:
-        logger.debug("pool gate summary skipped", exc_info=True)
+        logger.warning("pool gate summary skipped", exc_info=True)
 
     return "\n".join(lines)
 

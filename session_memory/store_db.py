@@ -20,9 +20,10 @@ class MemoryEntry:
     memory_type: str = "exchange"
 
 
-_DEFAULT_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-_DEFAULT_DB_FILE = os.path.join(_DEFAULT_DB_DIR, "lima_sessions.db")
-_DB_PATH = os.environ.get("LIMA_SESSION_DB", _DEFAULT_DB_FILE)
+from config.db_config import SESSION_DB
+
+
+_DB_PATH = SESSION_DB
 
 
 def get_db_path() -> str:
@@ -56,7 +57,7 @@ def set_db_path(path: str) -> None:
 def _get_conn() -> sqlite3.Connection:
     db_path = get_db_path()
     if not os.environ.get("LIMA_SESSION_DB"):
-        os.makedirs(os.path.dirname(db_path) or _DEFAULT_DB_DIR, exist_ok=True)
+        os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""

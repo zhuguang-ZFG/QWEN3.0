@@ -62,21 +62,29 @@ async def call_api_async(
                 status_code=429,
             )
 
-        latency_ms = int((time.time() - started) * 1000)
-        hc.health_tracker.record_success(backend, latency_ms)
-        hc._report_key_result(key_provider, selected_key, True)
-        cleaned = clean_response(answer, backend)
-        hc.health_tracker.record_response_quality(backend, len(cleaned) if cleaned else 0)
-        prompt_tokens, completion_tokens = _extract_usage(payload, cfg["fmt"])
-        try:
-            import budget_manager
-
-            budget_manager.record_token_usage(backend, prompt_tokens, completion_tokens)
-        except ImportError as exc:
-            _log.warning("budget_manager not installed; token usage not recorded: %s", exc)
-        return cleaned
+        return _handle_async_api_success(backend, payload, cfg, answer, started, hc, key_provider, selected_key)
     except Exception as exc:
         _handle_call_error(backend, key_provider, selected_key, exc, emit_obs=False)
+
+
+def _handle_async_api_success(
+    backend: str, payload: dict, cfg: dict, answer: str,
+    started: float, hc, key_provider: str, selected_key: str,
+) -> str:
+    """Process a successful async API response: record health, budget, and clean."""
+    latency_ms = int((time.time() - started) * 1000)
+    hc.health_tracker.record_success(backend, latency_ms)
+    hc._report_key_result(key_provider, selected_key, True)
+    cleaned = clean_response(answer, backend)
+    hc.health_tracker.record_response_quality(backend, len(cleaned) if cleaned else 0)
+    prompt_tokens, completion_tokens = _extract_usage(payload, cfg["fmt"])
+    try:
+        import budget_manager
+
+        budget_manager.record_token_usage(backend, prompt_tokens, completion_tokens)
+    except ImportError as exc:
+        _log.warning("budget_manager not installed; token usage not recorded: %s", exc)
+    return cleaned
 
 
 async def call_raw_async(backend: str, payload: bytes) -> dict:

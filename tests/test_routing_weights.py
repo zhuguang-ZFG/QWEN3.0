@@ -1,8 +1,3 @@
-import os
-import tempfile
-
-os.environ["LIMA_WEIGHTS_PATH"] = tempfile.mktemp(suffix=".json")
-
 from context_pipeline.routing_weights import RoutingWeights
 
 

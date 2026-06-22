@@ -14,6 +14,7 @@ from device_gateway.protocol import (
     voice_status_frame,
 )
 from device_gateway.sessions import DeviceSession, registry
+from device_gateway.task_events import process_motion_event_core
 from device_gateway.tasks import (
     ack_processing_task,
     active_tasks_for_device,
@@ -21,7 +22,6 @@ from device_gateway.tasks import (
     enqueue_pending_task,
     execute_recovery,
     mark_task_dispatched,
-    record_motion_event,
     remove_pending_task,
 )
 from device_intelligence.shadow import shadow_store
@@ -161,10 +161,7 @@ async def handle_transcript(
 
 
 async def handle_motion_event(device_id: str, message: dict[str, Any], request_id: str | None) -> None:
-    summary = record_motion_event(message)
-    shadow_store.update_motion_event(message)
-    ack_processing_task(device_id, message["task_id"])
-    record_motion_event_observability(message, device_id)
+    summary = process_motion_event_core(device_id, message)
 
     # M5: execute recovery action on failure
     recovery_result = execute_recovery(message.get("task_id", ""), device_id, message)

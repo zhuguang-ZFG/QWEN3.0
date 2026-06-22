@@ -68,7 +68,7 @@ def _try_one_parallel(
             error=str(exc),
             attempt="parallel_fallback",
         )
-        _log.debug("routing_executor.py: {}", type(exc).__name__)
+        _log.warning("parallel fallback backend=%s failed: %s", backend, exc)
     return None
 
 

@@ -161,7 +161,9 @@ async def stop_task_notifier() -> None:
 def configure_notifier_from_env() -> None:
     global task_notifier
     backend = os.environ.get("LIMA_DEVICE_SESSION_BUS", "").strip().lower()
-    redis_url = os.environ.get("LIMA_DEVICE_REDIS_URL", "").strip()
+    from config.db_config import DEVICE_REDIS_URL
+
+    redis_url = DEVICE_REDIS_URL
     if backend == "redis" or (backend == "" and redis_url):
         if not redis_url:
             raise RuntimeError("LIMA_DEVICE_REDIS_URL is required when LIMA_DEVICE_SESSION_BUS=redis")

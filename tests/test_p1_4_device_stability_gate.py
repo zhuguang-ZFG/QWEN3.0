@@ -224,11 +224,6 @@ def test_multi_device_independent_queues():
     assert d2 >= 1, f"dev-2 should have at least 1 pending task, got {d2}"
 
 
-def test_websocket_hello_drains_pending():
-    """WebSocket hello drains queued tasks (covered by existing test_tasks_endpoint_flushes_queued_task_when_device_connects)."""
-    pytest.skip("Covered by test_device_gateway_routes.py")
-
-
 def test_correlation_events_recorded_on_motion():
     """P1.1 correlation module captures motion events."""
     try:

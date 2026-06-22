@@ -34,7 +34,7 @@ def _record_routing_event(
             },
         )
     except Exception as exc:
-        _log.debug("routing_decision event record failed: %s", type(exc).__name__)
+        _log.warning("routing_decision event record failed: %s", exc, exc_info=True)
 
 
 def _notify_feedback_bridge(

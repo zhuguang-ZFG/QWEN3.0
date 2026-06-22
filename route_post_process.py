@@ -99,7 +99,7 @@ def _post_response_pipeline(
         elif final_backend not in ("exhausted", "none", "cache"):
             rw.record_failure(final_backend, scenario)
     except Exception as exc:
-        _log.debug("route_post_process.py: {}", type(exc).__name__)
+        _log.warning("routing_weights record failed: %s", exc, exc_info=True)
 
     # Skill store
     try:
@@ -111,7 +111,7 @@ def _post_response_pipeline(
         elif not resp_ctx.quality_ok:
             get_skill_store().on_failure(scenario)
     except Exception as exc:
-        _log.debug("route_post_process.py: {}", type(exc).__name__)
+        _log.warning("skill store update failed: %s", exc, exc_info=True)
 
 
 def _post_learning_loop(
@@ -135,7 +135,7 @@ def _post_learning_loop(
         )
         ingest_task_outcome(outcome)
     except Exception as exc:
-        _log.debug("route_post_process.py: {}", type(exc).__name__)
+        _log.warning("learning loop ingest failed: %s", exc, exc_info=True)
 
 
 def _post_observability(

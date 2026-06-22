@@ -18,10 +18,8 @@ def select(
     needs_tools: bool = False,
     recalled_backend: str = "",
     preferred_backend: str = "",
-    complexity=None,
 ) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
-    del complexity  # reserved for future complexity-based pool selection
     pool_key = request_type
     if request_type == "chat" and scenario == "coding":
         pool_key = "code"

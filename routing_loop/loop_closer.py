@@ -34,14 +34,14 @@ def close_loop() -> dict:
         store = get_request_store()
         result["store_count"] = store.count()
     except Exception as exc:
-        _log.debug("close_loop: request_store unavailable: %s", exc)
+        _log.warning("close_loop: request_store unavailable: %s", exc)
         return result
 
     # 2. Train ML model with real data
     try:
         result["training"], result["training_samples"], result["training_loss"] = _train_ml_model(store)
     except Exception as exc:
-        _log.debug("close_loop: ML training failed: %s", exc)
+        _log.warning("close_loop: ML training failed: %s", exc)
 
     # 3. Persist health state
     try:
@@ -112,9 +112,12 @@ def _persist_health_state() -> None:
     """Persist in-memory health state to SQLite for restart recovery."""
     try:
         from health_tracker import get_health_map, get_scores, get_latency_map
-        import sqlite3, os
+        import sqlite3
 
-        db_path = os.path.join(os.environ.get("LIMA_DATA_DIR", "data"), "request_log.db")
+        from config.db_config import LIMA_DATA_DIR
+        import os as _os
+
+        db_path = _os.path.join(LIMA_DATA_DIR or "data", "request_log.db")
         conn = sqlite3.connect(db_path, timeout=5)
         conn.execute("""CREATE TABLE IF NOT EXISTS backend_health (
             backend TEXT PRIMARY KEY,

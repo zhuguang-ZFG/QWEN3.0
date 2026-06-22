@@ -11,10 +11,10 @@ import os
 import sqlite3
 import time
 
+from config.db_config import TOKEN_HEALTH_DB as DB_PATH
+
 logger = logging.getLogger(__name__)
 _log = logger
-
-DB_PATH = os.environ.get("LIMA_TOKEN_HEALTH_DB", "data/token_health.db")
 
 
 def check_token(backend: str) -> dict:

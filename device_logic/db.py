@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-import os
 import sqlite3
 import threading
 from pathlib import Path
+
+from config.db_config import LIMA_DB_PATH
 
 _schema_lock = threading.Lock()
 _schema_ready_paths: set[str] = set()
 
 
 def db_path() -> Path:
-    return Path(os.environ.get("LIMA_DB_PATH", "data/lima.db"))
+    return Path(LIMA_DB_PATH)
 
 
 def _run_migrations(conn: sqlite3.Connection) -> None:

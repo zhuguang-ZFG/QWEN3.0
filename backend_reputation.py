@@ -3,9 +3,11 @@ backend_reputation.py — 后端信誉分系统
 根据质量门结果和失败分类动态调整后端优先级，低质量后端自动降级。
 """
 
+import threading
 import time
 from collections import defaultdict
 
+_lock = threading.RLock()
 # 信誉分: 0-100, 初始70
 _scores: dict[str, float] = {}
 # 历史记录: backend → [(timestamp, passed, task_type)]
@@ -38,51 +40,56 @@ FAILURE_CLASS_PENALTY = {
 def record(backend: str, passed: bool, task_type: str = "code"):
     """记录质量门结果，更新信誉分"""
     now = time.time()
-    score = _scores.get(backend, INITIAL_SCORE)
+    with _lock:
+        score = _scores.get(backend, INITIAL_SCORE)
 
-    if passed:
-        score = min(100, score + REWARD)
-    else:
-        score = max(0, score - PENALTY)
-        recent = [h for h in _history[backend] if h[0] > now - HISTORY_WINDOW and not h[1]]
-        if len(recent) + 1 >= CONSECUTIVE_FAIL_THRESHOLD:
-            _cooldowns[backend] = now + COOLDOWN_DURATION
+        if passed:
+            score = min(100, score + REWARD)
+        else:
+            score = max(0, score - PENALTY)
+            recent = [h for h in _history[backend] if h[0] > now - HISTORY_WINDOW and not h[1]]
+            if len(recent) + 1 >= CONSECUTIVE_FAIL_THRESHOLD:
+                _cooldowns[backend] = now + COOLDOWN_DURATION
 
-    _scores[backend] = score
-    _history[backend].append((now, passed, task_type))
-    if len(_history[backend]) > MAX_HISTORY:
-        _history[backend] = _history[backend][-MAX_HISTORY:]
+        _scores[backend] = score
+        _history[backend].append((now, passed, task_type))
+        if len(_history[backend]) > MAX_HISTORY:
+            _history[backend] = _history[backend][-MAX_HISTORY:]
 
 
 def record_failure_class(backend: str, error_class: str, task_type: str = "routing"):
     """Record a classified failure with weighted penalty."""
     multiplier = FAILURE_CLASS_PENALTY.get(error_class, 1.0)
     now = time.time()
-    score = _scores.get(backend, INITIAL_SCORE)
-    penalty = PENALTY * multiplier
-    score = max(0, score - penalty)
+    with _lock:
+        score = _scores.get(backend, INITIAL_SCORE)
+        penalty = PENALTY * multiplier
+        score = max(0, score - penalty)
 
-    if multiplier >= 5.0:
-        _cooldowns[backend] = now + COOLDOWN_DURATION
+        if multiplier >= 5.0:
+            _cooldowns[backend] = now + COOLDOWN_DURATION
 
-    _scores[backend] = score
-    _history[backend].append((now, False, f"{task_type}:{error_class}"))
-    if len(_history[backend]) > MAX_HISTORY:
-        _history[backend] = _history[backend][-MAX_HISTORY:]
+        _scores[backend] = score
+        _history[backend].append((now, False, f"{task_type}:{error_class}"))
+        if len(_history[backend]) > MAX_HISTORY:
+            _history[backend] = _history[backend][-MAX_HISTORY:]
 
 
 def get_score(backend: str) -> float:
-    return _scores.get(backend, INITIAL_SCORE)
+    with _lock:
+        return _scores.get(backend, INITIAL_SCORE)
 
 
 def is_reputation_cooled(backend: str) -> bool:
     """信誉冷却中（连续失败触发）"""
-    until = _cooldowns.get(backend, 0)
-    if until and time.time() < until:
-        return True
-    if until and time.time() >= until:
-        del _cooldowns[backend]
-    return False
+    now = time.time()
+    with _lock:
+        until = _cooldowns.get(backend, 0)
+        if until and now < until:
+            return True
+        if until and now >= until:
+            del _cooldowns[backend]
+        return False
 
 
 def sort_by_reputation(pool: list[str]) -> list[str]:
@@ -93,7 +100,9 @@ def sort_by_reputation(pool: list[str]) -> list[str]:
 
 def get_stats() -> dict:
     """返回当前信誉状态（调试用）"""
-    return {
-        "scores": dict(_scores),
-        "cooldowns": {k: v - time.time() for k, v in _cooldowns.items() if v > time.time()},
-    }
+    now = time.time()
+    with _lock:
+        return {
+            "scores": dict(_scores),
+            "cooldowns": {k: v - now for k, v in _cooldowns.items() if v > now},
+        }

@@ -1,13 +1,14 @@
 """User profile storage and management."""
 
 import json
-import os
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
+from config.db_config import PROFILES_DIR
 
-PROFILES_DIR = Path(os.environ.get("LIMA_PROFILES_DIR", "/tmp/lima_profiles"))
+
+PROFILES_DIR = Path(PROFILES_DIR)
 
 
 @dataclass

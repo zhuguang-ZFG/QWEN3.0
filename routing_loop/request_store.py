@@ -126,7 +126,7 @@ class RequestStore:
             )
             conn.commit()
         except Exception as exc:
-            _log.debug("request_store.log_request failed: %s", exc)
+            _log.warning("request_store.log_request failed: %s", exc, exc_info=True)
 
     def get_training_data(self, since_hours: int = 168, min_backend: str = "") -> list[RequestRecord]:
         """Read recent requests for ML training (default: last 7 days)."""
@@ -186,7 +186,7 @@ class RequestStore:
             try:
                 fv = json.loads(row[7])
             except Exception as exc:
-                _log.debug("routing_loop/request_store.py: {}", type(exc).__name__)
+                _log.warning("request_store feature_vector parse failed: %s", exc)
         return RequestRecord(
             id=row[0],
             timestamp=row[1],

@@ -131,7 +131,9 @@ def inject_memory_store(store: MemoryStoreBackend) -> None:
 def configure_memory_store_from_env() -> None:
     global memory_store
     backend = os.environ.get("LIMA_DEVICE_MEMORY_STORE", "").strip().lower()
-    redis_url = os.environ.get("LIMA_DEVICE_REDIS_URL", "").strip()
+    from config.db_config import DEVICE_REDIS_URL
+
+    redis_url = DEVICE_REDIS_URL
     if backend == "redis":
         if not redis_url:
             raise RuntimeError("LIMA_DEVICE_REDIS_URL is required when LIMA_DEVICE_MEMORY_STORE=redis")

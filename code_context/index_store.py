@@ -85,14 +85,14 @@ def build_code_index(**kwargs) -> InMemoryCodeIndex:
     Prefers ChromaCodeIndex when chromadb is available and LIMA_DATA_DIR is set.
     Falls back to InMemoryCodeIndex.
     """
-    import os
+    from config.db_config import LIMA_DATA_DIR
 
-    data_dir = os.environ.get("LIMA_DATA_DIR", "")
+    data_dir = LIMA_DATA_DIR
     if data_dir:
         try:
             from code_context.chroma_vector_store import ChromaCodeIndex
 
             return ChromaCodeIndex(persist_directory=data_dir, **kwargs)  # type: ignore[return-value]
         except Exception as exc:
-            _log.debug("code_context/index_store.py: {}", type(exc).__name__)
+            _log.warning("index_store load failed: %s", exc, exc_info=True)
     return InMemoryCodeIndex()

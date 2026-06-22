@@ -1,10 +1,6 @@
 """Tests for health_state.py — persistence functionality."""
 
-import os
-import tempfile
 import time
-
-os.environ["LIMA_HEALTH_STATE_DB"] = os.path.join(tempfile.gettempdir(), "test_health.db")
 
 import health_state as hs
 

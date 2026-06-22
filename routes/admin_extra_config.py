@@ -7,8 +7,9 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backends_registry import BACKENDS
+from backends_registry import BACKENDS, add_backend, has_backend
 from routes.admin_auth import verify_admin, verify_csrf
+from routes.admin_backends import _is_safe_backend_url
 from routes.admin_state import stats_context
 
 router = APIRouter()
@@ -41,7 +42,10 @@ async def config_import(req: Request):
     imported: list[str] = []
     new_backends = body.get("backends", {})
     for name, cfg in new_backends.items():
-        if name not in BACKENDS:
-            BACKENDS[name] = cfg
+        if not has_backend(name):
+            url = cfg.get("url", "")
+            if url and not _is_safe_backend_url(url):
+                raise HTTPException(400, f"unsafe backend URL for '{name}': must be a public HTTPS endpoint")
+            add_backend(name, cfg)
             imported.append(name)
     return {"ok": True, "imported": imported}

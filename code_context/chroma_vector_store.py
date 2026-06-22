@@ -9,10 +9,11 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import logging
-import os
+import os as _os
 from pathlib import Path
 
 from code_context.index_store import FileRecord, InMemoryCodeIndex
+from config.db_config import LIMA_DATA_DIR
 
 _log = logging.getLogger(__name__)
 
@@ -42,10 +43,7 @@ class ChromaCodeIndex:
         persist_directory: str | None = None,
         collection_name: str = _DEFAULT_COLLECTION,
     ) -> None:
-        self._persist_dir = persist_directory or os.environ.get(
-            "LIMA_DATA_DIR",
-            ".lima-data",
-        )
+        self._persist_dir = persist_directory or LIMA_DATA_DIR or ".lima-data"
         self._collection_name = collection_name
         self._chroma_client = None
         self._collection = None
@@ -136,7 +134,7 @@ class ChromaCodeIndex:
             doc_id = hashlib.sha256(path.encode()).hexdigest()[:16]
             self._collection.delete(ids=[doc_id])
         except Exception as exc:
-            _log.debug("code_context/chroma_vector_store.py: {}", type(exc).__name__)
+            _log.warning("chroma_vector_store delete failed: %s", exc)
 
     @property
     def count(self) -> int:
@@ -144,5 +142,5 @@ class ChromaCodeIndex:
             try:
                 return self._collection.count()
             except Exception as exc:
-                _log.debug("code_context/chroma_vector_store.py: {}", type(exc).__name__)
+                _log.warning("chroma_vector_store count failed: %s", exc)
         return len(self._fallback._files)

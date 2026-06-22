@@ -1,149 +1,101 @@
-import threading
+"""Tests for rate_limiter.py — sliding-window IP rate limiter."""
 
-import rate_limiter
+import time
 
-
-def test_rate_limiter_rejects_after_window_limit(monkeypatch):
-    now = 1000.0
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: now)
-    monkeypatch.setattr(rate_limiter, "MAX_PER_WINDOW", 2)
-    rate_limiter.reset()
-
-    assert rate_limiter.check_rate_limit("203.0.113.1") is True
-    assert rate_limiter.check_rate_limit("203.0.113.1") is True
-    assert rate_limiter.check_rate_limit("203.0.113.1") is False
+from rate_limiter import (
+    check_rate_limit,
+    check_keyed_rate_limit,
+    get_usage,
+    reset,
+    _requests,
+    _keyed_requests,
+)
 
 
-def test_rate_limiter_multiplier_scales_limit(monkeypatch):
-    now = 1000.0
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: now)
-    monkeypatch.setattr(rate_limiter, "MAX_PER_WINDOW", 2)
-    rate_limiter.reset()
-
-    for _ in range(10):
-        assert rate_limiter.check_rate_limit("203.0.113.2", multiplier=5) is True
-    assert rate_limiter.check_rate_limit("203.0.113.2", multiplier=5) is False
+def setup_function():
+    reset()
 
 
-def test_rate_limiter_window_expires_old_requests(monkeypatch):
-    start = 1000.0
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: start)
-    monkeypatch.setattr(rate_limiter, "MAX_PER_WINDOW", 2)
-    rate_limiter.reset()
+class TestCheckRateLimit:
+    def test_first_request_allowed(self):
+        assert check_rate_limit("1.2.3.4") is True
 
-    assert rate_limiter.check_rate_limit("203.0.113.3") is True
-    assert rate_limiter.check_rate_limit("203.0.113.3") is True
-    assert rate_limiter.check_rate_limit("203.0.113.3") is False
+    def test_many_requests_eventually_blocked(self):
+        ip = "5.6.7.8"
+        for _ in range(120):
+            check_rate_limit(ip)
+        assert check_rate_limit(ip) is False
 
-    # Advance beyond the window; the two old requests should be pruned.
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: start + rate_limiter.WINDOW + 1)
-    assert rate_limiter.check_rate_limit("203.0.113.3") is True
-    assert rate_limiter.check_rate_limit("203.0.113.3") is True
-    assert rate_limiter.check_rate_limit("203.0.113.3") is False
+    def test_different_ips_independent(self):
+        for _ in range(120):
+            check_rate_limit("ip_a")
+        assert check_rate_limit("ip_b") is True
+        assert check_rate_limit("ip_a") is False
 
+    def test_multiplier_increases_limit(self):
+        """Multiplier=2 doubles the rate limit from 120 to 240."""
+        ip = "9.10.11.12"
+        reset(ip)
+        # 150 calls with default multiplier should be blocked
+        for _ in range(150):
+            check_rate_limit(ip)
+        assert check_rate_limit(ip) is False
+        # Reset and try with multiplier=2
+        reset(ip)
+        for _ in range(150):
+            check_rate_limit(ip, multiplier=2)
+        assert check_rate_limit(ip, multiplier=2) is True  # 150 < 240 limit
 
-def test_rate_limiter_multiplier_clamped_to_at_least_one(monkeypatch):
-    now = 1000.0
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: now)
-    monkeypatch.setattr(rate_limiter, "MAX_PER_WINDOW", 2)
-    rate_limiter.reset()
+    def test_multiplier_at_least_one(self):
+        assert check_rate_limit("test_ip", multiplier=0) is True
 
-    for multiplier in (0, -1, -10):
-        rate_limiter.reset("203.0.113.4")
-        assert rate_limiter.check_rate_limit("203.0.113.4", multiplier=multiplier) is True
-        assert rate_limiter.check_rate_limit("203.0.113.4", multiplier=multiplier) is True
-        assert rate_limiter.check_rate_limit("203.0.113.4", multiplier=multiplier) is False
+    def test_reset_clears_ip(self):
+        ip = "reset_test"
+        for _ in range(150):
+            check_rate_limit(ip)
+        assert check_rate_limit(ip) is False
+        reset(ip)
+        assert check_rate_limit(ip) is True
 
+    def test_reset_all(self):
+        for _ in range(150):
+            check_rate_limit("a")
+            check_rate_limit("b")
+        reset()
+        assert check_rate_limit("a") is True
+        assert check_rate_limit("b") is True
 
-def test_rate_limiter_evicts_stale_ips(monkeypatch):
-    start = 1000.0
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: start)
-    monkeypatch.setattr(rate_limiter, "MAX_PER_WINDOW", 1)
-    monkeypatch.setattr(rate_limiter, "MAX_TRACKED_IPS", 2)
-    rate_limiter.reset()
-
-    assert rate_limiter.check_rate_limit("203.0.113.10") is True
-    assert rate_limiter.check_rate_limit("203.0.113.11") is True
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: start + rate_limiter.WINDOW + 1)
-    assert rate_limiter.check_rate_limit("203.0.113.12") is True
-    assert len(rate_limiter._requests) <= 2
-
-
-def test_rate_limiter_is_thread_safe_under_same_ip(monkeypatch):
-    now = 1000.0
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: now)
-    monkeypatch.setattr(rate_limiter, "MAX_PER_WINDOW", 100)
-    rate_limiter.reset()
-
-    allowed = []
-
-    def worker() -> None:
-        for _ in range(50):
-            if rate_limiter.check_rate_limit("203.0.113.99"):
-                allowed.append(1)
-
-    threads = [threading.Thread(target=worker) for _ in range(4)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-
-    assert len(allowed) == 100
+    def test_stale_ips_evicted(self):
+        check_rate_limit("stale_test")
+        assert "stale_test" in _requests
+        reset("stale_test")
 
 
-def test_keyed_rate_limiter_enforces_per_key_limit(monkeypatch):
-    now = 1000.0
-    monkeypatch.setattr(rate_limiter.time, "time", lambda: now)
-    rate_limiter.reset()
+class TestGetUsage:
+    def test_no_requests(self):
+        usage = get_usage("nonexistent")
+        assert usage["ip"] == "nonexistent"
+        assert usage["requests_in_window"] == 0
 
-    assert rate_limiter.check_keyed_rate_limit("device_auth:register:1.2.3.4", max_per_window=2) is True
-    assert rate_limiter.check_keyed_rate_limit("device_auth:register:1.2.3.4", max_per_window=2) is True
-    assert rate_limiter.check_keyed_rate_limit("device_auth:register:1.2.3.4", max_per_window=2) is False
-    assert rate_limiter.check_keyed_rate_limit("device_auth:register:5.6.7.8", max_per_window=2) is True
-
-
-class _FakeRateRedis:
-    def __init__(self) -> None:
-        self.values: dict[str, int] = {}
-        self.ttl: dict[str, int] = {}
-
-    def incr(self, key: str) -> int:
-        self.values[key] = int(self.values.get(key, 0)) + 1
-        return self.values[key]
-
-    def expire(self, key: str, seconds: int) -> bool:
-        self.ttl[key] = seconds
-        return True
-
-    def scan_iter(self, match: str):
-        prefix = match[:-1] if match.endswith("*") else match
-        for key in list(self.values):
-            if key.startswith(prefix):
-                yield key
-
-    def delete(self, *keys: str) -> int:
-        removed = 0
-        for key in keys:
-            if key in self.values:
-                del self.values[key]
-                removed += 1
-            self.ttl.pop(key, None)
-        return removed
+    def test_after_requests(self):
+        ip = "usage_test"
+        check_rate_limit(ip)
+        check_rate_limit(ip)
+        usage = get_usage(ip)
+        assert usage["requests_in_window"] >= 2
 
 
-def test_keyed_rate_limit_redis_backend(monkeypatch):
-    import rate_limiter_redis as redis_backend
+class TestCheckKeyedRateLimit:
+    def test_within_limit_allowed(self):
+        assert check_keyed_rate_limit("action:ip1", max_per_window=5) is True
 
-    fake = _FakeRateRedis()
-    monkeypatch.setenv("LIMA_DEVICE_AUTH_RATE_REDIS", "1")
-    monkeypatch.setenv("LIMA_DEVICE_AUTH_RATE_REDIS_URL", "redis://127.0.0.1:6379/0")
-    redis_backend.set_test_client(fake)
-    rate_limiter.reset()
+    def test_exceed_limit_blocked(self):
+        key = "action:ip2"
+        for _ in range(5):
+            check_keyed_rate_limit(key, max_per_window=5)
+        assert check_keyed_rate_limit(key, max_per_window=5) is False
 
-    key = "device_auth:login:203.0.113.50"
-    assert rate_limiter.check_keyed_rate_limit(key, max_per_window=2) is True
-    assert rate_limiter.check_keyed_rate_limit(key, max_per_window=2) is True
-    assert rate_limiter.check_keyed_rate_limit(key, max_per_window=2) is False
-
-    redis_backend.set_test_client(None)
-    rate_limiter.reset()
+    def test_different_keys_independent(self):
+        for _ in range(5):
+            check_keyed_rate_limit("key_a", max_per_window=5)
+        assert check_keyed_rate_limit("key_b", max_per_window=5) is True

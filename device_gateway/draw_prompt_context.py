@@ -22,7 +22,7 @@ def reset_draw_prompt_history_for_tests(device_id: str | None = None) -> None:
 
         reset_device_draw_session(device_id)
     except Exception as exc:
-        logger.debug("draw prompt history reset skipped: %s", exc)
+        logger.info("draw prompt history reset skipped: %s", exc)
 
 
 def get_draw_conversation_context(device_id: str | None, current_prompt: str = "") -> str:

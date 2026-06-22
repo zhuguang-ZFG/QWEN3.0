@@ -8,16 +8,16 @@ from __future__ import annotations
 
 import json
 import logging
-import os
+import os as _os
 import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
 
+from config.db_config import BACKEND_PROFILE_DB as DB_PATH
+
 logger = logging.getLogger(__name__)
 _log = logger
-
-DB_PATH = os.environ.get("LIMA_BACKEND_PROFILE_DB", "data/backend_profiles.db")
 _lock = threading.Lock()
 
 
@@ -246,7 +246,7 @@ def save_profiles() -> None:
 def load_profiles() -> int:
     """Load profiles from SQLite. Returns count of loaded profiles."""
     global _profiles
-    if not os.path.exists(DB_PATH):
+    if not _os.path.exists(DB_PATH):
         return 0
     conn = None
     try:

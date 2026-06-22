@@ -69,7 +69,7 @@ def _serial_fallback_attempt(
                 error=str(exc),
                 attempt="serial_fallback",
             )
-            _log.debug("routing_executor.py: {}", type(exc).__name__)
+            _log.warning("serial fallback backend=%s failed: %s", backend, exc)
     return None
 
 

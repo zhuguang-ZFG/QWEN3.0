@@ -1,11 +1,5 @@
 """Tests for token_health.py — token validation module."""
 
-import os
-import tempfile
-
-os.environ["LIMA_TOKEN_HEALTH_DB"] = os.path.join(tempfile.gettempdir(), "test_token_health.db")
-os.environ["LIMA_BACKEND_PROFILE_DB"] = os.path.join(tempfile.gettempdir(), "test_th_profiles.db")
-
 import token_health as th
 
 

@@ -1,8 +1,4 @@
-import os
-import tempfile
 import time
-
-os.environ["LIMA_WEIGHTS_PATH"] = tempfile.mktemp(suffix=".json")
 
 from context_pipeline.routing_weights import RoutingWeights
 from context_pipeline.skill_store import SkillStore, RoutingSkill
@@ -44,6 +40,7 @@ def test_grpo_failure_penalty_proportional():
 
 def test_grpo_clipped_delta():
     """Delta is clipped to [-0.15, +0.15]."""
+    import os
     import tempfile as _tf
 
     os.environ["LIMA_WEIGHTS_PATH"] = _tf.mktemp(suffix=".json")

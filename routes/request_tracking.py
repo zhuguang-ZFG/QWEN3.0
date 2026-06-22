@@ -4,7 +4,7 @@
 """
 
 import logging
-import os
+import os as _os
 import json
 import time
 import functools
@@ -12,14 +12,16 @@ import threading
 
 from fastapi import Request
 
+from config.db_config import LIMA_DATA_DIR
+
 log = logging.getLogger(__name__)
 
 # ── Shared state (injected from server.py) ────────────────────────────────────
 _stats: dict = {}
 _stats_lock: threading.Lock = threading.Lock()
 
-_DATA_DIR = os.environ.get("LIMA_DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "data"))
-FALLBACK_LOG = os.path.join(_DATA_DIR, "fallback_log.jsonl")
+_DATA_DIR = LIMA_DATA_DIR or _os.path.join(_os.path.dirname(__file__), "..", "data")
+FALLBACK_LOG = _os.path.join(_DATA_DIR, "fallback_log.jsonl")
 TRUSTED_PROXIES = {"127.0.0.1", "::1", "10.0.0.1"}
 
 
@@ -37,7 +39,7 @@ def inject_state(stats: dict, stats_lock: threading.Lock) -> None:
 def record_fallback(query, original_backend, fallback_backend, intent, ide):
     """记录 fallback 事件到日志文件，供 auto_retrain 自动训练使用。"""
     try:
-        os.makedirs(os.path.dirname(FALLBACK_LOG), exist_ok=True)
+        _os.makedirs(_os.path.dirname(FALLBACK_LOG), exist_ok=True)
         entry = {
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "query": query[:300],

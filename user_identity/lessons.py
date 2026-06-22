@@ -1,13 +1,14 @@
 """Lessons learned — persistent experience from routing failures and successes."""
 
 import json
-import os
 import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
+from config.db_config import LESSONS_DIR
 
-LESSONS_DIR = Path(os.environ.get("LIMA_LESSONS_DIR", "/tmp/lima_lessons"))
+
+LESSONS_DIR = Path(LESSONS_DIR)
 
 
 @dataclass

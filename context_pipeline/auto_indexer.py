@@ -160,7 +160,7 @@ class AutoIndexer:
                 try:
                     content = p.read_text(encoding="utf-8", errors="replace")[:5000]
                 except Exception as exc:
-                    _log.debug("context_pipeline/auto_indexer.py: {}", type(exc).__name__)
+                    _log.warning("auto_indexer read failed: %s", exc)
                 symbols_data = [
                     type("S", (), {"name": s.name, "kind": s.kind, "line": s.line})() for s in file_ast.symbols
                 ]
@@ -173,7 +173,7 @@ class AutoIndexer:
                     content=content,
                 )
         except Exception as exc:
-            _log.debug("index_file %s failed: %s", path, exc)
+            _log.warning("auto_indexer index_file failed: %s", exc)
 
     @property
     def last_scan(self) -> float:
@@ -225,7 +225,7 @@ def _indexer_loop(interval_sec: int, stop_event: threading.Event) -> None:
         try:
             run_indexer_scan()
         except Exception as exc:
-            _log.debug("context_pipeline/auto_indexer.py: %s", type(exc).__name__)
+            _log.warning("auto_indexer cleanup failed: %s", exc)
         stop_event.wait(timeout=interval_sec)
 
 

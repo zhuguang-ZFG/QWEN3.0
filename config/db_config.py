@@ -1,0 +1,33 @@
+"""Centralized database and storage configuration.
+
+All database paths, Redis URLs, and storage-related environment variables
+are read once at module load time. Consumers import from here instead of
+calling os.environ.get() directly, ensuring consistent defaults and a
+single place to audit configuration.
+
+Add new variables here as production code migrates away from ad-hoc os.environ calls.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+# ── Base paths ─────────────────────────────────────────────────────────────────
+LIMA_DATA_DIR: str = os.environ.get("LIMA_DATA_DIR", ".lima-data")
+LIMA_DB_PATH: str = os.environ.get("LIMA_DB_PATH", "data/lima.db")
+
+# ── SQLite database paths ──────────────────────────────────────────────────────
+BACKEND_PROFILE_DB: str = os.environ.get("LIMA_BACKEND_PROFILE_DB", "") or str(Path(LIMA_DATA_DIR) / "profiles.db")
+BACKEND_RETIREMENT_DB: str = os.environ.get("LIMA_BACKEND_RETIREMENT_DB", "") or str(Path(LIMA_DATA_DIR) / "retirement.db")
+HEALTH_STATE_DB: str = os.environ.get("LIMA_HEALTH_STATE_DB", "") or "data/health_state.db"
+SESSION_DB: str = os.environ.get("LIMA_SESSION_DB", "") or str(Path(LIMA_DATA_DIR) / "session.db")
+TOKEN_HEALTH_DB: str = os.environ.get("LIMA_TOKEN_HEALTH_DB", "") or str(Path(LIMA_DATA_DIR) / "token_health.db")
+WEIGHTS_PATH: str = os.environ.get("LIMA_WEIGHTS_PATH", "") or str(Path(LIMA_DATA_DIR) / "routing_weights.json")
+
+# ── User identity ──────────────────────────────────────────────────────────────
+PROFILES_DIR: str = os.environ.get("LIMA_PROFILES_DIR", "/tmp/lima_profiles")
+LESSONS_DIR: str = os.environ.get("LIMA_LESSONS_DIR", "/tmp/lima_lessons")
+
+# ── Redis ──────────────────────────────────────────────────────────────────────
+DEVICE_REDIS_URL: str = os.environ.get("LIMA_DEVICE_REDIS_URL", "")

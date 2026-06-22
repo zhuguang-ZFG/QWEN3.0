@@ -22,6 +22,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         # Deprecated but kept for legacy clients that still honor it.
         response.headers["X-XSS-Protection"] = "0"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'"
 
         forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
         if request.url.scheme == "https" or forwarded_proto == "https":

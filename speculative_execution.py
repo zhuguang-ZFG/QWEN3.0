@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import queue as queue_mod
 import threading
 import time
 from typing import Awaitable, Callable
 
 import budget_manager
 import health_tracker
+from async_utils import run_coro_sync
 
 logger = logging.getLogger("speculative")
 
@@ -55,26 +55,8 @@ def speculative_call(
 
 
 def _run_coro_sync(coro):
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coro)
-
-    result_q: queue_mod.Queue = queue_mod.Queue(maxsize=1)
-
-    def _runner():
-        try:
-            result_q.put((True, asyncio.run(coro)))
-        except Exception as exc:
-            result_q.put((False, exc))
-
-    thread = threading.Thread(target=_runner, daemon=True)
-    thread.start()
-    thread.join()
-    ok, value = result_q.get()
-    if ok:
-        return value
-    raise value
+    """Run a coroutine synchronously. Delegates to async_utils.run_coro_sync."""
+    return run_coro_sync(coro)
 
 
 async def _spec_worker(

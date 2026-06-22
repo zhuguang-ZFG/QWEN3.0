@@ -94,7 +94,7 @@ def get_usage_summary() -> dict[str, str]:
 
         gitee_lines = get_gitee_summary_lines(usage_snapshot)
     except Exception as e:
-        logger.debug(f"gitee budget summary unavailable: {e}")
+        logger.warning("gitee budget summary unavailable: %s", e)
         gitee_lines = []
     return {
         "Cloudflare": "\n".join(cf_lines),

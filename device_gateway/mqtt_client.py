@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from typing import Optional
 
 _log = logging.getLogger(__name__)
 
@@ -28,6 +29,8 @@ _MQTT_CLIENT_ID = os.environ.get("LIMA_DEVICE_MQTT_CLIENT_ID", "lima-router")
 
 # In-memory registry of MQTT-connected devices: device_id -> asyncio.Queue
 _mqtt_devices: dict[str, asyncio.Queue[dict]] = {}
+# Reference to the running event loop, set during start_mqtt_client()
+_main_loop: Optional[asyncio.AbstractEventLoop] = None
 
 
 def is_mqtt_enabled() -> bool:
@@ -101,9 +104,13 @@ def _handle_mqtt_message(client, topic: str, payload: dict, _json, _time_mod) ->
         try:
             from routes.device_gateway_ws_handlers import handle_motion_event
 
-            asyncio.get_event_loop().create_task(handle_motion_event(device_id, message, None))
-        except Exception:
-            _log.debug("motion event forward failed", exc_info=True)
+            loop = _main_loop or asyncio.get_running_loop()
+            if loop.is_running():
+                asyncio.run_coroutine_threadsafe(handle_motion_event(device_id, message, None), loop)
+            else:
+                _log.warning("MQTT event loop not running; dropping motion_event from device=%s", device_id)
+        except (RuntimeError, Exception) as exc:
+            _log.warning("MQTT motion event forward failed for device=%s: %s", device_id, exc, exc_info=True)
 
 
 def _extract_mqtt_token(payload: dict) -> str:
@@ -156,6 +163,9 @@ async def start_mqtt_client() -> None:
         _MQTT_PORT,
         _MQTT_CLIENT_ID,
     )
+
+    global _main_loop
+    _main_loop = asyncio.get_running_loop()
 
     # Start background task for MQTT message loop
     asyncio.create_task(_mqtt_message_loop())

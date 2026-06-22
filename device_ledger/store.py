@@ -76,7 +76,9 @@ def set_ledger_store_for_tests(store: LedgerStoreBackend) -> None:
 def configure_ledger_store_from_env() -> None:
     global ledger_store
     backend = os.environ.get("LIMA_DEVICE_LEDGER_STORE", "").strip().lower()
-    redis_url = os.environ.get("LIMA_DEVICE_REDIS_URL", "").strip()
+    from config.db_config import DEVICE_REDIS_URL
+
+    redis_url = DEVICE_REDIS_URL
     if backend == "redis":
         if not redis_url:
             raise RuntimeError("LIMA_DEVICE_REDIS_URL is required when LIMA_DEVICE_LEDGER_STORE=redis")

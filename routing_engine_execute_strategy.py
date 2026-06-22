@@ -214,11 +214,11 @@ def _maybe_quality_retry(
                         try:
                             health_tracker.record_failure(final_backend, 200, "quality_retry")
                         except Exception as exc:
-                            _log.debug(
+                            _log.warning(
                                 "quality retry health record failed: %s",
-                                type(exc).__name__,
+                                exc,
                             )
                         return retry_backend, retry_answer
     except Exception as exc:
-        _log.debug("response validation retry failed: %s", type(exc).__name__)
+        _log.warning("response validation retry failed: %s", exc, exc_info=True)
     return final_backend, answer

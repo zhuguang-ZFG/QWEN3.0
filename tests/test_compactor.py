@@ -1,10 +1,3 @@
-import os
-import tempfile
-
-os.environ["LIMA_SESSION_DB"] = tempfile.mktemp(suffix=".db")
-os.environ["LIMA_SESSION_MEMORY"] = "1"
-os.environ["LIMA_LESSONS_DIR"] = tempfile.mkdtemp()
-
 from session_memory.store import save_memory, count_memories
 from session_memory.compactor import (
     needs_compaction,

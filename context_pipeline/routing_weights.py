@@ -15,14 +15,13 @@ import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
+from config.db_config import WEIGHTS_PATH, LIMA_DATA_DIR
+
 _log = logging.getLogger(__name__)
 
 
-_default_path = os.path.join(
-    os.environ.get("LIMA_DATA_DIR", "data"),
-    "lima_routing_weights.json",
-)
-WEIGHTS_PATH = Path(os.environ.get("LIMA_WEIGHTS_PATH", _default_path))
+_default_path = Path(LIMA_DATA_DIR) / "lima_routing_weights.json"
+WEIGHTS_PATH = Path(WEIGHTS_PATH) if WEIGHTS_PATH.strip() else _default_path
 
 
 @dataclass

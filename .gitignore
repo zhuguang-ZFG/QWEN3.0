@@ -71,6 +71,11 @@ superpowers-ref/
 rtk/
 LIMA-external/
 
+# === 本地运行时 & 缓存目录 ===
+.test-tmp/
+.pnpm-store/
+.venv310/
+
 # === 本地运行时（不进 Git）===
 # Runtime backups and ad-hoc local copies created during debugging/deploy.
 *.backup*

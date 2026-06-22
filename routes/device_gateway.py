@@ -26,12 +26,11 @@ from device_ledger.store import configure_ledger_store_from_env, ledger_store_he
 from device_memory.store import configure_memory_store_from_env, memory_store_health
 from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
 from device_gateway.health import build_device_gateway_health
-from device_gateway.tasks import ack_processing_task, record_motion_event
+from device_gateway.task_events import process_motion_event_core
 from routes.device_gateway_dispatch import (
     dispatch_task_to_session,
     drain_pending_tasks,
     notify_local_session_task_available,
-    record_motion_event_observability,
 )
 from routes.device_gateway_helpers import (
     _record_device_task_evidence,
@@ -73,10 +72,7 @@ async def device_gateway_events(request: Request) -> JSONResponse:
     msg_type = message["type"]
     device_id = message.get("device_id", "")
     if msg_type == "motion_event":
-        summary = record_motion_event(message)
-        shadow_store.update_motion_event(message)
-        ack_processing_task(device_id, message["task_id"])
-        record_motion_event_observability(message, device_id)
+        summary = process_motion_event_core(device_id, message)
         return JSONResponse(ack_frame("motion_event_ack", device_id, **summary, request_id=message.get("request_id")))
     if msg_type == "device_info":
         shadow_store.update_device_info(message)

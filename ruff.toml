@@ -5,17 +5,15 @@ exclude = [
     "esp32S_XYZ",
     "venv",
     ".venv",
-    "managed_components",
+    ".venv310",
+    ".test-tmp",
+    ".pnpm-store",
     ".ruff_cache",
     ".agent",
-    ".codebuddy",
     ".codex",
     ".continue",
-    ".gemini",
-    ".github/prompts",
     ".roo",
     ".trae",
-    ".windsurf",
 ]
 
 [lint]
@@ -25,5 +23,4 @@ select = ["E9", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507"]
 [lint.per-file-ignores]
 "**/__init__.py" = ["F401"]
 "http_caller.py" = ["F401"]
-"backends.py" = ["F401"]
 "routing_engine.py" = ["F401"]

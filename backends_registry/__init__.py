@@ -50,6 +50,26 @@ BACKENDS.update(_community)
 BACKENDS.update(_coding)
 BACKENDS.update(_misc)
 
+
+def add_backend(name: str, cfg: dict) -> None:
+    """Register a new backend. Routes layer should use this instead of direct dict mutation."""
+    BACKENDS[name] = dict(cfg)
+
+
+def remove_backend(name: str) -> bool:
+    """Unregister a backend. Returns False if not found."""
+    return BACKENDS.pop(name, None) is not None
+
+
+def has_backend(name: str) -> bool:
+    """Check if a backend is registered."""
+    return name in BACKENDS
+
+
+def get_backend(name: str) -> dict | None:
+    """Get backend config, or None if not found."""
+    return BACKENDS.get(name)
+
 # M6: All host-dependent backends migrated to VPS or deleted.
 DISABLED_HOST_DEPENDENT_BACKENDS: dict[str, dict] = {}
 

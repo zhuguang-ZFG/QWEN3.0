@@ -3,7 +3,6 @@
   "pythonVersion": "3.10",
   "include": [
     "routes/",
-    "search_gateway/",
     "context_pipeline/",
     "session_memory/",
     "lima_mcp_stdio/",
@@ -23,9 +22,7 @@
     "venv",
     "tests",
     "scripts",
-    "active_model",
-    "esp32S_XYZ",
-    "data"
+    "esp32S_XYZ"
   ],
   "reportMissingImports": "warning",
   "reportMissingTypeStubs": false,

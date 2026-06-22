@@ -1,11 +1,5 @@
 """Tests for backend_profile.py — performance profiling module."""
 
-import os
-import tempfile
-
-# Set test DB path
-os.environ["LIMA_BACKEND_PROFILE_DB"] = os.path.join(tempfile.gettempdir(), "test_profiles.db")
-
 import backend_profile as bp
 
 

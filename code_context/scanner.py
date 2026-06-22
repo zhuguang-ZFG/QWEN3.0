@@ -43,7 +43,7 @@ def scan_file(path: Path) -> FileRecord:
                 mtime=path.stat().st_mtime,
             )
     except Exception as exc:
-        _log.debug("code_context/scanner.py: {}", type(exc).__name__)
+        _log.warning("scanner parse failed: %s", exc, exc_info=True)
     return _scan_python_file(path)
 
 

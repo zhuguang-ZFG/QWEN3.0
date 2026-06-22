@@ -9,7 +9,7 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backends_registry import BACKENDS
+from backends_registry import BACKENDS, add_backend, has_backend, remove_backend
 import health_tracker
 from device_gateway.family_gate import (
     approve_family,
@@ -123,9 +123,9 @@ async def admin_add_backend(req: Request):
         raise HTTPException(400, "name and url required")
     if not _is_safe_backend_url(url):
         raise HTTPException(400, f"backend URL must be a public HTTPS endpoint: {url}")
-    if name in BACKENDS:
+    if has_backend(name):
         raise HTTPException(409, f"backend '{name}' already exists")
-    BACKENDS[name] = {
+    add_backend(name, {
         "url": url,
         "key": key,
         "model": model,
@@ -133,7 +133,7 @@ async def admin_add_backend(req: Request):
         "auth": auth,
         "tier": body.get("tier", ""),
         "caps": body.get("caps", []),
-    }
+    })
     backend_enabled[name] = True
     try:
         test_result = test_backend_sync(name)
@@ -150,9 +150,9 @@ async def admin_add_backend(req: Request):
 @router.delete("/api/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_delete_backend(name: str):
     _stats, _lock, backend_enabled = stats_context()
-    if name not in BACKENDS:
+    if not has_backend(name):
         raise HTTPException(404, f"backend '{name}' not found")
-    del BACKENDS[name]
+    remove_backend(name)
     backend_enabled.pop(name, None)
     return {"ok": True, "message": f"backend '{name}' deleted"}
 

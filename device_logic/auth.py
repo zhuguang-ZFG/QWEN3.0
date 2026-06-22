@@ -47,7 +47,8 @@ def _verify_password(password: str, hashed: str | None) -> bool:
         return False
     try:
         return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
-    except Exception:
+    except Exception as exc:
+        _log.warning("password verification failed: %s", exc, exc_info=True)
         return False
 
 

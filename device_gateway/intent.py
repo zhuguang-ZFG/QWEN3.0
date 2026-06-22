@@ -247,5 +247,5 @@ def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
                 "explanation": f"LLM planned: {parsed.get('reason', capability)}",
             }
     except Exception as exc:
-        _log.debug("device llm planner parse failed: %s", type(exc).__name__)
+        _log.warning("device llm planner parse failed: %s", exc, exc_info=True)
     return None
