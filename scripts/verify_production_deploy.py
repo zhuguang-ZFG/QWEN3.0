@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -38,12 +39,12 @@ def _load_redis_url() -> str:
     )
 
 
-def _get(path: str, *, bearer: str = "") -> tuple[int, str]:
+def _get(path: str, *, bearer: str = "", timeout: float = 90) -> tuple[int, str]:
     headers = dict(UA)
     if bearer:
         headers["Authorization"] = f"Bearer {bearer}"
     req = urllib.request.Request(f"https://{HOST}{path}", headers=headers)
-    with urllib.request.urlopen(req, timeout=45) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.status, resp.read().decode("utf-8", errors="replace")
 
 
@@ -59,15 +60,29 @@ def _post(path: str, body: dict) -> tuple[int, str]:
 
 def _check_health_path(path: str) -> str | None:
     """Probe a health endpoint and return the failure key, or None on success."""
-    try:
-        status, body = _get(path)
-        data = json.loads(body)
-        ok = status == 200 and data.get("status") == "ok"
-        print(f"OK  {path} -> {status} status={data.get('status')}" if ok else f"FAIL {path} -> {status} {body[:120]}")
-        return None if ok else path
-    except Exception as exc:
-        print(f"FAIL {path} -> {type(exc).__name__}: {exc}")
-        return path
+    attempts = 3
+    last_exc: Exception | None = None
+    for attempt in range(attempts):
+        started = time.monotonic()
+        try:
+            status, body = _get(path)
+            elapsed = time.monotonic() - started
+            data = json.loads(body)
+            ok = status == 200 and data.get("status") == "ok"
+            print(
+                f"OK  {path} -> {status} status={data.get('status')} ({elapsed:.2f}s)"
+                if ok
+                else f"FAIL {path} -> {status} {body[:120]} ({elapsed:.2f}s)"
+            )
+            return None if ok else path
+        except Exception as exc:
+            elapsed = time.monotonic() - started
+            last_exc = exc
+            print(f"WARN {path} attempt {attempt + 1}/{attempts} -> {type(exc).__name__}: {exc} ({elapsed:.2f}s)")
+            if attempt < attempts - 1:
+                time.sleep(2)
+    print(f"FAIL {path} -> {type(last_exc).__name__}: {last_exc}")
+    return path
 
 
 def _check_metrics(bearer: str) -> str | None:
