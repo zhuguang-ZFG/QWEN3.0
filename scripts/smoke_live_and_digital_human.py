@@ -72,83 +72,107 @@ async def _fetch_live_config(api_key: str) -> dict:
     return json.loads(body)
 
 
+def _build_gemini_ws_url(cfg: dict, api_key: str) -> tuple[str, str]:
+    """Resolve model and authenticated WebSocket URL from live config."""
+    url = cfg.get("url", "/v1/live")
+    model = cfg.get("model", "models/gemini-2.0-flash-live-001")
+    ws_url = f"wss://{LIMA_HOST}{url}" if url.startswith("/") else url
+    ticket = ws_ticket_http.issue_chat_ws_ticket(LIMA_HOST, api_key)
+    return ws_ticket_http.ws_url_with_ticket(ws_url, ticket), model
+
+
+async def _send_gemini_setup(ws, model: str) -> dict:
+    """Send setup message and wait for setupComplete; returns {ok, first_obj?}."""
+    await ws.send(
+        json.dumps(
+            {
+                "setup": {
+                    "model": model,
+                    "generationConfig": {"responseModalities": ["AUDIO"]},
+                }
+            }
+        )
+    )
+    first = await asyncio.wait_for(ws.recv(), timeout=15)
+    first_obj = json.loads(first)
+    if "setupComplete" not in first_obj:
+        return {
+            "ok": False,
+            "error": f"expected setupComplete, got: {first_obj.keys()}",
+            "first": first_obj,
+        }
+    return {"ok": True, "first_obj": first_obj}
+
+
+def _summarize_gemini_message(obj: dict) -> str:
+    """Summarize a single Gemini Live response message."""
+    if "serverContent" in obj:
+        parts = obj.get("serverContent", {}).get("modelTurn", {}).get("parts", [])
+        return f"serverContent parts={len(parts)} types={[list(p.keys()) for p in parts]}"
+    if obj.get("setupComplete"):
+        return "setupComplete"
+    return str(list(obj.keys()))
+
+
+async def _run_gemini_conversation(ws) -> list[str]:
+    """Send a prompt and collect audio/text responses until audio/timeout."""
+    await ws.send(
+        json.dumps(
+            {
+                "clientContent": {
+                    "turns": [{"role": "user", "parts": [{"text": "Hello, can you hear me?"}]}],
+                    "turnComplete": True,
+                }
+            }
+        )
+    )
+    received: list[str] = []
+    try:
+        while True:
+            msg = await asyncio.wait_for(ws.recv(), timeout=20)
+            if isinstance(msg, bytes):
+                received.append(f"<binary audio {len(msg)} bytes>")
+                break
+            obj = json.loads(msg)
+            received.append(_summarize_gemini_message(obj))
+            if "serverContent" in obj and any(
+                "inlineData" in p for p in obj.get("serverContent", {}).get("modelTurn", {}).get("parts", [])
+            ):
+                break
+    except asyncio.TimeoutError:
+        received.append("<no audio response within 20s>")
+    return received
+
+
+def _build_gemini_error(exc: Exception) -> dict:
+    """Normalize Gemini Live errors into a result dict."""
+    if isinstance(exc, websockets.exceptions.InvalidStatus):
+        return {"ok": False, "error": f"WebSocket handshake failed: {exc.status_code}"}
+    if isinstance(exc, asyncio.TimeoutError):
+        return {"ok": False, "error": "timeout waiting for Gemini response"}
+    return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
 async def _test_gemini_live(api_key: str) -> dict:
     cfg = await _fetch_live_config(api_key)
     if not cfg.get("available"):
         return {"ok": False, "error": f"/api/live-key says unavailable: {cfg}"}
 
-    url = cfg.get("url", "/v1/live")
-    model = cfg.get("model", "models/gemini-2.0-flash-live-001")
-    if url.startswith("/"):
-        proto = "wss"
-        ws_url = f"{proto}://{LIMA_HOST}{url}"
-    else:
-        ws_url = url
-    ticket = ws_ticket_http.issue_chat_ws_ticket(LIMA_HOST, api_key)
-    ws_url = ws_ticket_http.ws_url_with_ticket(ws_url, ticket)
-
+    ws_url, model = _build_gemini_ws_url(cfg, api_key)
     try:
         async with websockets.connect(ws_url, additional_headers={"User-Agent": "LiMaSmoke/1.0"}) as ws:
-            await ws.send(
-                json.dumps(
-                    {
-                        "setup": {
-                            "model": model,
-                            "generationConfig": {"responseModalities": ["AUDIO"]},
-                        }
-                    }
-                )
-            )
-            first = await asyncio.wait_for(ws.recv(), timeout=15)
-            first_obj = json.loads(first)
-            if "setupComplete" not in first_obj:
-                return {
-                    "ok": False,
-                    "error": f"expected setupComplete, got: {first_obj.keys()}",
-                    "first": first_obj,
-                }
-
-            await ws.send(
-                json.dumps(
-                    {
-                        "clientContent": {
-                            "turns": [{"role": "user", "parts": [{"text": "Hello, can you hear me?"}]}],
-                            "turnComplete": True,
-                        }
-                    }
-                )
-            )
-            received: list[str] = []
-            try:
-                while True:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=20)
-                    if isinstance(msg, bytes):
-                        received.append(f"<binary audio {len(msg)} bytes>")
-                        break
-                    obj = json.loads(msg)
-                    if "serverContent" in obj:
-                        parts = obj.get("serverContent", {}).get("modelTurn", {}).get("parts", [])
-                        received.append(f"serverContent parts={len(parts)} types={[list(p.keys()) for p in parts]}")
-                        if any("inlineData" in p for p in parts):
-                            break
-                    elif obj.get("setupComplete"):
-                        received.append("setupComplete")
-                    else:
-                        received.append(str(list(obj.keys())))
-            except asyncio.TimeoutError:
-                received.append("<no audio response within 20s>")
+            setup = await _send_gemini_setup(ws, model)
+            if not setup["ok"]:
+                return setup
+            received = await _run_gemini_conversation(ws)
             return {
                 "ok": any("binary audio" in r or "inlineData" in r for r in received),
                 "model": model,
-                "first_keys": list(first_obj.keys()),
+                "first_keys": list(setup["first_obj"].keys()),
                 "received": received,
             }
-    except websockets.exceptions.InvalidStatus as exc:
-        return {"ok": False, "error": f"WebSocket handshake failed: {exc.status_code}"}
-    except asyncio.TimeoutError:
-        return {"ok": False, "error": "timeout waiting for Gemini response"}
     except Exception as exc:  # noqa: BLE001
-        return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+        return _build_gemini_error(exc)
 
 
 def _load_digital_human_creds() -> tuple[str, str, str | None]:
