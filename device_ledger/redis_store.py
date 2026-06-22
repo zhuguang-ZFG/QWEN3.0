@@ -8,6 +8,7 @@ from typing import Any
 
 from device_ledger.events import DuplicateLedgerEvent, LedgerEvent
 from device_ledger.store import _replay_from_events
+from device_gateway.redis_store_codec import connect_redis
 
 _log = logging.getLogger(__name__)
 
@@ -17,14 +18,7 @@ class RedisLedgerStore:
     shared_across_processes = True
 
     def __init__(self, redis_url: str, *, client: Any | None = None, key_prefix: str = "lima:ledger") -> None:
-        if client is None:
-            try:
-                import redis
-            except ImportError as exc:
-                raise RuntimeError("redis package is required for Redis device ledger store") from exc
-            client = redis.Redis.from_url(redis_url, decode_responses=True)
-        self._redis = client
-        self._prefix = key_prefix.rstrip(":")
+        self._redis, self._prefix = connect_redis(redis_url, "RedisLedgerStore", client=client, key_prefix=key_prefix)
 
     def reset(self) -> None:
         keys = list(self._redis.scan_iter(f"{self._prefix}:*"))

@@ -54,9 +54,13 @@
 **Git**：
   - `218ad82a`：`refactor(slim): split 4 production functions — try_train, ingest, expand, bridge_stream`。
   - 本轮待提交（handle_device_draw + sanitize_text）。
-- **剩余**：
-  - 剩余 77 个 >50 行函数中生产函数已降至极少数（`http_async::call_api_async`、`streaming::bridge_stream_async` 等，多为异步桥梁函数）。
-  - 清理一次性脚本、合并 Redis store 等可择机处理。
+- **脚本清理与 Redis store 合并**：
+  - 删除 6 个一次性脚本（`extract_codegraph_architecture.py`、`generate_architecture_knowledge.py`、`debug_codegraph_nodes.py`、`analyze_firmware_cloud_links.py`、`inject_architecture_to_memory.py`、`check_guardian_findings.py`）→ **-859 行**。
+  - 提取共享 `connect_redis()` 到 `device_gateway/redis_store_codec.py`，3 个 Redis store（gateway/ledger/memory）的 `__init__` 统一调用它，消除 3 处相同的 `try/import/from_url` 模式。
+- **最新验证**：
+  - >50 行函数 77；焦点测试 18 passed。
+- **Git**：本轮 3 个 commit 均待推送。累计瘦身约 **-2,400 行**。
+- **剩余**：脚本清理和 Redis store 合并已在首轮覆盖，后续如需可继续拆解 `http_request_builder.py`（303 行，但无测试覆盖）等。
 
 ## 2026-06-22 深度代码审查问题逐一修复（完成）
 

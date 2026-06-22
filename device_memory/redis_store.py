@@ -8,6 +8,7 @@ import time
 from typing import Any, List, Optional
 
 from device_memory.schemas import MemoryEntry, MemoryType
+from device_gateway.redis_store_codec import connect_redis
 
 _log = logging.getLogger(__name__)
 
@@ -17,14 +18,7 @@ class RedisMemoryStore:
     shared_across_processes = True
 
     def __init__(self, redis_url: str, *, client: Any | None = None, key_prefix: str = "lima:memory") -> None:
-        if client is None:
-            try:
-                import redis
-            except ImportError as exc:
-                raise RuntimeError("redis package is required for Redis device memory store") from exc
-            client = redis.Redis.from_url(redis_url, decode_responses=True)
-        self._redis = client
-        self._prefix = key_prefix.rstrip(":")
+        self._redis, self._prefix = connect_redis(redis_url, "RedisMemoryStore", client=client, key_prefix=key_prefix)
 
     def create(self, entry: MemoryEntry) -> str:
         self._redis.set(self._entry_key(entry.id), entry.model_dump_json())
