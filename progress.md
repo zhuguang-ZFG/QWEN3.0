@@ -2984,3 +2984,39 @@ Agent Worker path.
   - 全量 `pytest -q` → **2292 passed, 4 skipped**；有 5 个失败来自工作区中无关的 WIP 修改（`device_gateway/device_draw_handler.py`、`skills_injector.py` 及其测试），非本次拆分引入。
 - **提交**：
   - `07d30948` `refactor(scripts): split extract_codegraph_architecture::get_key_call_chains`；已 push 到 GitHub `origin/main`（`1f999219..07d30948`）。
+- **提交**：`da8f1d35` `docs(progress): record extract_codegraph_architecture split`；已 push 到 GitHub `origin/main`。
+
+## 2026-06-22 继续优化 — 拆分 `scripts/test_redis_from_local.py::test_redis_connection`（本地-only）
+
+- **目标**：处理 `check_code_size.py` 当前最长函数 `scripts/test_redis_from_local.py::test_redis_connection`（80 行）。
+- **拆分**：
+  - `_import_redis()`：导入 redis 模块或给出安装提示。
+  - `_create_redis_client(redis_module)`：创建 Redis 客户端。
+  - `_run_ping(client)` / `_run_read_write(client)`：Ping 与读写测试。
+  - `_print_stats(client)` / `_print_success()` / `_handle_*_error(e)`：输出与错误处理 helper。
+  - `test_redis_connection` 仅负责编排，降至约 30 行。
+- **验证**：
+  - `ruff check / format` → clean。
+  - `pyright scripts/test_redis_from_local.py` → 0 errors, 0 warnings。
+  - `py_compile` 通过。
+  - 全量 `pytest -q` → **2297 passed, 4 skipped, 0 failed**。
+- **提交状态**：该文件在 `.gitignore:265` 中被 `/scripts/test_redis_from_local.py` 显式忽略，因此**未提交**，拆分仅保留在本地工作区。
+
+## 2026-06-22 继续优化 — 拆分 `scripts/smoke_live_and_digital_human.py::async _test_digital_human_ws`
+
+- **目标**：处理 `check_code_size.py` 当前最长函数 `_test_digital_human_ws`（80 行）。
+- **拆分**：
+  - `_load_digital_human_creds()`：读取设备 ID 与 token，返回错误提示。
+  - `_connect_digital_human_ws(device_id, token)`：建立数字人 WebSocket 连接。
+  - `_send_hello(ws, device_id)`：发送 hello 并等待 hello_ack。
+  - `_summarize_digital_human_response(obj)`：单条响应摘要。
+  - `_run_transcript_pipeline(ws, device_id)`：发送 transcript 并收集 pipeline 响应直到 audio/error/timeout。
+  - `_build_digital_human_error(exc)`：统一错误字典。
+  - `_test_digital_human_ws` 仅负责连接、握手、收集结果，降至约 25 行。
+- **验证**：
+  - `ruff check / format` → clean。
+  - `pyright scripts/smoke_live_and_digital_human.py` → 0 errors, 0 warnings。
+  - 模块 import 正常。
+  - 全量 `pytest -q` → **2300 passed, 4 skipped, 0 failed**。
+- **提交**：
+  - `7a867d27` `refactor(scripts): split smoke_live_and_digital_human::_test_digital_human_ws`；已 push 到 GitHub `origin/main`（`e2417383..7a867d27`）。
