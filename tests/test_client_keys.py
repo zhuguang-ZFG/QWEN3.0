@@ -237,23 +237,40 @@ def test_api_create_and_list():
     app = _make_app()
     client = TestClient(app)
 
-    # Create
-    resp = client.post("/admin/api/client-keys", json={
-        "label": "cursor-user",
-        "quota_daily": 500,
-    })
+    # Create without reveal: no raw key_value returned
+    resp = client.post(
+        "/admin/api/client-keys",
+        json={
+            "label": "cursor-user",
+            "quota_daily": 500,
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["ok"] is True
+    assert "key_value" not in data
+    assert data["key_masked"].startswith("lima-")
+
+    # Create with reveal: raw key_value returned
+    resp = client.post(
+        "/admin/api/client-keys",
+        json={
+            "label": "cursor-user-revealed",
+            "reveal": True,
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
     assert data["key_value"].startswith("lima-")
 
     # List
     resp = client.get("/admin/api/client-keys")
     assert resp.status_code == 200
     keys = resp.json()["keys"]
-    assert len(keys) == 1
+    assert len(keys) == 2
     assert keys[0]["label"] == "cursor-user"
     assert keys[0]["quota_daily"] == 500
+    assert "key_value" not in keys[0]
 
 
 def test_api_create_requires_label():
@@ -305,3 +322,63 @@ def test_api_toggle_key():
     resp = client.get("/admin/api/client-keys")
     key = resp.json()["keys"][0]
     assert key["enabled"] is False
+
+
+def test_api_regenerate_reveals_only_when_requested():
+    """Regenerate returns raw key_value only when reveal is truthy."""
+    from fastapi.testclient import TestClient
+
+    app = _make_app()
+    client = TestClient(app)
+
+    resp = client.post("/admin/api/client-keys", json={"label": "regen-test", "reveal": True})
+    kid = resp.json()["key_id"]
+
+    resp = client.post(f"/admin/api/client-keys/{kid}/regenerate", json={})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "key_value" not in data
+    assert data["key_masked"].startswith("lima-")
+
+    resp = client.post(f"/admin/api/client-keys/{kid}/regenerate", json={"reveal": True})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["key_value"].startswith("lima-")
+
+
+def test_api_create_rejects_invalid_allowed_urls():
+    """Create/update reject non-list allowed_urls."""
+    from fastapi.testclient import TestClient
+
+    app = _make_app()
+    client = TestClient(app)
+
+    resp = client.post(
+        "/admin/api/client-keys",
+        json={
+            "label": "bad-urls",
+            "allowed_urls": "/v1/chat",
+        },
+    )
+    assert resp.status_code == 400
+
+    resp = client.post(
+        "/admin/api/client-keys",
+        json={
+            "label": "bad-urls-list",
+            "allowed_urls": ["/v1/chat", 123],
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_check_allowed_urls_semantics():
+    """Missing allows all, explicit empty list denies all, explicit paths match."""
+    import routes.admin_client_keys as ck_mod
+
+    assert ck_mod.check_allowed_urls({}, "/anything") is True
+    assert ck_mod.check_allowed_urls({"allowed_urls": ["*"]}, "/anything") is True
+    assert ck_mod.check_allowed_urls({"allowed_urls": []}, "/anything") is False
+    assert ck_mod.check_allowed_urls({"allowed_urls": None}, "/anything") is False
+    assert ck_mod.check_allowed_urls({"allowed_urls": ["/v1/models"]}, "/v1/models") is True
+    assert ck_mod.check_allowed_urls({"allowed_urls": ["/v1/models"]}, "/v1/chat") is False

@@ -63,6 +63,18 @@ def _save_keys(keys: list[dict]) -> None:
     tmp.replace(_KEYS_PATH)  # atomic on POSIX, near-atomic on Windows
 
 
+def has_client_keys() -> bool:
+    """Return True if the client key store exists and contains at least one key."""
+    if not _KEYS_PATH.exists():
+        return False
+    try:
+        data = json.loads(_KEYS_PATH.read_text(encoding="utf-8"))
+        keys = data.get("keys", []) if isinstance(data, dict) else []
+        return bool(keys)
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
 def _generate_key_value() -> str:
     """Generate a random API key with lima- prefix."""
     random_part = secrets.token_hex(16)
@@ -85,10 +97,32 @@ def _key_id(value: str) -> str:
     return f"ck-{digest}-{suffix}"
 
 
+def _normalize_allowed_urls(value: object) -> list[str]:
+    """Validate and normalize an allowed_urls value.
+
+    Raises HTTPException(400) if the value is not a list of strings.
+    """
+    if not isinstance(value, list):
+        raise HTTPException(status_code=400, detail="allowed_urls must be a list of strings")
+    for item in value:
+        if not isinstance(item, str):
+            raise HTTPException(status_code=400, detail="allowed_urls must be a list of strings")
+    return value
+
+
 def check_allowed_urls(key_record: dict, request_path: str) -> bool:
-    """Return True if request_path is within the key's allowed_urls whitelist."""
+    """Return True if request_path is within the key's allowed_urls whitelist.
+
+    Semantics:
+      - Missing field defaults to ["*"] (allow all).
+      - Explicit empty list or None denies all access.
+      - "*" anywhere in the list allows all.
+      - Otherwise the request path must match an entry exactly.
+    """
     allowed = key_record.get("allowed_urls", ["*"])
-    if not allowed or "*" in allowed:
+    if allowed is None or allowed == []:
+        return False
+    if "*" in allowed:
         return True
     return request_path in allowed
 
@@ -123,11 +157,16 @@ def try_consume_quota(key_record: dict) -> tuple[bool, str]:
     window_start = now - 60.0
 
     with _lock:
-        entry = _usage.setdefault(token, {
-            "day": day, "month": month,
-            "daily_count": 0, "monthly_count": 0,
-            "last_used_at": None,
-        })
+        entry = _usage.setdefault(
+            token,
+            {
+                "day": day,
+                "month": month,
+                "daily_count": 0,
+                "monthly_count": 0,
+                "last_used_at": None,
+            },
+        )
         # Reset counters on day/month rollover
         if entry.get("day") != day:
             entry["day"] = day
@@ -200,11 +239,16 @@ def record_key_usage(token: str) -> None:
     day = _now_day()
     month = _now_month()
     with _lock:
-        entry = _usage.setdefault(token, {
-            "day": day, "month": month,
-            "daily_count": 0, "monthly_count": 0,
-            "last_used_at": None,
-        })
+        entry = _usage.setdefault(
+            token,
+            {
+                "day": day,
+                "month": month,
+                "daily_count": 0,
+                "monthly_count": 0,
+                "last_used_at": None,
+            },
+        )
         if entry.get("day") != day:
             entry["day"] = day
             entry["daily_count"] = 0
@@ -253,30 +297,39 @@ async def list_client_keys():
     for k in keys:
         token = k.get("key_value", "")
         usage = get_key_usage_summary(token)
-        result.append({
-            "key_id": k.get("key_id", ""),
-            "key_masked": _mask_key(token),
-            "label": k.get("label", ""),
-            "enabled": k.get("enabled", True),
-            "created_at": k.get("created_at", 0),
-            "last_used_at": usage.get("last_used_at") or k.get("last_used_at"),
-            "request_count": k.get("request_count", 0),
-            "quota_daily": k.get("quota_daily", 1000),
-            "quota_monthly": k.get("quota_monthly", 30000),
-            "rate_limit_rpm": k.get("rate_limit_rpm", 20),
-            "allowed_urls": k.get("allowed_urls", ["*"]),
-            "usage_daily": usage.get("daily_count", 0),
-            "usage_monthly": usage.get("monthly_count", 0),
-        })
+        result.append(
+            {
+                "key_id": k.get("key_id", ""),
+                "key_masked": _mask_key(token),
+                "label": k.get("label", ""),
+                "enabled": k.get("enabled", True),
+                "created_at": k.get("created_at", 0),
+                "last_used_at": usage.get("last_used_at") or k.get("last_used_at"),
+                "request_count": k.get("request_count", 0),
+                "quota_daily": k.get("quota_daily", 1000),
+                "quota_monthly": k.get("quota_monthly", 30000),
+                "rate_limit_rpm": k.get("rate_limit_rpm", 20),
+                "allowed_urls": k.get("allowed_urls", ["*"]),
+                "usage_daily": usage.get("daily_count", 0),
+                "usage_monthly": usage.get("monthly_count", 0),
+            }
+        )
     return {"keys": result, "total": len(result)}
 
 
 @router.post("/admin/api/client-keys", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def create_client_key(body: dict):
-    """Issue a new client API key."""
+    """Issue a new client API key.
+
+    The raw key_value is only returned when body["reveal"] is truthy; otherwise
+    only the masked value is returned to avoid leaking secrets in logs/UI.
+    """
     label = (body.get("label") or "").strip()
     if not label:
         raise HTTPException(400, "label is required")
+
+    allowed_urls = body.get("allowed_urls", ["*"])
+    allowed_urls = _normalize_allowed_urls(allowed_urls)
 
     token = _generate_key_value()
     now = time.time()
@@ -291,7 +344,7 @@ async def create_client_key(body: dict):
         "quota_daily": int(body.get("quota_daily", 1000)),
         "quota_monthly": int(body.get("quota_monthly", 30000)),
         "rate_limit_rpm": int(body.get("rate_limit_rpm", 20)),
-        "allowed_urls": body.get("allowed_urls", ["*"]),
+        "allowed_urls": allowed_urls,
     }
     with _lock:
         keys = _load_keys()
@@ -299,12 +352,16 @@ async def create_client_key(body: dict):
         _save_keys(keys)
 
     _log.info("admin: created client key %s label=%s", key_record["key_id"], label)
-    return {
+    result: dict = {
         "ok": True,
         "key_id": key_record["key_id"],
-        "key_value": token,
+        "key_masked": _mask_key(token),
         "label": label,
     }
+    if body.get("reveal"):
+        _log.warning("admin: revealing raw key_value for %s", key_record["key_id"])
+        result["key_value"] = token
+    return result
 
 
 @router.put("/admin/api/client-keys/{key_id}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
@@ -325,7 +382,7 @@ async def update_client_key(key_id: str, body: dict):
                 if "rate_limit_rpm" in body:
                     key["rate_limit_rpm"] = int(body["rate_limit_rpm"])
                 if "allowed_urls" in body:
-                    key["allowed_urls"] = body["allowed_urls"]
+                    key["allowed_urls"] = _normalize_allowed_urls(body["allowed_urls"])
                 _save_keys(keys)
                 _log.info("admin: updated client key %s", key_id)
                 return {"ok": True, "key_id": key_id}
@@ -346,8 +403,12 @@ async def delete_client_key(key_id: str):
 
 
 @router.post("/admin/api/client-keys/{key_id}/regenerate", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def regenerate_client_key(key_id: str):
-    """Regenerate the key value for an existing key record."""
+async def regenerate_client_key(key_id: str, body: dict | None = None):
+    """Regenerate the key value for an existing key record.
+
+    The raw key_value is only returned when body["reveal"] is truthy.
+    """
+    body = body or {}
     new_token = _generate_key_value()
     with _lock:
         keys = _load_keys()
@@ -363,9 +424,13 @@ async def regenerate_client_key(key_id: str):
                 _usage.pop(old_token, None)
                 _rpm_window.pop(old_token, None)
                 _log.info("admin: regenerated client key %s", key_id)
-                return {
+                result: dict = {
                     "ok": True,
                     "key_id": key_id,
-                    "key_value": new_token,
+                    "key_masked": _mask_key(new_token),
                 }
+                if body.get("reveal"):
+                    _log.warning("admin: revealing raw key_value for %s", key_id)
+                    result["key_value"] = new_token
+                return result
     raise HTTPException(404, f"Key '{key_id}' not found")

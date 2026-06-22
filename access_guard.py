@@ -1,9 +1,10 @@
 """Private API key guard for LiMa public-compatible endpoints."""
+
 import logging
 import os
 import secrets
 
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request
 
 _log = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def extract_bearer_token(authorization: str) -> str:
     value = (authorization or "").strip()
     prefix = "Bearer "
     if value.startswith(prefix) and len(value) > len(prefix):
-        return value[len(prefix):].strip()
+        return value[len(prefix) :].strip()
     return ""
 
 
@@ -40,20 +41,40 @@ def constant_time_equals(a: str, b: str) -> bool:
     return secrets.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
 
 
+def _client_keys_enabled() -> bool:
+    """Whether dynamic client-key authentication is explicitly enabled."""
+    value = os.environ.get("LIMA_CLIENT_KEYS_ENABLED", "0").strip().lower()
+    return value in {"1", "true", "yes"}
+
+
+def _dynamic_keys_configured() -> bool:
+    """Whether there is at least one dynamic client key on disk."""
+    try:
+        from routes.admin_client_keys import has_client_keys
+
+        return has_client_keys()
+    except Exception as exc:
+        _log.warning("access_guard: unable to check dynamic client keys: %s", exc)
+        return False
+
+
 def require_private_api_key(
     authorization: str = Header(default=""),
-    request: object = None,
+    request: Request = None,  # type: ignore[assignment]
 ) -> None:
     """FastAPI dependency that fails closed unless a configured key is supplied.
 
-    Checks static environment keys first, then dynamic client keys from the store.
-    Returns 503 if no authentication source is configured at all.
+    Checks static environment keys first, then dynamic client keys from the store
+    (only when LIMA_CLIENT_KEYS_ENABLED=1). Returns 503 only when no
+    authentication source is configured at all.
     """
     keys = configured_api_keys()
     token = extract_bearer_token(authorization)
+    dynamic_enabled = _client_keys_enabled()
+    any_auth_configured = bool(keys) or (dynamic_enabled and _dynamic_keys_configured())
 
     if not token:
-        if not keys:
+        if not any_auth_configured:
             raise HTTPException(
                 status_code=503,
                 detail="LiMa private API key is not configured.",
@@ -64,36 +85,38 @@ def require_private_api_key(
     if keys and any(constant_time_equals(token, k) for k in keys):
         return
 
-    # 2. Check dynamic client keys from the store
-    client_key = None
-    try:
-        from routes.admin_client_keys import check_allowed_urls, find_client_key, try_consume_quota
+    # 2. Check dynamic client keys from the store (feature-flag gated)
+    if dynamic_enabled:
+        client_key = None
+        try:
+            from routes.admin_client_keys import check_allowed_urls, find_client_key, try_consume_quota
 
-        client_key = find_client_key(token)
-    except ImportError:
-        _log.debug("access_guard: admin_client_keys not available")
+            client_key = find_client_key(token)
+        except ImportError:
+            _log.warning("access_guard: admin_client_keys module unavailable; dynamic auth disabled")
+        except Exception as exc:
+            _log.warning("access_guard: dynamic client key lookup failed: %s", exc)
 
-    if client_key is not None:
-        if not client_key.get("enabled", False):
-            raise HTTPException(status_code=403, detail="API key is disabled")
-        # URL restriction check (if request object available)
-        if request is not None and hasattr(request, "url"):
-            if not check_allowed_urls(client_key, request.url.path):
-                raise HTTPException(status_code=403, detail="URL not allowed for this key")
-        # Atomic quota + RPM check and consumption
-        allowed, reason = try_consume_quota(client_key)
-        if not allowed:
-            detail = {
-                "daily_limit": "API key daily quota exceeded",
-                "monthly_limit": "API key monthly quota exceeded",
-                "rpm_limit": "API key rate limit (RPM) exceeded",
-            }.get(reason, "API key quota exceeded")
-            raise HTTPException(status_code=429, detail=detail)
-        return
+        if client_key is not None:
+            if not client_key.get("enabled", False):
+                raise HTTPException(status_code=403, detail="API key is disabled")
+            # URL restriction check
+            if request is not None:
+                if not check_allowed_urls(client_key, request.url.path):
+                    raise HTTPException(status_code=403, detail="URL not allowed for this key")
+            # Atomic quota + RPM check and consumption
+            allowed, reason = try_consume_quota(client_key)
+            if not allowed:
+                detail = {
+                    "daily_limit": "API key daily quota exceeded",
+                    "monthly_limit": "API key monthly quota exceeded",
+                    "rpm_limit": "API key rate limit (RPM) exceeded",
+                }.get(reason, "API key quota exceeded")
+                raise HTTPException(status_code=429, detail=detail)
+            return
 
     # No matching key found
-    if not keys:
-        # No static keys AND no client key matched — fail closed
+    if not any_auth_configured:
         raise HTTPException(
             status_code=503,
             detail="LiMa private API key is not configured.",
