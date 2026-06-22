@@ -264,7 +264,7 @@
 
 - **Git**：
 
-  - Commit `57d2e113`：`refactor(slimming): round 5 follow-up — remove duplicated old-location test files`。
+  - Commit `f7869d63`：`refactor(slimming): round 5 follow-up — remove duplicated old-location test files`。
 
   - Push 到 origin 成功；gitee remote 未配置，未推送。
 
