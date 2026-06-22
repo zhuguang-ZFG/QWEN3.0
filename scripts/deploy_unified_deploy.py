@@ -98,7 +98,7 @@ def _deploy_with_rsync(files: list[str]) -> dict:
             f"root@{SERVER}:{REMOTE}/",
         ]
         print(f"rsync: uploading {len(existing)} files via SSH...")
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600)
         if proc.returncode != 0:
             err = proc.stderr[-800:] if proc.stderr else proc.stdout[-800:]
             raise RuntimeError(f"rsync failed (exit {proc.returncode}): {err}")
@@ -130,7 +130,7 @@ def _deploy_with_tar(files: list[str]) -> dict:
 
         scp_cmd = ["scp", *ssh_opts, str(archive_local), f"root@{SERVER}:{archive_remote}"]
         print(f"tar: uploading archive ({archive_local.stat().st_size / 1024 / 1024:.2f} MB)...")
-        proc = subprocess.run(scp_cmd, capture_output=True, text=True)
+        proc = subprocess.run(scp_cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600)
         if proc.returncode != 0:
             err = proc.stderr[-800:] if proc.stderr else proc.stdout[-800:]
             raise RuntimeError(f"scp failed (exit {proc.returncode}): {err}")
@@ -138,7 +138,13 @@ def _deploy_with_tar(files: list[str]) -> dict:
         ssh_cmd = _ssh_base_cmd(KEY, os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS"))
         extract_cmd = f"mkdir -p {REMOTE} && tar -xzf {archive_remote} -C {REMOTE} && rm -f {archive_remote}"
         print("tar: extracting archive on remote...")
-        proc = subprocess.run([*ssh_cmd, extract_cmd], capture_output=True, text=True)
+        proc = subprocess.run(
+            [*ssh_cmd, extract_cmd],
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            timeout=300,
+        )
         if proc.returncode != 0:
             err = proc.stderr[-800:] if proc.stderr else proc.stdout[-800:]
             raise RuntimeError(f"remote extract failed (exit {proc.returncode}): {err}")

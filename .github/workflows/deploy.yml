@@ -49,15 +49,22 @@ jobs:
           fi
 
       - name: Deploy Aliyun primary (LiMa Router)
-        timeout-minutes: 30
+        timeout-minutes: 15
         env:
           LIMA_DEPLOY_KEY_PATH: ~/.ssh/id_ed25519
           LIMA_DEPLOY_KNOWN_HOSTS: ~/.ssh/known_hosts
           LIMA_DEPLOY_PASS: ${{ secrets.LIMA_DEPLOY_PASS }}
-          LIMA_DEPLOY_USE_TAR: "1"
         run: |
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
-          python scripts/deploy_unified.py --slice all
+          files=$(git diff --name-only --diff-filter=ACMRT HEAD~1 HEAD -- \
+            ':!docs/*' ':!tests/*' ':!.github/*' ':!*.md' ':!*.log' ':!*.db' ':!*.sqlite3' \
+            '*.py' '*.pyi' '*.html' '*.js' '*.css' '*.json' '*.txt' '*.toml' '*.yaml' '*.yml' '*.svg' '*.png' '*.jpg' | tr '\n' ' ')
+          if [ -n "$files" ]; then
+            echo "Deploying changed runtime files: $files"
+            python scripts/deploy_unified.py --files $files
+          else
+            echo "No runtime files changed; skipping core deploy"
+          fi
 
       - name: Deploy Chat Web static files
         if: env.VPS_SSH_KEY_SET == 'true' && env.VPS_HOST_SET == 'true'
