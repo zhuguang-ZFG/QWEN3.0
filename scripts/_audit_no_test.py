@@ -25,7 +25,7 @@ CORE_SCAN_DIRS = [
     "device_policy",
     "device_workflow",
     "session_memory",
-    "search_gateway",
+
     "observability",
     "fleet",
     "provider_automation",

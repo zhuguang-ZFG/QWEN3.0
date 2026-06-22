@@ -9,7 +9,6 @@ python-dotenv>=1.0.0
 paramiko>=3.4.0
 numpy>=1.26.0,<2.3
 redis>=5.0
-pybreaker>=1.0.0
 python-multipart>=0.0.9
 
 # Dev / CI (test runner, type checking, dead-dep scanning)
@@ -31,6 +30,3 @@ opencv-python-headless==4.10.0.84  # 轮廓检测（无 GUI，适合服务器）
 scikit-image>=0.22.0,<0.25         # 骨架化（Zhang-Suen，笔绘机单线路径）
 dashscope==1.20.11         # 通义千问 SDK（文生图）
 Pillow==10.4.0             # 图像处理
-
-# 数据库扩展
-alembic==1.13.1            # 数据库迁移（可选）

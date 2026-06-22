@@ -36,7 +36,7 @@ CORE_MODULES = [
     ("device_policy", "设备策略"),
     ("device_workflow", "设备工作流"),
     ("session_memory", "会话记忆"),
-    ("search_gateway", "搜索网关"),
+    ( "搜索网关"),
     ("observability", "可观测性"),
     ("fleet", "车队管理"),
     ("provider_automation", "提供商自动化"),

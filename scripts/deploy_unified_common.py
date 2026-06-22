@@ -39,7 +39,7 @@ CORE_DIRS = [
     "context_pipeline",
     "session_memory",
     "code_context",
-    "search_gateway",
+
     "observability",
     "device_ledger",
     "device_memory",
@@ -98,6 +98,7 @@ _DEPLOY_EXCLUDES = {
     "docs",
     "esp32S_XYZ",
     "infra",
+    "lima_mcp_stdio",
     "packages",
     "reference",
     "scripts/archive",

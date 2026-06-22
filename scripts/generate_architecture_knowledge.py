@@ -98,7 +98,7 @@ _SUBSYSTEMS = [
     ("routing_ml", "路由智能调度"),
     ("routing_loop", "路由主循环"),
     ("session_memory", "会话记忆管理"),
-    ("search_gateway", "搜索网关"),
+    ( "搜索网关"),
     ("local_retrieval", "本地检索"),
     ("observability", "可观测性"),
     ("fleet", "设备车队管理"),

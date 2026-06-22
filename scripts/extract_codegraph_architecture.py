@@ -49,7 +49,7 @@ MODULE_CATEGORIES = {
         "provider_probe",
         "response_cleaner",
         "session_memory",
-        "search_gateway",
+
         "external_enrichment",
         "local_retrieval",
         "observability",
