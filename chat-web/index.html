@@ -256,8 +256,8 @@
   <!-- API KEY MODAL -->
   <div class="modal-overlay" id="apiKeyModal" onclick="if(event.target===this)closeApiKeyModal()">
     <div class="modal">
-      <div class="modal-title">需要 API Key</div>
-      <div class="modal-desc">请输入你的 LiMa 星云 API Key 以继续对话。Key 仅保存在浏览器本地。</div>
+      <div class="modal-title">设置 API Key（可选）</div>
+      <div class="modal-desc">LiMa 星云免费聊天无需 Key。如需使用自己的 Key，可在此设置；留空则清除已保存的 Key。Key 仅保存在浏览器本地。</div>
       <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-..." onkeydown="if(event.key==='Enter')confirmApiKey()">
       <div class="modal-actions">
         <button class="modal-btn" onclick="closeApiKeyModal()">取消</button>
@@ -286,9 +286,9 @@
     </div>
   </div>
 
-  <script src="chat-ui.js?v=2"></script>
-  <script src="chat-messages.js?v=2"></script>
-  <script src="chat-api.js?v=2"></script>
-  <script src="solar-system.js?v=2"></script>
+  <script src="chat-ui.js?v=3"></script>
+  <script src="chat-messages.js?v=3"></script>
+  <script src="chat-api.js?v=3"></script>
+  <script src="solar-system.js?v=3"></script>
 </body>
 </html>

@@ -45,8 +45,6 @@ def _anonymous_access_env_enabled() -> bool:
 
 def allow_anonymous_access() -> bool:
     """Whether public endpoints may be used without an API key."""
-    if is_production_runtime():
-        return False
     return _anonymous_access_env_enabled()
 
 
@@ -54,10 +52,11 @@ def anonymous_access_status() -> dict[str, bool]:
     """Health/ops snapshot for anonymous demo access configuration."""
     env_enabled = _anonymous_access_env_enabled()
     production = is_production_runtime()
+    allowed = allow_anonymous_access()
     return {
-        "allowed": allow_anonymous_access(),
+        "allowed": allowed,
         "env_enabled": env_enabled,
-        "production_blocked": production and env_enabled,
+        "production_blocked": production and env_enabled and not allowed,
     }
 
 

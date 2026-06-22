@@ -145,8 +145,11 @@ function closeApiKeyModal() {
 
 function confirmApiKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) return;
-  localStorage.setItem('lima-api-key', key);
+  if (key) {
+    localStorage.setItem('lima-api-key', key);
+  } else {
+    localStorage.removeItem('lima-api-key');
+  }
   closeApiKeyModal();
   if (pendingApiKeyCallback) pendingApiKeyCallback(key);
   else location.reload();

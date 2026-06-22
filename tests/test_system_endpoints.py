@@ -102,5 +102,5 @@ def test_health_includes_anonymous_access_security(monkeypatch):
     assert response.status_code == 200
     security = response.json()["security"]["anonymous_access"]
     assert security["env_enabled"] is True
-    assert security["production_blocked"] is True
-    assert security["allowed"] is False
+    assert security["production_blocked"] is False
+    assert security["allowed"] is True

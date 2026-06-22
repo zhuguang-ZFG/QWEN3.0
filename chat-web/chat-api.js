@@ -6,20 +6,7 @@ function authHeaders() {
   return headers;
 }
 
-function ensureApiKey(onReady) {
-  // Prompt for an API key if none is stored, then run the callback.
-  if (getApiKey()) {
-    onReady();
-    return;
-  }
-  openApiKeyModal(() => onReady());
-}
-
 async function generateImage(prompt) {
-  ensureApiKey(() => _generateImageWithKey(prompt));
-}
-
-async function _generateImageWithKey(prompt) {
   if (isStreaming) return;
   isStreaming = true;
   abortController = new AbortController();
@@ -89,10 +76,6 @@ async function sendMessage() {
     return;
   }
 
-  ensureApiKey(() => sendChat(text));
-}
-
-async function sendChat(text) {
   isStreaming = true;
   abortController = new AbortController();
   inputField.value = '';
