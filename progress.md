@@ -81,6 +81,17 @@
   - `tests/test_typed_memory.py` 新增 `monkeypatch.setenv("LIMA_SESSION_DB", ...)` 的 autouse fixture，保证每个测试使用独立的 `tmp_path` DB。
   - **验证结果**：`python -m pytest -q` → **3508 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
 
+- **本轮新增（2026-06-22 22:25）——P1-2 阶段 2：集中 Cloudflare 后端凭证**：
+  - 新增 `config/backend_config.py`，提供 `CloudflareCredentials` 单例（`CLOUDFLARE.account_id`、`token`、`configured`、`chat_url()`、`search_url()`）。
+  - 迁移 5 个文件的 `os.environ.get("CLOUDFLARE_ACCOUNT_ID" / "CLOUDFLARE_TOKEN")`：
+    - `backends_registry/cloudflare.py`：17 个后端定义复用 `_BASE_URL` / `_TOKEN`。
+    - `backends_registry/coding_pool/third_party.py`：`cfai_qwen_coder_code` 复用配置。
+    - `provider_automation/adapters/cloudflare.py`：`build_backend_config`、`cf_credentials_configured`、`call_cf_chat`。
+    - `provider_inventory/cloudflare.py`：`_account_id` / `_token` / `credentials_configured`。
+    - `server_bootstrap.py`：`last_resort_call` 终极降级。
+  - 新增 `tests/test_backend_config.py`（5 用例），覆盖 URL 生成、configured 标志、后端定义读取。
+  - **验证结果**：`python -m pytest -q` → **3513 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
+
 - **剩余大项**（需单独里程碑）：
   - P1-2：环境变量集中化（剩余 backend API key 等约 200 处）。
   - P1-4：仍有大量 `except Exception` 后使用 `logger.debug` 或 `_log.debug` 的非生产/参考路径，待逐文件审查。

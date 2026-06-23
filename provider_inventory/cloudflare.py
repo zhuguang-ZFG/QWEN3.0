@@ -2,25 +2,26 @@
 
 from __future__ import annotations
 
-import os
 import time
 from typing import Any
 
 import httpx
 
+from config.backend_config import CLOUDFLARE
+
 CF_SEARCH_URL = "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/models/search"
 
 
 def _account_id() -> str:
-    return os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
+    return CLOUDFLARE.account_id.strip()
 
 
 def _token() -> str:
-    return os.environ.get("CLOUDFLARE_TOKEN", "").strip()
+    return CLOUDFLARE.token.strip()
 
 
 def credentials_configured() -> bool:
-    return bool(_account_id() and _token())
+    return CLOUDFLARE.configured
 
 
 def normalize_cloudflare_item(item: dict[str, Any]) -> dict[str, Any]:

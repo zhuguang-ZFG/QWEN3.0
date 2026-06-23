@@ -120,6 +120,20 @@
 - `tests/conftest.py` 集中设置 `LIMA_DEVICE_TASK_STORE=memory`。
 - 全量测试 **3508 passed / 17 skipped / 2 deselected / 0 failed**；`ruff check` 与 `pyright` clean。
 
+## 2026-06-22 P1-2 Cloudflare 凭证集中化
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CFG-1 | config | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_TOKEN` 在 5 个文件中重复读取 30+ 次 | Closed |
+| CFG-2 | test | 缺少 `config/backend_config.py` 的回归测试 | Closed |
+| CFG-3 | maintainability | `backends_registry/cloudflare.py` 17 个后端定义各自拼接 URL | Closed |
+
+**修复摘要**
+- 新增 `config/backend_config.py::CloudflareCredentials`，模块级 `CLOUDFLARE` 单例读取一次环境变量。
+- 迁移 `backends_registry/cloudflare.py`、`backends_registry/coding_pool/third_party.py`、`provider_automation/adapters/cloudflare.py`、`provider_inventory/cloudflare.py`、`server_bootstrap.py` 全部引用该单例。
+- 新增 `tests/test_backend_config.py` 覆盖 URL 生成、`configured` 标志、后端定义消费。
+- 全量测试 **3513 passed / 17 skipped / 2 deselected / 0 failed**；`ruff check` 与 `pyright` clean。
+
 ## 2026-06-20 工作区清理与 redis_store 瘦身
 
 | ID | Area | Finding | Status |

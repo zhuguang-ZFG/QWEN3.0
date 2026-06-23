@@ -2,6 +2,8 @@
 
 import os
 
+from config.backend_config import CLOUDFLARE
+
 BACKENDS = {
     "google_flash_code": {
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
@@ -96,8 +98,8 @@ BACKENDS = {
         "caps": ["tool_calls"],
     },
     "cfai_qwen_coder_code": {
-        "url": f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
-        "key": os.environ.get("CLOUDFLARE_TOKEN", ""),
+        "url": CLOUDFLARE.chat_url(),
+        "key": CLOUDFLARE.token,
         "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
         "fmt": "openai",
         "timeout": 30,

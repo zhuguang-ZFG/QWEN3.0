@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Any
 
 import httpx
 
+from config.backend_config import CLOUDFLARE
 from provider_automation.catalog import ModelAdmissionStatus, ProviderModelEntry, ProviderModelSnapshot
 from provider_inventory.compare import registered_model_ids
 
@@ -191,12 +191,9 @@ def map_model_to_backend_key(model_id: str) -> str:
 
 
 def build_backend_config(model_id: str) -> dict[str, str | int]:
-    account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
-    token = os.environ.get("CLOUDFLARE_TOKEN", "")
-    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions"
     return {
-        "url": url,
-        "key": token,
+        "url": CLOUDFLARE.chat_url(),
+        "key": CLOUDFLARE.token,
         "model": model_id,
         "fmt": "openai",
         "timeout": 30,
@@ -204,7 +201,7 @@ def build_backend_config(model_id: str) -> dict[str, str | int]:
 
 
 def cf_credentials_configured() -> bool:
-    return bool(os.environ.get("CLOUDFLARE_ACCOUNT_ID") and os.environ.get("CLOUDFLARE_TOKEN"))
+    return CLOUDFLARE.configured
 
 
 def call_cf_chat(
@@ -215,13 +212,11 @@ def call_cf_chat(
     client: httpx.Client | None = None,
 ) -> tuple[str, float]:
     """Call Cloudflare chat completions; returns (text, latency_ms)."""
-    account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
-    token = os.environ.get("CLOUDFLARE_TOKEN", "")
-    if not account_id or not token:
+    if not CLOUDFLARE.configured:
         raise RuntimeError("CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_TOKEN required")
 
-    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    url = CLOUDFLARE.chat_url()
+    headers = {"Authorization": f"Bearer {CLOUDFLARE.token}", "Content-Type": "application/json"}
     body = {"model": model_id, "messages": messages, "max_tokens": max_tokens}
     owns = client is None
     if client is None:

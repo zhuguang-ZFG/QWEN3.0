@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import threading
 import time
 import urllib.request
 
+from config.backend_config import CLOUDFLARE
 from lima_constants import MODEL_ID
 
 MODEL_CREATED = int(time.time())
@@ -17,11 +17,9 @@ MAX_BODY_SIZE = 32 * 1024 * 1024  # 32MB — Claude Code sends large contexts
 
 def last_resort_call(messages: list) -> str:
     """Nuclear fallback: direct Cloudflare call, bypasses all routing/health logic."""
-    account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
-    token = os.environ.get("CLOUDFLARE_TOKEN", "")
-    if not account_id or not token:
+    if not CLOUDFLARE.configured:
         return ""
-    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions"
+    url = CLOUDFLARE.chat_url()
     body = json.dumps(
         {
             "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
@@ -34,7 +32,7 @@ def last_resort_call(messages: list) -> str:
         data=body,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {CLOUDFLARE.token}",
         },
     )
     try:
