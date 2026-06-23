@@ -1,9 +1,15 @@
 """社区免费 API 后端定义（free_* 系列）"""
 
 import logging
-import os
 
 from backends_registry._utils import legacy_free_enabled
+from config.backend_config import (
+    FREE_AJIAKESI_KEY,
+    FREE_CENTOS_KEY,
+    FREE_MUYUAN_KEY,
+    FREE_OPENAI_NEXT_KEY,
+    FREE_TEAM_SPEED_KEY,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +19,7 @@ BACKENDS: dict[str, dict] = {
     # ── free_openai_next (社区分享, 500刀额度) ──
     "free_openai_next_gpt4": {
         "url": "https://api.openai-next.com/v1/chat/completions",
-        "key": os.environ.get("FREE_OPENAI_NEXT_KEY", ""),
+        "key": FREE_OPENAI_NEXT_KEY,
         "model": "gpt-4",
         "fmt": "openai",
         "timeout": 60,
@@ -22,7 +28,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_openai_next_claude": {
         "url": "https://api.openai-next.com/v1/chat/completions",
-        "key": os.environ.get("FREE_OPENAI_NEXT_KEY", ""),
+        "key": FREE_OPENAI_NEXT_KEY,
         "model": "claude-3-5-sonnet-20241022",
         "fmt": "openai",
         "timeout": 60,
@@ -31,7 +37,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_openai_next_deepseek": {
         "url": "https://api.openai-next.com/v1/chat/completions",
-        "key": os.environ.get("FREE_OPENAI_NEXT_KEY", ""),
+        "key": FREE_OPENAI_NEXT_KEY,
         "model": "deepseek-r1",
         "fmt": "openai",
         "timeout": 90,
@@ -40,7 +46,7 @@ BACKENDS: dict[str, dict] = {
     # ── free_centos (ai.centos.hk) ──
     "free_centos_gpt54": {
         "url": "https://ai.centos.hk/v1/chat/completions",
-        "key": os.environ.get("FREE_CENTOS_KEY", ""),
+        "key": FREE_CENTOS_KEY,
         "model": "gpt-5.4",
         "fmt": "openai",
         "timeout": 60,
@@ -49,7 +55,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_centos_gpt55": {
         "url": "https://ai.centos.hk/v1/chat/completions",
-        "key": os.environ.get("FREE_CENTOS_KEY", ""),
+        "key": FREE_CENTOS_KEY,
         "model": "gpt-5.5",
         "fmt": "openai",
         "timeout": 90,
@@ -59,7 +65,7 @@ BACKENDS: dict[str, dict] = {
     # ── free_muyuan (muyuan.do, 同 centos.hk 服务) ──
     "free_muyuan_gpt54": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "gpt-5.4",
         "fmt": "openai",
         "timeout": 60,
@@ -68,7 +74,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_gpt55": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "gpt-5.5",
         "fmt": "openai",
         "timeout": 90,
@@ -77,7 +83,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_gpt54_mini": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "gpt-5.4-mini",
         "fmt": "openai",
         "timeout": 30,
@@ -85,7 +91,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_codex": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "codex-auto-review",
         "fmt": "openai",
         "timeout": 60,
@@ -94,7 +100,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_gpt55_compact": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "gpt-5.5-openai-compact",
         "fmt": "openai",
         "timeout": 60,
@@ -102,7 +108,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_gpt54_compact": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "gpt-5.4-openai-compact",
         "fmt": "openai",
         "timeout": 60,
@@ -110,7 +116,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_claude_haiku": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "claude-haiku-4-5-20251001",
         "fmt": "openai",
         "timeout": 30,
@@ -119,7 +125,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_claude_sonnet": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "claude-sonnet-4-6",
         "fmt": "openai",
         "timeout": 60,
@@ -128,7 +134,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_claude_opus": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "claude-opus-4-8",
         "fmt": "openai",
         "timeout": 90,
@@ -142,7 +148,7 @@ _AJIAKESI_ENABLED = legacy_free_enabled("AJIAKESI")
 _TEAM_SPEED_ENABLED = legacy_free_enabled("TEAM_SPEED")
 
 _AJIAKESI_BASE_URL = "http://codehub.ajiakesi.cn/v1/chat/completions"
-_AJIAKESI_KEY = os.environ.get("FREE_AJIAKESI_KEY", "")
+_AJIAKESI_KEY = FREE_AJIAKESI_KEY
 _AJIAKESI_BACKENDS = {
     "free_ajiakesi_gpt54": {
         "url": _AJIAKESI_BASE_URL,
@@ -181,7 +187,7 @@ _AJIAKESI_BACKENDS = {
 }
 
 _TEAM_SPEED_BASE_URL = "http://156.239.47.88:8080/v1/chat/completions"
-_TEAM_SPEED_KEY = os.environ.get("FREE_TEAM_SPEED_KEY", "")
+_TEAM_SPEED_KEY = FREE_TEAM_SPEED_KEY
 _TEAM_SPEED_BACKENDS = {
     "free_team_speed_gpt55": {
         "url": _TEAM_SPEED_BASE_URL,

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 
+from config.settings import SESSION_MEMORY
 from session_memory.store_db import _get_conn
 from session_memory.store_crud import count_memories
 
@@ -70,9 +70,7 @@ def delete_memories_older_than(days: int, session_id: str | None = None) -> int:
 
 def _gate_allowed(op: str) -> bool:
     """Check if a memory operation is explicitly allowed."""
-    if os.environ.get("LIMA_MEMORY_ADMIN", "0") == "1":
-        return True
-    return False
+    return SESSION_MEMORY.admin
 
 
 def can_export_memories() -> bool:

@@ -1,9 +1,10 @@
 """Embedding client for code_context semantic search via Jina AI."""
 
 import json
-import os
 import urllib.error
 import urllib.request
+
+from config.settings import EMBEDDING
 
 
 def get_embeddings(
@@ -17,8 +18,8 @@ def get_embeddings(
     if not texts:
         return []
 
-    url = api_url or os.environ.get("LIMA_EMBEDDINGS_URL", "https://api.jina.ai/v1/embeddings")
-    key = api_key or os.environ.get("JINA_API_KEY", "")
+    url = api_url or EMBEDDING.url
+    key = api_key or EMBEDDING.jina_api_key
 
     if not key:
         return []
@@ -37,7 +38,7 @@ def get_embeddings(
         "User-Agent": "LiMa/1.3",
     }
 
-    gfw_proxy = os.environ.get("GFW_PROXY", "")
+    gfw_proxy = EMBEDDING.gfw_proxy
     if gfw_proxy:
         handler = urllib.request.ProxyHandler({"https": gfw_proxy})
         opener = urllib.request.build_opener(handler)

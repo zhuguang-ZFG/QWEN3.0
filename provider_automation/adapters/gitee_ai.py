@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Any
 
 import httpx
 
+from config import backend_config
 from provider_automation.catalog import ModelAdmissionStatus, ProviderModelEntry, ProviderModelSnapshot
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,19 +55,19 @@ _CHAT_HINTS = (
 
 
 def gitee_ai_enabled() -> bool:
-    return os.environ.get("GITEE_AI_ENABLED", "0") == "1"
+    return backend_config.GITEE_AI_ENABLED
 
 
 def credentials_configured() -> bool:
-    return bool(os.environ.get("GITEE_AI_TOKEN", "").strip())
+    return bool(backend_config.GITEE_AI_TOKEN.strip())
 
 
 def base_url() -> str:
-    return os.environ.get("GITEE_AI_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
+    return backend_config.GITEE_AI_BASE_URL.rstrip("/")
 
 
 def token() -> str:
-    return os.environ.get("GITEE_AI_TOKEN", "").strip()
+    return backend_config.GITEE_AI_TOKEN.strip()
 
 
 def model_slug(model_id: str) -> str:

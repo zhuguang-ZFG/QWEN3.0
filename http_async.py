@@ -12,7 +12,7 @@ _log = logging.getLogger(__name__)
 from backends_registry import BACKENDS
 from http_errors import BackendError
 from http_response import _extract_answer, _extract_usage
-from http_sync import _handle_call_error
+from http_sync import _enforce_https_scheme, _handle_call_error
 
 
 def _caller():
@@ -44,6 +44,7 @@ async def call_api_async(
     headers = hc._build_headers(cfg, key=selected_key)
     body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, tools=tools)
     timeout = cfg.get("timeout", 60)
+    _enforce_https_scheme(cfg["url"], backend)
 
     try:
         async with hc._build_async_client(backend, timeout) as client:
@@ -100,6 +101,7 @@ async def call_raw_async(backend: str, payload: bytes) -> dict:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {selected_key}",
     }
+    _enforce_https_scheme(cfg["url"], backend)
     try:
         async with hc._build_async_client(backend, cfg.get("timeout", 30)) as client:
             resp = await client.post(cfg["url"], content=payload, headers=headers)

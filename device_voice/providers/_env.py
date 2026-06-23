@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
+from config import settings
 
 
 def _get_env_with_aliases(*aliases: str) -> str:
     """Return the first non-empty environment variable value."""
     for name in aliases:
-        value = os.environ.get(name, "").strip()
+        value = settings.get_env(name, "").strip()
         if value:
             return value
     return ""

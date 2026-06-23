@@ -9,15 +9,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sys
 
-_ENABLED = os.environ.get("LIMA_STRUCTURED_LOGGING", "0").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-}
-_SERVICE_NAME = os.environ.get("LIMA_SERVICE_NAME", "lima-router")
+from config import settings
+
+_ENABLED = settings.OBSERVABILITY.structured_logging
+_SERVICE_NAME = settings.OBSERVABILITY.service_name
 
 
 class JsonFormatter(logging.Formatter):

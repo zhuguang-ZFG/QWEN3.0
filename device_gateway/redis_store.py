@@ -4,17 +4,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 import logging
-import os
 from typing import Any
 
+from config.settings import DEVICE
 from device_gateway.redis_store_codec import connect_redis, decode_redis_json, encode_redis_json
 from device_gateway.redis_store_helpers import RedisStoreHelpers, _ACTIVE_STATUSES
 from device_gateway.store_utils import DeviceStoreBase
 
 _log = logging.getLogger(__name__)
-
-# Default Redis key TTL for task state and queues (seconds)
-_DEFAULT_TASK_TTL = int(os.environ.get("LIMA_REDIS_TASK_TTL", "2592000"))  # 30 days
 
 
 class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):

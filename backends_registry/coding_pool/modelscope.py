@@ -1,11 +1,11 @@
 """Coding-pool backend definitions: modelscope."""
 
-import os
+from config.backend_config import MODELSCOPE_API_KEY
 
 BACKENDS = {
     "ms_qwen35_27b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3.5-27B",
         "fmt": "openai",
         "timeout": 45,
@@ -16,7 +16,7 @@ BACKENDS = {
     },
     "ms_kimi_k25_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "moonshotai/Kimi-K2.5",
         "fmt": "openai",
         "timeout": 45,
@@ -27,7 +27,7 @@ BACKENDS = {
     },
     "ms_deepseek_v4_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "deepseek-ai/DeepSeek-V4-Flash",
         "fmt": "openai",
         "timeout": 30,
@@ -38,7 +38,7 @@ BACKENDS = {
     },
     "ms_glm5_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "ZhipuAI/GLM-5",
         "fmt": "openai",
         "timeout": 45,
@@ -49,7 +49,7 @@ BACKENDS = {
     },
     "ms_ds_v32_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "deepseek-ai/DeepSeek-V3.2",
         "fmt": "openai",
         "timeout": 60,
@@ -60,7 +60,7 @@ BACKENDS = {
     },
     "ms_qwen3_235b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3-235B-A22B",
         "fmt": "openai",
         "timeout": 90,
@@ -70,7 +70,7 @@ BACKENDS = {
     },
     "ms_qwen3_coder_30b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
         "fmt": "openai",
         "timeout": 45,
@@ -80,7 +80,7 @@ BACKENDS = {
     },
     "ms_qwen3_next_80b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3-Next-80B-A3B-Instruct",
         "fmt": "openai",
         "timeout": 90,
@@ -90,7 +90,7 @@ BACKENDS = {
     },
     "ms_qwen35_122b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3.5-122B-A10B",
         "fmt": "openai",
         "timeout": 90,
@@ -100,7 +100,7 @@ BACKENDS = {
     },
     "ms_glm51_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "ZhipuAI/GLM-5.1",
         "fmt": "openai",
         "timeout": 60,
@@ -111,7 +111,7 @@ BACKENDS = {
     },
     "ms_step37_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "stepfun-ai/Step-3.7-Flash",
         "fmt": "openai",
         "timeout": 45,
@@ -121,7 +121,7 @@ BACKENDS = {
     },
     "ms_ds_r1_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "deepseek-ai/DeepSeek-R1-0528",
         "fmt": "openai",
         "timeout": 90,
@@ -131,7 +131,7 @@ BACKENDS = {
     },
     "ms_qwen3_235b_think_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3-235B-A22B-Thinking-2507",
         "fmt": "openai",
         "timeout": 120,
@@ -141,7 +141,7 @@ BACKENDS = {
     },
     "ms_qwen3_32b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3-32B",
         "fmt": "openai",
         "timeout": 45,
@@ -151,7 +151,7 @@ BACKENDS = {
     },
     "ms_qwen3_next_80b_think_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3-Next-80B-A3B-Thinking",
         "fmt": "openai",
         "timeout": 120,
@@ -161,7 +161,7 @@ BACKENDS = {
     },
     "ms_qwen35_35b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3.5-35B-A3B",
         "fmt": "openai",
         "timeout": 60,
@@ -171,7 +171,7 @@ BACKENDS = {
     },
     "ms_qwen35_397b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen3.5-397B-A17B",
         "fmt": "openai",
         "timeout": 120,
@@ -181,7 +181,7 @@ BACKENDS = {
     },
     "ms_mistral_large_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "mistralai/Mistral-Large-Instruct-2407",
         "fmt": "openai",
         "timeout": 45,
@@ -191,7 +191,7 @@ BACKENDS = {
     },
     "ms_llama4_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "LLM-Research/Llama-4-Maverick-17B-128E-Instruct",
         "fmt": "openai",
         "timeout": 45,
@@ -201,7 +201,7 @@ BACKENDS = {
     },
     "ms_interns2_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Shanghai_AI_Laboratory/Intern-S2-Preview",
         "fmt": "openai",
         "timeout": 45,
@@ -211,7 +211,7 @@ BACKENDS = {
     },
     "ms_qwen_coder_32b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "fmt": "openai",
         "timeout": 45,
@@ -221,7 +221,7 @@ BACKENDS = {
     },
     "ms_qwen_coder_14b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen2.5-Coder-14B-Instruct",
         "fmt": "openai",
         "timeout": 30,
@@ -231,7 +231,7 @@ BACKENDS = {
     },
     "ms_qwen_coder_7b_code": {
         "url": "https://api-inference.modelscope.cn/v1/chat/completions",
-        "key": os.environ.get("MODELSCOPE_API_KEY", ""),
+        "key": MODELSCOPE_API_KEY,
         "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
         "fmt": "openai",
         "timeout": 20,

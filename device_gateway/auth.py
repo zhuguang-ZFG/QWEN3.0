@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import os
 from hmac import compare_digest
+
+from config.settings import DEVICE
 
 
 def configured_device_tokens() -> dict[str, str]:
@@ -12,7 +13,7 @@ def configured_device_tokens() -> dict[str, str]:
     Format: dev_a=token-a,dev_b=token-b. Newlines and semicolons are also
     accepted for ops convenience.
     """
-    raw = os.environ.get("LIMA_DEVICE_TOKENS", "")
+    raw = DEVICE.tokens
     tokens: dict[str, str] = {}
     for chunk in raw.replace("\n", ",").replace(";", ",").split(","):
         item = chunk.strip()
@@ -28,8 +29,8 @@ def configured_device_tokens() -> dict[str, str]:
 
 def validate_device_token(device_id: str, token: str) -> bool:
     expected = configured_device_tokens().get(device_id)
-    if not expected and device_id == os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip():
-        expected = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip()
+    if not expected and device_id == DEVICE.digital_human_default_device_id:
+        expected = DEVICE.digital_human_default_token
     if not expected or not token:
         return False
     return compare_digest(expected, token)

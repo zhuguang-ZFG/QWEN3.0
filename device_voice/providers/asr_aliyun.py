@@ -15,38 +15,25 @@ Optional env:
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
-import os
 import threading
-import time
 from collections.abc import AsyncIterator
 from typing import Any
 
-from device_voice.providers._env import _get_env_with_aliases
+from config.settings import VOICE_PROVIDERS
 
 from device_voice.asr import ASRProvider
-from device_voice.exceptions import (
-    AuthenticationError,
-    ConfigurationError,
-    NetworkError,
-    VoiceProviderError,
+from device_voice.exceptions import AuthenticationError, ConfigurationError
+from device_voice.providers._asr_aliyun_worker import (
+    _map_nls_error,
+    _parse_nls_result,
+    _run_streaming_worker,
 )
 
 _log = logging.getLogger(__name__)
 
 _DEFAULT_REGION = "cn-shanghai"
 _RECOGNIZER_URL_TEMPLATE = "wss://nls-gateway.{region}.aliyuncs.com/ws/v1"
-
-
-def _parse_nls_result(message: str) -> str | None:
-    """Extract the transcript result from an NLS JSON message."""
-    try:
-        payload = json.loads(message)
-    except json.JSONDecodeError:
-        return None
-    result = payload.get("payload", {}).get("result", "")
-    return result if result else None
 
 
 class _RecognizerState:
@@ -79,21 +66,6 @@ class _RecognizerState:
         self.completed.set()
 
 
-class _StreamingRecognizerState(_RecognizerState):
-    """Result collector that also keeps incremental transcripts."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.stream_results: list[str] = []
-
-    def on_result_changed(self, message: str, *_args: Any) -> None:
-        result = _parse_nls_result(message)
-        if result:
-            with self.lock:
-                self.final_text = result
-                self.stream_results.append(result)
-
-
 def _get_token(ak_id: str, ak_secret: str, region: str) -> str:
     """Fetch an NLS token; the SDK may return a string or dict wrapper."""
     try:
@@ -116,10 +88,11 @@ class AliyunASRProvider(ASRProvider):
     """Alibaba Cloud NLS speech recognition."""
 
     def __init__(self) -> None:
-        self._ak_id = _get_env_with_aliases("ALIBABA_CLOUD_ACCESS_KEY_ID", "ALIYUN_AK_ID")
-        self._ak_secret = _get_env_with_aliases("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "ALIYUN_AK_SECRET")
-        self._app_key = os.environ.get("ALIBABA_NLS_APP_KEY", "").strip()
-        self._region = os.environ.get("ALIBABA_NLS_REGION", _DEFAULT_REGION).strip()
+        cfg = VOICE_PROVIDERS.aliyun_nls
+        self._ak_id = cfg.ak_id
+        self._ak_secret = cfg.ak_secret
+        self._app_key = cfg.app_key
+        self._region = cfg.region or _DEFAULT_REGION
 
         if not self._ak_id or not self._ak_secret or not self._app_key:
             raise ConfigurationError(
@@ -212,78 +185,3 @@ class AliyunASRProvider(ASRProvider):
             if not future.done():
                 future.cancel()
             raise
-
-
-def _run_streaming_worker(
-    queue: asyncio.Queue[bytes | None],
-    url: str,
-    token: str,
-    appkey: str,
-    sample_rate: int,
-) -> list[str]:
-    """Synchronous worker for NLS streaming transcription."""
-    state = _StreamingRecognizerState()
-    try:
-        import nls
-    except ImportError as exc:
-        raise ConfigurationError("nls package not installed") from exc
-
-    transcriber = nls.NlsSpeechTranscriber(
-        url=url,
-        token=token,
-        appkey=appkey,
-        on_start=None,
-        on_sentence_begin=None,
-        on_sentence_end=state.on_completed,
-        on_result_changed=state.on_result_changed,
-        on_completed=state.on_completed,
-        on_error=state.on_error,
-        on_close=state.on_close,
-    )
-    try:
-        transcriber.start(
-            aformat="pcm",
-            sample_rate=sample_rate,
-            ch=1,
-            enable_intermediate_result=True,
-            enable_punctuation_prediction=True,
-            enable_inverse_text_normalization=True,
-            timeout=10,
-            ping_interval=8,
-            ping_timeout=None,
-        )
-        while True:
-            try:
-                chunk = queue.get_nowait()
-            except asyncio.QueueEmpty:
-                time.sleep(0.01)
-                continue
-            if chunk is None:
-                break
-            transcriber.send_audio(chunk)
-        transcriber.stop()
-        state.completed.wait(timeout=30)
-    finally:
-        transcriber.shutdown()
-
-    if state.error_message:
-        raise _map_nls_error(state.error_message)
-    return state.stream_results
-
-
-def _map_nls_error(message: str) -> VoiceProviderError:
-    """Map an NLS error JSON message to a typed exception."""
-    try:
-        payload = json.loads(message)
-    except json.JSONDecodeError:
-        return VoiceProviderError(message)
-
-    status_code = payload.get("status_code")
-    status_msg = payload.get("status_msg", "")
-    error_text = f"Alibaba NLS error {status_code}: {status_msg}"
-
-    if status_code in (40000001, 40000002, 40000003, 40100001, 40100002):
-        return AuthenticationError(error_text)
-    if status_code in (40020105, 40020106):
-        return NetworkError(error_text)
-    return VoiceProviderError(error_text)

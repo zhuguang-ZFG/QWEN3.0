@@ -1,5 +1,6 @@
-import os
 import socket
+
+from config import settings
 
 
 TRUTHY = {"1", "true", "yes", "on"}
@@ -44,14 +45,14 @@ BACKEND_PORT_ENV: dict[str, tuple[int, str]] = {
 
 
 def env_truthy(name: str) -> bool:
-    return os.environ.get(name, "").strip().lower() in TRUTHY
+    return settings.get_env(name, "").strip().lower() in TRUTHY
 
 
 def has_tunnel_override(name: str) -> bool:
     cfg = BACKEND_PORT_ENV.get(name)
     if not cfg:
         return False
-    return bool(os.environ.get(cfg[1], "").strip())
+    return bool(settings.get_env(cfg[1], "").strip())
 
 
 def local_port_open(port: int, host: str = "127.0.0.1", timeout: float = 0.15) -> bool:
@@ -65,9 +66,9 @@ def local_port_open(port: int, host: str = "127.0.0.1", timeout: float = 0.15) -
 def backend_available(name: str) -> bool:
     if name not in LOCAL_ONLY_BACKENDS:
         return True
-    if env_truthy("LIMA_ENABLE_LOCAL_PROXIES"):
+    if settings.FLAGS.enable_local_proxies:
         return True
-    if env_truthy("LIMA_RUNTIME_LOCAL_PROXIES"):
+    if settings.FLAGS.runtime_local_proxies:
         return True
     if has_tunnel_override(name):
         return True

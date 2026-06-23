@@ -12,11 +12,12 @@ import re
 import time
 import logging
 
+from config.settings import SESSION_MEMORY
 from session_memory.store import save_typed_memory
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_INBOX_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "memory_inbox")
+DEFAULT_INBOX_DIR = SESSION_MEMORY.inbox
 CONSOLIDATION_THRESHOLD = 20
 
 _running = False
@@ -31,13 +32,12 @@ _stats = {
 
 
 def _inbox_dir() -> str:
-    return os.environ.get("LIMA_MEMORY_INBOX", DEFAULT_INBOX_DIR)
+    return SESSION_MEMORY.inbox
 
 
 def _interval_seconds() -> int:
-    raw = os.environ.get("LIMA_MEMORY_CONSOLIDATION_INTERVAL", "300")
     try:
-        return max(1, int(raw))
+        return max(1, int(SESSION_MEMORY.consolidation_interval))
     except ValueError:
         return 300
 

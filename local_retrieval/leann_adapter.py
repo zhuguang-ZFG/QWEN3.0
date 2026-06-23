@@ -32,9 +32,10 @@ class LeannAdapterConfig:
 def is_leann_available() -> bool:
     """Return True only when explicitly enabled and importable."""
     import importlib
-    import os
 
-    if os.environ.get("LIMA_ENABLE_LEANN") != "1":
+    from config import settings
+
+    if not settings.FLAGS.enable_leann:
         return False
     try:
         importlib.import_module("leann")
@@ -61,10 +62,10 @@ def create_leann_index(
 
 def leann_status() -> dict:
     """Return LEANN availability status for observability."""
-    import os
+    from config import settings
 
     return {
         "available": is_leann_available(),
-        "env_gate": os.environ.get("LIMA_ENABLE_LEANN", "0") == "1",
+        "env_gate": settings.FLAGS.enable_leann,
         "note": ("LEANN is not a runtime dependency. Set LIMA_ENABLE_LEANN=1 to enable probe."),
     }

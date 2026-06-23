@@ -6,9 +6,9 @@ similarity on Jina AI embeddings) as fallback when keyword misses.
 
 import hashlib
 import logging
-import os
 
 from context_pipeline import RequestContext
+from config.settings import SESSION_MEMORY
 from session_memory.store import (
     get_recent_memories,
     search_memories_keyword,
@@ -54,7 +54,7 @@ def _cross_session_fallback(query: str, limit: int = 2) -> list:
 
 def session_memory_processor(ctx: RequestContext) -> RequestContext:
     """Pipeline processor: inject relevant session memories into context."""
-    if os.environ.get("LIMA_SESSION_MEMORY", "0") != "1":
+    if not SESSION_MEMORY.enabled:
         return ctx
 
     session_id = _session_id_from_headers(ctx.headers)
@@ -103,7 +103,7 @@ def session_memory_processor(ctx: RequestContext) -> RequestContext:
 
 def save_request_memory(headers: dict, messages: list[dict], response_summary: str = "") -> None:
     """Save a request/response pair as a memory entry with embedding."""
-    if os.environ.get("LIMA_SESSION_MEMORY", "0") != "1":
+    if not SESSION_MEMORY.enabled:
         return
 
     session_id = _session_id_from_headers(headers)

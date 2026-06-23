@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from config.settings import BACKEND_OPS
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class AdmissionOverlay:
 
 
 def dynamic_admission_enabled() -> bool:
-    return os.environ.get("LIMA_DYNAMIC_ADMISSION", "0") == "1"
+    return BACKEND_OPS.dynamic_admission
 
 
 def load_store(path: str | Path = "") -> dict[str, Any]:

@@ -16,12 +16,12 @@ from __future__ import annotations
 
 import base64
 import logging
-import os
 import uuid
 from collections.abc import AsyncIterator
 
 import httpx
 
+from config.settings import VOICE_PROVIDERS
 from device_voice.exceptions import (
     AuthenticationError,
     ConfigurationError,
@@ -42,11 +42,12 @@ class DoubaoTTSProvider(TTSProvider):
     """Volcano Engine Doubao text-to-speech."""
 
     def __init__(self) -> None:
-        self._appid = os.environ.get("DOUBAO_TTS_APPID", "").strip()
-        self._access_token = os.environ.get("DOUBAO_TTS_ACCESS_TOKEN", "").strip()
-        self._cluster = os.environ.get("DOUBAO_TTS_CLUSTER", _DEFAULT_CLUSTER).strip()
-        self._voice = os.environ.get("DOUBAO_TTS_VOICE", _DEFAULT_VOICE).strip()
-        self._encoding = os.environ.get("DOUBAO_TTS_ENCODING", _DEFAULT_ENCODING).strip()
+        cfg = VOICE_PROVIDERS.doubao_tts
+        self._appid = cfg.appid
+        self._access_token = cfg.access_token
+        self._cluster = cfg.cluster or _DEFAULT_CLUSTER
+        self._voice = cfg.voice or _DEFAULT_VOICE
+        self._encoding = cfg.encoding or _DEFAULT_ENCODING
 
         if not self._appid or not self._access_token:
             raise ConfigurationError("DoubaoTTSProvider requires DOUBAO_TTS_APPID and DOUBAO_TTS_ACCESS_TOKEN.")

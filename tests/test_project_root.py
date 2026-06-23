@@ -6,18 +6,18 @@ from context_pipeline._project_root import _detect_project_root
 
 
 class TestDetectProjectRoot:
-    def test_env_root_priority(self):
-        with patch.dict("os.environ", {"LIMA_PROJECT_ROOT": "."}):
-            assert _detect_project_root() == "."
+    def test_env_root_priority(self, monkeypatch):
+        monkeypatch.setenv("LIMA_PROJECT_ROOT", ".")
+        assert _detect_project_root() == "."
 
-    def test_env_root_ignored_if_not_dir(self):
-        with patch.dict("os.environ", {"LIMA_PROJECT_ROOT": "/nonexistent/path"}):
+    def test_env_root_ignored_if_not_dir(self, monkeypatch):
+        monkeypatch.setenv("LIMA_PROJECT_ROOT", "/nonexistent/path")
+        with patch("os.path.isdir", return_value=False):
+            result = _detect_project_root()
+            assert isinstance(result, str)
+
+    def test_fallback_to_cwd(self, monkeypatch):
+        monkeypatch.delenv("LIMA_PROJECT_ROOT", raising=False)
+        with patch("os.getcwd", return_value="/fake/cwd"):
             with patch("os.path.isdir", return_value=False):
-                result = _detect_project_root()
-                assert isinstance(result, str)
-
-    def test_fallback_to_cwd(self):
-        with patch.dict("os.environ", {}, clear=True):
-            with patch("os.getcwd", return_value="/fake/cwd"):
-                with patch("os.path.isdir", return_value=False):
-                    assert _detect_project_root() == "/fake/cwd"
+                assert _detect_project_root() == "/fake/cwd"

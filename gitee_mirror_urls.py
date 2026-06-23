@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import os
 import re
 from urllib.parse import quote, urlparse
+
+from config import settings
 
 _OAUTH_RE = re.compile(r"oauth2:[^@]+@", re.IGNORECASE)
 _OAUTH_TOKEN_RE = re.compile(r"oauth2:([^@]+)@", re.IGNORECASE)
@@ -60,7 +61,7 @@ def redact_remote_url(url: str) -> str:
 
 def gitee_env_token() -> str:
     """Return Gitee personal access token from environment, preferring GITEE_TOKEN."""
-    return os.environ.get("GITEE_TOKEN", "").strip() or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
+    return settings.INTEGRATIONS.gitee_token
 
 
 def _parse_gitee_repo_path(base_url: str) -> str:

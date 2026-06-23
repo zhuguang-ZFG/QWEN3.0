@@ -18,6 +18,28 @@ from http_response import _extract_answer, _extract_usage
 _log = logging.getLogger(__name__)
 
 
+from config.settings import FLAGS
+
+
+def _allow_http_backends() -> bool:
+    return FLAGS.allow_http_backends
+
+
+def _enforce_https_scheme(url: str, backend: str) -> None:
+    """Reject non-localhost HTTP URLs unless LIMA_ALLOW_HTTP_BACKENDS is set."""
+    if not url.startswith("http://"):
+        return
+    if _allow_http_backends():
+        _log.warning("Allowing plaintext HTTP backend %s because LIMA_ALLOW_HTTP_BACKENDS is set", backend)
+        return
+    if any(url.startswith(prefix) for prefix in ("http://localhost", "http://127.0.0.1")):
+        return
+    raise BackendError(
+        f"{backend} uses plaintext HTTP URL ({url}). Set LIMA_ALLOW_HTTP_BACKENDS=1 to allow.",
+        status_code=400,
+    )
+
+
 def _extract_answer_from_sse(text: str) -> str:
     """Extract answer content from SSE streaming response chunks."""
     content_parts = []
@@ -195,6 +217,7 @@ def call_api(
     headers = hc._build_headers(cfg, key=selected_key)
     body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, tools=tools)
     timeout = cfg.get("timeout", 60)
+    _enforce_https_scheme(cfg["url"], backend)
 
     try:
         with hc._build_client(backend, timeout) as client:
@@ -226,6 +249,7 @@ def call_raw(backend: str, payload: bytes) -> dict:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {selected_key}",
     }
+    _enforce_https_scheme(cfg["url"], backend)
     try:
         with hc._build_client(backend, cfg.get("timeout", 30)) as client:
             resp = client.post(cfg["url"], content=payload, headers=headers)

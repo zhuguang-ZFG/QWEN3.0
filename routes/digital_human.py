@@ -91,9 +91,9 @@ def _build_advanced_config(wakeword_enabled: bool) -> dict:
     }
 
 
-def _serialize_config_script(config: dict) -> str:
-    """Wrap a configuration dict in the digital-human auto-config <script>."""
-    lines = [
+def _script_boilerplate() -> list[str]:
+    """Return the static prefix of the auto-config script."""
+    return [
         "<script>",
         "(function () {",
         '  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";',
@@ -114,34 +114,50 @@ def _serialize_config_script(config: dict) -> str:
         "  function apply() {",
     ]
 
-    display = config.get("display", {})
+
+def _append_force_set_inputs(lines: list[str], display: dict) -> None:
+    """Append forceSetInput calls for display/connection fields."""
     for field, raw in display.get("forceSetInputs", {}).items():
         expr = raw["__expr"] if isinstance(raw, dict) and "__expr" in raw else raw
         lines.append(f'    forceSetInput("{field}", {expr});')
 
-    voice = config.get("voice", {})
+
+def _append_voice_config(lines: list[str], voice: dict) -> None:
+    """Append setInput/seedStorage calls for voice defaults."""
     for field, value in voice.get("setInputs", {}).items():
         lines.append(f'    setInput("{field}", {value});')
     for key, value in voice.get("seedStorage", {}).items():
         lines.append(f'    seedStorage("{key}", {value});')
 
-    advanced = config.get("advanced", {})
+
+def _append_advanced_config(lines: list[str], advanced: dict) -> None:
+    """Append select/value assignments for advanced options."""
     for field, value in advanced.get("selectValue", {}).items():
         lines.append(f'    const {field}El = document.getElementById("{field}");')
         lines.append(f"    if ({field}El && !{field}El.value) {field}El.value = {value};")
 
-    lines.extend(
-        [
-            "  }",
-            '  if (document.readyState === "loading") {',
-            '    document.addEventListener("DOMContentLoaded", apply);',
-            "  } else {",
-            "    apply();",
-            "  }",
-            "})();",
-            "</script>",
-        ]
-    )
+
+def _script_footer() -> list[str]:
+    """Return the static suffix of the auto-config script."""
+    return [
+        "  }",
+        '  if (document.readyState === "loading") {',
+        '    document.addEventListener("DOMContentLoaded", apply);',
+        "  } else {",
+        "    apply();",
+        "  }",
+        "})();",
+        "</script>",
+    ]
+
+
+def _serialize_config_script(config: dict) -> str:
+    """Wrap a configuration dict in the digital-human auto-config <script>."""
+    lines = _script_boilerplate()
+    _append_force_set_inputs(lines, config.get("display", {}))
+    _append_voice_config(lines, config.get("voice", {}))
+    _append_advanced_config(lines, config.get("advanced", {}))
+    lines.extend(_script_footer())
     return "\n".join(lines)
 
 

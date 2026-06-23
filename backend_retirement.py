@@ -12,6 +12,7 @@ import sqlite3
 import time
 
 from config.db_config import BACKEND_RETIREMENT_DB as DB_PATH
+from config.settings import BACKEND_OPS
 
 logger = logging.getLogger(__name__)
 _log = logger
@@ -34,7 +35,7 @@ STATUS_RETIRED = "retired"
 
 # Runtime overrides: backends removed from routing pools
 _retired_backends: set[str] = set()
-_RELOAD_INTERVAL_SEC = float(os.environ.get("LIMA_BACKEND_RETIREMENT_RELOAD_SEC", "300"))
+_RELOAD_INTERVAL_SEC = BACKEND_OPS.retirement_reload_sec
 _last_reload_ts: float = time.time()
 
 

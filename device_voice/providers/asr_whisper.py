@@ -18,11 +18,11 @@ from __future__ import annotations
 
 import io
 import logging
-import os
 import wave
 from collections.abc import AsyncIterator
 from typing import Any
 
+from config.settings import VOICE_PROVIDERS
 from device_voice.asr import ASRProvider
 from device_voice.exceptions import ConfigurationError, ModelUnavailableError, VoiceProviderError
 
@@ -46,12 +46,11 @@ class WhisperASRProvider(ASRProvider):
     """
 
     def __init__(self) -> None:
-        self._model_name = os.environ.get("WHISPER_MODEL", _DEFAULT_MODEL).strip() or _DEFAULT_MODEL
-        self._device = os.environ.get("WHISPER_DEVICE", _DEFAULT_DEVICE).strip() or _DEFAULT_DEVICE
-        self._compute_type = (
-            os.environ.get("WHISPER_COMPUTE_TYPE", _DEFAULT_COMPUTE_TYPE).strip() or _DEFAULT_COMPUTE_TYPE
-        )
-        self._language = os.environ.get("WHISPER_LANGUAGE", "").strip() or None
+        cfg = VOICE_PROVIDERS.whisper
+        self._model_name = cfg.model or _DEFAULT_MODEL
+        self._device = cfg.device or _DEFAULT_DEVICE
+        self._compute_type = cfg.compute_type or _DEFAULT_COMPUTE_TYPE
+        self._language = cfg.language or None
         self._model: Any | None = None
 
         if WhisperModel is None:

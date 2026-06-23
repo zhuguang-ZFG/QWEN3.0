@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any
 
+from config.settings import DEVICE
 from device_gateway.redis_store_codec import decode_redis_json, encode_redis_json
 
 _log = logging.getLogger(__name__)
-
-# Default Redis key TTL for task state hash and queues (seconds)
-_DEFAULT_TASK_TTL = int(os.environ.get("LIMA_REDIS_TASK_TTL", "2592000"))  # 30 days
 
 
 class RedisStoreHelpers:
@@ -40,14 +37,14 @@ class RedisStoreHelpers:
                 item = item.decode("utf-8")
             results.append(item)
         if results:
-            self._redis.expire(src, _DEFAULT_TASK_TTL)
-            self._redis.expire(dst, _DEFAULT_TASK_TTL)
+            self._redis.expire(src, DEVICE.redis_task_ttl)
+            self._redis.expire(dst, DEVICE.redis_task_ttl)
         return results
 
     def _ensure_queue_ttl(self, device_id: str) -> None:
         """Set TTL on pending/processing queues for a device."""
-        self._redis.expire(self._queue_key(device_id), _DEFAULT_TASK_TTL)
-        self._redis.expire(self._processing_key(device_id), _DEFAULT_TASK_TTL)
+        self._redis.expire(self._queue_key(device_id), DEVICE.redis_task_ttl)
+        self._redis.expire(self._processing_key(device_id), DEVICE.redis_task_ttl)
 
     def _remove_processing_task(self, device_id: str, task_id: str) -> bool:
         key = self._processing_key(device_id)
@@ -74,7 +71,7 @@ class RedisStoreHelpers:
     def _write_task_state(self, task_id: str, state: dict[str, Any]) -> None:
         tasks_key = self._key("tasks")
         self._redis.hset(tasks_key, task_id, encode_redis_json(state))
-        self._redis.expire(tasks_key, _DEFAULT_TASK_TTL)
+        self._redis.expire(tasks_key, DEVICE.redis_task_ttl)
 
 
 _ACTIVE_STATUSES = frozenset({"dispatched", "running", "processing", "progress", "accepted"})

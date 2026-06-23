@@ -20,6 +20,7 @@ except ImportError:
 from fastapi import FastAPI
 import uvicorn
 
+from config.settings import MONITORING
 from vision_handler import (
     _vision_route,
     _stream_vision_response,
@@ -43,14 +44,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-_sentry_dsn = os.environ.get("SENTRY_DSN", "")
-if _sentry_dsn:
+if MONITORING.sentry_dsn:
     try:
         import sentry_sdk
         from sentry_sdk.integrations.fastapi import FastApiIntegration
 
         sentry_sdk.init(
-            dsn=_sentry_dsn,
+            dsn=MONITORING.sentry_dsn,
             send_default_pii=False,
             enable_logs=True,
             traces_sample_rate=0.1,

@@ -1,9 +1,9 @@
 """Coding-pool backend definitions: community."""
 
 import logging
-import os
 
 from backends_registry._utils import legacy_free_enabled
+from config.backend_config import FREE_AJIAKESI_KEY, FREE_MUYUAN_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 BACKENDS: dict[str, dict] = {
     "free_muyuan_gpt54_code": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "gpt-5.4",
         "fmt": "openai",
         "timeout": 60,
@@ -22,7 +22,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_gpt55_code": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "gpt-5.5",
         "fmt": "openai",
         "timeout": 90,
@@ -33,7 +33,7 @@ BACKENDS: dict[str, dict] = {
     },
     "free_muyuan_codex_code": {
         "url": "https://muyuan.do/v1/chat/completions",
-        "key": os.environ.get("FREE_MUYUAN_KEY", ""),
+        "key": FREE_MUYUAN_KEY,
         "model": "codex-auto-review",
         "fmt": "openai",
         "timeout": 60,
@@ -47,7 +47,7 @@ BACKENDS: dict[str, dict] = {
 # ── HTTP-only community backends (opt-in, default disabled) ──
 _AJIAKESI_ENABLED = legacy_free_enabled("AJIAKESI")
 _AJIAKESI_BASE_URL = "http://codehub.ajiakesi.cn/v1/chat/completions"
-_AJIAKESI_KEY = os.environ.get("FREE_AJIAKESI_KEY", "")
+_AJIAKESI_KEY = FREE_AJIAKESI_KEY
 _AJIAKESI_CODE_BACKENDS = {
     "free_ajiakesi_gpt54_code": {
         "url": _AJIAKESI_BASE_URL,

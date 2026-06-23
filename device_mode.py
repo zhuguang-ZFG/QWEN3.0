@@ -6,12 +6,12 @@ When LIMA_DEVICE_MODE=1, the chat pipeline runs in device-optimized mode:
 - Optimize for drawing/writing machine scenarios
 """
 
-import os
+from config import settings
 
 
 def is_device_mode() -> bool:
     """Check if device mode is enabled via environment variable."""
-    return os.environ.get("LIMA_DEVICE_MODE", "").strip() == "1"
+    return settings.FLAGS.device_mode
 
 
 def should_skip_context_pipeline() -> bool:

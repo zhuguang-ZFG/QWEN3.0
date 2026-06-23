@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Any
 
+from config import settings
 from device_ledger.events import DuplicateLedgerEvent, LedgerEvent
 from device_ledger.store import _replay_from_events
 from device_gateway.redis_store_codec import connect_redis
@@ -15,7 +15,7 @@ from device_gateway.store_utils import DeviceStoreBase
 _log = logging.getLogger(__name__)
 
 # Default Redis key TTL for ledger entries (seconds)
-_DEFAULT_LEDGER_TTL = int(os.environ.get("LIMA_REDIS_LEDGER_TTL", "7776000"))  # 90 days
+_DEFAULT_LEDGER_TTL = settings.DEVICE.redis_ledger_ttl  # 90 days default
 
 
 class RedisLedgerStore(DeviceStoreBase):

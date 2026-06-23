@@ -1,13 +1,11 @@
 """Backend capability sets and routing constants."""
 
-import os
-
+from brand_config import PUBLIC_MODEL_NAME
 from backends_constants_code_tools import (
     CODE_CAPABLE_BACKENDS,
     TOOL_CAPABLE_BACKENDS,
 )
 
-PUBLIC_MODEL_NAME = os.environ.get("PUBLIC_MODEL_NAME", "LiMa")
 
 # Thinking-capable backends in priority order
 THINKING_BACKENDS = [

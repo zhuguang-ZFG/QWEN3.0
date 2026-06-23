@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from backends_registry import BACKENDS
+from routes.facade import BACKENDS
 from routes.admin_auth import verify_admin
 from routes.admin_state import FALLBACK_LOG
 

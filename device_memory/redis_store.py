@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from typing import Any, List, Optional
 
+from config import settings
 from device_memory.schemas import MemoryEntry, MemoryType
 from device_gateway.redis_store_codec import connect_redis
 from device_gateway.store_utils import DeviceStoreBase
@@ -15,7 +15,7 @@ from device_gateway.store_utils import DeviceStoreBase
 _log = logging.getLogger(__name__)
 
 # Default Redis key TTL for device memory indexes (seconds)
-_DEFAULT_INDEX_TTL = int(os.environ.get("LIMA_REDIS_MEMORY_INDEX_TTL", "2592000"))  # 30 days
+_DEFAULT_INDEX_TTL = settings.DEVICE.redis_memory_index_ttl  # 30 days default
 
 
 class RedisMemoryStore(DeviceStoreBase):

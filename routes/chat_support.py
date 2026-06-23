@@ -12,11 +12,8 @@ from datetime import datetime
 import asyncio
 
 from backends_constants import THINKING_BACKENDS
-from backends_registry import BACKENDS
 from config.settings import FLAGS
-import health_tracker
-import http_caller
-import routing_executor
+from routes.facade import BACKENDS, health_tracker, http_caller, routing_executor
 
 _log = logging.getLogger(__name__)
 

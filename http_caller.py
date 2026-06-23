@@ -36,4 +36,6 @@ from http_response import _extract_answer, _extract_usage, _parse_sse_chunk
 from http_stream import call_api_stream, call_api_stream_async
 from http_sync import call_api, call_raw, probe
 
-DEBUG = __import__("os").environ.get("LIMA_DEBUG", "") == "1"
+from config.settings import FLAGS
+
+DEBUG = FLAGS.debug

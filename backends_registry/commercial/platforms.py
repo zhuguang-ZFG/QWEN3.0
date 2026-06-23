@@ -1,11 +1,19 @@
 """Commercial backend definitions: platforms."""
 
-import os
+from config.backend_config import (
+    AGNES_AI_API_KEY,
+    COHERE_API_KEY,
+    DEEPINFRA_API_KEY,
+    FIREWORKS_API_KEY,
+    FREEMODEL_API_KEY,
+    SAMBANOVA_API_KEY,
+    TOGETHER_API_KEY,
+)
 
 BACKENDS = {
     "fm_gpt55": {
         "url": "https://api.freemodel.dev/v1/chat/completions",
-        "key": os.environ.get("FREEMODEL_API_KEY", ""),
+        "key": FREEMODEL_API_KEY,
         "model": "gpt-5.5",
         "fmt": "openai",
         "timeout": 90,
@@ -13,7 +21,7 @@ BACKENDS = {
     },
     "fm_gpt54": {
         "url": "https://api.freemodel.dev/v1/chat/completions",
-        "key": os.environ.get("FREEMODEL_API_KEY", ""),
+        "key": FREEMODEL_API_KEY,
         "model": "gpt-5.4",
         "fmt": "openai",
         "timeout": 60,
@@ -21,14 +29,14 @@ BACKENDS = {
     },
     "fm_gpt54_mini": {
         "url": "https://api.freemodel.dev/v1/chat/completions",
-        "key": os.environ.get("FREEMODEL_API_KEY", ""),
+        "key": FREEMODEL_API_KEY,
         "model": "gpt-5.4-mini",
         "fmt": "openai",
         "timeout": 30,
     },
     "fm_gpt53_codex": {
         "url": "https://api.freemodel.dev/v1/chat/completions",
-        "key": os.environ.get("FREEMODEL_API_KEY", ""),
+        "key": FREEMODEL_API_KEY,
         "model": "gpt-5.3-codex",
         "fmt": "openai",
         "timeout": 60,
@@ -51,7 +59,7 @@ BACKENDS = {
     },
     "fireworks_llama405b": {
         "url": "https://api.fireworks.ai/inference/v1/chat/completions",
-        "key": os.environ.get("FIREWORKS_API_KEY", ""),
+        "key": FIREWORKS_API_KEY,
         "model": "accounts/fireworks/models/llama-v3p1-405b-instruct",
         "fmt": "openai",
         "timeout": 45,
@@ -72,49 +80,49 @@ BACKENDS = {
     },
     "cohere_command": {
         "url": "https://api.cohere.com/compatibility/v1/chat/completions",
-        "key": os.environ.get("COHERE_API_KEY", ""),
+        "key": COHERE_API_KEY,
         "model": "command-a-03-2025",
         "fmt": "openai",
         "timeout": 30,
     },
     "cohere_command_plus": {
         "url": "https://api.cohere.com/compatibility/v1/chat/completions",
-        "key": os.environ.get("COHERE_API_KEY", ""),
+        "key": COHERE_API_KEY,
         "model": "command-a-plus-05-2026",
         "fmt": "openai",
         "timeout": 30,
     },
     "cohere_reasoning": {
         "url": "https://api.cohere.com/compatibility/v1/chat/completions",
-        "key": os.environ.get("COHERE_API_KEY", ""),
+        "key": COHERE_API_KEY,
         "model": "command-a-reasoning-08-2025",
         "fmt": "openai",
         "timeout": 45,
     },
     "cohere_vision": {
         "url": "https://api.cohere.com/compatibility/v1/chat/completions",
-        "key": os.environ.get("COHERE_API_KEY", ""),
+        "key": COHERE_API_KEY,
         "model": "command-a-vision-07-2025",
         "fmt": "openai",
         "timeout": 30,
     },
     "sambanova_llama4": {
         "url": "https://api.sambanova.ai/v1/chat/completions",
-        "key": os.environ.get("SAMBANOVA_API_KEY", ""),
+        "key": SAMBANOVA_API_KEY,
         "model": "Meta-Llama-4-Maverick-17B-128E-Instruct",
         "fmt": "openai",
         "timeout": 20,
     },
     "sambanova_ds_v3": {
         "url": "https://api.sambanova.ai/v1/chat/completions",
-        "key": os.environ.get("SAMBANOVA_API_KEY", ""),
+        "key": SAMBANOVA_API_KEY,
         "model": "DeepSeek-V3.2",
         "fmt": "openai",
         "timeout": 30,
     },
     "sambanova_coder": {
         "url": "https://api.sambanova.ai/v1/chat/completions",
-        "key": os.environ.get("SAMBANOVA_API_KEY", ""),
+        "key": SAMBANOVA_API_KEY,
         "model": "DeepSeek-Coder-V2-Lite-Instruct",
         "fmt": "openai",
         "timeout": 30,
@@ -122,7 +130,7 @@ BACKENDS = {
     },
     "sambanova_qwen_coder": {
         "url": "https://api.sambanova.ai/v1/chat/completions",
-        "key": os.environ.get("SAMBANOVA_API_KEY", ""),
+        "key": SAMBANOVA_API_KEY,
         "model": "Qwen2.5-Coder-32B-Instruct",
         "fmt": "openai",
         "timeout": 30,
@@ -130,21 +138,21 @@ BACKENDS = {
     },
     "deepinfra_llama4": {
         "url": "https://api.deepinfra.com/v1/openai/chat/completions",
-        "key": os.environ.get("DEEPINFRA_API_KEY", ""),
+        "key": DEEPINFRA_API_KEY,
         "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
         "fmt": "openai",
         "timeout": 20,
     },
     "deepinfra_qwen235b": {
         "url": "https://api.deepinfra.com/v1/openai/chat/completions",
-        "key": os.environ.get("DEEPINFRA_API_KEY", ""),
+        "key": DEEPINFRA_API_KEY,
         "model": "Qwen/Qwen3-235B-A22B-Instruct",
         "fmt": "openai",
         "timeout": 30,
     },
     "deepinfra_coder": {
         "url": "https://api.deepinfra.com/v1/openai/chat/completions",
-        "key": os.environ.get("DEEPINFRA_API_KEY", ""),
+        "key": DEEPINFRA_API_KEY,
         "model": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "fmt": "openai",
         "timeout": 30,
@@ -152,7 +160,7 @@ BACKENDS = {
     },
     "deepinfra_codellama": {
         "url": "https://api.deepinfra.com/v1/openai/chat/completions",
-        "key": os.environ.get("DEEPINFRA_API_KEY", ""),
+        "key": DEEPINFRA_API_KEY,
         "model": "codellama/CodeLlama-70b-Instruct-hf",
         "fmt": "openai",
         "timeout": 30,
@@ -160,7 +168,7 @@ BACKENDS = {
     },
     "together_qwen_coder": {
         "url": "https://api.together.xyz/v1/chat/completions",
-        "key": os.environ.get("TOGETHER_API_KEY", ""),
+        "key": TOGETHER_API_KEY,
         "model": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "fmt": "openai",
         "timeout": 30,
@@ -168,7 +176,7 @@ BACKENDS = {
     },
     "together_codellama": {
         "url": "https://api.together.xyz/v1/chat/completions",
-        "key": os.environ.get("TOGETHER_API_KEY", ""),
+        "key": TOGETHER_API_KEY,
         "model": "codellama/CodeLlama-70b-Instruct-hf",
         "fmt": "openai",
         "timeout": 30,
@@ -176,7 +184,7 @@ BACKENDS = {
     },
     "together_deepseek_coder": {
         "url": "https://api.together.xyz/v1/chat/completions",
-        "key": os.environ.get("TOGETHER_API_KEY", ""),
+        "key": TOGETHER_API_KEY,
         "model": "deepseek-ai/deepseek-coder-33b-instruct",
         "fmt": "openai",
         "timeout": 30,
@@ -184,7 +192,7 @@ BACKENDS = {
     },
     "agnes20": {
         "url": "https://apihub.agnes-ai.com/v1/chat/completions",
-        "key": os.environ.get("AGNES_AI_API_KEY", ""),
+        "key": AGNES_AI_API_KEY,
         "model": "agnes-2.0-flash",
         "fmt": "openai",
         "timeout": 45,
@@ -192,7 +200,7 @@ BACKENDS = {
     },
     "agnes15": {
         "url": "https://apihub.agnes-ai.com/v1/chat/completions",
-        "key": os.environ.get("AGNES_AI_API_KEY", ""),
+        "key": AGNES_AI_API_KEY,
         "model": "agnes-1.5-flash",
         "fmt": "openai",
         "timeout": 20,

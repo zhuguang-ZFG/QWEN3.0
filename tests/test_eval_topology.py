@@ -1,4 +1,8 @@
-"""Tests for eval topology routing (P2-25)."""
+"""Tests for eval topology routing (P2-25).
+
+env reads are centralized in config.settings; tests patch the imported
+singletons rather than os.environ after import.
+"""
 
 from __future__ import annotations
 
@@ -7,22 +11,28 @@ import json
 import eval_topology
 
 
+def _patch_eval_url(monkeypatch, url: str = "http://127.0.0.1:8088") -> None:
+    """Patch eval_topology.EVAL so eval_via_router_url() returns the test URL."""
+    patched = eval_topology.EVAL
+    monkeypatch.setattr(patched, "via_router_url", url)
+    monkeypatch.setattr(patched, "windows_router_url", "")
+
+
 def test_needs_via_router_when_local_port_closed(monkeypatch):
-    monkeypatch.setenv("LIMA_EVAL_TOPOLOGY", "1")
-    monkeypatch.setenv("LIMA_EVAL_VIA_ROUTER_URL", "http://127.0.0.1:8088")
+    _patch_eval_url(monkeypatch)
     monkeypatch.setattr(eval_topology, "backend_available", lambda _name: False)
     assert eval_topology.needs_via_router("scnet_large_ds_flash") is True
     assert eval_topology.needs_via_router("scnet_qwen30b") is False
 
 
 def test_needs_via_router_false_when_local_available(monkeypatch):
-    monkeypatch.setenv("LIMA_EVAL_VIA_ROUTER_URL", "http://127.0.0.1:8088")
+    _patch_eval_url(monkeypatch)
     monkeypatch.setattr(eval_topology, "backend_available", lambda _name: True)
     assert eval_topology.needs_via_router("scnet_large_ds_flash") is False
 
 
 def test_call_via_router_posts_internal_endpoint(monkeypatch):
-    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr(eval_topology.SECURITY, "api_key", "test-key")
     captured: dict = {}
 
     class FakeResp:

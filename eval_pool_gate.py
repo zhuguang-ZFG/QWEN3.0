@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import statistics
 from pathlib import Path
 
+from config import eval_config
 from eval_slice_summary import latest_scores_path
 
 _log = logging.getLogger(__name__)
@@ -17,19 +17,11 @@ _DEFAULT_MIN = 1.0
 
 
 def pool_gate_enabled() -> bool:
-    return os.environ.get("LIMA_EVAL_POOL_GATE", "1").strip().lower() not in {
-        "0",
-        "false",
-        "no",
-    }
+    return eval_config.pool_gate_enabled()
 
 
 def min_avg_score() -> float:
-    raw = os.environ.get("LIMA_EVAL_POOL_MIN_SCORE", str(_DEFAULT_MIN)).strip()
-    try:
-        return float(raw)
-    except ValueError:
-        return _DEFAULT_MIN
+    return eval_config.min_avg_score(_DEFAULT_MIN)
 
 
 def average_scores_from_path(path: Path) -> dict[str, float]:

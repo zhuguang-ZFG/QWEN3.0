@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
-import os
 import secrets
 from typing import Any
 
 from fastapi.responses import JSONResponse
 
+from config import settings
 from device_logic.http import err, str_field
 
 SMS_EXPIRES_SECONDS = 300
 
 
 def configured_login_code() -> str:
-    return os.environ.get("LIMA_XIAOZHI_LOGIN_CODE", "").strip()
+    return settings.DEVICE.login_code
 
 
 def captcha_required() -> bool:
-    return os.environ.get("LIMA_XIAOZHI_CAPTCHA_REQUIRED", "").strip().lower() in {"1", "true", "yes"}
+    return settings.DEVICE.captcha_required
 
 
 def login_code_error() -> JSONResponse | None:

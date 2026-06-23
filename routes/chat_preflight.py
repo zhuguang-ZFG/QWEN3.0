@@ -83,6 +83,35 @@ def adapt_identity_prompt(system_prompt: str, client_ip: str, request_messages: 
     return system_prompt, messages_with_system_context(request_messages, system_prompt)
 
 
+def _build_prompt_context_from_request(
+    req: ChatRequest,
+    *,
+    client_ip: str,
+    ide_source: str,
+    sys_prompt_preview: str,
+    request_headers: dict | None,
+    trace,
+):
+    """Build prompt context and apply device intent merge."""
+    system_prompt = extract_system_prompt(req.messages) or sys_prompt_preview or ""
+    prompt_ctx = build_prompt_context(
+        req,
+        system_prompt=system_prompt,
+        request_headers=request_headers,
+        client_ip=client_ip,
+        ide_source=ide_source,
+        trace=trace,
+    )
+    request_messages = prompt_ctx.request_messages
+    system_prompt = merge_device_intent_system_prompt(
+        extract_query(req.messages),
+        prompt_ctx.system_prompt,
+        ide_source=ide_source,
+    )
+    prompt_context_messages = messages_with_system_context(request_messages, system_prompt)
+    return request_messages, prompt_context_messages, system_prompt, prompt_ctx
+
+
 def prepare_chat_preflight(
     req: ChatRequest,
     *,
@@ -92,38 +121,32 @@ def prepare_chat_preflight(
     request_headers: dict | None = None,
     trace=None,
 ) -> ChatPreflightResult:
+    """Run guardrails, build context, and apply budget/identity adaptations."""
     try:
         run_input_guardrails(req)
     except ImportError:
         _log.warning("context_pipeline.guardrails not installed; skipping input guardrails")
 
-    prompt_ctx = build_prompt_context(
+    request_messages, prompt_context_messages, system_prompt, prompt_ctx = _build_prompt_context_from_request(
         req,
-        system_prompt=extract_system_prompt(req.messages) or sys_prompt_preview or "",
-        request_headers=request_headers,
         client_ip=client_ip,
         ide_source=ide_source,
+        sys_prompt_preview=sys_prompt_preview,
+        request_headers=request_headers,
         trace=trace,
     )
-    request_messages = prompt_ctx.request_messages
-    prompt_context_messages = prompt_ctx.prompt_context_messages
-    system_prompt = prompt_ctx.system_prompt
-
-    query = extract_query(req.messages)
-    system_prompt = merge_device_intent_system_prompt(
-        query,
-        system_prompt,
-        ide_source=ide_source,
-    )
-    prompt_context_messages = messages_with_system_context(request_messages, system_prompt)
 
     try:
-        request_messages, prompt_context_messages = apply_token_budget(req, request_messages, system_prompt, ide_source)
+        request_messages, prompt_context_messages = apply_token_budget(
+            req, request_messages, system_prompt, ide_source
+        )
     except ImportError:
         _log.warning("token budget module not installed; skipping apply_token_budget")
 
     try:
-        system_prompt, prompt_context_messages = adapt_identity_prompt(system_prompt, client_ip, request_messages)
+        system_prompt, prompt_context_messages = adapt_identity_prompt(
+            system_prompt, client_ip, request_messages
+        )
     except ImportError:
         _log.warning("identity adapter not installed; skipping adapt_identity_prompt")
 

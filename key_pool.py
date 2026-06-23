@@ -12,12 +12,13 @@ LiMa Key Pool — SWRR 权重轮转 + 分级冷却 + 自动拉黑恢复
 
 import time
 import threading
-import os
 import re
 import hashlib
 import logging
 from typing import Optional
 from dataclasses import dataclass
+
+from config import settings
 
 _log = logging.getLogger(__name__)
 
@@ -152,11 +153,6 @@ def _fingerprint_key(key: str) -> str:
     return f"{digest}:{suffix}"
 
 
-def _env_name(provider: str) -> str:
-    safe = re.sub(r"[^A-Za-z0-9]+", "_", provider).strip("_").upper()
-    return f"LIMA_KEY_POOL_{safe}"
-
-
 def _parse_env_keys(raw: str) -> list[dict]:
     entries = []
     for item in re.split(r"[\n,;]+", raw):
@@ -180,8 +176,8 @@ def register_pool(provider: str, keys: list[dict]):
     _pools[provider] = KeyPool(provider, keys)
 
 
-def register_env_pool(provider: str, env_name: str = "") -> bool:
-    raw = os.environ.get(env_name or _env_name(provider), "")
+def register_env_pool(provider: str) -> bool:
+    raw = settings.get_key_pool_raw(provider)
     keys = _parse_env_keys(raw)
     if not keys:
         return False

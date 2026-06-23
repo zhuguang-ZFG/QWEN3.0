@@ -13,9 +13,11 @@ import sqlite3
 import time
 from dataclasses import dataclass
 
+from config import settings
+
 _log = logging.getLogger(__name__)
 
-DEFAULT_DB_PATH = os.environ.get("LIMA_REQUEST_LOG_DB", "data/request_log.db")
+DEFAULT_DB_PATH = settings.DB.request_log_db
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS request_log (

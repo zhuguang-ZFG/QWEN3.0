@@ -6,9 +6,10 @@ Default off via LIMA_HEALTHCHECK_ENABLED=0 until VPS/Windows smoke evidence exis
 from __future__ import annotations
 
 import logging
-import os
 
 import httpx
+
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +24,7 @@ _HEALTH_TIMEOUT = 5.0
 
 
 def is_healthcheck_enabled() -> bool:
-    return os.environ.get("LIMA_HEALTHCHECK_ENABLED", "0").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
+    return settings.FLAGS.healthcheck_enabled
 
 
 def _normalize_url(url: str) -> str:
@@ -97,7 +93,7 @@ def resolve_ping_url(
     if ping_url.strip():
         return ping_url.strip()
     if env_key:
-        return os.environ.get(env_key, "").strip()
+        return settings.get_env(env_key, "").strip()
     return ""
 
 

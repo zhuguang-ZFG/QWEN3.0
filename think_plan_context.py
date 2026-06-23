@@ -14,6 +14,8 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+from config import settings
+
 _log = logging.getLogger(__name__)
 
 # Steps threshold: longer/complex prompts get plan→execute→verify
@@ -233,7 +235,7 @@ def enhance_coding_prompt(query: str, messages: list[dict] | None = None) -> dic
       - system_prompt: thinking prompt with project context
       - context_files: list of related file paths
     """
-    project_root = os.environ.get("LIMA_PROJECT_ROOT", os.getcwd())
+    project_root = settings.PATHS.project_root or os.getcwd()
     context = build_context_summary(query, project_root)
     context_files = find_related_files(
         query,

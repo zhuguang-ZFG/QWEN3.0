@@ -16,12 +16,11 @@ from __future__ import annotations
 
 import io
 import logging
-import os
 import wave
 from collections.abc import AsyncIterator
 from typing import Any
 
-from device_voice.providers._env import _get_dashscope_api_key
+from config.settings import VOICE_PROVIDERS
 
 from device_voice.exceptions import (
     AuthenticationError,
@@ -40,8 +39,9 @@ class DashScopeTTSProvider(TTSProvider):
     """DashScope text-to-speech using ALIYUN_API_KEY / DASHSCOPE_API_KEY."""
 
     def __init__(self) -> None:
-        self._api_key = _get_dashscope_api_key()
-        self._model = os.environ.get("DASHSCOPE_TTS_MODEL", _DEFAULT_MODEL).strip()
+        cfg = VOICE_PROVIDERS.dashscope_tts
+        self._api_key = cfg.api_key
+        self._model = cfg.model or _DEFAULT_MODEL
 
         if not self._api_key:
             raise ConfigurationError("DashScopeTTSProvider requires DASHSCOPE_API_KEY or ALIYUN_API_KEY.")

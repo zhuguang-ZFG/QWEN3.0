@@ -1,13 +1,25 @@
 """Coding-pool backend definitions: third party."""
 
-import os
-
-from config.backend_config import CLOUDFLARE
+from config.backend_config import (
+    AGNES_AI_API_KEY,
+    ALIYUN_API_KEY,
+    CLOUDFLARE,
+    DASHSCOPE_CODING_KEY,
+    GITHUB_TOKEN,
+    GOOGLE_AI_KEY,
+    MIMO_V2_PRO_KEY,
+    MISTRAL_API_KEY,
+    OPENGATEWAY_API_KEY,
+    OPENROUTER_API_KEY,
+    VPS_HOST,
+    XFYUN_API_KEY,
+    ZHIHU_API_KEY,
+)
 
 BACKENDS = {
     "google_flash_code": {
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        "key": os.environ.get("GOOGLE_AI_KEY", ""),
+        "key": GOOGLE_AI_KEY,
         "model": "gemini-2.5-flash",
         "fmt": "openai",
         "timeout": 30,
@@ -17,7 +29,7 @@ BACKENDS = {
     },
     "aliyun_qwen3_code": {
         "url": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-        "key": os.environ.get("ALIYUN_API_KEY", ""),
+        "key": ALIYUN_API_KEY,
         "model": "qwen3-8b",
         "fmt": "openai",
         "timeout": 20,
@@ -27,7 +39,7 @@ BACKENDS = {
     },
     "xfyun_astron": {
         "url": "https://maas-coding-api.cn-huabei-1.xf-yun.com/v2/chat/completions",
-        "key": os.environ.get("XFYUN_API_KEY", ""),
+        "key": XFYUN_API_KEY,
         "model": "astron-code-latest",
         "fmt": "openai",
         "timeout": 30,
@@ -38,7 +50,7 @@ BACKENDS = {
     },
     "dashscope_coding": {
         "url": "https://coding.dashscope.aliyuncs.com/v1/chat/completions",
-        "key": os.environ.get("DASHSCOPE_CODING_KEY", ""),
+        "key": DASHSCOPE_CODING_KEY,
         "model": "qwen3-coder-plus",
         "fmt": "openai",
         "timeout": 30,
@@ -48,7 +60,7 @@ BACKENDS = {
     },
     "zhihu_zhida": {
         "url": "https://developer.zhihu.com/v1/chat/completions",
-        "key": os.environ.get("ZHIHU_API_KEY", ""),
+        "key": ZHIHU_API_KEY,
         "model": "zhida-fast-1p5",
         "fmt": "openai",
         "timeout": 30,
@@ -59,7 +71,7 @@ BACKENDS = {
     },
     "zhihu_zhida_think": {
         "url": "https://developer.zhihu.com/v1/chat/completions",
-        "key": os.environ.get("ZHIHU_API_KEY", ""),
+        "key": ZHIHU_API_KEY,
         "model": "zhida-thinking-1p5",
         "fmt": "openai",
         "timeout": 60,
@@ -68,7 +80,7 @@ BACKENDS = {
         "extra_headers": {"X-Request-Timestamp": "dynamic"},
     },
     "scnet_qwen235b_code": {
-        "url": f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4505/v1/chat/completions",
+        "url": f"http://{VPS_HOST}:4505/v1/chat/completions",
         "key": "none",
         "model": "qwen3-235b",
         "fmt": "openai",
@@ -78,7 +90,7 @@ BACKENDS = {
         "caps": ["tool_calls"],
     },
     "scnet_ds_pro_code": {
-        "url": f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4505/v1/chat/completions",
+        "url": f"http://{VPS_HOST}:4505/v1/chat/completions",
         "key": "none",
         "model": "deepseek-v4-pro",
         "fmt": "openai",
@@ -89,7 +101,7 @@ BACKENDS = {
     },
     "or_gptoss_120b_code": {
         "url": "https://openrouter.ai/api/v1/chat/completions",
-        "key": os.environ.get("OPENROUTER_API_KEY", ""),
+        "key": OPENROUTER_API_KEY,
         "model": "openai/gpt-oss-120b:free",
         "fmt": "openai",
         "timeout": 60,
@@ -109,7 +121,7 @@ BACKENDS = {
     },
     "mistral_large_code": {
         "url": "https://api.mistral.ai/v1/chat/completions",
-        "key": os.environ.get("MISTRAL_API_KEY", ""),
+        "key": MISTRAL_API_KEY,
         "model": "mistral-large-latest",
         "fmt": "openai",
         "timeout": 30,
@@ -119,7 +131,7 @@ BACKENDS = {
     },
     "github_gpt4o_code": {
         "url": "https://models.inference.ai.azure.com/chat/completions",
-        "key": os.environ.get("GITHUB_TOKEN", ""),
+        "key": GITHUB_TOKEN,
         "model": "gpt-4o",
         "fmt": "openai",
         "timeout": 30,
@@ -128,7 +140,7 @@ BACKENDS = {
         "caps": ["tool_calls"],
     },
     "mimo_web_code": {
-        "url": f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions",
+        "url": f"http://{VPS_HOST}:4507/v1/chat/completions",
         "key": "none",
         "model": "mimo-web",
         "fmt": "openai",
@@ -139,7 +151,7 @@ BACKENDS = {
         "caps": ["tool_calls"],
     },
     "mimo_web_think_code": {
-        "url": f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions",
+        "url": f"http://{VPS_HOST}:4507/v1/chat/completions",
         "key": "none",
         "model": "mimo-web-think",
         "fmt": "openai",
@@ -151,7 +163,7 @@ BACKENDS = {
     },
     "mimo_v2_5_pro_code": {
         "url": "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2.5-pro",
         "fmt": "openai",
         "timeout": 45,
@@ -162,7 +174,7 @@ BACKENDS = {
     },
     "mimo_v2_pro_code": {
         "url": "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2-pro",
         "fmt": "openai",
         "timeout": 45,
@@ -173,7 +185,7 @@ BACKENDS = {
     },
     "mimo_v2_5_code": {
         "url": "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2.5",
         "fmt": "openai",
         "timeout": 45,
@@ -184,7 +196,7 @@ BACKENDS = {
     },
     "mimo_v2_omni_code": {
         "url": "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2-omni",
         "fmt": "openai",
         "timeout": 30,
@@ -195,7 +207,7 @@ BACKENDS = {
     },
     "ogw_gpt5_codex_code": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "openai/gpt-5-codex",
         "fmt": "openai",
         "timeout": 60,
@@ -205,7 +217,7 @@ BACKENDS = {
     },
     "ogw_claude_sonnet_code": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "anthropic/claude-sonnet-4-6",
         "fmt": "openai",
         "timeout": 45,
@@ -215,7 +227,7 @@ BACKENDS = {
     },
     "ogw_deepseek_v4_code": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "deepseek/deepseek-v4-pro",
         "fmt": "openai",
         "timeout": 60,
@@ -225,7 +237,7 @@ BACKENDS = {
     },
     "ogw_gpt5_nano_code": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "openai/gpt-5-nano",
         "fmt": "openai",
         "timeout": 15,
@@ -234,7 +246,7 @@ BACKENDS = {
     },
     "agnes20_code": {
         "url": "https://apihub.agnes-ai.com/v1/chat/completions",
-        "key": os.environ.get("AGNES_AI_API_KEY", ""),
+        "key": AGNES_AI_API_KEY,
         "model": "agnes-2.0-flash",
         "fmt": "openai",
         "timeout": 45,
@@ -244,7 +256,7 @@ BACKENDS = {
     },
     "agnes15_code": {
         "url": "https://apihub.agnes-ai.com/v1/chat/completions",
-        "key": os.environ.get("AGNES_AI_API_KEY", ""),
+        "key": AGNES_AI_API_KEY,
         "model": "agnes-1.5-flash",
         "fmt": "openai",
         "timeout": 20,

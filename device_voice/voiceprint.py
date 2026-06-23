@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from typing import Optional
+
+from config.settings import VOICEPRINT
 
 from device_voice.voiceprint_types import SpeakerIdentity, VoiceprintEntry, VoiceprintPolicy  # noqa: F401
 from device_voice.voiceprint_cache import VoiceprintCache, _entry_from_payload  # noqa: F401
@@ -15,38 +16,22 @@ from device_voice.providers.voiceprint_api import extract_embedding_api  # noqa:
 
 _log = logging.getLogger(__name__)
 
-VOICEPRINT_MODE = os.environ.get("LIMA_VOICEPRINT_MODE", "local").strip().lower()
-VOICEPRINT_API_URL = os.environ.get("LIMA_VOICEPRINT_API_URL", "").strip()
-VOICEPRINT_API_KEY = os.environ.get("LIMA_VOICEPRINT_API_KEY", "").strip()
-
-
-def _parse_similarity_threshold() -> float:
-    raw = os.environ.get("LIMA_VOICEPRINT_SIMILARITY_THRESHOLD", "0.6")
-    try:
-        return float(raw)
-    except (ValueError, TypeError):
-        _log.warning("LIMA_VOICEPRINT_SIMILARITY_THRESHOLD=%r invalid; falling back to 0.6", raw)
-        return 0.6
-
-
-SIMILARITY_THRESHOLD = _parse_similarity_threshold()
-
 
 class VoiceprintProvider:
     def __init__(self) -> None:
         self._model: Optional[_Model3DSpeaker] = None
         self.cache = VoiceprintCache()
-        self._mode = VOICEPRINT_MODE
+        self._mode = VOICEPRINT.mode
         self.enabled = self._mode != "off"
         if self._mode == "local":
             self._model = _Model3DSpeaker()
             _log.info("VoiceprintProvider mode=local (3D-Speaker, lazy-load)")
         elif self._mode == "api":
-            if not VOICEPRINT_API_URL or not VOICEPRINT_API_KEY:
+            if not VOICEPRINT.api_url or not VOICEPRINT.api_key:
                 _log.warning("VoiceprintProvider mode=api but URL/key not configured; disabled")
                 self.enabled = False
             else:
-                _log.info("VoiceprintProvider mode=api url=%s", VOICEPRINT_API_URL)
+                _log.info("VoiceprintProvider mode=api url=%s", VOICEPRINT.api_url)
         else:
             _log.info("VoiceprintProvider disabled (mode=%s)", self._mode)
             self.enabled = False
@@ -62,13 +47,13 @@ class VoiceprintProvider:
                 return None
             return await asyncio.to_thread(self._model.extract_embedding, wav_data)
         if self._mode == "api":
-            return await extract_embedding_api(wav_data, VOICEPRINT_API_URL, VOICEPRINT_API_KEY)
+            return await extract_embedding_api(wav_data, VOICEPRINT.api_url, VOICEPRINT.api_key)
         return None
 
     async def identify_speaker(self, wav_data: bytes, device_id: str) -> SpeakerIdentity:
         from device_voice.voiceprint_policy import _identify_speaker_impl
 
-        return await _identify_speaker_impl(self, wav_data, device_id, SIMILARITY_THRESHOLD, _cosine_similarity)
+        return await _identify_speaker_impl(self, wav_data, device_id, VOICEPRINT.similarity_threshold, _cosine_similarity)
 
     async def register_speaker(self, wav_data: bytes, member_id: str, device_id: str) -> Optional[list[float]]:
         if not self.enabled:

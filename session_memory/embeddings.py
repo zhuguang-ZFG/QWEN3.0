@@ -8,9 +8,8 @@ embedding) if the embedding service is unavailable.
 from __future__ import annotations
 
 import logging
-import os
 
-from config.settings import FLAGS
+from config.settings import EMBEDDING, FLAGS
 
 _log = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ def _generate_embedding(text: str) -> list[float]:
         return []
     if not text or not text.strip():
         return []
-    if not os.environ.get("JINA_API_KEY", ""):
+    if not EMBEDDING.jina_api_key:
         return []
 
     try:

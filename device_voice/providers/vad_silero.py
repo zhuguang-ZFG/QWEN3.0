@@ -15,12 +15,13 @@ import time
 
 import numpy as np
 
+from config.settings import VOICE
 from device_voice.vad import VADModelUnavailableError, VADProvider, VADState
 
 _log = logging.getLogger(__name__)
 
 # Default model cache directory
-_MODEL_DIR = os.environ.get("LIMA_VOICE_MODEL_DIR", "data/voice_models")
+_MODEL_DIR = VOICE.model_dir
 _MODEL_URL = "https://models.silero.ai/vad_models/v5/silero_vad.onnx"
 
 # Audio processing constants

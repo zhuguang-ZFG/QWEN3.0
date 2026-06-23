@@ -8,7 +8,8 @@ import sqlite3
 import time
 from typing import Any
 
-from session_memory.outcome_ledger.config import _ENABLED, ALLOWED_LOOPS
+from config.settings import SESSION_MEMORY
+from session_memory.outcome_ledger.config import ALLOWED_LOOPS
 from session_memory.outcome_ledger.db import _get_conn, _make_id
 from session_memory.outcome_ledger.sanitize import _clean_list, _clean_text, _clean_value
 
@@ -122,7 +123,7 @@ def record(
     rollback: str = "",
 ) -> str | None:
     """Record an outcome event. Returns event_id or None."""
-    if not _ENABLED:
+    if not SESSION_MEMORY.outcome_ledger_enabled:
         return None
 
     event_id = _make_id(source)
@@ -152,22 +153,22 @@ def record(
     return event_id
 
 
-def record_evidence(
+def _record_evidence_core(
     *,
     loop: str,
-    request_id: str = "",
-    task_id: str = "",
-    device_id: str = "",
-    entrypoint: str = "",
-    selected_backend: str = "",
-    fallback_used: bool = False,
-    latency_ms: int = 0,
-    status: str = "ok",
-    evidence: list[str] | None = None,
-    artifact_paths: list[str] | None = None,
-    rollback: str = "",
-) -> dict[str, Any]:
-    """Record capability evidence (same store, different interface)."""
+    request_id: str,
+    task_id: str,
+    device_id: str,
+    entrypoint: str,
+    selected_backend: str,
+    fallback_used: bool,
+    latency_ms: int,
+    status: str,
+    evidence: list[str] | None,
+    artifact_paths: list[str] | None,
+    rollback: str,
+) -> tuple[list[str], list[str]]:
+    """Validate, sanitize and persist capability evidence."""
     if loop not in ALLOWED_LOOPS:
         raise ValueError(f"unsupported capability loop: {loop}")
     clean_evidence = _clean_list(evidence, max_items=10)
@@ -188,6 +189,25 @@ def record_evidence(
         artifact_paths=clean_artifacts,
         rollback=rollback,
     )
+    return clean_evidence, clean_artifacts
+
+
+def _build_evidence_result(
+    *,
+    loop: str,
+    request_id: str,
+    task_id: str,
+    device_id: str,
+    entrypoint: str,
+    selected_backend: str,
+    fallback_used: bool,
+    latency_ms: int,
+    status: str,
+    rollback: str,
+    clean_evidence: list[str],
+    clean_artifacts: list[str],
+) -> dict[str, Any]:
+    """Return the evidence record payload returned to callers."""
     return {
         "schema_version": "lima.capability_evidence.v0",
         "loop": loop,
@@ -204,6 +224,52 @@ def record_evidence(
         "rollback": rollback,
         "created_at": time.time(),
     }
+
+
+def record_evidence(
+    *,
+    loop: str,
+    request_id: str = "",
+    task_id: str = "",
+    device_id: str = "",
+    entrypoint: str = "",
+    selected_backend: str = "",
+    fallback_used: bool = False,
+    latency_ms: int = 0,
+    status: str = "ok",
+    evidence: list[str] | None = None,
+    artifact_paths: list[str] | None = None,
+    rollback: str = "",
+) -> dict[str, Any]:
+    """Record capability evidence (same store, different interface)."""
+    clean_evidence, clean_artifacts = _record_evidence_core(
+        loop=loop,
+        request_id=request_id,
+        task_id=task_id,
+        device_id=device_id,
+        entrypoint=entrypoint,
+        selected_backend=selected_backend,
+        fallback_used=fallback_used,
+        latency_ms=latency_ms,
+        status=status,
+        evidence=evidence,
+        artifact_paths=artifact_paths,
+        rollback=rollback,
+    )
+    return _build_evidence_result(
+        loop=loop,
+        request_id=request_id,
+        task_id=task_id,
+        device_id=device_id,
+        entrypoint=entrypoint,
+        selected_backend=selected_backend,
+        fallback_used=fallback_used,
+        latency_ms=latency_ms,
+        status=status,
+        rollback=rollback,
+        clean_evidence=clean_evidence,
+        clean_artifacts=clean_artifacts,
+    )
 
 
 def record_evidence_safe(**kwargs: Any) -> dict[str, Any] | None:

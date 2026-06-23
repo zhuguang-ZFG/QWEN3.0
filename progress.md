@@ -1,6 +1,24 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-23 LiMa P1-2 阶段 3 又一批：eval / tool / routing / fleet / gitee / provider inventory
 
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 3，集中 eval、工具治理、路由 ML、fleet、Gitee、provider inventory 等模块的环境变量读取。
+- **实现**：
+  - 新增 `config/eval_config.py`，集中 eval 相关 9 个环境变量；`eval_preflight.py`、`eval_notify.py`、`periodic_coding_eval.py`、`eval_pool_gate.py` 改从该模块读取。
+  - 扩展 `config/settings_core.py`：`FleetConfig`、`PathsConfig.code_dir` / `routing_model_path`、`DeviceConfig.redis_memory_index_ttl` / `redis_ledger_ttl`、`EmbeddingConfig.google_inventory_proxy` / `mcp_inventory_proxy`、`IntegrationsConfig.gitee_token`、`DatabaseConfig.tool_audit_db` / `worker_db`。
+  - 扩展 `config/backend_config.py`：新增 `GITEE_AI_ENABLED` / `GITEE_AI_TOKEN` / `GITEE_AI_BASE_URL`。
+  - 扩展 `config/db_config.py`：新增 `TOOL_AUDIT_DB` / `WORKER_DB`。
+  - 迁移模块：
+    - `device_memory/redis_store.py`、`device_ledger/redis_store.py`、`tool_gateway/audit.py`、`tool_gateway/governance.py`、`context_pipeline/code_scanner.py`、`think_plan_context.py`、`routing_ml/routing_trainer.py`、`fleet/agent.py`、`routing_selector/helpers.py`、`backends_registry/_utils.py`、`gitee_mirror_urls.py`、`provider_automation/adapters/gitee_ai.py`、`provider_inventory/google.py`、`provider_inventory/mcp_registries.py`、`device_gateway/store_utils.py`、`device_voice/providers/_env.py`
+  - `tests/_env_sync_maps.py` 进一步拆出 `tests/_env_sync_runtime_maps.py`，并为新增字段补充映射；`tests/_env_sync.py` 特判 `GITEE_AI_*` 同步到 `config.backend_config`。
+- **验证**：
+  - eval/tool/routing/fleet/gitee 聚焦测试 → 196 passed
+  - device_gateway / device_voice / session_memory 聚焦测试 → 208 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check .`：passed
+  - `pyright` 修改文件：0 errors（仅历史 warning）
+  - `scripts/check_code_size.py`：无 >300 行文件；>50 行函数剩余 25 个，均为脚本/测试/MCP
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新
 
 > Created: 2026-05-22
 
@@ -9,6 +27,300 @@
 > Updated: 2026-06-22
 
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
+
+## 2026-06-23 LiMa P1-2 / P2-1 / P2-6 集中配置与代码尺寸治理
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2（环境变量集中配置）阶段 3，并处理 P2-1（长函数）与 P2-6（文件行数）。
+- **实现**：
+  - P1-2 device_voice 环境变量集中化：
+    - 新增 `config/voice_settings.py`，承载 `VoiceConfig`、`VoiceprintConfig`、`VoiceProviderConfig` 及其各 Provider 配置类与单例。
+    - `config/settings.py` 改为从 `config.voice_settings` 导入 `VOICE`、`VOICEPRINT`、`VOICE_PROVIDERS`。
+    - `device_voice/__init__.py`、`voiceprint.py`、`providers/vad_silero.py`、全部 ASR/TTS provider 模块改从 `config.settings` 读取配置，不再直接调用 `os.environ`。
+  - 测试 monkeypatch wrapper 拆分：
+    - 将 `tests/conftest.py` 中庞大的 `_EnvSyncMonkeyPatch` 类拆出到 `tests/_env_sync.py`。
+    - 进一步拆分为 `tests/_env_sync_maps.py`（通用域映射）和 `tests/_env_sync_voice_maps.py`（语音 Provider 映射），使单文件 ≤300 行、单函数 ≤50 行。
+    - wrapper 新增 voice / voiceprint / voice provider 环境变量同步，支持 subagent 完成的 device_voice 配置迁移。
+  - P2-1 长函数拆分：
+    - `routes/digital_human.py`：将 `_serialize_config_script` 拆分为 `_script_boilerplate`、`_append_force_set_inputs`、`_append_voice_config`、`_append_advanced_config`、`_script_footer`。
+    - `session_memory/outcome_ledger/record.py`：将 `record_evidence` 拆分为 `_record_evidence_core` 与 `_build_evidence_result`。
+    - `device_policy/engine.py`：将 `decide` 拆分为 `_protocol_gate` 与 `_profile_safety_gate`。
+  - P2-6 文件尺寸：
+    - 通过拆分 voice settings 与 env sync wrapper，当前已无 >300 行的 Python 文件。
+- **验证**：
+  - device_voice 聚焦测试：`tests/device_voice/` + `tests/test_routes_voice_pipeline_ws.py` + `tests/test_routes_digital_human.py` → 85 passed
+  - 通用/配置聚焦测试：`tests/test_admin_auth.py` + `tests/test_routes_chat_endpoints.py` + `tests/test_upload.py` + `tests/test_routes_upload_tokens.py` + `tests/test_typed_memory.py` → 130 passed
+  - outcome_ledger / device_policy 聚焦测试 → 26 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check .`：passed
+  - `scripts/check_code_size.py`：无 >300 行文件；剩余 28 个 >50 行函数（多为测试/脚本/MCP，核心代码仅剩 `routes/chat_stream.py::stream_response` 等少数）
+  - `pyright` 修改文件：0 errors
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 / P2-1 / P2-6 已更新
+
+## 2026-06-23 LiMa P1-2 / P2-1 / P2-6 下一阶段：核心运行时配置与长函数清零
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`，完成 P1-2 阶段 3 核心运行时模块，清零 P2-1 核心生产长函数，保持 P2-6 无 >300 行文件。
+- **实现**：
+  - P1-2 阶段 3 核心运行时模块环境变量集中化：
+    - `rate_limiter_redis.py`：`LIMA_DEVICE_AUTH_RATE_REDIS` / `LIMA_DEVICE_AUTH_RATE_REDIS_URL` → `settings.SECURITY`
+    - `token_health.py`：`$ENV_VAR` 形式后端 key 解析 → `settings.resolve_backend_key()`
+    - `key_pool.py`：`LIMA_KEY_POOL_*` → `settings.get_key_pool_raw()`，删除未使用的 `env_name` 参数
+    - `routing_loop/request_store.py`：`LIMA_REQUEST_LOG_DB` → `settings.DB.request_log_db`（新增 `config/db_config.REQUEST_LOG_DB`）
+    - `device_logic/auth.py` / `auth_rate.py` / `activation.py` / `sms.py`：`LIMA_JWT_SECRET`、设备认证速率、`LIMA_XIAOZHI_ACTIVATION_CODE`、`LIMA_XIAOZHI_LOGIN_CODE`、`LIMA_XIAOZHI_CAPTCHA_REQUIRED` → `settings.SECURITY` / `settings.DEVICE`
+    - `config/settings.py` 新增 `SecurityConfig.jwt_secret`、`device_auth_rate_*`、`DeviceConfig` 认证/激活/登录码字段、`resolve_backend_key()` / `get_key_pool_raw()` 辅助函数
+    - `tests/_env_sync*.py` 同步新增上述字段
+  - P2-1 核心生产长函数拆分：
+    - `device_voice/providers/asr_aliyun.py`：`_run_streaming_worker` 拆为 `_create_streaming_transcriber` / `_start_streaming_transcriber` / `_feed_audio_until_end` / `_stop_and_wait`；流媒体状态/helper/error 映射移入新增 `device_voice/providers/_asr_aliyun_worker.py`
+    - `routes/chat_stream.py`：`stream_response` 引入 `_stream_text_response` 分发；`_stream_sentences` 迁移到 `response_builder.py`；合并 `_ensure_content` / `_ensure_fallback_content`；`_extract_answer` 内联
+    - `session_memory/store_voiceprint.py`：`store_voiceprint_embedding` 拆为 `_update_embedding_record` / `_insert_embedding_record`
+  - P2-6 文件尺寸：
+    - 新增 `device_voice/providers/_asr_aliyun_worker.py`（≤300 行），`routes/chat_stream.py` 与 `device_voice/providers/asr_aliyun.py` 回落至 ≤300 行。
+    - 当前 `scripts/check_code_size.py` 报告无 >300 行文件；>50 行函数剩余 25 个，均为脚本/测试/MCP/xiaozhi，核心生产代码已清零。
+- **验证**：
+  - chat_stream / asr_aliyun / voiceprint / token_health / key_pool / request_store / device_logic 聚焦测试 → 79 passed
+  - `ruff check .`：passed
+  - `pyright` 修改文件：0 errors（仅可选依赖缺失警告）
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 / P2-1 / P2-6 已更新
+
+## 2026-06-23 LiMa P1-2 阶段 3 又一批：HTTP builder / integrations / LEANN
+
+- **目标**：继续集中剩余运行时模块的环境变量读取。
+- **实现**：
+  - `http_request_builder/client.py`：`GFW_PROXY` → `settings.EMBEDDING.gfw_proxy`
+  - `http_request_builder/headers.py`：动态 `key_env_var` / `{BACKEND}_API_KEY` 读取 → `settings.get_env()`
+  - `integrations/cloud_services.py`：`SUPABASE_URL` / `SUPABASE_SECRET` / `LANGSMITH_API_KEY` → `settings.INTEGRATIONS`（新增 `IntegrationsConfig`）
+  - `local_retrieval/leann_adapter.py`：`LIMA_ENABLE_LEANN` → `settings.FLAGS.enable_leann`
+  - `config/settings.py` 新增 `IntegrationsConfig`、`FLAGS.enable_leann`、`settings.get_env()` 运行时动态 env 读取辅助函数
+  - `tests/_env_sync*.py` 同步新增 SUPABASE / LANGSMITH / LIMA_ENABLE_LEANN 映射
+- **验证**：
+  - `tests/test_local_retrieval_leann.py` + `tests/test_provider_inventory.py` → 17 passed
+  - `ruff check .`：passed
+  - 全量 pytest 正在后台运行确认无回归
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 已更新
+
+## 2026-06-23 LiMa P2-6 拆分 250-300 行测试文件（第二批）
+
+- **目标**：继续处理 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P2-6 的 250–300 行测试文件。
+- **实现**：
+  - 删除 `tests/test_observability.py`（290 行），拆分为已有文件 + 新增覆盖：
+    - `tests/test_observability_events.py`：保留原有 `TestHashSession` / `TestMakeRequestId` / `TestLiMaEvent`，补充 event factory（request_start/end、backend_call/error、route_decision、quality_result、key_pool、token_usage）与 redaction 测试。
+    - `tests/test_observability_metrics.py`：保留原有 `TestRecord`，补充百分位、top failing/quality、fastest-growing failure class、snapshot 隔离、OpenObserve 可见性等测试。
+  - 删除 `tests/test_code_context_index.py`（288 行），按领域拆分为：
+    - `tests/test_code_context_index_core.py`：scanner、InMemoryCodeIndex、cosine similarity、semantic search、retriever facade。
+    - `tests/test_code_context_graph_index.py`：InMemoryGraphIndex BFS/depth/search/edge_count/抽象类/factory。
+    - `tests/test_code_context_ast_adapter.py`：StdlibAstExtractor symbols/relations/scan/language support。
+- **验证**：
+  - observability 聚焦测试：`tests/test_observability_events.py` + `tests/test_observability_metrics.py` → 46 passed
+  - code_context 聚焦测试：`tests/test_code_context_index_core.py` + `tests/test_code_context_graph_index.py` + `tests/test_code_context_ast_adapter.py` → 54 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `scripts/check_code_size.py`：新增测试文件均 ≤300 行
+  - `ruff check` / `pyright` 新增/修改测试文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P2-6 已更新
+
+## 2026-06-23 LiMa P2-2 / P2-5 代码质量小项清理
+
+- **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P2-2（重复 lazy import）与 P2-5（ruff 配置噪音）。
+- **实现**：
+  - P2-2：`routes/v3_adapters.py` 将重复出现的 lazy import 统一提至模块顶层：
+    - `from routing_engine import classify_scenario`
+    - `from lima_context import build_context_digest`
+    - `from think_plan_context import enhance_coding_prompt, needs_plan`
+    - 删除函数内冗余的 `try/except ImportError` 包装。
+  - P2-5：`ruff.toml` `exclude` 列表移除不存在的 `venv`、`.venv` 目录，保留实际存在的 `.venv310`、`.test-tmp`、`.pnpm-store` 等。
+- **验证**：
+  - `ruff check routes/v3_adapters.py` / `pyright routes/v3_adapters.py`：clean
+  - `pytest tests/test_routes_v3_adapters.py -q`：11 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3550 passed, 17 skipped, 2 deselected**
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P2-2 已更新
+
+## 2026-06-23 LiMa P2-6 拆分 >300 行测试文件
+
+- **目标**：处理 `scripts/check_code_size.py` 报告的两个 >300 行测试文件，降低单文件维护风险。
+- **实现**：
+  - 删除 `tests/test_fleet.py`（304 行），拆分为：
+    - `tests/test_fleet_node_registry.py`：NodeRegistry 注册、心跳、能力、负载排序等 9 用例。
+    - `tests/test_fleet_dispatcher.py`：TaskDispatcher 提交、分发、完成、清理等 10 用例。
+    - `tests/test_fleet_agent.py`：agent 能力检测与 shell 任务边界 3 用例。
+    - `tests/test_fleet_api_auth.py`：/fleet/* HTTP 认证守卫 10 用例。
+  - 删除 `tests/test_chat_response_finalize.py`（307 行），拆分为：
+    - `tests/test_chat_response_finalize_core.py`：OpenAI/Anthropic 格式、内存元数据、计时逻辑、clean fallback 等 5 用例。
+    - `tests/test_chat_response_finalize_errors.py`：`record_request`/`persist_session_memory`/`record_chat_observability` 异常时仍返回 200 的 3 用例。
+- **验证**：
+  - `pytest tests/test_fleet_*.py tests/test_chat_response_finalize_*.py -q`：40 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3550 passed, 17 skipped, 2 deselected**
+  - `scripts/check_code_size.py`：无 >300 行文件
+  - `ruff check` / `pyright` 新增测试文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P2-6 已更新进展
+
+## 2026-06-23 LiMa P1-2 后端凭证集中化（阶段 3 第三批）
+
+- **目标**：继续集中运行时/监控类环境变量读取。
+- **实现**：
+  - `config/settings.py` 新增 `MonitoringConfig`（`SENTRY_DSN`）。
+  - 迁移 `server.py` 的 Sentry DSN 读取到 `MONITORING.sentry_dsn`。
+  - 迁移 `http_caller.py` 的 `LIMA_DEBUG` 读取到 `FLAGS.debug`（统一替换 `__import__("os")` 反模式）。
+- **验证**：
+  - `pytest tests/test_routes_auth_contract.py tests/test_http_caller_concurrency.py -q`：158 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean（server.py sentry_sdk 2 处既有 missing-import warning）
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新
+
+## 2026-06-23 LiMa P1-2 后端凭证集中化（阶段 3 第二批）
+
+- **目标**：继续集中运行时/功能开关类环境变量读取。
+- **实现**：
+  - `config/settings.py` `FeatureFlags` 新增 `device_llm_planner`（`LIMA_DEVICE_LLM_PLANNER`）。
+  - 迁移 `device_gateway/intent.py` 的 `LIMA_DEVICE_LLM_PLANNER` 读取到 `FLAGS.device_llm_planner`。
+- **验证**：
+  - `pytest tests/test_device_intent_hardening.py tests/test_run_path_intent.py -q`：25 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新
+
+## 2026-06-23 LiMa P1-2 后端凭证集中化（阶段 3 第一批）
+
+- **目标**：启动 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 3（运行时/安全/Eval 配置集中化）。
+- **实现**：
+  - `config/settings.py` 新增 `EvalConfig` 单例，集中 `LIMA_EVAL_TOPOLOGY`、`LIMA_EVAL_VIA_ROUTER_URL`、`LIMA_EVAL_WINDOWS_ROUTER`。
+  - 迁移 `eval_topology.py`：
+    - `eval_via_router_enabled()` → `EVAL.via_router_enabled`
+    - `eval_via_router_url()` → `EVAL.via_router_url` / `EVAL.windows_router_url`
+    - `eval_api_key()` → `SECURITY.api_key`
+  - 迁移 `vision_handler.py`、`http_stream.py` 的 `LIMA_DEBUG` 读取到 `FLAGS.debug`。
+  - 更新 `tests/test_eval_topology.py`，改为 patch `eval_topology.EVAL` / `eval_topology.SECURITY` 单例，符合 P1-2「测试 patch 模块级单例」的约定。
+- **验证**：
+  - `pytest tests/test_eval_topology.py tests/test_http_stream_parse_lines.py -q`：18 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3550 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean（http_stream.py 2 处既有 warning 未引入）
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新进展
+
+## 2026-06-23 LiMa P1-2 后端凭证集中化（阶段 2 全部完成）
+
+- **目标**：完成 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 2（`backends_registry/` 全部后端凭证与隧道 URL 集中化）。
+- **实现**：
+  - `config/backend_config.py` 新增并扩展常量：
+    - 高频后端 API Key：`GROQ_API_KEY`、`MISTRAL_API_KEY`、`OPENROUTER_API_KEY`、`GITHUB_TOKEN`、`GOOGLE_AI_KEY`、`NVIDIA_API_KEY`、`MODELSCOPE_API_KEY`。
+    - 中文商业 Key：`ZHIPU_API_KEY`、`SILICONFLOW_API_KEY`、`BAIDU_API_KEY`、`VOLCENGINE_API_KEY`、`ALIYUN_API_KEY`、`TENCENT_API_KEY`、`CHINAMOBILE_API_KEY`、`TOKENROUTER_API_KEY`。
+    - 社区免费 Key：`FREE_OPENAI_NEXT_KEY`、`FREE_CENTOS_KEY`、`FREE_MUYUAN_KEY`、`FREE_AJIAKESI_KEY`、`FREE_TEAM_SPEED_KEY`。
+    - 平台/其他商业 Key：`CEREBRAS_API_KEY`、`NAGA_API_KEY`、`FREETHEAI_API_KEY`、`ZUKI_API_KEY`、`FEATHERLESS_API_KEY`、`GLHF_API_KEY`、`AGENTROUTER_API_KEY`、`FREEMODEL_API_KEY`、`FIREWORKS_API_KEY`、`COHERE_API_KEY`、`SAMBANOVA_API_KEY`、`DEEPINFRA_API_KEY`、`TOGETHER_API_KEY`、`AGNES_AI_API_KEY`、`OPENGATEWAY_API_KEY`、`LONGCAT_API_KEY`、`MIMO_TTS_KEY`、`MIMO_V2_PRO_KEY`、`XFYUN_API_KEY`、`DASHSCOPE_CODING_KEY`、`ZHIHU_API_KEY`。
+    - 隧道/代理 URL：`DDG_TUNNEL_URL`、`OLLAMA_TUNNEL_URL`、`VPS_HOST`。
+  - 迁移文件（全部从 `os.environ.get(...)` 改为 `config.backend_config` 导入）：
+    - 高频：`backends_registry/groq.py`、`mistral.py`、`openrouter.py`、`github.py`、`google.py`、`nvidia.py`、`modelscope.py`、`backends_registry/coding_pool/modelscope.py`。
+    - 中文商业：`backends_registry/commercial/chinese.py`。
+    - 社区免费：`backends_registry/community_free.py`、`backends_registry/coding_pool/community.py`。
+    - 平台/其他商业：`backends_registry/commercial/cerebras_family.py`、`backends_registry/commercial/opengateway.py`、`backends_registry/commercial/platforms.py`。
+    - 隧道/VPS 代理：`backends_registry/free_web_ddg.py`、`backends_registry/misc.py`、`backends_registry/vps_proxies.py`。
+    - 编码池：`backends_registry/coding_pool/third_party.py`。
+- **验证**：
+  - `backends_registry/` 全量导入：`import backends_registry` → 297 backends 注册成功。
+  - 后端/admin 聚焦测试：`tests/test_backends*.py`、`tests/test_routes_admin_api.py`、`tests/test_routes_admin_backends.py`、`tests/test_admin_backends.py` → 51 passed。
+  - 路由/流水线聚焦测试：`tests/test_http_scheme_enforcement.py`、`tests/test_routes_chat_endpoints.py`、`tests/test_route_pipeline.py`、`tests/test_router_classifier.py` → 37 passed。
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3550 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 2 已标记完成
+
+## 2026-06-23 LiMa P1-2 后端凭证集中化（阶段 2 第一批）
+
+- **目标**：推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 2（后端/Cloudflare 凭证集中化）。
+- **实现**：
+  - `config/backend_config.py` 新增 7 个高频后端 API Key 常量：
+    `GROQ_API_KEY`、`MISTRAL_API_KEY`、`OPENROUTER_API_KEY`、`GITHUB_TOKEN`、`GOOGLE_AI_KEY`、`NVIDIA_API_KEY`、`MODELSCOPE_API_KEY`。
+  - 迁移以下后端定义文件从 `os.environ.get(...)` 到 `config.backend_config`：
+    - `backends_registry/groq.py`、`mistral.py`、`openrouter.py`、`github.py`、`google.py`、`nvidia.py`、`modelscope.py`
+    - `backends_registry/coding_pool/modelscope.py`
+    - `backends_registry/coding_pool/third_party.py`（GOOGLE_AI_KEY / OPENROUTER_API_KEY / MISTRAL_API_KEY / GITHUB_TOKEN 部分）
+- **验证**：
+  - 后端/admin 聚焦测试：51 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3550 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 2 已更新进展
+
+## 2026-06-23 LiMa P2-7/P2-8/P2-9 测试覆盖空白关闭
+
+- **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P2-7/P2-8/P2-9 四批次覆盖测试缺口。
+- **完成情况**：
+  - 第一批（安全关键）：`session_memory/redact.py`、`context_pipeline/guardrails.py`、`context_pipeline/response_validator.py` 相关测试 → 133 passed
+  - 第二批（核心路径）：新建 `tests/test_code_context_injection.py`（9 用例），扩展 `tests/test_routes_chat_post_closeout.py`（+12）、`tests/test_routes_chat_stream.py`（+2）
+  - 第三批（管理面板）：`routes/admin_api.py`、`routes/admin_*.py` 相关测试
+  - 第四批（运维）：`routes/ops_metrics/`、`observability/` 相关测试
+  - 第三/四批集中测试：184 passed
+- **验证**：
+  - admin/ops/observability 集中测试：184 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3550 passed, 17 skipped, 2 deselected**
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 已标记 P2-7/P2-8/P2-9 ✅
+
+## 2026-06-23 LiMa P3-18 JDCloud 部署脚本清理
+
+- **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-18。
+- **实现**：
+  - `deploy/jdcloud/deploy_jd.py`：硬编码 IP `117.72.118.95` → `os.environ.get("JDCLOUD_HOST", "117.72.118.95")`。
+  - 用户名改为 `os.environ.get("JDCLOUD_USER", "root")`。
+  - `.env.example` 增加 `JDCLOUD_HOST` / `JDCLOUD_USER` / `JDCLOUD_ROOT_PASSWORD` 示例。
+  - 目录下已无重复脚本，无需合并。
+- **验证**：
+  - `ruff check deploy/jdcloud/deploy_jd.py` 通过
+  - `pyright deploy/jdcloud/deploy_jd.py` 0 errors（1 处历史 warning 无关）
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 已标记 P3-18 ✅
+
+## 2026-06-23 LiMa P2-7/P2-8/P2-9 第二批覆盖测试补充
+
+- **目标**：继续补充 `context_pipeline/`、`routes/` 核心路径测试覆盖。
+- **新增/扩展测试**：
+  - 新建 `tests/test_code_context_injection.py`（9 用例）：覆盖 `extract_file_mentions`、`scan_and_build_context` 的直接文件提及、语义检索、标识符检索、max_chars 预算分支。
+  - 扩展 `tests/test_routes_chat_post_closeout.py`（+12 用例）：覆盖 `_log_to_distill_queue` 的启用/禁用/跳过分支、`persist_session_memory`、`record_chat_observability`、`record_capability_evidence`。
+  - 扩展 `tests/test_routes_chat_stream.py`（+2 用例）：覆盖 `_stream_thinking_response` 与 `_stream_speculative` 的降级分支。
+- **验证**：
+  - `pytest tests/test_code_context_injection.py tests/test_routes_chat_post_closeout.py tests/test_routes_chat_stream.py -q`：48 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3550 passed, 17 skipped, 2 deselected**
+  - `ruff check` 新增/修改测试文件：通过
+
+## 2026-06-23 LiMa P2-3 Routes 跨层耦合 facade 迁移完成
+
+- **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P2-3（Routes 直接 import 底层模块）。
+- **实现**：
+  - 新增 `routes/facade.py`：统一导出 `BACKENDS`、`add_backend`/`has_backend`/`remove_backend`、`health_tracker`、`http_caller`、`routing_executor`。
+  - 路由层全部通过 facade 访问底层，不再直接 import `backends_registry` / `health_tracker` / `http_caller`。
+  - 已迁移：admin 5 文件、`system_endpoints.py`、`chat_support.py`、`eval_internal.py`、`v3_adapters.py`。
+- **验证**：
+  - `rg` 扫描 `routes/` 底层直接导入仅剩 `routes/facade.py` 自身
+  - 相关路由聚焦测试：88 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3531 passed, 17 skipped, 2 deselected**
+  - `ruff check` 通过；`pyright` 0 errors（1 处历史 warning 无关）
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 已标记 P2-3 ✅
+
+## 2026-06-23 LiMa P2-1 长函数拆分达标（32 个超标函数，<40 目标）
+
+- **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P2-1（>50 行函数）。
+- **本批拆分**（4 个函数）：
+  - `session_memory/learning_loop/memory_channel.py`：`_feed_memory` → `_save_test_result_memories` / `_save_outcome_memory` / `_save_changed_file_memories`
+  - `routes/admin_backends.py`：`test_backend_sync` → `_build_probe_request` / `_send_probe_request`
+  - `routes/device_voice_ws_helpers.py`：`_extract_and_store_voiceprint_embedding` → `_extract_voiceprint_embedding` / `_persist_voiceprint_embedding`
+  - `routes/chat_preflight.py`：`prepare_chat_preflight` → `_build_prompt_context_from_request`
+- **验证**：
+  - `scripts/check_code_size.py`：>50 行函数从 36 降至 **32**（验收标准 <40）
+  - 聚焦测试：`tests/test_memory_channel.py`、`tests/test_admin_backends.py`、`tests/test_routes_admin_backends.py`、`tests/test_routes_device_voice_ws_helpers.py`、`tests/test_routes_chat_preflight.py`、`tests/test_chat_preflight_device.py` → 60 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3531 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件：0 errors
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 已标记 P2-1 ✅
+
+## 2026-06-23 LiMa 缺陷改善再推进（P2-16/P2-17 HTTP 明文门控 + P2-7/P2-8 测试验证）
+
+- **目标**：继续关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P2 项。
+- **本批完成**：
+  - P2-16/P2-17：HTTP 明文传输集中门控。
+    - `http_sync.py` 新增 `_enforce_https_scheme(url, backend)`，默认拒绝非 localhost 的 `http://` 后端 URL，抛出 `BackendError(400)`。
+    - `LIMA_ALLOW_HTTP_BACKENDS=1` 可显式放行并记录 warning。
+    - `http_sync.py`（`call_api` / `call_raw`）、`http_async.py`（`call_api_async` / `call_raw_async`）、`http_stream.py`（`call_api_stream` / `call_api_stream_async`）均已在发起请求前调用门控。
+    - 新增 `tests/test_http_scheme_enforcement.py`（9 用例），覆盖直接门控及 sync/stream/async 调用路径。
+  - P2-7/P2-8 第一批覆盖测试复核：`session_memory/redact.py`、`context_pipeline/guardrails.py`、`context_pipeline/response_validator.py`、`session_memory/processor.py` 相关测试全部通过（133 passed）。
+- **验证**：
+  - `pytest tests/test_http_scheme_enforcement.py -q`：9 passed
+  - `pytest tests/test_session_memory_redact.py tests/test_memory_redact.py tests/test_context_pipeline_guardrails.py tests/test_guardrails.py tests/test_context_pipeline_response_validator.py tests/test_response_validator.py tests/test_session_memory_processor.py tests/test_session_processor.py -q`：133 passed
+  - `ruff check tests/test_http_scheme_enforcement.py http_sync.py http_stream.py http_async.py`：通过
+  - `pyright http_sync.py http_stream.py http_async.py tests/test_http_scheme_enforcement.py`：0 errors（2 处历史 warning 与本次改动无关）
+  - 修复并发测试 URL：`tests/test_http_caller_concurrency.py` 的 `BACKEND_CFG["url"]` 由 `http://test.com` 改为 `https://test.com`，避免被新门控拦截。
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3531 passed, 17 skipped, 2 deselected**
+  - `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 已标记 P2-16/P2-17 ✅
 
 ## 2026-06-23 LiMa P2-1 函数拆分再推进（4 个生产路径函数）
 
@@ -7275,3 +7587,82 @@ Agent Worker path.
   - `pyright` 修改文件 0 errors（保留既有可选依赖 import warning）
 
 - **Git**：提交并推送 `origin/main`。
+
+## 2026-06-23 LiMa P1-2 阶段 3 新一批：device_gateway / session_memory / http_sync 环境变量集中化
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3，集中 `device_gateway/`、`session_memory/`、`http_sync.py` 的运行时环境变量读取。
+- **实现**：
+  - `config/settings.py` 新增 `DeviceConfig`（`LIMA_DEVICE_TOKENS`、`LIMA_DIGITAL_HUMAN_DEFAULT_*`、`LIMA_DEVICE_MQTT_*`、`LIMA_DEVICE_SESSION_BUS`、`LIMA_REDIS_TASK_TTL`）、`SessionMemoryConfig`（`LIMA_SESSION_MEMORY`、`LIMA_MEMORY_ADMIN`、`LIMA_MEMORY_INBOX`、`LIMA_MEMORY_CONSOLIDATION_INTERVAL`、`LIMA_OUTCOME_LEDGER`、`LIMA_OUTCOME_DB`、`JINA_API_KEY`）、`FeatureFlags.allow_http_backends`。
+  - 迁移模块：
+    - `device_gateway/auth.py`、`mqtt_client.py`、`notifier.py`、`redis_store.py`、`redis_store_helpers.py`。
+    - `session_memory/daemon.py`、`embeddings.py`、`outcome_ledger/config.py`、`outcome_ledger/record.py`、`processor.py`、`store_admin.py`、`store_db.py`。
+    - `http_sync.py`（`LIMA_ALLOW_HTTP_BACKENDS`）。
+  - `config/db_config.py` 新增 `get_session_db_path()`；`device_gateway/family_approval_store.py` 改从 `config.db_config` 读取 `LIMA_DB_PATH`。
+  - `tests/conftest.py` 新增 `monkeypatch` wrapper，在测试通过 `monkeypatch.setenv/delenv` 改环境变量时自动同步到 `config.settings` 单例，减少既有测试改写量。
+  - 更新测试：`tests/test_device_gateway_auth.py`、`tests/test_memory_admin.py`、`tests/test_session_memory.py`、`tests/test_session_memory_processor.py`、`tests/test_http_scheme_enforcement.py`。
+- **验证**：
+  - device/session/http 聚焦测试：`tests/test_device_gateway*.py` + `tests/test_session_memory*.py` + `tests/test_http*.py` + `tests/test_family_approval*.py` + `tests/test_memory_admin.py` → **243 passed**
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新
+
+## 2026-06-23 LiMa P1-2 阶段 3 再一批：backend_probe_loop / backend_retirement / backend_admission_store 环境变量集中化
+
+- **目标**：继续推进 P1-2 阶段 3，集中后端运维相关环境变量读取。
+- **实现**：
+  - `config/settings.py` 新增 `BackendOpsConfig`（`LIMA_PROBE_INTERVAL`、`LIMA_OPERATOR_PROBE_TIMEOUT`、`LIMA_OPERATOR_PROBE_WORKERS`、`LIMA_BACKEND_RETIREMENT_RELOAD_SEC`、`LIMA_DYNAMIC_ADMISSION`）。
+  - 迁移 `backend_probe_loop.py` 的探测间隔/超时/并发数到 `BACKEND_OPS`。
+  - 迁移 `backend_retirement.py` 的重载间隔到 `BACKEND_OPS`。
+  - 迁移 `backend_admission_store.py` 的动态准入开关到 `BACKEND_OPS`。
+  - `tests/conftest.py` monkeypatch wrapper 增加上述变量到单例的同步。
+- **验证**：
+  - 后端运维聚焦测试：`tests/test_backend_probe_loop.py` + `tests/test_backend_retirement.py` + `tests/test_backend_admission*.py` → **18 passed**
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新
+
+## 2026-06-23 LiMa P1-2 阶段 3 又一批：brand / embedding / backends_constants 环境变量集中化
+
+- **目标**：继续推进 P1-2 阶段 3，集中品牌与嵌入相关环境变量读取。
+- **实现**：
+  - `config/settings.py` 新增 `BrandConfig`（`PUBLIC_MODEL_NAME`、`PUBLIC_MODEL_NAME_CN`、`COMPANY_NAME_*`、`LIMA_USER_AGENT`）与 `EmbeddingConfig`（`LIMA_EMBEDDINGS_URL`、`JINA_API_KEY`、`GFW_PROXY`）。
+  - `brand_config.py` 改为从 `config.settings.BRAND` 导出品牌常量，保留能力 bullet 等派生定义。
+  - `backends_constants.py` 的 `PUBLIC_MODEL_NAME` 改为从 `brand_config` 导入，避免与品牌配置重复读取环境变量。
+  - `code_context/embedding_client.py` 与 `session_memory/embeddings.py` 改从 `config.settings.EMBEDDING` 读取 URL/Key/代理。
+  - `tests/conftest.py` monkeypatch wrapper 增加 `LIMA_EMBEDDINGS_URL`、`JINA_API_KEY`、`GFW_PROXY`、`PUBLIC_MODEL_NAME*`、`COMPANY_NAME_*`、`LIMA_USER_AGENT` 到单例的同步。
+  - 更新 `tests/test_brand_config.py`，避免 `importlib.reload` 后模块状态泄漏。
+- **验证**：
+  - 品牌/嵌入聚焦测试：`tests/test_brand_config.py` + `tests/test_code_context*.py` + `tests/test_session_memory*.py` → **83 passed**
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新
+
+## 2026-06-23 LiMa P1-2 阶段 3 又一批：auto_indexer / dashscope / channel_retirement 清理
+
+- **目标**：继续推进 P1-2 阶段 3，处理剩余几处分散的环境变量读取，并清理已退役 Telegram 代码。
+- **实现**：
+  - `config/settings.py` `PathsConfig` 新增 `project_root`（`LIMA_PROJECT_ROOT`）。
+  - `context_pipeline/auto_indexer.py` 改从 `config.settings.PATHS.project_root` 读取项目根目录。
+  - `dashscope_image_client.py` 的 `ALIYUN_API_KEY` 改从 `config.backend_config.ALIYUN_API_KEY` 读取。
+  - `channel_retirement.py` 删除已退役 Telegram 的 `_telegram_bot_token()`、`retire_telegram_webhook_from_env()` 及对应 `TELEGRAM_BOT_TOKEN` / `LIMA_TELEGRAM_BOT_TOKEN` / `PYTEST_CURRENT_TEST` env 读取，仅保留 `mark_retired_modules` / `is_retired_route_path`。
+  - `tests/conftest.py` monkeypatch wrapper 增加 `LIMA_PROJECT_ROOT` 同步。
+- **验证**：
+  - 退役/索引/图生聚焦测试：`tests/test_channel_retirement.py` + `tests/test_context_pipeline*.py` + `tests/test_dashscope*.py` → **53 passed**
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean（dashscope_image_client.py 存在 1 个 pre-existing optional-iterable warning）
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新
+
+## 2026-06-23 LiMa P1-2 阶段 3 又一批：config/env.py 统一接入 config.settings
+
+- **目标**：继续推进 P1-2 阶段 3，将 `config/env.py`（route 配置 facade）统一接入 `config.settings`，并增强测试 wrapper 防止状态泄漏。
+- **实现**：
+  - `config/settings.py` 新增 `DigitalHumanConfig`、`VoiceConfig`、`GeminiConfig`、`OutcomeConfig`、`OtaConfig`、`UploadConfig`；扩展 `FeatureFlags` 增加 `distill_log`、`wechat_dev_login`、`xiaozhi_dev_static_login_code`、`public_demo`、`public_demo_max_per_minute`、`xiaozhi_compat`、`health_show_errors`。
+  - `config/env.py` 全部 getter 函数改从 `config.settings` 单例（以及 `config.backend_config.GOOGLE_AI_KEY`）返回值，不再直接读取 `os.environ`。
+  - `tests/conftest.py` monkeypatch wrapper 重写为类内 `_sync` 方法，增加 `_capture` / `_set` / `undo` 原始值恢复机制，避免测试通过 `monkeypatch.setenv` 修改的单例状态泄漏到后续测试。
+  - wrapper 新增 `GOOGLE_AI_KEY`、`LIMA_ADMIN_TOKEN`、`LIMA_API_KEY` 等同步。
+  - 更新测试：`tests/test_admin_auth.py` 改用 `monkeypatch.setenv`；`tests/test_routes_digital_human.py` 直接 patch `DIGITAL_HUMAN.device_id`；`tests/test_routes_device_gateway_ws_handlers.py` 改用 fixture `monkeypatch` 代替手动 `pytest.MonkeyPatch()`。
+- **验证**：
+  - config.env 相关聚焦测试：`tests/test_admin_auth.py` + `tests/test_routes_admin_auth.py` + `tests/test_routes_digital_human.py` + `tests/test_routes_gemini_live_proxy.py` + `tests/test_routes_system_endpoints.py` + `tests/test_routes_device_gateway_ws_handlers.py` → **51 passed**
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` 修改文件 clean
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新

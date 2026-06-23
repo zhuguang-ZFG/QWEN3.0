@@ -13,6 +13,8 @@ import threading
 import time
 from dataclasses import dataclass, field
 
+from config import settings
+
 
 @dataclass
 class WorkerRecord:
@@ -32,7 +34,7 @@ _DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 
 def _db_path() -> str:
-    return os.environ.get("LIMA_WORKER_DB", os.path.join(_DB_DIR, "worker_registry.db"))
+    return settings.DB.worker_db
 
 
 def _get_conn() -> sqlite3.Connection:

@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-import os
 from collections.abc import Awaitable, Callable
 from typing import Any, Protocol
+
+from config.settings import DEVICE
 
 
 TaskAvailableCallback = Callable[[str], Awaitable[None]]
@@ -160,9 +161,9 @@ async def stop_task_notifier() -> None:
 
 def configure_notifier_from_env() -> None:
     global task_notifier
-    backend = os.environ.get("LIMA_DEVICE_SESSION_BUS", "").strip().lower()
     from config.db_config import DEVICE_REDIS_URL
 
+    backend = DEVICE.session_bus
     redis_url = DEVICE_REDIS_URL
     if backend == "redis" or (backend == "" and redis_url):
         if not redis_url:

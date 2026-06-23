@@ -1,13 +1,14 @@
 """vision_handler.py — Vision (Photo-to-Answer) detection, format conversion, routing, and streaming."""
 
-import json, time, asyncio, sys, os
+import json, time, asyncio, sys
 
 import health_tracker
+from config.settings import FLAGS
 from http_caller import clean_response
 from backends_constants import VISION_BACKENDS
 from backends_registry import BACKENDS
 
-DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
+DEBUG = FLAGS.debug
 
 from lima_constants import MODEL_ID
 

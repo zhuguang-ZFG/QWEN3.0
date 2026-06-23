@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from typing import Any
+
+from config import settings
 
 HARD_FAILURE_CLASSES = {
     "timeout",
@@ -16,20 +17,6 @@ HARD_FAILURE_CLASSES = {
     "quota",
     "auth",
 }
-
-
-def _env_bool(name: str, default: bool = True) -> bool:
-    value = os.environ.get(name)
-    if value is None:
-        return default
-    return value.strip().lower() not in {"0", "false", "no", "off"}
-
-
-def _env_int(name: str, default: int) -> int:
-    try:
-        return max(0, int(os.environ.get(name, str(default))))
-    except ValueError:
-        return default
 
 
 def _short(value: Any, limit: int = 80) -> str:
@@ -164,10 +151,11 @@ def backend_guard_snapshot(
     intentionally non-persistent: a newer success clears quarantine, while
     residual failure ratio still down-ranks the backend for a short window.
     """
-    enabled = _env_bool("LIMA_ROUTING_GUARD_ENABLED", True)
-    window_sec = _env_int("LIMA_ROUTING_GUARD_WINDOW_SEC", 600)
-    quarantine_sec = _env_int("LIMA_ROUTING_GUARD_QUARANTINE_SEC", 180)
-    repeated_threshold = _env_int("LIMA_ROUTING_GUARD_FAILURE_THRESHOLD", 3)
+    obs = settings.OBSERVABILITY
+    enabled = obs.routing_guard_enabled
+    window_sec = obs.routing_guard_window_sec
+    quarantine_sec = obs.routing_guard_quarantine_sec
+    repeated_threshold = obs.routing_guard_failure_threshold
     current = time.time() if now is None else now
 
     snapshot: dict[str, Any] = {

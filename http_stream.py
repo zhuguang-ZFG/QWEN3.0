@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import sys
 import time
 from typing import AsyncIterator, Generator
@@ -11,10 +10,12 @@ import httpx
 from response_cleaner import StreamIdentitySanitizer, clean_response, _is_backend_error
 
 from backends_registry import BACKENDS
+from config.settings import FLAGS
 from http_errors import BackendError, _extract_code, _extract_retry_after
 from http_response import _parse_sse_chunk
+from http_sync import _enforce_https_scheme
 
-DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
+DEBUG = FLAGS.debug
 
 
 def _caller():
@@ -183,6 +184,7 @@ def call_api_stream(
     timeout = cfg.get("timeout", 60)
     fmt = cfg["fmt"]
     started = time.time()
+    _enforce_https_scheme(cfg["url"], backend)
 
     try:
         with hc._build_client(backend, timeout) as client:
@@ -272,6 +274,7 @@ async def call_api_stream_async(
     timeout = cfg.get("timeout", 60)
     fmt = cfg["fmt"]
     started = time.time()
+    _enforce_https_scheme(cfg["url"], backend)
 
     try:
         async with hc._build_async_client(backend, timeout) as client:

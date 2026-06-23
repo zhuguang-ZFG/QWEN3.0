@@ -11,9 +11,10 @@ back to write_text with an explicit explanation.
 from __future__ import annotations
 
 import logging
-import os
 import re
 from typing import Any
+
+from config.settings import FLAGS
 
 _log = logging.getLogger(__name__)
 
@@ -186,7 +187,7 @@ def resolve_voice_task(text: str) -> dict[str, Any]:
     """
     result = parse_command(text)
 
-    if result["confidence"] < 0.5 and os.environ.get("LIMA_DEVICE_LLM_PLANNER", "0") == "1":
+    if result["confidence"] < 0.5 and FLAGS.device_llm_planner:
         llm_result = _llm_replan(text, result)
         if llm_result:
             return llm_result

@@ -4,18 +4,18 @@ Values can be overridden via environment variables to avoid hard-coding
 brand details across prompt strings and identity guard answers.
 """
 
-import os
+from config.settings import BRAND
 
 # ── Identity ─────────────────────────────────────────────────────────────────
-PUBLIC_MODEL_NAME = os.environ.get("PUBLIC_MODEL_NAME", "LiMa")
-PUBLIC_MODEL_NAME_CN = os.environ.get("PUBLIC_MODEL_NAME_CN", "力码")
+PUBLIC_MODEL_NAME = BRAND.public_model_name
+PUBLIC_MODEL_NAME_CN = BRAND.public_model_name_cn
 
-COMPANY_NAME_CN = os.environ.get("COMPANY_NAME_CN", "深圳市动力巢科技有限公司")
-COMPANY_NAME_EN = os.environ.get("COMPANY_NAME_EN", "DongLiCao Technology (Shenzhen)")
-COMPANY_SHORT_CN = os.environ.get("COMPANY_SHORT_CN", "动力巢科技")
+COMPANY_NAME_CN = BRAND.company_name_cn
+COMPANY_NAME_EN = BRAND.company_name_en
+COMPANY_SHORT_CN = BRAND.company_short_cn
 
 # ── HTTP User-Agent ───────────────────────────────────────────────────────────
-USER_AGENT = os.environ.get("LIMA_USER_AGENT", "LiMa/2.0")
+USER_AGENT = BRAND.user_agent
 
 # ── Capability statements ────────────────────────────────────────────────────
 # Used by identity_guard and prompt role layers. Keep in sync with actual tools.
@@ -33,7 +33,7 @@ CAPABILITY_BULLETS_CN = {
 }
 
 CAPABILITY_BULLETS_EN = {
-    "realtime": f"Internet access: real-time weather, news, trends, exchange rates, stocks, earthquakes",
+    "realtime": "Internet access: real-time weather, news, trends, exchange rates, stocks, earthquakes",
     "programming": f"Programming: {', '.join(_PROGRAMMING_LANGUAGES)} and more",
     "voice": "Voice: speech-to-text and text-to-speech",
     "translation": "Translation: Chinese, English, Japanese, Korean, French, German",

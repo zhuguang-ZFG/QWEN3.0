@@ -13,9 +13,10 @@ global+configure+set+health pattern.
 from __future__ import annotations
 
 import abc
-import os
 import threading
 from typing import Any, Callable, Generic, TypeVar
+
+from config import settings
 
 
 class DeviceStoreBase(abc.ABC):
@@ -91,7 +92,7 @@ class StoreManager(Generic[T]):
             required_redis_var: Name of the Redis URL variable for error
                 messages.
         """
-        backend = os.environ.get(env_var, "").strip().lower()
+        backend = settings.get_env(env_var, "").strip().lower()
         if backend == "redis" or (use_redis_when_url_present and backend == "" and redis_url):
             if not redis_url:
                 raise RuntimeError(f"{required_redis_var} is required when {env_var}=redis")

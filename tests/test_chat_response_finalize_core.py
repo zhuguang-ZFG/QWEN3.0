@@ -1,12 +1,13 @@
-"""Tests for routes/chat_response_finalize.py (CQ-014 closeout extract)."""
+"""Core response finalization tests (formats, timing, clean fallback)."""
 
 import asyncio
 import json
 import time
+from unittest.mock import patch
+
 import pytest
 
-MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
-from unittest.mock import patch
+MOCK_NOW = 2_000_000_000.0
 
 from chat_models import ChatRequest, Message
 from routes.chat_handler_dispatch import ChatRunContext, RoutePrefs
@@ -80,97 +81,6 @@ def test_finalize_openai_fmt_attaches_memory_meta(
     mock_distill.assert_called_once()
     assert recorded[0][0][1] == "test_backend"
     assert recorded[0][0][2] == "chat"
-
-
-@patch("routes.chat_response_finalize._log_system_prompt")
-@patch("routes.chat_response_finalize.maybe_log_distill_queue")
-@patch("routes.chat_response_finalize.record_capability_evidence")
-@patch("routes.chat_response_finalize.record_chat_observability")
-@patch("routes.chat_response_finalize.persist_session_memory")
-def test_record_request_raises_still_returns_200(
-    _persist,
-    _obs,
-    _evidence,
-    _distill,
-    _log_prompt,
-):
-    def boom(*args, **kwargs):
-        raise RuntimeError("stats db locked")
-
-    response = asyncio.run(
-        finalize_success_response(
-            _ctx(),
-            _req(),
-            {"answer": "ok", "backend": "test_backend", "total_ms": 5},
-            {"intent": "chat"},
-            model_id="lima-1.3",
-            record_request=boom,
-        )
-    )
-
-    assert response.status_code == 200
-    body = json.loads(response.body.decode("utf-8"))
-    assert body["choices"][0]["message"]["content"] == "ok"
-
-
-@patch("routes.chat_response_finalize._log_system_prompt")
-@patch("routes.chat_response_finalize.maybe_log_distill_queue")
-@patch("routes.chat_response_finalize.record_capability_evidence")
-@patch("routes.chat_response_finalize.record_chat_observability")
-@patch("routes.chat_response_finalize.persist_session_memory")
-def test_persist_raises_still_returns_200(
-    mock_persist,
-    _obs,
-    _evidence,
-    _distill,
-    _log_prompt,
-):
-    mock_persist.side_effect = RuntimeError("sqlite locked")
-
-    response = asyncio.run(
-        finalize_success_response(
-            _ctx(),
-            _req(),
-            {"answer": "ok", "backend": "test_backend", "total_ms": 5},
-            {"intent": "chat"},
-            model_id="lima-1.3",
-            record_request=lambda *a, **k: None,
-        )
-    )
-
-    assert response.status_code == 200
-    body = json.loads(response.body.decode("utf-8"))
-    assert body["choices"][0]["message"]["content"] == "ok"
-
-
-@patch("routes.chat_response_finalize._log_system_prompt")
-@patch("routes.chat_response_finalize.maybe_log_distill_queue")
-@patch("routes.chat_response_finalize.record_capability_evidence")
-@patch("routes.chat_response_finalize.persist_session_memory")
-def test_record_chat_observability_raises_still_returns_200(
-    _persist,
-    mock_evidence,
-    mock_distill,
-    _log_prompt,
-):
-    with patch(
-        "routes.chat_response_finalize.record_chat_observability",
-        side_effect=RuntimeError("metrics unavailable"),
-    ):
-        response = asyncio.run(
-            finalize_success_response(
-                _ctx(),
-                _req(),
-                {"answer": "ok", "backend": "test_backend", "total_ms": 5},
-                {"intent": "chat"},
-                model_id="lima-1.3",
-                record_request=lambda *a, **k: None,
-            )
-        )
-
-    assert response.status_code == 200
-    body = json.loads(response.body.decode("utf-8"))
-    assert body["choices"][0]["message"]["content"] == "ok"
 
 
 @patch("routes.chat_response_finalize._log_system_prompt")
@@ -301,6 +211,7 @@ def test_finalize_clean_response_empty_fallback(
         query="hello",
         content="raw fallback",
     )
+
 
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):

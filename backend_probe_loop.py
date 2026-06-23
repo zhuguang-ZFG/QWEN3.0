@@ -8,16 +8,17 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
-import os
 import threading
 import time
+
+from config.settings import BACKEND_OPS
 
 logger = logging.getLogger(__name__)
 
 # Probe interval: 5 minutes between batches
-PROBE_INTERVAL = int(os.environ.get("LIMA_PROBE_INTERVAL", 300))
-OPERATOR_PROBE_TIMEOUT = float(os.environ.get("LIMA_OPERATOR_PROBE_TIMEOUT", 25))
-OPERATOR_PROBE_WORKERS = int(os.environ.get("LIMA_OPERATOR_PROBE_WORKERS", 4))
+PROBE_INTERVAL = BACKEND_OPS.probe_interval
+OPERATOR_PROBE_TIMEOUT = BACKEND_OPS.operator_probe_timeout
+OPERATOR_PROBE_WORKERS = BACKEND_OPS.operator_probe_workers
 # Number of batches (full cycle = PROBE_INTERVAL * NUM_BATCHES)
 NUM_BATCHES = 4
 

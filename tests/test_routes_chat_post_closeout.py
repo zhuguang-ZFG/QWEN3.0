@@ -8,8 +8,12 @@ import pytest
 
 from routes.chat_post_closeout import (
     _extract_observations,
+    _log_to_distill_queue,
     _quick_score,
     maybe_log_distill_queue,
+    persist_session_memory,
+    record_capability_evidence,
+    record_chat_observability,
 )
 
 
@@ -105,3 +109,103 @@ class TestMaybeLogDistillQueue:
         ):
             maybe_log_distill_queue(query="q", content="a", intent={}, backend="x")
         assert "distill queue log skipped" in caplog.text
+class TestLogToDistillQueue:
+    def test_disabled_does_nothing(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("DISTILL_LOG", "0")
+        monkeypatch.setattr("routes.chat_post_closeout._DISTILL_QUEUE_DIR", str(tmp_path))
+        _log_to_distill_queue("q", "answer", {"intent": "chat"}, "groq")
+        assert not list(tmp_path.iterdir())
+
+    def test_local_backend_skipped(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("DISTILL_LOG", "1")
+        monkeypatch.setattr("routes.chat_post_closeout._DISTILL_QUEUE_DIR", str(tmp_path))
+        _log_to_distill_queue("q", "answer", {"intent": "chat"}, "local")
+        assert not list(tmp_path.iterdir())
+
+    def test_empty_or_unavailable_answer_skipped(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("DISTILL_LOG", "1")
+        monkeypatch.setattr("routes.chat_post_closeout._DISTILL_QUEUE_DIR", str(tmp_path))
+        _log_to_distill_queue("q", "", {"intent": "chat"}, "groq")
+        _log_to_distill_queue("q", "后端暂时不可用", {"intent": "chat"}, "groq")
+        assert not list(tmp_path.iterdir())
+
+    def test_writes_entry_when_enabled(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("DISTILL_LOG", "1")
+        monkeypatch.setattr("routes.chat_post_closeout._DISTILL_QUEUE_DIR", str(tmp_path))
+        _log_to_distill_queue("what is python", "Python is a language.", {"intent": "chat"}, "groq")
+        files = list(tmp_path.iterdir())
+        assert len(files) == 1
+        import json
+
+        data = json.loads(files[0].read_text(encoding="utf-8"))
+        assert data["query"] == "what is python"
+        assert data["source_backend"] == "groq"
+        assert "quality_score" in data
+
+
+class TestPersistSessionMemory:
+    def test_saves_user_and_assistant_messages(self, monkeypatch):
+        saved = []
+
+        def fake_save(sid, role, content):
+            saved.append((sid, role, content))
+
+        monkeypatch.setattr("session_memory.store.save_memory", fake_save)
+        monkeypatch.setattr("session_memory.store.save_typed_memory", lambda *args, **kw: None)
+        monkeypatch.setattr("session_memory.compactor.needs_compaction", lambda _sid: False)
+        persist_session_memory(
+            client_ip="1.2.3.4",
+            memory_session_id="sid-1",
+            query="hello",
+            content="hi there",
+        )
+        assert ("sid-1", "user", "hello") in saved
+        assert ("sid-1", "assistant", "hi there") in saved
+
+    def test_fallback_to_raw_when_typed_fails(self, monkeypatch):
+        saved = []
+
+        def fake_save(sid, role, content):
+            saved.append((role, content))
+
+        def fake_typed_save(*args, **kw):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr("session_memory.store.save_memory", fake_save)
+        monkeypatch.setattr("session_memory.store.save_typed_memory", fake_typed_save)
+        monkeypatch.setattr("session_memory.compactor.needs_compaction", lambda _sid: False)
+        persist_session_memory(
+            client_ip="1.2.3.4",
+            memory_session_id=None,
+            query="fix router",
+            content="done",
+        )
+        assert any(role == "observation" for role, _ in saved)
+
+
+class TestRecordChatObservability:
+    def test_records_correlation(self, monkeypatch):
+        called = {}
+
+        def fake_record(**kwargs):
+            called.update(kwargs)
+
+        monkeypatch.setattr("observability.correlation.record_request_correlation", fake_record)
+        record_chat_observability(chat_id="cid", backend="groq", duration_ms=123)
+        assert called["request_id"] == "cid"
+        assert called["backend"] == "groq"
+        assert called["latency_ms"] == 123
+
+
+class TestRecordCapabilityEvidence:
+    def test_records_evidence(self, monkeypatch):
+        called = {}
+
+        def fake_record(**kwargs):
+            called.update(kwargs)
+
+        monkeypatch.setattr("observability.capability_evidence.record_evidence", fake_record)
+        record_capability_evidence(request_id="rid", backend="groq", fallback_used=True, latency_ms=50)
+        assert called["loop"] == "chat_ide"
+        assert called["selected_backend"] == "groq"
+        assert called["fallback_used"] is True

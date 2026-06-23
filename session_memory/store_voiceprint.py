@@ -54,6 +54,53 @@ def upsert_voiceprint_sample(
         conn.close()
 
 
+def _update_embedding_record(
+    conn: sqlite3.Connection,
+    voiceprint_id: str,
+    embedding_json: str,
+    embedding_dim: int,
+    speaker_ref: str,
+    display_name: str,
+    member_type: str,
+) -> None:
+    conn.execute(
+        """UPDATE v2_voiceprint
+           SET embedding_vec = ?, embedding_dim = ?, speaker_ref = ?,
+               display_name = ?, member_type = ?
+           WHERE id = ?""",
+        (embedding_json, embedding_dim, speaker_ref, display_name, member_type, voiceprint_id),
+    )
+
+
+def _insert_embedding_record(
+    conn: sqlite3.Connection,
+    voiceprint_id: str,
+    member_id: str,
+    device_id: str,
+    embedding_json: str,
+    embedding_dim: int,
+    speaker_ref: str,
+    display_name: str,
+    member_type: str,
+) -> None:
+    conn.execute(
+        """INSERT INTO v2_voiceprint
+           (id, member_id, device_id, embedding_vec, embedding_dim,
+            speaker_ref, display_name, member_type, sample_count, confidence, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0.0, 'active')""",
+        (
+            voiceprint_id,
+            member_id,
+            device_id,
+            embedding_json,
+            embedding_dim,
+            speaker_ref,
+            display_name,
+            member_type,
+        ),
+    )
+
+
 def store_voiceprint_embedding(
     *,
     voiceprint_id: str,
@@ -77,29 +124,26 @@ def store_voiceprint_embedding(
         ).fetchone()
 
         if existing:
-            conn.execute(
-                """UPDATE v2_voiceprint
-                   SET embedding_vec = ?, embedding_dim = ?, speaker_ref = ?,
-                       display_name = ?, member_type = ?
-                   WHERE id = ?""",
-                (embedding_json, embedding_dim, speaker_ref, display_name, member_type, voiceprint_id),
+            _update_embedding_record(
+                conn,
+                voiceprint_id,
+                embedding_json,
+                embedding_dim,
+                speaker_ref,
+                display_name,
+                member_type,
             )
         else:
-            conn.execute(
-                """INSERT INTO v2_voiceprint
-                   (id, member_id, device_id, embedding_vec, embedding_dim,
-                    speaker_ref, display_name, member_type, sample_count, confidence, status)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0.0, 'active')""",
-                (
-                    voiceprint_id,
-                    member_id,
-                    device_id,
-                    embedding_json,
-                    embedding_dim,
-                    speaker_ref,
-                    display_name,
-                    member_type,
-                ),
+            _insert_embedding_record(
+                conn,
+                voiceprint_id,
+                member_id,
+                device_id,
+                embedding_json,
+                embedding_dim,
+                speaker_ref,
+                display_name,
+                member_type,
             )
         conn.commit()
         _log.info("voiceprint embedding stored voiceprint_id=%s dim=%d", voiceprint_id, embedding_dim)

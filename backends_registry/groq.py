@@ -1,11 +1,11 @@
 """Groq 后端定义"""
 
-import os
+from config.backend_config import GROQ_API_KEY
 
 BACKENDS = {
     "groq_llama70b": {
         "url": "https://api.groq.com/openai/v1/chat/completions",
-        "key": os.environ.get("GROQ_API_KEY", ""),
+        "key": GROQ_API_KEY,
         "model": "llama-3.3-70b-versatile",
         "fmt": "openai",
         "timeout": 15,
@@ -13,7 +13,7 @@ BACKENDS = {
     },
     "groq_gptoss": {
         "url": "https://api.groq.com/openai/v1/chat/completions",
-        "key": os.environ.get("GROQ_API_KEY", ""),
+        "key": GROQ_API_KEY,
         "model": "openai/gpt-oss-120b",
         "fmt": "openai",
         "timeout": 15,
@@ -21,14 +21,14 @@ BACKENDS = {
     },
     "groq_gptoss_20b": {
         "url": "https://api.groq.com/openai/v1/chat/completions",
-        "key": os.environ.get("GROQ_API_KEY", ""),
+        "key": GROQ_API_KEY,
         "model": "openai/gpt-oss-20b",
         "fmt": "openai",
         "timeout": 10,
     },
     "groq_qwen32b": {
         "url": "https://api.groq.com/openai/v1/chat/completions",
-        "key": os.environ.get("GROQ_API_KEY", ""),
+        "key": GROQ_API_KEY,
         "model": "qwen/qwen3-32b",
         "fmt": "openai",
         "timeout": 15,
@@ -36,7 +36,7 @@ BACKENDS = {
     },
     "groq_llama4": {
         "url": "https://api.groq.com/openai/v1/chat/completions",
-        "key": os.environ.get("GROQ_API_KEY", ""),
+        "key": GROQ_API_KEY,
         "model": "meta-llama/llama-4-scout-17b-16e-instruct",
         "fmt": "openai",
         "timeout": 15,
@@ -44,7 +44,7 @@ BACKENDS = {
     },
     "groq_llama8b": {
         "url": "https://api.groq.com/openai/v1/chat/completions",
-        "key": os.environ.get("GROQ_API_KEY", ""),
+        "key": GROQ_API_KEY,
         "model": "llama-3.1-8b-instant",
         "fmt": "openai",
         "timeout": 10,

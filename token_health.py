@@ -12,6 +12,7 @@ import sqlite3
 import time
 
 from config.db_config import TOKEN_HEALTH_DB as DB_PATH
+from config.settings import resolve_backend_key
 
 logger = logging.getLogger(__name__)
 _log = logger
@@ -34,7 +35,7 @@ def check_token(backend: str) -> dict:
 
         # Resolve env var
         if key.startswith("$"):
-            key = os.environ.get(key.lstrip("$"), "")
+            key = resolve_backend_key(key)
             if not key:
                 return {"backend": backend, "status": "key_not_set", "ok": False}
 

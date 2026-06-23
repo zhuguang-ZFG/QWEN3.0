@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from access_guard import require_private_api_key
-from backends_registry import BACKENDS
 from eval_pinned_call import call_pinned_backend
+from routes.facade import BACKENDS
 
 _log = logging.getLogger(__name__)
 

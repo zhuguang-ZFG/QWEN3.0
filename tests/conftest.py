@@ -5,7 +5,11 @@ import sys
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Any
 
+from ._env_sync import _EnvSyncMonkeyPatch
+
+import pytest
 import pytest_asyncio  # noqa: F401
 
 # Allow `from tests.xiaozhi_schema import ...` and sibling helper imports
@@ -95,6 +99,17 @@ def pytest_configure(config):
         )
 
     access_guard._anonymous_access_env_enabled = _dynamic_anonymous_env_enabled
+
+
+@pytest.fixture
+def monkeypatch():
+    """Provide a MonkeyPatch wrapper that keeps config singletons in sync with os.environ."""
+    from _pytest.monkeypatch import MonkeyPatch
+
+    mp = MonkeyPatch()
+    wrapper = _EnvSyncMonkeyPatch(mp)
+    yield wrapper
+    wrapper.undo()
 
 
 def pytest_sessionfinish(session, exitstatus):

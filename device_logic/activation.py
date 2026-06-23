@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
-import os
 import secrets
 import sqlite3
 import threading
 import time
+
+from config import settings
 
 _log = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ def check_activation_code(code: str) -> bool:
             conn.commit()
             return True
         conn.commit()
-    expected = os.environ.get("LIMA_XIAOZHI_ACTIVATION_CODE", "").strip()
+    expected = settings.DEVICE.activation_code
     if expected:
         return secrets.compare_digest(code, expected)
     _log.warning("LIMA_XIAOZHI_ACTIVATION_CODE is not configured; rejecting unissued activation code")

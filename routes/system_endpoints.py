@@ -12,9 +12,8 @@ from fastapi.responses import JSONResponse
 
 import brand_config
 from access_guard import anonymous_access_status, extract_bearer_token, is_token_valid, require_private_api_key
-from backends_registry import BACKENDS
+from routes.facade import BACKENDS, health_tracker
 import health_state
-import health_tracker
 import server_lifespan
 import ws_ticket
 

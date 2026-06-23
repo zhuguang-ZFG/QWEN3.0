@@ -1,11 +1,11 @@
 """Google AI 后端定义"""
 
-import os
+from config.backend_config import GOOGLE_AI_KEY
 
 BACKENDS = {
     "google_flash_lite": {
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        "key": os.environ.get("GOOGLE_AI_KEY", ""),
+        "key": GOOGLE_AI_KEY,
         "model": "gemini-3.1-flash-lite",
         "fmt": "openai",
         "timeout": 15,
@@ -13,7 +13,7 @@ BACKENDS = {
     },
     "google_flash": {
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        "key": os.environ.get("GOOGLE_AI_KEY", ""),
+        "key": GOOGLE_AI_KEY,
         "model": "gemini-2.5-flash",
         "fmt": "openai",
         "timeout": 20,
@@ -21,7 +21,7 @@ BACKENDS = {
     },
     "google_pro": {
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        "key": os.environ.get("GOOGLE_AI_KEY", ""),
+        "key": GOOGLE_AI_KEY,
         "model": "gemini-2.5-pro",
         "fmt": "openai",
         "timeout": 30,

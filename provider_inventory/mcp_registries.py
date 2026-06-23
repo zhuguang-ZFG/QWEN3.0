@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from datetime import datetime, timezone
 from typing import Any
@@ -12,6 +11,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
+from config import settings
 logger = logging.getLogger(__name__)
 
 OFFICIAL_REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0/servers"
@@ -43,7 +43,7 @@ def _fetch_text(url: str, *, timeout: float = 25.0, accept_json: bool = True) ->
     headers = dict(_FETCH_HEADERS)
     if not accept_json:
         headers["Accept"] = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"
-    proxy = os.environ.get("MCP_INVENTORY_PROXY", "").strip() or os.environ.get("GFW_PROXY", "").strip()
+    proxy = settings.EMBEDDING.mcp_inventory_proxy or settings.EMBEDDING.gfw_proxy
     if proxy:
         try:
             import httpx

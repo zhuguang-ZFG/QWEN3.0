@@ -7,12 +7,12 @@ Enable with ``LIMA_PERIODIC_CODING_EVAL=1``. Interval hours via
 from __future__ import annotations
 
 import logging
-import os
 import subprocess
 import sys
 import threading
 from pathlib import Path
 
+from config import eval_config
 from eval_preflight import check_eval_health, quick_backend_list
 
 logger = logging.getLogger("periodic_coding_eval")
@@ -32,16 +32,11 @@ _thread: threading.Thread | None = None
 
 
 def enabled() -> bool:
-    return os.environ.get("LIMA_PERIODIC_CODING_EVAL", "0").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-    }
+    return eval_config.periodic_eval_enabled()
 
 
 def interval_seconds() -> int:
-    hours = float(os.environ.get("LIMA_CODING_EVAL_INTERVAL_HOURS", "168"))
-    return max(3600, int(hours * 3600))
+    return eval_config.interval_seconds()
 
 
 def run_eval_slice(*, quick: bool = True) -> int:
@@ -76,7 +71,7 @@ def start() -> None:
     _thread.start()
     _log_info(
         "Periodic coding eval started (interval=%sh, quick backends=%s)",
-        os.environ.get("LIMA_CODING_EVAL_INTERVAL_HOURS", "168"),
+        eval_config.coding_eval_interval_hours(),
         ",".join(quick_backend_list()),
     )
 

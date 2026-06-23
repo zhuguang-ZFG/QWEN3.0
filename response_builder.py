@@ -4,10 +4,12 @@
 提取自 server.py，供各模块独立引用。
 """
 
+import asyncio
 import json
 import re
 import time
 import uuid
+from collections.abc import AsyncGenerator
 
 from lima_constants import MODEL_ID
 
@@ -142,3 +144,12 @@ def _split_sentences(text: str) -> list[str]:
         return [""]
     parts = [part for part in _SENTENCE_SPLIT_RE.split(text) if part]
     return parts or [text]
+
+
+async def stream_sentences(chat_id: str, content: str) -> AsyncGenerator[str, None]:
+    """Yield sentence chunks followed by finish markers."""
+    for sentence in _split_sentences(content):
+        yield build_stream_chunk(chat_id, sentence)
+        await asyncio.sleep(0.02)
+    yield build_stream_chunk(chat_id, "", finish=True)
+    yield "data: [DONE]\n\n"

@@ -1,12 +1,17 @@
 """VPS 代理后端定义（Kimi、MiMo、SCNet Large、LongCat Web）"""
 
-import os
+from config.backend_config import (
+    LONGCAT_API_KEY,
+    MIMO_TTS_KEY,
+    MIMO_V2_PRO_KEY,
+    VPS_HOST,
+)
 
 BACKENDS = {
     # ── LongCat (已于 2026-05-29 下线官方端点，保留 VPS 代理) ──
     "longcat": {
         "url": "https://api.longcat.chat/anthropic/v1/messages",
-        "key": os.environ.get("LONGCAT_API_KEY", ""),
+        "key": LONGCAT_API_KEY,
         "model": "LongCat-2.0-Preview",
         "fmt": "anthropic",
         "auth": "bearer",
@@ -14,7 +19,7 @@ BACKENDS = {
     },
     "longcat_lite": {
         "url": "https://api.longcat.chat/anthropic/v1/messages",
-        "key": os.environ.get("LONGCAT_API_KEY", ""),
+        "key": LONGCAT_API_KEY,
         "model": "LongCat-2.0-Preview",
         "fmt": "anthropic",
         "auth": "bearer",
@@ -23,7 +28,7 @@ BACKENDS = {
     },
     "longcat_openai": {
         "url": "https://api.longcat.chat/openai/v1/chat/completions",
-        "key": os.environ.get("LONGCAT_API_KEY", ""),
+        "key": LONGCAT_API_KEY,
         "model": "LongCat-2.0-Preview",
         "fmt": "openai",
         "timeout": 90,
@@ -87,7 +92,7 @@ BACKENDS = {
     },
     # ── MiMo Web (VPS 代理, 网页逆向) ──
     "mimo_web": {
-        "url": f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions",
+        "url": f"http://{VPS_HOST}:4507/v1/chat/completions",
         "key": "none",
         "model": "mimo-web",
         "fmt": "openai",
@@ -98,7 +103,7 @@ BACKENDS = {
         "caps": ["tool_calls"],
     },
     "mimo_web_think": {
-        "url": f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions",
+        "url": f"http://{VPS_HOST}:4507/v1/chat/completions",
         "key": "none",
         "model": "mimo-web-think",
         "fmt": "openai",
@@ -109,7 +114,7 @@ BACKENDS = {
         "caps": ["tool_calls"],
     },
     "mimo_web_flash": {
-        "url": f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions",
+        "url": f"http://{VPS_HOST}:4507/v1/chat/completions",
         "key": "none",
         "model": "mimo-web-flash",
         "fmt": "openai",
@@ -122,14 +127,14 @@ BACKENDS = {
     # ── MiMo TTS (官方 API, 限时免费) ──
     "mimo_tts": {
         "url": "https://api.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_TTS_KEY", ""),
+        "key": MIMO_TTS_KEY,
         "model": "mimo-v2.5-tts",
         "fmt": "openai",
         "timeout": 30,
     },
     "mimo_tts_v2": {
         "url": "https://api.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_TTS_KEY", ""),
+        "key": MIMO_TTS_KEY,
         "model": "mimo-v2-tts",
         "fmt": "openai",
         "timeout": 30,
@@ -137,7 +142,7 @@ BACKENDS = {
     # MiMo STT (voice input via chat/completions, not routing pool)
     "mimo_stt": {
         "url": "https://api.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_TTS_KEY", ""),
+        "key": MIMO_TTS_KEY,
         "model": "mimo-v2-omni",
         "fmt": "openai",
         "timeout": 45,
@@ -145,7 +150,7 @@ BACKENDS = {
     # ── MiMo v2 Pro (Token Plan, 38B tokens) ──
     "mimo_v2_pro": {
         "url": "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2-pro",
         "fmt": "openai",
         "timeout": 30,
@@ -154,7 +159,7 @@ BACKENDS = {
     },
     "mimo_v2_5_pro": {
         "url": "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2.5-pro",
         "fmt": "openai",
         "timeout": 30,
@@ -163,7 +168,7 @@ BACKENDS = {
     },
     "mimo_v2_5": {
         "url": "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2.5",
         "fmt": "openai",
         "timeout": 30,
@@ -172,7 +177,7 @@ BACKENDS = {
     },
     "mimo_v2_omni": {
         "url": "https://token-plan-cn.xiaomimimo.com/v1/chat/completions",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2-omni",
         "fmt": "openai",
         "timeout": 30,
@@ -181,7 +186,7 @@ BACKENDS = {
     },
     "mimo_v2_pro_anthropic": {
         "url": "https://token-plan-cn.xiaomimimo.com/anthropic/v1/messages",
-        "key": os.environ.get("MIMO_V2_PRO_KEY", ""),
+        "key": MIMO_V2_PRO_KEY,
         "model": "mimo-v2-pro",
         "fmt": "anthropic",
         "auth": "x-api-key",

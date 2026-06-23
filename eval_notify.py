@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
+
+from config import eval_config
 
 logger = logging.getLogger(__name__)
 
@@ -12,19 +13,11 @@ ROOT = Path(__file__).resolve().parent
 
 
 def periodic_notify_enabled() -> bool:
-    return os.environ.get("LIMA_PERIODIC_EVAL_NOTIFY", "1").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-    }
+    return eval_config.periodic_notify_enabled()
 
 
 def periodic_full_eval() -> bool:
-    return os.environ.get("LIMA_PERIODIC_CODING_EVAL_FULL", "0").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-    }
+    return eval_config.periodic_full_eval()
 
 
 def _build_message(*, code: int, quick: bool, source: str) -> str:
@@ -73,7 +66,7 @@ def schedule_status_lines() -> list[str]:
     lines = [
         "Eval 周期任务",
         f"LIMA_PERIODIC_CODING_EVAL={'1' if periodic_coding_eval.enabled() else '0'}",
-        f"interval_hours={os.environ.get('LIMA_CODING_EVAL_INTERVAL_HOURS', '168')}",
+        f"interval_hours={eval_config.coding_eval_interval_hours()}",
         f"full={'1' if periodic_full_eval() else '0'} (quick only if 0)",
         f"notify={'1' if periodic_notify_enabled() else '0'}",
     ]

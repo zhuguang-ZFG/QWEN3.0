@@ -7,8 +7,10 @@ import logging
 from collections.abc import AsyncIterator
 
 import routing_engine
+from lima_context import build_context_digest
 from routing_engine import classify_scenario
-import http_caller
+from routes.facade import http_caller
+from think_plan_context import enhance_coding_prompt, needs_plan
 
 
 def v3_route(
@@ -105,8 +107,6 @@ def v3_call_stream(backend, messages, max_tokens, ide):
     """V3 流式调用适配器。注入上下文增强 + 非真流式后端强制走非流式。"""
     sys_prompt = ""
     try:
-        from lima_context import build_context_digest
-
         query = ""
         for m in reversed(messages):
             if m.get("role") == "user" and isinstance(m.get("content"), str):
@@ -125,24 +125,17 @@ def v3_call_stream(backend, messages, max_tokens, ide):
                 if digest:
                     sys_prompt = digest
                 # Layer think/plan on top of context (not instead of)
-                try:
-                    from think_plan_context import enhance_coding_prompt, needs_plan
-
-                    if needs_plan(query):
-                        tpc = enhance_coding_prompt(query, messages)
-                        if tpc.get("system_prompt"):
-                            sys_prompt = tpc["system_prompt"] + "\n\n" + sys_prompt
-                        if tpc.get("context_files"):
-                            ctx_summary = "\nRelated files: " + ", ".join(tpc["context_files"][:5])
-                            if messages and messages[-1].get("role") == "user":
-                                messages[-1] = {
-                                    **messages[-1],
-                                    "content": str(messages[-1].get("content", "")) + ctx_summary,
-                                }
-                except ImportError:
-                    logging.getLogger(__name__).warning(
-                        "think_plan_context not available; coding prompt enhancement disabled"
-                    )
+                if needs_plan(query):
+                    tpc = enhance_coding_prompt(query, messages)
+                    if tpc.get("system_prompt"):
+                        sys_prompt = tpc["system_prompt"] + "\n\n" + sys_prompt
+                    if tpc.get("context_files"):
+                        ctx_summary = "\nRelated files: " + ", ".join(tpc["context_files"][:5])
+                        if messages and messages[-1].get("role") == "user":
+                            messages[-1] = {
+                                **messages[-1],
+                                "content": str(messages[-1].get("content", "")) + ctx_summary,
+                            }
             else:
                 sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
     except Exception as e:
@@ -172,8 +165,6 @@ def v3_call_api(backend, messages, max_tokens, ide):
                 request_type="ide" if is_ide else "chat",
             )
             if scenario == "coding":
-                from lima_context import build_context_digest
-
                 digest = build_context_digest(query, messages, ide_source=ide)
                 if digest:
                     sys_prompt = digest
@@ -213,8 +204,6 @@ def _build_async_stream_prompt(messages: list, ide: str) -> str:
     """Build system prompt for async stream: coding context or plain-text constraint."""
     sys_prompt = ""
     try:
-        from lima_context import build_context_digest
-
         query = next(
             (m["content"] for m in reversed(messages) if m.get("role") == "user" and isinstance(m.get("content"), str)),
             "",
@@ -228,19 +217,14 @@ def _build_async_stream_prompt(messages: list, ide: str) -> str:
                 digest = build_context_digest(query, messages, ide_source=ide)
                 if digest:
                     sys_prompt = digest
-                try:
-                    from think_plan_context import enhance_coding_prompt, needs_plan
-
-                    if needs_plan(query):
-                        tpc = enhance_coding_prompt(query, messages)
-                        if tpc.get("system_prompt"):
-                            sys_prompt = tpc["system_prompt"] + "\n\n" + sys_prompt
-                        if tpc.get("context_files"):
-                            ctx_summary = "\nRelated files: " + ", ".join(tpc["context_files"][:5])
-                            if messages and messages[-1].get("role") == "user":
-                                messages[-1] = {**messages[-1], "content": str(messages[-1].get("content", "")) + ctx_summary}
-                except ImportError:
-                    logging.getLogger(__name__).info("think_plan_context not installed; skipping plan enhancement")
+                if needs_plan(query):
+                    tpc = enhance_coding_prompt(query, messages)
+                    if tpc.get("system_prompt"):
+                        sys_prompt = tpc["system_prompt"] + "\n\n" + sys_prompt
+                    if tpc.get("context_files"):
+                        ctx_summary = "\nRelated files: " + ", ".join(tpc["context_files"][:5])
+                        if messages and messages[-1].get("role") == "user":
+                            messages[-1] = {**messages[-1], "content": str(messages[-1].get("content", "")) + ctx_summary}
             else:
                 sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
     except Exception as e:
@@ -266,8 +250,6 @@ async def v3_call_api_async(backend, messages, max_tokens, ide):
                 request_type="ide" if is_ide else "chat",
             )
             if scenario == "coding":
-                from lima_context import build_context_digest
-
                 digest = build_context_digest(query, messages, ide_source=ide)
                 if digest:
                     sys_prompt = digest

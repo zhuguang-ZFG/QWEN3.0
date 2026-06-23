@@ -30,12 +30,16 @@ def _memory(id_: int, summary: str, role: str = "exchange"):
 
 @pytest.fixture
 def enabled_env(monkeypatch):
-    monkeypatch.setenv("LIMA_SESSION_MEMORY", "1")
+    from session_memory import processor as proc_mod
+
+    monkeypatch.setattr(proc_mod.SESSION_MEMORY, "enabled", True)
 
 
 @pytest.fixture
 def disabled_env(monkeypatch):
-    monkeypatch.setenv("LIMA_SESSION_MEMORY", "0")
+    from session_memory import processor as proc_mod
+
+    monkeypatch.setattr(proc_mod.SESSION_MEMORY, "enabled", False)
 
 
 def test_processor_disabled_returns_ctx_immediately(disabled_env):

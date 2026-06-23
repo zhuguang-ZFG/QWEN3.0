@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backends_registry import BACKENDS
+from routes.facade import BACKENDS
 from routes.admin_auth import verify_admin, verify_csrf
 
 router = APIRouter()

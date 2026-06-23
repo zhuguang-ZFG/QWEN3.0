@@ -1,11 +1,11 @@
 """Commercial backend definitions: opengateway."""
 
-import os
+from config.backend_config import OPENGATEWAY_API_KEY
 
 BACKENDS = {
     "ogw_gpt55": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "openai/gpt-5.5",
         "fmt": "openai",
         "timeout": 90,
@@ -13,7 +13,7 @@ BACKENDS = {
     },
     "ogw_gpt54": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "openai/gpt-5.4",
         "fmt": "openai",
         "timeout": 60,
@@ -21,14 +21,14 @@ BACKENDS = {
     },
     "ogw_gpt54_mini": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "openai/gpt-5.4-mini",
         "fmt": "openai",
         "timeout": 30,
     },
     "ogw_gpt5_codex": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "openai/gpt-5-codex",
         "fmt": "openai",
         "timeout": 60,
@@ -36,14 +36,14 @@ BACKENDS = {
     },
     "ogw_gpt5_nano": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "openai/gpt-5-nano",
         "fmt": "openai",
         "timeout": 15,
     },
     "ogw_gpt4o_mini": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "openai/gpt-4o-mini",
         "fmt": "openai",
         "timeout": 20,
@@ -51,7 +51,7 @@ BACKENDS = {
     },
     "ogw_claude_sonnet": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "anthropic/claude-sonnet-4-6",
         "fmt": "openai",
         "timeout": 45,
@@ -59,7 +59,7 @@ BACKENDS = {
     },
     "ogw_claude_haiku": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "anthropic/claude-haiku-4-5",
         "fmt": "openai",
         "timeout": 30,
@@ -67,7 +67,7 @@ BACKENDS = {
     },
     "ogw_deepseek_v4": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "deepseek/deepseek-v4-pro",
         "fmt": "openai",
         "timeout": 60,
@@ -75,7 +75,7 @@ BACKENDS = {
     },
     "ogw_deepseek_flash": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "deepseek/deepseek-v4-flash",
         "fmt": "openai",
         "timeout": 20,
@@ -83,7 +83,7 @@ BACKENDS = {
     },
     "ogw_grok": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "x-ai/grok-4.3",
         "fmt": "openai",
         "timeout": 45,
@@ -91,7 +91,7 @@ BACKENDS = {
     },
     "ogw_kimi": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "moonshotai/kimi-k2.6",
         "fmt": "openai",
         "timeout": 45,
@@ -99,7 +99,7 @@ BACKENDS = {
     },
     "ogw_glm5": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "z-ai/glm-5.1",
         "fmt": "openai",
         "timeout": 30,
@@ -107,14 +107,14 @@ BACKENDS = {
     },
     "ogw_gemini_flash": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "google/gemini-2.5-flash",
         "fmt": "openai",
         "timeout": 20,
     },
     "ogw_minimax": {
         "url": "https://api.opengateway.ai/v1/chat/completions",
-        "key": os.environ.get("OPENGATEWAY_API_KEY", ""),
+        "key": OPENGATEWAY_API_KEY,
         "model": "minimax/MiniMax-M2.7",
         "fmt": "openai",
         "timeout": 30,

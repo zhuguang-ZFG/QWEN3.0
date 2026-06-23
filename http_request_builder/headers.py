@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from typing import Any
 
 import key_pool
 from backend_utils import infer_key_pool_provider
 from brand_config import USER_AGENT
+from config import settings
 
 
 def _build_headers(backend_cfg: dict, key: str | None = None) -> dict:
@@ -75,14 +75,14 @@ def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
     if not raw_key:
         key_env_var = backend_cfg.get("key_env_var", "")
         if key_env_var:
-            raw_key = os.environ.get(key_env_var, "")
+            raw_key = settings.get_env(key_env_var, "")
         if not raw_key:
             for env_name in (
                 f"{backend.upper()}_API_KEY",
                 f"{backend.upper()}_KEY",
                 f"{backend.replace('-', '_').upper()}_KEY",
             ):
-                raw_key = os.environ.get(env_name, "")
+                raw_key = settings.get_env(env_name, "")
                 if raw_key:
                     break
 

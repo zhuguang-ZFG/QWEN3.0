@@ -86,7 +86,7 @@
 | P2-3 | 代码质量 | 多个 routes 直接 import 底层模块（跨层耦合） | `routes/` 多个文件 | 架构边界模糊 |
 | P2-4 | 代码质量 | pyright `search_gateway/` 幻影路径 | `pyrightconfig.json` | 类型检查配置无效 |
 | P2-5 | 代码质量 | ruff `backends.py` 幻影豁免 + 6 个不存在路径 | `ruff.toml` | 配置噪音 |
-| P2-6 | 代码质量 | 20 个文件在 250-300 行区间 | 多个文件 | 临近违规风险 |
+| P2-6 | 代码质量 | 20 个文件在 250-300 行区间，多个测试文件 ≥250 行 | 多个文件 | 临近违规风险 | ✅ 已完成（>300 行文件已清零；250-300 行文件已处理）|
 | P2-7 | 测试 | `context_pipeline/` 17 模块零覆盖 | `context_pipeline/` | 流水线核心无测试 |
 | P2-8 | 测试 | `session_memory/` 22 模块零覆盖（含 `redact.py` 脱敏） | `session_memory/` | 持久化/安全无测试 |
 | P2-9 | 测试 | `routes/` ~55 模块零覆盖 | `routes/` | HTTP 路由层无测试 |
@@ -355,9 +355,80 @@ def test_weather_provider_uses_cache():
 5. 模块加载时统一读取，运行时不可变
 
 **分阶段实施**：
-- 阶段 1：集中数据库/Redis 相关配置（约 50 处）
-- 阶段 2：集中后端/Cloudflare 相关配置（约 200 处）
-- 阶段 3：集中其余配置（约 246 处）
+- 阶段 1：集中数据库/Redis 相关配置（约 50 处）✅ 已完成（`config/db_config.py`）
+- 阶段 2：集中后端/Cloudflare 相关配置（`backends_registry/` 全部凭证与隧道 URL）✅ 已完成
+  - `config/backend_config.py` 已新增 Cloudflare 凭证、高频后端 API Key、中文商业 Key、社区免费 Key、平台 Key、隧道 URL、VPS_HOST、编码池 Key 等。
+  - 本轮完成所有 `backends_registry/` 模块的环境变量读取迁移（`__init__.py` 的 overlay 加载除外，已无 `os.environ.get` 直接读取后端凭证）。
+  - 已迁移文件：
+    - 高频：`backends_registry/groq.py`、`mistral.py`、`openrouter.py`、`github.py`、`google.py`、`nvidia.py`、`modelscope.py`、`coding_pool/modelscope.py`。
+    - 中文商业：`backends_registry/commercial/chinese.py`。
+    - 社区免费：`backends_registry/community_free.py`、`backends_registry/coding_pool/community.py`。
+    - 平台/其他商业：`backends_registry/commercial/cerebras_family.py`、`backends_registry/commercial/opengateway.py`、`backends_registry/commercial/platforms.py`。
+    - VPS 代理/隧道：`backends_registry/vps_proxies.py`、`backends_registry/free_web_ddg.py`、`backends_registry/misc.py`。
+    - 编码池：`backends_registry/coding_pool/third_party.py`。
+- 阶段 3：集中其余配置（运行时、数据库、Redis、安全等）→ 进行中
+  - `config/settings.py` 新增 `EvalConfig`（`LIMA_EVAL_TOPOLOGY`、`LIMA_EVAL_VIA_ROUTER_URL`、`LIMA_EVAL_WINDOWS_ROUTER`）、`FeatureFlags.device_llm_planner`、`MonitoringConfig.sentry_dsn`、`DeviceConfig`、`SessionMemoryConfig`（含 `LIMA_SESSION_MEMORY`、`LIMA_MEMORY_ADMIN`、`LIMA_MEMORY_INBOX`、`LIMA_MEMORY_CONSOLIDATION_INTERVAL`、`LIMA_OUTCOME_LEDGER`、`LIMA_OUTCOME_DB`、`JINA_API_KEY`）、`FeatureFlags.allow_http_backends`、`BackendOpsConfig`（`LIMA_PROBE_INTERVAL`、`LIMA_OPERATOR_PROBE_TIMEOUT`、`LIMA_OPERATOR_PROBE_WORKERS`、`LIMA_BACKEND_RETIREMENT_RELOAD_SEC`、`LIMA_DYNAMIC_ADMISSION`）。
+  - 迁移 `eval_topology.py` 的 `LIMA_API_KEY` / eval URL / 开关到 `config.settings`。
+  - 迁移 `vision_handler.py`、`http_stream.py`、`http_caller.py` 的 `LIMA_DEBUG` 到 `config.settings.FLAGS.debug`。
+  - 迁移 `device_gateway/intent.py` 的 `LIMA_DEVICE_LLM_PLANNER` 到 `config.settings.FLAGS.device_llm_planner`。
+  - 迁移 `server.py` 的 `SENTRY_DSN` 到 `config.settings.MONITORING.sentry_dsn`。
+  - 迁移 `device_gateway/auth.py` / `mqtt_client.py` / `notifier.py` / `redis_store.py` / `redis_store_helpers.py` 的设备相关环境变量到 `config.settings.DEVICE`。
+  - 迁移 `session_memory/daemon.py` / `embeddings.py` / `outcome_ledger/config.py` / `outcome_ledger/record.py` / `processor.py` / `store_admin.py` / `store_db.py` 的会话记忆相关环境变量到 `config.settings.SESSION_MEMORY`。
+  - 迁移 `http_sync.py` 的 `LIMA_ALLOW_HTTP_BACKENDS` 到 `config.settings.FLAGS.allow_http_backends`。
+  - 迁移 `backend_probe_loop.py` / `backend_retirement.py` / `backend_admission_store.py` 的后端运维环境变量到 `config.settings.BACKEND_OPS`。
+  - 迁移 `brand_config.py` / `backends_constants.py` 的品牌相关环境变量到 `config.settings.BRAND`。
+  - 迁移 `code_context/embedding_client.py` / `session_memory/embeddings.py` 的 Jina 嵌入配置到 `config.settings.EMBEDDING`。
+  - 迁移 `context_pipeline/auto_indexer.py` 的 `LIMA_PROJECT_ROOT` 到 `config.settings.PATHS.project_root`。
+  - 迁移 `dashscope_image_client.py` 的 `ALIYUN_API_KEY` 到 `config.backend_config.ALIYUN_API_KEY`。
+  - 清理 `channel_retirement.py`：删除已退役 Telegram 的 `_telegram_bot_token()` / `retire_telegram_webhook_from_env()` 及对应 env 读取，仅保留 `mark_retired_modules` / `is_retired_route_path`。
+  - 重构 `config/env.py`：所有函数改从 `config.settings`（及 `config.backend_config.GOOGLE_AI_KEY`）读取，不再直接调用 `os.environ`；新增 `DigitalHumanConfig`、`VoiceConfig`、`GeminiConfig`、`OutcomeConfig`、`OtaConfig`、`UploadConfig` 到 `config.settings`，并扩展 `FeatureFlags`。
+  - `device_voice` 配置集中化：新增 `config/voice_settings.py`，将 `VoiceConfig`、`VoiceprintConfig`、`VoiceProviderConfig` 及各 ASR/TTS Provider 配置类移出 `config/settings.py`；`device_voice/__init__.py`、`voiceprint.py`、`providers/vad_silero.py` 与全部 ASR/TTS provider 模块改从 `config.settings` 读取，不再直接调用 `os.environ`。
+  - `tests/conftest.py` monkeypatch wrapper 增强并拆分：`_EnvSyncMonkeyPatch` 拆出到 `tests/_env_sync.py`，映射数据进一步拆到 `tests/_env_sync_maps.py` 与 `tests/_env_sync_voice_maps.py`，避免单文件/单函数过大；新增 voice / voiceprint / voice provider 环境变量同步。
+  - `config/db_config.py` 新增 `get_session_db_path()` 与 `REQUEST_LOG_DB`，`device_gateway/family_approval_store.py`、`session_memory/store_db.py`、`routing_loop/request_store.py` 改从 `config.db_config` 读取数据库路径。
+  - 集中核心运行时模块：
+    - `rate_limiter_redis.py`：`LIMA_DEVICE_AUTH_RATE_REDIS` / `LIMA_DEVICE_AUTH_RATE_REDIS_URL` → `settings.SECURITY`
+    - `token_health.py`：`$ENV_VAR` 形式的后端 key 解析 → `settings.resolve_backend_key()`
+    - `key_pool.py`：`LIMA_KEY_POOL_*` → `settings.get_key_pool_raw()`
+    - `routing_loop/request_store.py`：`LIMA_REQUEST_LOG_DB` → `settings.DB.request_log_db`
+    - `device_logic/auth.py` / `auth_rate.py` / `activation.py` / `sms.py`：`LIMA_JWT_SECRET`、`LIMA_DEVICE_AUTH_*_PER_MIN`、`LIMA_XIAOZHI_ACTIVATION_CODE`、`LIMA_XIAOZHI_LOGIN_CODE`、`LIMA_XIAOZHI_CAPTCHA_REQUIRED` → `settings.SECURITY` / `settings.DEVICE`
+    - `http_request_builder/client.py`：`GFW_PROXY` → `settings.EMBEDDING.gfw_proxy`
+    - `http_request_builder/headers.py`：动态 `key_env_var` / `{BACKEND}_API_KEY` env 读取 → `settings.get_env()`
+    - `integrations/cloud_services.py`：`SUPABASE_URL` / `SUPABASE_SECRET` / `LANGSMITH_API_KEY` → `settings.INTEGRATIONS`
+    - `local_retrieval/leann_adapter.py`：`LIMA_ENABLE_LEANN` → `settings.FLAGS.enable_leann`
+    - `runtime_env.py` / `runtime_topology.py` / `healthcheck_ping.py` / `context_pipeline/_project_root.py` / `device_mode.py` / `orchestrate_constants.py`：运行时开关/拓扑/健康检查/项目根目录/设备模式相关 env → `settings.FLAGS` / `settings.PATHS`
+    - `config/settings.py` 拆分为 facade（`config/settings.py`）与核心 dataclass（`config/settings_core.py`），避免单文件超过 300 行；新增 `FleetConfig`、`EmbeddingConfig.google_inventory_proxy` / `mcp_inventory_proxy`、`DatabaseConfig.tool_audit_db` / `worker_db`、`PathsConfig.code_dir` / `routing_model_path`、`DeviceConfig.redis_memory_index_ttl` / `redis_ledger_ttl`、`IntegrationsConfig.gitee_token`
+    - `config/eval_config.py`：新增 eval 专用配置模块，集中 `LIMA_EVAL_BASE_URL`、`LIMA_EVAL_QUICK_BACKENDS`、`LIMA_EVAL_FULL_BACKENDS`、`LIMA_PERIODIC_CODING_EVAL`、`LIMA_CODING_EVAL_INTERVAL_HOURS`、`LIMA_PERIODIC_EVAL_NOTIFY`、`LIMA_PERIODIC_CODING_EVAL_FULL`、`LIMA_EVAL_POOL_GATE`、`LIMA_EVAL_POOL_MIN_SCORE`
+    - `eval_preflight.py` / `eval_notify.py` / `periodic_coding_eval.py` / `eval_pool_gate.py`：改从 `config.eval_config` 读取
+    - `device_memory/redis_store.py` / `device_ledger/redis_store.py`：`LIMA_REDIS_MEMORY_INDEX_TTL` / `LIMA_REDIS_LEDGER_TTL` → `settings.DEVICE`
+    - `tool_gateway/audit.py` / `tool_gateway/governance.py`：`LIMA_AUDIT_DB` / `LIMA_WORKER_DB` → `settings.DB`
+    - `context_pipeline/code_scanner.py`：`LIMA_CODE_DIR` → `settings.PATHS.code_dir`
+    - `think_plan_context.py`：`LIMA_PROJECT_ROOT` → `settings.PATHS.project_root`
+    - `routing_ml/routing_trainer.py`：`LIMA_ROUTING_MODEL_PATH` → `settings.PATHS.routing_model_path`
+    - `fleet/agent.py`：`LIMA_FLEET_ALLOWED_COMMANDS` → `settings.FLEET`
+    - `routing_selector/helpers.py`：动态 `$ENV_VAR` key 存在性检查 → `settings.get_env()`
+    - `backends_registry/_utils.py`：`legacy_free_enabled` 改通过 `settings.get_env()` 检测变量存在
+    - `gitee_mirror_urls.py`：`GITEE_TOKEN` / `GITEE_ACCESS_TOKEN` → `settings.INTEGRATIONS.gitee_token`
+    - `provider_automation/adapters/gitee_ai.py`：`GITEE_AI_ENABLED` / `GITEE_AI_TOKEN` / `GITEE_AI_BASE_URL` → `config.backend_config`
+    - `provider_inventory/google.py`：`GOOGLE_AI_KEY` / `GOOGLE_INVENTORY_PROXY` → `config.backend_config` / `settings.EMBEDDING`
+    - `provider_inventory/mcp_registries.py`：`MCP_INVENTORY_PROXY` / `GFW_PROXY` → `settings.EMBEDDING`
+    - `device_gateway/store_utils.py`：`configure_from_env` 改通过 `settings.get_env()` 读取后端选择变量
+    - `device_voice/providers/_env.py`：动态别名 env 读取 → `settings.get_env()`
+    - `tests/_env_sync_maps.py` 进一步拆出 `tests/_env_sync_runtime_maps.py`，并为上述新增字段补充映射；wrapper 特判 `GITEE_AI_*` 同步到 `config.backend_config`
+  - `tests/conftest.py` 新增 `monkeypatch` wrapper，在测试通过 `monkeypatch.setenv/delenv` 修改环境变量时同步更新 `config.settings` 单例，保证既有测试无需大量改写。
+  - 更新 `tests/test_device_gateway_auth.py`、`tests/test_memory_admin.py`、`tests/test_session_memory.py`、`tests/test_session_memory_processor.py`、`tests/test_http_scheme_enforcement.py`、`tests/test_routes_chat_stream.py` 以 patch 单例或利用 wrapper。
+
+**验证**：
+- 迁移后的后端定义模块聚焦测试：`tests/test_backends*.py`、`tests/test_routes_admin_api.py`、`tests/test_routes_admin_backends.py`、`tests/test_admin_backends.py` → 51 passed
+- device/session/http 聚焦测试：`tests/test_device_gateway*.py`、`tests/test_session_memory*.py`、`tests/test_http*.py`、`tests/test_family_approval*.py`、`tests/test_memory_admin.py` → 243 passed
+- 后端运维聚焦测试：`tests/test_backend_probe_loop.py`、`tests/test_backend_retirement.py`、`tests/test_backend_admission*.py` → 18 passed
+- 品牌/嵌入聚焦测试：`tests/test_brand_config.py`、`tests/test_code_context*.py`、`tests/test_session_memory*.py` → 83 passed
+- 退役/索引/图生聚焦测试：`tests/test_channel_retirement.py`、`tests/test_context_pipeline*.py`、`tests/test_dashscope*.py` → 53 passed
+- config.env / admin / digital-human / gemini / system 聚焦测试：`tests/test_admin_auth.py`、`tests/test_routes_admin_auth.py`、`tests/test_routes_digital_human.py`、`tests/test_routes_gemini_live_proxy.py`、`tests/test_routes_system_endpoints.py`、`tests/test_routes_device_gateway_ws_handlers.py` → 51 passed
+- device_voice 聚焦测试：`tests/device_voice/` + `tests/test_routes_voice_pipeline_ws.py` + `tests/test_routes_digital_human.py` → 85 passed
+- eval/tool/routing/fleet/gitee 聚焦测试：`tests/test_eval_*.py`、`tests/test_periodic_coding_eval.py`、`tests/test_tool_gateway_audit.py`、`tests/test_tool_gateway_governance.py`、`tests/test_routing_selector_helpers.py`、`tests/test_routing_ml.py`、`tests/test_fleet_agent.py`、`tests/test_gitee_mirror.py`、`tests/test_gitee_ai_adapter.py`、`tests/test_provider_inventory.py` → 196 passed
+- 代码尺寸：拆分 env sync wrapper、voice settings、runtime maps 与核心长函数后，已无 >300 行文件；`scripts/check_code_size.py` 剩余 25 个 >50 行函数（均为脚本/测试/MCP，核心生产代码已清零）
+- 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+- `ruff check` / `pyright` 修改文件 clean
 
 **预估工作量**：3 人天（分阶段）
 
@@ -552,11 +623,28 @@ except Exception:
 
 ## 5. P2 — 中优先级修复
 
-### P2-1：57 个 >50 行函数
+### P2-1：57 个 >50 行函数 ✅ 已修复
 
 **范围**：生产代码中 20+ 个函数超过 50 行
 
-**修复方案**：按热度排序，优先拆分路由执行路径和设备网关中的长函数。每轮拆分 5-8 个，3-4 轮完成。
+**修复方案**：按热度排序，优先拆分路由执行路径、设备网关和语音 ASR 中的长函数。经过多轮拆分，>50 行函数从 57 降至 **25**（满足验收标准 <40，核心生产代码已清零，剩余均为脚本/MCP/测试）。
+
+**本轮拆分**：
+- `session_memory/learning_loop/memory_channel.py`：`_feed_memory` 拆为 `_save_test_result_memories` / `_save_outcome_memory` / `_save_changed_file_memories`
+- `routes/admin_backends.py`：`test_backend_sync` 拆为 `_build_probe_request` / `_send_probe_request`
+- `routes/device_voice_ws_helpers.py`：`_extract_and_store_voiceprint_embedding` 拆为 `_extract_voiceprint_embedding` / `_persist_voiceprint_embedding`
+- `routes/chat_preflight.py`：`prepare_chat_preflight` 拆为 `_build_prompt_context_from_request`
+- `routes/digital_human.py`：`_serialize_config_script` 拆为 `_script_boilerplate` / `_append_force_set_inputs` / `_append_voice_config` / `_append_advanced_config` / `_script_footer`
+- `session_memory/outcome_ledger/record.py`：`record_evidence` 拆为 `_record_evidence_core` / `_build_evidence_result`
+- `device_policy/engine.py`：`decide` 拆为 `_protocol_gate` / `_profile_safety_gate`
+- `device_voice/providers/asr_aliyun.py`：`_run_streaming_worker` 拆为 `_create_streaming_transcriber` / `_start_streaming_transcriber` / `_feed_audio_until_end` / `_stop_and_wait`，并将流媒体相关 helper/state/error 映射移入 `device_voice/providers/_asr_aliyun_worker.py`
+- `routes/chat_stream.py`：`stream_response` 引入 `_stream_text_response` 分发器；`_stream_sentences` 迁移到 `response_builder.py`；合并 `_ensure_content` / `_ensure_fallback_content`
+- `session_memory/store_voiceprint.py`：`store_voiceprint_embedding` 拆为 `_update_embedding_record` / `_insert_embedding_record`
+
+**验证**：
+- `scripts/check_code_size.py`：>50 行函数 **25 个**（<40 目标达成，已无 >300 行文件）
+- 相关聚焦测试通过：`tests/test_memory_channel.py`、`tests/test_admin_backends.py`、`tests/test_routes_admin_backends.py`、`tests/test_routes_device_voice_ws_helpers.py`、`tests/test_routes_chat_preflight.py`、`tests/test_chat_preflight_device.py`、`tests/test_routes_digital_human.py`、`tests/test_outcome_ledger.py`、`tests/test_device_policy*.py`、`tests/test_routes_chat_stream.py`、`tests/device_voice/test_asr_aliyun*.py`、`tests/test_routes_ws_voiceprint_helpers.py` 通过
+- `ruff check .` / `pyright` 修改文件 clean
 
 **预估工作量**：4 人天（分轮次）
 
@@ -564,24 +652,38 @@ except Exception:
 
 ### P2-2：`routes/v3_adapters.py` 重复 lazy import ✅ 已修复
 
-**文件**：`routes/v3_adapters.py`（原 4 处重复 `from routing_engine import classify_scenario`）
+**文件**：`routes/v3_adapters.py`
 
-**修复方案**：`classify_scenario` 已提取为模块顶层导入（`from routing_engine import classify_scenario`），各函数直接引用，不再重复 lazy import。
+**问题**：原代码中多次重复 lazy import：
+- `from routing_engine import classify_scenario` 出现 4 次
+- `from lima_context import build_context_digest` 出现 3 次
+- `from think_plan_context import enhance_coding_prompt, needs_plan` 出现 2 次
 
-**验证**：`ruff check routes/v3_adapters.py` clean；全量测试通过。
+**修复方案**：将上述导入统一提取为模块顶层导入，各函数直接引用，不再重复 lazy import。
+
+**验证**：`ruff check routes/v3_adapters.py` / `pyright routes/v3_adapters.py` clean；`tests/test_routes_v3_adapters.py` 11 passed；全量测试通过。
 
 **预估工作量**：0.25 人天
 
 ---
 
-### P2-3：Routes 跨层耦合
+### P2-3：Routes 跨层耦合 ✅ 已修复
 
 **范围**：多个路由文件直接 import 底层模块（`health_tracker`、`backends_registry`、`http_caller`）
 
 **修复方案**：
-1. 定义 `routing_engine` 或新的 facade 模块作为中间层
-2. 路由层只通过 facade 访问底层功能
-3. 分阶段迁移，优先处理 admin 和 system 路由
+1. 新增 `routes/facade.py` 作为路由层与底层子系统（`backends_registry`、`health_tracker`、`http_caller`、`routing_executor`）之间的统一门面。
+2. 路由文件统一通过 `routes.facade` 访问底层功能，不再直接 import 底层模块。
+3. 已迁移的路由：
+   - admin：`routes/admin_api.py`、`routes/admin_backends.py`、`routes/admin_extra_backend_edit.py`、`routes/admin_extra_config.py`、`routes/admin_extra_insights.py`
+   - system：`routes/system_endpoints.py`
+   - chat / eval / v3：`routes/chat_support.py`、`routes/eval_internal.py`、`routes/v3_adapters.py`
+
+**验证**：
+- `rg '^from backends_registry|^import backends_registry|^import health_tracker$|^import http_caller$' routes/` 仅剩 `routes/facade.py` 自身。
+- 相关路由测试：`tests/test_routes_admin_api.py`、`tests/test_routes_admin_api_extra.py`、`tests/test_routes_admin_backends.py`、`tests/test_admin_backends.py`、`tests/test_routes_system_endpoints.py`、`tests/test_system_endpoints.py`、`tests/test_chat_support.py`、`tests/test_routes_chat_support.py`、`tests/test_routes_v3_adapters.py`、`tests/test_prefer_model_routing.py`、`tests/test_stream_routing_consistency.py` → 88 passed
+- 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3531 passed, 17 skipped, 2 deselected**
+- `ruff check routes/facade.py` 及迁移路由：通过；`pyright` 0 errors（1 处历史 warning 无关）
 
 **预估工作量**：2 人天
 
@@ -601,7 +703,7 @@ except Exception:
 
 ---
 
-### P2-7/P2-8/P2-9：测试覆盖空白
+### P2-7/P2-8/P2-9：测试覆盖空白 ✅ 已修复（关键模块覆盖完成）
 
 **范围**：
 - `context_pipeline/` 17 模块零覆盖
@@ -609,10 +711,19 @@ except Exception:
 - `routes/` ~55 模块零覆盖
 
 **修复方案**：按优先级分批补充测试：
-1. **第一批**（安全关键）：`session_memory/redact.py`、`context_pipeline/guardrails.py`、`context_pipeline/response_validator.py`
-2. **第二批**（核心路径）：`context_pipeline/code_context_injection.py`、`routes/chat_post_closeout.py`、`routes/chat_stream.py`
-3. **第三批**（管理面板）：`routes/admin_api.py`、`routes/admin_*.py`
-4. **第四批**（运维）：`routes/ops_metrics/`、`observability/`
+1. **第一批**（安全关键）：`session_memory/redact.py`、`context_pipeline/guardrails.py`、`context_pipeline/response_validator.py` ✅
+2. **第二批**（核心路径）：`context_pipeline/code_context_injection.py`、`routes/chat_post_closeout.py`、`routes/chat_stream.py` ✅
+3. **第三批**（管理面板）：`routes/admin_api.py`、`routes/admin_*.py` ✅
+4. **第四批**（运维）：`routes/ops_metrics/`、`observability/` ✅
+
+**已补充/扩展测试**：
+- 第一批：`tests/test_session_memory_redact.py`、`tests/test_memory_redact.py`、`tests/test_context_pipeline_guardrails.py`、`tests/test_guardrails.py`、`tests/test_context_pipeline_response_validator.py`、`tests/test_response_validator.py`、`tests/test_session_memory_processor.py`、`tests/test_session_processor.py` → 133 passed
+- 第二批：`tests/test_code_context_injection.py`（新建，9 用例）、扩展 `tests/test_routes_chat_post_closeout.py`（+12）、扩展 `tests/test_routes_chat_stream.py`（+2）
+- 第三/四批：admin/ops/observability 相关测试集中运行 → 184 passed
+
+**验证**：
+- admin/ops/observability 集中测试：184 passed
+- 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3550 passed, 17 skipped, 2 deselected**
 
 **预估工作量**：10 人天（分批次，持续进行）
 
@@ -699,14 +810,22 @@ except Exception:
 
 ---
 
-### P2-16/P2-17：HTTP 明文传输
+### P2-16/P2-17：HTTP 明文传输 ✅ 已修复
 
 **范围**：社区后端 HTTP、VPS 内部代理 HTTP
 
 **修复方案**：
-- 社区后端已默认禁用，保持现状并加强日志
-- VPS 内部代理改为 HTTPS 或 SSH 隧道
-- 在 `http_caller.py` 增加集中式 scheme 策略门控
+- 在 `http_sync.py` 实现集中式 `_enforce_https_scheme(url, backend)` 门控。
+- `http_sync.py` 的 `call_api` / `call_raw`、`http_async.py` 的 `call_api_async` / `call_raw_async`、`http_stream.py` 的 `call_api_stream` / `call_api_stream_async` 均在发起请求前调用门控。
+- 规则：
+  - `https://` 直接放行；
+  - `http://localhost` / `http://127.0.0.1` 放行（本地调试）；
+  - 其他 `http://` 默认拒绝，抛出 `BackendError(400)`；
+  - 设置 `LIMA_ALLOW_HTTP_BACKENDS=1` 可显式放行，并记录 warning 日志。
+
+**验证**：
+- 新增 `tests/test_http_scheme_enforcement.py`，覆盖 `_enforce_https_scheme` 直接调用以及 sync/stream/async 调用路径的 scheme 拦截。
+- 聚焦测试通过：`pytest tests/test_http_scheme_enforcement.py -q` 9 passed。
 
 **预估工作量**：1.5 人天
 
@@ -866,9 +985,17 @@ except Exception:
 
 ---
 
-### P3-18：JDCloud 部署脚本清理
+### P3-18：JDCloud 部署脚本清理 ✅ 已修复
 
-**修复方案**：合并重复脚本，IP 改为环境变量。
+**修复方案**：
+- 经检查 `deploy/jdcloud/` 下已无重复脚本，仅保留 `deploy_jd.py`。
+- 将硬编码 IP `117.72.118.95` 改为从环境变量 `JDCLOUD_HOST` 读取，默认回退原 IP。
+- 用户名同样支持 `JDCLOUD_USER` 环境变量，默认 `root`。
+- `.env.example` 增加 `JDCLOUD_HOST` / `JDCLOUD_USER` / `JDCLOUD_ROOT_PASSWORD` 示例。
+
+**验证**：
+- `ruff check deploy/jdcloud/deploy_jd.py` 通过
+- `pyright deploy/jdcloud/deploy_jd.py` 0 errors（1 处历史 warning 无关）
 
 **预估工作量**：0.5 人天
 

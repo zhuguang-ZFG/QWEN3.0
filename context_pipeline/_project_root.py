@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import os
 
+from config import settings
+
 
 def _detect_project_root() -> str:
-    env_root = os.environ.get("LIMA_PROJECT_ROOT", "")
+    env_root = settings.PATHS.project_root
     if env_root and os.path.isdir(env_root):
         return env_root
     cwd = os.getcwd()

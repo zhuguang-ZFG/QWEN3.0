@@ -19,12 +19,12 @@ Gauges:
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any
+
+from config import settings
 
 _log = logging.getLogger(__name__)
 
-_TRUE_VALUES = {"1", "true", "yes", "on"}
 _HEALTH_STATUSES = ("healthy", "degraded", "dead", "unknown")
 _HEALTH_VALUES = {"healthy": 1.0, "degraded": 0.5, "dead": 0.0, "unknown": 0.0}
 
@@ -36,7 +36,7 @@ _retired_backend_labels: set[str] = set()
 
 
 def is_enabled() -> bool:
-    return os.environ.get("LIMA_PROMETHEUS_METRICS", "0").strip().lower() in _TRUE_VALUES
+    return settings.OBSERVABILITY.prometheus_metrics
 
 
 def _load_client() -> dict[str, Any]:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+from config import settings
 
 from rate_limiter import check_keyed_rate_limit
 
@@ -12,16 +12,17 @@ _DEFAULTS = {
     "sms": 10,
 }
 
+_LIMIT_ATTRS = {
+    "register": "auth_register_per_min",
+    "login": "auth_login_per_min",
+    "sms": "auth_sms_per_min",
+}
+
 
 def _limit_per_minute(action: str) -> int:
-    env_name = {
-        "register": "LIMA_DEVICE_AUTH_REGISTER_PER_MIN",
-        "login": "LIMA_DEVICE_AUTH_LOGIN_PER_MIN",
-        "sms": "LIMA_DEVICE_AUTH_SMS_PER_MIN",
-    }[action]
-    raw = os.environ.get(env_name, "").strip()
-    if raw.isdigit():
-        return max(1, int(raw))
+    value = getattr(settings.DEVICE, _LIMIT_ATTRS[action])
+    if isinstance(value, int) and value > 0:
+        return value
     return _DEFAULTS[action]
 
 

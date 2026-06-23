@@ -11,6 +11,7 @@ import os
 import time
 from dataclasses import dataclass
 
+from config import settings
 from routing_ml.routing_model import (
     RoutingModel,
     create_model,
@@ -24,7 +25,7 @@ from routing_ml.training_data import (
 
 _log = logging.getLogger(__name__)
 
-MODEL_PATH = os.environ.get("LIMA_ROUTING_MODEL_PATH", "data/routing_model.json")
+MODEL_PATH = settings.PATHS.routing_model_path
 
 TRAIN_INTERVAL = 1000
 TRAIN_EPOCHS = 5

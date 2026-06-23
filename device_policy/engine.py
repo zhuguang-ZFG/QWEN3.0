@@ -23,6 +23,52 @@ class PolicyEngine:
     def reset(self) -> None:
         pass  # Stateless for now; future: clear cached decisions
 
+    def _protocol_gate(self, capability: str, fw_rev: str) -> PolicyResult | None:
+        """Return a non-allow PolicyResult or None if the gate passes."""
+        if not protocol_registry.is_capability_supported(capability):
+            return PolicyResult(
+                decision="reject",
+                reason=f"capability not supported: {capability}",
+            )
+        if fw_rev:
+            try:
+                protocol_registry.assert_firmware_compatible(fw_rev)
+            except ProtocolCompatibilityError as exc:
+                return PolicyResult(decision="require_ota", reason=str(exc))
+        return None
+
+    def _profile_safety_gate(
+        self,
+        capability: str,
+        params: dict[str, Any],
+        profile: DeviceProfile,
+        fw_rev: str,
+    ) -> PolicyResult | None:
+        """Return a non-allow PolicyResult or None if profile/safety checks pass."""
+        profile_err = validate_profile_compatibility(profile, fw_rev)
+        if profile_err:
+            return PolicyResult(
+                decision="reject",
+                reason=f"profile incompatible: {profile_err}",
+            )
+        limit_err = profile_limit_error(params, profile)
+        if limit_err:
+            if capability not in profile.capabilities:
+                return PolicyResult(
+                    decision="degrade_to_asset",
+                    reason=f"capability {capability} not in profile",
+                )
+            return PolicyResult(
+                decision="reject",
+                reason=f"safety limit exceeded: {limit_err}",
+            )
+        if capability not in profile.capabilities:
+            return PolicyResult(
+                decision="degrade_to_asset",
+                reason=f"capability {capability} not in profile capabilities",
+            )
+        return None
+
     def decide(
         self,
         *,
@@ -33,47 +79,13 @@ class PolicyEngine:
         profile: DeviceProfile | None = None,
         shadow_state: dict[str, Any] | None = None,
     ) -> PolicyResult:
-        # Gate 1: protocol compatibility
-        if not protocol_registry.is_capability_supported(capability):
-            return PolicyResult(
-                decision="reject",
-                reason=f"capability not supported: {capability}",
-            )
-
-        if fw_rev:
-            try:
-                protocol_registry.assert_firmware_compatible(fw_rev)
-            except ProtocolCompatibilityError as exc:
-                return PolicyResult(decision="require_ota", reason=str(exc))
-
-        # Gate 2: profile-aware safety
+        result = self._protocol_gate(capability, fw_rev)
+        if result is not None:
+            return result
         if profile is not None:
-            profile_err = validate_profile_compatibility(profile, fw_rev)
-            if profile_err:
-                return PolicyResult(
-                    decision="reject",
-                    reason=f"profile incompatible: {profile_err}",
-                )
-            limit_err = profile_limit_error(params, profile)
-            if limit_err:
-                # If the profile doesn't list this capability, degrade
-                if capability not in profile.capabilities:
-                    return PolicyResult(
-                        decision="degrade_to_asset",
-                        reason=f"capability {capability} not in profile",
-                    )
-                return PolicyResult(
-                    decision="reject",
-                    reason=f"safety limit exceeded: {limit_err}",
-                )
-            # Capability not in profile → degrade
-            if capability not in profile.capabilities:
-                return PolicyResult(
-                    decision="degrade_to_asset",
-                    reason=f"capability {capability} not in profile capabilities",
-                )
-
-        # Gate 3: all clear
+            result = self._profile_safety_gate(capability, params, profile, fw_rev)
+            if result is not None:
+                return result
         return PolicyResult(decision="allow", reason="policy passed")
 
 

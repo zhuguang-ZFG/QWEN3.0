@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import httpx
+from config import settings
 from safe_command import UnsafeCommandError, run_safe_command
 
 _log = logging.getLogger("fleet.agent")
@@ -172,7 +173,7 @@ def heartbeat(vps_url: str, node_id: str, load_avg: float = 0.0) -> bool:
 
 
 def fleet_command_allowlist() -> set[str]:
-    raw = os.environ.get("LIMA_FLEET_ALLOWED_COMMANDS", "")
+    raw = settings.FLEET.allowed_commands
     configured = {item.strip().lower() for item in raw.split(",") if item.strip()}
     return configured or DEFAULT_FLEET_COMMAND_ALLOWLIST
 

@@ -13,10 +13,12 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
+from config import db_config
+
 
 _DEFAULT_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 _DEFAULT_DB_FILE = os.path.join(_DEFAULT_DB_DIR, "lima.db")
-_DB_PATH = os.environ.get("LIMA_DB_PATH", _DEFAULT_DB_FILE)
+_DB_PATH = db_config.get_lima_db_path()
 
 
 @dataclass(frozen=True)
@@ -32,22 +34,19 @@ class FamilyApproval:
 
 def get_db_path() -> str:
     """Resolve the active SQLite path at call time."""
-    env_path = os.environ.get("LIMA_DB_PATH")
-    if env_path:
-        return env_path
-    return _DB_PATH
+    return db_config.get_lima_db_path()
 
 
 def set_db_path(path: str) -> None:
     """Override the DB path, mainly for tests."""
     global _DB_PATH
     _DB_PATH = path
+    db_config.LIMA_DB_PATH = path
 
 
 def _connect() -> sqlite3.Connection:
     db_path = get_db_path()
-    if not os.environ.get("LIMA_DB_PATH"):
-        os.makedirs(os.path.dirname(db_path) or _DEFAULT_DB_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(db_path) or _DEFAULT_DB_DIR, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")

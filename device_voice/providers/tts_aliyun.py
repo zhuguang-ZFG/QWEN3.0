@@ -19,12 +19,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import threading
 from collections.abc import AsyncIterator
 from typing import Any
 
-from device_voice.providers._env import _get_env_with_aliases
+from config.settings import VOICE_PROVIDERS
 
 from device_voice.exceptions import (
     AuthenticationError,
@@ -96,11 +95,12 @@ class AliyunTTSProvider(TTSProvider):
     """Alibaba Cloud NLS text-to-speech."""
 
     def __init__(self) -> None:
-        self._ak_id = _get_env_with_aliases("ALIBABA_CLOUD_ACCESS_KEY_ID", "ALIYUN_AK_ID")
-        self._ak_secret = _get_env_with_aliases("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "ALIYUN_AK_SECRET")
-        self._app_key = os.environ.get("ALIBABA_NLS_APP_KEY", "").strip()
-        self._region = os.environ.get("ALIBABA_NLS_REGION", _DEFAULT_REGION).strip()
-        self._voice = os.environ.get("ALIBABA_NLS_TTS_VOICE", _DEFAULT_VOICE).strip()
+        cfg = VOICE_PROVIDERS.aliyun_nls
+        self._ak_id = cfg.ak_id
+        self._ak_secret = cfg.ak_secret
+        self._app_key = cfg.app_key
+        self._region = cfg.region or _DEFAULT_REGION
+        self._voice = cfg.tts_voice or _DEFAULT_VOICE
 
         if not self._ak_id or not self._ak_secret or not self._app_key:
             raise ConfigurationError(

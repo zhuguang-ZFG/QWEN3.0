@@ -15,13 +15,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import uuid
 from collections.abc import AsyncIterator
 from typing import cast
 
 import websockets
 
+from config.settings import VOICE_PROVIDERS
 from device_voice.asr import ASRProvider
 from device_voice.exceptions import (
     AuthenticationError,
@@ -43,9 +43,10 @@ class DoubaoASRProvider(ASRProvider):
     """Volcano Engine Doubao speech recognition."""
 
     def __init__(self) -> None:
-        self._appid = os.environ.get("DOUBAO_ASR_APPID", "").strip()
-        self._access_token = os.environ.get("DOUBAO_ASR_ACCESS_TOKEN", "").strip()
-        self._cluster = os.environ.get("DOUBAO_ASR_CLUSTER", _DEFAULT_CLUSTER).strip()
+        cfg = VOICE_PROVIDERS.doubao_asr
+        self._appid = cfg.appid
+        self._access_token = cfg.access_token
+        self._cluster = cfg.cluster or _DEFAULT_CLUSTER
 
         if not self._appid or not self._access_token:
             raise ConfigurationError("DoubaoASRProvider requires DOUBAO_ASR_APPID and DOUBAO_ASR_ACCESS_TOKEN.")

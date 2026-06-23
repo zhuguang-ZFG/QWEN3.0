@@ -37,27 +37,23 @@ def _reset_registry():
 
 
 @pytest.mark.asyncio
-async def test_handle_hello_success(websocket):
+async def test_handle_hello_success(websocket, monkeypatch):
     websocket.headers["authorization"] = "Bearer token-1"
-    monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setenv("LIMA_DEVICE_TOKENS", "dev-1=token-1")
-    try:
-        message = {
-            "type": "hello",
-            "protocol": "lima-device-v1",
-            "device_id": "dev-1",
-            "fw_rev": "1.0",
-            "capabilities": [],
-        }
-        with patch.object(handlers, "drain_pending_tasks", new_callable=AsyncMock, return_value=True) as mock_drain:
-            device_id, session, keep_open = await handlers.handle_hello(websocket, message, request_id="r1")
-        assert device_id == "dev-1"
-        assert isinstance(session, DeviceSession)
-        assert keep_open is True
-        websocket.send_json.assert_awaited_once()
-        mock_drain.assert_awaited_once_with(session)
-    finally:
-        monkeypatch.undo()
+    message = {
+        "type": "hello",
+        "protocol": "lima-device-v1",
+        "device_id": "dev-1",
+        "fw_rev": "1.0",
+        "capabilities": [],
+    }
+    with patch.object(handlers, "drain_pending_tasks", new_callable=AsyncMock, return_value=True) as mock_drain:
+        device_id, session, keep_open = await handlers.handle_hello(websocket, message, request_id="r1")
+    assert device_id == "dev-1"
+    assert isinstance(session, DeviceSession)
+    assert keep_open is True
+    websocket.send_json.assert_awaited_once()
+    mock_drain.assert_awaited_once_with(session)
 
 
 @pytest.mark.asyncio
@@ -71,18 +67,14 @@ async def test_handle_hello_ticket_mismatch(websocket):
 
 
 @pytest.mark.asyncio
-async def test_handle_hello_invalid_token(websocket):
+async def test_handle_hello_invalid_token(websocket, monkeypatch):
     websocket.headers["authorization"] = "Bearer bad-token"
-    monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setenv("LIMA_DEVICE_TOKENS", "dev-1=token-1")
-    try:
-        message = {"type": "hello", "device_id": "dev-1"}
-        device_id, session, keep_open = await handlers.handle_hello(websocket, message, request_id="r1")
-        assert device_id is None
-        assert keep_open is False
-        websocket.close.assert_awaited_once_with(code=1008)
-    finally:
-        monkeypatch.undo()
+    message = {"type": "hello", "device_id": "dev-1"}
+    device_id, session, keep_open = await handlers.handle_hello(websocket, message, request_id="r1")
+    assert device_id is None
+    assert keep_open is False
+    websocket.close.assert_awaited_once_with(code=1008)
 
 
 # ── handle_heartbeat ─────────────────────────────────────────────────────

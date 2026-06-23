@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import logging
-import os
 import threading
 import time
 from collections import defaultdict
 from importlib import import_module
 from importlib.util import find_spec
 
+from config import settings
 from observability.events import LiMaEvent
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ _openobserve_unavailable_warned = False
 
 
 def _openobserve_enabled() -> bool:
-    return os.environ.get("OPENOBSERVE_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+    return settings.OBSERVABILITY.openobserve_enabled
 
 
 def _openobserve_available() -> bool:

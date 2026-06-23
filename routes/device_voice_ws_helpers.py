@@ -172,6 +172,56 @@ def _cleanup_audio_registry(device_id: str) -> None:
     _audio_registry.pop(device_id, None)
 
 
+async def _extract_voiceprint_embedding(
+    audio_bytes: bytes,
+    member_id: str,
+    device_id: str,
+    fmt: str,
+) -> list[float] | None:
+    """Convert audio to WAV and extract speaker embedding."""
+    from device_voice import VOICE_ENABLED
+
+    if not VOICE_ENABLED:
+        _log.warning("device_voice not enabled; skipping voiceprint embedding extraction")
+        return None
+
+    from device_voice.voiceprint import get_voiceprint_provider
+
+    provider = get_voiceprint_provider()
+    if not provider.enabled:
+        return None
+
+    wav_bytes = _ensure_wav(audio_bytes, fmt)
+    if wav_bytes is None:
+        _log.warning("device=%s member=%s failed to convert voiceprint audio format", device_id, member_id)
+        return None
+
+    return await provider.register_speaker(wav_bytes, member_id, device_id)
+
+
+async def _persist_voiceprint_embedding(
+    voiceprint_id: str,
+    member_id: str,
+    device_id: str,
+    embedding: list[float],
+) -> bool:
+    """Persist embedding and invalidate the voiceprint cache."""
+    try:
+        from session_memory.store_voiceprint import store_voiceprint_embedding
+    except ImportError:
+        _log.warning("session_memory.store_voiceprint not available for embedding storage")
+        return False
+
+    store_voiceprint_embedding(
+        voiceprint_id=voiceprint_id,
+        member_id=member_id,
+        device_id=device_id,
+        embedding=embedding,
+    )
+    _log.info("device=%s voiceprint_id=%s embedding stored dim=%d", device_id, voiceprint_id, len(embedding))
+    return True
+
+
 async def _extract_and_store_voiceprint_embedding(
     validated: dict[str, Any],
     voiceprint_id: str,
@@ -187,44 +237,18 @@ async def _extract_and_store_voiceprint_embedding(
         return
 
     try:
-        from device_voice import VOICE_ENABLED
+        embedding = await _extract_voiceprint_embedding(audio_bytes, member_id, device_id, fmt)
+        if embedding is None:
+            return
 
-        if not VOICE_ENABLED:
-            _log.warning("device_voice not enabled; skipping voiceprint embedding extraction")
+        persisted = await _persist_voiceprint_embedding(voiceprint_id, member_id, device_id, embedding)
+        if not persisted:
             return
 
         from device_voice.voiceprint import get_voiceprint_provider
 
         provider = get_voiceprint_provider()
-        if not provider.enabled:
-            return
-
-        # Convert audio to WAV if needed
-        wav_bytes = _ensure_wav(audio_bytes, fmt)
-        if wav_bytes is None:
-            _log.warning("device=%s voiceprint_id=%s failed to convert audio format", device_id, voiceprint_id)
-            return
-
-        embedding = await provider.register_speaker(wav_bytes, member_id, device_id)
-        if embedding is None:
-            return
-
-        # Store the embedding vector in the database
-        try:
-            from session_memory.store_voiceprint import store_voiceprint_embedding
-
-            store_voiceprint_embedding(
-                voiceprint_id=voiceprint_id,
-                member_id=member_id,
-                device_id=device_id,
-                embedding=embedding,
-            )
-            _log.info("device=%s voiceprint_id=%s embedding stored dim=%d", device_id, voiceprint_id, len(embedding))
-
-            # Invalidate cache so next identify_speaker picks up the new embedding
-            await provider.invalidate_cache(device_id)
-        except ImportError:
-            _log.warning("session_memory.store_db not available for embedding storage")
+        await provider.invalidate_cache(device_id)
     except Exception:
         _log.warning("device=%s voiceprint embedding extraction failed", device_id, exc_info=True)
 

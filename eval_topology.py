@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import urllib.error
 import urllib.request
 
+from config.settings import EVAL, SECURITY
 from eval_preflight import check_eval_health
 from runtime_topology import BACKEND_PORT_ENV, LOCAL_ONLY_BACKENDS, backend_available, local_port_open
 
@@ -18,18 +18,12 @@ DEFAULT_FRP_ROUTER = "http://127.0.0.1:8088"
 
 
 def eval_via_router_enabled() -> bool:
-    return os.environ.get("LIMA_EVAL_TOPOLOGY", "1").strip().lower() not in {
-        "0",
-        "false",
-        "no",
-    }
+    return EVAL.via_router_enabled
 
 
 def eval_via_router_url() -> str:
     """FRP/Windows router base URL for proxy-backend eval (e.g. VPS :8088 → Windows :8080)."""
-    explicit = (
-        os.environ.get("LIMA_EVAL_VIA_ROUTER_URL", "").strip() or os.environ.get("LIMA_EVAL_WINDOWS_ROUTER", "").strip()
-    )
+    explicit = EVAL.via_router_url or EVAL.windows_router_url
     if explicit:
         return explicit.rstrip("/")
     if not eval_via_router_enabled():
@@ -56,7 +50,7 @@ def needs_via_router(backend: str) -> bool:
 
 
 def eval_api_key() -> str:
-    return os.environ.get("LIMA_API_KEY", "").strip()
+    return SECURITY.api_key.strip()
 
 
 def call_via_router(

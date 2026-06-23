@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import response_builder
 import response_cleaner
 import routes.chat_stream as cs
 
@@ -35,7 +36,7 @@ async def test_stream_response_image_branch(mock_image):
 @pytest.mark.asyncio
 @patch.object(cs, "_resolve_image_content", return_value=None)
 @patch.object(cs, "_resolve_thinking_content")
-@patch.object(cs, "_stream_sentences")
+@patch.object(cs, "stream_sentences")
 async def test_stream_response_thinking_branch(mock_sentences, mock_thinking, _mock_image):
     mock_thinking.return_value = "thinking answer"
     mock_sentences.return_value = _async_gen(["chunk1", "done"])
@@ -82,7 +83,7 @@ def test_ensure_content_returns_content_when_present(mock_clean):
 def test_ensure_fallback_content_handles_error_prefix(mock_clean):
     mock_clean.return_value = "[ERR] timeout"
     cs._last_resort_call = None
-    assert cs._ensure_fallback_content("[ERR] timeout", []) == cs.FALLBACK_MSG
+    assert cs._ensure_content("[ERR] timeout", [], allow_error_prefix=True) == cs.FALLBACK_MSG
 
 
 @patch.object(cs.routing_intent, "detect_image_intent")
@@ -130,15 +131,49 @@ async def test_resolve_authoritative_content_logs_and_returns_empty(mock_auth, c
 
 
 @pytest.mark.asyncio
-@patch.object(cs, "_split_sentences")
-@patch.object(cs, "build_stream_chunk")
+@patch.object(response_builder, "_split_sentences")
+@patch.object(response_builder, "build_stream_chunk")
 async def test_stream_sentences_yields_finish_markers(mock_build_chunk, mock_split):
     mock_split.return_value = ["Hello.", "World."]
     mock_build_chunk.side_effect = lambda _cid, text, finish=False: f"data: {text or '[DONE]'}\n\n"
-    chunks = [c async for c in cs._stream_sentences("cid", "Hello. World.")]
+    chunks = [c async for c in response_builder.stream_sentences("cid", "Hello. World.")]
     assert chunks == [
         "data: Hello.\n\n",
         "data: World.\n\n",
         "data: [DONE]\n\n",
         "data: [DONE]\n\n",
     ]
+
+
+@pytest.mark.asyncio
+@patch.object(cs, "_resolve_thinking_content", return_value="thought")
+@patch.object(cs, "stream_sentences")
+async def test_stream_thinking_response(mock_sentences, mock_thinking):
+    mock_sentences.return_value = _async_gen(["c1", "done"])
+    chunks = [
+        c
+        async for c in cs._stream_thinking_response(
+            "cid", "q", [], sys_prompt_preview="", ide_source="", use_orchestration=False
+        )
+    ]
+    assert chunks == ["c1", "done"]
+    mock_thinking.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch.object(cs, "speculative_stream_chunks")
+@patch.object(cs, "stream_sentences")
+@patch.object(cs, "_resolve_authoritative_content", return_value="auth answer")
+async def test_stream_speculative_fallback_when_no_chunks(
+    mock_auth, mock_sentences, mock_spec
+):
+    mock_spec.return_value = _async_gen([])
+    mock_sentences.return_value = _async_gen(["fallback chunk"])
+    chunks = [
+        c
+        async for c in cs._stream_speculative(
+            "q", [], "cid", sys_prompt_preview="", ide_source="", prefer=""
+        )
+    ]
+    assert chunks == ["fallback chunk"]
+    mock_auth.assert_called_once()

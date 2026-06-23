@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
-import os
 import time
 from typing import Any
 
 import httpx
 
+from config import backend_config, settings
+
 GOOGLE_MODELS_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
 def _api_key() -> str:
-    return os.environ.get("GOOGLE_AI_KEY", "").strip()
+    return backend_config.GOOGLE_AI_KEY.strip()
 
 
 def _inventory_proxy() -> str:
     """Proxy for Google API (same env chain as MCP inventory / http_caller)."""
-    return os.environ.get("GOOGLE_INVENTORY_PROXY", "").strip() or os.environ.get("GFW_PROXY", "").strip()
+    return settings.EMBEDDING.google_inventory_proxy or settings.EMBEDDING.gfw_proxy
 
 
 def _build_client(*, proxy: str | None = None) -> httpx.Client:

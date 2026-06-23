@@ -9,7 +9,7 @@ import time
 import urllib.request
 from urllib.parse import urlparse
 
-from backends_registry import BACKENDS
+from routes.facade import BACKENDS
 
 
 def _is_safe_backend_url(url: str) -> bool:
@@ -112,54 +112,64 @@ def describe_backend(name: str, cfg: dict, *, enabled: bool, status_info: dict) 
     }
 
 
+def _build_probe_request(cfg: dict) -> tuple[str, dict[str, str], bytes]:
+    """Construct URL, headers and payload for a backend sync probe."""
+    url = cfg.get("url", "")
+    key = cfg.get("key", "")
+    fmt = cfg.get("fmt", "openai")
+    model = cfg.get("model", "")
+
+    if fmt == "anthropic":
+        headers = {
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+        }
+        if cfg.get("auth") == "bearer":
+            headers["Authorization"] = f"Bearer {key}"
+        else:
+            headers["x-api-key"] = key
+    else:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {key}",
+        }
+
+    payload = json.dumps(
+        {
+            "model": model,
+            "max_tokens": 10,
+            "messages": [{"role": "user", "content": "hi"}],
+        }
+    ).encode()
+    return url, headers, payload
+
+
+def _send_probe_request(url: str, headers: dict[str, str], payload: bytes) -> tuple[int, dict]:
+    """Send probe request and return (status, parsed JSON)."""
+    request = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    resp = urllib.request.urlopen(request, timeout=15)
+    data = json.loads(resp.read().decode())
+    return resp.status, data
+
+
 def test_backend_sync(name: str) -> dict:
+    """Probe a backend by sending a minimal chat request."""
     if name not in BACKENDS:
         return {"ok": False, "error": f"backend '{name}' not found"}
     cfg = BACKENDS[name]
     url = cfg.get("url", "")
     if not _is_safe_backend_url(url):
         return {"ok": False, "error": f"backend URL is not a public HTTPS endpoint: {url}"}
-    key = cfg.get("key", "")
-    fmt = cfg.get("fmt", "openai")
-    model = cfg.get("model", "")
+
+    url, headers, payload = _build_probe_request(cfg)
     started = time.time()
     try:
-        if fmt == "anthropic":
-            headers = {
-                "Content-Type": "application/json",
-                "anthropic-version": "2023-06-01",
-            }
-            if cfg.get("auth") == "bearer":
-                headers["Authorization"] = f"Bearer {key}"
-            else:
-                headers["x-api-key"] = key
-            payload = json.dumps(
-                {
-                    "model": model,
-                    "max_tokens": 10,
-                    "messages": [{"role": "user", "content": "hi"}],
-                }
-            ).encode()
-        else:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {key}",
-            }
-            payload = json.dumps(
-                {
-                    "model": model,
-                    "max_tokens": 10,
-                    "messages": [{"role": "user", "content": "hi"}],
-                }
-            ).encode()
-        request = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-        resp = urllib.request.urlopen(request, timeout=15)
+        status, data = _send_probe_request(url, headers, payload)
         elapsed = int((time.time() - started) * 1000)
-        data = json.loads(resp.read().decode())
         return {
             "ok": True,
             "latency_ms": elapsed,
-            "status": resp.status,
+            "status": status,
             "capabilities_detected": ["纯文本"],
             "response_preview": str(data)[:200],
         }

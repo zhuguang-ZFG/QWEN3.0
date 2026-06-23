@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
-import os
 
 import budget_manager
+from config import settings
 import health_tracker
 import route_scorer
 
@@ -23,7 +23,7 @@ def _has_valid_key(name: str) -> bool:
     if not key or key in ("none", "YOUR_KEY_HERE", ""):
         return False
     env_var = key if key.startswith("$") else None
-    if env_var and not os.environ.get(env_var.lstrip("$"), ""):
+    if env_var and not settings.get_env(env_var.lstrip("$"), ""):
         return False
     return True
 

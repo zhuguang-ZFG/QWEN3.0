@@ -16,12 +16,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import threading
 import time
 from collections.abc import AsyncIterator
 
-from device_voice.providers._env import _get_dashscope_api_key
+from config.settings import VOICE_PROVIDERS
 
 from device_voice.asr import ASRProvider
 from device_voice.exceptions import (
@@ -87,8 +86,9 @@ class DashScopeASRProvider(ASRProvider):
     """DashScope speech recognition using ALIYUN_API_KEY / DASHSCOPE_API_KEY."""
 
     def __init__(self) -> None:
-        self._api_key = _get_dashscope_api_key()
-        self._model = os.environ.get("DASHSCOPE_ASR_MODEL", _DEFAULT_MODEL).strip()
+        cfg = VOICE_PROVIDERS.dashscope_asr
+        self._api_key = cfg.api_key
+        self._model = cfg.model or _DEFAULT_MODEL
 
         if not self._api_key:
             raise ConfigurationError("DashScopeASRProvider requires DASHSCOPE_API_KEY or ALIYUN_API_KEY.")

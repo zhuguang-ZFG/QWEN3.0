@@ -7,6 +7,8 @@ import os
 import sqlite3
 from dataclasses import dataclass
 
+from config import db_config
+
 
 @dataclass
 class MemoryEntry:
@@ -28,8 +30,8 @@ _DB_PATH = SESSION_DB
 
 def get_db_path() -> str:
     """Resolve the active SQLite path at call time (env, facade patch, or module default)."""
-    env_path = os.environ.get("LIMA_SESSION_DB")
-    if env_path:
+    env_path = db_config.get_session_db_path()
+    if env_path != SESSION_DB:
         return env_path
     try:
         import session_memory.store as store_facade
@@ -56,7 +58,7 @@ def set_db_path(path: str) -> None:
 
 def _get_conn() -> sqlite3.Connection:
     db_path = get_db_path()
-    if not os.environ.get("LIMA_SESSION_DB"):
+    if db_config.get_session_db_path() == SESSION_DB:
         os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     from config.sqlite_pool import get_pooled_connection
 

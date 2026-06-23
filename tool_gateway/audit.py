@@ -7,6 +7,8 @@ import sqlite3
 import threading
 import time
 
+from config import settings
+
 _log = logging.getLogger(__name__)
 
 _lock = threading.Lock()
@@ -29,7 +31,7 @@ _SENSITIVE_KEYS = (
 
 
 def _db_path() -> str:
-    return os.environ.get("LIMA_AUDIT_DB", os.path.join(_DB_DIR, "tool_audit.db"))
+    return settings.DB.tool_audit_db
 
 
 from observability.events import _sanitize_text

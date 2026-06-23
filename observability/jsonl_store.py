@@ -4,20 +4,20 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Any
+
+from config import settings
 
 DEFAULT_MAX_BYTES = 1024 * 1024
 
 
 def _max_bytes() -> int:
-    raw = os.environ.get("LIMA_TELEMETRY_JSONL_MAX_BYTES", str(DEFAULT_MAX_BYTES))
+    raw = settings.OBSERVABILITY.telemetry_jsonl_max_bytes
     try:
-        value = int(raw)
+        return max(int(raw), 0)
     except (TypeError, ValueError):
         return DEFAULT_MAX_BYTES
-    return max(value, 0)
 
 
 def append_jsonl_record(

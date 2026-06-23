@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from typing import Any
+
+from config import settings
 
 _log = logging.getLogger(__name__)
 
@@ -16,16 +17,13 @@ _client_failed = False
 
 
 def _auth_rate_redis_flag() -> str:
-    return os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS", "auto").strip().lower()
+    return settings.SECURITY.device_auth_rate_redis
 
 
 def _redis_url() -> str:
     from config.db_config import DEVICE_REDIS_URL
 
-    return (
-        os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS_URL", "").strip()
-        or DEVICE_REDIS_URL
-    )
+    return settings.SECURITY.device_auth_rate_redis_url or DEVICE_REDIS_URL
 
 
 def use_redis_backend() -> bool:

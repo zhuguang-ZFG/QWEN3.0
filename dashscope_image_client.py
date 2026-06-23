@@ -1,10 +1,11 @@
 """DashScope 图生 API 客户端封装"""
 
-import os
 import logging
 from typing import Optional, Dict, Any
 import dashscope
 from dashscope import ImageSynthesis
+
+from config.backend_config import ALIYUN_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ class DashScopeImageClient:
     """DashScope 图生 API 客户端（Wanx/Flux）"""
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.environ.get("ALIYUN_API_KEY", "")
+        self.api_key = api_key or ALIYUN_API_KEY
         if self.api_key:
             dashscope.api_key = self.api_key
 

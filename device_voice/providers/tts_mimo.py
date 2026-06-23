@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import base64
 import logging
-import os
 import shutil
 import subprocess
 from collections.abc import AsyncIterator
@@ -30,6 +29,7 @@ from typing import Any
 
 import httpx
 
+from config.settings import VOICE_PROVIDERS
 from device_voice.exceptions import (
     AuthenticationError,
     ConfigurationError,
@@ -111,10 +111,11 @@ class MiMoTTSProvider(TTSProvider):
     """Xiaomi MiMo text-to-speech provider."""
 
     def __init__(self) -> None:
-        self._api_key = os.environ.get("MIMO_API_KEY", "").strip()
-        self._model = os.environ.get("MIMO_TTS_MODEL", _DEFAULT_MODEL).strip()
-        self._voice = os.environ.get("MIMO_TTS_VOICE", _DEFAULT_VOICE).strip()
-        self._format = os.environ.get("MIMO_TTS_FORMAT", _DEFAULT_FORMAT).strip()
+        cfg = VOICE_PROVIDERS.mimo
+        self._api_key = cfg.api_key
+        self._model = cfg.model or _DEFAULT_MODEL
+        self._voice = cfg.voice or _DEFAULT_VOICE
+        self._format = cfg.format or _DEFAULT_FORMAT
 
         if not self._api_key:
             raise ConfigurationError("MiMoTTSProvider requires MIMO_API_KEY.")

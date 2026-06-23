@@ -3,8 +3,6 @@ line-length = 120
 
 exclude = [
     "esp32S_XYZ",
-    "venv",
-    ".venv",
     ".venv310",
     ".test-tmp",
     ".pnpm-store",

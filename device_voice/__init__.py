@@ -14,14 +14,15 @@ Configuration via environment variables:
 from __future__ import annotations
 
 import logging
-import os
+
+from config.settings import VOICE as _voice_settings
 
 _log = logging.getLogger(__name__)
 
-VOICE_ENABLED = os.environ.get("LIMA_VOICE_ENABLED", "0").strip() in ("1", "true", "yes")
-ASR_PROVIDER = os.environ.get("LIMA_VOICE_ASR_PROVIDER", "funasr").strip().lower()
-TTS_PROVIDER = os.environ.get("LIMA_VOICE_TTS_PROVIDER", "edge").strip().lower()
-VAD_PROVIDER = os.environ.get("LIMA_VOICE_VAD_PROVIDER", "silero").strip().lower()
+VOICE_ENABLED = _voice_settings.enabled
+ASR_PROVIDER = _voice_settings.asr_provider
+TTS_PROVIDER = _voice_settings.tts_provider
+VAD_PROVIDER = _voice_settings.vad_provider
 
 # Lazy-loaded singletons
 _asr_instance = None

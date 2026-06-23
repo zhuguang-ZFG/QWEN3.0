@@ -8,14 +8,20 @@
 > Updated: 2026-06-23
 > Branch: `main`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
-> Tests: 全量 3432 passed / 17 skipped / 0 failed；ruff check clean；ruff format clean
-> Code Size: 零 >300 行文件；>50 行函数 57（历史债务，均为 54-78 行边界值）
-> pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
+> Tests: 全量 3545 passed / 17 skipped / 0 failed；ruff check clean；ruff format clean
+> Code Size: 零 >300 行文件；>50 行函数 25（均为脚本/测试/MCP，核心生产代码已清零）
+> pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；缺陷改善计划全部 P0 项已关闭。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-23）缺陷改善计划又一批 — P1-2 阶段 3 eval/tool/routing/fleet/gitee 集中配置
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 3。
+- **实现**：新增 `config/eval_config.py`；扩展 `config/settings_core.py`、`config/backend_config.py`、`config/db_config.py`；迁移 eval、device memory/ledger、tool audit/governance、code scanner、think plan、routing trainer、fleet、routing selector、backends `_utils`、gitee mirror、provider automation/inventory 等模块到集中配置；`tests/_env_sync*.py` 同步新增字段并拆分 `tests/_env_sync_runtime_maps.py`。
+- **验证**：全量 `pytest` → **3545 passed / 17 skipped / 0 failed**；`ruff check .` clean；`pyright` 修改文件 0 errors；零 >300 行文件。
 
 ### 最近完成（2026-06-23）缺陷改善计划再下一批 — P1-1/3/5/6、P2-11 关闭
 

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-import os
 import sqlite3
 import time
 from typing import Any
 
 from access_guard import extract_bearer_token
+from config import settings
 from fastapi.responses import JSONResponse
 
 from device_logic.db import connect
@@ -58,7 +58,7 @@ def _verify_password(password: str, hashed: str | None) -> bool:
 
 
 def jwt_secret() -> str | None:
-    secret = os.environ.get("LIMA_JWT_SECRET", "").strip()
+    secret = settings.SECURITY.jwt_secret
     if secret:
         return secret
     _log.warning("LIMA_JWT_SECRET is not configured; device app JWT auth is unavailable")

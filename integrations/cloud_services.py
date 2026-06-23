@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import urllib.request
 import urllib.error
+
+from config import settings
 
 _log = logging.getLogger(__name__)
 
@@ -21,15 +22,15 @@ _LANGSMITH_KEY = ""
 
 
 def _get_supabase_url():
-    return os.environ.get("SUPABASE_URL", "") or _SUPABASE_URL
+    return settings.INTEGRATIONS.supabase_url or _SUPABASE_URL
 
 
 def _get_supabase_key():
-    return os.environ.get("SUPABASE_SECRET", "") or _SUPABASE_KEY
+    return settings.INTEGRATIONS.supabase_key or _SUPABASE_KEY
 
 
 def _get_langsmith_key():
-    return os.environ.get("LANGSMITH_API_KEY", "") or _LANGSMITH_KEY
+    return settings.INTEGRATIONS.langsmith_key or _LANGSMITH_KEY
 
 
 _opener = None

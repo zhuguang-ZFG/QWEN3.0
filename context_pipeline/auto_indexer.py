@@ -13,6 +13,8 @@ import threading
 import time
 from pathlib import Path
 
+from config.settings import PATHS
+
 _log = logging.getLogger(__name__)
 
 _DEFAULT_SCAN_INTERVAL = 300  # 5 minutes
@@ -26,10 +28,7 @@ class AutoIndexer:
         root_path: str | None = None,
         scan_interval: int = _DEFAULT_SCAN_INTERVAL,
     ) -> None:
-        self._root = root_path or os.environ.get(
-            "LIMA_PROJECT_ROOT",
-            os.getcwd(),
-        )
+        self._root = root_path or PATHS.project_root or os.getcwd()
         self._interval = scan_interval
         self._last_scan = 0.0
         self._graph = None

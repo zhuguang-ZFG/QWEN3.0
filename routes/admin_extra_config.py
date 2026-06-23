@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backends_registry import BACKENDS, add_backend, has_backend
+from routes.facade import BACKENDS, add_backend, has_backend
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_backends import _is_safe_backend_url
 from routes.admin_state import stats_context

@@ -70,7 +70,7 @@ async def _collect_async(async_iterable):
 
 
 BACKEND_CFG = {
-    "url": "http://test.com/v1/chat/completions",
+    "url": "https://test.com/v1/chat/completions",
     "key": "sk-test",
     "model": "test-model",
     "fmt": "openai",

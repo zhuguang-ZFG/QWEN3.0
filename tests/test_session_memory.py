@@ -103,7 +103,9 @@ def test_session_memory_processor_injects_memories():
 
 
 def test_session_memory_processor_skipped_when_disabled(monkeypatch):
-    monkeypatch.setenv("LIMA_SESSION_MEMORY", "0")
+    from session_memory import processor as proc_mod
+
+    monkeypatch.setattr(proc_mod.SESSION_MEMORY, "enabled", False)
     ctx = RequestContext(
         headers={"x-forwarded-for": "10.0.0.1", "user-agent": "test"},
         messages=[{"role": "user", "content": "hello"}],

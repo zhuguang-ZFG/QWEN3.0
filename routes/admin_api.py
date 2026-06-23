@@ -9,8 +9,13 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backends_registry import BACKENDS, add_backend, has_backend, remove_backend
-import health_tracker
+from routes.facade import (
+    BACKENDS,
+    add_backend,
+    has_backend,
+    health_tracker,
+    remove_backend,
+)
 from device_gateway.family_gate import (
     approve_family,
     list_family_approvals,

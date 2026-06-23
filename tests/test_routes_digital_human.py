@@ -92,7 +92,9 @@ def test_build_auto_config_script():
 
 
 def test_digital_human_defaults(monkeypatch):
-    monkeypatch.setenv("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "custom-id")
+    from config.settings import DIGITAL_HUMAN
+
+    monkeypatch.setattr(DIGITAL_HUMAN, "device_id", "custom-id")
     defaults = dh._digital_human_defaults()
     assert defaults["device_id"] == "custom-id"
     assert defaults["wakeword_enabled"] is False

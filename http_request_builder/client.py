@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import os
-
 import httpx
 
 from backends_constants import GFW_BACKENDS
 from backends_registry import BACKENDS
+from config import settings
 
-GFW_PROXY_URL = os.environ.get("GFW_PROXY", "http://127.0.0.1:7897")
+GFW_PROXY_URL = settings.EMBEDDING.gfw_proxy or "http://127.0.0.1:7897"
 GFW_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
 

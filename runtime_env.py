@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
+from config import settings
 
 
 def is_production_runtime() -> bool:
-    return os.environ.get("LIMA_RUNTIME_ENV", "").strip().lower() in {"prod", "production"}
+    return settings.FLAGS.runtime_env in {"prod", "production"}

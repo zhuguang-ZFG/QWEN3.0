@@ -13,19 +13,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from typing import Optional
 
-_log = logging.getLogger(__name__)
+from config.settings import DEVICE
 
-_MQTT_ENABLED = os.environ.get("LIMA_DEVICE_MQTT_ENABLED", "0").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-}
-_MQTT_BROKER = os.environ.get("LIMA_DEVICE_MQTT_BROKER", "localhost")
-_MQTT_PORT = int(os.environ.get("LIMA_DEVICE_MQTT_PORT", "1883"))
-_MQTT_CLIENT_ID = os.environ.get("LIMA_DEVICE_MQTT_CLIENT_ID", "lima-router")
+_log = logging.getLogger(__name__)
 
 # In-memory registry of MQTT-connected devices: device_id -> asyncio.Queue
 _mqtt_devices: dict[str, asyncio.Queue[dict]] = {}
@@ -34,14 +26,14 @@ _main_loop: Optional[asyncio.AbstractEventLoop] = None
 
 
 def is_mqtt_enabled() -> bool:
-    return _MQTT_ENABLED
+    return DEVICE.mqtt_enabled
 
 
 def get_broker_config() -> dict:
     return {
-        "broker": _MQTT_BROKER,
-        "port": _MQTT_PORT,
-        "client_id": _MQTT_CLIENT_ID,
+        "broker": DEVICE.mqtt_broker,
+        "port": DEVICE.mqtt_port,
+        "client_id": DEVICE.mqtt_client_id,
     }
 
 
@@ -166,15 +158,15 @@ def get_mqtt_device_ids() -> list[str]:
 
 async def start_mqtt_client() -> None:
     """Start the MQTT client daemon (called from server lifespan)."""
-    if not _MQTT_ENABLED:
+    if not DEVICE.mqtt_enabled:
         _log.debug("MQTT device transport disabled")
         return
 
     _log.info(
         "Starting MQTT device transport: %s:%s as %s",
-        _MQTT_BROKER,
-        _MQTT_PORT,
-        _MQTT_CLIENT_ID,
+        DEVICE.mqtt_broker,
+        DEVICE.mqtt_port,
+        DEVICE.mqtt_client_id,
     )
 
     global _main_loop
@@ -186,7 +178,7 @@ async def start_mqtt_client() -> None:
 
 async def stop_mqtt_client() -> None:
     """Stop the MQTT client daemon."""
-    if not _MQTT_ENABLED:
+    if not DEVICE.mqtt_enabled:
         return
     _mqtt_devices.clear()
     _log.info("MQTT device transport stopped")
@@ -205,7 +197,7 @@ def _create_mqtt_client(
 
     def on_connect(client, userdata, flags, reason_code, properties=None):
         if reason_code == 0:
-            _log.info("MQTT connected to %s:%s", _MQTT_BROKER, _MQTT_PORT)
+            _log.info("MQTT connected to %s:%s", DEVICE.mqtt_broker, DEVICE.mqtt_port)
             client.subscribe(server_sub_filter)
         else:
             _log.warning("MQTT connect failed: rc=%s", reason_code)
@@ -281,13 +273,13 @@ async def _mqtt_message_loop() -> None:
         _json,
         message_queue,
         SERVER_SUB_FILTER,
-        _MQTT_CLIENT_ID,
+        DEVICE.mqtt_client_id,
         LWT_OFFLINE,
-        device_status_topic(_MQTT_CLIENT_ID),
+        device_status_topic(DEVICE.mqtt_client_id),
     )
 
     try:
-        client.connect(_MQTT_BROKER, _MQTT_PORT, keepalive=60)
+        client.connect(DEVICE.mqtt_broker, DEVICE.mqtt_port, keepalive=60)
         client.loop_start()
     except Exception as exc:
         _log.error("MQTT connect failed: %s", exc)
