@@ -120,14 +120,16 @@ def _sanitize_storage_text(text: str) -> str:
 
 def memory_stats() -> dict:
     """Return aggregate statistics about the memory store."""
-    conn = _get_conn()
-    total = conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0] or 0
-    by_type = conn.execute(
-        "SELECT memory_type, COUNT(*) FROM memories GROUP BY memory_type ORDER BY COUNT(*) DESC"
-    ).fetchall()
-    with_emb = conn.execute("SELECT COUNT(*) FROM memories WHERE embedding != '[]'").fetchone()[0] or 0
-    sessions = conn.execute("SELECT COUNT(DISTINCT session_id) FROM memories").fetchone()[0] or 0
-    conn.close()
+    from config.sqlite_pool import pooled_sqlite_conn
+
+    db_path = get_db_path()
+    with pooled_sqlite_conn(db_path) as conn:
+        total = conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0] or 0
+        by_type = conn.execute(
+            "SELECT memory_type, COUNT(*) FROM memories GROUP BY memory_type ORDER BY COUNT(*) DESC"
+        ).fetchall()
+        with_emb = conn.execute("SELECT COUNT(*) FROM memories WHERE embedding != '[]'").fetchone()[0] or 0
+        sessions = conn.execute("SELECT COUNT(DISTINCT session_id) FROM memories").fetchone()[0] or 0
     return {
         "total": total,
         "with_embeddings": with_emb,

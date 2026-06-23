@@ -1,0 +1,104 @@
+"""Thread-local SQLite connection pool.
+
+Reduces connection churn for modules that open/close SQLite on every operation.
+Connections are cached per thread and closed when the thread dies. Callers still
+own transaction boundaries via context managers.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+import threading
+from contextlib import contextmanager
+from typing import Generator
+
+
+class _ConnectionPool:
+    """Simple thread-local connection cache."""
+
+    def __init__(self, max_per_thread: int = 3) -> None:
+        self._max_per_thread = max(max_per_thread, 1)
+        self._local = threading.local()
+
+    def _pool(self) -> dict[str, list[sqlite3.Connection]]:
+        if not hasattr(self._local, "conns"):
+            self._local.conns: dict[str, list[sqlite3.Connection]] = {}
+        return self._local.conns
+
+    def get(self, path: str, *, check_same_thread: bool = False) -> sqlite3.Connection:
+        pool = self._pool()
+        available = pool.get(path)
+        if available:
+            conn = available.pop()
+            try:
+                conn.execute("SELECT 1")
+                return conn
+            except sqlite3.Error:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+        return sqlite3.connect(path, check_same_thread=check_same_thread)
+
+    def put(self, path: str, conn: sqlite3.Connection) -> None:
+        pool = self._pool()
+        if len(pool.get(path, [])) < self._max_per_thread:
+            pool.setdefault(path, []).append(conn)
+        else:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    def clear(self) -> None:
+        """Close all cached connections in the current thread."""
+        for path, conns in list(getattr(self._local, "conns", {}).items()):
+            for conn in conns:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+        self._local.conns = {}
+
+
+_POOL = _ConnectionPool()
+
+
+@contextmanager
+def pooled_sqlite_conn(
+    path: str,
+    *,
+    check_same_thread: bool = False,
+) -> Generator[sqlite3.Connection, None, None]:
+    """Yield a SQLite connection from the thread-local pool.
+
+    Commits on normal exit, rolls back on exception. The connection is returned
+    to the pool (or closed if the pool is full).
+    """
+    conn = _POOL.get(path, check_same_thread=check_same_thread)
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        _POOL.put(path, conn)
+
+
+def sqlite_connect_pooled(path: str, *, check_same_thread: bool = False) -> sqlite3.Connection:
+    """Get a pooled connection without context-manager lifecycle.
+
+    Caller must call `pool_release(path, conn)` when done.
+    """
+    return _POOL.get(path, check_same_thread=check_same_thread)
+
+
+def pool_release(path: str, conn: sqlite3.Connection) -> None:
+    """Return a connection acquired via `sqlite_connect_pooled`."""
+    _POOL.put(path, conn)
+
+
+def pool_clear() -> None:
+    """Close all pooled connections in the current thread (for tests)."""
+    _POOL.clear()
