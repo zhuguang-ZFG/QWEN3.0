@@ -1,12 +1,12 @@
 """API key guards for LiMa public and internal endpoints."""
 
 import logging
-import os
 import secrets
 
 from fastapi import Header, HTTPException, WebSocket
 
 import ws_ticket
+from config.settings import SECURITY
 from runtime_env import is_production_runtime
 
 _log = logging.getLogger(__name__)
@@ -16,17 +16,19 @@ _log = logging.getLogger(__name__)
 WS_QUERY_PARAM_TOKEN_WARNING = "Token supplied via query param for %s; ensure nginx access_log is off"
 
 
+_API_KEYS: set[str] = set()
+_PRIMARY_KEY = SECURITY.api_key.strip()
+if _PRIMARY_KEY:
+    _API_KEYS.add(_PRIMARY_KEY)
+for raw in SECURITY.api_keys.split(","):
+    key = raw.strip()
+    if key:
+        _API_KEYS.add(key)
+
+
 def configured_api_keys() -> set[str]:
     """Return non-empty private API keys from environment configuration."""
-    keys: set[str] = set()
-    primary = os.environ.get("LIMA_API_KEY", "").strip()
-    if primary:
-        keys.add(primary)
-    for raw in os.environ.get("LIMA_API_KEYS", "").split(","):
-        key = raw.strip()
-        if key:
-            keys.add(key)
-    return keys
+    return set(_API_KEYS)
 
 
 def is_private_access_configured() -> bool:
@@ -35,12 +37,7 @@ def is_private_access_configured() -> bool:
 
 
 def _anonymous_access_env_enabled() -> bool:
-    return os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    return SECURITY.allow_anonymous
 
 
 def allow_anonymous_access() -> bool:

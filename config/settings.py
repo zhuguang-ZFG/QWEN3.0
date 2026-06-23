@@ -42,6 +42,7 @@ class SecurityConfig:
     rate_limit_disable: bool = os.environ.get("LIMA_RATE_LIMIT_DISABLE", "").strip().lower() in {"1", "true", "yes", "on"}
     api_key: str = os.environ.get("LIMA_API_KEY", "")
     api_keys: str = os.environ.get("LIMA_API_KEYS", "")
+    allow_anonymous: bool = os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 @dataclass
