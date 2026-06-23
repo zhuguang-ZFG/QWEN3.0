@@ -34,5 +34,6 @@ class TestAlertRules:
         response = client.post("/api/alerts/rules", json={"name": "high_error"})
         assert response.status_code == 200
         data = response.json()
-        assert data["name"] == "high_error"
-        assert data["enabled"] is True
+        assert data["ok"] is True
+        assert data["rule"]["name"] == "high_error"
+        assert data["rule"]["enabled"] is True
