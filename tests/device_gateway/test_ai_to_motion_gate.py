@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -233,6 +235,31 @@ def test_task_status_endpoint_returns_terminal_phase_and_result() -> None:
     assert data["terminal_result"]["content"]["phase"] == "failed"
 
 
+def _hello_payload(device_id: str) -> dict[str, Any]:
+    return {
+        "type": "hello",
+        "protocol": "lima-device-v1",
+        "device_id": device_id,
+        "fw_rev": "u8-test",
+        "capabilities": ["run_path"],
+    }
+
+
+def _assert_motion_task_received(ws, task_id: str) -> None:
+    assert ws.receive_json()["type"] == "hello_ack"
+    motion_task = ws.receive_json()
+    assert motion_task["type"] == "motion_task"
+    assert motion_task["task_id"] == task_id
+
+
+def _send_terminal_phases(ws, device_id: str, task_id: str) -> None:
+    for phase in ("accepted", "running", "done"):
+        ws.send_json(
+            {"type": "motion_event", "device_id": device_id, "task_id": task_id, "phase": phase}
+        )
+        assert ws.receive_json()["type"] == "motion_event_ack"
+
+
 def test_disconnect_recovery_preserves_terminal_result() -> None:
     client = _client()
     created = client.post(
@@ -243,46 +270,13 @@ def test_disconnect_recovery_preserves_terminal_result() -> None:
     task_id = created["task"]["task_id"]
 
     with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json(
-            {
-                "type": "hello",
-                "protocol": "lima-device-v1",
-                "device_id": "dev-1",
-                "fw_rev": "u8-test",
-                "capabilities": ["run_path"],
-            }
-        )
-        assert ws.receive_json()["type"] == "hello_ack"
-        motion_task = ws.receive_json()
-        assert motion_task["task_id"] == task_id
+        ws.send_json(_hello_payload("dev-1"))
+        _assert_motion_task_received(ws, task_id)
 
-    # Simulate reconnect and terminal event
     with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json(
-            {
-                "type": "hello",
-                "protocol": "lima-device-v1",
-                "device_id": "dev-1",
-                "fw_rev": "u8-test",
-                "capabilities": ["run_path"],
-            }
-        )
-        assert ws.receive_json()["type"] == "hello_ack"
-        # The previously dispatched task is re-queued and drained again.
-        re_dispatch = ws.receive_json()
-        assert re_dispatch["type"] == "motion_task"
-        assert re_dispatch["task_id"] == task_id
-        # Device reports lifecycle phases leading to terminal result.
-        for phase in ("accepted", "running", "done"):
-            ws.send_json(
-                {
-                    "type": "motion_event",
-                    "device_id": "dev-1",
-                    "task_id": task_id,
-                    "phase": phase,
-                }
-            )
-            assert ws.receive_json()["type"] == "motion_event_ack"
+        ws.send_json(_hello_payload("dev-1"))
+        _assert_motion_task_received(ws, task_id)
+        _send_terminal_phases(ws, "dev-1", task_id)
 
     status_response = client.get(f"/device/v1/tasks/{task_id}", headers={"Authorization": "Bearer test-private-token"})
     data = status_response.json()
