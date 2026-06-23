@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import os
-
 from fastapi import APIRouter, Cookie, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
+from config.settings import SECURITY
 from routes.admin_api import router as admin_api_router
 from routes.admin_api_extra import router as admin_api_extra_router
 from routes.admin_auth import (
@@ -26,7 +25,7 @@ router.include_router(admin_api_extra_router)
 
 __all__ = ["router", "inject_state"]
 
-_ADMIN_LOGIN_MAX_PER_MIN = int(os.environ.get("LIMA_ADMIN_LOGIN_PER_MIN", "10"))
+_ADMIN_LOGIN_MAX_PER_MIN = SECURITY.admin_login_per_min
 
 
 @router.get("", response_class=HTMLResponse)

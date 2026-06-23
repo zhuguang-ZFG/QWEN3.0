@@ -10,13 +10,11 @@ from __future__ import annotations
 import logging
 import os
 
+from config.settings import FLAGS
+
 _log = logging.getLogger(__name__)
 
-_EMBED_ENABLED = os.environ.get("LIMA_MEMORY_EMBED", "1").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-}
+_EMBED_ENABLED = FLAGS.memory_embed
 
 
 def _generate_embedding(text: str) -> list[float]:

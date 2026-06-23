@@ -2,22 +2,16 @@
 
 from __future__ import annotations
 
-import os
-
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
 import rate_limiter
+from config.settings import SECURITY
 from routes.request_tracking import client_ip
 
 
 def _disabled() -> bool:
-    return os.environ.get("LIMA_RATE_LIMIT_DISABLE", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    return SECURITY.rate_limit_disable
 
 
 def check_key_limit(
