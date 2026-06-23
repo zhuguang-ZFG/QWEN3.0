@@ -50,7 +50,7 @@ async def probe_site(
             logger.debug("probe_site %s: HTTP %d", url[:60], resp.status_code)
             return None
     except Exception as exc:
-        logger.debug("probe_site %s: %s", url[:60], type(exc).__name__)
+        logger.warning("probe_site %s: %s", url[:60], exc)
         return None
 
 
@@ -70,7 +70,7 @@ async def intercept_network(url: str, wait_ms: int = 8000) -> list[dict]:
                 return data.get("api_calls", [])
             return []
     except Exception as exc:
-        logger.debug("intercept_network %s: %s", url[:60], type(exc).__name__)
+        logger.warning("intercept_network %s: %s", url[:60], exc)
         return []
 
 

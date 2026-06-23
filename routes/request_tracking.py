@@ -70,7 +70,7 @@ def get_ip_location(ip: str) -> str:
         data = json.loads(resp.read().decode())
         return f"{data.get('country', '')} {data.get('city', '')}"
     except Exception as exc:
-        log.debug("ip location lookup failed ip=%s: %s", ip, type(exc).__name__)
+        log.warning("ip location lookup failed ip=%s: %s", ip, exc, exc_info=True)
         return "未知"
 
 

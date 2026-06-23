@@ -88,6 +88,22 @@
 - 新增 4 个测试文件、47 个用例，覆盖 secret/PII 脱敏、输入/输出 guardrails、响应代码验证、session memory processor 四层 fallback。
 - 全量测试 **3508 passed / 17 skipped / 2 deselected / 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
 
+## 2026-06-22 P1-4 静默降级清理与缺陷文档状态同步
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SILENT-1 | quality | `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中多项已修复小项（P1-12、P2-2、P2-4、P2-5、P2-18、P3-17、P3-20）仍标记为未修复 | Closed |
+| SILENT-2 | quality | 核心路径中仍存在 `except Exception` 后仅 `_log.debug` 的静默降级 | Closed |
+| SILENT-3 | type | `code_context/chroma_vector_store.py` 的 `results["metadatas"]` 存在可选下标类型错误 | Closed |
+| SILENT-4 | type | `route_post_process.py` 的 `fallback_used` 被 pyright 推断为 `list[str] \| bool` | Closed |
+
+**修复摘要**
+- 同步缺陷文档状态：将 P1-12、P2-2、P2-4、P2-5、P2-18、P3-17、P3-20 标记为 ✅ 已修复。
+- 使用 AST 扫描定位所有 `except Exception` 块内的 `.debug()` 调用，修复核心/生产路径 10 处：
+  - `route_post_process.py`、`speculative_execution.py`、`code_context/chroma_vector_store.py`、`context_pipeline/code_context_injection.py`、`routes/device_gateway_dispatch.py`、`routes/request_tracking.py`、3 个 provider_probe 文件。
+- 修复 `chroma_vector_store.py` 与 `route_post_process.py` 的类型问题，使 `pyright` 0 errors。
+- 全量测试 **3508 passed / 17 skipped / 2 deselected / 0 failed**；`ruff check` 与 `pyright` clean。
+
 ## 2026-06-20 工作区清理与 redis_store 瘦身
 
 | ID | Area | Finding | Status |

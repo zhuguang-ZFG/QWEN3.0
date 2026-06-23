@@ -114,15 +114,18 @@ class ChromaCodeIndex:
                 n_results=min(limit, 10),
             )
             records: list[FileRecord] = []
-            if results and results.get("metadatas"):
-                for meta in results["metadatas"][0]:
-                    path = meta.get("path", "")
+            metadatas = results.get("metadatas") if results else None
+            if metadatas and metadatas[0]:
+                for meta in metadatas[0]:
+                    if not meta:
+                        continue
+                    path = str(meta.get("path", ""))
                     record = self._fallback._files.get(path)
                     if record:
                         records.append(record)
             return records
         except Exception as exc:
-            _log.debug("ChromaDB search failed: %s", exc)
+            _log.warning("ChromaDB search failed: %s", exc, exc_info=True)
             return self._fallback.search(query, limit)
 
     def delete_file(self, path: str) -> None:

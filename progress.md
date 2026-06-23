@@ -59,10 +59,43 @@
   - 新增 `tests/test_session_memory_processor.py`（11 用例）：覆盖 keyword/semantic/cross-session/recent 四层 fallback、system_prompt 追加、保存开关。
   - **验证结果**：`python -m pytest -q` → **3508 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
 
+- **本轮新增（2026-06-22 21:50）——P1-4 静默降级清理与缺陷文档状态同步**：
+  - 更新 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`，将已修复的小项标记为 ✅：P1-12、P2-2、P2-4、P2-5、P2-18、P3-17、P3-20（ruff exclude）。
+  - 修复核心路径中 `except Exception` 后仅 `_log.debug` 的静默降级：
+    - `route_post_process.py`：`cloud_services` 失败改为 `_log.warning(..., exc_info=True)`；修复 `fallback_used` 类型推断。
+    - `speculative_execution.py`：投机执行 worker 失败改为 `logger.warning(..., exc_info=True)`。
+    - `code_context/chroma_vector_store.py`：ChromaDB 查询失败改为 `_log.warning(..., exc_info=True)`；修复 `results["metadatas"]` 可选下标类型问题。
+    - `context_pipeline/code_context_injection.py`：代码上下文扫描失败改为 `_log.warning(..., exc_info=True)`。
+    - `routes/device_gateway_dispatch.py`：任务下发/排空失败两处 `_log.debug` 改为 `_log.warning(..., exc_info=True)`。
+    - `routes/request_tracking.py`：IP 地理位置查询失败改为 `log.warning(..., exc_info=True)`。
+    - `packages/provider-probe-offline/provider_probe/discovery/browser_probe.py`、`chinese_platforms.py`、`reverse/model_extractor.py`：离线探测异常由 `logger.debug` 改为 `logger.warning`。
+  - 通过 AST 扫描确认：除 `reference/ECC/` 参考代码外，项目中已无 `except Exception` 块内直接调用 `.debug()` 的情况。
+  - **验证结果**：`python -m pytest -q` → **3508 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
+
 - **剩余大项**（需单独里程碑）：
-  - P3-14：SQLite 连接池代理已落地（`config/sqlite_pool.py::_PooledConnectionProxy`），`session_memory/store_db.py` 的 `_get_conn()` 已迁移；`store_crud.py`/`store_admin.py`/`store_promote.py` 等下游模块通过 `_get_conn()` 间接受益。
-  - P2-9：`routes/` 覆盖进行中：`admin_auth.py`、`admin_backends.py`、`security_headers.py`、`rate_limit_helper.py`、`async_compat.py`、`ws_common.py`、`json_body.py`、`admin_state.py`、`request_tracking.py`、`admin_extra_logs.py`、`admin_extra_alerts.py`、`admin_extra_config.py`、`admin_extra_devices.py`、`admin_extra_client_keys.py`、`admin_extra_insights.py`、`admin_extra_agent_tasks.py`、`chat_support.py`、`admin_extra_backend_edit.py` 已测，剩余 ~35 模块。
-  - P1-2：新增 `config/settings.py`，已迁移 `LIMA_RATE_LIMIT_DISABLE`、`LIMA_ADMIN_LOGIN_PER_MIN`、`LIMA_MEMORY_EMBED`、`LIMA_DEBUG`、`LIMA_API_KEY`/`LIMA_API_KEYS`、`LIMA_ALLOW_ANONYMOUS`，剩余以 backend API key 为主的调用。
+  - P1-2：环境变量集中化（剩余 backend API key 等约 200 处）。
+  - P1-4：仍有大量 `except Exception` 后使用 `logger.debug` 或 `_log.debug` 的非生产/参考路径，待逐文件审查。
+  - P1-7：测试模块级 `os.environ` 赋值清理。
+  - P1-8：`design_system.py` 10 份副本去重。
+  - P1-9/P2-15：`context_pipeline/` 死代码清理。
+  - P1-10/P2-21/P3-12：复杂度评估逻辑统一。
+  - P1-11：JDCloud 部署脚本 Prometheus HTTP 下载校验。
+  - P2-1：57 个 >50 行函数拆分。
+  - P2-6：20 个 250-300 行文件瘦身。
+  - P2-7/P2-8/P2-9：context_pipeline/session_memory/routes 覆盖空白继续补充。
+  - P2-10：`time.time()` flaky 测试治理。
+  - P2-12/P2-13/P2-14：三通道统一/sync-async 桥接/device store 抽象。
+  - P2-16/P2-17：HTTP 明文后端治理。
+  - P3-1/P3-2：health_tracker 封装与健康子系统合并。
+  - P3-3/P3-4：未使用的 RequestContext/ResponsePipeline 清理。
+  - P3-5/P3-6/P3-8/P3-9：死测试/低质量测试清理。
+  - P3-7：`xiaozhi_schema/test_triggers.py` sleep 优化。
+  - P3-10/P3-11：`pick_backend()` / `route()` 职责拆分。
+  - P3-13：`speculative_execution` 纯 async 改造评估。
+  - P3-14：SQLite 连接池迁移下游模块。
+  - P3-15：device_gateway 目录瘦身。
+  - P3-16：Client Keys 持久化。
+  - P3-19：`task_deps.py` 合并。
 
 ## 2026-06-22 LiMa 第七轮瘦身（完成）
 

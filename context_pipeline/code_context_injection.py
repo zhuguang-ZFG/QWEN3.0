@@ -168,7 +168,7 @@ def _scan_single_file(path: Path) -> str:
 
         return "\n".join(lines)
     except Exception as exc:
-        _log.debug("scan %s failed: %s", path, exc)
+        _log.warning("scan %s failed: %s", path, exc, exc_info=True)
         return ""
 
 

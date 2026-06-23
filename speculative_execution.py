@@ -95,7 +95,7 @@ async def _spec_worker(
             phase="speculative",
             attempt="parallel",
         )
-        logger.debug("[SPEC_ASYNC] %s failed: %s", backend, type(e).__name__)
+        logger.warning("[SPEC_ASYNC] %s failed: %s", backend, e, exc_info=True)
         return ""
 
 

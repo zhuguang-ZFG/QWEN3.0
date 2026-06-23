@@ -90,11 +90,12 @@ async def dispatch_task_to_session(session: DeviceSession, task: dict[str, Any])
     try:
         await session.send_json(task)
     except Exception as exc:
-        _log.debug(
+        _log.warning(
             "dispatch task failed device=%s task=%s: %s",
             session.device_id,
             task.get("task_id", ""),
-            type(exc).__name__,
+            exc,
+            exc_info=True,
         )
         registry.unregister(session.device_id, session.websocket)
         requeue_session_outstanding(session, [task])
@@ -113,11 +114,12 @@ async def drain_pending_tasks(session: DeviceSession) -> bool:
             try:
                 await session.send_json(pending_task)
             except Exception as exc:
-                _log.debug(
+                _log.warning(
                     "drain pending failed device=%s task=%s: %s",
                     session.device_id,
                     pending_task.get("task_id", ""),
-                    type(exc).__name__,
+                    exc,
+                    exc_info=True,
                 )
                 registry.unregister(session.device_id, session.websocket)
                 requeue_session_outstanding(session, pending_tasks[index:])

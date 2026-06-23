@@ -58,9 +58,7 @@ def _post_cloud_services(
         log_routing_decision(final_backend, req_type, scenario, ms, fallback_used)
         log_llm_run(final_backend, final_backend, ms, scenario=scenario)
     except Exception as cloud_exc:
-        import logging as _cl
-
-        _cl.getLogger(__name__).debug("cloud_services failed: %s", cloud_exc)
+        _log.warning("cloud_services failed: %s", cloud_exc, exc_info=True)
 
 
 def _post_response_pipeline(
@@ -177,7 +175,7 @@ def apply_post_route_integrations(
     ms: int,
 ) -> None:
     """Run optional post-route side effects without failing the caller."""
-    fallback_used = final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]
+    fallback_used = bool(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0])
     _post_narrative_reframe(final_backend, backends, messages_injected, answer)
     _post_routing_bridge(final_backend, ms, answer, scenario)
     _post_cloud_services(final_backend, req_type, scenario, ms, fallback_used)

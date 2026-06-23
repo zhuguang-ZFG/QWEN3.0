@@ -78,7 +78,7 @@ async def fetch_page(url: str, headers: dict | None = None) -> str | None:
             logger.debug("fetch_page %s: HTTP %d", url[:60], resp.status_code)
             return None
     except Exception as exc:
-        logger.debug("fetch_page %s: %s", url[:60], type(exc).__name__)
+        logger.warning("fetch_page %s: %s", url[:60], exc)
         return None
 
 

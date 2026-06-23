@@ -508,7 +508,7 @@ def test_weather_provider_uses_cache():
 
 ---
 
-### P1-12：`device_logic/auth.py` 认证异常静默返回 False
+### P1-12：`device_logic/auth.py` 认证异常静默返回 False ✅ 已修复
 
 **文件**：`device_logic/auth.py:50-51`
 
@@ -521,11 +521,10 @@ except Exception:
 认证系统故障时返回 `False`（认证失败），与"凭证错误"无法区分，可能掩盖安全漏洞。
 
 **修复方案**：
-```python
-except Exception as exc:
-    _log.error("device auth check raised: %s", exc, exc_info=True)
-    return False  # 仍然拒绝，但记录原因
-```
+- `_verify_password()` 中对 `Exception` 已记录 `_log.error(..., exc_info=True)` 后再返回 `False`。
+- 其他认证路径的异常不再静默吞没。
+
+**验证**：新增 `tests/test_device_logic_auth.py` 覆盖异常分支；全量测试通过。
 
 **预估工作量**：0.25 人天
 
@@ -543,11 +542,13 @@ except Exception as exc:
 
 ---
 
-### P2-2：`routes/v3_adapters.py` 重复 lazy import
+### P2-2：`routes/v3_adapters.py` 重复 lazy import ✅ 已修复
 
-**文件**：`routes/v3_adapters.py`（4 处重复 `from routing_engine import classify_scenario`）
+**文件**：`routes/v3_adapters.py`（原 4 处重复 `from routing_engine import classify_scenario`）
 
-**修复方案**：提取为模块顶层导入或公共 helper 函数。
+**修复方案**：`classify_scenario` 已提取为模块顶层导入（`from routing_engine import classify_scenario`），各函数直接引用，不再重复 lazy import。
+
+**验证**：`ruff check routes/v3_adapters.py` clean；全量测试通过。
 
 **预估工作量**：0.25 人天
 
@@ -566,14 +567,15 @@ except Exception as exc:
 
 ---
 
-### P2-4/P2-5：配置文件幻影路径
+### P2-4/P2-5：配置文件幻影路径 ✅ 已修复
 
 **文件**：`pyrightconfig.json`、`ruff.toml`
 
 **修复方案**：
-- `pyrightconfig.json`：删除 `search_gateway/`
-- `ruff.toml`：删除 `backends.py` 豁免、删除 6 个不存在的 exclude 路径
-- 追加 `.venv310/`、`.test-tmp/`、`.pnpm-store/` 到 ruff exclude
+- `pyrightconfig.json`：已删除 `search_gateway/` 等不存在路径。
+- `ruff.toml`：已删除 `backends.py` 豁免及不存在 exclude 路径；已追加 `.venv310/`、`.test-tmp/`、`.pnpm-store/`。
+
+**验证**：`ruff check .` 与 `pyright` 配置生效，无幻影路径报错。
 
 **预估工作量**：0.25 人天
 
@@ -688,11 +690,13 @@ except Exception as exc:
 
 ---
 
-### P2-18：缺少 CSP header
+### P2-18：缺少 CSP header ✅ 已修复
 
 **文件**：`routes/security_headers.py`
 
-**修复方案**：添加 `Content-Security-Policy` header，至少 `default-src 'self'`。对 admin 面板需更严格策略。
+**修复方案**：已添加 `Content-Security-Policy` header：`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'`。
+
+**验证**：新增 `tests/test_security_headers.py` 覆盖 CSP 严格性；全量测试通过。
 
 **预估工作量**：0.25 人天
 
@@ -818,9 +822,11 @@ except Exception as exc:
 
 ---
 
-### P3-17：paramiko 版本升级
+### P3-17：paramiko 版本升级 ✅ 已修复
 
-**修复方案**：`requirements_server.txt` 中 `paramiko>=3.4.0` 改为 `paramiko>=3.5.0`。
+**修复方案**：`requirements_server.txt` 中 `paramiko>=3.4.0` 已改为 `paramiko>=3.5.0`。
+
+**验证**：依赖解析通过；安全扫描无 paramiko 相关 CVE 告警。
 
 **预估工作量**：0.1 人天
 
@@ -836,7 +842,9 @@ except Exception as exc:
 
 ### P3-19/P3-20：小项修复
 
-**修复方案**：合并 `task_deps.py`；更新 ruff exclude 列表。
+**修复方案**：
+- P3-20（ruff exclude）：已更新 `ruff.toml`，排除 `.venv310/`、`.test-tmp/`、`.pnpm-store/`，并删除不存在路径。
+- P3-19（合并 `task_deps.py`）：待处理。
 
 **预估工作量**：0.25 人天
 

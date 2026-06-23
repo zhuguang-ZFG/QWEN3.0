@@ -42,7 +42,7 @@ async def extract_models(base_url: str, api_key: str = "") -> list[dict]:
                 )
             return result
     except Exception as exc:
-        logger.debug("extract_models error: %s", type(exc).__name__)
+        logger.warning("extract_models error: %s", exc)
         return []
 
 
