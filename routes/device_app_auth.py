@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import os
-
 from fastapi import APIRouter, Header, Request
+
+from config.env import wechat_dev_login_enabled, xiaozhi_dev_static_login_code_enabled
 from fastapi.responses import JSONResponse
 
 from device_logic.auth import account_payload, authorize, make_token
@@ -15,11 +15,10 @@ from device_logic.sms import login_code_error, sms_verification_payload, validat
 from routes.request_tracking import client_ip
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-auth"])
-_STATIC_LOGIN_DEV_ENV = "LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE"
 
 
 def _static_login_code_error() -> JSONResponse | None:
-    if os.environ.get(_STATIC_LOGIN_DEV_ENV, "").strip().lower() in {"1", "true", "yes", "on"}:
+    if xiaozhi_dev_static_login_code_enabled():
         return login_code_error()
     return err(503, "Static SMS verification code is disabled outside dev mode", 503)
 
@@ -38,7 +37,7 @@ def _login_response(row):
 
 
 def _wechat_openid_from_code(code: str) -> str:
-    if os.environ.get("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", "").strip().lower() not in {"1", "true", "yes", "on"}:
+    if not wechat_dev_login_enabled():
         return ""
     return f"wx:{code}"
 

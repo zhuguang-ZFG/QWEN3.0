@@ -4,21 +4,25 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import os
 import time
+
+from config.env import (
+    upload_public_get_enabled as _env_upload_public_get_enabled,
+    upload_token_secret as _env_upload_token_secret,
+    upload_token_ttl as _env_upload_token_ttl,
+)
 
 
 def _secret() -> bytes:
-    raw = os.environ.get("LIMA_UPLOAD_TOKEN_SECRET") or os.environ.get("LIMA_JWT_SECRET", "")
-    return raw.encode()
+    return _env_upload_token_secret()
 
 
 def public_upload_get_enabled() -> bool:
-    return os.environ.get("LIMA_UPLOAD_PUBLIC_GET", "0").strip().lower() in {"1", "true", "yes"}
+    return _env_upload_public_get_enabled()
 
 
 def upload_access_token(filename: str, *, ttl_seconds: int | None = None) -> str:
-    ttl = ttl_seconds if ttl_seconds is not None else int(os.environ.get("LIMA_UPLOAD_TOKEN_TTL", "86400"))
+    ttl = ttl_seconds if ttl_seconds is not None else _env_upload_token_ttl()
     exp = int(time.time()) + ttl
     sig = hmac.new(_secret(), f"{filename}:{exp}".encode(), hashlib.sha256).hexdigest()
     return f"{exp}.{sig}"

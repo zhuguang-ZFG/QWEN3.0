@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, File, Header, Query, Request, UploadFile
+
+from config.env import upload_per_min
 from fastapi.responses import FileResponse, JSONResponse
 
 from routes.upload_tokens import public_upload_get_enabled, upload_access_token, verify_upload_access_token
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_UPLOAD_MAX_PER_MIN = int(os.environ.get("LIMA_UPLOAD_PER_MIN", "30"))
+_UPLOAD_MAX_PER_MIN = upload_per_min()
 
 _BASE_DIR = Path(__file__).resolve().parent.parent
 _UPLOAD_DIR = _BASE_DIR / "data" / "uploads"

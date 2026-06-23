@@ -2,19 +2,20 @@
 
 import hashlib
 import hmac
-import os
 import secrets
 from urllib.parse import urlparse
 
 from fastapi import Cookie, Header, HTTPException, Request
 
+from config.env import admin_token
+
 
 SESSION_COOKIE = "lima_admin_session"
-_ADMIN_TOKEN = os.environ.get("LIMA_ADMIN_TOKEN", "")
+_ADMIN_TOKEN = admin_token()
 
 
 def get_admin_token() -> str:
-    return os.environ.get("LIMA_ADMIN_TOKEN", "") or _ADMIN_TOKEN
+    return _ADMIN_TOKEN or admin_token()
 
 
 def admin_session_value() -> str:

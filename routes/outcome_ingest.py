@@ -10,9 +10,10 @@ Protected by LIMA_API_KEY (same as other internal endpoints).
 from __future__ import annotations
 
 import logging
-import os
 
 from fastapi import APIRouter, Depends, Request
+
+from config.env import outcome_ingest_per_min
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/internal/v1", tags=["internal"])
 
 logger = logging.getLogger(__name__)
 
-_OUTCOME_MAX_PER_MIN = int(os.environ.get("LIMA_OUTCOME_INGEST_PER_MIN", "60"))
+_OUTCOME_MAX_PER_MIN = outcome_ingest_per_min()
 
 
 @router.post("/outcome", dependencies=[Depends(require_private_api_key)])

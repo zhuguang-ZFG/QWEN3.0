@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from typing import Any
+
+from config.env import google_ai_key
 
 import websockets
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
@@ -33,7 +34,7 @@ _GEMINI_LIVE_URL = (
 
 
 def _google_api_key() -> str | None:
-    key = os.environ.get("GOOGLE_AI_KEY", "").strip()
+    key = google_ai_key().strip()
     return key or None
 
 

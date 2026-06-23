@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import re
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
+
+from config.env import device_ota_state_path
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
@@ -19,7 +20,7 @@ _LOWER_HEX_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _state_path() -> str | None:
-    return os.environ.get("LIMA_DEVICE_OTA_STATE_PATH") or None
+    return device_ota_state_path()
 
 
 _gate = ReleaseGate(_state_path())

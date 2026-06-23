@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import base64
 import logging
-import os
 from typing import Any
+
+from config.env import voice_max_audio_bytes
 
 from fastapi import WebSocket
 
@@ -21,7 +22,8 @@ _log = logging.getLogger(__name__)
 _audio_registry: dict[str, tuple] = {}
 
 # Max decoded PCM bytes per audio chunk / voiceprint sample (default 1 MiB).
-_MAX_AUDIO_BYTES = int(os.environ.get("LIMA_VOICE_MAX_AUDIO_BYTES", "1048576"))
+# Kept as a module-level alias so tests can monkeypatch it directly.
+_MAX_AUDIO_BYTES = voice_max_audio_bytes()
 
 
 def _decode_limited_audio(data_b64: str, device_id: str, label: str) -> bytes | None:

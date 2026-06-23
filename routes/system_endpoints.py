@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import os
 import time
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+
+from config.env import gemini_live_model, google_ai_key, health_show_errors
 from fastapi.responses import JSONResponse
 
 import brand_config
@@ -16,8 +17,6 @@ import health_state
 import health_tracker
 import server_lifespan
 import ws_ticket
-
-_SHOW_HEALTH_ERRORS = os.environ.get("LIMA_HEALTH_SHOW_ERRORS", "0").strip().lower() in {"1", "true", "yes"}
 
 router = APIRouter()
 
@@ -114,7 +113,7 @@ async def health():
             "status": startup_status,
             "phases": phases,
             "pending_warm": state.get("pending_warm", []),
-            "errors": startup_errors if _SHOW_HEALTH_ERRORS else [],
+            "errors": startup_errors if health_show_errors() else [],
             "error_count": len(startup_errors),
             "error_phases": _startup_error_phases(startup_errors),
         },
@@ -130,15 +129,12 @@ async def health():
 @router.get("/api/live-key", dependencies=[Depends(require_private_api_key)])
 async def live_key():
     """Capability metadata only; raw provider keys stay server-side."""
-    key = os.environ.get("GOOGLE_AI_KEY", "")
+    key = google_ai_key()
     if not key:
         raise HTTPException(status_code=503, detail="Gemini key not configured")
     return {
         "available": True,
-        "model": os.environ.get(
-            "LIMA_GEMINI_LIVE_MODEL",
-            "models/gemini-3.1-flash-live-preview",
-        ),
+        "model": gemini_live_model(),
         "url": "/v1/live",
         "auth": "server_side_only",
         "detail": ("Connect to the LiMa Gemini Live WebSocket proxy at /v1/live."),

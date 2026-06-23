@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import time
 from collections import defaultdict, deque
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+
+from config.env import public_demo_enabled, public_demo_max_per_minute
 from fastapi.responses import JSONResponse
 
 from chat_models import ChatRequest
@@ -19,7 +20,6 @@ router = APIRouter()
 
 _deps: dict[str, Any] = {}
 _PUBLIC_DEMO_WINDOW_SECONDS = 60
-_PUBLIC_DEMO_DEFAULT_LIMIT = 6
 _PUBLIC_DEMO_MAX_TOKENS = 200
 _PUBLIC_DEMO_MAX_CHARS = 1200
 _public_demo_hits: defaultdict[str, deque[float]] = defaultdict(deque)
@@ -41,21 +41,11 @@ def _model_id() -> str:
 
 
 def _public_demo_enabled() -> bool:
-    return os.environ.get("LIMA_PUBLIC_DEMO_ENABLED", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    return public_demo_enabled()
 
 
 def _public_demo_limit() -> int:
-    raw_limit = os.environ.get("LIMA_PUBLIC_DEMO_MAX_PER_MINUTE", "").strip()
-    try:
-        limit = int(raw_limit) if raw_limit else _PUBLIC_DEMO_DEFAULT_LIMIT
-    except ValueError:
-        limit = _PUBLIC_DEMO_DEFAULT_LIMIT
-    return max(1, min(60, limit))
+    return public_demo_max_per_minute()
 
 
 def _public_demo_client_key(request: Request) -> str:

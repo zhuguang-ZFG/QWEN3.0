@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, HTTPException
+
+from config.env import digital_human_config
 from fastapi.responses import FileResponse, HTMLResponse
 
 _log = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ _FALLBACK_DH_DIR = _PROJECT_ROOT / "data" / "digital-human"
 def _resolve_assets() -> tuple[Path, Path] | None:
     """Return (directory, index_path) if digital-human assets are available."""
     candidates = [_DEFAULT_DH_DIR, _FALLBACK_DH_DIR]
-    env_dir = os.environ.get("LIMA_DIGITAL_HUMAN_DIR", "").strip()
+    env_dir = digital_human_config().directory
     if env_dir:
         candidates.insert(0, Path(env_dir))
     for directory in candidates:
@@ -168,13 +169,12 @@ def _build_auto_config_script(
 
 def _digital_human_defaults() -> dict[str, str | bool]:
     """Return non-secret default connection values from environment variables."""
-    device_id = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip()
+    cfg = digital_human_config()
     return {
-        "device_id": device_id,
-        "device_name": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_NAME", "LiMa 星云数字人").strip(),
-        "client_id": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_CLIENT_ID", "web_test_client").strip(),
-        "wakeword_enabled": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_WAKEUP_WORD_ENABLED", "false").strip().lower()
-        == "true",
+        "device_id": cfg.device_id,
+        "device_name": cfg.device_name,
+        "client_id": cfg.client_id,
+        "wakeword_enabled": cfg.wakeword_enabled,
     }
 
 

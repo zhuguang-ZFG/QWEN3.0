@@ -10,10 +10,11 @@ import os
 import sys
 import time
 
+from config.env import debug_enabled, distill_log_enabled
+
 _log = logging.getLogger(__name__)
 
 _DISTILL_QUEUE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "distill_queue", "pending")
-_DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 
 
 def _quick_score(query: str, answer: str) -> float:
@@ -53,7 +54,7 @@ def _quick_score(query: str, answer: str) -> float:
 
 def _log_to_distill_queue(query: str, answer: str, intent: dict, backend: str) -> None:
     """Write a distill-queue entry for later retraining/annotation."""
-    if os.environ.get("DISTILL_LOG", "0") != "1":
+    if not distill_log_enabled():
         return
     if backend == "local":
         return
@@ -78,10 +79,10 @@ def _log_to_distill_queue(query: str, answer: str, intent: dict, backend: str) -
         fname = os.path.join(_DISTILL_QUEUE_DIR, f"{ts}_{qhash}.json")
         with open(fname, "w", encoding="utf-8") as handle:
             json.dump(entry, handle, ensure_ascii=False, indent=2)
-        if _DEBUG:
+        if debug_enabled():
             print(f"[DISTILL] logged: {query[:30]}... -> {backend}", file=sys.stderr)
     except Exception as exc:
-        if _DEBUG:
+        if debug_enabled():
             print(f"[DISTILL] log failed: {exc}", file=sys.stderr)
 
 
@@ -185,7 +186,7 @@ def record_chat_observability(*, chat_id: str, backend: str, duration_ms: int) -
 
 
 def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -> None:
-    if os.environ.get("DISTILL_LOG", "0") != "1":
+    if not distill_log_enabled():
         return
     try:
         intent_payload = intent if isinstance(intent, dict) else {"intent": intent}

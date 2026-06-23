@@ -1,9 +1,10 @@
 """routes/embeddings.py — OpenAI-compatible embeddings proxy (Jina AI)."""
 
 import json
-import os
 
 from fastapi import APIRouter, Depends, Request
+
+from config.env import gfw_proxy, jina_api_key
 from fastapi.responses import JSONResponse
 import httpx
 
@@ -51,15 +52,15 @@ async def embeddings(request: Request):
     if isinstance(dimensions, JSONResponse):
         return dimensions
 
-    jina_key = os.environ.get("JINA_API_KEY", "")
-    if not jina_key:
+    key = jina_api_key()
+    if not key:
         return JSONResponse({"error": "JINA_API_KEY not configured"}, status_code=503)
 
-    gfw_proxy = os.environ.get("GFW_PROXY", "")
+    proxy = gfw_proxy()
     payload = {"model": model, "input": inp, "dimensions": dimensions}
     try:
-        if gfw_proxy:
-            client_ctx = httpx.AsyncClient(timeout=15.0, proxy=gfw_proxy)
+        if proxy:
+            client_ctx = httpx.AsyncClient(timeout=15.0, proxy=proxy)
         else:
             client_ctx = httpx.AsyncClient(timeout=15.0)
         async with client_ctx as client:
@@ -67,7 +68,7 @@ async def embeddings(request: Request):
                 "https://api.jina.ai/v1/embeddings",
                 json=payload,
                 headers={
-                    "Authorization": f"Bearer {jina_key}",
+                    "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
                     "User-Agent": "LiMa/1.3",
                 },

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import threading
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -11,6 +10,7 @@ from typing import Any, Callable
 from fastapi import FastAPI
 
 from channel_retirement import mark_retired_modules
+from config.env import admin_token, lima_api_key, xiaozhi_compat_enabled
 
 
 @dataclass
@@ -199,7 +199,7 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
 def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     """Mount optional routers with graceful ImportError fallback."""
     loaded = deps.loaded_modules
-    if os.environ.get("LIMA_XIAOZHI_COMPAT_ENABLED", "").strip().lower() in {"1", "true", "yes"}:
+    if xiaozhi_compat_enabled():
         _try_include(app, loaded, "routes.xiaozhi_v1_compat", "xiaozhi_v1_compat")
     else:
         loaded["xiaozhi_v1_compat"] = False
@@ -207,10 +207,10 @@ def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     _try_include(app, loaded, "routes.health_dashboard", "health_dashboard")
 
     def _fleet_inject(mod: Any) -> None:
-        admin_token = os.environ.get("LIMA_ADMIN_TOKEN", "") or os.environ.get("LIMA_API_KEY", "")
-        if not admin_token:
+        token = admin_token() or lima_api_key()
+        if not token:
             logging.warning("LIMA_ADMIN_TOKEN/LIMA_API_KEY not set; fleet API will reject all requests")
-        mod.inject_state(admin_token=admin_token)
+        mod.inject_state(admin_token=token)
 
     _try_include(app, loaded, "routes.fleet_api", "fleet", inject=_fleet_inject)
     _try_include(app, loaded, "routes.eval_internal", "eval_internal")
