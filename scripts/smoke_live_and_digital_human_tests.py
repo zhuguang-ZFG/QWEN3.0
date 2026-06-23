@@ -14,10 +14,12 @@ SMOKE_DIR = Path(__file__).resolve().parent
 if str(SMOKE_DIR) not in sys.path:
     sys.path.insert(0, str(SMOKE_DIR))
 
+from config import deploy_config, settings
+
 import ws_ticket_http
 
 
-LIMA_HOST = os.environ.get("LIMA_VERIFY_HOST", "chat.donglicao.com")
+LIMA_HOST = deploy_config.VERIFY_HOST
 
 
 def _build_gemini_ws_url(cfg: dict, api_key: str) -> tuple[str, str]:
@@ -125,8 +127,8 @@ async def _test_gemini_live(cfg: dict, api_key: str) -> dict:
 
 def _load_digital_human_creds() -> tuple[str, str, str | None]:
     """Return (device_id, token, error_or_none)."""
-    device_id = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "").strip()
-    token = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip()
+    device_id = settings.DEVICE.digital_human_default_device_id.strip()
+    token = settings.DEVICE.digital_human_default_token.strip()
     if not token:
         return "", "", "LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN not set; supply a device token in .env"
     return device_id or "web-tester", token, None

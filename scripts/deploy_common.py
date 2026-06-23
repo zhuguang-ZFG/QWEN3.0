@@ -7,22 +7,24 @@ from typing import Any
 
 import paramiko
 
-SERVER = "47.112.162.80"
-REMOTE = "/opt/lima-router"
-KEY = os.path.expanduser(os.environ.get("LIMA_DEPLOY_KEY_PATH", "~/.ssh/id_ed25519"))
-JDCLOUD_SERVER = os.environ.get("LIMA_JDCLOUD_SERVER") or os.environ.get("JDCLOUD_HOST") or "117.72.118.95"
-JDCLOUD_USER = os.environ.get("JDCLOUD_USER", "root")
-JDCLOUD_REMOTE_PROBE = "/opt/lima-probe"
+from config import deploy_config
+
+SERVER = deploy_config.LIMA_SERVER
+REMOTE = deploy_config.REMOTE_PATH
+KEY = deploy_config.expanded_key_path()
+JDCLOUD_SERVER = deploy_config.JDCLOUD_SERVER
+JDCLOUD_USER = deploy_config.JDCLOUD_USER
+JDCLOUD_REMOTE_PROBE = deploy_config.JDCLOUD_REMOTE_PROBE_PATH
 
 
 def notify_enabled() -> bool:
-    return os.environ.get("LIMA_DEPLOY_NOTIFY", "1").strip().lower() not in {"0", "false", "no"}
+    return deploy_config.deploy_notify_enabled()
 
 
 def configure_ssh_host_keys(ssh: paramiko.SSHClient) -> None:
     """Load known_hosts and reject unknown SSH host keys."""
     ssh.load_system_host_keys()
-    known_hosts = os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS")
+    known_hosts = deploy_config.deploy_known_hosts()
     if known_hosts:
         ssh.load_host_keys(os.path.expanduser(known_hosts))
     ssh.set_missing_host_key_policy(paramiko.RejectPolicy())

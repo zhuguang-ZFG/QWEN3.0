@@ -11,7 +11,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(os.environ.get("LIMA_ROUTER_ROOT", "/opt/lima-router"))
+from config import deploy_config, settings
+
+ROOT = Path(deploy_config.router_root())
 
 REQUIRED_IMPORTS = {
     "fastapi": "fastapi",
@@ -46,7 +48,11 @@ def _has_module(module: str) -> bool:
 
 
 def _load_env_presence(env_path: Path) -> dict[str, bool]:
-    values: dict[str, bool] = {key: bool(os.environ.get(key)) for key in SECRET_KEYS}
+    values: dict[str, bool] = {
+        "LIMA_API_KEY": bool(settings.SECURITY.api_key),
+        "LIMA_API_KEYS": bool(settings.SECURITY.api_keys),
+        "LIMA_ADMIN_TOKEN": bool(settings.SECURITY.admin_token),
+    }
     if not env_path.exists():
         return values
     try:

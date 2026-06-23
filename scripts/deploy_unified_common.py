@@ -62,9 +62,11 @@ SLICE_FILES = {
     ],
 }
 
-HEALTH_WAIT_SECONDS = int(os.environ.get("LIMA_DEPLOY_HEALTH_WAIT_S", "120"))
+from config import deploy_config
+
+HEALTH_WAIT_SECONDS = deploy_config.deploy_health_wait_s()
 HEALTH_POLL_SECONDS = 3
-HEALTH_GRACE_AFTER_RESTART_S = int(os.environ.get("LIMA_DEPLOY_HEALTH_GRACE_S", "30"))
+HEALTH_GRACE_AFTER_RESTART_S = deploy_config.deploy_health_grace_s()
 DEFAULT_MIN_FREE_MB = 512
 DEFAULT_MIN_MEM_MB = 128
 
@@ -142,16 +144,6 @@ def _safe_backup_label(label: str) -> str:
     return cleaned or "unified"
 
 
-def _env_int(name: str, default: int) -> int:
-    raw = os.environ.get(name)
-    if raw is None or raw.strip() == "":
-        return default
-    try:
-        return int(raw)
-    except ValueError as exc:
-        raise RuntimeError(f"{name} must be an integer") from exc
-
-
 def parse_capacity_output(output: str) -> dict[str, int]:
     capacity: dict[str, int] = {}
     for line in output.splitlines():
@@ -183,7 +175,7 @@ def _connect_ssh() -> paramiko.SSHClient:
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    password = os.environ.get("LIMA_DEPLOY_PASS")
+    password = deploy_config.deploy_pass()
     try:
         ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
     except paramiko.SSHException:

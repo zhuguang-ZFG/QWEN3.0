@@ -366,7 +366,7 @@ def test_weather_provider_uses_cache():
     - 平台/其他商业：`backends_registry/commercial/cerebras_family.py`、`backends_registry/commercial/opengateway.py`、`backends_registry/commercial/platforms.py`。
     - VPS 代理/隧道：`backends_registry/vps_proxies.py`、`backends_registry/free_web_ddg.py`、`backends_registry/misc.py`。
     - 编码池：`backends_registry/coding_pool/third_party.py`。
-- 阶段 3：集中其余配置（运行时、数据库、Redis、安全等）→ 进行中
+- 阶段 3：集中其余配置（运行时、数据库、Redis、安全、部署脚本、smoke、provider-probe、lima_mcp_stdio 等）✅ 已完成
   - `config/settings.py` 新增 `EvalConfig`（`LIMA_EVAL_TOPOLOGY`、`LIMA_EVAL_VIA_ROUTER_URL`、`LIMA_EVAL_WINDOWS_ROUTER`）、`FeatureFlags.device_llm_planner`、`MonitoringConfig.sentry_dsn`、`DeviceConfig`、`SessionMemoryConfig`（含 `LIMA_SESSION_MEMORY`、`LIMA_MEMORY_ADMIN`、`LIMA_MEMORY_INBOX`、`LIMA_MEMORY_CONSOLIDATION_INTERVAL`、`LIMA_OUTCOME_LEDGER`、`LIMA_OUTCOME_DB`、`JINA_API_KEY`）、`FeatureFlags.allow_http_backends`、`BackendOpsConfig`（`LIMA_PROBE_INTERVAL`、`LIMA_OPERATOR_PROBE_TIMEOUT`、`LIMA_OPERATOR_PROBE_WORKERS`、`LIMA_BACKEND_RETIREMENT_RELOAD_SEC`、`LIMA_DYNAMIC_ADMISSION`）。
   - 迁移 `eval_topology.py` 的 `LIMA_API_KEY` / eval URL / 开关到 `config.settings`。
   - 迁移 `vision_handler.py`、`http_stream.py`、`http_caller.py` 的 `LIMA_DEBUG` 到 `config.settings.FLAGS.debug`。
@@ -414,6 +414,18 @@ def test_weather_provider_uses_cache():
     - `device_gateway/store_utils.py`：`configure_from_env` 改通过 `settings.get_env()` 读取后端选择变量
     - `device_voice/providers/_env.py`：动态别名 env 读取 → `settings.get_env()`
     - `tests/_env_sync_maps.py` 进一步拆出 `tests/_env_sync_runtime_maps.py`，并为上述新增字段补充映射；wrapper 特判 `GITEE_AI_*` 同步到 `config.backend_config`
+  - 部署/VPS/smoke 配置集中化：
+    - 新增 `config/deploy_config.py`：集中 `LIMA_SERVER`、`LIMA_DEPLOY_*`、`JDCLOUD_*`、`LIMA_ALIYUN_*`、`LIMA_VERIFY_HOST`、`LIMA_ROUTER_ROOT` 等；对测试 monkeypatch 频繁修改的值使用函数式读取（`deploy_use_tar()`、`deploy_pass()`、`deploy_known_hosts()` 等）。
+    - 迁移 `scripts/deploy_common.py`、`deploy_unified_common.py`、`deploy_unified_preflight.py`、`deploy_unified_restart.py`、`deploy_unified_deploy.py`、`deploy_chat_web.py`、`deploy_jdcloud_probe.py`、`check_jdcloud_node.py`、`check_vps_environment.py`、`verify_production_deploy.py`。
+    - 迁移 `deploy/deploy_prometheus_metrics.py`。
+    - 迁移 smoke 脚本：`scripts/smoke_live_and_digital_human.py`、`smoke_live_and_digital_human_tests.py`、`smoke_voice_providers.py`。
+  - provider-probe 配置集中化：
+    - 新增 `packages/provider-probe-offline/provider_probe/config.py`：集中 `PROBE_BROWSER_*`、`PROBE_OUTPUT_DIR`、`SEARXNG_URL`；采用函数式读取保证测试可 monkeypatch。
+    - 迁移 `provider_probe/browser_lifecycle.py`、`discovery/browser_probe.py`、`discovery/scheduler.py`、`discovery/web_search.py`、`verify/stability_monitor.py`。
+  - lima_mcp_stdio 配置集中化：
+    - 新增 `lima_mcp_stdio/config.py`：集中 `MIMO_MCP_*`、`LIMA_TIMEOUT`；采用函数式读取保证测试可 monkeypatch。
+    - 迁移 `lima_mcp_stdio/mimo_invoke.py`、`mimo_runner.py`、`workspace.py`。
+  - 测试隔离：`tests/test_community_free_optin.py` 移除直接 `os.environ` 操作，改用 `monkeypatch` fixture，避免并行测试污染。
   - `tests/conftest.py` 新增 `monkeypatch` wrapper，在测试通过 `monkeypatch.setenv/delenv` 修改环境变量时同步更新 `config.settings` 单例，保证既有测试无需大量改写。
   - 更新 `tests/test_device_gateway_auth.py`、`tests/test_memory_admin.py`、`tests/test_session_memory.py`、`tests/test_session_memory_processor.py`、`tests/test_http_scheme_enforcement.py`、`tests/test_routes_chat_stream.py` 以 patch 单例或利用 wrapper。
 

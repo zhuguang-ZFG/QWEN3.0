@@ -5,12 +5,13 @@ from __future__ import annotations
 import shlex
 import time
 
+from config import deploy_config
+
 from scripts.deploy_common import REMOTE
 from scripts.deploy_unified_common import (
     DEFAULT_MIN_FREE_MB,
     DEFAULT_MIN_MEM_MB,
     _connect_ssh,
-    _env_int,
     _exec,
     _safe_backup_label,
     capacity_result,
@@ -58,8 +59,8 @@ def create_remote_backup(ssh, files: list[str], *, label: str) -> str:
 
 
 def prepare_remote_deploy(files: list[str], *, label: str) -> dict[str, object]:
-    min_free_mb = _env_int("LIMA_DEPLOY_MIN_FREE_MB", DEFAULT_MIN_FREE_MB)
-    min_mem_mb = _env_int("LIMA_DEPLOY_MIN_MEM_MB", DEFAULT_MIN_MEM_MB)
+    min_free_mb = deploy_config.deploy_min_free_mb()
+    min_mem_mb = deploy_config.deploy_min_mem_mb()
     ssh = _connect_ssh()
     try:
         capacity = check_remote_capacity(ssh)

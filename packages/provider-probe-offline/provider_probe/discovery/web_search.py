@@ -5,19 +5,16 @@ AI API services through structured web searches.
 """
 
 import logging
-import os
 import re
 from dataclasses import dataclass
 
 import httpx
 
+from provider_probe import config as probe_config
+
 logger = logging.getLogger(__name__)
 
-SEARXNG_URL = (
-    os.environ.get("SEARXNG_URL")
-    or os.environ.get("SEARXNG_BASE_URL")
-    or "http://127.0.0.1:8081"
-)
+SEARXNG_URL = probe_config.SEARXNG_URL or "http://127.0.0.1:8081"
 
 SEARCH_QUERIES = [
     # English

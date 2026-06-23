@@ -11,12 +11,14 @@ from urllib.parse import urlparse
 
 from fastapi import HTTPException
 
+from provider_probe import config as probe_config
+
 logger = logging.getLogger("provider_probe.browser")
 
-BROWSER_HOST = os.environ.get("PROBE_BROWSER_HOST", "127.0.0.1")
-BROWSER_PORT = int(os.environ.get("PROBE_BROWSER_PORT", "8092"))
-CHROMIUM_EXECUTABLE = os.environ.get("PROBE_CHROMIUM_EXECUTABLE")
-BROWSER_TOKEN = os.environ.get("PROBE_BROWSER_TOKEN")
+BROWSER_HOST = probe_config.browser_host()
+BROWSER_PORT = probe_config.browser_port()
+CHROMIUM_EXECUTABLE = probe_config.chromium_executable()
+BROWSER_TOKEN = probe_config.browser_token()
 
 _ALLOWED_SCHEMES = {"http", "https"}
 _SENSITIVE_HEADERS = {"authorization", "cookie", "set-cookie", "x-api-key", "api-key"}
@@ -27,7 +29,8 @@ _playwright = None
 
 def _check_auth(token: str | None) -> None:
     """Require a bearer token when PROBE_BROWSER_TOKEN is configured."""
-    if BROWSER_TOKEN and token != BROWSER_TOKEN:
+    expected = probe_config.browser_token()
+    if expected and token != expected:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
@@ -102,7 +105,7 @@ def _browser_launch_options() -> dict[str, object]:
             "--disable-gpu",
         ],
     }
-    executable = os.environ.get("PROBE_CHROMIUM_EXECUTABLE") or CHROMIUM_EXECUTABLE
+    executable = probe_config.chromium_executable()
     if executable:
         options["executable_path"] = executable
     return options

@@ -23,47 +23,46 @@ import asyncio
 import difflib
 import os
 import re
+import sys
 import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+load_dotenv(PROJECT_ROOT / ".env")
 
-def _load_env() -> None:
-    env_path = Path(".env")
-    if env_path.exists():
-        load_dotenv(env_path)
+from config.voice_settings import VOICE_PROVIDERS
 
 
 def _has_dashscope_credentials() -> bool:
-    return bool(os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("ALIYUN_API_KEY"))
+    return bool(VOICE_PROVIDERS.dashscope_asr.api_key)
 
 
 def _has_aliyun_credentials() -> bool:
     return all(
-        os.environ.get(k)
-        for k in (
-            "ALIBABA_CLOUD_ACCESS_KEY_ID",
-            "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
-            "ALIBABA_NLS_APP_KEY",
+        (
+            VOICE_PROVIDERS.aliyun_nls.ak_id,
+            VOICE_PROVIDERS.aliyun_nls.ak_secret,
+            VOICE_PROVIDERS.aliyun_nls.app_key,
         )
     )
 
 
 def _has_doubao_credentials() -> bool:
     return all(
-        os.environ.get(k)
-        for k in (
-            "DOUBAO_TTS_APPID",
-            "DOUBAO_TTS_ACCESS_TOKEN",
-            "DOUBAO_ASR_APPID",
-            "DOUBAO_ASR_ACCESS_TOKEN",
+        (
+            VOICE_PROVIDERS.doubao_tts.appid,
+            VOICE_PROVIDERS.doubao_tts.access_token,
+            VOICE_PROVIDERS.doubao_asr.appid,
+            VOICE_PROVIDERS.doubao_asr.access_token,
         )
     )
 
 
 def _has_mimo_credentials() -> bool:
-    return bool(os.environ.get("MIMO_API_KEY"))
+    return bool(VOICE_PROVIDERS.mimo.api_key)
 
 
 async def _test_dashscope() -> None:
@@ -225,8 +224,6 @@ async def _transcribe_with_whisper_or_funasr(audio: bytes, *, sample_rate: int) 
 
 
 async def main() -> None:
-    _load_env()
-
     tested = False
 
     if _has_dashscope_credentials():

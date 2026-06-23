@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from lima_mcp_stdio import config as mcp_config
 from lima_mcp_stdio import mimo_agents, mimo_invoke
 from lima_mcp_stdio.multi_cli import brief as brief_mod
 from lima_mcp_stdio.multi_cli import merge_findings
@@ -21,14 +21,11 @@ DEFAULT_ARTIFACT_SUBDIR = ".omc/artifacts/mimo-mcp"
 def _timeout(raw: int | None) -> int:
     if raw is not None:
         return max(30, min(raw, 600))
-    try:
-        return max(30, int(os.environ.get("LIMA_TIMEOUT", os.environ.get("MIMO_MCP_TIMEOUT", "180"))))
-    except ValueError:
-        return 180
+    return mcp_config.timeout()
 
 
 def _artifact_dir(workspace: Path) -> Path:
-    raw = os.environ.get("MIMO_MCP_ARTIFACT_DIR", "").strip()
+    raw = mcp_config.artifact_dir()
     if raw:
         return Path(raw).expanduser().resolve()
     return (workspace / DEFAULT_ARTIFACT_SUBDIR).resolve()
@@ -45,9 +42,9 @@ def status(*, workspace: str | None = None) -> dict[str, Any]:
         "artifact_dir": str(artifact_dir),
         "modes": mimo_agents.list_modes(),
         "env": {
-            "MIMO_MCP_WORKSPACE": os.environ.get("MIMO_MCP_WORKSPACE", ""),
-            "MIMO_MCP_AGENT": os.environ.get("MIMO_MCP_AGENT", ""),
-            "MIMO_MCP_MODEL": os.environ.get("MIMO_MCP_MODEL", ""),
+            "MIMO_MCP_WORKSPACE": mcp_config.workspace(),
+            "MIMO_MCP_AGENT": mcp_config.agent(),
+            "MIMO_MCP_MODEL": mcp_config.mimo_model(),
         },
     }
     findings_path = artifact_dir / "findings.json"

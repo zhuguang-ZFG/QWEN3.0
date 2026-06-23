@@ -20,14 +20,15 @@ import paramiko
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from config import deploy_config
+
 from scripts.deploy_common import (
     KEY,
-    SERVER,
     configure_ssh_host_keys,
 )
 
 CHAT_WEB_DIR = PROJECT_ROOT / "chat-web"
-REMOTE_HOST = os.environ.get("LIMA_DEPLOY_HOST", "root@47.112.162.80")
+REMOTE_HOST = deploy_config.deploy_host()
 REMOTE_DIR = "/var/www/chat"
 FILES = [
     "index.html",
@@ -46,7 +47,7 @@ def _connect() -> paramiko.SSHClient:
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
     user, host = REMOTE_HOST.split("@", 1) if "@" in REMOTE_HOST else ("root", REMOTE_HOST)
-    password = os.environ.get("LIMA_DEPLOY_PASS")
+    password = deploy_config.deploy_pass()
     try:
         ssh.connect(host, username=user, key_filename=KEY, timeout=15)
     except paramiko.SSHException:

@@ -23,17 +23,18 @@ if str(SMOKE_DIR) not in sys.path:
     sys.path.insert(0, str(SMOKE_DIR))
 load_dotenv(PROJECT_ROOT / ".env")
 
+from config import deploy_config, settings
 from smoke_live_and_digital_human_tests import _test_digital_human_ws, _test_gemini_live
 
 
-LIMA_HOST = os.environ.get("LIMA_VERIFY_HOST", "chat.donglicao.com")
+LIMA_HOST = deploy_config.VERIFY_HOST
 
 
 def _first_api_key() -> str:
-    key = os.environ.get("LIMA_API_KEY", "").strip()
+    key = settings.SECURITY.api_key.strip()
     if key:
         return key
-    keys = os.environ.get("LIMA_API_KEYS", "").strip()
+    keys = settings.SECURITY.api_keys.strip()
     if keys:
         for k in keys.split(","):
             k = k.strip()

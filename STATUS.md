@@ -9,13 +9,23 @@
 > Branch: `main`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
 > Tests: 全量 3545 passed / 17 skipped / 0 failed；ruff check clean；ruff format clean
-> Code Size: 零 >300 行文件；>50 行函数 25（均为脚本/测试/MCP，核心生产代码已清零）
+> Code Size: 零 >300 行文件；>50 行函数 25（均为脚本/测试/MCP/xiaozhi，核心生产代码已清零）
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
 > 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；缺陷改善计划全部 P0 项已关闭。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-23）缺陷改善计划 — P1-2 阶段 3 收尾：deploy / smoke / provider-probe / lima_mcp_stdio / test_community_free_optin
+
+- **目标**：完成 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 3 剩余模块的环境变量集中化。
+- **实现**：
+  - 新增 `config/deploy_config.py`，集中 deploy/VPS/JDCloud 环境变量；迁移 10+ 个 deploy/VPS/smoke 脚本。
+  - 新增 `packages/provider-probe-offline/provider_probe/config.py`，集中 `PROBE_*` / `SEARXNG_*` 配置；迁移 5 个 provider_probe 模块。
+  - 新增 `lima_mcp_stdio/config.py`，集中 `MIMO_MCP_*` / `LIMA_TIMEOUT`；迁移 `mimo_invoke.py`、`mimo_runner.py`、`workspace.py`。
+  - 重写 `tests/test_community_free_optin.py`，改用 `monkeypatch` 替代直接 `os.environ` 操作。
+- **验证**：全量 `pytest` → **3545 passed / 17 skipped / 0 failed**；`ruff check .` clean；`pyright` 0 errors；零 >300 行文件。
 
 ### 最近完成（2026-06-23）缺陷改善计划又一批 — P1-2 阶段 3 eval/tool/routing/fleet/gitee 集中配置
 

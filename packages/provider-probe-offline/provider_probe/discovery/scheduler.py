@@ -7,16 +7,16 @@ web search, Chinese platform scraping, and browser-based probing.
 import asyncio
 import json
 import logging
-import os
 import time
 from datetime import datetime, timezone
-from pathlib import Path
+
+from provider_probe import config as probe_config
 
 from . import browser_probe, chinese_platforms, github_monitor, web_search
 
 logger = logging.getLogger(__name__)
 
-OUTPUT_DIR = Path(os.environ.get("PROBE_OUTPUT_DIR", "/opt/lima-probe/data"))
+OUTPUT_DIR = probe_config.OUTPUT_DIR
 KNOWN_PROVIDERS_FILE = OUTPUT_DIR / "known_providers.json"
 DISCOVERIES_FILE = OUTPUT_DIR / "discoveries.jsonl"
 

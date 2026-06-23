@@ -13,10 +13,11 @@ from typing import Any
 import paramiko
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from config import deploy_config  # noqa: E402
 from scripts.deploy_common import configure_ssh_host_keys  # noqa: E402
 
-DEFAULT_HOST = "117.72.118.95"
-DEFAULT_USER = "root"
+DEFAULT_HOST = deploy_config.JDCLOUD_SERVER
+DEFAULT_USER = deploy_config.JDCLOUD_USER
 ROLE = "secondary_probe_monitoring"
 
 
@@ -104,13 +105,13 @@ def run_remote_check(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Read-only JDCloud LiMa ops node smoke")
-    parser.add_argument("--host", default=os.environ.get("JDCLOUD_HOST", DEFAULT_HOST))
-    parser.add_argument("--user", default=os.environ.get("JDCLOUD_USER", DEFAULT_USER))
-    parser.add_argument("--key-path", default=os.environ.get("JDCLOUD_SSH_KEY_PATH"))
+    parser.add_argument("--host", default=DEFAULT_HOST)
+    parser.add_argument("--user", default=DEFAULT_USER)
+    parser.add_argument("--key-path", default=deploy_config.DEPLOY_KEY_PATH)
     parser.add_argument("--timeout", type=int, default=15)
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     args = parser.parse_args(argv)
-    password = os.environ.get("JDCLOUD_SSH_PASSWORD")
+    password = deploy_config.jdcloud_password()
 
     try:
         report = run_remote_check(args.host, args.user, args.key_path, password, args.timeout)

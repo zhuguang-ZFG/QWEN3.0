@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 from pathlib import Path
+
+from lima_mcp_stdio import config as mcp_config
 
 
 def resolve_workspace(explicit: str | None = None) -> Path:
@@ -14,7 +15,7 @@ def resolve_workspace(explicit: str | None = None) -> Path:
         candidate = Path(explicit.strip()).expanduser().resolve()
         _require_within_workspace(candidate, cwd)
         return candidate
-    env = os.environ.get("MIMO_MCP_WORKSPACE", "").strip()
+    env = mcp_config.workspace()
     if env:
         candidate = Path(env).expanduser().resolve()
         _require_within_workspace(candidate, cwd)

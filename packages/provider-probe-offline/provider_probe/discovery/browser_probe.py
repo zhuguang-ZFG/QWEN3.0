@@ -5,13 +5,14 @@ sites), uses the Playwright browser service to extract API information.
 """
 
 import logging
-import os
 
 import httpx
 
+from provider_probe import config as probe_config
+
 logger = logging.getLogger(__name__)
 
-BROWSER_SERVICE_URL = os.environ.get("PROBE_BROWSER_URL", "http://127.0.0.1:8092")
+BROWSER_SERVICE_URL = probe_config.browser_service_url()
 
 # Sites that likely contain AI API information but require JS rendering
 _JS_HEAVY_SITES = [

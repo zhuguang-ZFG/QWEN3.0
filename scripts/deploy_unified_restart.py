@@ -6,6 +6,8 @@ import json
 import os
 import time
 
+from config import deploy_config
+
 from scripts.deploy_common import SERVER, KEY, REMOTE, configure_ssh_host_keys
 from scripts.deploy_unified_common import (
     HEALTH_GRACE_AFTER_RESTART_S,
@@ -28,7 +30,7 @@ def restart_server() -> bool:
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    password = os.environ.get("LIMA_DEPLOY_PASS")
+    password = deploy_config.deploy_pass()
     try:
         ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
     except paramiko.SSHException:

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+
+from lima_mcp_stdio import config as mcp_config
 
 
 @dataclass
@@ -34,14 +35,14 @@ def build_command(
     binary = mimo_binary()
     if binary is None:
         # Allow tests to inject a fake binary via env.
-        binary = os.environ.get("MIMO_MCP_MIMO_BINARY", "")
+        binary = mcp_config.mimo_binary()
     if not binary:
         raise FileNotFoundError("mimo CLI not found on PATH")
 
     cmd: list[str] = [binary, "run"]
     if agent:
         cmd.extend(["--agent", agent])
-    model = model or os.environ.get("MIMO_MCP_MODEL", "").strip()
+    model = model or mcp_config.mimo_model()
     if model:
         cmd.extend(["-m", model])
     cmd.append(f"--dir={workspace}")
@@ -51,7 +52,7 @@ def build_command(
     for path in attach_files or []:
         if path.is_file():
             cmd.extend(["-f", str(path)])
-    if os.environ.get("MIMO_MCP_SKIP_PERMISSIONS", "").strip() in {"1", "true", "yes"}:
+    if mcp_config.skip_permissions():
         cmd.append("--dangerously-skip-permissions")
     # Positional message must be last (yargs); keep prompt short if using -f attachments.
     cmd.append(prompt)

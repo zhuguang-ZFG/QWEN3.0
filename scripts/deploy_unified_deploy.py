@@ -10,8 +10,10 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-from scripts.deploy_common import REMOTE, KEY, SERVER, configure_ssh_host_keys
 import paramiko
+
+from config import deploy_config
+from scripts.deploy_common import REMOTE, KEY, SERVER, configure_ssh_host_keys
 
 
 def ensure_remote_dir(sftp: paramiko.SFTPClient, remote_dir: str) -> None:
@@ -47,11 +49,12 @@ def _ssh_options(key_file: str | None, known_hosts_file: str | None) -> list[str
         "-o",
         "ServerAliveInterval=15",
     ]
-    if key_file and os.path.exists(os.path.expanduser(key_file)):
-        opts += ["-i", os.path.expanduser(key_file)]
-    known_hosts = known_hosts_file or os.path.expanduser("~/.ssh/known_hosts")
-    if known_hosts and os.path.exists(os.path.expanduser(known_hosts)):
-        opts += ["-o", f"UserKnownHostsFile={os.path.expanduser(known_hosts)}"]
+    resolved_key = key_file or deploy_config.expanded_key_path()
+    if os.path.exists(resolved_key):
+        opts += ["-i", resolved_key]
+    known_hosts = known_hosts_file or deploy_config.expanded_known_hosts()
+    if known_hosts and os.path.exists(known_hosts):
+        opts += ["-o", f"UserKnownHostsFile={known_hosts}"]
     return opts
 
 
@@ -78,7 +81,7 @@ def _deploy_with_rsync(files: list[str]) -> dict:
     if not existing:
         return {"uploaded": 0, "failed": [], "skipped": skipped}
 
-    ssh_cmd = " ".join(["ssh", *_ssh_options(KEY, os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS"))])
+    ssh_cmd = " ".join(["ssh", *_ssh_options(KEY, deploy_config.expanded_known_hosts())])
 
     with tempfile.NamedTemporaryFile(mode="w", prefix="lima-deploy-files-", suffix=".txt", delete=False) as list_file:
         for f in existing:
@@ -117,7 +120,7 @@ def _deploy_with_tar(files: list[str]) -> dict:
     if not existing:
         return {"uploaded": 0, "failed": [], "skipped": skipped}
 
-    ssh_opts = _ssh_options(KEY, os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS"))
+    ssh_opts = _ssh_options(KEY, deploy_config.expanded_known_hosts())
     archive_name = f"lima-deploy-{os.getpid()}-{tempfile.gettempprefix()}.tar.gz"
     archive_local = Path(tempfile.gettempdir()) / archive_name
     archive_remote = f"/tmp/{archive_name}"
@@ -135,7 +138,7 @@ def _deploy_with_tar(files: list[str]) -> dict:
             err = proc.stderr[-800:] if proc.stderr else proc.stdout[-800:]
             raise RuntimeError(f"scp failed (exit {proc.returncode}): {err}")
 
-        ssh_cmd = _ssh_base_cmd(KEY, os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS"))
+        ssh_cmd = _ssh_base_cmd(KEY, deploy_config.expanded_known_hosts())
         extract_cmd = f"mkdir -p {REMOTE} && tar -xzf {archive_remote} -C {REMOTE} && rm -f {archive_remote}"
         print("tar: extracting archive on remote...")
         proc = subprocess.run(
@@ -165,7 +168,7 @@ def _deploy_with_sftp(files: list[str]) -> dict:
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    password = os.environ.get("LIMA_DEPLOY_PASS")
+    password = deploy_config.deploy_pass()
     try:
         ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
     except paramiko.SSHException:
@@ -210,18 +213,14 @@ def deploy_files(files: list[str], *, dry_run: bool = False) -> dict:
                 results["skipped"].append(f)
         return results
 
-    use_tar = os.environ.get("LIMA_DEPLOY_USE_TAR", "").strip().lower() in {"1", "true", "yes"}
+    use_tar = deploy_config.deploy_use_tar()
     if use_tar:
         try:
             return _deploy_with_tar(files)
         except Exception as e:
             print(f"tar/scp upload failed, falling back to SFTP: {e}", file=sys.stderr)
 
-    use_rsync = os.environ.get("LIMA_DEPLOY_USE_RSYNC", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-    }
+    use_rsync = deploy_config.deploy_use_rsync()
     if use_rsync and _rsync_available():
         try:
             return _deploy_with_rsync(files)

@@ -11,6 +11,7 @@ from pathlib import Path
 import paramiko
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from config import deploy_config  # noqa: E402
 from scripts.deploy_common import (  # noqa: E402
     JDCLOUD_REMOTE_PROBE,
     JDCLOUD_SERVER,
@@ -25,7 +26,7 @@ def _connect_jdcloud() -> paramiko.SSHClient:
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    password = os.environ.get("JDCLOUD_SSH_PASSWORD") or os.environ.get("LIMA_DEPLOY_PASS")
+    password = deploy_config.jdcloud_password()
     try:
         ssh.connect(JDCLOUD_SERVER, username=JDCLOUD_USER, key_filename=KEY, timeout=20)
     except paramiko.SSHException:

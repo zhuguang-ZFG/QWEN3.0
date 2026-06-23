@@ -11,8 +11,10 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from config import deploy_config, settings
+
 ROOT = Path(__file__).resolve().parent.parent
-HOST = os.environ.get("LIMA_VERIFY_HOST", "chat.donglicao.com").strip()
+HOST = deploy_config.VERIFY_HOST
 UA = {"User-Agent": "LiMaDeployVerify/1.0", "Content-Type": "application/json"}
 
 
@@ -22,7 +24,7 @@ def _load_key() -> str:
         for line in env_path.read_text(encoding="utf-8").splitlines():
             if line.startswith("LIMA_API_KEY="):
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
-    return os.environ.get("LIMA_API_KEY", "").strip()
+    return settings.SECURITY.api_key.strip()
 
 
 def _load_redis_url() -> str:
@@ -33,10 +35,7 @@ def _load_redis_url() -> str:
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
             if line.startswith("LIMA_DEVICE_REDIS_URL="):
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
-    return (
-        os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS_URL", "").strip()
-        or os.environ.get("LIMA_DEVICE_REDIS_URL", "").strip()
-    )
+    return settings.REDIS.device_redis_url.strip()
 
 
 def _get(path: str, *, bearer: str = "", timeout: float = 90) -> tuple[int, str]:

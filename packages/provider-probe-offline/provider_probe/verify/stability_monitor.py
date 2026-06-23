@@ -2,16 +2,16 @@
 
 import json
 import logging
-import os
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 import httpx
 
+from provider_probe import config as probe_config
+
 logger = logging.getLogger(__name__)
 
-STORAGE_DIR = Path(os.environ.get("PROBE_OUTPUT_DIR", "/opt/lima-probe/data"))
+STORAGE_DIR = probe_config.OUTPUT_DIR
 STABILITY_FILE = STORAGE_DIR / "stability.json"
 
 

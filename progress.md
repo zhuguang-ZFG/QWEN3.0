@@ -1,5 +1,24 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-23 LiMa P1-2 阶段 3 收尾：deploy / JDCloud / smoke / provider-probe / lima_mcp_stdio / test_community_free_optin
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 3，完成剩余 deploy 脚本、VPS 检查、smoke 脚本、provider-probe、lima_mcp_stdio 以及 `tests/test_community_free_optin.py` 的环境变量集中化/测试隔离。
+- **实现**：
+  - 新增 `config/deploy_config.py`：集中 VPS/JDCloud/deploy 相关环境变量（host、user、password、known_hosts、health wait/grace、min free/mem、tar/rsync、router root 等），对测试可能 monkeypatch 的值提供函数式读取。
+  - 迁移 `scripts/deploy_common.py`、`deploy_unified_common.py`、`deploy_unified_preflight.py`、`deploy_unified_restart.py`、`deploy_unified_deploy.py`、`deploy_chat_web.py`、`deploy_jdcloud_probe.py`、`check_jdcloud_node.py`、`check_vps_environment.py`、`deploy/deploy_prometheus_metrics.py`。
+  - 迁移 smoke 脚本：`scripts/smoke_live_and_digital_human.py`、`smoke_live_and_digital_human_tests.py`、`smoke_voice_providers.py`。
+  - 新增 `packages/provider-probe-offline/provider_probe/config.py`：集中 `PROBE_BROWSER_*`、`PROBE_OUTPUT_DIR`、`SEARXNG_URL` 等；迁移 `browser_lifecycle.py`、`discovery/browser_probe.py`、`discovery/scheduler.py`、`discovery/web_search.py`、`verify/stability_monitor.py`。
+  - 新增 `lima_mcp_stdio/config.py`：集中 `MIMO_MCP_*`、`LIMA_TIMEOUT`；迁移 `mimo_invoke.py`、`mimo_runner.py`、`workspace.py`。
+  - 重写 `tests/test_community_free_optin.py`：移除直接 `os.environ` 操作，改用 `monkeypatch` fixture，避免并行测试污染。
+  - `scripts/verify_production_deploy.py` 改从 `config.deploy_config` / `config.settings` 读取主机、API key、设备认证速率与 Redis 配置。
+- **验证**：
+  - 相关聚焦测试：`tests/test_community_free_optin.py`、`tests/test_mimo_mcp_runner.py`、`tests/test_mimo_mcp_jobs.py`、`tests/test_lima_mcp_stdio_core.py`、`tests/test_provider_automation_probe.py`、`tests/test_browser_service.py`、`tests/test_deploy_common.py`、`tests/test_deploy_unified.py` → 64 passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check .`：passed
+  - `pyright` 修改文件 / 全量 include：0 errors（仅历史 warning）
+  - `scripts/check_code_size.py`：无 >300 行文件；>50 行函数剩余 25 个，均为脚本/测试/MCP/xiaozhi，核心生产代码已清零
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3、`progress.md`、`STATUS.md` 已更新
+
 ## 2026-06-23 LiMa P1-2 阶段 3 又一批：eval / tool / routing / fleet / gitee / provider inventory
 
 - **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 3，集中 eval、工具治理、路由 ML、fleet、Gitee、provider inventory 等模块的环境变量读取。
