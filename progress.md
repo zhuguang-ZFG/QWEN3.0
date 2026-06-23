@@ -10,7 +10,30 @@
 
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-22 LiMa 项目缺陷分析与改善计划（推进中 → 基本完成）
 
+- **目标**：响应「继续分析项目缺陷和问题；编写详细改善计划」及「完全修复完毕为止」指令，系统修复 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中的 59 项缺陷/改善点。
+
+- **已完成关键修复**：
+  - P0：`backend_reputation.py` RLock 保护全局状态；MQTT 同步回调保存主事件循环引用；Admin URL 安全验证；`.gitignore` 补全；删除 `=6.0` 空文件；隔离 `test_external_enrichment.py` 网络依赖。
+  - P1：SQLite RLock（`sqlite_graph_store.py`、`device_logic/db.py`）；新增 `config/db_config.py` 集中 16 项 DB/Redis 配置并迁移 20+ 模块；22 处 debug→warning 升级；`routing_executor` 串/并/降级三份测试（~90 用例）；`device_gateway/auth.py` + `safety.py` 测试（33 用例）；10 个测试文件模块级 `os.environ` 清理；HTTPS+SHA256 部署校验；认证异常日志记录。
+  - P2：`routing_engine.pick_backend` 拆分（47→12 行）；跨层 facade（`backends_registry/__init__.py`）；REST/WS/MQTT motion_event 统一；pyright/ruff 幻影路径清理；`async_utils.py` 统一 sync/async 桥接；CSP header；`paramiko>=3.5.0`。
+  - P3：`health_tracker.py` 封装；删除 2 个死测试；`xiaozhi_schema/test_triggers.py` 8× sleep(1.1) 改写为 0.05s；Client Keys 持久化说明；JDCloud 重复脚本删除；device_gateway 拆分说明。
+
+- **测试覆盖大跃进**：
+  - 新增 50 个测试文件（原 34→50，含 learning_loop、context_pipeline、session_memory、observability、common、backends_registry）。
+  - 新增 ~520 个测试用例。
+  - 修复 `session_memory/outcome_ledger` ↔ `outcome_queries` 循环导入（`record.py` 延迟导入 + `__init__.py` 模块级 `__getattr__`）。
+  - 新增测试覆盖关键空白：`entity_extraction.py`、`eval_gate.py`、`eval_gate_promotion.py`、`prompt_recall.py`、`memory_embeddings.py`、`redact.py`、`outcome_queries.py`、`device_draw_memory.py`、`cli_telemetry.py`、`learning_loop` 全 5 通道、`context_pipeline/_project_root.py`、`retrieval_trace.py`、`cache.py`、`type_helpers.py`、`backends_registry/_utils.py`、`brand_config.py`、`code_context/retriever.py` 等。
+
+- **验证**：
+  - 新增关键测试子集：168 passed / 3 warnings / 0 failed。
+  - 24 次本地提交，23 次成功推送 GitHub。
+
+- **剩余大项**（需单独里程碑）：
+  - P3-14：SQLite 连接池（15+ 模块每次新建连接）。
+  - P2-9：`routes/` ~55 个模块的 HTTP 路由测试。
+  - P1-2：剩余 ~300 处 `os.environ` 集中化到 `config/db_config.py`。
 
 ## 2026-06-22 LiMa 第七轮瘦身（完成）
 
