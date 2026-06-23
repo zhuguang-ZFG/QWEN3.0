@@ -74,7 +74,7 @@
 | P1-8 | 代码质量 | 10 份完全相同的 `design_system.py` 副本（~5.5MB） | 10 个 agent 配置目录 | 仓库膨胀 |
 | P1-9 | 代码质量 | `context_pipeline/graph_context_expander.py` 等零生产引用 ✅ 已修复 | 4+ 模块 | 死代码 |
 | P1-10 | 代码质量 | `context_pipeline/complexity.py` 与 `speculative_policy.classify_complexity` 功能重复 ✅ 已修复 | 2 个模块 | 重复计算+决策不一致 |
-| P1-11 | 安全 | 部署脚本通过 HTTP 下载 Prometheus 无完整性校验 | `deploy/jdcloud/deploy_jd.py:19` | MITM 篡改风险 |
+| P1-11 | 安全 | 部署脚本通过 HTTP 下载 Prometheus 无完整性校验 ✅ 已修复 | `deploy/jdcloud/deploy_jd.py:19` | MITM 篡改风险 |
 | P1-12 | 安全 | `device_logic/auth.py:50` 认证异常静默返回 False | `device_logic/auth.py:50-51` | 掩盖认证系统故障 |
 
 ### P2 — 中优先级修复（21 项）
@@ -518,7 +518,9 @@ def test_weather_provider_uses_cache():
 - 已改为从 GitHub Releases HTTPS 下载 `prometheus-2.45.0.linux-amd64.tar.gz`。
 - 已新增 SHA256 校验：`1c7f489a3cc919c1ed0df2ae673a280309dc4a3eaa6ee3411e7d1f4bdec4d4c5`。
 
-**验证**：脚本执行时 `sha256sum -c` 校验；失败即退出。
+**验证**：
+- 脚本执行时 `sha256sum -c` 校验；失败即退出。
+- 新增回归测试 `tests/test_deploy_jd_prometheus.py`：断言下载 URL 使用 HTTPS 且存在 64 位十六进制 SHA256 校验值。
 
 **预估工作量**：0.5 人天
 

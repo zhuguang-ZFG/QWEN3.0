@@ -1061,3 +1061,13 @@
 **验证**
 - 聚焦测试：`tests/test_complexity.py`、`tests/test_routing_engine_context_warnings.py` → **10 passed**
 - 全量 `pytest -q`、ruff、pyright 验证见 `progress.md` 同日条目
+
+## 2026-06-23 缺陷改善计划再下一批（P1-11）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P1-11 | security | `deploy/jdcloud/deploy_jd.py` 已使用 HTTPS 从 GitHub Releases 下载 Prometheus v2.45.0，并附带 SHA256 校验；新增回归测试锁定该行为 | Closed |
+
+**验证**
+- 聚焦测试：`tests/test_deploy_jd_prometheus.py` → **2 passed**
+- 全量 `pytest -q`、ruff、pyright 验证见 `progress.md` 同日条目

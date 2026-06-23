@@ -7176,3 +7176,24 @@ Agent Worker path.
   - `npx pyright` 修改文件 0 errors
 
 - **Git**：提交并推送 `origin/main`。
+
+## 2026-06-23 LiMa 缺陷改善计划再下一批（P1-11）
+
+- **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-11 部署脚本下载 Prometheus 的安全问题。
+
+- **本批改动**：
+  - 复核 `deploy/jdcloud/deploy_jd.py`：当前已使用 GitHub Releases HTTPS 下载 `prometheus-2.45.0.linux-amd64.tar.gz`，并硬编码 SHA256 校验值。
+  - 通过公开来源核对校验值 `1c7f489a3cc919c1ed0df2ae673a280309dc4a3eaa6ee3411e7d1f4bdec4d4c5` 与 Prometheus v2.45.0 linux-amd64 官方包一致。
+  - 在下载命令旁添加注释，明确该校验值已验证。
+  - 新增回归测试 `tests/test_deploy_jd_prometheus.py`：
+    - 断言 Prometheus 下载 URL 使用 `https://`；
+    - 断言脚本中存在 64 位十六进制 SHA256 校验值。
+  - 文档同步：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`、`findings.md`。
+
+- **验证**：
+  - 聚焦测试：`tests/test_deploy_jd_prometheus.py` + `tests/test_complexity.py` + `tests/test_routing_engine_context_warnings.py` → **12 passed**
+  - 全量 `.venv310/Scripts/python -m pytest -q` → **3515 passed / 17 skipped / 0 failed / 2 deselected**
+  - `ruff check .` clean
+  - `pyright` 修改文件 0 errors（保留既有 `sys.stdout.reconfigure` warning）
+
+- **Git**：提交并推送 `origin/main`。
