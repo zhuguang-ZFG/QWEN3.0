@@ -119,40 +119,27 @@ def get_active() -> dict | None:
     return None
 
 
-def promote(version: str) -> bool:
-    """
-    激活指定版本，同时停用其他所有版本。
-    尝试更新 D:/GIT/active_model junction 指向新 adapter 路径。
-    junction 创建失败时只打印警告，不抛异常。
-
-    Args:
-        version: 要激活的版本号，如 "r7_step4000"
-
-    Returns:
-        True 表示成功，False 表示版本不存在
-    """
-    data = _load()
-    target_record = None
+def _find_version_record(data: dict, version: str) -> dict | None:
+    """Return the registry record matching *version*, or None."""
     for record in data["versions"]:
         if record["version"] == version:
-            target_record = record
-            break
+            return record
+    return None
 
-    if target_record is None:
-        return False
 
-    # 更新 active 标志
+def _set_active_version(data: dict, version: str) -> None:
+    """Mark *version* as active and persist the registry."""
     for record in data["versions"]:
         record["active"] = record["version"] == version
-
     data["active_version"] = version
     _save(data)
 
-    # 尝试更新 Windows junction
+
+def _update_active_model_junction(target: str) -> None:
+    """Update the Windows junction at ACTIVE_LINK to point at *target*."""
     link = ACTIVE_LINK
-    target = target_record["adapter_path"].rstrip("/\\")
+    target = target.rstrip("/\\")
     try:
-        # 删除已有 junction/目录（忽略失败，目录可能不存在）
         if os.path.exists(link):
             subprocess.run(
                 ["cmd", "/c", "rmdir", link],
@@ -169,6 +156,26 @@ def promote(version: str) -> bool:
     except Exception as e:
         print(f"[WARNING] 更新 active_model junction 失败: {e}")
 
+
+def promote(version: str) -> bool:
+    """
+    激活指定版本，同时停用其他所有版本。
+    尝试更新 D:/GIT/active_model junction 指向新 adapter 路径。
+    junction 创建失败时只打印警告，不抛异常。
+
+    Args:
+        version: 要激活的版本号，如 "r7_step4000"
+
+    Returns:
+        True 表示成功，False 表示版本不存在
+    """
+    data = _load()
+    target_record = _find_version_record(data, version)
+    if target_record is None:
+        return False
+
+    _set_active_version(data, version)
+    _update_active_model_junction(target_record["adapter_path"])
     return True
 
 

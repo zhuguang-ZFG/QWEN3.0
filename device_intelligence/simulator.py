@@ -37,28 +37,15 @@ class SimResult:
         return json.dumps(self.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def simulate_motion(plan: TaskPlan, profile: DeviceProfile | None = None) -> SimResult:
-    """Simulate a motion plan and return deterministic metrics.
-
-    - draw_distance_mm:   sum of XY distances for pen-down segments (z == 0 at start)
-    - pen_up_distance_mm:  sum of XY distances for pen-up segments (z > 0 at start)
-    - estimated_runtime_sec: total_xy_distance / feed * 60
-    - risk_score: 0.0–1.0 based on workspace usage and path complexity
-    """
-    path = plan.params.get("path")
+def _prepare_path(path: Any) -> tuple[list[Any], list[str]]:
+    """Validate path and return (points, warnings) or raise-friendly defaults."""
     if not isinstance(path, list) or len(path) < 2:
-        return SimResult(
-            draw_distance_mm=0.0,
-            pen_up_distance_mm=0.0,
-            estimated_runtime_sec=0.0,
-            risk_score=0.0,
-            warnings=["no path to simulate"] if not path else [],
-        )
+        return [], ["no path to simulate"] if not path else []
+    return path, []
 
-    feed = float(plan.params.get("feed", DEFAULT_FEED))
-    if feed <= 0:
-        feed = float(DEFAULT_FEED)
 
+def _compute_path_distances(path: list[Any]) -> tuple[float, float, list[str]]:
+    """Sum pen-down and pen-up XY distances along *path*."""
     draw_dist = 0.0
     pen_up_dist = 0.0
     warnings: list[str] = []
@@ -72,15 +59,44 @@ def simulate_motion(plan: TaskPlan, profile: DeviceProfile | None = None) -> Sim
 
         xy_dist = _xy_distance(a, b)
         z_start = float(a.get("z", 0))
-
         if z_start > 0:
             pen_up_dist += xy_dist
         else:
             draw_dist += xy_dist
 
-    total_dist = draw_dist + pen_up_dist
-    runtime = total_dist / feed * 60.0 if feed > 0 else 0.0
+    return draw_dist, pen_up_dist, warnings
 
+
+def _effective_feed(plan: TaskPlan) -> float:
+    """Return a positive feed rate from the plan, falling back to DEFAULT_FEED."""
+    feed = float(plan.params.get("feed", DEFAULT_FEED))
+    return float(DEFAULT_FEED) if feed <= 0 else feed
+
+
+def simulate_motion(plan: TaskPlan, profile: DeviceProfile | None = None) -> SimResult:
+    """Simulate a motion plan and return deterministic metrics.
+
+    - draw_distance_mm:   sum of XY distances for pen-down segments (z == 0 at start)
+    - pen_up_distance_mm:  sum of XY distances for pen-up segments (z > 0 at start)
+    - estimated_runtime_sec: total_xy_distance / feed * 60
+    - risk_score: 0.0–1.0 based on workspace usage and path complexity
+    """
+    path, warnings = _prepare_path(plan.params.get("path"))
+    if not path:
+        return SimResult(
+            draw_distance_mm=0.0,
+            pen_up_distance_mm=0.0,
+            estimated_runtime_sec=0.0,
+            risk_score=0.0,
+            warnings=warnings,
+        )
+
+    feed = _effective_feed(plan)
+    draw_dist, pen_up_dist, point_warnings = _compute_path_distances(path)
+    warnings.extend(point_warnings)
+
+    total_dist = draw_dist + pen_up_dist
+    runtime = total_dist / feed * 60.0
     risk = _compute_risk(path, draw_dist, profile)
 
     return SimResult(

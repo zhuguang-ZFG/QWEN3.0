@@ -12,6 +12,49 @@ import logging
 _log = logging.getLogger(__name__)
 
 
+def _persist_feedback(
+    request_id: str,
+    scenario: str,
+    messages: list[dict],
+    backend: str,
+    success: bool,
+    latency_ms: float,
+    quality_score: float,
+    fallback_used: bool,
+    error_class: str,
+    tokens_prompt: int,
+    tokens_completion: int,
+) -> None:
+    """Compute features and persist a completed request to the request store."""
+    from routing_loop.request_store import get_request_store
+    from routing_ml.feature_extractor import extract_features
+
+    feature_vec = extract_features(messages, scenario=scenario)
+    message_length, code_ratio, chinese_ratio = _compute_message_metrics(messages)
+
+    store = get_request_store()
+    _log_request(
+        store,
+        request_id,
+        scenario,
+        message_length,
+        code_ratio,
+        chinese_ratio,
+        feature_vec.features,
+        backend,
+        success,
+        latency_ms,
+        quality_score,
+        fallback_used,
+        error_class,
+        tokens_prompt,
+        tokens_completion,
+    )
+
+    # NOTE: routing_weights is updated by route_post_process.py, NOT here.
+    _check_training_trigger()
+
+
 def on_request_complete(
     request_id: str = "",
     scenario: str = "",
@@ -32,21 +75,10 @@ def on_request_complete(
     routed (code orchestrator, speculative, normal, etc.).
     """
     try:
-        from routing_loop.request_store import get_request_store
-        from routing_ml.feature_extractor import extract_features
-
-        feature_vec = extract_features(messages or [], scenario=scenario)
-        message_length, code_ratio, chinese_ratio = _compute_message_metrics(messages or [])
-
-        store = get_request_store()
-        _log_request(
-            store,
+        _persist_feedback(
             request_id,
             scenario,
-            message_length,
-            code_ratio,
-            chinese_ratio,
-            feature_vec.features,
+            messages or [],
             backend,
             success,
             latency_ms,
@@ -56,10 +88,6 @@ def on_request_complete(
             tokens_prompt,
             tokens_completion,
         )
-
-        # NOTE: routing_weights is updated by route_post_process.py, NOT here.
-        _check_training_trigger()
-
     except Exception as exc:
         _log.warning(
             "feedback_bridge.on_request_complete FAILED: %s: %s",

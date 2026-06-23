@@ -28,57 +28,58 @@ NO_COMPRESSION = 0b0000
 GZIP = 0b0001
 
 
+def _parse_frame_header(res: bytes) -> tuple[dict, bytes]:
+    """Parse the fixed header and return (header_dict, payload_bytes)."""
+    header_size = res[0] & 0x0F
+    return {
+        "protocol_version": res[0] >> 4,
+        "header_size": header_size,
+        "message_type": res[1] >> 4,
+        "message_type_specific_flags": res[1] & 0x0F,
+        "serialization_method": res[2] >> 4,
+        "message_compression": res[2] & 0x0F,
+        "header_extensions": res[4 : header_size * 4],
+    }, res[header_size * 4 :]
+
+
+def _extract_payload(message_type: int, payload: bytes) -> tuple[bytes | None, int, dict]:
+    """Return (payload_msg, payload_size, extra_fields) for a known message type."""
+    if message_type == SERVER_FULL_RESPONSE:
+        return payload[4:], int.from_bytes(payload[:4], "big", signed=True), {}
+    if message_type == SERVER_ACK:
+        extra = {"seq": int.from_bytes(payload[:4], "big", signed=True)}
+        if len(payload) >= 8:
+            return payload[8:], int.from_bytes(payload[4:8], "big", signed=False), extra
+        return None, 0, extra
+    if message_type == SERVER_ERROR_RESPONSE:
+        extra = {"code": int.from_bytes(payload[:4], "big", signed=False)}
+        return payload[8:], int.from_bytes(payload[4:8], "big", signed=False), extra
+    return None, 0, {}
+
+
+def _decode_payload_msg(payload_msg: bytes, serialization_method: int, message_compression: int) -> object:
+    """Decompress and deserialize payload bytes according to the header flags."""
+    if message_compression == GZIP:
+        payload_msg = gzip.decompress(payload_msg)
+    if serialization_method == JSON:
+        return json.loads(payload_msg.decode("utf-8"))
+    if serialization_method != NO_SERIALIZATION:
+        return payload_msg.decode("utf-8")
+    return payload_msg
+
+
 def parse_response(res: bytes) -> dict:
     """Parse a Doubao binary protocol response frame."""
-    protocol_version = res[0] >> 4
-    header_size = res[0] & 0x0F
-    message_type = res[1] >> 4
-    message_type_specific_flags = res[1] & 0x0F
-    serialization_method = res[2] >> 4
-    message_compression = res[2] & 0x0F
-    _reserved = res[3]
-    header_extensions = res[4 : header_size * 4]
-    payload = res[header_size * 4 :]
-
-    result: dict = {
-        "protocol_version": protocol_version,
-        "header_size": header_size,
-        "message_type": message_type,
-        "message_type_specific_flags": message_type_specific_flags,
-        "serialization_method": serialization_method,
-        "message_compression": message_compression,
-        "header_extensions": header_extensions,
-    }
-
-    payload_msg = None
-    payload_size = 0
-
-    if message_type == SERVER_FULL_RESPONSE:
-        payload_size = int.from_bytes(payload[:4], "big", signed=True)
-        payload_msg = payload[4:]
-    elif message_type == SERVER_ACK:
-        seq = int.from_bytes(payload[:4], "big", signed=True)
-        result["seq"] = seq
-        if len(payload) >= 8:
-            payload_size = int.from_bytes(payload[4:8], "big", signed=False)
-            payload_msg = payload[8:]
-    elif message_type == SERVER_ERROR_RESPONSE:
-        code = int.from_bytes(payload[:4], "big", signed=False)
-        result["code"] = code
-        payload_size = int.from_bytes(payload[4:8], "big", signed=False)
-        payload_msg = payload[8:]
+    result, payload = _parse_frame_header(res)
+    payload_msg, payload_size, extra = _extract_payload(result["message_type"], payload)
+    result.update(extra)
 
     if payload_msg is None:
         return result
 
-    if message_compression == GZIP:
-        payload_msg = gzip.decompress(payload_msg)
-    if serialization_method == JSON:
-        payload_msg = json.loads(payload_msg.decode("utf-8"))
-    elif serialization_method != NO_SERIALIZATION:
-        payload_msg = payload_msg.decode("utf-8")
-
-    result["payload_msg"] = payload_msg
+    result["payload_msg"] = _decode_payload_msg(
+        payload_msg, result["serialization_method"], result["message_compression"]
+    )
     result["payload_size"] = payload_size
     return result
 

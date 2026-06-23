@@ -69,6 +69,36 @@ def _build_subject_expansion(subject: str) -> str:
     return f"画一个{subject}的简笔画"
 
 
+def _normalize_user_prompt(user_prompt: str, conversation_context: str) -> str:
+    """Ensure *user_prompt* is a non-empty string, applying refinement hints."""
+    if not isinstance(user_prompt, str):
+        user_prompt = str(user_prompt)
+    user_prompt = user_prompt.strip()
+    if not user_prompt:
+        user_prompt = "一个简单图形"
+    return _apply_refinement_hint(user_prompt, conversation_context)
+
+
+def _assemble_instruction_parts(
+    device_type: str,
+    conversation_context: str,
+    previous_failed_prompts: list[str] | None,
+) -> list[str]:
+    """Build the ordered list of system/capability/retry instruction fragments."""
+    parts = [SYSTEM_INSTRUCTION]
+    if conversation_context:
+        parts.append(f"【对话上下文】{conversation_context}")
+
+    capability = CAPABILITY_PROMPT_MAP.get(device_type, "")
+    if capability:
+        parts.append(capability)
+
+    if previous_failed_prompts:
+        parts.append(f"注意：之前以下描述生成失败，请调整：{previous_failed_prompts[-1]}")
+
+    return parts
+
+
 def enhance_drawing_prompt(
     user_prompt: str,
     *,
@@ -91,31 +121,11 @@ def enhance_drawing_prompt(
     Returns:
         A constrained prompt ready for the image generation backend.
     """
-    if not isinstance(user_prompt, str):
-        user_prompt = str(user_prompt)
-    user_prompt = user_prompt.strip()
-    if not user_prompt:
-        user_prompt = "一个简单图形"
-
-    user_prompt = _apply_refinement_hint(user_prompt, conversation_context)
-
+    user_prompt = _normalize_user_prompt(user_prompt, conversation_context)
     strokes = COMPLEXITY_STROKES.get(complexity, COMPLEXITY_STROKES["中"])
-    capability = CAPABILITY_PROMPT_MAP.get(device_type, "")
-
-    retry_hint = ""
-    if previous_failed_prompts:
-        retry_hint = f"注意：之前以下描述生成失败，请调整：{previous_failed_prompts[-1]}"
-
-    parts = [SYSTEM_INSTRUCTION]
-    if conversation_context:
-        parts.append(f"【对话上下文】{conversation_context}")
-    if capability:
-        parts.append(capability)
-    if retry_hint:
-        parts.append(retry_hint)
-
-    prefix = "。".join(parts)
     medium_desc = f"{complexity}复杂度（{strokes}）"
+
+    prefix = "。".join(_assemble_instruction_parts(device_type, conversation_context, previous_failed_prompts))
     return (
         f"{prefix}。"
         f"{_build_subject_expansion(user_prompt)}，"

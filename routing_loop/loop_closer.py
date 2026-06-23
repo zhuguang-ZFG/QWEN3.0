@@ -15,10 +15,9 @@ import time
 _log = logging.getLogger(__name__)
 
 
-def close_loop() -> dict:
-    """Execute one cycle of the feedback loop. Returns diagnostics."""
-    t0 = time.time()
-    result = {
+def _init_result(t0: float) -> dict:
+    """Return the default diagnostics dict for a close_loop cycle."""
+    return {
         "timestamp": t0,
         "training": False,
         "training_samples": 0,
@@ -27,35 +26,21 @@ def close_loop() -> dict:
         "store_count": 0,
     }
 
-    # 1. Get request store stats
+
+def _fetch_store_count() -> tuple[int, object] | None:
+    """Return (count, store) or None if the request store is unavailable."""
     try:
         from routing_loop.request_store import get_request_store
 
         store = get_request_store()
-        result["store_count"] = store.count()
+        return store.count(), store
     except Exception as exc:
         _log.warning("close_loop: request_store unavailable: %s", exc)
-        return result
+        return None
 
-    # 2. Train ML model with real data
-    try:
-        result["training"], result["training_samples"], result["training_loss"] = _train_ml_model(store)
-    except Exception as exc:
-        _log.warning("close_loop: ML training failed: %s", exc)
 
-    # 3. Persist health state
-    try:
-        _persist_health_state()
-        result["health_persisted"] = True
-    except Exception as exc:
-        _log.warning("close_loop: health persist failed: %s", exc)
-
-    # 4. Trigger eval gate
-    try:
-        _trigger_eval_gate()
-    except Exception as exc:
-        _log.warning("close_loop: eval gate failed: %s", exc)
-
+def _finalize_result(result: dict, t0: float) -> dict:
+    """Log the cycle summary and return the diagnostics dict."""
     duration_ms = (time.time() - t0) * 1000
     _log.info(
         "loop_closer: store=%d training=%s samples=%d loss=%.4f duration=%.0fms",
@@ -66,6 +51,35 @@ def close_loop() -> dict:
         duration_ms,
     )
     return result
+
+
+def close_loop() -> dict:
+    """Execute one cycle of the feedback loop. Returns diagnostics."""
+    t0 = time.time()
+    result = _init_result(t0)
+
+    store_info = _fetch_store_count()
+    if store_info is None:
+        return result
+    result["store_count"], store = store_info
+
+    try:
+        result["training"], result["training_samples"], result["training_loss"] = _train_ml_model(store)
+    except Exception as exc:
+        _log.warning("close_loop: ML training failed: %s", exc)
+
+    try:
+        _persist_health_state()
+        result["health_persisted"] = True
+    except Exception as exc:
+        _log.warning("close_loop: health persist failed: %s", exc)
+
+    try:
+        _trigger_eval_gate()
+    except Exception as exc:
+        _log.warning("close_loop: eval gate failed: %s", exc)
+
+    return _finalize_result(result, t0)
 
 
 def _train_ml_model(store) -> tuple[bool, int, float]:
