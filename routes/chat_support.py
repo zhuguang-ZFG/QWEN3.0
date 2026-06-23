@@ -13,6 +13,7 @@ import asyncio
 
 from backends_constants import THINKING_BACKENDS
 from backends_registry import BACKENDS
+from config.settings import FLAGS
 import health_tracker
 import http_caller
 import routing_executor
@@ -20,7 +21,6 @@ import routing_executor
 _log = logging.getLogger(__name__)
 
 _DISTILL_QUEUE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "distill_queue", "pending")
-_DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 
 
 def _get_thinking_backend() -> str:
@@ -121,5 +121,5 @@ def log_sys_prompt(sys_prompt: str) -> None:
     fname = os.path.join(sys_prompt_dir, f"{ide_source}_{phash}.json")
     with open(fname, "w", encoding="utf-8") as handle:
         json.dump(entry, handle, ensure_ascii=False, indent=2)
-    if _DEBUG:
+    if FLAGS.debug:
         print(f"[SYS_PROMPT] new: {ide_source} ({len(sys_prompt)} chars)", file=sys.stderr)

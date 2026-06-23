@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 _stats: dict = {}
 _stats_lock: threading.Lock = threading.Lock()
 
-_DATA_DIR = LIMA_DATA_DIR or _os.path.join(_os.path.dirname(__file__), "..", "data")
+_DATA_DIR = LIMA_DATA_DIR
 FALLBACK_LOG = _os.path.join(_DATA_DIR, "fallback_log.jsonl")
 TRUSTED_PROXIES = {"127.0.0.1", "::1", "10.0.0.1"}
 
