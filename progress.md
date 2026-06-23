@@ -7197,3 +7197,27 @@ Agent Worker path.
   - `pyright` 修改文件 0 errors（保留既有 `sys.stdout.reconfigure` warning）
 
 - **Git**：提交并推送 `origin/main`。
+
+## 2026-06-23 LiMa 缺陷改善计划再下一批（P1-12）
+
+- **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-12 `device_logic/auth.py` 认证异常静默返回 False 的问题。
+
+- **本批改动**：
+  - 复核 `device_logic/auth.py::_verify_password()`：
+    - `Exception` 分支已记录 `_log.error(..., exc_info=True)` 并返回 `False`；
+    - `ValueError`（hash 格式损坏）原被静默吞没，现补充 `_log.warning(...)` 后再返回 `False`，帮助区分用户凭证错误与系统存储异常。
+  - 新增 `tests/test_device_logic_auth.py`，覆盖：
+    - 正确/错误密码验证；
+    - 空 hash 返回 `False`；
+    - 畸形 hash 记录 warning 并返回 `False`；
+    - bcrypt 异常记录 error 并返回 `False`；
+    - PyJWT 未安装时 `make_token` 记录 warning 并返回 `None`。
+  - 文档同步：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`、`findings.md`。
+
+- **验证**：
+  - 聚焦测试：`tests/test_device_logic_auth.py` + `tests/test_routes_device_app_auth.py` → **19 passed**
+  - 全量 `.venv310/Scripts/python -m pytest -q` → **3521 passed / 17 skipped / 0 failed / 2 deselected**
+  - `ruff check .` clean
+  - `pyright` 修改文件 0 errors（保留既有可选依赖 import warning）
+
+- **Git**：提交并推送 `origin/main`。

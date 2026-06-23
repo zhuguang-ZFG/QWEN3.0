@@ -1071,3 +1071,13 @@
 **验证**
 - 聚焦测试：`tests/test_deploy_jd_prometheus.py` → **2 passed**
 - 全量 `pytest -q`、ruff、pyright 验证见 `progress.md` 同日条目
+
+## 2026-06-23 缺陷改善计划再下一批（P1-12）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P1-12 | security | `device_logic/auth.py::_verify_password()` 中 `ValueError`（hash 损坏）不再静默返回 `False`，改为记录 warning；`Exception` 已记录 error；新增 `tests/test_device_logic_auth.py` 覆盖异常分支 | Closed |
+
+**验证**
+- 聚焦测试：`tests/test_device_logic_auth.py` → **6 passed**
+- 全量 `pytest -q`、ruff、pyright 验证见 `progress.md` 同日条目

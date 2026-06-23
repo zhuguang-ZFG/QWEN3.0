@@ -47,8 +47,10 @@ def _verify_password(password: str, hashed: str | None) -> bool:
         return False
     try:
         return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
-    except ValueError:
-        # Malformed hash: treat as authentication failure without polluting logs.
+    except ValueError as exc:
+        # Malformed hash: still deny access, but log a warning so operators can
+        # detect storage corruption or bad imports.
+        _log.warning("password hash is malformed; treating as authentication failure: %s", exc)
         return False
     except Exception as exc:
         _log.error("password verification encountered an error; treating as failure: %s", exc, exc_info=True)

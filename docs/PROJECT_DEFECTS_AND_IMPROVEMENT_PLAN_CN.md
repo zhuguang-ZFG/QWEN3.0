@@ -540,9 +540,10 @@ except Exception:
 
 **修复方案**：
 - `_verify_password()` 中对 `Exception` 已记录 `_log.error(..., exc_info=True)` 后再返回 `False`。
+- `ValueError`（hash 格式损坏）原被静默吞没，现改为记录 `_log.warning(...)` 后再返回 `False`，以便区分用户凭证错误与系统存储异常。
 - 其他认证路径的异常不再静默吞没。
 
-**验证**：新增 `tests/test_device_logic_auth.py` 覆盖异常分支；全量测试通过。
+**验证**：新增 `tests/test_device_logic_auth.py` 覆盖正常/错误密码、空 hash、hash 损坏、bcrypt 异常及 `make_token` JWT 缺失分支；全量测试通过。
 
 **预估工作量**：0.25 人天
 
