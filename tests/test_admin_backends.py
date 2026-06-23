@@ -1,0 +1,34 @@
+"""Tests for routes/admin_backends.py — backend URL safety helpers."""
+
+from routes.admin_backends import _is_safe_backend_url, _resolve_vendor
+
+
+class TestIsSafeBackendUrl:
+    def test_https_public_domain(self):
+        assert _is_safe_backend_url("https://api.example.com/v1") is True
+
+    def test_http_rejected(self):
+        assert _is_safe_backend_url("http://api.example.com/v1") is False
+
+    def test_localhost_rejected(self):
+        assert _is_safe_backend_url("https://localhost:8080") is False
+
+    def test_private_ip_rejected(self):
+        assert _is_safe_backend_url("https://192.168.1.1") is False
+
+    def test_loopback_rejected(self):
+        assert _is_safe_backend_url("https://127.0.0.1") is False
+
+    def test_file_scheme_rejected(self):
+        assert _is_safe_backend_url("file:///etc/passwd") is False
+
+
+class TestResolveVendor:
+    def test_longcat(self):
+        assert _resolve_vendor("https://longcat.ai") == "LongCat"
+
+    def test_nvidia(self):
+        assert _resolve_vendor("https://nvidia.example.com") == "英伟达 NVIDIA"
+
+    def test_unknown(self):
+        assert _resolve_vendor("https://example.com") == "Unknown"
