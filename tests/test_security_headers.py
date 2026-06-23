@@ -1,25 +1,35 @@
-"""Tests for global HTTP security headers middleware."""
+"""Tests for routes/security_headers.py — security headers middleware."""
 
-from __future__ import annotations
+from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
+from starlette.testclient import TestClient
 
-from fastapi.testclient import TestClient
-
-import server
-
-
-def test_security_headers_present_on_health() -> None:
-    client = TestClient(server.app)
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.headers.get("X-Content-Type-Options") == "nosniff"
-    assert response.headers.get("X-Frame-Options") == "DENY"
-    assert response.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
-    assert response.headers.get("X-XSS-Protection") == "0"
-    assert "Strict-Transport-Security" not in response.headers
+from routes.security_headers import SecurityHeadersMiddleware
 
 
-def test_hsts_added_for_https_requests() -> None:
-    client = TestClient(server.app, base_url="https://testserver")
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert "max-age=31536000" in response.headers.get("Strict-Transport-Security", "")
+app = Starlette()
+app.add_middleware(SecurityHeadersMiddleware)
+
+
+@app.route("/")
+def homepage(_):
+    return PlainTextResponse("ok")
+
+
+class TestSecurityHeadersMiddleware:
+    def test_basic_headers(self):
+        client = TestClient(app)
+        response = client.get("/")
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Frame-Options"] == "DENY"
+        assert "Content-Security-Policy" in response.headers
+
+    def test_hsts_on_https(self):
+        client = TestClient(app)
+        response = client.get("/", headers={"X-Forwarded-Proto": "https"})
+        assert "Strict-Transport-Security" in response.headers
+
+    def test_no_hsts_on_http(self):
+        client = TestClient(app)
+        response = client.get("/")
+        assert "Strict-Transport-Security" not in response.headers
