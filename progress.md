@@ -27,12 +27,12 @@
   - 新增测试覆盖关键空白：`entity_extraction.py`、`eval_gate.py`、`eval_gate_promotion.py`、`prompt_recall.py`、`memory_embeddings.py`、`redact.py`、`outcome_queries.py`、`device_draw_memory.py`、`cli_telemetry.py`、`learning_loop` 全 5 通道、`context_pipeline/_project_root.py`、`retrieval_trace.py`、`cache.py`、`type_helpers.py`、`backends_registry/_utils.py`、`brand_config.py`、`code_context/retriever.py` 等。
 
 - **新增提交**：
-  - 26 次本地提交，25 次成功推送 GitHub。
-  - 新增测试文件 54 个，新增测试用例 ~550 个。
+  - 29 次本地提交，28 次成功推送 GitHub。
+  - 新增测试文件 56 个，新增测试用例 ~570 个。
 
 - **剩余大项**（需单独里程碑）：
   - P3-14：SQLite 连接池基础已落地（`config/sqlite_pool.py` + `session_memory/store_db.py::memory_stats` 迁移），剩余 14+ 模块迁移。
-  - P2-9：`routes/` 覆盖开始：`admin_auth.py`、`admin_backends.py`、`security_headers.py` 已测，剩余 ~52 模块。
+  - P2-9：`routes/` 覆盖进行中：`admin_auth.py`、`admin_backends.py`、`security_headers.py`、`rate_limit_helper.py`、`async_compat.py`、`ws_common.py`、`json_body.py`、`admin_state.py` 已测，剩余 ~47 模块。
   - P1-2：剩余 ~300 处 `os.environ` 集中化到 `config/db_config.py`。
 
 ## 2026-06-22 LiMa 第七轮瘦身（完成）
