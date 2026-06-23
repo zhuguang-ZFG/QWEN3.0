@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from device_gateway.device_profile import DeviceProfile
-from device_gateway.device_simplification_logger import record_simplification
+from device_gateway.device_write_handler import record_simplification
 from device_intelligence.schemas import DEFAULT_WORKSPACE_MM
 
 _log = logging.getLogger(__name__)

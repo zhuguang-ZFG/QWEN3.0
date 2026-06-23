@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 import time
 
+from config.sqlite_pool import pooled_sqlite_conn
+
 _log = logging.getLogger(__name__)
 
 
@@ -126,33 +128,31 @@ def _persist_health_state() -> None:
     """Persist in-memory health state to SQLite for restart recovery."""
     try:
         from health_tracker import get_health_map, get_scores, get_latency_map
-        import sqlite3
 
         from config.db_config import LIMA_DATA_DIR
         import os as _os
 
         db_path = _os.path.join(LIMA_DATA_DIR or "data", "request_log.db")
-        conn = sqlite3.connect(db_path, timeout=5)
-        conn.execute("""CREATE TABLE IF NOT EXISTS backend_health (
-            backend TEXT PRIMARY KEY,
-            state TEXT,
-            score REAL,
-            latency_ms REAL,
-            last_updated REAL
-        )""")
-        conn.execute("DELETE FROM backend_health")
+        _os.makedirs(_os.path.dirname(db_path) or ".", exist_ok=True)
+        with pooled_sqlite_conn(db_path) as conn:
+            conn.execute("""CREATE TABLE IF NOT EXISTS backend_health (
+                backend TEXT PRIMARY KEY,
+                state TEXT,
+                score REAL,
+                latency_ms REAL,
+                last_updated REAL
+            )""")
+            conn.execute("DELETE FROM backend_health")
 
-        health_map = get_health_map()
-        scores = get_scores()
-        latency_map = get_latency_map()
+            health_map = get_health_map()
+            scores = get_scores()
+            latency_map = get_latency_map()
 
-        for backend, state in health_map.items():
-            conn.execute(
-                "INSERT INTO backend_health VALUES (?, ?, ?, ?, ?)",
-                (backend, state, scores.get(backend, 50), latency_map.get(backend, 1500), time.time()),
-            )
-        conn.commit()
-        conn.close()
+            for backend, state in health_map.items():
+                conn.execute(
+                    "INSERT INTO backend_health VALUES (?, ?, ?, ?, ?)",
+                    (backend, state, scores.get(backend, 50), latency_map.get(backend, 1500), time.time()),
+                )
     except Exception as exc:
         _log.warning("_persist_health_state failed: %s", exc)
 

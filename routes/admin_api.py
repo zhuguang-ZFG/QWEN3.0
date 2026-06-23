@@ -16,7 +16,7 @@ from routes.facade import (
     health_tracker,
     remove_backend,
 )
-from device_gateway.family_gate import (
+from device_gateway.family_approval_store import (
     approve_family,
     list_family_approvals,
     revoke_family,
@@ -120,15 +120,18 @@ async def admin_add_backend(req: Request):
         raise HTTPException(400, f"backend URL must be a public HTTPS endpoint: {url}")
     if has_backend(name):
         raise HTTPException(409, f"backend '{name}' already exists")
-    add_backend(name, {
-        "url": url,
-        "key": key,
-        "model": model,
-        "fmt": fmt,
-        "auth": auth,
-        "tier": body.get("tier", ""),
-        "caps": body.get("caps", []),
-    })
+    add_backend(
+        name,
+        {
+            "url": url,
+            "key": key,
+            "model": model,
+            "fmt": fmt,
+            "auth": auth,
+            "tier": body.get("tier", ""),
+            "caps": body.get("caps", []),
+        },
+    )
     backend_enabled[name] = True
     try:
         test_result = test_backend_sync(name)

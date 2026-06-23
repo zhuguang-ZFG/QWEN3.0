@@ -1,4 +1,4 @@
-"""Tests for device_gateway.artifact_recorder."""
+"""Tests for device_gateway.task_recorder route evidence helpers."""
 
 import json
 import tempfile
@@ -11,7 +11,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from device_gateway.artifact_recorder import (
+from device_gateway.task_recorder import (
     _STORAGE_BASE,
     record_route_evidence,
     shutdown,
@@ -25,13 +25,13 @@ class TestArtifactRecorder(unittest.TestCase):
         # Use a temporary directory for evidence files
         self._orig_base = _STORAGE_BASE
         self._tmpdir = tempfile.mkdtemp(prefix="artifact_test_")
-        import device_gateway.artifact_recorder as mod
+        import device_gateway.task_recorder as mod
 
         mod._STORAGE_BASE = Path(self._tmpdir)
 
     def tearDown(self):
         shutdown(wait=True)
-        import device_gateway.artifact_recorder as mod
+        import device_gateway.task_recorder as mod
 
         mod._STORAGE_BASE = self._orig_base
         import shutil

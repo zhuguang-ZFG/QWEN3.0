@@ -1,4 +1,4 @@
-"""Per-device family approval persistence.
+"""Per-device family approval persistence and gating.
 
 Each protocol family (display, audio, speech, ocr, camera, perception) can be
 approved independently per device. Approval records carry safety evidence and
@@ -10,15 +10,25 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 
 from config import db_config
-
+from config.sqlite_pool import pooled_sqlite_conn
+from device_gateway.protocol_families import (
+    FAMILY_ALLOWLISTS,
+    GATED_FAMILIES,
+    ProtocolFamily,
+    family_is_active,
+)
 
 _DEFAULT_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 _DEFAULT_DB_FILE = os.path.join(_DEFAULT_DB_DIR, "lima.db")
 _DB_PATH = db_config.get_lima_db_path()
+
+GATE_HARDCODED_APPROVAL_FAMILIES: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -44,11 +54,7 @@ def set_db_path(path: str) -> None:
     db_config.LIMA_DB_PATH = path
 
 
-def _connect() -> sqlite3.Connection:
-    db_path = get_db_path()
-    os.makedirs(os.path.dirname(db_path) or _DEFAULT_DB_DIR, exist_ok=True)
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
+def _ensure_schema(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute(
         """
@@ -73,8 +79,16 @@ def _connect() -> sqlite3.Connection:
         ON v2_family_approval(device_id, family)
         """
     )
-    conn.commit()
-    return conn
+
+
+@contextmanager
+def _connect() -> Generator[sqlite3.Connection, None, None]:
+    db_path = get_db_path()
+    os.makedirs(os.path.dirname(db_path) or _DEFAULT_DB_DIR, exist_ok=True)
+    with pooled_sqlite_conn(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        _ensure_schema(conn)
+        yield conn
 
 
 def _now() -> str:
@@ -109,7 +123,6 @@ def approve_family(
             """,
             (device_id, family, approved_by, now, evidence_json, now),
         )
-        conn.commit()
     return FamilyApproval(
         device_id=device_id,
         family=family,
@@ -139,17 +152,16 @@ def revoke_family(device_id: str, family: str, revoked_by: str) -> FamilyApprova
             """,
             (now, now, device_id, family),
         )
-        conn.commit()
-        evidence = json.loads(row["evidence"] or "{}")
-        return FamilyApproval(
-            device_id=device_id,
-            family=family,
-            status="revoked",
-            approved_by=row["approved_by"],
-            approved_at=row["approved_at"],
-            revoked_at=now,
-            evidence=evidence,
-        )
+    evidence = json.loads(row["evidence"] or "{}")
+    return FamilyApproval(
+        device_id=device_id,
+        family=family,
+        status="revoked",
+        approved_by=row["approved_by"],
+        approved_at=row["approved_at"],
+        revoked_at=now,
+        evidence=evidence,
+    )
 
 
 def get_family_approval(device_id: str, family: str) -> FamilyApproval | None:
@@ -204,4 +216,55 @@ def reset_family_approvals() -> None:
     """Clear all approval records. Use only in tests."""
     with _connect() as conn:
         conn.execute("DELETE FROM v2_family_approval")
-        conn.commit()
+
+
+def _family_value(family: str | ProtocolFamily) -> str:
+    return family.value if isinstance(family, ProtocolFamily) else family
+
+
+def family_requires_approval(family: str | ProtocolFamily) -> bool:
+    """Return True if the family is gated and requires per-device approval."""
+    return _family_value(family) in GATED_FAMILIES
+
+
+def validate_family_capability(
+    device_id: str,
+    family: str | ProtocolFamily,
+    capability: str,
+) -> tuple[bool, str | None]:
+    """Validate that a capability is allowed for a device.
+
+    Returns (allowed, error).
+    - Gated families (display/audio/speech/ocr/camera/perception) are enabled
+      per-device by explicit approval, independent of the global ACTIVE_FAMILIES.
+    - Non-gated active families (e.g. motion) use the global allowlist.
+    """
+    value = _family_value(family)
+    allowed = FAMILY_ALLOWLISTS.get(value)
+    if allowed is None or capability not in allowed:
+        return False, f"Capability '{capability}' not in family '{value}'"
+
+    if value in GATED_FAMILIES:
+        if value in GATE_HARDCODED_APPROVAL_FAMILIES:
+            return True, None
+        if not is_family_approved(device_id, value):
+            return False, f"Family '{value}' is not approved for device '{device_id}'"
+        return True, None
+
+    if not family_is_active(value):
+        return False, f"Family '{value}' is not active"
+
+    return True, None
+
+
+__all__ = [
+    "FamilyApproval",
+    "approve_family",
+    "family_requires_approval",
+    "get_family_approval",
+    "is_family_approved",
+    "list_family_approvals",
+    "reset_family_approvals",
+    "revoke_family",
+    "validate_family_capability",
+]

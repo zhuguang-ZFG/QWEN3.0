@@ -9,6 +9,7 @@ import tempfile
 
 import pytest
 
+from config.sqlite_pool import pool_clear
 from tool_gateway.audit import (
     _is_sensitive_key,
     _sanitize_text,
@@ -30,6 +31,7 @@ def isolated_audit_db(monkeypatch: pytest.MonkeyPatch) -> None:
         reset_audit()
         yield
         reset_audit()
+        pool_clear()
 
 
 class TestSanitize:

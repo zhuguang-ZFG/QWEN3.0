@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import logging
 import os
-import sqlite3
 import time
 
 from config.db_config import TOKEN_HEALTH_DB as DB_PATH
+from config.sqlite_pool import pooled_sqlite_conn
 from config.settings import resolve_backend_key
 
 logger = logging.getLogger(__name__)
@@ -87,32 +87,24 @@ def get_expired_tokens() -> list[dict]:
 
 def save_token_status(results: list[dict]) -> None:
     """Save token check results to SQLite."""
-    conn = None
     try:
         os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
-        conn = sqlite3.connect(DB_PATH, timeout=5)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS token_health (
-                backend TEXT PRIMARY KEY,
-                status TEXT,
-                checked_at REAL,
-                error TEXT
-            )
-        """)
-        for r in results:
-            conn.execute(
-                "INSERT OR REPLACE INTO token_health VALUES (?, ?, ?, ?)",
-                (r["backend"], r.get("status", "unknown"), time.time(), r.get("error", "")),
-            )
-        conn.commit()
+        with pooled_sqlite_conn(DB_PATH) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS token_health (
+                    backend TEXT PRIMARY KEY,
+                    status TEXT,
+                    checked_at REAL,
+                    error TEXT
+                )
+            """)
+            for r in results:
+                conn.execute(
+                    "INSERT OR REPLACE INTO token_health VALUES (?, ?, ?, ?)",
+                    (r["backend"], r.get("status", "unknown"), time.time(), r.get("error", "")),
+                )
     except Exception as exc:
         logger.warning("Failed to save token health: %s", exc)
-    finally:
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception as exc:
-                logger.warning("Failed to close DB connection in save_token_status: %s", exc)
 
 
 def alert_expired_tokens() -> None:

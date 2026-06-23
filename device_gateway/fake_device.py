@@ -12,7 +12,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
-from device_gateway.motion import (
+from device_gateway.path_data import (
     MotionCommand,
     MotionCommandKind,
     MotionEvent,

@@ -12,13 +12,11 @@ import health_tracker
 from speculative_execution import (
     is_historically_fast,
     speculative_call,
-    speculative_call_async,
 )
 from speculative_policy import AFFINITY, classify_complexity, get_affinity_backends
 
 __all__ = [
     "speculative_call",
-    "speculative_call_async",
     "is_historically_fast",
     "classify_complexity",
     "get_affinity_backends",

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from config.sqlite_pool import pool_clear
+
 import device_gateway.family_approval_store as store
 
 
@@ -15,6 +17,7 @@ def _isolate_family_approvals(tmp_path, monkeypatch):
     store.reset_family_approvals()
     yield
     store.reset_family_approvals()
+    pool_clear()
 
 
 def test_approve_and_check_family():

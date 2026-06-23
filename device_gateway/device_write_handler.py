@@ -1,7 +1,12 @@
 """设备写字路由 - device_write 模式（确定性，无 LLM）"""
 
+from __future__ import annotations
+
+import json
 import logging
-from typing import Dict, Any, Optional
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
 from device_gateway.path_pipeline import text_to_path, preview_svg
 
@@ -21,6 +26,53 @@ FONT_SIZES = {
     "large": {"scale": 1.5, "target_height": 90},
 }
 
+# ── Simplification logger ───────────────────────────────────────────────────────
+
+ARTIFACT_DIR = Path("device_artifacts")
+
+
+def record_simplification(
+    device_id: str,
+    task_id: str,
+    simplification_type: str,
+    reason: str,
+    original: dict[str, Any],
+    constrained: dict[str, Any],
+) -> None:
+    """Record a profile simplification decision to artifact log.
+
+    This must be called whenever apply_profile_constraints() makes a change
+    (downgrade, cap, gate) to the task. Silent geometry repair is FORBIDDEN.
+    """
+    if not device_id or not task_id:
+        logger.warning("Cannot record simplification: missing device_id or task_id")
+        return
+
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    record = {
+        "timestamp": now,
+        "device_id": device_id,
+        "task_id": task_id,
+        "simplification_type": simplification_type,
+        "reason": reason,
+        "original": original,
+        "constrained": constrained,
+    }
+
+    log_path = ARTIFACT_DIR / f"simplification_{device_id}.log"
+
+    try:
+        log_path.parent.mkdir(exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(f"{json.dumps(record, ensure_ascii=False)}\n")
+        logger.debug("Recorded simplification: device=%s, type=%s", device_id, simplification_type)
+    except (OSError, ValueError) as e:
+        logger.warning("Failed to record simplification to artifact log: %s", e)
+
+
+# ── Handlers ────────────────────────────────────────────────────────────────────
+
 
 def _resolve_font_params(font_style: str, size: str) -> float:
     """Compute combined scale factor from font style and size."""
@@ -39,8 +91,8 @@ def _compute_bounds(path_list: list[dict]) -> tuple[int, int]:
 
 
 async def handle_device_write(
-    text: str, device_id: Optional[str] = None, font_style: str = "default", size: str = "medium"
-) -> Dict[str, Any]:
+    text: str, device_id: str | None = None, font_style: str = "default", size: str = "medium"
+) -> dict[str, Any]:
     """
     处理设备写字请求（确定性路径，不调用 LLM）
 

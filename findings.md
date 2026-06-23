@@ -1081,3 +1081,27 @@
 **验证**
 - 聚焦测试：`tests/test_device_logic_auth.py` → **6 passed**
 - 全量 `pytest -q`、ruff、pyright 验证见 `progress.md` 同日条目
+
+## 2026-06-23 缺陷改善计划 — 剩余 P3 项全部关闭
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P3-2 | quality | 健康子系统 6 模块碎片化与 lazy import 循环依赖：新增 `health_models.py`，合并 persistence/classifier，删除 2 个小模块 | Closed |
+| P3-10 | architecture | `pick_backend()` 已拆分为 `_classify_and_recall()` / `_select_backends()` / `_enrich_with_intent_and_skills()`，自身 32 行 | Closed |
+| P3-11 | architecture | `route()` 已拆分为身份短路/选路/执行策略/结果构造，自身 46 行 | Closed |
+| P3-13 | architecture | `speculative_execution.py` 改为 `ThreadPoolExecutor` 纯同步实现，移除 `run_coro_sync` 嵌套事件循环 | Closed |
+| P3-14 | architecture | 核心 SQLite 调用点迁移到 `config.sqlite_pool`，覆盖 health/tool_gateway/device_gateway/session_memory/backend_profile/backend_retirement/token_health/client_keys/routing_loop/code_context/MCP 等模块 | Closed |
+| P3-15 | architecture | device_gateway 顶层 Python 文件从 54 降至 **39**，合并 12 个小模块 | Closed |
+| P3-19 | quality | `device_gateway/task_deps.py` 已合并到 `task_creation.py` 并删除 | Closed |
+| P3-20 | quality | `ruff.toml` 已排除本地运行时目录（前期完成） | Closed |
+
+**验证**
+- 健康子系统聚焦测试 + 下游回归 → **51 passed**
+- device_gateway 聚焦测试 → **276 passed**
+- speculative 相关聚焦测试 → **23 passed**
+- 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q` → **3545 passed / 17 skipped / 2 deselected**
+- `ruff check .` clean；`pyright` 修改文件 0 errors；零新增 >300 行文件
+
+**未处理项**
+- `local_retrieval/fts_index.py` 使用 `:memory:` 数据库，未接入连接池（不适用）。
+- `scripts/codegraph_orphans.py` 为一次性审计脚本，保持原样。

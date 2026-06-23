@@ -17,7 +17,7 @@
 - 新增 `tests/test_device_app_routes.py`，先验证路由缺失，再实现 `/device/v1/app/*` 原生管理面。
 - 新增 `routes/device_app_api.py`，复用现有 JWT、`v2_*` 表和 `device_gateway.task_store`。
 - `routes/route_registry.py` 挂载新路由，默认随主服务生效。
-- 第二轮补上原生设备详情/更新和任务提交入口，任务创建直接复用 `device_gateway.task_service.create_and_route_task`。
+- 第二轮补上原生设备详情/更新和任务提交入口，任务创建直接复用 `device_gateway.tasks.create_and_route_task`。
 - 第三轮补上原生成员创建/列表和声纹登记/删除，直接复用 `v2_member`、`v2_voiceprint`。
 - 第四轮补上原生 transfer / supplies / self-check，继续直接复用 `v2_device_transfer_request`、`v2_device_supply`、`v2_self_check_event`。
 - 第五轮补上原生 auth/account 路径，继续复用现有 JWT 和 `v2_account`。

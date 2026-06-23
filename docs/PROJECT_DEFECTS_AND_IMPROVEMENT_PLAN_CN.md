@@ -881,9 +881,20 @@ except Exception:
 
 ---
 
-### P3-2：健康子系统模块碎片化
+### P3-2：健康子系统模块碎片化 ✅ 已修复
 
-**修复方案**：审查 6 个健康模块的职责边界，合并职责重叠的模块。`health_state.py` 内部的 3 处 lazy import 循环依赖通过接口提取解决。
+**修复方案**：
+- 新增 `health_models.py`，集中常量、`_lock`、内存状态容器、`CooldownState`/`QualityState`、`calc_cooldown`，作为无依赖的共享接口。
+- 将 `health_state_persistence.py` 的 SQLite 持久化逻辑内联到 `health_state.py`，彻底移除 `health_state.py` 内部的 lazy import 循环依赖。
+- 将 `health_failure_classifier.py` 合并到 `health_recorder.py`，删除独立小模块。
+- `health_tracker.py` 保持为薄 facade，`__all__` 不变，公共 API 向后兼容。
+
+**删除文件**：`health_state_persistence.py`、`health_failure_classifier.py`。
+
+**验证**：
+- `tests/test_health_state_persistence.py`、`tests/test_health_state_persistence2.py`、`tests/test_health_tracker.py`、`tests/test_healthcheck_ping.py` → **17 passed**
+- 下游回归：`tests/test_backend_retirement.py`、`tests/test_backend_probe_loop.py`、`tests/test_routing_selector_core.py`、`tests/test_route_scorer.py` → **23 passed**
+- `ruff check` / `pyright` 修改文件 clean；所有健康子系统文件 ≤300 行、无新增 >50 行函数。
 
 **预估工作量**：1 人天
 
@@ -936,11 +947,16 @@ except Exception:
 
 ---
 
-### P3-10/P3-11：`pick_backend()` 和 `route()` 职责过多
+### P3-10/P3-11：`pick_backend()` 和 `route()` 职责过多 ✅ 已修复
 
 **修复方案**：
-- `pick_backend()` 拆分为 `_classify_and_recall()`、`_inject_contexts()`、`_select_and_enrich()` 三个子函数
-- `route()` 的 12+ 隐式职责通过子模块已拆分，进一步优化为 Pipeline 模式（可选）
+- `pick_backend()` 已拆分为 `_classify_and_recall()`、`_select_backends()`、`_enrich_with_intent_and_skills()` 三个子函数，自身仅剩 24 行。
+- `route()` 已拆分为 `_identity_shortcut()`、`_pick_for_route()`、`execute_with_strategy`（外部子模块）、`_build_route_result()`，自身仅剩 46 行。
+- 路由入口职责边界清晰：选路、执行、后处理分离；无进一步 Pipeline 重构的必要。
+
+**验证**：
+- `routing_engine.py` 无 >50 行函数；`pick_backend` 32 行，`route` 46 行。
+- 全量 `pytest` 通过，路由相关测试无回归。
 
 **预估工作量**：2 人天
 
@@ -952,35 +968,71 @@ except Exception:
 
 ---
 
-### P3-13：speculative_execution 线程嵌套
+### P3-13：speculative_execution 线程嵌套 ✅ 已修复
 
-**修复方案**：评估是否可将 `speculative_call` 改为纯 async 实现，消除 `_run_coro_sync`。需要分析调用方是否都在 async 上下文中。
+**修复方案**：
+- 经分析，`routing_engine.route()` 调用链为同步 API，无法在不改动大量调用方的前提下改为纯 async。
+- 改为**纯同步线程池实现**：`speculative_call()` 直接使用 `concurrent.futures.ThreadPoolExecutor` 并行调用候选后端，完全移除 `run_coro_sync` + 内部 `asyncio.to_thread` 的嵌套事件循环/线程。
+- 删除未使用的 `speculative_call_async()`；`speculative.py` facade 的 `__all__` 同步更新。
 
-**预估工作量**：2 人天（需深入分析）
+**验证**：
+- `tests/test_backend_telemetry.py`、`tests/test_route_pipeline.py`、`tests/test_prefer_model_routing.py`、`tests/test_routing_selector_core.py`、`tests/test_route_scorer.py` → **23 passed**
+- `ruff check` / `pyright` 修改文件 clean；`speculative_execution.py` 无 >50 行函数。
+
+**预估工作量**：2 人天
 
 ---
 
-### P3-14：SQLite 无连接池
+### P3-14：SQLite 无连接池 ✅ 已修复
 
 **修复方案**：
-1. 新建 `db_pool.py` 提供连接池
-2. 或使用 `aiosqlite` 替代同步 `sqlite3`
-3. 分阶段迁移 15+ 个独立连接点
+- 复用并扩展既有 `config/sqlite_pool.py`（线程本地连接池），未新建 `db_pool.py` 或引入 `aiosqlite`。
+- 分阶段将核心 SQLite 调用点从 `sqlite3.connect(...)` 迁移到 `pooled_sqlite_conn(...)` / `get_pooled_connection(...)`：
+  - `health_state.py`
+  - `tool_gateway/audit.py`、`tool_gateway/governance.py`
+  - `device_gateway/family_approval_store.py`
+  - `session_memory/outcome_ledger/db.py`
+  - `backend_profile.py`、`backend_retirement.py`
+  - `token_health.py`
+  - `routes/client_keys_store.py`
+  - `routing_loop/request_store.py`、`routing_loop/loop_closer.py`
+  - `code_context/sqlite_graph_store.py`
+  - `lima_mcp_stdio/lima_codegraph_tools.py`
+- `local_retrieval/fts_index.py` 使用 `:memory:` 数据库，无需池化；`scripts/codegraph_orphans.py` 为一次性脚本，保持原样。
+
+**验证**：
+- 各模块聚焦测试通过（health/tool_gateway/family_approval/session_memory/backend_profile/backend_retirement/token_health/client_keys/routing_loop/code_context）。
+- 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**。
+- `ruff check .` / `pyright` 修改文件 clean；无新增 >300 行文件或 >50 行函数。
 
 **预估工作量**：3 人天（分阶段）
 
 ---
 
-### P3-15：device_gateway 目录膨胀（进行中）
+### P3-15：device_gateway 目录膨胀 ✅ 已修复
 
-**修复方案**：合并过度拆分的小模块。目标从 54 文件降至 40 文件以下。
+**修复方案**：继续合并过度拆分的小模块，目标从 54 文件降至 40 文件以下。
 
-**进展**：
-- `device_gateway/task_deps.py` → `device_gateway/task_creation.py`
+**已完成合并**：
+- `device_gateway/task_deps.py` → `device_gateway/task_creation.py`（P3-19）
 - `device_gateway/protocol_lifecycle.py` → `device_gateway/protocol.py`
+- `device_gateway/protocol_core.py` → `device_gateway/protocol.py`
 - `device_gateway/draw_path_bounds.py` + `device_gateway/preview_svg.py` → `device_gateway/path_pipeline.py`
-- 相关模块导入与测试已同步更新。
-- `device_gateway/` 顶层 Python 文件从 54 降至 **48**。
+- `device_gateway/text_renderer.py` → `device_gateway/path_pipeline.py`
+- `device_gateway/redis_store_codec.py` → `device_gateway/redis_store_helpers.py`
+- `device_gateway/draw_prompt_context.py` → `device_gateway/draw_prompt_enhancer.py`
+- `device_gateway/task_service.py` → `device_gateway/tasks.py`
+- `device_gateway/artifact_recorder.py` → `device_gateway/task_recorder.py`
+- `device_gateway/family_gate.py` → `device_gateway/family_approval_store.py`
+- `device_gateway/device_simplification_logger.py` → `device_gateway/device_write_handler.py`
+- `device_gateway/motion.py` → `device_gateway/path_data.py`
+
+**删除文件**：`task_deps.py`、`protocol_lifecycle.py`、`protocol_core.py`、`draw_path_bounds.py`、`preview_svg.py`、`text_renderer.py`、`redis_store_codec.py`、`draw_prompt_context.py`、`task_service.py`、`artifact_recorder.py`、`family_gate.py`、`device_simplification_logger.py`、`motion.py`。
+
+**验证**：
+- `device_gateway/` 顶层 Python 文件从 54 降至 **39**（<40 目标达成）。
+- 全量 `pytest` 通过；合并后的目标文件均 ≤300 行，无新增 >50 行函数。
+-  reviewer 提出的 nit 已修复：`_ACTIVE_STATUSES` 统一到 `redis_store_helpers.py`；`path_pipeline.py` 保留 `MAX_PATH_POINTS` 测试兼容性；`device_write_handler.py` 改用 py310 类型注解。
 
 **预估工作量**：1 人天
 
@@ -1020,11 +1072,14 @@ except Exception:
 
 ---
 
-### P3-19/P3-20：小项修复
+### P3-19/P3-20：小项修复 ✅ 已修复
 
 **修复方案**：
 - P3-20（ruff exclude）：已更新 `ruff.toml`，排除 `.venv310/`、`.test-tmp/`、`.pnpm-store/`，并删除不存在路径。
-- P3-19（合并 `task_deps.py`）：`device_gateway/task_deps.py` 已合并到 `device_gateway/task_creation.py`；依赖的 5+ 测试文件已改为 patch `device_gateway.task_creation.*`；`task_deps.py` 已删除。device_gateway 文件数从 54 降至 51（继续向 <40 推进）。
+- P3-19（合并 `task_deps.py`）：`device_gateway/task_deps.py` 已合并到 `device_gateway/task_creation.py`；依赖的测试文件已改为 patch `device_gateway.task_creation.*`；`task_deps.py` 已删除。
+- 作为 P3-15 的一部分，device_gateway 顶层 Python 文件数最终从 54 降至 **39**。
+
+**验证**：`ruff check .` clean；全量 `pytest` 通过。
 
 **预估工作量**：0.25 人天
 

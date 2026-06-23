@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Any
+
 from device_ledger.store import ledger_store
 
 from . import store as store_mod
@@ -25,6 +28,9 @@ from .task_lifecycle import (
     requeue_pending_tasks,
     task_snapshot,
 )
+from routes.device_gateway_dispatch import dispatch_task_to_session, publish_task_available_safe
+from device_gateway.sessions import registry
+
 # Backward-compatible monkeypatch surface (tests patch device_gateway.tasks.*)
 from .task_creation import (
     apply_profile_constraints,
@@ -36,9 +42,12 @@ from .task_creation import (
 )
 
 __all__ = [
+    "DeviceTaskRequest",
+    "DeviceTaskRouteResult",
     "TERMINAL_PHASES",
     "ack_processing_task",
     "active_tasks_for_device",
+    "create_and_route_task",
     "create_task_from_transcript",
     "create_task_from_transcript_async",
     "enqueue_pending_task",
@@ -56,6 +65,48 @@ __all__ = [
     "reset_tasks_for_tests",
     "task_snapshot",
 ]
+
+
+@dataclass(frozen=True)
+class DeviceTaskRequest:
+    device_id: str
+    text: str
+    request_id: str = ""
+
+
+@dataclass(frozen=True)
+class DeviceTaskRouteResult:
+    status: str
+    sent: bool
+    queue_depth: int
+    task: dict[str, Any]
+
+
+async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteResult:
+    """Create a motion task, then dispatch locally or enqueue for the device."""
+    device_id = request.device_id.strip()
+    text = request.text.strip()
+    task = await create_task_from_transcript_async(
+        device_id,
+        text,
+        request_id=request.request_id or None,
+    )
+    if task.get("error"):
+        return DeviceTaskRouteResult("failed", False, pending_count(device_id), task)
+
+    session = registry.get(device_id)
+    if session is not None:
+        sent = await dispatch_task_to_session(session, task)
+        return DeviceTaskRouteResult(
+            "sent" if sent else "queued",
+            sent,
+            pending_count(device_id),
+            task,
+        )
+
+    queue_depth = enqueue_pending_task(device_id, task)
+    await publish_task_available_safe(device_id, str(task.get("task_id", "")))
+    return DeviceTaskRouteResult("queued", False, queue_depth, task)
 
 
 def reset_tasks_for_tests() -> None:

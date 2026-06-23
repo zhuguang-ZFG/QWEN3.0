@@ -3,17 +3,16 @@
 import json
 import logging
 import os
-import sqlite3
 import threading
 import time
 
 from config import settings
+from config.sqlite_pool import pooled_sqlite_conn
 
 _log = logging.getLogger(__name__)
 
 _lock = threading.Lock()
 _events: list[dict] = []
-_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 _SENSITIVE_KEYS = (
     "api_key",
     "apikey",
@@ -75,10 +74,7 @@ def audit_event(event_type: str, **kwargs) -> dict:
 # ── SQLite persistence ──────────────────────────────────────────────────────
 
 
-def _get_conn() -> sqlite3.Connection:
-    db_path = _db_path()
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    conn = sqlite3.connect(db_path)
+def _ensure_schema(conn) -> None:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS audit_events (
@@ -96,24 +92,24 @@ def _get_conn() -> sqlite3.Connection:
     conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_audit_type ON audit_events(event_type, timestamp DESC)
     """)
-    return conn
 
 
 def _persist_event(event: dict) -> None:
     try:
-        conn = _get_conn()
-        conn.execute(
-            "INSERT INTO audit_events (timestamp, event_type, tool, reason, details) VALUES (?, ?, ?, ?, ?)",
-            (
-                event.get("time", 0),
-                event.get("event", ""),
-                event.get("tool", ""),
-                event.get("reason", ""),
-                json.dumps({k: v for k, v in event.items() if k not in ("time", "event", "tool", "reason")}),
-            ),
-        )
-        conn.commit()
-        conn.close()
+        db_path = _db_path()
+        os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
+        with pooled_sqlite_conn(db_path) as conn:
+            _ensure_schema(conn)
+            conn.execute(
+                "INSERT INTO audit_events (timestamp, event_type, tool, reason, details) VALUES (?, ?, ?, ?, ?)",
+                (
+                    event.get("time", 0),
+                    event.get("event", ""),
+                    event.get("tool", ""),
+                    event.get("reason", ""),
+                    json.dumps({k: v for k, v in event.items() if k not in ("time", "event", "tool", "reason")}),
+                ),
+            )
     except Exception as exc:
         _log.warning(
             "tool audit persist failed event=%s: %s",
@@ -135,7 +131,8 @@ def query_events(
     tool: str = "",
     limit: int = 50,
 ) -> list[dict]:
-    conn = _get_conn()
+    db_path = _db_path()
+    os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conditions = []
     params = []
     if event_type:
@@ -145,12 +142,13 @@ def query_events(
         conditions.append("tool = ?")
         params.append(tool)
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    rows = conn.execute(
-        f"SELECT timestamp, event_type, tool, reason, details "
-        f"FROM audit_events {where} ORDER BY timestamp DESC LIMIT ?",
-        params + [limit],
-    ).fetchall()
-    conn.close()
+    with pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
+        rows = conn.execute(
+            f"SELECT timestamp, event_type, tool, reason, details "
+            f"FROM audit_events {where} ORDER BY timestamp DESC LIMIT ?",
+            params + [limit],
+        ).fetchall()
     return [
         {"time": r[0], "event": r[1], "tool": r[2], "reason": r[3], "details": json.loads(r[4]) if r[4] else {}}
         for r in rows
@@ -158,7 +156,8 @@ def query_events(
 
 
 def count_events(event_type: str = "", tool: str = "") -> int:
-    conn = _get_conn()
+    db_path = _db_path()
+    os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conditions = []
     params = []
     if event_type:
@@ -168,8 +167,9 @@ def count_events(event_type: str = "", tool: str = "") -> int:
         conditions.append("tool = ?")
         params.append(tool)
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    count = conn.execute(f"SELECT COUNT(*) FROM audit_events {where}", params).fetchone()[0]
-    conn.close()
+    with pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
+        count = conn.execute(f"SELECT COUNT(*) FROM audit_events {where}", params).fetchone()[0]
     return count
 
 
@@ -180,9 +180,10 @@ def reset_audit() -> None:
     with _lock:
         _events.clear()
     try:
-        conn = _get_conn()
-        conn.execute("DELETE FROM audit_events")
-        conn.commit()
-        conn.close()
+        db_path = _db_path()
+        os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
+        with pooled_sqlite_conn(db_path) as conn:
+            _ensure_schema(conn)
+            conn.execute("DELETE FROM audit_events")
     except Exception as exc:
         _log.warning("tool audit reset failed: %s", type(exc).__name__)

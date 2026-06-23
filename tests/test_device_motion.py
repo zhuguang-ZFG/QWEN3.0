@@ -5,7 +5,7 @@ import math
 import pytest
 
 from device_gateway.fake_device import FakeDevice, FakeDeviceState
-from device_gateway.motion import (
+from device_gateway.path_data import (
     MotionCommandKind,
     MotionEvent,
     MotionEventKind,

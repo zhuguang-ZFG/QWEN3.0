@@ -12,6 +12,7 @@ from copy import deepcopy
 import itertools
 from typing import Any, Protocol
 
+from device_gateway.redis_store_helpers import _ACTIVE_STATUSES
 from device_gateway.store_utils import StoreConfigMixin, StoreManager
 
 
@@ -209,8 +210,6 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
 
 task_manager: StoreManager[DeviceTaskStore] = StoreManager[DeviceTaskStore](InMemoryDeviceTaskStore)
 task_store: DeviceTaskStore = task_manager.store
-
-_ACTIVE_STATUSES = frozenset({"dispatched", "running", "processing", "progress", "accepted"})
 
 
 def task_store_health() -> dict[str, Any]:

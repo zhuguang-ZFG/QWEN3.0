@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
 
 from config import settings
+from config.sqlite_pool import pooled_sqlite_conn
 
 
 @dataclass
@@ -30,17 +30,13 @@ class WorkerRecord:
 
 
 _lock = threading.Lock()
-_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 
 def _db_path() -> str:
     return settings.DB.worker_db
 
 
-def _get_conn() -> sqlite3.Connection:
-    db_path = _db_path()
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    conn = sqlite3.connect(db_path)
+def _ensure_schema(conn) -> None:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS workers (
@@ -55,14 +51,20 @@ def _get_conn() -> sqlite3.Connection:
             version TEXT DEFAULT ''
         )
     """)
-    return conn
+
+
+def _prepare_db() -> str:
+    db_path = _db_path()
+    os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
+    return db_path
 
 
 def register_worker(worker_id: str, version: str = "", capacity: int = 1) -> WorkerRecord:
     now = time.time()
     rec = WorkerRecord(worker_id=worker_id, registered_at=now, last_heartbeat=now, capacity=capacity, version=version)
-    with _lock:
-        conn = _get_conn()
+    db_path = _prepare_db()
+    with _lock, pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
         conn.execute(
             "INSERT OR REPLACE INTO workers (worker_id, registered_at, last_heartbeat, "
             "status, capacity, active_tasks, total_completed, total_failed, version) "
@@ -79,8 +81,6 @@ def register_worker(worker_id: str, version: str = "", capacity: int = 1) -> Wor
                 rec.version,
             ),
         )
-        conn.commit()
-        conn.close()
     return rec
 
 
@@ -89,26 +89,26 @@ def heartbeat(worker_id: str, status: str = "idle", active_tasks: list[str] | No
     updates = {"last_heartbeat": now, "status": status}
     if active_tasks is not None:
         updates["active_tasks"] = json.dumps(active_tasks)
-    with _lock:
-        conn = _get_conn()
+    db_path = _prepare_db()
+    with _lock, pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         values = list(updates.values()) + [worker_id]
         cur = conn.execute(f"UPDATE workers SET {set_clause} WHERE worker_id = ?", values)
-        conn.commit()
         updated = cur.rowcount > 0
-        conn.close()
     return updated
 
 
 def get_worker(worker_id: str) -> WorkerRecord | None:
-    conn = _get_conn()
-    row = conn.execute(
-        "SELECT worker_id, registered_at, last_heartbeat, status, capacity, "
-        "active_tasks, total_completed, total_failed, version "
-        "FROM workers WHERE worker_id = ?",
-        (worker_id,),
-    ).fetchone()
-    conn.close()
+    db_path = _prepare_db()
+    with pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
+        row = conn.execute(
+            "SELECT worker_id, registered_at, last_heartbeat, status, capacity, "
+            "active_tasks, total_completed, total_failed, version "
+            "FROM workers WHERE worker_id = ?",
+            (worker_id,),
+        ).fetchone()
     if not row:
         return None
     return WorkerRecord(
@@ -125,21 +125,22 @@ def get_worker(worker_id: str) -> WorkerRecord | None:
 
 
 def list_workers(status: str = "") -> list[WorkerRecord]:
-    conn = _get_conn()
-    if status:
-        rows = conn.execute(
-            "SELECT worker_id, registered_at, last_heartbeat, status, capacity, "
-            "active_tasks, total_completed, total_failed, version "
-            "FROM workers WHERE status = ? ORDER BY last_heartbeat DESC",
-            (status,),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT worker_id, registered_at, last_heartbeat, status, capacity, "
-            "active_tasks, total_completed, total_failed, version "
-            "FROM workers ORDER BY last_heartbeat DESC"
-        ).fetchall()
-    conn.close()
+    db_path = _prepare_db()
+    with pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
+        if status:
+            rows = conn.execute(
+                "SELECT worker_id, registered_at, last_heartbeat, status, capacity, "
+                "active_tasks, total_completed, total_failed, version "
+                "FROM workers WHERE status = ? ORDER BY last_heartbeat DESC",
+                (status,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT worker_id, registered_at, last_heartbeat, status, capacity, "
+                "active_tasks, total_completed, total_failed, version "
+                "FROM workers ORDER BY last_heartbeat DESC"
+            ).fetchall()
     return [
         WorkerRecord(
             worker_id=r[0],
@@ -157,30 +158,30 @@ def list_workers(status: str = "") -> list[WorkerRecord]:
 
 
 def quarantine_worker(worker_id: str, reason: str = "") -> bool:
-    conn = _get_conn()
-    cur = conn.execute("UPDATE workers SET status = 'quarantined' WHERE worker_id = ?", (worker_id,))
-    conn.commit()
-    updated = cur.rowcount > 0
-    conn.close()
+    db_path = _prepare_db()
+    with pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
+        cur = conn.execute("UPDATE workers SET status = 'quarantined' WHERE worker_id = ?", (worker_id,))
+        updated = cur.rowcount > 0
     return updated
 
 
 def mark_offline_stale(timeout_sec: float = 300) -> int:
     """Mark workers offline if no heartbeat within timeout_sec."""
     cutoff = time.time() - timeout_sec
-    conn = _get_conn()
-    cur = conn.execute(
-        "UPDATE workers SET status = 'offline' WHERE status != 'quarantined' AND last_heartbeat < ?",
-        (cutoff,),
-    )
-    conn.commit()
-    count = cur.rowcount
-    conn.close()
+    db_path = _prepare_db()
+    with pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
+        cur = conn.execute(
+            "UPDATE workers SET status = 'offline' WHERE status != 'quarantined' AND last_heartbeat < ?",
+            (cutoff,),
+        )
+        count = cur.rowcount
     return count
 
 
 def reset_for_tests() -> None:
-    conn = _get_conn()
-    conn.execute("DELETE FROM workers")
-    conn.commit()
-    conn.close()
+    db_path = _prepare_db()
+    with pooled_sqlite_conn(db_path) as conn:
+        _ensure_schema(conn)
+        conn.execute("DELETE FROM workers")

@@ -8,7 +8,7 @@ from typing import Any
 from device_gateway.device_profile import DeviceProfile
 from device_gateway.profiles import ResolvedProfile, enrich_route_policy_with_profile, resolve_profile
 
-from .artifact_recorder import record_route_evidence
+from .task_recorder import record_route_evidence
 from .model_routing_selection import (
     MODEL_REGISTRY,
     _TIER_ORDER,

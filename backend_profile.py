@@ -9,12 +9,12 @@ from __future__ import annotations
 import json
 import logging
 import os as _os
-import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
 
 from config.db_config import BACKEND_PROFILE_DB as DB_PATH
+from config.sqlite_pool import pooled_sqlite_conn
 
 logger = logging.getLogger(__name__)
 _log = logger
@@ -195,52 +195,45 @@ def get_backend_summary() -> dict[str, dict]:
 def save_profiles() -> None:
     """Persist all profiles to SQLite."""
     with _lock:
-        conn = None
         try:
-            conn = sqlite3.connect(DB_PATH, timeout=5)
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS backend_profiles (
-                    name TEXT PRIMARY KEY,
-                    latencies TEXT,
-                    successes INTEGER,
-                    failures INTEGER,
-                    response_lengths TEXT,
-                    scenario_successes TEXT,
-                    scenario_failures TEXT,
-                    total_requests INTEGER,
-                    last_updated REAL
-                )
-            """)
-            for name, profile in _profiles.items():
-                conn.execute(
-                    """
-                    INSERT OR REPLACE INTO backend_profiles
-                    (name, latencies, successes, failures, response_lengths,
-                     scenario_successes, scenario_failures, total_requests, last_updated)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                    (
-                        name,
-                        json.dumps(profile.latencies),
-                        profile.successes,
-                        profile.failures,
-                        json.dumps(profile.response_lengths),
-                        json.dumps(profile.scenario_successes),
-                        json.dumps(profile.scenario_failures),
-                        profile.total_requests,
-                        profile.last_updated,
-                    ),
-                )
-            conn.commit()
+            _os.makedirs(_os.path.dirname(DB_PATH) or ".", exist_ok=True)
+            with pooled_sqlite_conn(DB_PATH) as conn:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS backend_profiles (
+                        name TEXT PRIMARY KEY,
+                        latencies TEXT,
+                        successes INTEGER,
+                        failures INTEGER,
+                        response_lengths TEXT,
+                        scenario_successes TEXT,
+                        scenario_failures TEXT,
+                        total_requests INTEGER,
+                        last_updated REAL
+                    )
+                """)
+                for name, profile in _profiles.items():
+                    conn.execute(
+                        """
+                        INSERT OR REPLACE INTO backend_profiles
+                        (name, latencies, successes, failures, response_lengths,
+                         scenario_successes, scenario_failures, total_requests, last_updated)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                        (
+                            name,
+                            json.dumps(profile.latencies),
+                            profile.successes,
+                            profile.failures,
+                            json.dumps(profile.response_lengths),
+                            json.dumps(profile.scenario_successes),
+                            json.dumps(profile.scenario_failures),
+                            profile.total_requests,
+                            profile.last_updated,
+                        ),
+                    )
         except Exception as exc:
             logger.warning("Failed to save backend profiles: %s", exc)
-        finally:
-            if conn is not None:
-                try:
-                    conn.close()
-                except Exception as exc:
-                    _log.warning("Failed to close DB connection in save_profiles: %s", exc)
 
 
 def load_profiles() -> int:
@@ -248,37 +241,30 @@ def load_profiles() -> int:
     global _profiles
     if not _os.path.exists(DB_PATH):
         return 0
-    conn = None
     try:
-        conn = sqlite3.connect(DB_PATH, timeout=5)
-        cursor = conn.execute("SELECT * FROM backend_profiles")
-        count = 0
-        for row in cursor:
-            name = row[0]
-            profile = BackendProfile(
-                name=name,
-                latencies=json.loads(row[1]) if row[1] else [],
-                successes=row[2] or 0,
-                failures=row[3] or 0,
-                response_lengths=json.loads(row[4]) if row[4] else [],
-                scenario_successes=json.loads(row[5]) if row[5] else {},
-                scenario_failures=json.loads(row[6]) if row[6] else {},
-                total_requests=row[7] or 0,
-                last_updated=row[8] or 0.0,
-            )
-            _profiles[name] = profile
-            count += 1
+        with pooled_sqlite_conn(DB_PATH) as conn:
+            cursor = conn.execute("SELECT * FROM backend_profiles")
+            count = 0
+            for row in cursor:
+                name = row[0]
+                profile = BackendProfile(
+                    name=name,
+                    latencies=json.loads(row[1]) if row[1] else [],
+                    successes=row[2] or 0,
+                    failures=row[3] or 0,
+                    response_lengths=json.loads(row[4]) if row[4] else [],
+                    scenario_successes=json.loads(row[5]) if row[5] else {},
+                    scenario_failures=json.loads(row[6]) if row[6] else {},
+                    total_requests=row[7] or 0,
+                    last_updated=row[8] or 0.0,
+                )
+                _profiles[name] = profile
+                count += 1
         logger.info("Loaded %d backend profiles from %s", count, DB_PATH)
         return count
     except Exception as exc:
         logger.warning("Failed to load backend profiles: %s", exc)
         return 0
-    finally:
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception as exc:
-                _log.warning("Failed to close DB connection in load_profiles: %s", exc)
 
 
 def save_on_interval(interval_sec: int = 300) -> None:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from device_gateway.protocol_core import (
+from device_gateway.protocol import (
     ProtocolError,
     PROTOCOL_VERSION,
     _non_empty_string,

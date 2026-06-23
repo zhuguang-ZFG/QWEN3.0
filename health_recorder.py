@@ -6,10 +6,7 @@ import logging
 import time
 from typing import Optional
 
-_log = logging.getLogger(__name__)
-
-from health_failure_classifier import classify_failure
-from health_state import (
+from health_models import (
     BASE_COOLDOWN,
     COOLDOWN_AUTH_FIXED,
     FAILURE_THRESHOLD_MIN_REQUESTS,
@@ -22,17 +19,94 @@ from health_state import (
     _quality_states,
     calc_cooldown,
 )
+from health_state import save_on_change
+
+_log = logging.getLogger(__name__)
 
 
-def _persist_health_state() -> None:
-    try:
-        from health_state import save_on_change
+# ─── Failure classification (inlined from health_failure_classifier) ──────────
 
-        save_on_change()
-    except ImportError as exc:
-        _log.warning("health_state save_on_change unavailable; health state will not be persisted: %s", exc)
-    except Exception as exc:
-        _log.warning("health state persistence failed: %s", type(exc).__name__)
+_TEXT_RULES: list[tuple[tuple[str, ...], str]] = [
+    (("anonymous_usage_exceeded",), "manual_refresh_required"),
+    (("unauthorized", "forbidden", "invalid token", "invalid api key", "not authenticated"), "auth_expired"),
+    (("too many requests", "rate limit", "rate exceeded", "slow down"), "rate_limited"),
+    (("quota", "usage exhausted", "limit exceeded", "billing", "insufficient_quota"), "quota_exhausted"),
+    (
+        (
+            "connection refused",
+            "connection reset",
+            "connection aborted",
+            "name or service not known",
+            "no route to host",
+            "connection timed out",
+            "timed out",
+            "read timed out",
+            "could not resolve host",
+            "temporary failure in name resolution",
+            "network is unreachable",
+            "connectionerror",
+            "remote end closed",
+        ),
+        "network_error",
+    ),
+    (
+        (
+            "jsondecodeerror",
+            "expecting value",
+            "unterminated string",
+            "unexpected token",
+            "invalid json",
+            "syntax error",
+            "expected",
+            "malformed",
+            "parse error",
+        ),
+        "malformed_response",
+    ),
+]
+
+_CODE_RULES: list[tuple[set[int], str]] = [
+    ({401, 403}, "auth_expired"),
+    ({429}, "rate_limited"),
+    ({502, 503, 504}, "network_error"),
+    ({400}, "malformed_response"),
+]
+
+
+def _match_text_rule(lowered: str) -> str | None:
+    """Find the first matching text-based classification rule."""
+    for markers, classification in _TEXT_RULES:
+        if any(m in lowered for m in markers):
+            return classification
+    return None
+
+
+def _classify_timeout(lowered: str, error_code: int | None) -> str:
+    """Handle timeout vs network-error disambiguation."""
+    if any(m in lowered for m in ("timeout", "timed out")) and error_code != 408:
+        if any(m in lowered for m in ("read timed", "connect timed", "connection timed")):
+            return "network_error"
+        return "timeout"
+    return ""
+
+
+def classify_failure(error_code: Optional[int] = None, error_text: str = "") -> str:
+    lowered = (error_text or "").lower()
+    result = _match_text_rule(lowered)
+    if result:
+        return result
+    result = _classify_timeout(lowered, error_code)
+    if result:
+        return result
+    for codes, classification in _CODE_RULES:
+        if error_code in codes:
+            return classification
+    if error_code is not None and 500 <= error_code <= 599:
+        return "provider_error"
+    return "unknown_error"
+
+
+# ─── Recording helpers ────────────────────────────────────────────────────────
 
 
 def record_success(backend: str, latency_ms: float) -> None:
@@ -58,7 +132,7 @@ def record_success(backend: str, latency_ms: float) -> None:
         should_persist = should_persist or old_health != "healthy"
 
     if should_persist:
-        _persist_health_state()
+        save_on_change()
 
     # Update backend profile (outside lock to avoid deadlock)
     try:
@@ -129,10 +203,11 @@ def record_failure(
     error_text: str = "",
 ) -> None:
     should_persist = False
+    error_class = ""
     with _lock:
         if error_code == 400:
             state = _cooldown_states.setdefault(backend, CooldownState())
-            state.bad_request_count = getattr(state, "bad_request_count", 0) + 1
+            state.bad_request_count = getattr(state, "bad_request_count", 0) + 1  # type: ignore[attr-defined]
             return
 
         state = _cooldown_states.setdefault(backend, CooldownState())
@@ -150,10 +225,13 @@ def record_failure(
         should_persist = True
         if old_health != new_health:
             _log.info("backend health changed backend=%s old=%s new=%s", backend, old_health, new_health)
-        _post_failure_hooks(backend, error_class)
+
+    # Run side effects outside the lock to avoid potential deadlocks with
+    # backend_reputation / backend_profile / backend_retirement.
+    _post_failure_hooks(backend, error_class)
 
     if should_persist:
-        _persist_health_state()
+        save_on_change()
 
 
 def record_response_quality(

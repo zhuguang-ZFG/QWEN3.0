@@ -17,6 +17,20 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-24）缺陷改善计划 — 剩余 P3 项全部关闭
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`，关闭 P3-2、P3-10/P3-11、P3-13、P3-14、P3-15/P3-19 等剩余低优先级改善项。
+- **关键结果**：
+  - **P3-2**：健康子系统重构完成，新增 `health_models.py`，删除 `health_state_persistence.py`、`health_failure_classifier.py`。
+  - **P3-10/P3-11**：`routing_engine.py` 中 `pick_backend()`（32 行）与 `route()`（46 行）职责已拆分，无 >50 行函数。
+  - **P3-13**：`speculative_execution.py` 改为 `ThreadPoolExecutor` 纯同步实现，移除 `run_coro_sync` 嵌套事件循环。
+  - **P3-14**：核心 SQLite 模块迁移到 `config.sqlite_pool`，覆盖 health/tool_gateway/device_gateway/session_memory/backend_profile/backend_retirement/token_health/client_keys/routing_loop/code_context/MCP 等。
+  - **P3-15/P3-19**：`device_gateway/` 顶层 Python 文件从 54 降至 **39**（<40 目标达成），合并 12 个小模块。
+- **验证**：
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q` → **3545 passed / 17 skipped / 2 deselected**
+  - `ruff check .` clean；`pyright` 修改文件 0 errors
+  - 零新增 >300 行文件；新增/修改生产模块无新增 >50 行函数
+
 ### 最近完成（2026-06-24）缺陷改善计划 — P3-15/P3-19：合并 device_gateway 过度拆分模块
 
 - **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-15（device_gateway 目录膨胀）与 P3-19（`task_deps.py` 过度拆分）。

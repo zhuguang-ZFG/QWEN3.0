@@ -15,6 +15,7 @@ from pathlib import Path
 
 from code_context.graph_index import GraphIndex, GraphRelation, GraphSearchResult
 from config.db_config import LIMA_DATA_DIR as _DEFAULT_DB_DIR
+from config.sqlite_pool import pooled_sqlite_conn
 
 _log = logging.getLogger(__name__)
 
@@ -22,8 +23,8 @@ _log = logging.getLogger(__name__)
 class SqliteGraphIndex(GraphIndex):
     """SQLite-backed persistent graph with FTS5 full-text search.
 
-    Thread safety: uses a per-instance RLock to protect all database access
-    because the connection is shared across threads (check_same_thread=False).
+    Thread safety: uses a per-instance RLock to protect database access.
+    Connections are borrowed from the thread-local pool for each operation.
     """
 
     def __init__(self, db_path: str | None = None) -> None:
@@ -31,14 +32,14 @@ class SqliteGraphIndex(GraphIndex):
         Path(resolved).parent.mkdir(parents=True, exist_ok=True)
         self._db_path = resolved
         self._lock = threading.RLock()
-        self._conn = sqlite3.connect(resolved, check_same_thread=False)
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA synchronous=NORMAL")
-        self._init_schema()
+        with pooled_sqlite_conn(resolved, check_same_thread=False) as conn:
+            self._init_schema(conn)
 
-    def _init_schema(self) -> None:
+    def _init_schema(self, conn: sqlite3.Connection) -> None:
         with self._lock:
-            self._conn.executescript("""
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.executescript("""
                 CREATE TABLE IF NOT EXISTS edges (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     source TEXT NOT NULL,
@@ -52,7 +53,7 @@ class SqliteGraphIndex(GraphIndex):
                 CREATE INDEX IF NOT EXISTS idx_edges_relation ON edges(relation_type);
             """)
             try:
-                self._conn.executescript("""
+                conn.executescript("""
                     CREATE VIRTUAL TABLE IF NOT EXISTS edges_fts USING fts5(
                         source, target, relation_type,
                         content=edges, content_rowid=id
@@ -71,22 +72,20 @@ class SqliteGraphIndex(GraphIndex):
 
     def add_relation(self, source: str, target: str, relation_type: str) -> None:
         now = time.time()
-        with self._lock:
-            self._conn.execute(
+        with self._lock, pooled_sqlite_conn(self._db_path, check_same_thread=False) as conn:
+            conn.execute(
                 "INSERT INTO edges (source, target, relation_type, weight, created_at) VALUES (?, ?, ?, 1.0, ?)",
                 (source, target, relation_type, now),
             )
-            self._conn.execute(
+            conn.execute(
                 "INSERT INTO edges (source, target, relation_type, weight, created_at) VALUES (?, ?, ?, 0.5, ?)",
                 (target, source, f"rev_{relation_type}", now),
             )
-            self._conn.commit()
 
     def delete_file(self, path: str) -> None:
         """Remove all edges whose source or target equals *path*."""
-        with self._lock:
-            self._conn.execute("DELETE FROM edges WHERE source = ? OR target = ?", (path, path))
-            self._conn.commit()
+        with self._lock, pooled_sqlite_conn(self._db_path, check_same_thread=False) as conn:
+            conn.execute("DELETE FROM edges WHERE source = ? OR target = ?", (path, path))
 
     def add_file_relations(
         self,
@@ -95,18 +94,17 @@ class SqliteGraphIndex(GraphIndex):
     ) -> int:
         now = time.time()
         count = 0
-        with self._lock:
+        with self._lock, pooled_sqlite_conn(self._db_path, check_same_thread=False) as conn:
             for rel in relations:
-                self._conn.execute(
+                conn.execute(
                     "INSERT INTO edges (source, target, relation_type, weight, created_at) VALUES (?, ?, ?, ?, ?)",
                     (rel.source, rel.target, rel.relation_type, rel.weight, now),
                 )
-                self._conn.execute(
+                conn.execute(
                     "INSERT INTO edges (source, target, relation_type, weight, created_at) VALUES (?, ?, ?, ?, ?)",
                     (rel.target, rel.source, f"rev_{rel.relation_type}", rel.weight * 0.5, now),
                 )
                 count += 1
-            self._conn.commit()
         return count
 
     def get_related(self, entity: str, max_depth: int = 2) -> list[GraphRelation]:
@@ -118,8 +116,8 @@ class SqliteGraphIndex(GraphIndex):
             if current in visited or depth > max_depth:
                 continue
             visited.add(current)
-            with self._lock:
-                rows = self._conn.execute(
+            with self._lock, pooled_sqlite_conn(self._db_path, check_same_thread=False) as conn:
+                rows = conn.execute(
                     "SELECT source, target, relation_type, weight FROM edges WHERE source = ?",
                     (current,),
                 ).fetchall()
@@ -154,8 +152,8 @@ class SqliteGraphIndex(GraphIndex):
 
     def fts_search(self, query: str, limit: int = 10) -> list[dict]:
         try:
-            with self._lock:
-                rows = self._conn.execute(
+            with self._lock, pooled_sqlite_conn(self._db_path, check_same_thread=False) as conn:
+                rows = conn.execute(
                     "SELECT source, target, relation_type, rank FROM edges_fts "
                     "WHERE edges_fts MATCH ? ORDER BY rank LIMIT ?",
                     (query, limit),
@@ -166,22 +164,14 @@ class SqliteGraphIndex(GraphIndex):
             return []
 
     def clear(self) -> None:
-        with self._lock:
-            self._conn.execute("DELETE FROM edges")
-            self._conn.commit()
+        with self._lock, pooled_sqlite_conn(self._db_path, check_same_thread=False) as conn:
+            conn.execute("DELETE FROM edges")
 
     def close(self) -> None:
-        with self._lock:
-            self._conn.close()
+        """No-op: connections are managed by the thread-local pool."""
 
     @property
     def edge_count(self) -> int:
-        with self._lock:
-            row = self._conn.execute("SELECT COUNT(*) FROM edges").fetchone()
+        with self._lock, pooled_sqlite_conn(self._db_path, check_same_thread=False) as conn:
+            row = conn.execute("SELECT COUNT(*) FROM edges").fetchone()
             return row[0] if row else 0
-
-    def __del__(self) -> None:
-        try:
-            self._conn.close()
-        except Exception as exc:
-            _log.warning("sqlite_graph_store cleanup failed: %s", exc)

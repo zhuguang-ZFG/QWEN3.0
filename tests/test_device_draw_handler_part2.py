@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 import pytest
 
 from device_gateway.device_draw_handler import handle_device_draw
-from device_gateway.draw_prompt_context import reset_draw_prompt_history_for_tests
+from device_gateway.draw_prompt_enhancer import reset_draw_prompt_history_for_tests
 from session_memory.store import _get_conn, set_db_path
 
 

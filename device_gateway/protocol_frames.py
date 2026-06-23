@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from device_gateway.protocol_core import PROTOCOL_VERSION, ProtocolError, now_iso
+from device_gateway.protocol import PROTOCOL_VERSION, ProtocolError, now_iso
 from device_gateway.protocol_families import MotionErrorCode
 
 

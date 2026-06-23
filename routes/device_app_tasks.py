@@ -10,8 +10,7 @@ from fastapi.responses import JSONResponse
 from device_gateway import store as store_mod
 from device_gateway.path_validator import validate_capability_params
 from device_gateway.task_creation import project_to_motion_task_async
-from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
-from device_gateway.tasks import task_snapshot
+from device_gateway.tasks import DeviceTaskRequest, create_and_route_task, task_snapshot
 from device_workflow.state import TaskState
 from routes.device_app_task_store import (
     approve_task_row,

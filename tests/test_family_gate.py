@@ -1,11 +1,13 @@
-"""Tests for device_gateway.family_gate independent approval checks."""
+"""Tests for device_gateway.family_approval_store gating behavior."""
 
 from __future__ import annotations
 
 import pytest
 
+from config.sqlite_pool import pool_clear
+
 import device_gateway.family_approval_store as store
-from device_gateway.family_gate import validate_family_capability
+from device_gateway.family_approval_store import validate_family_capability
 from device_gateway.protocol_families import ProtocolFamily
 
 
@@ -17,6 +19,7 @@ def _isolate_family_approvals(tmp_path, monkeypatch):
     store.reset_family_approvals()
     yield
     store.reset_family_approvals()
+    pool_clear()
 
 
 def test_motion_family_does_not_require_approval():

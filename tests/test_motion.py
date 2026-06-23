@@ -1,10 +1,10 @@
-"""Unit tests for device_gateway.motion dataclasses and helpers."""
+"""Unit tests for device_gateway.path_data motion dataclasses and helpers."""
 
 from __future__ import annotations
 
 import pytest
 
-from device_gateway.motion import (
+from device_gateway.path_data import (
     MotionCommandKind,
     MotionEventKind,
     MotionPoint,

@@ -14,7 +14,7 @@ from device_gateway.device_draw_handler import (
     _try_preset_shape,
     handle_device_draw,
 )
-from device_gateway.draw_prompt_context import reset_draw_prompt_history_for_tests
+from device_gateway.draw_prompt_enhancer import reset_draw_prompt_history_for_tests
 from session_memory.store import _get_conn, set_db_path
 
 
@@ -231,6 +231,7 @@ class TestHandleDeviceDraw:
         resp2 = await handle_device_draw("a cat", device_id="dev-retry")
         assert mock_enhance.call_count == 2
         assert mock_enhance.call_args_list[1].kwargs.get("previous_failed_prompts") == ["a cat"]
+
 
 # NOTE: Additional TestHandleDeviceDraw tests moved to
 # test_device_draw_handler_part2.py

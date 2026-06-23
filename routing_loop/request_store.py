@@ -14,6 +14,7 @@ import time
 from dataclasses import dataclass
 
 from config import settings
+from config.sqlite_pool import pooled_sqlite_conn, pool_clear
 
 _log = logging.getLogger(__name__)
 
@@ -70,16 +71,9 @@ class RequestStore:
 
     def __init__(self, db_path: str = "") -> None:
         self._db_path = db_path or DEFAULT_DB_PATH
-        self._conn: sqlite3.Connection | None = None
 
-    def _get_conn(self) -> sqlite3.Connection:
-        if self._conn is None:
-            os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
-            self._conn = sqlite3.connect(self._db_path, timeout=5)
-            self._conn.execute("PRAGMA journal_mode=WAL")
-            self._conn.execute("PRAGMA synchronous=NORMAL")
-            self._conn.executescript(_SCHEMA)
-        return self._conn
+    def _ensure_dir(self) -> None:
+        os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
 
     def log_request(
         self,
@@ -101,62 +95,67 @@ class RequestStore:
         """Append one request record to the log."""
         try:
             fv_blob = json.dumps(feature_vector).encode() if feature_vector else None
-            conn = self._get_conn()
-            conn.execute(
-                """INSERT INTO request_log
-                   (timestamp, request_id, scenario, message_length, code_ratio,
-                    chinese_ratio, feature_vector, backend, success, latency_ms,
-                    quality_score, fallback_used, error_class, tokens_prompt, tokens_completion)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    time.time(),
-                    request_id,
-                    scenario,
-                    message_length,
-                    code_ratio,
-                    chinese_ratio,
-                    fv_blob,
-                    backend,
-                    1 if success else 0,
-                    latency_ms,
-                    quality_score,
-                    1 if fallback_used else 0,
-                    error_class,
-                    tokens_prompt,
-                    tokens_completion,
-                ),
-            )
-            conn.commit()
+            self._ensure_dir()
+            with pooled_sqlite_conn(self._db_path) as conn:
+                conn.executescript(_SCHEMA)
+                conn.execute(
+                    """INSERT INTO request_log
+                       (timestamp, request_id, scenario, message_length, code_ratio,
+                        chinese_ratio, feature_vector, backend, success, latency_ms,
+                        quality_score, fallback_used, error_class, tokens_prompt, tokens_completion)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        time.time(),
+                        request_id,
+                        scenario,
+                        message_length,
+                        code_ratio,
+                        chinese_ratio,
+                        fv_blob,
+                        backend,
+                        1 if success else 0,
+                        latency_ms,
+                        quality_score,
+                        1 if fallback_used else 0,
+                        error_class,
+                        tokens_prompt,
+                        tokens_completion,
+                    ),
+                )
         except Exception as exc:
             _log.warning("request_store.log_request failed: %s", exc, exc_info=True)
 
     def get_training_data(self, since_hours: int = 168, min_backend: str = "") -> list[RequestRecord]:
         """Read recent requests for ML training (default: last 7 days)."""
         cutoff = time.time() - (since_hours * 3600)
-        conn = self._get_conn()
-        query = "SELECT * FROM request_log WHERE timestamp > ?"
-        params: list = [cutoff]
-        if min_backend:
-            query += " AND backend = ?"
-            params.append(min_backend)
-        query += " ORDER BY timestamp DESC"
+        self._ensure_dir()
+        with pooled_sqlite_conn(self._db_path) as conn:
+            conn.executescript(_SCHEMA)
+            query = "SELECT * FROM request_log WHERE timestamp > ?"
+            params: list = [cutoff]
+            if min_backend:
+                query += " AND backend = ?"
+                params.append(min_backend)
+            query += " ORDER BY timestamp DESC"
 
-        rows = conn.execute(query, params).fetchall()
+            rows = conn.execute(query, params).fetchall()
         return [self._row_to_record(r) for r in rows]
 
     def get_backend_stats(self, backend: str, scenario: str = "") -> dict:
         """Get aggregated stats for a backend (optionally filtered by scenario)."""
-        conn = self._get_conn()
-        where = "backend = ?"
-        params: list = [backend]
-        if scenario:
-            where += " AND scenario = ?"
-            params.append(scenario)
+        self._ensure_dir()
+        with pooled_sqlite_conn(self._db_path) as conn:
+            conn.executescript(_SCHEMA)
+            where = "backend = ?"
+            params: list = [backend]
+            if scenario:
+                where += " AND scenario = ?"
+                params.append(scenario)
 
-        row = conn.execute(
-            f"SELECT COUNT(*), SUM(success), AVG(latency_ms), AVG(quality_score) FROM request_log WHERE {where}",
-            params,
-        ).fetchone()
+            row = conn.execute(
+                f"SELECT COUNT(*), SUM(success), AVG(latency_ms), AVG(quality_score) FROM request_log WHERE {where}",
+                params,
+            ).fetchone()
 
         total = row[0] or 0
         successes = row[1] or 0
@@ -171,16 +170,21 @@ class RequestStore:
 
     def get_recent_features(self, n: int = 100) -> list[RequestRecord]:
         """Read last N requests with feature vectors for incremental training."""
-        conn = self._get_conn()
-        rows = conn.execute(
-            "SELECT * FROM request_log WHERE feature_vector IS NOT NULL ORDER BY timestamp DESC LIMIT ?",
-            (n,),
-        ).fetchall()
+        self._ensure_dir()
+        with pooled_sqlite_conn(self._db_path) as conn:
+            conn.executescript(_SCHEMA)
+            rows = conn.execute(
+                "SELECT * FROM request_log WHERE feature_vector IS NOT NULL ORDER BY timestamp DESC LIMIT ?",
+                (n,),
+            ).fetchall()
         return [self._row_to_record(r) for r in rows]
 
     def count(self) -> int:
         """Total records in the log."""
-        return self._get_conn().execute("SELECT COUNT(*) FROM request_log").fetchone()[0]
+        self._ensure_dir()
+        with pooled_sqlite_conn(self._db_path) as conn:
+            conn.executescript(_SCHEMA)
+            return conn.execute("SELECT COUNT(*) FROM request_log").fetchone()[0]
 
     def _row_to_record(self, row: tuple) -> RequestRecord:
         fv = None
@@ -209,9 +213,8 @@ class RequestStore:
         )
 
     def close(self) -> None:
-        if self._conn:
-            self._conn.close()
-            self._conn = None
+        """Release pooled connections held by the current thread."""
+        pool_clear()
 
 
 _store: RequestStore | None = None

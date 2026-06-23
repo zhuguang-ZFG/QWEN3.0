@@ -9,7 +9,7 @@ from typing import Any, List, Optional
 
 from config import settings
 from device_memory.schemas import MemoryEntry, MemoryType
-from device_gateway.redis_store_codec import connect_redis
+from device_gateway.redis_store_helpers import connect_redis
 from device_gateway.store_utils import DeviceStoreBase
 
 _log = logging.getLogger(__name__)

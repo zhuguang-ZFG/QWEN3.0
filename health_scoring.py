@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from collections import Counter
 
-from health_state import (
+from health_models import (
     BASE_COOLDOWN,
     QUALITY_PENALTY_DURATION,
     QualityState,

@@ -7,6 +7,7 @@ import sqlite3
 import time
 import uuid
 
+from config.sqlite_pool import get_pooled_connection
 from session_memory.outcome_ledger.config import get_db_path
 
 
@@ -71,7 +72,7 @@ def _get_conn() -> sqlite3.Connection:
     db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = get_pooled_connection(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
     _ensure_schema(conn)
     _ensure_indexes(conn)

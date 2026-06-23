@@ -53,7 +53,7 @@ def test_tasks_endpoint_does_not_queue_validation_failed_task(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "device_gateway.task_service.create_task_from_transcript_async",
+        "device_gateway.tasks.create_task_from_transcript_async",
         fake_create_task_from_transcript,
     )
 

@@ -8,8 +8,8 @@ from xiaozhi_drawing.svg_validator import validate_svg_path
 from xiaozhi_drawing.path_optimizer import optimize_svg_path
 from xiaozhi_drawing.preset_shapes import get_preset_svg
 
-from device_gateway.draw_prompt_enhancer import enhance_drawing_prompt
-from device_gateway.draw_prompt_context import (
+from device_gateway.draw_prompt_enhancer import (
+    enhance_drawing_prompt,
     get_draw_conversation_context,
     get_failed_draw_prompts,
     record_device_draw_turn,
@@ -185,21 +185,20 @@ async def _convert_and_optimize(
     """Convert image to SVG, validate, optimize and return the final payload."""
     svg_result = await _convert_image_to_svg(image_url)
     if svg_result["status"] != "success":
-        return _build_partial_response(
-            image_url, 0, 0, model, error=f"SVG conversion failed: {svg_result['error']}"
-        )
+        return _build_partial_response(image_url, 0, 0, model, error=f"SVG conversion failed: {svg_result['error']}")
 
     validation, error = _validate_svg(svg_result)
     if error:
-        return _build_partial_response(
-            image_url, svg_result["width"], svg_result["height"], model, error=error
-        )
+        return _build_partial_response(image_url, svg_result["width"], svg_result["height"], model, error=error)
 
     optimization = _optimize_svg_path(svg_result["svg_path"], svg_result)
     bounds_err = _check_motion_bounds(optimization)
     if bounds_err:
         return _build_partial_response(
-            image_url, svg_result["width"], svg_result["height"], model,
+            image_url,
+            svg_result["width"],
+            svg_result["height"],
+            model,
             error=f"Motion bounds precheck failed: {bounds_err}",
         )
     return _build_success_response(image_url, svg_result, optimization, model)
@@ -246,9 +245,7 @@ def _resolve_draw_request(prefs: dict, device_id: str | None, prompt: str) -> di
     }
 
 
-async def _try_preset_or_generate(
-    prompt: str, device_id: str | None, config: dict
-) -> dict[str, Any]:
+async def _try_preset_or_generate(prompt: str, device_id: str | None, config: dict) -> dict[str, Any]:
     """Try preset shape first; fall back to AI image generation."""
     preset = _try_preset_shape(prompt)
     if preset:

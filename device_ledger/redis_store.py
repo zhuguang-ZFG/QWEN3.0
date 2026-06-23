@@ -9,7 +9,7 @@ from typing import Any
 from config import settings
 from device_ledger.events import DuplicateLedgerEvent, LedgerEvent
 from device_ledger.store import _replay_from_events
-from device_gateway.redis_store_codec import connect_redis
+from device_gateway.redis_store_helpers import connect_redis
 from device_gateway.store_utils import DeviceStoreBase
 
 _log = logging.getLogger(__name__)

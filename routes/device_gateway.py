@@ -24,7 +24,7 @@ from device_gateway.sessions import registry
 from device_gateway.store import configure_task_store_from_env, task_store_health
 from device_ledger.store import configure_ledger_store_from_env, ledger_store_health
 from device_memory.store import configure_memory_store_from_env, memory_store_health
-from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
+from device_gateway.tasks import DeviceTaskRequest, create_and_route_task
 from device_gateway.health import build_device_gateway_health
 from device_gateway.task_events import process_motion_event_core
 from routes.device_gateway_dispatch import (
@@ -127,9 +127,7 @@ def _validate_task_body(body: dict[str, Any]) -> tuple[str, str, str] | JSONResp
 
 async def _create_and_record_task(device_id: str, text: str, request_id: str) -> JSONResponse:
     """Create and route a device task, recording evidence."""
-    result = await create_and_route_task(
-        DeviceTaskRequest(device_id=device_id, text=text, request_id=request_id)
-    )
+    result = await create_and_route_task(DeviceTaskRequest(device_id=device_id, text=text, request_id=request_id))
     _record_device_task_evidence(
         device_id=device_id,
         task=result.task,

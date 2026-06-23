@@ -7716,3 +7716,26 @@ Agent Worker path.
   - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
   - `ruff check` / `pyright` 修改文件 clean
 - **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P1-2 阶段 3 已更新
+
+## 2026-06-23 LiMa 缺陷改善计划 — 剩余 P3 项全部关闭
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`，关闭剩余 P3 低优先级改善项。
+- **实现**：
+  - **P3-2 健康子系统碎片化**：新增 `health_models.py` 作为共享接口；将 `health_state_persistence.py` 内联到 `health_state.py`；把 `health_failure_classifier.py` 合并到 `health_recorder.py`；删除 `health_state_persistence.py`、`health_failure_classifier.py`；`health_tracker.py` 保持 facade API 不变。
+  - **P3-10/P3-11 `pick_backend()` / `route()` 职责过多**：`pick_backend()` 拆分为 `_classify_and_recall()`、`_select_backends()`、`_enrich_with_intent_and_skills()`；`route()` 拆分为 `_identity_shortcut()`、`_pick_for_route()`、`_build_route_result()`，执行策略委托给 `routing_engine_execute_strategy`。
+  - **P3-13 `speculative_execution.py` 线程嵌套**：评估后保持同步公共 API，改为 `concurrent.futures.ThreadPoolExecutor` 纯同步实现，移除 `run_coro_sync` + `asyncio.to_thread` 的嵌套事件循环；删除未使用的 `speculative_call_async()`。
+  - **P3-14 SQLite 无连接池**：复用 `config/sqlite_pool.py`，迁移核心 SQLite 调用点：`health_state.py`、`tool_gateway/audit.py`、`tool_gateway/governance.py`、`device_gateway/family_approval_store.py`、`session_memory/outcome_ledger/db.py`、`backend_profile.py`、`backend_retirement.py`、`token_health.py`、`routes/client_keys_store.py`、`routing_loop/request_store.py`、`routing_loop/loop_closer.py`、`code_context/sqlite_graph_store.py`、`lima_mcp_stdio/lima_codegraph_tools.py`。
+  - **P3-15/P3-19 device_gateway 目录膨胀**：继续合并小模块：`protocol_core.py` → `protocol.py`、`text_renderer.py` → `path_pipeline.py`、`redis_store_codec.py` → `redis_store_helpers.py`、`draw_prompt_context.py` → `draw_prompt_enhancer.py`、`task_service.py` → `tasks.py`、`artifact_recorder.py` → `task_recorder.py`、`family_gate.py` → `family_approval_store.py`、`device_simplification_logger.py` → `device_write_handler.py`、`motion.py` → `path_data.py`。
+  - 处理 reviewer nit：`device_gateway/store.py` 与 `redis_store_helpers.py` 的 `_ACTIVE_STATUSES` 去重；`device_write_handler.py` 改用 py310 类型注解；`path_pipeline.py` 保留 `MAX_PATH_POINTS` 测试兼容性。
+- **删除文件**：`health_state_persistence.py`、`health_failure_classifier.py`、`device_gateway/protocol_core.py`、`device_gateway/text_renderer.py`、`device_gateway/redis_store_codec.py`、`device_gateway/draw_prompt_context.py`、`device_gateway/task_service.py`、`device_gateway/artifact_recorder.py`、`device_gateway/family_gate.py`、`device_gateway/device_simplification_logger.py`、`device_gateway/motion.py`。
+- **验证**：
+  - 健康子系统 + 下游回归测试 → **51 passed**
+  - device_gateway 相关聚焦测试 → **276 passed**
+  - speculative 相关聚焦测试 → **23 passed**
+  - SQLite 池化模块聚焦测试 → 各模块均通过
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check .` clean
+  - `pyright` 修改文件 0 errors
+  - `device_gateway/` 顶层 Python 文件从 54 降至 **39**（<40 目标达成）
+  - 零新增 >300 行文件；新增/修改生产模块无新增 >50 行函数
+- **文档**：更新 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`（P3-2/P3-10/P3-11/P3-13/P3-14/P3-15/P3-19/P3-20 标记完成并补充证据）、`STATUS.md`、`findings.md`。

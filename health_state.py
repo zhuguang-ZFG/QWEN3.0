@@ -1,59 +1,31 @@
-"""Shared health state, cooldown math, and read-only accessors (CQ-014 slice 9)."""
+"""Shared health state accessors and SQLite persistence (CQ-014 slice 9)."""
 
 from __future__ import annotations
 
-import threading
+import json
+import logging
+import os
+import sqlite3
 import time
 from collections import deque
-from dataclasses import dataclass, field
-from typing import Optional
 
-BASE_COOLDOWN = 5
-MAX_COOLDOWN = 300
-BACKOFF_FACTOR = 2
-COOLDOWN_429_BASE = 30
-COOLDOWN_AUTH_FIXED = 300
+from config.db_config import HEALTH_STATE_DB as _DB_PATH
+from config.sqlite_pool import pooled_sqlite_conn
 
-QUALITY_WINDOW = 50
-LATENCY_WINDOW_SIZE = 20
-LATENCY_PENALTY = 5000.0
-FAILURE_THRESHOLD_MIN_REQUESTS = 5
+from health_models import (
+    BASE_COOLDOWN,
+    LATENCY_WINDOW_SIZE,
+    CooldownState,
+    QualityState,
+    _cooldown_states,
+    _health_map,
+    _lock,
+    _quality_penalties,
+    _quality_states,
+    calc_cooldown,
+)
 
-_lock = threading.RLock()
-_health_map: dict[str, str] = {}
-_cooldown_states: dict[str, "CooldownState"] = {}
-_quality_states: dict[str, "QualityState"] = {}
-_quality_penalties: dict[str, float] = {}
-QUALITY_PENALTY_DURATION = 1800
-
-
-@dataclass
-class CooldownState:
-    consecutive_failures: int = 0
-    current_cooldown: float = BASE_COOLDOWN
-    cooldown_until: float = 0.0
-    last_error_code: Optional[int] = None
-    state: str = "ok"
-    last_error_class: Optional[str] = None
-
-
-@dataclass
-class QualityState:
-    response_lengths: deque = field(default_factory=lambda: deque(maxlen=QUALITY_WINDOW))
-    latencies: deque = field(default_factory=lambda: deque(maxlen=LATENCY_WINDOW_SIZE))
-    empty_count: int = 0
-    error_msg_count: int = 0
-    total_requests: int = 0
-    last_success: float = 0.0
-    last_failure: float = 0.0
-
-
-def calc_cooldown(failures: int, error_code: Optional[int] = None) -> float:
-    if error_code in (401, 403):
-        return COOLDOWN_AUTH_FIXED
-    base = COOLDOWN_429_BASE if error_code == 429 else BASE_COOLDOWN
-    cooldown = base * (BACKOFF_FACTOR ** (failures - 1))
-    return min(cooldown, MAX_COOLDOWN)
+logger = logging.getLogger(__name__)
 
 
 def get_health(backend: str) -> str:
@@ -148,25 +120,145 @@ def reset_all_state() -> None:
         _quality_penalties.clear()
 
 
-# ─── SQLite Persistence ───────────────────────────────────────────────────
+# ─── SQLite Persistence ───────────────────────────────────────────────────────
+
+
+def _ensure_db_dir() -> None:
+    os.makedirs(os.path.dirname(_DB_PATH) or ".", exist_ok=True)
+
+
+def _ensure_tables(conn: sqlite3.Connection) -> None:
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS health_states (
+            backend TEXT PRIMARY KEY,
+            status TEXT,
+            updated_at REAL
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS cooldown_states (
+            backend TEXT PRIMARY KEY,
+            consecutive_failures INTEGER,
+            current_cooldown REAL,
+            cooldown_until REAL,
+            last_error_code INTEGER,
+            state TEXT,
+            last_error_class TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS quality_states (
+            backend TEXT PRIMARY KEY,
+            latencies TEXT,
+            empty_count INTEGER,
+            error_msg_count INTEGER,
+            total_requests INTEGER,
+            last_success REAL,
+            last_failure REAL
+        )
+    """)
 
 
 def save_health_state() -> None:
-    """Persist health state to SQLite."""
-    from health_state_persistence import save_health_state as _save
+    """Persist health state to SQLite using the thread-local pool."""
+    _ensure_db_dir()
+    try:
+        with pooled_sqlite_conn(_DB_PATH) as conn:
+            _ensure_tables(conn)
+            with _lock:
+                _persist_health_map(conn)
+                _persist_cooldown_states(conn)
+                _persist_quality_states(conn)
+    except Exception as exc:
+        logger.warning("Failed to save health state: %s", exc)
 
-    _save()
+
+def _persist_health_map(conn: sqlite3.Connection) -> None:
+    for backend, status in _health_map.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO health_states (backend, status, updated_at) VALUES (?, ?, ?)",
+            (backend, status, time.time()),
+        )
+
+
+def _persist_cooldown_states(conn: sqlite3.Connection) -> None:
+    for backend, state in _cooldown_states.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO cooldown_states VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                backend,
+                state.consecutive_failures,
+                state.current_cooldown,
+                state.cooldown_until,
+                state.last_error_code,
+                state.state,
+                state.last_error_class,
+            ),
+        )
+
+
+def _persist_quality_states(conn: sqlite3.Connection) -> None:
+    for backend, quality in _quality_states.items():
+        conn.execute(
+            "INSERT OR REPLACE INTO quality_states VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                backend,
+                json.dumps(list(quality.latencies)),
+                quality.empty_count,
+                quality.error_msg_count,
+                quality.total_requests,
+                quality.last_success,
+                quality.last_failure,
+            ),
+        )
 
 
 def load_health_state() -> int:
     """Load health state from SQLite. Returns count of loaded entries."""
-    from health_state_persistence import load_health_state as _load
+    if not os.path.exists(_DB_PATH):
+        return 0
+    _ensure_db_dir()
+    try:
+        with pooled_sqlite_conn(_DB_PATH) as conn:
+            _ensure_tables(conn)
+            count = 0
+            with _lock:
+                for row in conn.execute("SELECT backend, status FROM health_states"):
+                    _health_map[row[0]] = row[1]
+                    count += 1
 
-    return _load()
+                for row in conn.execute("SELECT * FROM cooldown_states"):
+                    _cooldown_states[row[0]] = CooldownState(
+                        consecutive_failures=row[1],
+                        current_cooldown=row[2],
+                        cooldown_until=row[3],
+                        last_error_code=row[4],
+                        state=row[5],
+                        last_error_class=row[6],
+                    )
+
+                for row in conn.execute("SELECT * FROM quality_states"):
+                    _quality_states[row[0]] = QualityState(
+                        latencies=deque(json.loads(row[1]), maxlen=LATENCY_WINDOW_SIZE),
+                        empty_count=row[2],
+                        error_msg_count=row[3],
+                        total_requests=row[4],
+                        last_success=row[5],
+                        last_failure=row[6],
+                    )
+                    count += 1
+
+            logger.info("Loaded health state: %d backends", count)
+            return count
+    except Exception as exc:
+        logger.warning("Failed to load health state: %s", exc)
+        return 0
 
 
 def save_on_change() -> None:
     """Save state after each modification (called by health_recorder)."""
-    from health_state_persistence import save_on_change as _save_on_change
-
-    _save_on_change()
+    try:
+        save_health_state()
+    except Exception as exc:
+        logger.warning("health_state save failed: %s", exc, exc_info=True)

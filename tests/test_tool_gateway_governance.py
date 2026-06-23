@@ -8,6 +8,7 @@ import time
 
 import pytest
 
+from config.sqlite_pool import pool_clear
 from tool_gateway.governance import (
     WorkerRecord,
     get_worker,
@@ -29,6 +30,7 @@ def isolated_worker_db(monkeypatch: pytest.MonkeyPatch) -> None:
         reset_for_tests()
         yield
         reset_for_tests()
+        pool_clear()
 
 
 class TestRegisterWorker:

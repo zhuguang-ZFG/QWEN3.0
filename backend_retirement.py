@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import logging
 import os
-import sqlite3
 import time
 
 from config.db_config import BACKEND_RETIREMENT_DB as DB_PATH
+from config.sqlite_pool import pooled_sqlite_conn
 from config.settings import BACKEND_OPS
 
 logger = logging.getLogger(__name__)
@@ -183,24 +183,17 @@ def load_retired() -> int:
     """Load retired backends from SQLite."""
     if not os.path.exists(DB_PATH):
         return 0
-    conn = None
     try:
-        conn = sqlite3.connect(DB_PATH, timeout=5)
-        count = 0
-        for row in conn.execute("SELECT backend FROM retirements WHERE status = ?", (STATUS_RETIRED,)):
-            _retired_backends.add(row[0])
-            _mark_health_retired(row[0])
-            count += 1
+        with pooled_sqlite_conn(DB_PATH) as conn:
+            count = 0
+            for row in conn.execute("SELECT backend FROM retirements WHERE status = ?", (STATUS_RETIRED,)):
+                _retired_backends.add(row[0])
+                _mark_health_retired(row[0])
+                count += 1
         return count
     except Exception as exc:
         logger.warning("Failed to load retired backends: %s", type(exc).__name__)
         return 0
-    finally:
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception as exc:
-                logger.warning("Failed to close DB connection in load_retired: %s", exc)
 
 
 def get_recovery_snapshot(
@@ -221,31 +214,23 @@ def get_recovery_snapshot(
 
 def _save_retirement(backend: str, status: str, reason: str) -> None:
     """Save retirement record to SQLite."""
-    conn = None
     try:
         os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
-        conn = sqlite3.connect(DB_PATH, timeout=5)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS retirements (
-                backend TEXT PRIMARY KEY,
-                status TEXT,
-                reason TEXT,
-                retired_at REAL
+        with pooled_sqlite_conn(DB_PATH) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS retirements (
+                    backend TEXT PRIMARY KEY,
+                    status TEXT,
+                    reason TEXT,
+                    retired_at REAL
+                )
+            """)
+            conn.execute(
+                "INSERT OR REPLACE INTO retirements VALUES (?, ?, ?, ?)",
+                (backend, status, reason, time.time()),
             )
-        """)
-        conn.execute(
-            "INSERT OR REPLACE INTO retirements VALUES (?, ?, ?, ?)",
-            (backend, status, reason, time.time()),
-        )
-        conn.commit()
     except Exception as exc:
         logger.warning("Failed to save retirement: %s", exc)
-    finally:
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception as exc:
-                logger.warning("Failed to close DB connection in load_retired: %s", exc)
 
 
 def _notify_retirement(backend: str, status: str, reason: str) -> None:

@@ -6,15 +6,16 @@ LiMa CodeGraph Impact Analysis — 工具函数和 DB 层。
 
 import json
 import os
-import sqlite3
 from collections import defaultdict
 from pathlib import Path
+
+from config.sqlite_pool import get_pooled_connection
 
 CODEGRAPH_DB = "D:/QWEN3.0/.codegraph/codegraph.db"
 
 
 def db():
-    return sqlite3.connect(CODEGRAPH_DB)
+    return get_pooled_connection(CODEGRAPH_DB)
 
 
 # ========== 工具函数 ==========

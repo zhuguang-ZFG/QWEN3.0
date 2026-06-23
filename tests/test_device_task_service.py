@@ -3,8 +3,7 @@ from __future__ import annotations
 import pytest
 
 from device_gateway.sessions import registry
-from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
-from device_gateway.tasks import pending_count, reset_tasks_for_tests
+from device_gateway.tasks import DeviceTaskRequest, create_and_route_task, pending_count, reset_tasks_for_tests
 
 
 @pytest.fixture(autouse=True)
@@ -41,7 +40,7 @@ async def test_create_and_route_task_returns_failed_for_invalid_projection(monke
         }
 
     monkeypatch.setattr(
-        "device_gateway.task_service.create_task_from_transcript_async",
+        "device_gateway.tasks.create_task_from_transcript_async",
         fake_create_task_from_transcript_async,
     )
 

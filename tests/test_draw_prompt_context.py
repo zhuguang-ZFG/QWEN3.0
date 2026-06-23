@@ -1,4 +1,4 @@
-"""Tests for device_gateway.draw_prompt_context."""
+"""Tests for device_gateway.draw_prompt_enhancer context helpers."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import pytest
 
 from device_gateway.device_profile.models import DeviceCapability, DeviceProfile
 from device_gateway.device_profile.registry import register_device_profile, reset_device_profiles_for_tests
-from device_gateway.draw_prompt_context import (
+from device_gateway.draw_prompt_enhancer import (
     get_failed_draw_prompts,
     record_failed_draw_prompt,
     reset_draw_prompt_history_for_tests,
@@ -65,7 +65,7 @@ def test_failed_prompt_history_persists_across_reads():
 
 
 def test_get_draw_conversation_context_from_turns():
-    from device_gateway.draw_prompt_context import get_draw_conversation_context, record_device_draw_turn
+    from device_gateway.draw_prompt_enhancer import get_draw_conversation_context, record_device_draw_turn
 
     record_device_draw_turn("dev-ctx", "画一只猫", status="success")
     context = get_draw_conversation_context("dev-ctx", "再画大一点")

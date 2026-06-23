@@ -7,8 +7,13 @@ import logging
 from typing import Any
 
 from config.settings import DEVICE
-from device_gateway.redis_store_codec import connect_redis, decode_redis_json, encode_redis_json
-from device_gateway.redis_store_helpers import RedisStoreHelpers, _ACTIVE_STATUSES
+from device_gateway.redis_store_helpers import (
+    RedisStoreHelpers,
+    _ACTIVE_STATUSES,
+    connect_redis,
+    decode_redis_json,
+    encode_redis_json,
+)
 from device_gateway.store_utils import DeviceStoreBase
 
 _log = logging.getLogger(__name__)
@@ -19,7 +24,9 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
     shared_across_processes = True
 
     def __init__(self, redis_url: str, *, client: Any | None = None, key_prefix: str = "lima:device") -> None:
-        self._redis, self._prefix = connect_redis(redis_url, "RedisDeviceTaskStore", client=client, key_prefix=key_prefix)
+        self._redis, self._prefix = connect_redis(
+            redis_url, "RedisDeviceTaskStore", client=client, key_prefix=key_prefix
+        )
 
     def reset(self) -> None:
         keys = list(self._redis.scan_iter(f"{self._prefix}:*"))

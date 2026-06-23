@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from config.sqlite_pool import pool_clear
+
 
 @pytest.fixture
 def evidence_db(monkeypatch):
@@ -17,6 +19,7 @@ def evidence_db(monkeypatch):
         # Clear any module-level cached connections
         # Force fresh connection by re-importing key functions
         yield db
+        pool_clear()
 
 
 def test_record_evidence_redacts_secret_like_values(evidence_db):

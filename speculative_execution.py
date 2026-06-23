@@ -1,16 +1,23 @@
-"""Parallel speculative backend execution and latency learning."""
+"""Parallel speculative backend execution and latency learning.
+
+Simple queries are sent to several fast backends in parallel; the first
+backend that returns a valid answer wins. The implementation is intentionally
+synchronous because the public caller (``routing_engine.route``) is synchronous.
+Using a ``ThreadPoolExecutor`` directly avoids the nested event-loop/thread
+problem that came from bridging sync code through ``run_coro_sync`` + async
+workers.
+"""
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import threading
 import time
-from typing import Awaitable, Callable
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from typing import Callable
 
 import budget_manager
 import health_tracker
-from async_utils import run_coro_sync
 
 logger = logging.getLogger("speculative")
 
@@ -20,6 +27,42 @@ _SLOW_THRESHOLD_MS = 4000
 
 _latency_lock = threading.Lock()
 _latency_history: dict[str, list[float]] = {}
+
+
+def _submit_workers(
+    executor: ThreadPoolExecutor,
+    candidates: list[str],
+    call_fn: Callable[[str, list[dict], int], str],
+    messages: list[dict],
+    max_tokens: int,
+    scenario: str,
+    request_type: str,
+) -> dict[Future[str], str]:
+    """Submit a worker for each candidate backend and map futures to backend names."""
+    futures: dict[Future[str], str] = {}
+    for backend in candidates:
+        future = executor.submit(
+            _spec_worker,
+            backend,
+            call_fn,
+            messages,
+            max_tokens,
+            scenario,
+            request_type,
+        )
+        futures[future] = backend
+    return futures
+
+
+def _shutdown_executor(
+    executor: ThreadPoolExecutor,
+    futures: dict[Future[str], str],
+) -> None:
+    """Cancel pending futures and shut down the pool without waiting."""
+    for future in futures:
+        if not future.done():
+            future.cancel()
+    executor.shutdown(wait=False)
 
 
 def speculative_call(
@@ -32,31 +75,37 @@ def speculative_call(
     scenario: str = "",
     request_type: str = "",
 ) -> tuple[str, str, float]:
-    async def _wrap_sync(b: str, m: list[dict], mt: int) -> str:
-        return await asyncio.to_thread(call_fn, b, m, mt)
+    """Execute speculative backends in parallel; return (backend, answer, latency_ms)."""
+    candidates = backends[:max_parallel]
+    if not candidates:
+        raise RuntimeError("No backends available for speculative execution")
 
+    t0 = time.time()
+    executor = ThreadPoolExecutor(max_workers=max_parallel, thread_name_prefix="spec")
     try:
-        return run_coro_sync(
-            speculative_call_async(
-                backends,
-                _wrap_sync,
-                messages,
-                max_tokens,
-                max_parallel=max_parallel,
-                timeout_sec=timeout_sec,
-                scenario=scenario,
-                request_type=request_type,
-            )
-        )
-    except RuntimeError:
-        raise
-    except Exception as e:
-        raise RuntimeError(f"Speculative execution failed: {e}") from e
+        futures = _submit_workers(executor, candidates, call_fn, messages, max_tokens, scenario, request_type)
+        winner_backend, winner_answer = _spec_race(futures, timeout_sec)
+    finally:
+        _shutdown_executor(executor, futures)
+
+    if not winner_backend:
+        raise RuntimeError("All speculative backends failed or returned empty")
+
+    latency_ms = (time.time() - t0) * 1000
+    health_tracker.record_success(winner_backend, latency_ms)
+    budget_manager.record_usage(winner_backend)
+    logger.info(
+        "[SPEC] winner=%s latency=%.0fms (tried %d)",
+        winner_backend,
+        latency_ms,
+        len(candidates),
+    )
+    return winner_backend, winner_answer, latency_ms
 
 
-async def _spec_worker(
+def _spec_worker(
     backend: str,
-    async_call_fn: Callable,
+    call_fn: Callable[[str, list[dict], int], str],
     messages: list[dict],
     max_tokens: int,
     scenario: str,
@@ -65,7 +114,7 @@ async def _spec_worker(
     """Single speculative worker: call backend, record metrics."""
     backend_t0 = time.time()
     try:
-        result = await async_call_fn(backend, messages, max_tokens)
+        result = call_fn(backend, messages, max_tokens)
         latency = (time.time() - backend_t0) * 1000
         _record_latency(backend, latency)
         is_valid = isinstance(result, str) and len(result.strip()) >= MIN_VALID_LENGTH
@@ -95,81 +144,34 @@ async def _spec_worker(
             phase="speculative",
             attempt="parallel",
         )
-        logger.warning("[SPEC_ASYNC] %s failed: %s", backend, e, exc_info=True)
+        logger.warning("[SPEC] %s failed: %s", backend, e, exc_info=True)
         return ""
 
 
-async def _spec_race(
-    tasks: dict[asyncio.Task, str],
+def _spec_race(
+    futures: dict[Future[str], str],
     timeout_sec: float,
 ) -> tuple[str, str]:
-    """Race tasks to find the first valid answer; cancel losers."""
+    """Race tasks to find the first valid answer; abandon losers."""
     winner_backend = ""
     winner_answer = ""
-    pending = set(tasks.keys())
-    deadline = time.monotonic() + timeout_sec
     try:
-        while pending and not winner_backend:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
+        for future in as_completed(futures, timeout=timeout_sec):
+            backend = futures[future]
+            try:
+                answer = future.result()
+            except Exception:
+                continue
+            if answer and len(answer.strip()) >= MIN_VALID_LENGTH:
+                winner_backend = backend
+                winner_answer = answer
                 break
-            done, pending = await asyncio.wait(
-                pending,
-                timeout=remaining,
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-            if not done:
-                break
-            for task in done:
-                try:
-                    answer = task.result()
-                except Exception:
-                    continue
-                if answer and len(answer.strip()) >= MIN_VALID_LENGTH:
-                    winner_backend = tasks[task]
-                    winner_answer = answer
-                    break
-        if pending:
-            for task in pending:
-                task.cancel()
-            await asyncio.gather(*pending, return_exceptions=True)
     except Exception as exc:
         logger.warning("speculative parallel race failed: %s", exc)
     return winner_backend, winner_answer
 
 
-async def speculative_call_async(
-    backends: list[str],
-    async_call_fn: Callable[[str, list[dict], int], Awaitable[object]],
-    messages: list[dict],
-    max_tokens: int = 4096,
-    max_parallel: int = 3,
-    timeout_sec: float = 3.0,
-    scenario: str = "",
-    request_type: str = "",
-) -> tuple[str, str, float]:
-    candidates = backends[:max_parallel]
-    if not candidates:
-        raise RuntimeError("No backends available for speculative execution")
-
-    t0 = time.time()
-    tasks: dict[asyncio.Task, str] = {
-        asyncio.create_task(_spec_worker(b, async_call_fn, messages, max_tokens, scenario, request_type)): b
-        for b in candidates
-    }
-
-    winner_backend, winner_answer = await _spec_race(tasks, timeout_sec)
-    if not winner_backend:
-        raise RuntimeError("All speculative backends failed or returned empty")
-
-    latency_ms = (time.time() - t0) * 1000
-    health_tracker.record_success(winner_backend, latency_ms)
-    budget_manager.record_usage(winner_backend)
-    logger.info("[SPEC] winner=%s latency=%.0fms (tried %d)", winner_backend, latency_ms, len(candidates))
-    return winner_backend, winner_answer, latency_ms
-
-
-def _record_latency(backend: str, latency_ms: float):
+def _record_latency(backend: str, latency_ms: float) -> None:
     with _latency_lock:
         if backend not in _latency_history:
             _latency_history[backend] = []

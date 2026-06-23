@@ -11,10 +11,12 @@ import logging
 import os
 import sqlite3
 import threading
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Generator
 
 from config.db_config import LIMA_DATA_DIR
+from config.sqlite_pool import pooled_sqlite_conn
 
 _log = logging.getLogger(__name__)
 _lock = threading.RLock()
@@ -31,36 +33,40 @@ def _db_path() -> str:
 _DB_PATH_OVERRIDE: str | None = None
 
 
-def _get_conn() -> sqlite3.Connection:
-    path = _db_path()
-    conn = sqlite3.connect(path, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS client_keys (
-            key_id TEXT PRIMARY KEY,
-            key_masked TEXT NOT NULL,
-            label TEXT NOT NULL,
-            enabled INTEGER NOT NULL DEFAULT 1,
-            quota_daily INTEGER NOT NULL DEFAULT 1000,
-            quota_monthly INTEGER NOT NULL DEFAULT 30000,
-            usage_daily INTEGER NOT NULL DEFAULT 0,
-            usage_monthly INTEGER NOT NULL DEFAULT 0,
-            rate_limit_rpm INTEGER NOT NULL DEFAULT 20,
-            allowed_urls TEXT NOT NULL DEFAULT '[\"*\"]',
-            last_used_at REAL NOT NULL DEFAULT 0,
-            created_at REAL NOT NULL DEFAULT 0
-        )
-        """
-    )
-    return conn
+@contextmanager
+def _pooled_conn() -> Generator[sqlite3.Connection, None, None]:
+    """Yield a pooled connection with sqlite3.Row enabled; resets it on return."""
+    with pooled_sqlite_conn(_db_path(), check_same_thread=False) as conn:
+        conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS client_keys (
+                    key_id TEXT PRIMARY KEY,
+                    key_masked TEXT NOT NULL,
+                    label TEXT NOT NULL,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    quota_daily INTEGER NOT NULL DEFAULT 1000,
+                    quota_monthly INTEGER NOT NULL DEFAULT 30000,
+                    usage_daily INTEGER NOT NULL DEFAULT 0,
+                    usage_monthly INTEGER NOT NULL DEFAULT 0,
+                    rate_limit_rpm INTEGER NOT NULL DEFAULT 20,
+                    allowed_urls TEXT NOT NULL DEFAULT '[\"*\"]',
+                    last_used_at REAL NOT NULL DEFAULT 0,
+                    created_at REAL NOT NULL DEFAULT 0
+                )
+                """
+            )
+            yield conn
+        finally:
+            conn.row_factory = None
 
 
 def load_keys() -> dict[str, dict[str, Any]]:
     """Load all client keys from SQLite into the in-memory dict format."""
     try:
-        with _get_conn() as conn:
+        with _pooled_conn() as conn:
             rows = conn.execute("SELECT * FROM client_keys").fetchall()
     except (sqlite3.Error, OSError) as exc:
         _log.warning("Failed to load client keys from SQLite: %s", exc, exc_info=True)
@@ -79,7 +85,7 @@ def save_key(entry: dict[str, Any]) -> None:
     """Upsert a single client key."""
     with _lock:
         try:
-            with _get_conn() as conn:
+            with _pooled_conn() as conn:
                 conn.execute(
                     """
                     INSERT INTO client_keys (key_id, key_masked, label, enabled, quota_daily,
@@ -122,7 +128,7 @@ def delete_key(key_id: str) -> None:
     """Delete a client key from persistence."""
     with _lock:
         try:
-            with _get_conn() as conn:
+            with _pooled_conn() as conn:
                 conn.execute("DELETE FROM client_keys WHERE key_id = ?", (key_id,))
         except (sqlite3.Error, OSError) as exc:
             _log.warning("Failed to delete client key %s: %s", key_id, exc, exc_info=True)
