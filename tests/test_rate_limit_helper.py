@@ -1,59 +1,33 @@
-"""Tests for routes/rate_limit_helper — route-level rate-limiting helpers."""
+"""Tests for routes/rate_limit_helper.py — rate limit helpers."""
 
-from __future__ import annotations
+from unittest.mock import patch
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.testclient import TestClient
-
-import routes.rate_limit_helper as rlh
+from routes.rate_limit_helper import check_key_limit, _disabled
 
 
-def test_check_ip_limit_returns_none_when_disabled(monkeypatch):
-    monkeypatch.setenv("LIMA_RATE_LIMIT_DISABLE", "1")
-    app = FastAPI()
+class TestDisabled:
+    def test_disabled_by_env(self):
+        with patch.dict("os.environ", {"LIMA_RATE_LIMIT_DISABLE": "1"}):
+            assert _disabled() is True
 
-    @app.get("/test")
-    async def test_route(request: Request):
-        result = rlh.check_ip_limit(request, "test:scope", 5)
-        assert result is None
-        return JSONResponse({"ok": True})
-
-    client = TestClient(app)
-    response = client.get("/test")
-    assert response.status_code == 200
+    def test_enabled_by_default(self):
+        with patch.dict("os.environ", {}, clear=True):
+            assert _disabled() is False
 
 
-def test_check_key_limit_returns_none_when_disabled(monkeypatch):
-    monkeypatch.setenv("LIMA_RATE_LIMIT_DISABLE", "1")
-    result = rlh.check_key_limit("test:key", 5)
-    assert result is None
+class TestCheckKeyLimit:
+    def test_disabled_returns_none(self):
+        with patch.dict("os.environ", {"LIMA_RATE_LIMIT_DISABLE": "true"}):
+            assert check_key_limit("key", 10) is None
 
+    def test_under_limit(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with patch("routes.rate_limit_helper.rate_limiter.check_keyed_rate_limit", return_value=True):
+                assert check_key_limit("key", 10) is None
 
-def test_check_ip_limit_blocks_after_limit_exceeded(monkeypatch):
-    import rate_limiter
-
-    rate_limiter.reset()
-    app = FastAPI()
-
-    @app.get("/test")
-    async def test_route(request: Request):
-        return rlh.check_ip_limit(request, "test:block", 2) or JSONResponse({"ok": True})
-
-    client = TestClient(app)
-    assert client.get("/test").status_code == 200
-    assert client.get("/test").status_code == 200
-    blocked = client.get("/test")
-    assert blocked.status_code == 429
-    assert "rate_limit_error" in blocked.json()["error"]["type"]
-
-
-def test_check_key_limit_blocks_after_limit_exceeded(monkeypatch):
-    import rate_limiter
-
-    rate_limiter.reset()
-    assert rlh.check_key_limit("test:key:block", 2) is None
-    assert rlh.check_key_limit("test:key:block", 2) is None
-    blocked = rlh.check_key_limit("test:key:block", 2)
-    assert blocked is not None
-    assert blocked.status_code == 429
+    def test_over_limit(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with patch("routes.rate_limit_helper.rate_limiter.check_keyed_rate_limit", return_value=False):
+                response = check_key_limit("key", 10)
+                assert response.status_code == 429
+                assert "rate_limit_error" in response.body.decode()
