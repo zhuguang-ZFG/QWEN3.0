@@ -178,7 +178,7 @@ async def _read_limited_body(
                 await _send_json_response(send, 413, _oversized_payload())
                 return None
         except Exception as exc:
-            _log.debug("http_body_limit.py: {}", type(exc).__name__)
+            _log.warning("http_body_limit gzip decompress failed: %s", exc)
 
     return body
 

@@ -58,7 +58,7 @@ def _get_version_from_adapter(adapter_path: str) -> str:
                     break
             return f"r{round_num}_step{step}"
     except Exception as exc:
-        _log.debug("model_registry.py: {}", type(exc).__name__)
+        _log.warning("model_registry adapter step inference failed: %s", exc)
     return f"v{datetime.now().strftime('%Y%m%d_%H%M')}"
 
 

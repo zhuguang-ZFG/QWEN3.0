@@ -103,7 +103,7 @@ async def handle_hello(
         try:
             await previous.websocket.close(code=1012)
         except Exception as exc:
-            _log.debug("close superseded websocket device=%s: %s", device_id, type(exc).__name__)
+            _log.warning("close superseded websocket device=%s: %s", device_id, exc)
     reattach_tasks(session, active_tasks_for_device(device_id))
     shadow_store.update_hello(message)
     await session.send_json(hello_ack(device_id, shadow_store.delta_for_hello(device_id)))

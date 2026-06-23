@@ -66,7 +66,9 @@ class _RecognitionCallback:
     def on_event(self, result) -> None:  # noqa: ANN001
         try:
             sentence = result.get_sentence()
-        except Exception:
+        except Exception as exc:
+            # Non-sentence events are expected in the streaming callback.
+            _log.warning("DashScope ASR sentence extraction skipped: %s", exc)
             return
         if not sentence:
             return

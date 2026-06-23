@@ -68,7 +68,7 @@ async def _aclose_stream(stream, backend: str) -> None:
         try:
             await aclose()
         except Exception as exc:
-            _log.debug("async stream aclose failed backend=%s: %s", backend, type(exc).__name__)
+            _log.warning("async stream aclose failed backend=%s: %s", backend, exc)
 
 
 async def _async_fallback_to_api(
@@ -123,7 +123,7 @@ async def _stream_with_route_check(
             try:
                 actual_backend, actual_msgs = route_task.result()
             except Exception as exc:
-                _log.debug("speculative route task result failed: %s", type(exc).__name__)
+                _log.warning("speculative route task result failed: %s", exc)
                 actual_backend = predicted
             if actual_backend != predicted:
                 switched = True
@@ -188,4 +188,4 @@ async def speculative_stream(
             except asyncio.CancelledError:
                 pass
             except Exception as exc:
-                _log.debug("speculative route task cancel failed: %s", type(exc).__name__)
+                _log.warning("speculative route task cancel failed: %s", exc)

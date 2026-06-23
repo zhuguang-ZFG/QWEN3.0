@@ -186,7 +186,7 @@ async def admin_model_status():
             try:
                 recent_logs.append(json.loads(line.strip()))
             except Exception as exc:
-                _log.debug("skip malformed fallback log line: %s", type(exc).__name__)
+                _log.warning("skip malformed fallback log line: %s", exc)
     return {
         "model": "Round 12 (Qwen3-1.7B)",
         "accuracy": "89.7%",

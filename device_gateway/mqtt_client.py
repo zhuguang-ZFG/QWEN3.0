@@ -201,8 +201,8 @@ def _create_mqtt_client(
         try:
             payload = _json.loads(msg.payload.decode("utf-8", errors="replace"))
             message_queue.put_nowait((msg.topic, "uplink", payload))
-        except Exception:
-            _log.debug("MQTT message parse failed topic=%s", msg.topic, exc_info=True)
+        except Exception as exc:
+            _log.warning("MQTT message parse failed topic=%s: %s", msg.topic, exc)
 
     def on_disconnect(client, userdata, flags, reason_code, properties=None):
         _log.info("MQTT disconnected: rc=%s", reason_code)

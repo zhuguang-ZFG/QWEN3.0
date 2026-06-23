@@ -138,7 +138,7 @@ def _update_routing_weights(backend: str, scenario: str, success: bool) -> None:
         else:
             rw.record_failure(backend, scenario)
     except Exception as exc:
-        _log.debug("routing_loop/feedback_bridge.py: {}", type(exc).__name__)
+        _log.warning("routing weights update failed: %s", exc)
 
 
 _request_counter = 0
@@ -156,7 +156,7 @@ def _check_training_trigger() -> None:
 
             close_loop()
         except Exception as exc:
-            _log.debug("loop_closer.close_loop failed: %s", exc)
+            _log.warning("loop_closer.close_loop failed: %s", exc)
 
 
 def get_request_count() -> int:

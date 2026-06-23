@@ -49,7 +49,7 @@ def upsert_voiceprint_sample(
             )
         conn.commit()
     except Exception as exc:
-        _log.debug("failed to upsert voiceprint sample voiceprint_id=%s err=%s", voiceprint_id, type(exc).__name__)
+        _log.warning("failed to upsert voiceprint sample voiceprint_id=%s err=%s", voiceprint_id, exc)
     finally:
         conn.close()
 
@@ -104,7 +104,7 @@ def store_voiceprint_embedding(
         conn.commit()
         _log.info("voiceprint embedding stored voiceprint_id=%s dim=%d", voiceprint_id, embedding_dim)
     except Exception as exc:
-        _log.debug("failed to store voiceprint embedding voiceprint_id=%s err=%s", voiceprint_id, type(exc).__name__)
+        _log.warning("failed to store voiceprint embedding voiceprint_id=%s err=%s", voiceprint_id, exc)
     finally:
         conn.close()
 
@@ -139,7 +139,7 @@ def get_voiceprint_embeddings(device_id: str) -> list[dict]:
         ).fetchall()
         return [_row_to_entry_fallback(row) for row in rows]
     except Exception as exc:
-        _log.debug("failed to get voiceprint embeddings device_id=%s err=%s", device_id, type(exc).__name__)
+        _log.warning("failed to get voiceprint embeddings device_id=%s err=%s", device_id, exc)
         return []
     finally:
         conn.close()

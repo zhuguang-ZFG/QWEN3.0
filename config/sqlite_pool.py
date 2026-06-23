@@ -7,10 +7,13 @@ own transaction boundaries via context managers.
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 import threading
 from contextlib import contextmanager
 from typing import Generator
+
+_log = logging.getLogger(__name__)
 
 
 class _ConnectionPool:
@@ -36,8 +39,9 @@ class _ConnectionPool:
             except sqlite3.Error:
                 try:
                     conn.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    # Best-effort close of a possibly broken connection; safe to ignore.
+                    _log.warning("sqlite_pool close of stale connection failed: %s", exc)
         return sqlite3.connect(path, check_same_thread=check_same_thread)
 
     def put(self, path: str, conn: sqlite3.Connection) -> None:
@@ -47,8 +51,9 @@ class _ConnectionPool:
         else:
             try:
                 conn.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                # Best-effort close when pool is full; safe to ignore.
+                _log.warning("sqlite_pool close of overflow connection failed: %s", exc)
 
     def clear(self) -> None:
         """Close all cached connections in the current thread."""
@@ -56,8 +61,9 @@ class _ConnectionPool:
             for conn in conns:
                 try:
                     conn.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    # Best-effort close during bulk cleanup; safe to ignore.
+                    _log.warning("sqlite_pool bulk close failed for %s: %s", path, exc)
         self._local.conns = {}
 
 

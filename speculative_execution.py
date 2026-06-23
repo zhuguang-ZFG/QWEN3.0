@@ -139,7 +139,7 @@ async def _spec_race(
                 task.cancel()
             await asyncio.gather(*pending, return_exceptions=True)
     except Exception as exc:
-        logger.debug("speculative parallel race failed: %s", type(exc).__name__)
+        logger.warning("speculative parallel race failed: %s", exc)
     return winner_backend, winner_answer
 
 

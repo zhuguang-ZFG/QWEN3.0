@@ -53,8 +53,9 @@ async def probe_pricing(base_url: str) -> dict:
                 result["models_free"] = free_count
                 result["is_free"] = free_count > 0
                 result["pricing_detected"] = True
-    except Exception:
-        logger.debug("pricing probe HTTP error", exc_info=True)
+    except Exception as exc:
+        # Pricing endpoint probe failure is expected for providers without pricing metadata.
+        logger.warning("pricing probe HTTP error for %s: %s", base_url, exc)
 
     # Check pricing page
     pricing_urls = [
@@ -98,7 +99,8 @@ async def estimate_cost(base_url: str, model_id: str = "") -> dict:
                         result["image_cost"] = pricing.get("image")
                         result["model_id"] = m_id
                         break
-    except Exception:
-        logger.debug("cost estimation failed", exc_info=True)
+    except Exception as exc:
+        # Cost estimation failure is expected when pricing metadata is unavailable.
+        logger.warning("cost estimation failed for %s: %s", base_url, exc)
 
     return result

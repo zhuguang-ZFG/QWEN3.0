@@ -64,5 +64,5 @@ def record_outcome_ledger(device_id: str, message: dict[str, Any], phase: str) -
             summary=f"{phase}: {message.get('capability', message.get('source_capability', ''))}",
             tags=["device", phase, str(message.get("capability", ""))],
         )
-    except Exception:
-        _log.debug("outcome ledger record failed", exc_info=True)
+    except Exception as exc:
+        _log.warning("outcome ledger record failed: %s", exc)

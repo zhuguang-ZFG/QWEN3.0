@@ -42,21 +42,21 @@ class AutoIndexer:
 
             self._watcher = FileWatcher(root_path=self._root)
         except Exception as exc:
-            _log.debug("FileWatcher init failed: %s", exc)
+            _log.warning("FileWatcher init failed: %s", exc)
 
         try:
             from code_context.graph_index import build_graph_index
 
             self._graph = build_graph_index()
         except Exception as exc:
-            _log.debug("GraphIndex init failed: %s", exc)
+            _log.warning("GraphIndex init failed: %s", exc)
 
         try:
             from code_context.chroma_vector_store import ChromaCodeIndex
 
             self._vector = ChromaCodeIndex()
         except Exception as exc:
-            _log.debug("ChromaCodeIndex init failed: %s", exc)
+            _log.warning("ChromaCodeIndex init failed: %s", exc)
 
     def scan_once(self) -> dict:
         """Run a single scan and update indexes. Returns stats."""
@@ -77,14 +77,14 @@ class AutoIndexer:
                     self._delete_file(path)
                     deleted_count += 1
                 except Exception as exc:
-                    _log.debug("delete %s failed: %s", path, exc)
+                    _log.warning("delete %s failed: %s", path, exc)
                     errors += 1
                 continue
             try:
                 self._index_file(path)
                 indexed += 1
             except Exception as exc:
-                _log.debug("index %s failed: %s", path, exc)
+                _log.warning("index %s failed: %s", path, exc)
                 errors += 1
 
         duration = (time.time() - t0) * 1000
@@ -118,12 +118,12 @@ class AutoIndexer:
             try:
                 self._vector.delete_file(path)
             except Exception as exc:
-                _log.debug("vector delete %s failed: %s", path, exc)
+                _log.warning("vector delete %s failed: %s", path, exc)
         if self._graph is not None:
             try:
                 self._graph.delete_file(path)
             except Exception as exc:
-                _log.debug("graph delete %s failed: %s", path, exc)
+                _log.warning("graph delete %s failed: %s", path, exc)
 
     def _index_file(self, path: str) -> None:
         p = Path(path)

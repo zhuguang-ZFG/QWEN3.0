@@ -71,8 +71,9 @@ async def detect_auth(base_url: str) -> dict:
             if resp.status_code in (401, 403):
                 result["requires_auth"] = True
                 result["evidence"] = f"HTTP {resp.status_code} without auth"
-    except Exception:
-        logger.debug("auth detection HTTP probe failed", exc_info=True)
+    except Exception as exc:
+        # Auth probe failures are expected for unreachable or non-compliant endpoints.
+        logger.warning("auth detection HTTP probe failed for %s: %s", url, exc)
 
     return result
 
@@ -96,8 +97,9 @@ async def probe_chat_auth(base_url: str) -> dict:
                 result["requires_auth"] = False
                 result["evidence"] = "200 OK without auth"
                 return result
-    except Exception:
-        logger.debug("chat auth probe failed", exc_info=True)
+    except Exception as exc:
+        # Chat auth probe failure is expected when the endpoint rejects unauthenticated probes.
+        logger.warning("chat auth probe failed for %s: %s", url, exc)
 
     # Try with auth headers
     for header_name, header_value in AUTH_HEADERS:
@@ -116,7 +118,8 @@ async def probe_chat_auth(base_url: str) -> dict:
                     result["requires_auth"] = True
                     result["auth_header"] = header_name
                     return result
-        except Exception:
-            logger.debug("auth header probe failed", exc_info=True)
+        except Exception as exc:
+            # Auth header probe failure is expected for invalid or unsupported auth schemes.
+            logger.warning("auth header probe failed for %s with %s: %s", url, header_name, exc)
 
     return result

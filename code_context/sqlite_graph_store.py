@@ -66,8 +66,8 @@ class SqliteGraphIndex(GraphIndex):
                         VALUES ('delete', old.id, old.source, old.target, old.relation_type);
                     END;
                 """)
-            except Exception:
-                _log.debug("FTS5 trigger setup skipped (may already exist)")
+            except Exception as exc:
+                _log.warning("FTS5 trigger setup skipped for %s: %s", self._db_path, exc)
 
     def add_relation(self, source: str, target: str, relation_type: str) -> None:
         now = time.time()

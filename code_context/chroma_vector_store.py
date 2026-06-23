@@ -103,7 +103,7 @@ class ChromaCodeIndex:
                 ],
             )
         except Exception as exc:
-            _log.debug("ChromaDB upsert failed for %s: %s", path, exc)
+            _log.warning("ChromaDB upsert failed for %s: %s", path, exc)
 
     def search(self, query: str, limit: int = 5) -> list[FileRecord]:
         if not self._use_chroma or not self._collection:

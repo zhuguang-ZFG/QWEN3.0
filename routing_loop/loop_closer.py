@@ -48,13 +48,13 @@ def close_loop() -> dict:
         _persist_health_state()
         result["health_persisted"] = True
     except Exception as exc:
-        _log.debug("close_loop: health persist failed: %s", exc)
+        _log.warning("close_loop: health persist failed: %s", exc)
 
     # 4. Trigger eval gate
     try:
         _trigger_eval_gate()
     except Exception as exc:
-        _log.debug("close_loop: eval gate failed: %s", exc)
+        _log.warning("close_loop: eval gate failed: %s", exc)
 
     duration_ms = (time.time() - t0) * 1000
     _log.info(
@@ -140,7 +140,7 @@ def _persist_health_state() -> None:
         conn.commit()
         conn.close()
     except Exception as exc:
-        _log.debug("_persist_health_state: %s", exc)
+        _log.warning("_persist_health_state failed: %s", exc)
 
 
 def _trigger_eval_gate() -> None:
@@ -154,4 +154,4 @@ def _trigger_eval_gate() -> None:
                 approve_candidate(c.get("pattern_id", ""))
                 _log.info("eval_gate: auto-approved pattern %s", c.get("pattern_id"))
     except Exception as exc:
-        _log.debug("routing_loop/loop_closer.py: {}", type(exc).__name__)
+        _log.warning("eval gate trigger failed: %s", exc)

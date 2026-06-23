@@ -58,7 +58,7 @@ def record_routing_outcome(
             else:
                 rw.record_failure(backend, scenario)
         except Exception as exc:
-            _log.debug("routing_weights update failed: %s", exc)
+            _log.warning("routing_weights update failed: %s", exc)
 
 
 def get_metrics_snapshot() -> dict:

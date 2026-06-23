@@ -84,12 +84,14 @@ def _thin_binary(binary: np.ndarray) -> tuple[np.ndarray, str]:
 
         return (sk_thin(binary > 0) * 255).astype(np.uint8), "skimage"
     except Exception as exc:
-        logger.debug("skimage skeletonize unavailable (%s); trying cv2.ximgproc.thinning", type(exc).__name__)
+        # skimage is an optional dependency; failure falls back to cv2 or morphological thinning.
+        logger.warning("skimage skeletonize unavailable (%s); trying cv2.ximgproc.thinning", exc)
     if cv2 is not None:
         try:
             return cv2.ximgproc.thinning(binary), "ximgproc"
         except Exception as exc:
-            logger.debug("cv2.ximgproc.thinning unavailable (%s); using morphological fallback", type(exc).__name__)
+            # cv2.ximgproc is an optional submodule; failure falls back to morphological thinning.
+            logger.warning("cv2.ximgproc.thinning unavailable (%s); using morphological fallback", exc)
     logger.info("Using morphological thinning fallback for skeletonization")
     return _thin_morphological(binary), "morphological"
 

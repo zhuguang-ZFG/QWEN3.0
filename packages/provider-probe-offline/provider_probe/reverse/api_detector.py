@@ -52,10 +52,12 @@ async def detect_format(base_url: str) -> ApiProfile:
                         if "data" in data and isinstance(data["data"], list):
                             profile.details["model_count"] = len(data["data"])
                             profile.details["models_preview"] = [m.get("id", "") for m in data["data"][:20]]
-                    except Exception:
-                        logger.debug("models JSON parse failed", exc_info=True)
+                    except Exception as exc:
+                        # Probed endpoint returned non-JSON; expected during discovery.
+                        logger.warning("models JSON parse failed for %s: %s", models_url, exc)
     except Exception as exc:
-        logger.debug("Probe %s: %s", models_url, type(exc).__name__)
+        # Probed endpoint may be unreachable; expected during discovery.
+        logger.warning("Probe %s failed: %s", models_url, exc)
 
     # Step 2: Probe chat completions
     chat_url = f"{url}/v1/chat/completions"
@@ -71,8 +73,9 @@ async def detect_format(base_url: str) -> ApiProfile:
                 if resp.status_code in (401, 403):
                     profile.requires_auth = True
                     profile.auth_type = profile.auth_type or _detect_auth(resp)
-    except Exception:
-        logger.debug("chat probe failed", exc_info=True)
+    except Exception as exc:
+        # Chat endpoint probe failure is expected for non-OpenAI providers.
+        logger.warning("chat probe failed for %s: %s", chat_url, exc)
     anthropic_url = f"{url}/v1/messages"
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -81,8 +84,9 @@ async def detect_format(base_url: str) -> ApiProfile:
                 profile.details["anthropic_endpoint"] = True
                 if profile.format == ApiFormat.UNKNOWN:
                     profile.format = ApiFormat.ANTHROPIC
-    except Exception:
-        logger.debug("anthropic probe failed", exc_info=True)
+    except Exception as exc:
+        # Anthropic endpoint probe failure is expected for non-Anthropic providers.
+        logger.warning("anthropic probe failed for %s: %s", anthropic_url, exc)
 
     if profile.format == ApiFormat.UNKNOWN and profile.has_models_endpoint:
         profile.format = ApiFormat.OPENAI

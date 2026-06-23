@@ -82,7 +82,8 @@ def _detect_ollama(caps: dict) -> None:
             data = json.loads(result.stdout)
             caps["models"] = [f"ollama:{m['name']}" for m in data.get("models", [])]
     except Exception as exc:
-        _log.debug("fleet/agent.py: {}", type(exc).__name__)
+        # Capability detection is best-effort; Ollama may be absent.
+        _log.warning("fleet Ollama detection failed: %s", exc)
 
 
 def _detect_ram(caps: dict) -> None:
@@ -118,7 +119,8 @@ def _detect_ram(caps: dict) -> None:
                         caps["ram_gb"] = round(int(line.split()[1]) / (1024**2), 1)
                         break
     except Exception as exc:
-        _log.debug("fleet/agent.py: {}", type(exc).__name__)
+        # Capability detection is best-effort; RAM info is optional.
+        _log.warning("fleet RAM detection failed: %s", exc)
 
 
 def detect_capabilities() -> dict:
@@ -164,7 +166,8 @@ def heartbeat(vps_url: str, node_id: str, load_avg: float = 0.0) -> bool:
             timeout=5,
         )
         return resp.json().get("ok", False)
-    except Exception:
+    except Exception as exc:
+        _log.warning("fleet heartbeat failed: %s", exc)
         return False
 
 

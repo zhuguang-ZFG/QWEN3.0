@@ -41,7 +41,8 @@ def _expand_one_seed(
 
     try:
         related = graph.search([seed_name], max_depth=max_hops, max_results=max_files)
-    except Exception:
+    except Exception as exc:
+        _log.warning("graph search failed for seed %s: %s", seed, exc)
         return None
 
     for r in related:

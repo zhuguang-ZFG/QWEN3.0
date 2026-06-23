@@ -227,7 +227,7 @@ def synthesize(query: str, results: list[dict[str, Any]]) -> str:
         if answer and "暂时不可用" not in answer:
             return answer
     except Exception as exc:
-        _log.debug("orchestrate synthesize longcat failed: %s", type(exc).__name__)
+        _log.warning("orchestrate synthesize longcat failed: %s", exc)
 
     answer = _call_local_router(msgs, max_tokens=SYNTHESIZE_MAX_TOKENS, temperature=0.5)
     if answer and not answer.startswith("[LOCAL_ERR]"):
