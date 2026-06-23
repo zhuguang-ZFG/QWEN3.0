@@ -33,6 +33,7 @@ os.environ.setdefault("LIMA_WEIGHTS_PATH", str(_TEST_TMP_DIR / "weights.json"))
 os.environ.setdefault("LIMA_TOKEN_HEALTH_DB", str(_TEST_TMP_DIR / "token_health.db"))
 os.environ.setdefault("LIMA_PROFILES_DIR", str(_TEST_TMP_DIR / "profiles"))
 os.environ.setdefault("LIMA_DATA_DIR", str(_TEST_TMP_DIR / "lima-data"))
+os.environ.setdefault("LIMA_DEVICE_TASK_STORE", "memory")
 
 
 def pytest_addoption(parser):

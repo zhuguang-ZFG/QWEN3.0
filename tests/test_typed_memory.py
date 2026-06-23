@@ -7,7 +7,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-os.environ.setdefault("LIMA_SESSION_DB", os.path.join(tempfile.gettempdir(), "lima_test_typed.db"))
+
+@pytest.fixture(autouse=True)
+def _typed_memory_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIMA_SESSION_DB", str(tmp_path / "typed.db"))
 
 
 class TestTypedMemory:

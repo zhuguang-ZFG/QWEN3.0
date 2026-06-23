@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-os.environ.setdefault("LIMA_API_KEY", "test-key")
 
 from routes import chat_endpoints
 

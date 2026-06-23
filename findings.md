@@ -104,6 +104,22 @@
 - 修复 `chroma_vector_store.py` 与 `route_post_process.py` 的类型问题，使 `pyright` 0 errors。
 - 全量测试 **3508 passed / 17 skipped / 2 deselected / 0 failed**；`ruff check` 与 `pyright` clean。
 
+## 2026-06-22 缺陷文档同步与测试环境隔离
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| DOC-1 | hygiene | `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-11、P2-12、P2-13、P3-5/6/7/8 等已修复项仍标记为未修复 | Closed |
+| DOC-2 | hygiene | P3-19（合并 `device_gateway/task_deps.py`）与实际 facade 设计冲突 | Closed |
+| TEST-1 | quality | `tests/test_routes_chat_endpoints.py` 等 3 个测试文件存在模块级 `os.environ.setdefault()` | Closed |
+| TEST-2 | quality | `LIMA_DEVICE_TASK_STORE=memory` 分散在单个测试文件顶部 | Closed |
+
+**修复摘要**
+- 更新缺陷文档状态：P1-11、P2-12、P2-13、P3-5/6/7/8 标记为 ✅；P3-19 说明为保留 facade。
+- 移除 3 个测试文件的模块级 env 设置：`test_routes_chat_endpoints.py`、`test_typed_memory.py`、`test_xiaozhi_compat_route_policy.py`。
+- `tests/test_typed_memory.py` 改用 autouse fixture 为每个测试分配独立 `LIMA_SESSION_DB`。
+- `tests/conftest.py` 集中设置 `LIMA_DEVICE_TASK_STORE=memory`。
+- 全量测试 **3508 passed / 17 skipped / 2 deselected / 0 failed**；`ruff check` 与 `pyright` clean。
+
 ## 2026-06-20 工作区清理与 redis_store 瘦身
 
 | ID | Area | Finding | Status |

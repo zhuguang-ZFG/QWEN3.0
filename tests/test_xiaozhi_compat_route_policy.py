@@ -5,15 +5,10 @@ must attach route_policy so the downlink frame is contract-compliant
 regardless of which entry path produced the task.
 """
 
-import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-# Force in-memory device task store so build_gateway_task's
-# task_store.create_task_state side effect does not need Redis.
-os.environ.setdefault("LIMA_DEVICE_TASK_STORE", "memory")
 
 from routes.xiaozhi_compat.gateway import build_gateway_task  # noqa: E402
 

@@ -72,6 +72,15 @@
   - 通过 AST 扫描确认：除 `reference/ECC/` 参考代码外，项目中已无 `except Exception` 块内直接调用 `.debug()` 的情况。
   - **验证结果**：`python -m pytest -q` → **3508 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
 
+- **本轮新增（2026-06-22 22:05）——缺陷文档状态同步与 P1-7 测试隔离**：
+  - 同步 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 状态：
+    - 已修复：P1-11（Prometheus HTTPS+SHA256）、P2-12（三通道统一）、P2-13（async_utils 统一桥接）、P3-5/3-6/3-7/3-8（死测试/低质量测试/慢测试/`assert True`）。
+    - P3-19（合并 `task_deps.py`）记为 **保留（facade 设计决策）**。
+  - 修复 P1-7：移除 `tests/test_routes_chat_endpoints.py`、`tests/test_typed_memory.py`、`tests/test_xiaozhi_compat_route_policy.py` 的模块级 `os.environ.setdefault()`。
+  - `tests/conftest.py` 集中设置 `LIMA_DEVICE_TASK_STORE=memory`，供需要内存任务存储的测试统一使用。
+  - `tests/test_typed_memory.py` 新增 `monkeypatch.setenv("LIMA_SESSION_DB", ...)` 的 autouse fixture，保证每个测试使用独立的 `tmp_path` DB。
+  - **验证结果**：`python -m pytest -q` → **3508 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
+
 - **剩余大项**（需单独里程碑）：
   - P1-2：环境变量集中化（剩余 backend API key 等约 200 处）。
   - P1-4：仍有大量 `except Exception` 后使用 `logger.debug` 或 `_log.debug` 的非生产/参考路径，待逐文件审查。
