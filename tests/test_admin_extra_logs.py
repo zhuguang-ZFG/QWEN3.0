@@ -16,7 +16,8 @@ class TestBroadcastLog:
             _SSE_SUBSCRIBERS.remove(queue)
 
     def test_removes_full_queues(self):
-        queue = asyncio.Queue(maxsize=0)
+        queue = asyncio.Queue(maxsize=1)
+        queue.put_nowait({"preload": 1})
         _SSE_SUBSCRIBERS.append(queue)
         try:
             broadcast_log({"msg": "hello"})
