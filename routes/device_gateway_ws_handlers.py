@@ -142,7 +142,9 @@ async def handle_transcript(
     if session is not None and "text_chat" in session.capabilities:
         return await handle_voice_transcript(session, device_id, message.get("text", ""), request_id)
 
-    task = await create_task_from_transcript_async(device_id, message["text"], request_id=request_id)
+    task = await create_task_from_transcript_async(
+        device_id, message["text"], request_id=request_id, entrypoint="ws_transcript"
+    )
     if task.get("error"):
         await websocket.send_json(
             ack_frame(

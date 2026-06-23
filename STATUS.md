@@ -17,6 +17,20 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-24）M15：AI→Motion 阶段 5 发布门追踪与终端回放
+
+- **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态/阻断证据的端到端追踪。
+- **关键结果**：
+  - `route_evidence` 制品与 JSONL 增加 `request_id` / `entrypoint`，可追溯到 HTTP `/device/v1/tasks`、WebSocket `transcript`、App `/device/v1/app/devices/{id}/tasks`。
+  - `GET /device/v1/tasks/{task_id}` 响应增加 `terminal_phase` / `terminal_result`，支持终态回放。
+  - `terminal_result` artifact 确保包含 `device_id`，修复历史查询遗漏。
+  - 新增 `tests/device_gateway/test_ai_to_motion_gate.py`，8 条端到端 gate 测试覆盖 HTTP/WS/App/阻断/断开重连路径。
+  - 新增 `docs/release_evidence/2026-06-24-M15-AI-to-Motion-stage-5.md`。
+- **验证**：
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q` → **3553 passed / 17 skipped / 2 deselected**
+  - `ruff check .` clean；`pyright` 修改文件 0 errors
+  - VPS 部署：`scripts/deploy_unified.py` core 上传 1322 个文件；`https://chat.donglicao.com/health` 与 `/device/v1/health` 均返回 ok/production_ready
+
 ### 最近完成（2026-06-24）缺陷改善计划 — 剩余 P3 项全部关闭
 
 - **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`，关闭 P3-2、P3-10/P3-11、P3-13、P3-14、P3-15/P3-19 等剩余低优先级改善项。

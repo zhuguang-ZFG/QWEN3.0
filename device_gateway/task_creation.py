@@ -59,9 +59,28 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
     return run_coro_sync(project_to_motion_task_async(device_id, voice_task, request_id))
 
 
-async def create_task_from_transcript_async(device_id: str, text: str, request_id: str | None = None) -> dict[str, Any]:
-    return await project_to_motion_task_async(device_id, resolve_voice_task(text), request_id)
+async def create_task_from_transcript_async(
+    device_id: str,
+    text: str,
+    request_id: str | None = None,
+    *,
+    source: str | None = None,
+    entrypoint: str | None = None,
+) -> dict[str, Any]:
+    voice_task = resolve_voice_task(text)
+    if source:
+        voice_task["source"] = source
+    if entrypoint:
+        voice_task["entrypoint"] = entrypoint
+    return await project_to_motion_task_async(device_id, voice_task, request_id)
 
 
-def create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict[str, Any]:
-    return run_coro_sync(create_task_from_transcript_async(device_id, text, request_id))
+def create_task_from_transcript(
+    device_id: str,
+    text: str,
+    request_id: str | None = None,
+    *,
+    source: str | None = None,
+    entrypoint: str | None = None,
+) -> dict[str, Any]:
+    return run_coro_sync(create_task_from_transcript_async(device_id, text, request_id, source=source, entrypoint=entrypoint))

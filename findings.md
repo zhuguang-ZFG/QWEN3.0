@@ -17,6 +17,23 @@
 - 公网健康：curl `https://chat.donglicao.com/health` 返回 JSON，status ok，无 error phase。
 - 提交后本地再验证：聚焦 pytest 125 passed；`ruff check .` clean；`pyright` 修改文件 0 errors。
 
+## 2026-06-24 M15 AI→Motion 阶段 5 发布门追踪
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| M15-1 | traceability | `route_evidence` 制品缺少 `request_id` / `entrypoint`，无法从终端事件回溯到原始请求入口 | Closed |
+| M15-2 | observability | `/device/v1/tasks/{task_id}` 需要扫描 `events` 才能判断终态，缺少便捷字段 | Closed |
+| M15-3 | observability | `terminal_result` artifact 未显式保证 `device_id`，历史查询可能遗漏 | Closed |
+| M15-4 | test | 缺少端到端测试覆盖 HTTP/WS/App/阻断/断开重连到终态的完整链路 | Closed |
+| M15-5 | deploy | M15 变更已通过 `scripts/deploy_unified.py` 部署至 VPS，公网 `/health` 与 `/device/v1/health` 均 OK | Closed |
+
+**验证摘要**
+- 代码变更：`device_gateway/task_recorder.py`、`task_creation*.py`、`task_events.py`、`routes/device_gateway*.py`、`routes/device_app_tasks.py` 等。
+- 新增测试：`tests/device_gateway/test_ai_to_motion_gate.py`（8 passed）。
+- 全量 pytest：**3553 passed / 17 skipped / 2 deselected**；`ruff check .` clean；`pyright` 修改文件 0 errors。
+- VPS 部署：1322 uploaded / 0 failed；备份 `/opt/lima-router/backups/unified-core-20260624_073501/runtime-before.tgz`。
+- 公网健康：`https://chat.donglicao.com/health` ok，`/device/v1/health` production_ready。
+
 ## 2026-06-22 全量修复里程碑 A/B/C/D
 
 | ID | Area | Finding | Status |

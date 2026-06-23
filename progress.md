@@ -1,5 +1,27 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 LiMa M15：AI→Motion 阶段 5 发布门追踪与终端回放
+
+- **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态或阻断证据的端到端追踪，产出首份阶段 5 发布证据报告。
+- **实现**：
+  - `device_gateway/task_recorder.py`：`route_evidence` 制品与 JSONL 增加 `request_id` / `entrypoint`；`device_consumed` / `recovery` 场景也保留 `request_id`。
+  - `device_gateway/task_creation_builders.py` / `task_creation_errors.py`：motion_task 与 error task 增加 `entrypoint` 字段。
+  - `device_gateway/task_creation.py`：`create_task_from_transcript_async` 支持 `source` / `entrypoint` 覆盖。
+  - `device_gateway/tasks.py`：`DeviceTaskRequest` 增加 `source` / `entrypoint`。
+  - `device_gateway/task_events.py`：`terminal_result` artifact 确保包含 `device_id`。
+  - `routes/device_gateway.py`：HTTP 入口设置 `entrypoint=http_device_tasks`；`GET /tasks/{task_id}` 返回 `terminal_phase` / `terminal_result`。
+  - `routes/device_gateway_ws_handlers.py`：WS `transcript` 入口设置 `entrypoint=ws_transcript`。
+  - `routes/device_app_tasks.py`：App 入口设置 `entrypoint=app_api`。
+  - 新增 `tests/device_gateway/test_ai_to_motion_gate.py`：8 条端到端 gate 测试，覆盖 HTTP / WS transcript / WS hello drain / App / 阻断路径 / 断开重连终态回放。
+- **验证**：
+  - 聚焦 pytest：`tests/device_gateway/test_ai_to_motion_gate.py` + `test_tasks_http.py` + `test_events_http.py` + `test_device_task_service.py` + `test_device_ledger_artifacts.py` + `test_device_gateway_reliability.py` → **34 passed**
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q` → **3553 passed, 17 skipped, 2 deselected**
+  - `ruff check .` → clean
+  - `pyright` 修改文件 → **0 errors**（历史 warning）
+  - `scripts/check_code_size.py`：无新增违规
+  - VPS 部署：`scripts/deploy_unified.py` core 上传 1322 个文件；备份 `/opt/lima-router/backups/unified-core-20260624_073501/runtime-before.tgz`；`https://chat.donglicao.com/health` 与 `/device/v1/health` 均返回 ok/production_ready。
+- **文档**：新增 `docs/release_evidence/2026-06-24-M15-AI-to-Motion-stage-5.md`；`progress.md`、`STATUS.md`、`findings.md` 已更新。
+
 ## 2026-06-24 LiMa P3 收尾：GitHub 提交 / VPS 部署 / 公网健康验证
 
 - **目标**：按里程碑流程完成 P3 缺陷改善项的提交、推送、VPS 部署与真实公网验证。

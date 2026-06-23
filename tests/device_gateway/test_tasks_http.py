@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -42,7 +44,7 @@ def test_tasks_endpoint_creates_queued_motion_task_without_active_session(monkey
 
 
 def test_tasks_endpoint_does_not_queue_validation_failed_task(monkeypatch):
-    async def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict:
+    async def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None, **kwargs: Any) -> dict:
         return {
             "type": "motion_task",
             "task_id": "task-invalid",

@@ -43,6 +43,7 @@ def record_route_evidence(
     backend: str = "",
     reason: str = "",
     alternatives: list[dict[str, Any]] | None = None,
+    request_id: str = "",
 ) -> None:
     """Submit a route-evidence record for async JSON Lines write. Never blocks."""
     evidence = {
@@ -54,6 +55,7 @@ def record_route_evidence(
         "backend": backend,
         "reason": reason,
         "alternatives": alternatives or [],
+        "request_id": request_id,
         "_rseq": next(_record_seq),
     }
     _get_executor().submit(_write_evidence, device_id, evidence)
@@ -124,6 +126,8 @@ def _build_route_evidence_content(task: dict[str, Any], scenario: str) -> dict[s
         "backend": route_policy.get("backend", ""),
         "capability": task.get("capability", ""),
         "source": task.get("source", ""),
+        "request_id": task.get("request_id", ""),
+        "entrypoint": task.get("entrypoint", task.get("source", "")),
     }
     device_capabilities = task.get("device_capabilities")
     if isinstance(device_capabilities, list) and device_capabilities:
@@ -168,6 +172,7 @@ def _persist_route_evidence(
         route_policy=route_policy,
         backend=str(content.get("backend", "")),
         reason=str(content.get("scenario", "")),
+        request_id=str(content.get("request_id", "")),
     )
 
 
@@ -194,6 +199,7 @@ def record_device_consumed_route_evidence(task_id: str, event: dict[str, Any]) -
     content: dict[str, Any] = {
         "scenario": "device_consumed",
         "phase": event.get("phase", ""),
+        "request_id": event.get("request_id", ""),
         **device_evidence,
     }
     route_policy = {
@@ -232,6 +238,7 @@ def record_recovery_route_evidence(
         "route_role": route_policy.get("route_role", ""),
         "backend": route_policy.get("backend", ""),
         "capability": capability,
+        "request_id": task.get("request_id", "") if isinstance(task, dict) else "",
     }
     if not route_policy:
         _persist_route_evidence(

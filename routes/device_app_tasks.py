@@ -72,7 +72,9 @@ async def _build_app_gateway_task(
     if validation_error:
         return None, err(4002, f"validation failed: {validation_error}", 400)
     task = await project_to_motion_task_async(
-        device_id, {"capability": capability, "params": sanitized, "source": source}, request_id or None
+        device_id,
+        {"capability": capability, "params": sanitized, "source": source, "entrypoint": "app_api"},
+        request_id or None,
     )
     task_error = task.get("error")
     if isinstance(task_error, dict):
@@ -107,7 +109,13 @@ async def create_task(device_id: str, request: Request, authorization: str = Hea
     text = str_field(body, "text", "prompt", "instruction")
     if text:
         result = await create_and_route_task(
-            DeviceTaskRequest(device_id=device_id, text=text, request_id=str_field(body, "requestId", "request_id"))
+            DeviceTaskRequest(
+                device_id=device_id,
+                text=text,
+                request_id=str_field(body, "requestId", "request_id"),
+                source="app",
+                entrypoint="app_api",
+            )
         )
         return {
             "taskId": result.task["task_id"],

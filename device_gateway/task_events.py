@@ -42,18 +42,22 @@ def record_motion_event(event: dict[str, Any]) -> dict[str, Any]:
         )
     )
     if phase in TERMINAL_PHASES:
+        device_id = str(event.get("device_id", ""))
         ledger_store.append_event(
             new_event(
                 event_type="task_terminal",
                 task_id=task_id,
-                device_id=str(event.get("device_id", "")),
+                device_id=device_id,
                 payload={"terminal_event": event},
             )
         )
+        terminal_content = dict(event)
+        if device_id:
+            terminal_content.setdefault("device_id", device_id)
         artifact_store.put_artifact(
             task_id=task_id,
             artifact_type="terminal_result",
-            content=event,
+            content=terminal_content,
             retention_days=90,
         )
         record_device_consumed_route_evidence(task_id, event)

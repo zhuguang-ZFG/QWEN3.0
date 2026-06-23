@@ -72,6 +72,8 @@ class DeviceTaskRequest:
     device_id: str
     text: str
     request_id: str = ""
+    source: str = ""
+    entrypoint: str = ""
 
 
 @dataclass(frozen=True)
@@ -86,11 +88,12 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
     """Create a motion task, then dispatch locally or enqueue for the device."""
     device_id = request.device_id.strip()
     text = request.text.strip()
-    task = await create_task_from_transcript_async(
-        device_id,
-        text,
-        request_id=request.request_id or None,
-    )
+    create_kwargs: dict[str, Any] = {"request_id": request.request_id or None}
+    if request.source:
+        create_kwargs["source"] = request.source
+    if request.entrypoint:
+        create_kwargs["entrypoint"] = request.entrypoint
+    task = await create_task_from_transcript_async(device_id, text, **create_kwargs)
     if task.get("error"):
         return DeviceTaskRouteResult("failed", False, pending_count(device_id), task)
 

@@ -35,6 +35,7 @@ def _build_error_task(
         "device_id": device_id,
         "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
         "source": voice_task.get("source", "voice"),
+        "entrypoint": voice_task.get("entrypoint", voice_task.get("source", "voice")),
         "params": {},
         "route_policy": route_policy,
         "error": {"code": error_code, "reason": error_reason},

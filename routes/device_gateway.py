@@ -24,6 +24,7 @@ from device_gateway.sessions import registry
 from device_gateway.store import configure_task_store_from_env, task_store_health
 from device_ledger.store import configure_ledger_store_from_env, ledger_store_health
 from device_memory.store import configure_memory_store_from_env, memory_store_health
+from device_artifacts.store import artifact_store
 from device_gateway.tasks import DeviceTaskRequest, create_and_route_task
 from device_gateway.health import build_device_gateway_health
 from device_gateway.task_events import process_motion_event_core
@@ -127,7 +128,15 @@ def _validate_task_body(body: dict[str, Any]) -> tuple[str, str, str] | JSONResp
 
 async def _create_and_record_task(device_id: str, text: str, request_id: str) -> JSONResponse:
     """Create and route a device task, recording evidence."""
-    result = await create_and_route_task(DeviceTaskRequest(device_id=device_id, text=text, request_id=request_id))
+    result = await create_and_route_task(
+        DeviceTaskRequest(
+            device_id=device_id,
+            text=text,
+            request_id=request_id,
+            source="http",
+            entrypoint="http_device_tasks",
+        )
+    )
     _record_device_task_evidence(
         device_id=device_id,
         task=result.task,
@@ -195,12 +204,26 @@ async def device_task_status(task_id: str) -> JSONResponse:
             content=error_frame(ProtocolError("E_TASK_NOT_FOUND", f"Task {task_id} not found")),
         )
 
+    terminal_phase = ""
+    for event in reversed(snapshot.get("events", [])):
+        phase = event.get("phase", "")
+        if phase in {"done", "failed", "cancelled"}:
+            terminal_phase = phase
+            break
+    terminal_result = None
+    if terminal_phase:
+        terminal_artifacts = artifact_store.artifacts_for_task(task_id, "terminal_result")
+        if terminal_artifacts:
+            terminal_result = terminal_artifacts[-1].to_dict()
+
     return JSONResponse(
         {
             "task_id": task_id,
             "status": snapshot.get("status", "unknown"),
+            "terminal_phase": terminal_phase,
             "task": snapshot.get("task", {}),
             "events": snapshot.get("events", []),
+            "terminal_result": terminal_result,
         }
     )
 
