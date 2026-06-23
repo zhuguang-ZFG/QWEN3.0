@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 
 from provider_probe.browser_models import ExtractRequest, ExtractResponse, RenderRequest, RenderResponse
+import provider_probe.browser_lifecycle as _lifecycle
 from provider_probe.browser_lifecycle import (
     BROWSER_HOST,
     BROWSER_PORT,
@@ -128,9 +129,11 @@ async def render_page(
     except Exception as exc:
         if context:
             await context.close()
+        status_code = 503 if _lifecycle._browser is None else 502
+        phase = "browser_launch" if _lifecycle._browser is None else "render"
         raise HTTPException(
-            status_code=503,
-            detail=_browser_error_detail(exc, phase="browser_launch"),
+            status_code=status_code,
+            detail=_browser_error_detail(exc, phase=phase),
         ) from exc
 
 

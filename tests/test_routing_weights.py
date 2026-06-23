@@ -43,12 +43,57 @@ def test_rank_backends_by_weight():
     assert ranked[-1] == "weak"
 
 
+def test_rank_backends_with_empty_list():
+    rw = RoutingWeights()
+    assert rw.rank_backends([], "chat") == []
+
+
+def test_rank_backends_all_unknown():
+    rw = RoutingWeights()
+    ranked = rw.rank_backends(["a", "b", "c"], "chat")
+    assert len(ranked) == 3
+
+
+def test_backend_weight_success_rate():
+    from context_pipeline.routing_weights import BackendWeight
+
+    bw = BackendWeight(backend="b", scenario="s")
+    assert bw.success_rate == 0.5  # no data
+    bw.successes = 3
+    bw.failures = 1
+    assert abs(bw.success_rate - 0.75) < 0.01
+
+
+def test_backend_weight_zero_total():
+    from context_pipeline.routing_weights import BackendWeight
+
+    bw = BackendWeight(backend="b", scenario="s", successes=0, failures=0)
+    assert bw.success_rate == 0.5
+
+
+def test_different_scenarios_independent():
+    rw = RoutingWeights()
+    rw.record_success("b1", "coding")
+    rw.record_failure("b1", "chat")
+    coding_w = rw.get_weight("b1", "coding")
+    chat_w = rw.get_weight("b1", "chat")
+    assert coding_w != chat_w
+
+
 def test_get_stats():
     rw = RoutingWeights()
-    rw.record_success("b1", "chat")
-    rw.record_success("b1", "chat")
-    rw.record_failure("b1", "chat")
-    stats = rw.get_stats("b1", "chat")
+    rw.record_success("stats_be", "chat")
+    rw.record_success("stats_be", "chat")
+    rw.record_failure("stats_be", "chat")
+    stats = rw.get_stats("stats_be", "chat")
     assert stats["successes"] == 2
     assert stats["failures"] == 1
     assert abs(stats["success_rate"] - 2 / 3) < 0.01
+
+
+def test_get_stats_unknown_backend():
+    rw = RoutingWeights()
+    stats = rw.get_stats("nonexistent", "chat")
+    assert stats["successes"] == 0
+    assert stats["failures"] == 0
+    assert stats["success_rate"] == 0.5  # default for no data

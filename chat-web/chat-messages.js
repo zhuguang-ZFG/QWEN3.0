@@ -65,6 +65,7 @@ function isAllowedImageUrl(url) {
 }
 
 function formatContent(text) {
+  return text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (match, alt, url) => {
       if (!isAllowedImageUrl(url)) {

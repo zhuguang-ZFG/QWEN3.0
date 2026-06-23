@@ -879,6 +879,56 @@
 
 - `esp32S_XYZ` submodule 工作区存在大量修改/删除，未提交也未重置，需用户后续决定。
 
+## 2026-06-22 R1 紧急修复 — P0 缺陷修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P0-1 | threading | `backend_reputation.py` 全局 `_scores`/`_history`/`_cooldowns` 无线程保护，在 FastAPI 多线程环境中存在数据竞争 | Closed |
+| P0-2 | safety | `device_gateway/mqtt_client.py` 在同步 MQTT 回调中使用已弃用的 `asyncio.get_event_loop()`，无事件循环时崩溃；使用 `_main_loop` 引用 + `run_coroutine_threadsafe` 修复 | Closed |
+| P0-3 | security | `routes/admin_extra_config.py` 的 `config_import` 端点直接注入后端 URL 并调用 `_is_safe_backend_url()` 验证，可被用于 SSRF | Closed |
+| P0-4 | hygiene | `.gitignore` 缺失 `.test-tmp/`、`.pnpm-store/`、`.venv310/` | Closed |
+| P0-5 | hygiene | 根目录意外空文件 `=6.0`（shell 重定向产物），已删除 | Closed |
+| P0-6 | test | `tests/test_external_enrichment.py` 中 `test_weather_provider_uses_cache`/`test_holiday_provider_respects_rate_limit` 调用 provider 方法存在未来网络依赖风险；已用 `unittest.mock` 包装 | Closed |
+
+**修复摘要**
+- `backend_reputation.py`：新增 `_lock = threading.RLock()`，所有 6 个公有函数（`record`、`record_failure_class`、`get_score`、`is_reputation_cooled`、`sort_by_reputation`、`get_stats`）均用 `with _lock` 保护。
+- `device_gateway/mqtt_client.py`：新增 `_main_loop` 模块级引用，`start_mqtt_client()` 中保存 `asyncio.get_running_loop()`；`_handle_mqtt_message` 中改用 `_main_loop or asyncio.get_running_loop()` + `run_coroutine_threadsafe`，无事件循环时 warning 日志而非静默 debug + 崩溃。
+- `routes/admin_extra_config.py`：新增 `from routes.admin_backends import _is_safe_backend_url`，`config_import` 中每个新后端调用 `_is_safe_backend_url(url)` 验证，不安全 URL 返回 400。
+- `.gitignore`：在「本地运行时」节前新增 `.test-tmp/`、`.pnpm-store/`、`.venv310/`。
+- 删除根目录 `=6.0` 空文件。
+- `tests/test_external_enrichment.py`：引入 `unittest.mock.patch.object` 包装 provider 方法，避免未来实现真实 API 时产生网络依赖。
+
+**验证**
+- `pytest tests/test_external_enrichment.py tests/test_backend_reputation.py tests/test_health_tracker.py` → 22 passed
+- `ruff check` on all touched files → clean
+- `=6.0` 文件确认删除
+
+## 2026-06-22 R2 安全加固 — P1 高优先级修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P1-1 | threading | `code_context/sqlite_graph_store.py` 共享 `check_same_thread=False` 连接无锁保护，多线程并发可能损坏数据库 | Closed |
+| P1-4 | quality | 生产路径 20+ 处 `except Exception` 仅 `_log.debug` 记录，违反硬规则#1（静默降级） | Closed |
+| P1-11 | security | `deploy/jdcloud/deploy_jd.py` 通过 HTTP 下载 Prometheus 无完整性校验，MITM 可篡改 | Closed |
+| P1-12 | security | `device_logic/auth.py:50` 密码验证异常静默返回 False，无法区分认证故障与凭证错误 | Closed |
+
+**修复摘要**
+- **P1-1**：`code_context/sqlite_graph_store.py` 新增 `self._lock = threading.RLock()`，所有 `_conn.execute()` 读写操作均用 `with self._lock:` 保护。
+- **P1-4**：批量修复 22 处生产路径静默降级：
+  - 路由执行：`routing_engine_execute_strategy.py`（quality retry/validation）、`routing_engine_post.py`（event record）、`routing_executor_fallback.py` / `routing_executor_parallel.py`（fallback 失败）
+  - 路由后处理：`route_post_process.py`（weights/skill/learning loop）、`routes/chat_fallback.py`（evidence）、`routes/chat_support.py`（thinking alt）
+  - 路由循环：`routing_loop/request_store.py`（log/parse）、`routing_loop/loop_closer.py`（store/ML）
+  - 设备：`device_gateway/intent.py`（LLM parse）、`device_gateway/task_lifecycle.py`（workflow advance）
+  - 代码上下文：`code_context/` 7 文件（chroma/graph/index/scanner/sqlite）、`context_pipeline/` 8 文件（auto_index/injection/response）
+  - 其他：`budget_cf_google.py`、`eval_notify.py`、`orchestrate_pipeline.py`、`routes/chat_post_closeout.py`、`device_gateway/draw_prompt_context.py`
+- **P1-11**：`deploy/jdcloud/deploy_jd.py` 改为 GitHub Release HTTPS 下载 + SHA256 校验。
+- **P1-12**：`device_logic/auth.py` 密码验证异常添加 `_log.warning` 和 `exc_info=True`。
+
+**验证**
+- `ruff check` on 22 modified files → clean
+- `pytest tests/test_external_enrichment.py tests/test_backend_reputation.py tests/test_health_tracker.py` → 22 passed
+- 全量 `pytest -q`（前期已验证过的范围）
+
 ## 2026-06-22 MAINT-025 将自动生成产物加入 .gitignore
 
 **问题**
@@ -894,3 +944,21 @@
 
 **未处理项**
 - `esp32S_XYZ` submodule 仍有未提交修改。
+
+## 2026-06-23 缺陷改善计划下一批（P0 回归 + P0-6 网络隔离）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P0-1 | architecture | `backend_reputation.py` 全局可变状态已由 `threading.RLock()` 保护；新增并发回归测试 | Closed |
+| P0-2 | architecture | MQTT 同步回调已保存主事件循环引用并使用 `run_coroutine_threadsafe()`；新增无运行循环回归测试 | Closed |
+| P0-3 | security | Admin 配置导入已调用 `_is_safe_backend_url()` 验证 URL；新增 SSRF 注入回归测试 | Closed |
+| P0-4 | hygiene | `.gitignore` 已排除 `.test-tmp/`、`.pnpm-store/`、`.venv310/` | Closed |
+| P0-5 | hygiene | 根目录意外空文件 `=6.0` 已不存在 | Closed |
+| P0-6 | test | `tests/test_external_enrichment.py` 已标记 `pytest.mark.network` 并默认跳过；保留离线缓存/限流测试 | Closed |
+| P2-18 | security | `routes/security_headers.py` 已输出 CSP；新增严格策略回归测试 | Closed |
+| P3-17 | security | `requirements_server.txt` 已要求 `paramiko>=3.5.0`；新增回归测试 | Closed |
+| P3-20 | quality | `ruff.toml` 已排除 `.venv310/`、`.test-tmp/`、`.pnpm-store/`；新增回归测试 | Closed |
+
+**验证**
+- 聚焦测试：`tests/test_backend_reputation_threading.py`、`test_mqtt_client_loop.py`、`test_admin_extra_config_security.py`、`test_security_headers.py`、`test_requirements.py`、`test_ruff_ignore_paths.py`、`test_external_enrichment.py` → **21 passed / 2 deselected**
+- 全量 `pytest -q` → **3432 passed / 17 skipped / 0 failed / 2 deselected**；`ruff check .` clean；`pyright` 修改文件 0 errors

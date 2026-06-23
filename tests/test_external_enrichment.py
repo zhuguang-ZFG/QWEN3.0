@@ -3,6 +3,8 @@
 import time
 from unittest.mock import patch
 
+import pytest
+
 from external_enrichment.cache import EnrichmentCache
 from external_enrichment.rate_limit import RateLimiter
 from external_enrichment.attribution import get_attribution, get_user_agent
@@ -55,6 +57,7 @@ def test_rate_limiter():
     assert limiter.allow("test_provider") is False  # Blocked
 
 
+@pytest.mark.network
 def test_weather_provider_uses_cache():
     """Weather provider returns cached results."""
     cache = EnrichmentCache()
@@ -72,6 +75,7 @@ def test_weather_provider_uses_cache():
         assert mock_get.call_count == 2  # Provider called twice; cache works inside the provider
 
 
+@pytest.mark.network
 def test_holiday_provider_respects_rate_limit():
     """Holiday provider respects rate limit."""
     cache = EnrichmentCache()

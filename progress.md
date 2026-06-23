@@ -7018,3 +7018,37 @@ Agent Worker path.
   - `check_code_size.py`：>300 行文件从 7 降至 **5**；>50 行函数从 75 降至 **72**。
   - 聚焦测试 45 个：全部通过。
 - **Git**：本轮待提交。
+
+## 2026-06-23 LiMa 缺陷改善计划下一批（P0 结项 + 回归测试）
+
+- **目标**：响应「继续下一批」指令，核对 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中剩余 P0/P2/P3 项实际代码状态，补充回归测试并同步文档。
+
+- **核对发现**：以下条目在代码中已实际修复，但文档仍标记为未修复：
+  - P0-1：`backend_reputation.py` 已使用 `threading.RLock()`。
+  - P0-2：`device_gateway/mqtt_client.py` 已保存 `_main_loop` 并使用 `run_coroutine_threadsafe()`。
+  - P0-3：`routes/admin_extra_config.py` 已调用 `_is_safe_backend_url()`。
+  - P0-4/5：`.gitignore` 已补全，`=6.0` 已删除。
+  - P2-18：`routes/security_headers.py` 已输出 CSP。
+  - P3-17：`requirements_server.txt` 已要求 `paramiko>=3.5.0`。
+  - P3-20：`ruff.toml` 已排除本地运行时目录。
+
+- **本批改动**：
+  - 新增回归测试：
+    - `tests/test_backend_reputation_threading.py`：100 线程并发 record/query，验证无异常、冷却触发。
+    - `tests/test_mqtt_client_loop.py`：无运行循环时 motion_event 被丢弃并记录 warning；有主循环时通过 `run_coroutine_threadsafe` 转发。
+    - `tests/test_admin_extra_config_security.py`：HTTP/loopback/私有 IP 被拒绝，公网 HTTPS 被接受。
+    - `tests/test_requirements.py`：`paramiko>=3.5.0` 声明检查。
+    - `tests/test_ruff_ignore_paths.py`：ruff exclude 列表回归检查。
+    - `tests/test_security_headers.py`：补充 CSP 严格性断言。
+  - 网络测试隔离：
+    - `pytest.ini` 新增 `network` marker 与默认 `-m "not network"`，`test_external_enrichment.py` 中两个 provider 测试标记为网络测试。
+  - 文档同步：更新 `findings.md`、`progress.md`、`STATUS.md` 标记上述 P0/P2/P3 项为 Closed。
+
+- **验证**：
+  - 聚焦测试：21 passed / 2 deselected（2 个 network 测试默认跳过）
+  - 全量 `pytest -q` → **3432 passed / 17 skipped / 0 failed / 2 deselected**
+  - `ruff check .` clean
+  - `pyright` 修改文件 0 errors
+  - 新增回归测试 5x 复跑稳定
+
+- **Git**：提交并推送 `origin/main`。

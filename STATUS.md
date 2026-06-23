@@ -5,17 +5,35 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-22
+> Updated: 2026-06-23
 > Branch: `main`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
-> Tests: 全量 2402 passed / 19 skipped / 0 failed；ruff check clean；ruff format clean
+> Tests: 全量 3432 passed / 17 skipped / 0 failed；ruff check clean；ruff format clean
 > Code Size: 零 >300 行文件；>50 行函数 57（历史债务，均为 54-78 行边界值）
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
 > CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
-> 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；提示词工程 5 项高优先级安全问题已关闭（P0-1~P0-5）。
+> 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；缺陷改善计划全部 P0 项已关闭。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-23）缺陷改善计划下一批 — 全部 P0 项关闭
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`，核对剩余 P0/P2/P3 项代码实际状态，补充回归测试，隔离隐藏网络依赖，同步文档。
+- **核对结果**：P0-1/2/3/4/5、P2-18、P3-17、P3-20 在代码中已实际修复，本批补充回归测试并关闭文档条目。
+- **新增回归测试**：
+  - `tests/test_backend_reputation_threading.py`：并发 100 线程验证 `backend_reputation.py` RLock 保护。
+  - `tests/test_mqtt_client_loop.py`：MQTT 同步回调在无事件循环时安全降级、有主循环时正确转发。
+  - `tests/test_admin_extra_config_security.py`：Admin 配置导入端点 SSRF/内网 URL 注入被拒。
+  - `tests/test_requirements.py`：`paramiko>=3.5.0` 声明检查。
+  - `tests/test_ruff_ignore_paths.py`：ruff exclude 包含本地运行时目录。
+  - `tests/test_security_headers.py`：补充 CSP 严格性断言。
+- **网络测试隔离**：`pytest.ini` 新增 `network` marker 并默认跳过；`tests/test_external_enrichment.py` provider 测试标记为网络测试。
+- **验证**：
+  - 全量 `pytest -q` → **3432 passed / 17 skipped / 0 failed / 2 deselected**
+  - `ruff check .` clean
+  - `pyright` 修改文件 0 errors
+  - 新增回归测试 5x 复跑稳定
 
 ### 最近完成（2026-06-22）第七轮瘦身 — 消除全部 >300 行文件
 

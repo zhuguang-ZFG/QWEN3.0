@@ -24,6 +24,13 @@ class TestSecurityHeadersMiddleware:
         assert response.headers["X-Frame-Options"] == "DENY"
         assert "Content-Security-Policy" in response.headers
 
+    def test_csp_is_strict(self):
+        client = TestClient(app)
+        response = client.get("/")
+        csp = response.headers["Content-Security-Policy"]
+        assert "default-src 'self'" in csp
+        assert "frame-ancestors 'none'" in csp
+
     def test_hsts_on_https(self):
         client = TestClient(app)
         response = client.get("/", headers={"X-Forwarded-Proto": "https"})
