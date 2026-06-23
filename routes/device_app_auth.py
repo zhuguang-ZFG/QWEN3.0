@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Header, Request
 
 from config.env import wechat_dev_login_enabled, xiaozhi_dev_static_login_code_enabled
@@ -42,38 +44,53 @@ def _wechat_openid_from_code(code: str) -> str:
     return f"wx:{code}"
 
 
-@router.post("/auth/login")
-async def login(request: Request):
-    if not allow_device_auth("login", client_ip(request)):
-        return err(429, "Too many login attempts", 429)
-    body = await read_body(request)
-    if isinstance(body, JSONResponse):
-        return body
+def _find_or_create_wechat_account(openid: str, nickname: str | None) -> Any:
+    """Look up an active account by WeChat openid, creating one if absent."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM v2_account WHERE wechat_openid=? AND status='active'",
+            (openid,),
+        ).fetchone()
+        if row is None:
+            account_id = new_id()
+            conn.execute(
+                "INSERT INTO v2_account (id, wechat_openid, nickname) VALUES (?, ?, ?)",
+                (account_id, openid, nickname or "wechat-user"),
+            )
+            conn.commit()
+            row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
+    return row
+
+
+def _find_or_create_phone_account(phone: str, nickname: str | None) -> Any:
+    """Look up an active account by phone, creating one if absent."""
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM v2_account WHERE phone=? AND status='active'", (phone,)).fetchone()
+        if row is None:
+            account_id = new_id()
+            conn.execute(
+                "INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)",
+                (account_id, phone, nickname),
+            )
+            conn.commit()
+            row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
+    return row
+
+
+async def _login_by_wechat(body: dict) -> dict | JSONResponse:
+    """Handle WeChat-code login path."""
+    code = str_field(body, "code", "smsCode")
+    openid = _wechat_openid_from_code(code)
+    if not openid:
+        return err(503, "WeChat login is not configured", 503)
+    row = _find_or_create_wechat_account(openid, body.get("nickname"))
+    return _login_response(row)
+
+
+async def _login_by_phone(body: dict) -> dict | JSONResponse:
+    """Handle SMS-code login path."""
     phone = str_field(body, "phone", "mobile")
     code = str_field(body, "code", "smsCode")
-    if not code:
-        return err(400, "code is required", 400)
-    if not phone:
-        openid = _wechat_openid_from_code(code)
-        if not openid:
-            return err(503, "WeChat login is not configured", 503)
-        with connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM v2_account WHERE wechat_openid=? AND status='active'",
-                (openid,),
-            ).fetchone()
-            if row is None:
-                account_id = new_id()
-                conn.execute(
-                    "INSERT INTO v2_account (id, wechat_openid, nickname) VALUES (?, ?, ?)",
-                    (account_id, openid, body.get("nickname") or "wechat-user"),
-                )
-                conn.commit()
-                row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
-        data = _login_response(row)
-        if isinstance(data, JSONResponse):
-            return data
-        return data
     config_error = _static_login_code_error()
     if config_error:
         return config_error
@@ -81,17 +98,25 @@ async def login(request: Request):
         return err(400, "phone and code are required", 400)
     if not validate_login_code(code):
         return err(401, "Invalid verification code", 401)
-    with connect() as conn:
-        row = conn.execute("SELECT * FROM v2_account WHERE phone=? AND status='active'", (phone,)).fetchone()
-        if row is None:
-            account_id = new_id()
-            conn.execute(
-                "INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)",
-                (account_id, phone, body.get("nickname")),
-            )
-            conn.commit()
-            row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
-    data = _login_response(row)
+    row = _find_or_create_phone_account(phone, body.get("nickname"))
+    return _login_response(row)
+
+
+@router.post("/auth/login")
+async def login(request: Request):
+    if not allow_device_auth("login", client_ip(request)):
+        return err(429, "Too many login attempts", 429)
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    code = str_field(body, "code", "smsCode")
+    if not code:
+        return err(400, "code is required", 400)
+    phone = str_field(body, "phone", "mobile")
+    if not phone:
+        data = await _login_by_wechat(body)
+    else:
+        data = await _login_by_phone(body)
     if isinstance(data, JSONResponse):
         return data
     return data

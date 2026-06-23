@@ -95,11 +95,8 @@ async def device_gateway_events(request: Request) -> JSONResponse:
     )
 
 
-@router.post("/tasks", dependencies=[Depends(require_private_api_key)])
-async def device_gateway_tasks(request: Request) -> JSONResponse:
-    body = await read_json_object(request)
-    if isinstance(body, JSONResponse):
-        return body
+def _validate_task_body(body: dict[str, Any]) -> tuple[str, str, str] | JSONResponse:
+    """Validate device task body and return (device_id, text, request_id) or error."""
     device_id = body.get("device_id")
     text = body.get("text")
     request_id = body.get("request_id")
@@ -125,20 +122,19 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
                 )
             ),
         )
+    return device_id.strip(), text.strip(), request_id if isinstance(request_id, str) else ""
 
-    device_id = device_id.strip()
+
+async def _create_and_record_task(device_id: str, text: str, request_id: str) -> JSONResponse:
+    """Create and route a device task, recording evidence."""
     result = await create_and_route_task(
-        DeviceTaskRequest(
-            device_id=device_id,
-            text=text.strip(),
-            request_id=request_id if isinstance(request_id, str) else "",
-        )
+        DeviceTaskRequest(device_id=device_id, text=text, request_id=request_id)
     )
     _record_device_task_evidence(
         device_id=device_id,
         task=result.task,
         status=result.status,
-        request_id=request_id if isinstance(request_id, str) else "",
+        request_id=request_id,
     )
     return JSONResponse(
         {
@@ -148,6 +144,18 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
             "task": result.task,
         }
     )
+
+
+@router.post("/tasks", dependencies=[Depends(require_private_api_key)])
+async def device_gateway_tasks(request: Request) -> JSONResponse:
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
+    validated = _validate_task_body(body)
+    if isinstance(validated, JSONResponse):
+        return validated
+    device_id, text, request_id = validated
+    return await _create_and_record_task(device_id, text, request_id)
 
 
 @router.post("/ws/ticket")

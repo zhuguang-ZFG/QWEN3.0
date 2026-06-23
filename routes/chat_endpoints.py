@@ -107,9 +107,37 @@ async def _handle_vision_shortcut(
     return JSONResponse(build_response(chat_id, content, backend, duration_ms))
 
 
+def _check_rate_limit(client_ip: str, ide_source: str) -> JSONResponse | None:
+    """Return 429 response if rate limit exceeded, otherwise None."""
+    rate_limit_multiplier = 5 if ide_source else 1
+    if rate_limiter.check_rate_limit(client_ip, multiplier=rate_limit_multiplier):
+        return None
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": {
+                "message": "Rate limit exceeded. Try again later.",
+                "type": "rate_limit_error",
+            }
+        },
+    )
+
+
+def _build_chat_request(body: dict[str, Any]) -> ChatRequest | JSONResponse:
+    """Parse and validate the request body into a ChatRequest."""
+    try:
+        chat_req = ChatRequest(**body)
+    except ValidationError as exc:
+        return _invalid_chat_request(exc)
+    if body.get("thinking", False):
+        chat_req.thinking = True
+    return chat_req
+
+
 @router.post(
     "/v1/chat/completions",
     dependencies=[Depends(require_public_or_private_api_key)],
+    response_model=None,
 )
 async def chat_completions(request: Request):
     """OpenAI-compatible chat completions endpoint."""
@@ -120,17 +148,9 @@ async def chat_completions(request: Request):
     client_ip = _call("client_ip", request)
     ide_source = _call("detect_ide", raw_messages)
 
-    rate_limit_multiplier = 5 if ide_source else 1
-    if not rate_limiter.check_rate_limit(client_ip, multiplier=rate_limit_multiplier):
-        return JSONResponse(
-            status_code=429,
-            content={
-                "error": {
-                    "message": "Rate limit exceeded. Try again later.",
-                    "type": "rate_limit_error",
-                }
-            },
-        )
+    rate_limit_response = _check_rate_limit(client_ip, ide_source)
+    if rate_limit_response is not None:
+        return rate_limit_response
 
     sys_prompt_preview = extract_system_preview(raw_messages)
 
@@ -150,12 +170,9 @@ async def chat_completions(request: Request):
         _log.info("Tool call request routed through standard chat pipeline (native forwarding removed)")
         # Fall through to standard chat_req handling below
 
-    try:
-        chat_req = ChatRequest(**body)
-    except ValidationError as exc:
-        return _invalid_chat_request(exc)
-    if body.get("thinking", False):
-        chat_req.thinking = True
+    chat_req = _build_chat_request(body)
+    if isinstance(chat_req, JSONResponse):
+        return chat_req
 
     return await maybe_await(
         _dep("handle_chat")(

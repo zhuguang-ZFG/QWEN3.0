@@ -10,6 +10,19 @@
 
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-23 LiMa P2-1 函数拆分再推进（4 个生产路径函数）
+
+- **目标**：继续降低 >50 行函数数量。
+- **本批拆分**：
+  - `routes/chat_endpoints.py`：`chat_completions` 拆为 `_check_rate_limit` + `_build_chat_request`
+  - `routes/chat_stream.py`：`stream_response` 引入 `_stream_image_response` + `_stream_thinking_response`
+  - `routes/device_app_auth.py`：`login` 拆为 `_login_by_wechat` + `_login_by_phone` + `_find_or_create_*_account`
+  - `routes/device_gateway.py`：`device_gateway_tasks` 拆为 `_validate_task_body` + `_create_and_record_task`
+- **验证**：
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3522 passed, 17 skipped, 2 deselected**
+  - `scripts/check_code_size.py`：>50 行函数从 39 降至 **36**
+  - `ruff check` clean；`pyright` 0 errors（device_gateway 有 2 处历史 warning）
+
 ## 2026-06-23 LiMa 缺陷改善再推进（P3-16 Client Keys 持久化）
 
 - **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-16（Client Keys 仅内存存储，重启丢失）。

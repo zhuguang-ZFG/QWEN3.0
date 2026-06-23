@@ -104,6 +104,16 @@ async def _resolve_image_content(query: str) -> str | None:
     return f"![image]({image_url})\n\n已为您生成图片，点击查看。"
 
 
+async def _stream_image_response(chat_id: str, query: str) -> AsyncGenerator[str, None]:
+    """Yield image response chunks if the query is an image intent."""
+    image_content = await _resolve_image_content(query)
+    if not image_content:
+        return
+    yield build_stream_chunk(chat_id, image_content)
+    yield build_stream_chunk(chat_id, "", finish=True)
+    yield "data: [DONE]\n\n"
+
+
 async def _resolve_thinking_content(
     query: str,
     messages: list,
@@ -124,6 +134,27 @@ async def _resolve_thinking_content(
         use_orchestration=use_orchestration,
     )
     return _extract_answer(result)
+
+
+async def _stream_thinking_response(
+    chat_id: str,
+    query: str,
+    messages: list,
+    *,
+    sys_prompt_preview: str,
+    ide_source: str,
+    use_orchestration: bool,
+) -> AsyncGenerator[str, None]:
+    """Stream thinking route result as sentence chunks."""
+    content = await _resolve_thinking_content(
+        query,
+        messages,
+        sys_prompt_preview=sys_prompt_preview,
+        ide_source=ide_source,
+        use_orchestration=use_orchestration,
+    )
+    async for chunk in _stream_sentences(chat_id, _ensure_content(content, messages)):
+        yield chunk
 
 
 async def _resolve_authoritative_content(
@@ -218,22 +249,21 @@ async def stream_response(
     """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
     messages = messages or []
 
-    image_content = await _resolve_image_content(query)
-    if image_content:
-        yield build_stream_chunk(chat_id, image_content)
-        yield build_stream_chunk(chat_id, "", finish=True)
-        yield "data: [DONE]\n\n"
+    image_chunks = [chunk async for chunk in _stream_image_response(chat_id, query)]
+    if image_chunks:
+        for chunk in image_chunks:
+            yield chunk
         return
 
     if use_thinking:
-        content = await _resolve_thinking_content(
+        async for chunk in _stream_thinking_response(
+            chat_id,
             query,
             messages,
             sys_prompt_preview=sys_prompt_preview,
             ide_source=ide_source,
             use_orchestration=use_orchestration,
-        )
-        async for chunk in _stream_sentences(chat_id, _ensure_content(content, messages)):
+        ):
             yield chunk
         return
 
