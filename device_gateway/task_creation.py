@@ -7,10 +7,13 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from async_utils import run_coro_sync
+from device_policy import policy_engine
 
 from .device_route_memory import record_route_decision
 from .intent import resolve_voice_task
-from . import task_deps as deps
+from .model_routing import resolve_device_route_policy
+from .path_validator import validate_capability_params, validate_route_policy
+from .profiles import apply_profile_constraints, resolve_profile
 from .task_creation_builders import (
     _resolve_route_context,
     _handle_policy_error,
@@ -32,7 +35,7 @@ async def project_to_motion_task_async(
     capability = voice_task["capability"]
     resolved, route_policy = _resolve_route_context(device_id, voice_task)
 
-    validated_policy, policy_error = deps.validate_route_policy(route_policy, capability)
+    validated_policy, policy_error = validate_route_policy(route_policy, capability)
     if policy_error:
         return _handle_policy_error(device_id, voice_task, request_id, route_policy, capability, policy_error)
 
@@ -42,7 +45,7 @@ async def project_to_motion_task_async(
     task = await _create_task_from_voice_task(
         device_id, voice_task, request_id, route_policy, voice_task.get("params", {}), capability
     )
-    task = deps.apply_profile_constraints(task, resolved)
+    task = apply_profile_constraints(task, resolved)
 
     approval_required = task.get("route_policy", {}).get("approval_required", False)
     if resolved.complete and resolved.fw_compatible and not approval_required:

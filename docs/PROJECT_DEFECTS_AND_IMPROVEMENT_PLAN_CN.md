@@ -971,9 +971,13 @@ except Exception:
 
 ---
 
-### P3-15：device_gateway 目录膨胀
+### P3-15：device_gateway 目录膨胀（进行中）
 
-**修复方案**：合并过度拆分的 task 模块（如 `task_deps.py` 18 行可合并到 `task_creation.py`）。目标从 54 文件降至 40 文件以下。
+**修复方案**：合并过度拆分的 task 模块（如 `task_deps.py` 18 行已合并到 `task_creation.py`）。目标从 54 文件降至 40 文件以下。
+
+**进展**：
+- `device_gateway/task_deps.py` 已删除并合并到 `task_creation.py`；相关测试已同步更新。
+- `device_gateway/` 顶层 Python 文件从 54 降至 51。
 
 **预估工作量**：1 人天
 
@@ -1017,7 +1021,7 @@ except Exception:
 
 **修复方案**：
 - P3-20（ruff exclude）：已更新 `ruff.toml`，排除 `.venv310/`、`.test-tmp/`、`.pnpm-store/`，并删除不存在路径。
-- P3-19（合并 `task_deps.py`）：经评估，`device_gateway/task_deps.py` 作为测试 monkeypatch 入口被 5+ 测试文件依赖， intentionally 保留为 facade；记为 **保留（设计决策）**，不再合并。
+- P3-19（合并 `task_deps.py`）：`device_gateway/task_deps.py` 已合并到 `device_gateway/task_creation.py`；依赖的 5+ 测试文件已改为 patch `device_gateway.task_creation.*`；`task_deps.py` 已删除。device_gateway 文件数从 54 降至 51（继续向 <40 推进）。
 
 **预估工作量**：0.25 人天
 

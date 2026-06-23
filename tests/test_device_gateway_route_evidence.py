@@ -13,7 +13,7 @@ from device_gateway.tasks import (
     record_motion_event,
     reset_tasks_for_tests,
 )
-import device_gateway.task_deps as task_deps
+import device_gateway.task_creation as task_creation
 
 
 def setup_function():
@@ -90,7 +90,7 @@ def test_route_evidence_artifact_recorded_for_write_task():
 
 def test_route_evidence_includes_error_on_validation_failure():
     """When route_policy validation fails, the task should have an error and evidence should record it."""
-    original = task_deps.resolve_device_route_policy
+    original = task_creation.resolve_device_route_policy
 
     def bad_policy(voice_task, device_id="", **kwargs):
         return {
@@ -100,7 +100,7 @@ def test_route_evidence_includes_error_on_validation_failure():
             "artifact_required": "nope",
         }
 
-    task_deps.resolve_device_route_policy = bad_policy
+    task_creation.resolve_device_route_policy = bad_policy
     try:
         task = project_to_motion_task("dev-1", {"capability": "home", "params": {}})
         assert task.get("error") is not None
@@ -113,12 +113,12 @@ def test_route_evidence_includes_error_on_validation_failure():
         assert evidence["scenario"] == "route_policy_invalid"
         assert evidence.get("error_code") != ""
     finally:
-        task_deps.resolve_device_route_policy = original
+        task_creation.resolve_device_route_policy = original
 
 
 def test_route_evidence_scenario_on_param_validation_failure():
-    original = task_deps.validate_capability_params
-    task_deps.validate_capability_params = lambda cap, params: ({}, "E_BAD_PARAMS")
+    original = task_creation.validate_capability_params
+    task_creation.validate_capability_params = lambda cap, params: ({}, "E_BAD_PARAMS")
     try:
         task = create_task_from_transcript("dev-1", "write LiMa")
         records = artifact_store.artifacts_for_task(task["task_id"], "route_evidence")
@@ -126,7 +126,7 @@ def test_route_evidence_scenario_on_param_validation_failure():
         assert records[0].content["scenario"] == "validation_failed"
         assert records[0].content["backend"] == "deterministic"
     finally:
-        task_deps.validate_capability_params = original
+        task_creation.validate_capability_params = original
 
 
 def test_device_consumed_route_evidence_on_terminal_motion_event():

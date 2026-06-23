@@ -25,15 +25,15 @@ from .task_lifecycle import (
     requeue_pending_tasks,
     task_snapshot,
 )
-from . import task_deps
-
 # Backward-compatible monkeypatch surface (tests patch device_gateway.tasks.*)
-resolve_device_route_policy = task_deps.resolve_device_route_policy
-validate_route_policy = task_deps.validate_route_policy
-validate_capability_params = task_deps.validate_capability_params
-resolve_profile = task_deps.resolve_profile
-apply_profile_constraints = task_deps.apply_profile_constraints
-policy_engine = task_deps.policy_engine
+from .task_creation import (
+    apply_profile_constraints,
+    policy_engine,
+    resolve_device_route_policy,
+    resolve_profile,
+    validate_capability_params,
+    validate_route_policy,
+)
 
 __all__ = [
     "TERMINAL_PHASES",

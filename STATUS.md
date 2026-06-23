@@ -17,6 +17,12 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-24）缺陷改善计划 — P3-15/P3-19：合并 device_gateway/task_deps.py
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-15（device_gateway 目录膨胀）与 P3-19（`task_deps.py` 过度拆分）。
+- **实现**：将 18 行的 `device_gateway/task_deps.py` facade 合并到 `device_gateway/task_creation.py`；更新 `task_creation_builders.py`、`tasks.py` 导入；同步更新 5 个依赖测试；删除 `task_deps.py`。
+- **验证**：device_gateway / routes 聚焦测试 225 passed；`ruff check` clean；`device_gateway/` 顶层 Python 文件从 54 降至 51。
+
 ### 最近完成（2026-06-23）缺陷改善计划 — P1-2 阶段 3 收尾：deploy / smoke / provider-probe / lima_mcp_stdio / test_community_free_optin
 
 - **目标**：完成 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 3 剩余模块的环境变量集中化。

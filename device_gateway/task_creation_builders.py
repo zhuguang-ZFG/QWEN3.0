@@ -24,7 +24,7 @@ from .task_recorder import (
     record_task_created as _record_task_created,
 )
 from . import store as store_mod
-from . import task_deps as deps
+from . import task_creation as deps
 
 __all__ = [
     "_resolve_route_context",

@@ -98,10 +98,10 @@ def test_sticky_routing_not_recorded_when_profile_incomplete():
 
 def test_route_evidence_records_error_on_validation_failure():
     """Route evidence should record error when route_policy validation fails."""
-    import device_gateway.task_deps as task_deps
+    import device_gateway.task_creation as task_creation
 
     # Patch resolve_device_route_policy to return invalid policy
-    original = task_deps.resolve_device_route_policy
+    original = task_creation.resolve_device_route_policy
 
     def bad_policy(voice_task, device_id="", **kwargs):
         return {
@@ -111,7 +111,7 @@ def test_route_evidence_records_error_on_validation_failure():
             "artifact_required": "nope",
         }
 
-    task_deps.resolve_device_route_policy = bad_policy
+    task_creation.resolve_device_route_policy = bad_policy
     try:
         task = project_to_motion_task("dev-1", {"capability": "home", "params": {}})
         assert task.get("error") is not None
@@ -122,4 +122,4 @@ def test_route_evidence_records_error_on_validation_failure():
         assert evidence["route_role"] == "INVALID"
         assert evidence.get("error_code") != ""
     finally:
-        task_deps.resolve_device_route_policy = original
+        task_creation.resolve_device_route_policy = original

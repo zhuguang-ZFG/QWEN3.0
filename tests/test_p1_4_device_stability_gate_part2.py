@@ -61,14 +61,14 @@ def test_http_tasks_endpoint_preview_svg_present():
 
 def test_http_tasks_endpoint_failed_task_not_queued(monkeypatch):
     """Tasks with validation errors return status=failed without queuing."""
-    import device_gateway.task_deps as task_deps
+    import device_gateway.task_creation as task_creation
 
     c = _client()
     before = pending_count("dev-1")
 
     # Inject validation failure for any params (Q2: creation reads task_deps, not tasks facade)
     monkeypatch.setattr(
-        task_deps,
+        task_creation,
         "validate_capability_params",
         lambda cap, params: ({}, "E_BAD_PARAMS"),
     )

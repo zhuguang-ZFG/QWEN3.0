@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 LiMa P3-15 / P3-19：合并 device_gateway/task_deps.py
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-15（device_gateway 目录膨胀）与 P3-19（`task_deps.py` 过度拆分）。
+- **实现**：
+  - 将 `device_gateway/task_deps.py`（18 行 facade）合并到 `device_gateway/task_creation.py`。
+  - `device_gateway/task_creation_builders.py` 改从 `device_gateway.task_creation` 读取依赖 facade。
+  - `device_gateway/tasks.py` 的 monkeypatch 表面改从 `device_gateway.task_creation` 重新导出。
+  - 删除 `device_gateway/task_deps.py`。
+  - 更新 5 个测试文件中对 `device_gateway.task_deps` 的 patch，改为 patch `device_gateway.task_creation.*`。
+- **验证**：
+  - device_gateway 相关聚焦测试：`tests/test_device_gateway_route_evidence.py`、`tests/test_device_gateway_route_policy_retention.py`、`tests/device_gateway_profile/test_device_gateway_profile_tasks.py`、`tests/test_p1_4_device_stability_gate*.py` → 27 passed, 1 skipped
+  - 扩展 device_gateway / routes 聚焦测试：`tests/test_device_gateway*.py`、`tests/test_routes_device_gateway*.py` → 225 passed
+  - `ruff check` 修改文件：passed
+  - `device_gateway/` 顶层 Python 文件从 54 降至 51
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P3-15/P3-19 已更新；`progress.md`、`STATUS.md` 已更新
+
 ## 2026-06-23 LiMa P1-2 阶段 3 收尾：deploy / JDCloud / smoke / provider-probe / lima_mcp_stdio / test_community_free_optin
 
 - **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P1-2 阶段 3，完成剩余 deploy 脚本、VPS 检查、smoke 脚本、provider-probe、lima_mcp_stdio 以及 `tests/test_community_free_optin.py` 的环境变量集中化/测试隔离。
