@@ -322,18 +322,17 @@ def test_weather_provider_uses_cache():
 
 ## 4. P1 — 高优先级修复
 
-### P1-1：SQLite `check_same_thread=False` 无锁保护
+### P1-1：SQLite `check_same_thread=False` 无锁保护 ✅ 已修复
 
 **文件**：`code_context/sqlite_graph_store.py:29`、`device_logic/db.py:62`
 
 **问题**：使用 `sqlite3.connect(path, check_same_thread=False)` 但没有加锁保护。多线程并发写入时可能损坏数据库。
 
 **修复方案**：
-- 为每个连接添加 `threading.RLock()` 保护所有读写操作
-- 或改为每个线程独立连接 + 连接池
-- 优先修复 `device_logic/db.py`（设备认证路径）
+- `code_context/sqlite_graph_store.py` 已在 `__init__` 中创建 `self._lock = threading.RLock()`，所有 `add_relation`、`get_related`、`edge_count` 等读写操作均受 `with self._lock:` 保护。
+- `device_logic/db.py` 已迁移至 `config/sqlite_pool.pooled_sqlite_conn`，由连接池代理管理线程安全。
 
-**验证**：并发写入测试、数据库完整性检查。
+**验证**：新增 `tests/test_sqlite_graph_store_threading.py`，10 线程 × 50 次并发写入及混合读写通过，数据库完整性一致。
 
 **预估工作量**：1 人天
 
@@ -364,16 +363,17 @@ def test_weather_provider_uses_cache():
 
 ---
 
-### P1-3：`routing_engine_context.py` 延迟导入+异常吞没
+### P1-3：`routing_engine_context.py` 延迟导入+异常吞没 ✅ 已修复
 
 **文件**：`routing_engine_context.py:10-93`
 
 **问题**：`try_recall_backend()`、`inject_coding_context()`、`assess_complexity()`、`auto_compress()` 全部使用 `try/except ImportError` + `except Exception` 模式。如果 `context_pipeline` 子模块有 bug，整个路由流水线会**静默降级**。
 
 **修复方案**：
-- `ImportError` 保留（可选依赖），但日志从 `debug` 提升到 `warning`
-- `except Exception` 的日志从 `debug` 提升到 `warning`，并附带 traceback
-- 新增 `/health` 诊断端点报告各子系统状态
+- `ImportError` 保留（可选依赖），日志已从 `debug` 提升到 `warning`，并附带异常原因。
+- `except Exception` 的日志已从 `debug` 提升到 `warning`，并附带 `exc_info=True` 输出 traceback。
+
+**验证**：新增 `tests/test_routing_engine_context_warnings.py`，模拟 `code_context_injection`、`session_memory.store_promote`、`context_pipeline.complexity` 抛出异常，验证均输出 warning 日志且不阻断主流程。
 
 **预估工作量**：1 人天
 
@@ -395,33 +395,36 @@ def test_weather_provider_uses_cache():
 
 ---
 
-### P1-5：routing_executor 系列零测试覆盖
+### P1-5：routing_executor 系列零测试覆盖 ✅ 已修复
 
 **文件**：`routing_executor.py`、`routing_executor_fallback.py`、`routing_executor_parallel.py`、`routing_executor_serial.py`、`routing_executor_telemetry.py`
 
 **问题**：核心路由执行路径（串行/并行/降级/遥测）完全无测试覆盖。
 
 **修复方案**：
-1. `test_routing_executor_serial.py`：测试串行执行、成功/失败/超时
-2. `test_routing_executor_parallel.py`：测试并行执行、部分失败、全部失败
-3. `test_routing_executor_fallback.py`：测试降级链、主备切换
-4. `test_routing_executor_telemetry.py`：测试遥测记录完整性
-5. 每个文件至少 10 个用例，覆盖正常和异常路径
+1. `tests/test_routing_executor_serial.py`：串行执行、成功/失败/超时/空列表/tools
+2. `tests/test_routing_executor_parallel.py`：并行执行、部分失败、全部失败、短回答、空列表
+3. `tests/test_routing_executor_fallback.py`：降级候选选择、串行降级、并行降级、全部失败
+4. `tests/test_routing_executor.py`（新增）：`execute()`  orchestration 端到端，包括成功、fallback、exhausted、tools 时 `max_tries` 边界
+5. `tests/test_routing_executor_telemetry.py`（新增）：`extract_error_code` 各种异常、`_record_backend_attempt` telemetry 缺失/失败降级
+
+**验证**：5 个测试文件全部通过，覆盖正常与异常路径。
 
 **预估工作量**：3 人天
 
 ---
 
-### P1-6：`device_gateway/auth.py`、`safety.py` 零测试覆盖
+### P1-6：`device_gateway/auth.py`、`safety.py` 零测试覆盖 ✅ 已修复
 
 **文件**：`device_gateway/auth.py`、`device_gateway/safety.py`
 
 **问题**：认证和安全核心模块无测试。
 
 **修复方案**：
-1. `test_device_gateway_auth.py`：token 验证、设备认证、令牌过期、无效令牌
-2. `test_device_gateway_safety.py`：安全策略、路径验证、能力限制
-3. 每个文件至少 15 个用例
+1. `tests/test_device_gateway_auth.py`：token 解析（逗号/分号/换行分隔）、有效/无效 token、未知设备、空 token、默认数字人 fallback、`token_configured`
+2. `tests/test_device_gateway_safety.py`：`safe_point` 边界与异常、`validate_run_path_params` 各种有效/无效输入、常量断言
+
+**验证**：两个测试文件均已存在且全部通过，用例数 ≥15。
 
 **预估工作量**：2 人天
 
@@ -606,17 +609,17 @@ except Exception as exc:
 
 ---
 
-### P2-11：误导性测试命名
+### P2-11：误导性测试命名 ✅ 已修复
 
-**文件**：`tests/test_routing_engine_integration.py`
+**文件**：`tests/test_routing_engine_integration.py` → `tests/test_route_result_dataclass.py`
 
 **问题**：名为"路由引擎集成测试"，实际只测试 `RouteResult` dataclass 构造和字段访问。
 
 **修复方案**：
-- 重命名为 `test_route_result_dataclass.py`，或
-- 补充真正的集成测试（调用 `route()` 函数验证端到端行为）
+- 已重命名为 `tests/test_route_result_dataclass.py`，文件内 docstring/类名同步更新为 "RouteResult dataclass construction"。
+- 保留并精简了 `RouteResult` / `PickResult` 字段构造断言，补充 `PickResult` 必填字段测试。
 
-**预估工作量**：0.5 人天
+**验证**：`tests/test_route_result_dataclass.py` 全部通过。
 
 ---
 

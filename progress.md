@@ -7052,3 +7052,32 @@ Agent Worker path.
   - 新增回归测试 5x 复跑稳定
 
 - **Git**：提交并推送 `origin/main`。
+
+## 2026-06-23 LiMa 缺陷改善计划再下一批（P1 测试补齐 + P2-11 命名修正）
+
+- **目标**：响应「继续下一步」指令，继续关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中已实际修复但缺少测试佐证的 P1/P2 项。
+
+- **核对发现**：
+  - P1-1：`code_context/sqlite_graph_store.py` 已使用 `threading.RLock()`，但无并发回归测试。
+  - P1-3：`routing_engine_context.py` 已将异常日志提升为 `warning` 并带 traceback，但无日志回归测试。
+  - P1-5：`routing_executor` 系列已有 `serial`/`parallel`/`fallback` 三份测试，但缺少 `routing_executor.py::execute()` 端到端和 `routing_executor_telemetry.py` 测试。
+  - P1-6：`device_gateway/auth.py`、`safety.py` 已有测试覆盖。
+  - P2-11：`tests/test_routing_engine_integration.py` 实际只测试 `RouteResult` dataclass，命名误导。
+
+- **本批改动**：
+  - 新增回归测试：
+    - `tests/test_routing_executor.py`：`execute()` orchestration 成功/fallback/exhausted/tools max_tries 边界。
+    - `tests/test_routing_executor_telemetry.py`：`extract_error_code` 各种异常、telemetry 缺失/失败降级日志。
+    - `tests/test_sqlite_graph_store_threading.py`：10 线程并发写入 + 混合读写，验证数据一致性。
+    - `tests/test_routing_engine_context_warnings.py`：模拟子模块异常，验证 warning 日志与流程不中断。
+  - 重命名测试文件：`tests/test_routing_engine_integration.py` → `tests/test_route_result_dataclass.py`，同步精简为 pytest 风格并补充 `PickResult` 测试。
+  - 文档同步：在 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中标记 P1-1/P1-3/P1-5/P1-6/P2-11 为 ✅ 已修复；更新 `findings.md`、`progress.md`、`STATUS.md`。
+
+- **验证**：
+  - 聚焦测试：25 passed
+  - 全量 `pytest -q` → **3448 passed / 17 skipped / 0 failed / 2 deselected**
+  - `ruff check .` clean
+  - `pyright` 修改文件 0 errors
+  - 新增测试 5x 复跑稳定
+
+- **Git**：提交并推送 `origin/main`。

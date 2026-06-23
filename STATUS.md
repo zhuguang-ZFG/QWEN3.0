@@ -17,6 +17,18 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-23）缺陷改善计划再下一批 — P1-1/3/5/6、P2-11 关闭
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`，补齐已修复 P1 项的回归测试，修正误导性测试命名。
+- **核对结果**：P1-1、P1-3、P1-5、P1-6、P2-11 在代码中已实际修复，本批补充测试/重命名并关闭文档条目。
+- **新增/完善测试**：
+  - `tests/test_routing_executor.py`：`execute()` orchestration 端到端。
+  - `tests/test_routing_executor_telemetry.py`：遥测降级与错误码提取。
+  - `tests/test_sqlite_graph_store_threading.py`：SQLite 图索引并发安全。
+  - `tests/test_routing_engine_context_warnings.py`：上下文注入异常 warning 日志。
+  - `tests/test_route_result_dataclass.py`（由 `test_routing_engine_integration.py` 重命名）：`RouteResult` / `PickResult` 字段构造。
+- **验证**：聚焦测试 25 passed；全量测试、ruff、pyright 通过。
+
 ### 最近完成（2026-06-23）缺陷改善计划下一批 — 全部 P0 项关闭
 
 - **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`，核对剩余 P0/P2/P3 项代码实际状态，补充回归测试，隔离隐藏网络依赖，同步文档。

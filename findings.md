@@ -962,3 +962,17 @@
 **验证**
 - 聚焦测试：`tests/test_backend_reputation_threading.py`、`test_mqtt_client_loop.py`、`test_admin_extra_config_security.py`、`test_security_headers.py`、`test_requirements.py`、`test_ruff_ignore_paths.py`、`test_external_enrichment.py` → **21 passed / 2 deselected**
 - 全量 `pytest -q` → **3432 passed / 17 skipped / 0 failed / 2 deselected**；`ruff check .` clean；`pyright` 修改文件 0 errors
+
+## 2026-06-23 缺陷改善计划再下一批（P1 测试补齐 + P2-11 命名修正）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P1-1 | architecture | `code_context/sqlite_graph_store.py` 已用 `threading.RLock()` 保护；新增并发回归测试 | Closed |
+| P1-3 | architecture | `routing_engine_context.py` 已将异常日志提升为 `warning` 并带 traceback；新增 warning 回归测试 | Closed |
+| P1-5 | test | `routing_executor` 系列已补齐测试：`serial`/`parallel`/`fallback`/`execute`/`telemetry` | Closed |
+| P1-6 | test | `device_gateway/auth.py` + `safety.py` 已有 `tests/test_device_gateway_auth.py`/`safety.py` 覆盖 | Closed |
+| P2-11 | test | `tests/test_routing_engine_integration.py` 已重命名为 `tests/test_route_result_dataclass.py`，去除误导性 "integration" 描述 | Closed |
+
+**验证**
+- 聚焦测试：`tests/test_routing_executor.py`、`test_routing_executor_telemetry.py`、`test_sqlite_graph_store_threading.py`、`test_routing_engine_context_warnings.py`、`test_route_result_dataclass.py` → **25 passed**
+- 全量 `pytest -q`、ruff、pyright 验证见 `progress.md` 同日条目
