@@ -54,16 +54,25 @@ class TestStrField:
     def test_fallback(self):
         assert str_field({"b": "y"}, "a", "b") == "y"
 
-    def test_default(self):
-        assert str_field({}, "a", default="z") == "z"
+    def test_missing(self):
+        assert str_field({}, "a") == ""
+
+    def test_whitespace_only_ignored(self):
+        assert str_field({"a": "  "}, "a", "b") == ""
 
 
 class TestQueryInt:
     def test_valid(self):
-        assert query_int({"limit": "10"}, "limit", 5) == 10
+        assert query_int("10", 5, 0, 100) == 10
 
-    def test_default(self):
-        assert query_int({}, "limit", 5) == 5
+    def test_default_on_missing(self):
+        assert query_int(None, 5, 0, 100) == 5
+
+    def test_clamped_to_minimum(self):
+        assert query_int("-5", 5, 0, 100) == 0
+
+    def test_clamped_to_maximum(self):
+        assert query_int("999", 5, 0, 100) == 100
 
 
 class TestExpiresAt:
@@ -76,4 +85,7 @@ class TestLoadsJson:
         assert loads_json('{"a":1}') == {"a": 1}
 
     def test_invalid(self):
-        assert loads_json("not json") is None
+        assert loads_json("not json") == {}
+
+    def test_non_string(self):
+        assert loads_json(123) == {}

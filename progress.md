@@ -30,6 +30,18 @@
   - 44 次本地提交，43 次成功推送 GitHub。
   - 新增测试文件 66 个，新增测试用例 ~615 个。
 
+- **本轮新增（2026-06-22 21:40）**：
+  - 修复 `tests/test_device_logic_http.py` 中 4 个因函数签名/返回值假设错误导致的失败用例（`str_field`、`query_int`、`loads_json`）。
+  - 新增 6 个 routes 测试文件、~53 个用例，覆盖：
+    - `routes/chat_post_closeout.py`（`_quick_score`、`_extract_observations`、`maybe_log_distill_queue`）
+    - `routes/device_app_task_payloads.py`（任务/snapshot payload、merge 去重）
+    - `routes/health_dashboard.py`（badge/row/html/render 纯函数）
+    - `routes/gemini_live_proxy.py`（`_google_api_key`）
+    - `routes/json_body.py`（`invalid_json_response`、`read_json_object`）
+    - `routes/security_headers.py`（中间件响应头、HSTS 条件）
+  - 修复 `tests/test_routes_auth_contract.py` 因 `access_guard._API_KEYS` 启动时缓存导致的 401 失败，改为直接 patch 模块缓存。
+  - 当前 routes 测试累计 218 通过，无失败。
+
 - **剩余大项**（需单独里程碑）：
   - P3-14：SQLite 连接池代理已落地（`config/sqlite_pool.py::_PooledConnectionProxy`），`session_memory/store_db.py` 的 `_get_conn()` 已迁移；`store_crud.py`/`store_admin.py`/`store_promote.py` 等下游模块通过 `_get_conn()` 间接受益。
   - P2-9：`routes/` 覆盖进行中：`admin_auth.py`、`admin_backends.py`、`security_headers.py`、`rate_limit_helper.py`、`async_compat.py`、`ws_common.py`、`json_body.py`、`admin_state.py`、`request_tracking.py`、`admin_extra_logs.py`、`admin_extra_alerts.py`、`admin_extra_config.py`、`admin_extra_devices.py`、`admin_extra_client_keys.py`、`admin_extra_insights.py`、`admin_extra_agent_tasks.py`、`chat_support.py`、`admin_extra_backend_edit.py` 已测，剩余 ~35 模块。

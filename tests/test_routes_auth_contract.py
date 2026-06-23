@@ -122,7 +122,8 @@ def test_private_get_routes_reject_missing_api_key(api_client, path):
 
 
 def test_private_routes_accept_configured_api_key(api_client, monkeypatch):
-    monkeypatch.setenv("LIMA_API_KEY", "contract-test-key")
+    # API keys are cached at module import; patch the runtime cache directly.
+    monkeypatch.setattr("access_guard._API_KEYS", {"contract-test-key"})
     headers = {"Authorization": "Bearer contract-test-key"}
 
     models = api_client.get("/v1/models", headers=headers)

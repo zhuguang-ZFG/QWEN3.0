@@ -32,15 +32,22 @@ def tracked_python_files(root: Path = ROOT) -> list[str]:
 def run_ruff(paths: list[str], root: Path = ROOT) -> subprocess.CompletedProcess[str]:
     if not paths:
         return subprocess.CompletedProcess(["ruff", "check"], 0, "no tracked Python files\n", "")
-    return subprocess.run(
-        [sys.executable, "-m", "ruff", "check", "--force-exclude", *paths],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+    # Use an argument file to avoid Windows command-line length limits.
+    argfile = root / ".ruff-check-paths"
+    argfile.write_text("\n".join(paths), encoding="utf-8")
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "ruff", "check", "--force-exclude", f"@{argfile}"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+    finally:
+        argfile.unlink(missing_ok=True)
+    return result
 
 
 def main() -> int:
