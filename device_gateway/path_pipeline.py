@@ -9,6 +9,7 @@ output pipeline:
   approximation of SVG path commands (M, L, C, Q, Z)
 - preview_svg(path, width, height) → standalone SVG string for operator
   visualization and task-record preview artifacts
+- precheck_draw_motion_path(d_string) → workspace bounds pre-check
 
 No external dependencies. All safety limits (points, bounds, feed)
 are enforced at the pipeline boundary.
@@ -18,8 +19,10 @@ from __future__ import annotations
 
 from typing import Any
 
+import html
+
 from device_gateway.path_data import MAX_PATH_POINTS
-from device_gateway.preview_svg import preview_svg
+from device_gateway.safety import DEFAULT_WORKSPACE_MM
 from device_gateway.svg_parser import svg_path_to_motion
 from device_gateway.text_renderer import text_to_path
 
@@ -68,3 +71,44 @@ def render_svg_task(d_string: str) -> dict[str, Any]:
         "preview_svg": preview_svg(path, title=f"svg path — {len(path)} pts"),
         "point_count": len(path),
     }
+
+
+def precheck_draw_motion_path(d_string: str) -> str | None:
+    """Return an error message when motion coordinates exceed workspace; else None."""
+    if not d_string or not d_string.strip():
+        return "empty svg path"
+    rendered = render_svg_task(d_string)
+    path = rendered.get("path") or []
+    if not path:
+        return "empty motion path"
+    max_x = float(DEFAULT_WORKSPACE_MM["x"])
+    max_y = float(DEFAULT_WORKSPACE_MM["y"])
+    max_z = float(DEFAULT_WORKSPACE_MM["z"])
+    for idx, pt in enumerate(path):
+        x = float(pt.get("x", 0.0))
+        y = float(pt.get("y", 0.0))
+        z = float(pt.get("z", 0.0))
+        if not (0 <= x <= max_x and 0 <= y <= max_y and 0 <= z <= max_z):
+            return f"motion point {idx} ({x},{y},{z}) outside workspace {max_x}x{max_y}mm"
+    return None
+
+
+def preview_svg(
+    path: list[dict[str, float]],
+    width: float = 200,
+    height: float = 200,
+    *,
+    title: str = "motion preview",
+) -> str:
+    """Generate a standalone SVG preview of a motion path."""
+    if not path:
+        return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}"><text x="10" y="20" font-size="12">(empty path)</text></svg>'
+
+    points_str = " ".join(f"{p['x']},{p['y']}" for p in path)
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">'
+        f'<rect width="{width}" height="{height}" fill="#fafafa" stroke="#ccc"/>'
+        f'<polyline points="{points_str}" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round"/>'
+        f'<text x="5" y="{height - 5}" font-size="10" fill="#888">{html.escape(title)} — {len(path)} pts</text>'
+        f"</svg>"
+    )

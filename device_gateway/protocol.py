@@ -4,10 +4,12 @@ This module is a compatibility facade over the split protocol package:
 - protocol_core: constants, ProtocolError, and low-level helpers
 - protocol_validators: uplink message validators
 - protocol_frames: downlink frame builders
-- protocol_lifecycle: motion task lifecycle validation
+- protocol_lifecycle (merged): motion task lifecycle validation
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 from device_gateway.protocol_core import (
     PROTOCOL_VERSION,
@@ -29,7 +31,6 @@ from device_gateway.protocol_frames import (
     run_path_dispatch_frame,
     voice_status_frame,
 )
-from device_gateway.protocol_lifecycle import validate_motion_task_lifecycle
 from device_gateway.protocol_validators import (
     validate_device_info,
     validate_heartbeat,
@@ -68,3 +69,28 @@ __all__ = [
     "validate_uplink",
     "validate_voiceprint_sample",
 ]
+
+
+def validate_motion_task_lifecycle(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Check that a motion task event sequence is well-formed.
+
+    Returns {"ok": True, "terminal_phase": "done"} or
+            {"ok": False, "reason": "...", "missing_phase": "..."}
+    """
+    if not events:
+        return {"ok": False, "reason": "no events recorded", "missing_phase": "accepted"}
+    phases = [e.get("phase", "") for e in events]
+    terminal = next((p for p in phases if p in TERMINAL_MOTION_PHASES), None)
+    if terminal is None:
+        return {"ok": False, "reason": "no terminal phase reached", "missing_phase": "done|failed"}
+    if terminal == "failed":
+        error = None
+        for e in reversed(events):
+            err = e.get("error") if isinstance(e, dict) else None
+            if isinstance(err, dict) and err.get("code"):
+                error = err
+                break
+        if error is None:
+            return {"ok": False, "reason": "failed event missing error code"}
+        return {"ok": True, "terminal_phase": "failed", "error": error}
+    return {"ok": True, "terminal_phase": terminal}

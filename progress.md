@@ -1,5 +1,20 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 LiMa P3-15 / P3-19：合并 device_gateway 过度拆分模块
+
+- **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-15（device_gateway 目录膨胀）与 P3-19（`task_deps.py` 过度拆分）。
+- **实现**：
+  - 将 `device_gateway/task_deps.py`（18 行 facade）合并到 `device_gateway/task_creation.py`；同步更新 `task_creation_builders.py`、`tasks.py` 及 5 个测试文件。
+  - 将 `device_gateway/protocol_lifecycle.py`（32 行）合并到 `device_gateway/protocol.py`。
+  - 将 `device_gateway/draw_path_bounds.py`（26 行）与 `device_gateway/preview_svg.py`（26 行）合并到 `device_gateway/path_pipeline.py`。
+  - 更新 `device_gateway/device_draw_handler.py`、`device_gateway/device_write_handler.py` 及相关测试的导入。
+- **验证**：
+  - 相关聚焦测试：path_pipeline / draw_handler / write_handler / motion_contract / protocol / device_gateway route 测试 → 125+ passed
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3545 passed, 17 skipped, 2 deselected**
+  - `ruff check .`：passed
+  - `device_gateway/` 顶层 Python 文件从 54 降至 **48**
+- **文档**：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` P3-15/P3-19 已更新；`progress.md`、`STATUS.md` 已更新
+
 ## 2026-06-24 LiMa P3-15 / P3-19：合并 device_gateway/task_deps.py
 
 - **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-15（device_gateway 目录膨胀）与 P3-19（`task_deps.py` 过度拆分）。

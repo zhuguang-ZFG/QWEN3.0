@@ -16,7 +16,7 @@ from device_gateway.draw_prompt_context import (
     record_failed_draw_prompt,
     resolve_device_type,
 )
-from device_gateway.draw_path_bounds import precheck_draw_motion_path
+from device_gateway.path_pipeline import precheck_draw_motion_path
 
 logger = logging.getLogger(__name__)
 

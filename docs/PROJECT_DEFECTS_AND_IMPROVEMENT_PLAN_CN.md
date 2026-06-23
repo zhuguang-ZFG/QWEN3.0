@@ -973,11 +973,14 @@ except Exception:
 
 ### P3-15：device_gateway 目录膨胀（进行中）
 
-**修复方案**：合并过度拆分的 task 模块（如 `task_deps.py` 18 行已合并到 `task_creation.py`）。目标从 54 文件降至 40 文件以下。
+**修复方案**：合并过度拆分的小模块。目标从 54 文件降至 40 文件以下。
 
 **进展**：
-- `device_gateway/task_deps.py` 已删除并合并到 `task_creation.py`；相关测试已同步更新。
-- `device_gateway/` 顶层 Python 文件从 54 降至 51。
+- `device_gateway/task_deps.py` → `device_gateway/task_creation.py`
+- `device_gateway/protocol_lifecycle.py` → `device_gateway/protocol.py`
+- `device_gateway/draw_path_bounds.py` + `device_gateway/preview_svg.py` → `device_gateway/path_pipeline.py`
+- 相关模块导入与测试已同步更新。
+- `device_gateway/` 顶层 Python 文件从 54 降至 **48**。
 
 **预估工作量**：1 人天
 

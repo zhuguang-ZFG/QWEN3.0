@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from device_gateway.draw_path_bounds import precheck_draw_motion_path
+from device_gateway.path_pipeline import precheck_draw_motion_path
 
 
 def test_precheck_accepts_simple_path():
@@ -17,13 +17,13 @@ def test_precheck_rejects_empty_svg():
     assert precheck_draw_motion_path("   ") == "empty svg path"
 
 
-@patch("device_gateway.draw_path_bounds.render_svg_task")
+@patch("device_gateway.path_pipeline.render_svg_task")
 def test_precheck_rejects_empty_motion(mock_render):
     mock_render.return_value = {"path": [], "point_count": 0}
     assert precheck_draw_motion_path("M0,0") == "empty motion path"
 
 
-@patch("device_gateway.draw_path_bounds.render_svg_task")
+@patch("device_gateway.path_pipeline.render_svg_task")
 def test_precheck_rejects_out_of_bounds_point(mock_render):
     mock_render.return_value = {
         "path": [{"x": 150.0, "y": 50.0, "z": 0.0}],
