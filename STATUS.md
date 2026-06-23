@@ -5,7 +5,7 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-23
+> Updated: 2026-06-24
 > Branch: `main`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
 > Tests: 全量 3545 passed / 17 skipped / 0 failed；ruff check clean；ruff format clean
@@ -30,6 +30,14 @@
   - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q` → **3545 passed / 17 skipped / 2 deselected**
   - `ruff check .` clean；`pyright` 修改文件 0 errors
   - 零新增 >300 行文件；新增/修改生产模块无新增 >50 行函数
+  - **VPS 部署**：`scripts/deploy_unified.py` core 上传 1322 个文件，远程备份并重启成功；`https://chat.donglicao.com/health` 返回 ok/lima-1.3，全部 lifecycle phase ready。
+
+### 最近完成（2026-06-24）VPS 部署与公网健康验证
+
+- 按里程碑流程完成提交/推送、VPS 部署、真实域名健康检查。
+- 提交：`5741feb1`（72 files changed）已推送到 `origin/main`；仓库无 `gitee` remote，未推送到 Gitee。
+- 部署：`scripts/deploy_unified.py` core → 1322 uploaded / 0 failed；备份 `/opt/lima-router/backups/unified-core-20260624_070034/runtime-before.tgz`；重启后 Health OK。
+- 公网：`https://chat.donglicao.com/health` → `status=ok, version=2.0, model=lima-1.3`，startup ready，无 error phase。
 
 ### 最近完成（2026-06-24）缺陷改善计划 — P3-15/P3-19：合并 device_gateway 过度拆分模块
 

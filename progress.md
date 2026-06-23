@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 LiMa P3 收尾：GitHub 提交 / VPS 部署 / 公网健康验证
+
+- **目标**：按里程碑流程完成 P3 缺陷改善项的提交、推送、VPS 部署与真实公网验证。
+- **GitHub**：
+  - commit `5741feb1`（72 files changed）已推送至 `origin/main`。
+  - 当前仓库未配置 `gitee` remote，因此仅推送到 GitHub。
+- **VPS 部署**：
+  - 执行 `scripts/deploy_unified.py`（core），上传 1322 个文件；远程备份 `/opt/lima-router/backups/unified-core-20260624_070034/runtime-before.tgz`。
+  - 服务器已重启，部署脚本返回 `Health: OK`。
+- **公网健康/冒烟验证**：
+  - `https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3"}`，startup ready，全部 lifecycle phase ok。
+- **提交后本地再验证**：
+  - 聚焦 pytest（health/device_gateway/tool_gateway 相关 125 条用例）→ **125 passed**
+  - `ruff check .` → clean
+  - `pyright` 修改文件 → **0 errors**（7 warnings 均为历史遗留，如 redis 缺失 stub、JSONResponse.get 等）
+- **文档**：`progress.md`、`STATUS.md`、`findings.md` 已更新。
+
 ## 2026-06-24 LiMa P3-15 / P3-19：合并 device_gateway 过度拆分模块
 
 - **目标**：继续推进 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-15（device_gateway 目录膨胀）与 P3-19（`task_deps.py` 过度拆分）。
