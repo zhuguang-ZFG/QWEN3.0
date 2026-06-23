@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 import urllib.error
@@ -25,17 +24,6 @@ def _load_key() -> str:
             if line.startswith("LIMA_API_KEY="):
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
     return settings.SECURITY.api_key.strip()
-
-
-def _load_redis_url() -> str:
-    env_path = ROOT / ".env"
-    if env_path.is_file():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            if line.startswith("LIMA_DEVICE_AUTH_RATE_REDIS_URL="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-            if line.startswith("LIMA_DEVICE_REDIS_URL="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    return settings.REDIS.device_redis_url.strip()
 
 
 def _get(path: str, *, bearer: str = "", timeout: float = 90) -> tuple[int, str]:
@@ -114,7 +102,7 @@ def _check_metrics(bearer: str) -> str | None:
 
 def _check_l2_rate_limit() -> str | None:
     """Public L2 login probe; returns failure key when strict mode demands a 429."""
-    limit = int(os.environ.get("LIMA_DEVICE_AUTH_LOGIN_PER_MIN", "20"))
+    limit = settings.DEVICE.auth_login_per_min
     probe = limit + 1
     got_429 = False
     last_status = 0
@@ -140,8 +128,8 @@ def _check_l2_rate_limit() -> str | None:
     if got_429:
         return None
 
-    flag = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS", "auto").strip().lower()
-    redis_url = _load_redis_url()
+    flag = settings.SECURITY.device_auth_rate_redis
+    redis_url = settings.SECURITY.device_auth_rate_redis_url or settings.REDIS.device_redis_url
     strict = flag in {"1", "true", "redis", "on", "yes"} or (flag == "auto" and bool(redis_url))
     if network_failures and not strict:
         print(f"WARN L2 public probe: skipped due to {network_failures} network failures (last={last_status})")
