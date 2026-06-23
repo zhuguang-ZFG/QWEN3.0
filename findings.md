@@ -74,6 +74,20 @@
 | NEXT-8 | ci_cd | L2 登录限流探针在 GitHub runner 偶发 POST read timeout，已增加每请求重试与网络失败降级 | Closed |
 | NEXT-9 | ci_cd | JDCloud provider probe 上传路径错误（上传到 `/opt/lima-probe/provider_probe/` 但 service 期望 `/opt/lima-probe/`），已修正；重启后健康检查改为轮询等待 | Closed |
 
+## 2026-06-22 零覆盖模块测试与 guardrails 缺陷修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| COV-1 | quality | `session_memory/redact.py` 覆盖率 0%，缺少 secret/PII 脱敏回归测试 | Closed |
+| COV-2 | quality | `context_pipeline/guardrails.py` 覆盖率 0%，且 `run_input_guardrails()` 误将未失败子检查的 `BLOCK` severity 聚合为最终严重级别 | Closed |
+| COV-3 | quality | `context_pipeline/response_validator.py` 覆盖率 0%，缺少代码语法/安全验证回归测试 | Closed |
+| COV-4 | quality | `session_memory/processor.py` 覆盖率 0%，缺少四层记忆召回与保存开关测试 | Closed |
+
+**修复摘要**
+- 修复 `context_pipeline/guardrails.py` 的 severity 聚合逻辑：仅当子检查未通过时才按其严重级别抬升 `max_severity`；清洁输入不再返回 `BLOCK`。
+- 新增 4 个测试文件、47 个用例，覆盖 secret/PII 脱敏、输入/输出 guardrails、响应代码验证、session memory processor 四层 fallback。
+- 全量测试 **3508 passed / 17 skipped / 2 deselected / 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
+
 ## 2026-06-20 工作区清理与 redis_store 瘦身
 
 | ID | Area | Finding | Status |

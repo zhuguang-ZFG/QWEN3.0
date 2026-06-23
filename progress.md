@@ -51,6 +51,14 @@
   - 修复 `scripts/run_ruff_check.py` 在 Windows 下因命令行过长而崩溃的问题，改用 `@argfile` 传递路径列表。
   - **验证结果**：`python -m pytest -q` → **2921 passed, 17 skipped, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
 
+- **本轮新增（2026-06-22 21:30）——P2-7/P2-8 零覆盖模块测试与一处 guardrails 缺陷修复**：
+  - 修复 `context_pipeline/guardrails.py` 的 `run_input_guardrails()`：当各子检查均通过时，`severity` 不应被未失败的子检查（如 `check_input_length`）的 `BLOCK` 级别抬升，仅根据失败检查设置 `max_severity`。
+  - 新增 `tests/test_session_memory_redact.py`（10 用例）：覆盖 PII/API key/secret/token/Bearer/JWT 等 redact 模式与边界（含列表、中文、IPv4/IPv6 手机号等）。
+  - 新增 `tests/test_context_pipeline_guardrails.py`（15 用例）：覆盖注入检测、长度/数量限制、格式校验、输出安全、`run_input_guardrails` 严重级别聚合。
+  - 新增 `tests/test_context_pipeline_response_validator.py`（11 用例）：覆盖空响应、无代码块、Python 语法/质量、安全规则（硬编码 secret/eval/os.system/ssl 绕过）、JS 模式、多代码块。
+  - 新增 `tests/test_session_memory_processor.py`（11 用例）：覆盖 keyword/semantic/cross-session/recent 四层 fallback、system_prompt 追加、保存开关。
+  - **验证结果**：`python -m pytest -q` → **3508 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
+
 - **剩余大项**（需单独里程碑）：
   - P3-14：SQLite 连接池代理已落地（`config/sqlite_pool.py::_PooledConnectionProxy`），`session_memory/store_db.py` 的 `_get_conn()` 已迁移；`store_crud.py`/`store_admin.py`/`store_promote.py` 等下游模块通过 `_get_conn()` 间接受益。
   - P2-9：`routes/` 覆盖进行中：`admin_auth.py`、`admin_backends.py`、`security_headers.py`、`rate_limit_helper.py`、`async_compat.py`、`ws_common.py`、`json_body.py`、`admin_state.py`、`request_tracking.py`、`admin_extra_logs.py`、`admin_extra_alerts.py`、`admin_extra_config.py`、`admin_extra_devices.py`、`admin_extra_client_keys.py`、`admin_extra_insights.py`、`admin_extra_agent_tasks.py`、`chat_support.py`、`admin_extra_backend_edit.py` 已测，剩余 ~35 模块。

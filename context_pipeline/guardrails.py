@@ -133,11 +133,12 @@ def run_input_guardrails(messages: list[dict]) -> GuardrailResult:
     all_violations = []
     max_severity = GuardrailSeverity.LOG
     for check in checks:
-        all_violations.extend(check.violations)
-        if check.severity == GuardrailSeverity.BLOCK:
-            max_severity = GuardrailSeverity.BLOCK
-        elif check.severity == GuardrailSeverity.WARN and max_severity != GuardrailSeverity.BLOCK:
-            max_severity = GuardrailSeverity.WARN
+        if not check.passed:
+            all_violations.extend(check.violations)
+            if check.severity == GuardrailSeverity.BLOCK:
+                max_severity = GuardrailSeverity.BLOCK
+            elif check.severity == GuardrailSeverity.WARN and max_severity != GuardrailSeverity.BLOCK:
+                max_severity = GuardrailSeverity.WARN
     return GuardrailResult(
         passed=len(all_violations) == 0,
         violations=all_violations,
