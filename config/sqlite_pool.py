@@ -22,7 +22,7 @@ class _ConnectionPool:
 
     def _pool(self) -> dict[str, list[sqlite3.Connection]]:
         if not hasattr(self._local, "conns"):
-            self._local.conns: dict[str, list[sqlite3.Connection]] = {}
+            self._local.conns = {}
         return self._local.conns
 
     def get(self, path: str, *, check_same_thread: bool = False) -> sqlite3.Connection:
@@ -62,6 +62,38 @@ class _ConnectionPool:
 
 
 _POOL = _ConnectionPool()
+
+
+class _PooledConnectionProxy:
+    """Transparent proxy that returns the connection to the pool on close()."""
+
+    def __init__(self, path: str, conn: sqlite3.Connection) -> None:
+        object.__setattr__(self, "_pool_path", path)
+        object.__setattr__(self, "_conn", conn)
+
+    def __getattribute__(self, name: str):
+        if name in ("close", "_pool_path", "_conn"):
+            return object.__getattribute__(self, name)
+        return getattr(object.__getattribute__(self, "_conn"), name)
+
+    def __setattr__(self, name: str, value) -> None:
+        setattr(self._conn, name, value)
+
+    def close(self) -> None:
+        pool_release(self._pool_path, self._conn)
+
+
+def get_pooled_connection(path: str, *, check_same_thread: bool = False) -> sqlite3.Connection:
+    """Return a pooled connection proxy.
+
+    Callers can use this as a drop-in replacement for sqlite3.connect(path):
+    conn.execute(...); conn.commit(); conn.close() recycles the connection.
+
+    Note: the returned object is a proxy, not an actual sqlite3.Connection.
+    Code that does isinstance(conn, sqlite3.Connection) will get False.
+    """
+    conn = _POOL.get(path, check_same_thread=check_same_thread)
+    return _PooledConnectionProxy(path, conn)  # type: ignore[return-value]
 
 
 @contextmanager

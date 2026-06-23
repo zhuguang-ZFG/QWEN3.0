@@ -58,7 +58,9 @@ def _get_conn() -> sqlite3.Connection:
     db_path = get_db_path()
     if not os.environ.get("LIMA_SESSION_DB"):
         os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    from config.sqlite_pool import get_pooled_connection
+
+    conn = get_pooled_connection(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS memories (
@@ -120,16 +122,14 @@ def _sanitize_storage_text(text: str) -> str:
 
 def memory_stats() -> dict:
     """Return aggregate statistics about the memory store."""
-    from config.sqlite_pool import pooled_sqlite_conn
-
-    db_path = get_db_path()
-    with pooled_sqlite_conn(db_path) as conn:
-        total = conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0] or 0
-        by_type = conn.execute(
-            "SELECT memory_type, COUNT(*) FROM memories GROUP BY memory_type ORDER BY COUNT(*) DESC"
-        ).fetchall()
-        with_emb = conn.execute("SELECT COUNT(*) FROM memories WHERE embedding != '[]'").fetchone()[0] or 0
-        sessions = conn.execute("SELECT COUNT(DISTINCT session_id) FROM memories").fetchone()[0] or 0
+    conn = _get_conn()
+    total = conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0] or 0
+    by_type = conn.execute(
+        "SELECT memory_type, COUNT(*) FROM memories GROUP BY memory_type ORDER BY COUNT(*) DESC"
+    ).fetchall()
+    with_emb = conn.execute("SELECT COUNT(*) FROM memories WHERE embedding != '[]'").fetchone()[0] or 0
+    sessions = conn.execute("SELECT COUNT(DISTINCT session_id) FROM memories").fetchone()[0] or 0
+    conn.close()
     return {
         "total": total,
         "with_embeddings": with_emb,
