@@ -15,6 +15,10 @@ class TestPooledSqliteConn:
     def test_commits_on_success(self):
         path = ".test-tmp/pool_commit.db"
         os.makedirs(".test-tmp", exist_ok=True)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
         with pooled_sqlite_conn(path) as conn:
             conn.execute("CREATE TABLE t (id INTEGER)")
             conn.execute("INSERT INTO t VALUES (42)")
@@ -37,6 +41,10 @@ class TestPooledSqliteConn:
     def test_pool_reuses_connections(self):
         path = ".test-tmp/pool_reuse.db"
         os.makedirs(".test-tmp", exist_ok=True)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
         conn1 = sqlite_connect_pooled(path)
         conn1.execute("CREATE TABLE IF NOT EXISTS t (id INTEGER)")
         pool_release(path, conn1)
@@ -48,6 +56,10 @@ class TestPooledSqliteConn:
     def test_pool_clear_closes_connections(self):
         path = ".test-tmp/pool_clear.db"
         os.makedirs(".test-tmp", exist_ok=True)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
         conn = sqlite_connect_pooled(path)
         pool_release(path, conn)
         pool_clear()
