@@ -28,14 +28,15 @@ from session_memory.outcome_ledger.record import (
     recent_evidence,
 )
 from session_memory.outcome_ledger.sanitize import _json_loads_safe
-from session_memory.outcome_queries import (
-    mark_applied,
-    mark_learned,
-    mark_rejected,
-    query,
-    query_events,
-    stats,
-)
+
+
+def __getattr__(name: str):
+    if name in {"mark_applied", "mark_learned", "mark_rejected", "query", "query_events", "stats"}:
+        from session_memory import outcome_queries
+
+        return getattr(outcome_queries, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "ALLOWED_LOOPS",

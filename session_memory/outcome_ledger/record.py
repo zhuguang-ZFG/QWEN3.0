@@ -11,7 +11,6 @@ from typing import Any
 from session_memory.outcome_ledger.config import _ENABLED, ALLOWED_LOOPS
 from session_memory.outcome_ledger.db import _get_conn, _make_id
 from session_memory.outcome_ledger.sanitize import _clean_list, _clean_text, _clean_value
-from session_memory.outcome_queries import query_events
 
 _log = logging.getLogger(__name__)
 
@@ -218,4 +217,6 @@ def record_evidence_safe(**kwargs: Any) -> dict[str, Any] | None:
 
 def recent_evidence(*, limit: int = 20) -> list[dict[str, Any]]:
     """Return recent evidence rows from the unified store."""
+    from session_memory.outcome_queries import query_events
+
     return query_events(limit=limit)
