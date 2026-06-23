@@ -7,13 +7,13 @@ from starlette.testclient import TestClient
 from routes.security_headers import SecurityHeadersMiddleware
 
 
-app = Starlette()
-app.add_middleware(SecurityHeadersMiddleware)
-
-
-@app.route("/")
 def homepage(_):
     return PlainTextResponse("ok")
+
+
+app = Starlette()
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_route("/", homepage)
 
 
 class TestSecurityHeadersMiddleware:
