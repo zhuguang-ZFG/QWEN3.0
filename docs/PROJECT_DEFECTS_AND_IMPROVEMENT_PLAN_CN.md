@@ -72,8 +72,8 @@
 | P1-6 | 测试 | `device_gateway/auth.py`、`safety.py` 零测试覆盖 | `device_gateway/auth.py`, `safety.py` | 认证/安全核心无测试 |
 | P1-7 | 测试 | 17 处模块级 `os.environ` 赋值不清理 | 10 个测试文件 | 并行测试冲突 |
 | P1-8 | 代码质量 | 10 份完全相同的 `design_system.py` 副本（~5.5MB） | 10 个 agent 配置目录 | 仓库膨胀 |
-| P1-9 | 代码质量 | `context_pipeline/graph_context_expander.py` 等零生产引用 | 4+ 模块 | 死代码 |
-| P1-10 | 代码质量 | `context_pipeline/complexity.py` 与 `speculative_policy.classify_complexity` 功能重复 | 2 个模块 | 重复计算+决策不一致 |
+| P1-9 | 代码质量 | `context_pipeline/graph_context_expander.py` 等零生产引用 ✅ 已修复 | 4+ 模块 | 死代码 |
+| P1-10 | 代码质量 | `context_pipeline/complexity.py` 与 `speculative_policy.classify_complexity` 功能重复 ✅ 已修复 | 2 个模块 | 重复计算+决策不一致 |
 | P1-11 | 安全 | 部署脚本通过 HTTP 下载 Prometheus 无完整性校验 | `deploy/jdcloud/deploy_jd.py:19` | MITM 篡改风险 |
 | P1-12 | 安全 | `device_logic/auth.py:50` 认证异常静默返回 False | `device_logic/auth.py:50-51` | 掩盖认证系统故障 |
 
@@ -468,7 +468,7 @@ def test_weather_provider_uses_cache():
 
 ---
 
-### P1-9：`context_pipeline/` 死代码清理
+### P1-9：`context_pipeline/` 死代码清理 ✅ 已修复
 
 **文件**：`graph_context_expander.py`、`retrieval_trace.py`、`production_index.py`、`entity_extraction.py`
 
@@ -480,11 +480,13 @@ def test_weather_provider_uses_cache():
 3. 更新 `CODEBASE_COLD_PRUNE_PRIORITY_CN.md`
 4. 更新 `pyrightconfig.json` 和 `ruff.toml`
 
+**实际结果**：四个模块已在 `refactor(slimming): round 6` 提交（`2f8fdea5`）中删除；当前工作区确认文件不存在，无生产引用残留。无需进一步清理。
+
 **预估工作量**：0.5 人天
 
 ---
 
-### P1-10：重复的复杂度评估逻辑
+### P1-10：重复的复杂度评估逻辑 ✅ 已修复
 
 **文件**：`context_pipeline/complexity.py` vs `speculative_policy.py:110`
 
@@ -495,6 +497,12 @@ def test_weather_provider_uses_cache():
 2. `context_pipeline/complexity.py` 改为 re-export 或删除
 3. `routing_engine_context.py` 中的 `assess_complexity` 调用改为使用统一接口
 4. 确保 `assess_code_complexity`（语义代码检索）保留独立职责
+
+**实际结果**：
+- 将统一评分逻辑迁移到 `speculative_policy.score_request`，`classify_complexity` 直接复用该分数。
+- `context_pipeline/complexity.py` 改为兼容性 re-export，保留 `ComplexityAssessment`、`assess_complexity`、`dynamic_ensemble_decision` 供历史调用点使用。
+- `routing_engine_context.assess_complexity` 继续通过 `context_pipeline.complexity` 调用统一接口。
+- 全量测试 `3513 passed, 17 skipped`；`ruff` / `pyright` clean。
 
 **预估工作量**：1 人天
 

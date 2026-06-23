@@ -1049,3 +1049,15 @@
 **验证**
 - 聚焦测试：`tests/test_routing_executor.py`、`test_routing_executor_telemetry.py`、`test_sqlite_graph_store_threading.py`、`test_routing_engine_context_warnings.py`、`test_route_result_dataclass.py` → **25 passed**
 - 全量 `pytest -q`、ruff、pyright 验证见 `progress.md` 同日条目
+
+## 2026-06-23 缺陷改善计划再下一批（P1-8 / P1-9 / P1-10）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P1-8 | hygiene | 9 份 `design_system.py` 副本已去重：保留 `.claude/skills/ui-ux-pro-max/scripts/design_system.py` 主副本，其余 8 个 agent 目录替换为 exec stub；新增 `scripts/sync_design_system_stubs.py` | Closed |
+| P1-9 | hygiene | `context_pipeline/graph_context_expander.py`、`retrieval_trace.py`、`production_index.py`、`entity_extraction.py` 已在早期瘦身轮次删除；当前无生产引用残留 | Closed |
+| P1-10 | quality | 请求复杂度评分统一为 `speculative_policy.score_request`；`context_pipeline/complexity.py` 改为兼容性 re-export；`routing_engine_context.assess_complexity` 沿用统一接口 | Closed |
+
+**验证**
+- 聚焦测试：`tests/test_complexity.py`、`tests/test_routing_engine_context_warnings.py` → **10 passed**
+- 全量 `pytest -q`、ruff、pyright 验证见 `progress.md` 同日条目

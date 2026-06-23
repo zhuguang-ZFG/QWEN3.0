@@ -7150,3 +7150,29 @@ Agent Worker path.
   - 新增测试 5x 复跑稳定
 
 - **Git**：提交并推送 `origin/main`。
+## 2026-06-23 LiMa 缺陷改善计划再下一批（P1-8 / P1-9 / P1-10）
+
+- **目标**：按顺序继续关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中的 P1 项。
+
+- **本批改动**：
+  - **P1-8 `design_system.py` 副本去重**：
+    - 实际定位到 9 份相同副本（哈希一致），保留主副本 `.claude/skills/ui-ux-pro-max/scripts/design_system.py`。
+    - 其余 8 个 agent 配置目录替换为 exec stub，保持命令行与模块导入语义。
+    - 新增 `scripts/sync_design_system_stubs.py` 用于重新生成 stub。
+  - **P1-9 `context_pipeline/` 死代码清理**：
+    - 工作区确认 `graph_context_expander.py`、`retrieval_trace.py`、`production_index.py`、`entity_extraction.py` 已不存在。
+    - `git log` 显示已在 `refactor(slimming): round 6`（`2f8fdea5`）中删除；无生产引用残留。
+    - 在缺陷文档中标记为 ✅ 已修复。
+  - **P1-10 重复复杂度评估逻辑统一**：
+    - 将核心评分逻辑迁移到 `speculative_policy.score_request`，`classify_complexity` 直接复用。
+    - `context_pipeline/complexity.py` 改为兼容性 re-export，保留 `ComplexityAssessment`、`assess_complexity`、`dynamic_ensemble_decision`。
+    - `routing_engine_context.assess_complexity` 继续通过统一接口调用。
+  - 文档同步：`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`、`findings.md`。
+
+- **验证**：
+  - 聚焦测试：`tests/test_complexity.py` + `tests/test_routing_engine_context_warnings.py` → **10 passed**
+  - 全量 `.venv310/Scripts/python -m pytest -q` → **3513 passed / 17 skipped / 0 failed / 2 deselected**
+  - `ruff check .` clean
+  - `npx pyright` 修改文件 0 errors
+
+- **Git**：提交并推送 `origin/main`。

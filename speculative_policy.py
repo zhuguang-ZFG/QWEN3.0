@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import random
 
-from context_pipeline.complexity import assess_complexity
-
 AFFINITY = {
     "simple_fast": [
         "longcat_lite",
@@ -50,7 +48,6 @@ AFFINITY = {
         "nvidia_qwen_coder",
     ],
 }
-
 
 _CODE_SIGNALS = [
     "代码",
@@ -103,18 +100,97 @@ _CODE_SIGNALS = [
     "解码",
 ]
 
+_CODE_INDICATORS = ["```", "def ", "class ", "function ", "import ", "const "]
+_FILE_EXTENSIONS = [".py", ".js", ".ts", ".go", ".rs", ".java", ".cpp"]
+_COMPLEX_KEYWORDS = [
+    "refactor",
+    "architecture",
+    "migrate",
+    "redesign",
+    "concurrent",
+    "distributed",
+    "optimize",
+    "performance",
+]
+
 
 def _has_code_signals(query: str) -> bool:
     """Check if query contains code-related keywords."""
     return any(kw in query for kw in _CODE_SIGNALS)
 
 
+def _extract_user_text(messages: list[dict]) -> str:
+    """Extract all user text from messages."""
+    parts = []
+    for msg in messages:
+        if msg.get("role") == "user":
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                parts.append(content)
+            elif isinstance(content, list):
+                for part in content:
+                    if isinstance(part, dict) and part.get("type") == "text":
+                        parts.append(part.get("text", ""))
+    return " ".join(parts)
+
+
+def score_request(messages: list[dict], ide: str = "") -> tuple[int, dict[str, str]]:
+    """Unified request complexity scoring.
+
+    Returns a score (1-10) and a dict of detected factor labels.
+    This is the single source of truth used by both the speculative
+    execution path and the legacy ComplexityAssessment facade.
+    """
+    user_text = _extract_user_text(messages)
+    factors: dict[str, str] = {}
+    score = 0
+
+    char_count = len(user_text)
+    if char_count >= 4000:
+        factors["long_input"] = str(char_count)
+        score += 3
+    elif char_count >= 1500:
+        factors["medium_input"] = str(char_count)
+        score += 1
+
+    code_hits = sum(1 for ind in _CODE_INDICATORS if ind in user_text)
+    if code_hits >= 3:
+        factors["heavy_code"] = str(code_hits)
+        score += 2
+    elif code_hits >= 1:
+        factors["has_code"] = str(code_hits)
+        score += 1
+
+    file_hits = sum(1 for ext in _FILE_EXTENSIONS if ext in user_text)
+    if file_hits >= 3:
+        factors["multi_file"] = str(file_hits)
+        score += 2
+    elif file_hits >= 1:
+        factors["single_file"] = str(file_hits)
+        score += 1
+
+    lowered = user_text.lower()
+    kw_hits = sum(1 for kw in _COMPLEX_KEYWORDS if kw in lowered)
+    if kw_hits >= 2:
+        factors["complex_task"] = str(kw_hits)
+        score += 2
+    elif kw_hits >= 1:
+        factors["moderate_task"] = str(kw_hits)
+        score += 1
+
+    if ide:
+        score += 1
+        factors["ide_present"] = ide
+
+    return min(score, 10), factors
+
+
 def classify_complexity(query: str, messages: list[dict]) -> str:
     """Return 'simple' | 'code' | 'complex' for routing strategy selection."""
     if _has_code_signals(query.lower()):
         return "code"
-    assessment = assess_complexity(messages)
-    if assessment.score >= 5:
+    score, _ = score_request(messages)
+    if score >= 5:
         return "complex"
     return "simple"
 
