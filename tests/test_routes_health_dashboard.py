@@ -11,6 +11,8 @@ from routes.health_dashboard import (
     _render_dashboard,
 )
 
+MOCK_NOW = 1719043200.0
+
 
 class TestHealthBadge:
     def test_known_statuses(self):
@@ -91,7 +93,7 @@ class TestRenderDashboard:
             "budget": "ok",
         }
         data = {
-            "timestamp": time.time(),
+            "timestamp": MOCK_NOW,
             "healthy": 3,
             "degraded": 0,
             "dead": 0,
@@ -110,7 +112,7 @@ class TestRenderDashboard:
         assert high_pos < mid_pos < low_pos
 
     def test_includes_timestamp(self):
-        ts = time.time()
+        ts = MOCK_NOW
         html = _render_dashboard(
             {
                 "timestamp": ts,

@@ -12,6 +12,8 @@ from external_enrichment.schemas import EnrichmentResult
 from external_enrichment.providers.open_meteo import OpenMeteoProvider
 from external_enrichment.providers.nager_date import NagerDateProvider
 
+MOCK_NOW = 1719043200.0
+
 
 def test_cache_ttl():
     """Cache respects TTL."""
@@ -21,7 +23,7 @@ def test_cache_ttl():
         data={"key": "value"},
         cached=False,
         attribution="Test",
-        timestamp=int(time.time()),
+        timestamp=int(MOCK_NOW),
     )
     cache.set("key1", result)
     assert cache.get("key1") is not None

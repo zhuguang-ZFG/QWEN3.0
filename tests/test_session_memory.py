@@ -102,8 +102,8 @@ def test_session_memory_processor_injects_memories():
     assert "routing" in ctx.system_prompt
 
 
-def test_session_memory_processor_skipped_when_disabled():
-    os.environ["LIMA_SESSION_MEMORY"] = "0"
+def test_session_memory_processor_skipped_when_disabled(monkeypatch):
+    monkeypatch.setenv("LIMA_SESSION_MEMORY", "0")
     ctx = RequestContext(
         headers={"x-forwarded-for": "10.0.0.1", "user-agent": "test"},
         messages=[{"role": "user", "content": "hello"}],
@@ -111,7 +111,6 @@ def test_session_memory_processor_skipped_when_disabled():
     )
     ctx = session_memory_processor(ctx)
     assert ctx.system_prompt == "original"
-    os.environ["LIMA_SESSION_MEMORY"] = "1"
 
 
 def test_save_request_memory():

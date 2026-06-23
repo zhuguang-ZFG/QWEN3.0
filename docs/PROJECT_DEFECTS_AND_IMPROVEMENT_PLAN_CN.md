@@ -132,7 +132,7 @@
 
 ## 3. P0 — 必须立即修复
 
-### P0-1：`backend_reputation.py` 全局可变状态无线程保护
+### P0-1：`backend_reputation.py` 全局可变状态无线程保护 ✅ 已修复
 
 **文件**：`backend_reputation.py:10-14`
 
@@ -171,7 +171,7 @@ def record(backend: str, success: bool, ...):
 
 ---
 
-### P0-2：MQTT 同步回调中使用 `asyncio.get_event_loop()`
+### P0-2：MQTT 同步回调中使用 `asyncio.get_event_loop()` ✅ 已修复
 
 **文件**：`device_gateway/mqtt_client.py:104`
 
@@ -212,7 +212,7 @@ else:
 
 ---
 
-### P0-3：Admin 配置导入端点缺少 URL 安全验证
+### P0-3：Admin 配置导入端点缺少 URL 安全验证 ✅ 已修复
 
 **文件**：`routes/admin_extra_config.py:36-46`
 
@@ -256,7 +256,7 @@ async def config_import(req: Request):
 
 ---
 
-### P0-4：`.gitignore` 缺失关键目录
+### P0-4：`.gitignore` 缺失关键目录 ✅ 已修复
 
 **文件**：`.gitignore`
 
@@ -281,7 +281,7 @@ async def config_import(req: Request):
 
 ---
 
-### P0-5：意外空文件 `=6.0` 残留在根目录
+### P0-5：意外空文件 `=6.0` 残留在根目录 ✅ 已修复
 
 **文件**：`=6.0`（根目录）
 
@@ -293,7 +293,7 @@ async def config_import(req: Request):
 
 ---
 
-### P0-6：`test_external_enrichment.py` 隐藏网络依赖
+### P0-6：`test_external_enrichment.py` 隐藏网络依赖 ✅ 已修复
 
 **文件**：`tests/test_external_enrichment.py:56-80`
 
@@ -379,19 +379,20 @@ def test_weather_provider_uses_cache():
 
 ---
 
-### P1-4：88 处 `except Exception` 仅 debug log
+### P1-4：88 处 `except Exception` 仅 debug log（LiMa 核心已修复） ✅
 
 **文件**：多个文件（详见架构分析报告）
 
 **问题**：违反 AGENTS.md 硬规则 #1（禁止静默降级）。`_log.debug` 级别在生产环境中几乎不可见。
 
-**修复方案**：
-- 逐个审查 88 处 `except Exception`
-- 生产路径中的 `debug` 日志提升为 `warning`
-- 非关键路径可保留 `debug` 但需注释说明原因
-- 批量修复可使用 `ruff` 自定义规则辅助检测
+**修复结果**：
+- LiMa 核心代码中 `except Exception` 后仅 `_log.debug` 的位置已清零；生产路径均提升为 `_log.warning(..., exc_info=True)` 或显式重抛。
+- 当前仅 `reference/ECC/`（顾问参考仓库）与 `esp32S_XYZ/`（vendored 固件代码）残留 7 处，非 LiMa 生产路径。
+- 剩余 2 处疑似静默降级（`coding_backend_scorer.py:43`、`device_gateway/profiles.py:259`）已纳入 P2-19 跟踪并修复。
 
-**预估工作量**：2 人天
+**验证**：全量 `ruff check .` / `pytest` 通过；核心路径扫描无 debug-only 异常处理。
+
+**预估工作量**：2 人天（已完成核心修复）
 
 ---
 
@@ -430,7 +431,7 @@ def test_weather_provider_uses_cache():
 
 ---
 
-### P1-7：模块级 `os.environ` 赋值不清理
+### P1-7：模块级 `os.environ` 赋值不清理 ✅ 已修复
 
 **文件**：多个测试文件（详见测试分析报告）
 
@@ -617,7 +618,7 @@ except Exception:
 
 ---
 
-### P2-10：`time.time()` 导致的 flaky 测试
+### P2-10：`time.time()` 导致的 flaky 测试 ✅ 已修复
 
 **范围**：~10 个测试文件使用 `time.time()` 构造测试数据
 
@@ -677,7 +678,7 @@ except Exception:
 
 ---
 
-### P2-14：3 套 device store 模式重复
+### P2-14：3 套 device store 模式重复 ✅ 已修复
 
 **文件**：`device_gateway/store.py`、`device_ledger/store.py`、`device_memory/store.py`
 
@@ -690,7 +691,7 @@ except Exception:
 
 ---
 
-### P2-15：`context_pipeline/` 4+ 模块仅被测试引用
+### P2-15：`context_pipeline/` 4+ 模块仅被测试引用 ✅ 已处理
 
 **范围**：`event_log.py`、`retrieval_trace.py`、`production_index.py`、`graph_context_expander.py`
 
@@ -723,7 +724,7 @@ except Exception:
 
 ---
 
-### P2-19/P2-20：静默降级违反硬规则
+### P2-19/P2-20：静默降级违反硬规则 ✅ 已修复
 
 **范围**：7+ 个文件中 `logger.debug` 级别异常处理
 
@@ -731,7 +732,7 @@ except Exception:
 
 ---
 
-### P2-21：重复的复杂度评估逻辑
+### P2-21：重复的复杂度评估逻辑 ✅ 已修复
 
 **范围**：3 套独立的复杂度评估系统
 
@@ -741,7 +742,7 @@ except Exception:
 
 ## 6. P3 — 低优先级改善
 
-### P3-1：`health_tracker.py` 导出私有全局变量
+### P3-1：`health_tracker.py` 导出私有全局变量 ✅ 已修复
 
 **修复方案**：`health_tracker.py` 不再导出 `_cooldown_states`、`_health_map` 等私有变量。调用方直接从 `health_state.py` 导入。
 
@@ -757,11 +758,17 @@ except Exception:
 
 ---
 
-### P3-3/P3-4：未使用的 Pipeline 模式
+### P3-3/P3-4：已落地的 Pipeline 模式（原描述有误） ✅
 
-**修复方案**：删除 `RequestContext` 和 `ResponsePipeline` 如果确认未使用；或完成实现如果计划使用。建议删除（YAGNI）。
+**说明**：经复核，`RequestContext` 与 `ResponsePipeline` 已在生产路径中使用，不属于未使用代码。原计划描述有误。
 
-**预估工作量**：0.25 人天
+**证据**：
+- `RequestContext` 被 `session_memory/processor.py:11`、`session_memory/prompt_recall.py:6,100` 直接导入并用于调用记忆处理器。
+- `ResponsePipeline` / `ResponseContext` 被 `context_pipeline/response_processors.py:5,108,111` 定义，并在 `route_post_process.py:73-77` 的 `post_route` 中调用。
+
+**结论**：Pipeline 模式已落地，无需删除。标记为完成并修正文档描述。
+
+**预估工作量**：0.25 人天（复核+文档修正）
 
 ---
 
@@ -808,7 +815,7 @@ except Exception:
 
 ---
 
-### P3-12：重复的 complexity 评估
+### P3-12：重复的 complexity 评估 ✅ 已修复
 
 **修复方案**：与 P1-10 合并处理。
 

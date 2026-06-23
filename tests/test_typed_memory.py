@@ -84,18 +84,17 @@ class TestMemoryDaemon:
         assert _classify_line("backend fallback chain") == "routing_lesson"
         assert _classify_line("auth token leaked") == "security_lesson"
 
-    def test_ingest_inbox_empty_dir(self):
+    def test_ingest_inbox_empty_dir(self, monkeypatch, tmp_path):
         from session_memory.daemon import _ingest_inbox
-        import tempfile
 
-        os.environ["LIMA_MEMORY_INBOX"] = tempfile.mkdtemp()
+        monkeypatch.setenv("LIMA_MEMORY_INBOX", str(tmp_path))
         assert _ingest_inbox() == 0
 
-    def test_run_once_ingests_env_inbox_and_archives_file(self, tmp_path):
+    def test_run_once_ingests_env_inbox_and_archives_file(self, monkeypatch, tmp_path):
         from session_memory.daemon import run_once
         from session_memory.store import query_by_type
 
-        os.environ["LIMA_MEMORY_INBOX"] = str(tmp_path)
+        monkeypatch.setenv("LIMA_MEMORY_INBOX", str(tmp_path))
         note = tmp_path / "ops.md"
         note.write_text("- deployed memory daemon outside request path\n", encoding="utf-8")
 
@@ -122,11 +121,11 @@ class TestMemoryDaemon:
         assert result["consolidated"] >= 1
         assert after < before
 
-    def test_daemon_status_uses_current_env_config(self, tmp_path):
+    def test_daemon_status_uses_current_env_config(self, monkeypatch, tmp_path):
         from session_memory.daemon import daemon_status
 
-        os.environ["LIMA_MEMORY_INBOX"] = str(tmp_path)
-        os.environ["LIMA_MEMORY_CONSOLIDATION_INTERVAL"] = "7"
+        monkeypatch.setenv("LIMA_MEMORY_INBOX", str(tmp_path))
+        monkeypatch.setenv("LIMA_MEMORY_CONSOLIDATION_INTERVAL", "7")
 
         status = daemon_status()
 

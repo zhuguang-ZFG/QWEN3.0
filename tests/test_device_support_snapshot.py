@@ -13,6 +13,8 @@ from device_support.snapshot import (
     _redact_sensitive,
 )
 
+MOCK_NOW = 1719043200.0
+
 
 class TestBuildRecommendation:
     def test_empty_returns_normal(self):
@@ -80,7 +82,7 @@ class TestRecentTerminalTasks:
     def test_recent_terminal_tasks_filter_by_time_window(self, monkeypatch):
         from device_ledger.events import new_event
 
-        now = time.time()
+        now = MOCK_NOW
         old_event = new_event(
             event_type="task_terminal",
             task_id="task-old",

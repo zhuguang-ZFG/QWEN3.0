@@ -18,22 +18,45 @@ pytest_plugins = ["pytest_asyncio"]
 # === Test isolation: set unique temp paths for all test env vars ===
 # Runs before any test module imports, so env vars are available at import time.
 # Each test session gets its own subdirectory to avoid parallel-run conflicts.
+# Original values are captured and restored in pytest_sessionfinish to prevent
+# cross-session leakage (P1-7).
 
 _TEST_RUN_ID = uuid.uuid4().hex[:8]
 _TEST_TMP_DIR = Path(tempfile.gettempdir()) / f"lima-test-{_TEST_RUN_ID}"
 _TEST_TMP_DIR.mkdir(parents=True, exist_ok=True)
 
-os.environ.setdefault("LIMA_BACKEND_PROFILE_DB", str(_TEST_TMP_DIR / "profiles.db"))
-os.environ.setdefault("LIMA_BACKEND_RETIREMENT_DB", str(_TEST_TMP_DIR / "retirement.db"))
-os.environ.setdefault("LIMA_SESSION_DB", str(_TEST_TMP_DIR / "session.db"))
-os.environ.setdefault("LIMA_SESSION_MEMORY", "1")
-os.environ.setdefault("LIMA_LESSONS_DIR", str(_TEST_TMP_DIR / "lessons"))
-os.environ.setdefault("LIMA_HEALTH_STATE_DB", str(_TEST_TMP_DIR / "health.db"))
-os.environ.setdefault("LIMA_WEIGHTS_PATH", str(_TEST_TMP_DIR / "weights.json"))
-os.environ.setdefault("LIMA_TOKEN_HEALTH_DB", str(_TEST_TMP_DIR / "token_health.db"))
-os.environ.setdefault("LIMA_PROFILES_DIR", str(_TEST_TMP_DIR / "profiles"))
-os.environ.setdefault("LIMA_DATA_DIR", str(_TEST_TMP_DIR / "lima-data"))
-os.environ.setdefault("LIMA_DEVICE_TASK_STORE", "memory")
+_TEST_ENV_KEYS = [
+    "LIMA_BACKEND_PROFILE_DB",
+    "LIMA_BACKEND_RETIREMENT_DB",
+    "LIMA_SESSION_DB",
+    "LIMA_SESSION_MEMORY",
+    "LIMA_LESSONS_DIR",
+    "LIMA_HEALTH_STATE_DB",
+    "LIMA_WEIGHTS_PATH",
+    "LIMA_TOKEN_HEALTH_DB",
+    "LIMA_PROFILES_DIR",
+    "LIMA_DATA_DIR",
+    "LIMA_DEVICE_TASK_STORE",
+]
+_TEST_ENV_ORIGINAL: dict[str, str | None] = {}
+
+_TEST_ENV_DEFAULTS: dict[str, str] = {
+    "LIMA_BACKEND_PROFILE_DB": str(_TEST_TMP_DIR / "profiles.db"),
+    "LIMA_BACKEND_RETIREMENT_DB": str(_TEST_TMP_DIR / "retirement.db"),
+    "LIMA_SESSION_DB": str(_TEST_TMP_DIR / "session.db"),
+    "LIMA_SESSION_MEMORY": "1",
+    "LIMA_LESSONS_DIR": str(_TEST_TMP_DIR / "lessons"),
+    "LIMA_HEALTH_STATE_DB": str(_TEST_TMP_DIR / "health.db"),
+    "LIMA_WEIGHTS_PATH": str(_TEST_TMP_DIR / "weights.json"),
+    "LIMA_TOKEN_HEALTH_DB": str(_TEST_TMP_DIR / "token_health.db"),
+    "LIMA_PROFILES_DIR": str(_TEST_TMP_DIR / "profiles"),
+    "LIMA_DATA_DIR": str(_TEST_TMP_DIR / "lima-data"),
+    "LIMA_DEVICE_TASK_STORE": "memory",
+}
+
+for _key in _TEST_ENV_KEYS:
+    _TEST_ENV_ORIGINAL[_key] = os.environ.get(_key)
+    os.environ.setdefault(_key, _TEST_ENV_DEFAULTS[_key])
 
 
 def pytest_addoption(parser):
@@ -75,8 +98,15 @@ def pytest_configure(config):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    """Clean up test temp directory after session completes."""
+    """Clean up test temp directory and restore original env vars after session completes."""
     import shutil
+
+    for _key in _TEST_ENV_KEYS:
+        _original = _TEST_ENV_ORIGINAL.get(_key)
+        if _original is None:
+            os.environ.pop(_key, None)
+        else:
+            os.environ[_key] = _original
 
     if _TEST_TMP_DIR.exists():
         shutil.rmtree(_TEST_TMP_DIR, ignore_errors=True)

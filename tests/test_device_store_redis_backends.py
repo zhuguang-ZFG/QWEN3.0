@@ -7,6 +7,8 @@ import time
 
 import pytest
 
+from freezegun import freeze_time
+
 from device_ledger.events import DuplicateLedgerEvent, new_event
 from device_ledger.redis_store import RedisLedgerStore
 from device_memory.redis_store import RedisMemoryStore
@@ -81,6 +83,7 @@ def _memory_entry(entry_id: str = "mem_redis_1", device_id: str = "dev_a") -> Me
     )
 
 
+@freeze_time("2026-06-22T12:00:00")
 def test_redis_memory_store_create_recall_and_reset():
     store = RedisMemoryStore("redis://unused", client=_FakeRedis(), key_prefix="test:memory")
     entry = _memory_entry()
@@ -92,6 +95,7 @@ def test_redis_memory_store_create_recall_and_reset():
     assert store.recall("dev_a", "favorite_color") is None
 
 
+@freeze_time("2026-06-22T12:00:00")
 def test_redis_memory_store_disable_and_export():
     store = RedisMemoryStore("redis://unused", client=_FakeRedis(), key_prefix="test:memory")
     store.create(_memory_entry())
@@ -101,6 +105,7 @@ def test_redis_memory_store_disable_and_export():
     assert "favorite_color" in exported
 
 
+@freeze_time("2026-06-22T12:00:00")
 def test_configure_memory_store_from_env_requires_redis_url(monkeypatch):
     from device_memory import store as memory_store_mod
 
@@ -110,6 +115,7 @@ def test_configure_memory_store_from_env_requires_redis_url(monkeypatch):
         memory_store_mod.configure_memory_store_from_env()
 
 
+@freeze_time("2026-06-22T12:00:00")
 def test_redis_ledger_store_append_replay_and_dedup():
     store = RedisLedgerStore("redis://unused", client=_FakeRedis(), key_prefix="test:ledger")
     created = new_event(
@@ -129,6 +135,7 @@ def test_redis_ledger_store_append_replay_and_dedup():
     assert replay["event_count"] == 1
 
 
+@freeze_time("2026-06-22T12:00:00")
 def test_configure_ledger_store_from_env_requires_redis_url(monkeypatch):
     from device_ledger import store as ledger_store_mod
 

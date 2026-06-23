@@ -4,12 +4,14 @@ import time
 
 import health_state as hs
 
+MOCK_NOW = 1719043200.0
+
 
 def test_save_and_load_health_state():
     hs.reset_all_state()
     hs._health_map["test_backend"] = "healthy"
     hs._health_map["bad_backend"] = "dead"
-    state = hs.CooldownState(consecutive_failures=3, cooldown_until=time.time() + 60)
+    state = hs.CooldownState(consecutive_failures=3, cooldown_until=MOCK_NOW + 60)
     hs._cooldown_states["bad_backend"] = state
 
     hs.save_health_state()

@@ -7,6 +7,8 @@ from chat_models import ChatRequest, Message
 from routes.chat_handler_dispatch import ChatRunContext, RoutePrefs, maybe_image_response
 from routes.chat_preflight import ChatPreflightResult
 
+MOCK_NOW = 1719043200.0
+
 
 def _ctx() -> ChatRunContext:
     preflight = ChatPreflightResult(
@@ -19,7 +21,7 @@ def _ctx() -> ChatRunContext:
     return ChatRunContext(
         chat_id="chat-img",
         query="画一只猫",
-        t0=time.time(),
+        t0=MOCK_NOW,
         fmt="openai",
         request_model=None,
         client_ip="127.0.0.1",

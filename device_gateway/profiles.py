@@ -256,7 +256,7 @@ def _profile_from_shadow(shadow: dict[str, Any], fallback_id: str) -> DeviceProf
             limits={"max_points": int(max_points) if isinstance(max_points, int) and max_points > 0 else 200},
         )
     except (ValueError, TypeError):
-        _log.debug("shadow profile build failed for device=%s", fallback_id)
+        _log.warning("shadow profile build failed for device=%s", fallback_id, exc_info=True)
         return None
 
 

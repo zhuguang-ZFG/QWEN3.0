@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import time
 
+from freezegun import freeze_time
+
 from device_memory.store import MemoryStore
 from device_memory.schemas import MemoryEntry, MemoryType
 from device_memory.recall import (
@@ -31,6 +33,7 @@ def _mk_entry(
     )
 
 
+@freeze_time("2026-06-22T12:00:00")
 class TestRecallPlannerHints:
     def test_preferences_in_hints(self):
         store = MemoryStore()
@@ -95,6 +98,7 @@ class TestRecallPlannerHints:
         assert len(hints["warnings"]) == 0
 
 
+@freeze_time("2026-06-22T12:00:00")
 class TestPreferredFeed:
     def test_valid_feed_recalled(self):
         store = MemoryStore()
@@ -131,6 +135,7 @@ class TestPreferredFeed:
         assert feed == 800.0  # feed_rate is soft preference, NOT hard safety
 
 
+@freeze_time("2026-06-22T12:00:00")
 class TestFailureWarnings:
     def test_active_warnings_returned(self):
         store = MemoryStore()

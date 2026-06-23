@@ -7,14 +7,16 @@ from fastapi.testclient import TestClient
 
 import routes.xiaozhi_v1_compat as compat
 
+MOCK_NOW = 1719043200.0
+
 
 def _token(account_id: str, role: str = "user") -> str:
     payload = {
         "sub": account_id,
         "account_id": account_id,
         "role": role,
-        "iat": int(time.time()),
-        "exp": int(time.time()) + 3600,
+        "iat": int(MOCK_NOW),
+        "exp": int(MOCK_NOW) + 3600,
     }
     return compat.jwt.encode(payload, "test-secret-minimum-32-bytes-long!!", algorithm="HS256")
 

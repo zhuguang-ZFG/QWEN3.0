@@ -40,7 +40,7 @@ def _load_scores() -> dict[str, float]:
             if name and isinstance(score, (int, float)):
                 scores[name].append(float(score))
     except (FileNotFoundError, json.JSONDecodeError, OSError) as e:
-        _log.debug("Failed to load coding scores: %s", e)
+        _log.warning("Failed to load coding scores: %s", e, exc_info=True)
         _cache = {}
         _cache_mtime = mtime
         return _cache

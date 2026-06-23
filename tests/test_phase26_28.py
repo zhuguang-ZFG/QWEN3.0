@@ -3,6 +3,8 @@ import time
 from context_pipeline.routing_weights import RoutingWeights
 from context_pipeline.skill_store import SkillStore, RoutingSkill
 
+MOCK_NOW = 1719043200.0
+
 
 # === Phase 26: GRPO Advantage Estimation ===
 
@@ -38,15 +40,13 @@ def test_grpo_failure_penalty_proportional():
     assert rw.get_weight("bad", "coding") < 1.0
 
 
-def test_grpo_clipped_delta():
+def test_grpo_clipped_delta(monkeypatch, tmp_path):
     """Delta is clipped to [-0.15, +0.15]."""
-    import os
-    import tempfile as _tf
-
-    os.environ["LIMA_WEIGHTS_PATH"] = _tf.mktemp(suffix=".json")
     from importlib import reload
     import context_pipeline.routing_weights as _rw_mod
 
+    weights_path = tmp_path / "weights.json"
+    monkeypatch.setenv("LIMA_WEIGHTS_PATH", str(weights_path))
     reload(_rw_mod)
     rw = _rw_mod.RoutingWeights()
     rw.record_success("x", "coding")
@@ -76,8 +76,8 @@ def test_skill_ema_failure_decays_weight():
         scenario="coding",
         complexity_score=3,
         latency_ms=500,
-        created_at=time.time(),
-        last_used=time.time(),
+        created_at=MOCK_NOW,
+        last_used=MOCK_NOW,
         weight=1.0,
     )
     skill.on_failure()
@@ -93,8 +93,8 @@ def test_skill_ema_expired_when_weight_low():
         scenario="coding",
         complexity_score=3,
         latency_ms=500,
-        created_at=time.time(),
-        last_used=time.time(),
+        created_at=MOCK_NOW,
+        last_used=MOCK_NOW,
         weight=0.05,
     )
     assert skill.is_expired is True
@@ -107,8 +107,8 @@ def test_skill_ema_weight_capped():
         scenario="coding",
         complexity_score=3,
         latency_ms=500,
-        created_at=time.time(),
-        last_used=time.time(),
+        created_at=MOCK_NOW,
+        last_used=MOCK_NOW,
         weight=2.9,
     )
     skill.on_success()
