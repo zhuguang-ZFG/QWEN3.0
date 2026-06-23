@@ -92,6 +92,14 @@
   - 新增 `tests/test_backend_config.py`（5 用例），覆盖 URL 生成、configured 标志、后端定义读取。
   - **验证结果**：`python -m pytest -q` → **3513 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
 
+- **本轮新增（2026-06-22 22:45）——P1-8 design_system.py 副本去重**：
+  - 定位到 9 份完全相同的 `design_system.py`，哈希一致（实际为 9 份而非文档中的 10 份）。
+  - 选定 `.claude/skills/ui-ux-pro-max/scripts/design_system.py` 为主副本。
+  - 其余 8 个 agent 目录中的 `design_system.py` 替换为 exec stub（24 行），通过 `exec(compile(...))` 动态加载主副本，保留命令行执行与模块导入语义。
+  - 新增 `scripts/sync_design_system_stubs.py`，可一键重新生成所有 stub。
+  - 验证：`.agent/skills/ui-ux-pro-max/scripts/design_system.py --help` 正常；`import design_system` 成功。
+  - **验证结果**：`python -m pytest -q` → **3513 passed, 17 skipped, 2 deselected, 0 failed**；`ruff check` 与 `pyright` 针对 `scripts/sync_design_system_stubs.py` 通过。
+
 - **剩余大项**（需单独里程碑）：
   - P1-2：环境变量集中化（剩余 backend API key 等约 200 处）。
   - P1-4：仍有大量 `except Exception` 后使用 `logger.debug` 或 `_log.debug` 的非生产/参考路径，待逐文件审查。

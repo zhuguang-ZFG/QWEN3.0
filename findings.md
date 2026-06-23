@@ -134,6 +134,19 @@
 - 新增 `tests/test_backend_config.py` 覆盖 URL 生成、`configured` 标志、后端定义消费。
 - 全量测试 **3513 passed / 17 skipped / 2 deselected / 0 failed**；`ruff check` 与 `pyright` clean。
 
+## 2026-06-22 P1-8 design_system.py 去重
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| DUP-1 | hygiene | 9 份 `design_system.py` 副本哈希一致，占 ~387KB 工作区 | Closed |
+| DUP-2 | portability | Windows 下 Git `core.symlinks=false`，无法使用符号链接去重 | Closed |
+
+**修复摘要**
+- 选定 `.claude/skills/ui-ux-pro-max/scripts/design_system.py` 为主副本。
+- 其余 8 个 agent 配置目录中的 `design_system.py` 替换为 exec stub，动态加载主副本；同时保留 `python design_system.py` 命令行执行与 `import design_system` 模块导入两种用法。
+- 新增 `scripts/sync_design_system_stubs.py`，用于后续同步/重新生成。
+- 全量测试 **3513 passed / 17 skipped / 2 deselected / 0 failed**；`ruff` / `pyright` clean。
+
 ## 2026-06-20 工作区清理与 redis_store 瘦身
 
 | ID | Area | Finding | Status |

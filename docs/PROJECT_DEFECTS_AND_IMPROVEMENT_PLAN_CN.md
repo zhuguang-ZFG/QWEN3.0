@@ -447,17 +447,22 @@ def test_weather_provider_uses_cache():
 
 ---
 
-### P1-8：10 份完全相同的 `design_system.py` 副本
+### P1-8：10 份完全相同的 `design_system.py` 副本 ✅ 已修复
 
-**文件**：10 个 agent 配置目录中的 `skills/ui-ux-pro-max/scripts/design_system.py`
+**文件**：9 个 agent 配置目录中的 `skills/ui-ux-pro-max/scripts/design_system.py`（实际定位到 9 份；`.claude/` 作为主副本）
 
-**问题**：1067 行 × 10 副本 = ~5.5MB 纯重复。
+**问题**：1067 行 × 9 副本 ≈ 387KB 纯重复；所有副本哈希一致。
 
 **修复方案**：
-1. 保留一份主副本（如 `.claude/skills/`）
-2. 其他目录通过符号链接引用（Windows 支持 `mklink /D`）
-3. 或在 `.gitignore` 中排除非主副本
-4. 新增 `.agent-shared/` 目录存放共享 skill 脚本
+- 保留主副本：`.claude/skills/ui-ux-pro-max/scripts/design_system.py`。
+- 其余 8 个目录中的 `design_system.py` 替换为自动生成的 exec stub（24 行），运行时动态加载主副本，保留 `python design_system.py` 与 `import design_system` 两种使用方式。
+- 新增 `scripts/sync_design_system_stubs.py`，用于重新生成/同步 stub。
+- 这些 agent 配置目录原本已在 `.gitignore` 中排除；本次变更减少工作区重复内容。
+
+**验证**：
+- `python .agent/skills/ui-ux-pro-max/scripts/design_system.py --help` 正常输出。
+- `import design_system` 从 stub 目录导入成功，`generate_design_system` 可用。
+- 全量测试无回归。
 
 **预估工作量**：0.5 人天
 
