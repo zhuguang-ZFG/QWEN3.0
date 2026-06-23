@@ -19,6 +19,9 @@ from device_gateway.tasks import (
 
 from device_ws_ticket import consume as consume_device_ws_ticket
 
+# Re-exported from task_lifecycle to keep consumers on a single import path.
+from device_gateway.task_lifecycle import record_motion_event_observability
+
 _log = logging.getLogger(__name__)
 
 
@@ -148,25 +151,4 @@ async def publish_task_available_safe(device_id: str, task_id: str = "") -> None
         )
 
 
-def record_motion_event_observability(message: dict[str, Any], device_id: str) -> None:
-    try:
-        from observability.correlation import record_motion_event_correlation
-
-        error_code = ""
-        error_reason = ""
-        err = message.get("error", {}) if isinstance(message.get("error"), dict) else {}
-        if not err:
-            error_code = message.get("error_code", "")
-            error_reason = message.get("error_message", "")
-        else:
-            error_code = err.get("code", "")
-            error_reason = err.get("reason", "")
-        record_motion_event_correlation(
-            task_id=message["task_id"],
-            device_id=device_id,
-            phase=message.get("phase", "unknown"),
-            error_code=error_code,
-            error_reason=error_reason,
-        )
-    except ImportError:
-        _log.warning("observability.correlation not installed")
+from device_gateway.task_lifecycle import record_motion_event_observability

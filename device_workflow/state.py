@@ -13,8 +13,12 @@ class TaskState(str, Enum):
     READY_TO_DISPATCH = "ready_to_dispatch"
     DISPATCHED = "dispatched"
     RUNNING = "running"
+    IN_PROGRESS = "in_progress"
     RECOVERING = "recovering"
     TERMINAL = "terminal"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class WorkflowEvent(str, Enum):
@@ -44,8 +48,12 @@ VALID_TRANSITIONS: dict[TaskState, frozenset[TaskState]] = {
     TaskState.SIMULATED: frozenset({TaskState.WAITING_APPROVAL, TaskState.READY_TO_DISPATCH}),
     TaskState.WAITING_APPROVAL: frozenset({TaskState.READY_TO_DISPATCH, TaskState.TERMINAL}),
     TaskState.READY_TO_DISPATCH: frozenset({TaskState.DISPATCHED}),
-    TaskState.DISPATCHED: frozenset({TaskState.RUNNING}),
+    TaskState.DISPATCHED: frozenset({TaskState.RUNNING, TaskState.IN_PROGRESS, TaskState.FAILED, TaskState.CANCELLED}),
     TaskState.RUNNING: frozenset({TaskState.TERMINAL, TaskState.RECOVERING}),
-    TaskState.RECOVERING: frozenset({TaskState.RUNNING, TaskState.TERMINAL}),
+    TaskState.IN_PROGRESS: frozenset({TaskState.COMPLETED, TaskState.FAILED, TaskState.CANCELLED, TaskState.RECOVERING}),
+    TaskState.RECOVERING: frozenset({TaskState.RUNNING, TaskState.TERMINAL, TaskState.IN_PROGRESS}),
     TaskState.TERMINAL: frozenset(),
+    TaskState.COMPLETED: frozenset(),
+    TaskState.FAILED: frozenset({TaskState.RECOVERING, TaskState.TERMINAL}),
+    TaskState.CANCELLED: frozenset(),
 }

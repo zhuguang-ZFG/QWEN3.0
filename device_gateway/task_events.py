@@ -140,11 +140,31 @@ def execute_recovery(task_id: str, device_id: str, event: dict[str, Any]) -> dic
     phase = event.get("phase", "")
     error = event.get("error", "")
     if phase != "failed" or not error:
-        return None
-    retry = should_retry(task_id)
-    action = recovery_action(error)
-    if retry and action == "retry":
+        if not error and event.get("error_code"):
+            error = {"code": event["error_code"]}
+        else:
+            return None
+    if isinstance(error, dict):
+        error_code = error.get("code", "")
+    else:
+        error_code = str(error)
+    snapshot = store_mod.task_store.task_snapshot(task_id)
+    attempt = snapshot.get("retry_count", 0) if snapshot else 0
+    task = snapshot.get("task") if snapshot else None
+    action = recovery_action(error_code)
+    can_retry = action.action == "retry" and should_retry(error_code, attempt)
+    result: dict[str, Any] = {"task_id": task_id, "explanation_zh": action.explanation_zh}
+    if can_retry:
         store_mod.task_store.reset_task_for_retry(task_id)
-        record_recovery_route_evidence(task_id, device_id, retry_attempt=1)
-        return {"action": "retry", "attempt": 1, "task_id": task_id}
-    return {"action": action, "task_id": task_id}
+        if task:
+            enqueue_pending_task(device_id, task)
+        result["action"] = "retry"
+        result["attempt"] = attempt + 1
+        result["task"] = task
+        record_recovery_route_evidence(task_id, device_id, result, task=task)
+        return result
+    # No retry allowed: fall back to the safe stop action.
+    result["action"] = "stop" if action.action == "retry" else action.action
+    result["attempt"] = 1
+    record_recovery_route_evidence(task_id, device_id, result, task=task)
+    return result

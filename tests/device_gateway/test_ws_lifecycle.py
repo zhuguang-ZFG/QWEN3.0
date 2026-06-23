@@ -131,7 +131,7 @@ def test_websocket_motion_event_acks_processing_task(monkeypatch):
         acked.append((device_id, task_id))
         return True
 
-    monkeypatch.setattr("routes.device_gateway_ws_handlers.ack_processing_task", fake_ack_processing)
+    monkeypatch.setattr("device_gateway.task_lifecycle.ack_processing_task", fake_ack_processing)
 
     client = _client()
     with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:

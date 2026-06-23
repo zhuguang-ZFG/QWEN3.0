@@ -175,6 +175,7 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
             state = self._tasks.get(task_id)
             if state is not None:
                 state["status"] = "queued"
+                state["retry_count"] = state.get("retry_count", 0) + 1
 
     def remove_pending_task(self, device_id: str, task_id: str) -> bool:
         with self._lock:

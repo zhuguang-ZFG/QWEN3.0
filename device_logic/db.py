@@ -6,14 +6,14 @@ import sqlite3
 import threading
 from pathlib import Path
 
-from config.db_config import LIMA_DB_PATH
+from config.db_config import get_lima_db_path
 
 _schema_lock = threading.Lock()
 _schema_ready_paths: set[str] = set()
 
 
 def db_path() -> Path:
-    return Path(LIMA_DB_PATH)
+    return Path(get_lima_db_path())
 
 
 def _run_migrations(conn: sqlite3.Connection) -> None:

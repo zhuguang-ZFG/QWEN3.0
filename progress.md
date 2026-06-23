@@ -42,6 +42,15 @@
   - 修复 `tests/test_routes_auth_contract.py` 因 `access_guard._API_KEYS` 启动时缓存导致的 401 失败，改为直接 patch 模块缓存。
   - 当前 routes 测试累计 218 通过，无失败。
 
+- **本轮新增（2026-06-22 22:50）——完整测试套件由 163 失败修复为全绿**：
+  - 新增 `config/db_config.get_lima_db_path()` / `get_lima_data_dir()`，修复 `device_logic/db.py`、`observability/backend_telemetry.py`、`observability/cli_telemetry.py`、`provider_inventory/weekly_diff.py` 在测试中无法响应 `monkeypatch.setenv` 的问题。
+  - `tests/conftest.py` 新增 `pytest_configure` 动态注入：`access_guard.configured_api_keys()` 与 `_anonymous_access_env_enabled()` 在测试期间读取当前 `os.environ`，解决 API key / 匿名访问集中化后测试 setenv 失效的问题。
+  - 修复设备工作流：`device_workflow/state.py` 补齐 `IN_PROGRESS`/`COMPLETED`/`FAILED`/`CANCELLED` 状态及合法转移；`device_gateway/task_events.py` 修复 `execute_recovery` 对 dict 型 error、alternate `error_code`、重试上限、`task` / `attempt` / `explanation_zh` 返回的处理；`device_gateway/store.py` 的 `reset_task_for_retry()` 现在递增 `retry_count`。
+  - 修复 motion_event 统一遗留问题：将 `record_motion_event_observability` 从 `routes/device_gateway_dispatch.py` 下放到 `device_gateway/task_lifecycle.py` 并重新导出；修正 `tests/device_gateway/test_events_http.py` 与 `test_ws_lifecycle.py` 的 monkeypatch 目标。
+  - 修复多个因集中化/拆分导致的测试断言：`tests/test_access_guard.py`、`tests/test_brand_config.py`、`tests/test_device_workflow.py`、`tests/test_code_context_index.py`、`tests/test_lima_guardian_routes.py`、`tests/test_prompt_recall.py`、`tests/test_retrieval_injection.py`。
+  - 修复 `scripts/run_ruff_check.py` 在 Windows 下因命令行过长而崩溃的问题，改用 `@argfile` 传递路径列表。
+  - **验证结果**：`python -m pytest -q` → **2921 passed, 17 skipped, 0 failed**；`ruff check` 与 `pyright` 针对修改文件全部通过。
+
 - **剩余大项**（需单独里程碑）：
   - P3-14：SQLite 连接池代理已落地（`config/sqlite_pool.py::_PooledConnectionProxy`），`session_memory/store_db.py` 的 `_get_conn()` 已迁移；`store_crud.py`/`store_admin.py`/`store_promote.py` 等下游模块通过 `_get_conn()` 间接受益。
   - P2-9：`routes/` 覆盖进行中：`admin_auth.py`、`admin_backends.py`、`security_headers.py`、`rate_limit_helper.py`、`async_compat.py`、`ws_common.py`、`json_body.py`、`admin_state.py`、`request_tracking.py`、`admin_extra_logs.py`、`admin_extra_alerts.py`、`admin_extra_config.py`、`admin_extra_devices.py`、`admin_extra_client_keys.py`、`admin_extra_insights.py`、`admin_extra_agent_tasks.py`、`chat_support.py`、`admin_extra_backend_edit.py` 已测，剩余 ~35 模块。

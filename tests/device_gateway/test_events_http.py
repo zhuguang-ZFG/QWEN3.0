@@ -74,7 +74,7 @@ def test_events_endpoint_acks_processing_task_after_motion_event(monkeypatch):
         acked.append((device_id, task_id))
         return True
 
-    monkeypatch.setattr("routes.device_gateway.ack_processing_task", fake_ack_processing)
+    monkeypatch.setattr("device_gateway.task_lifecycle.ack_processing_task", fake_ack_processing)
 
     response = _client().post(
         "/device/v1/events",

@@ -15,9 +15,9 @@ MAX_RECENT = 200
 
 
 def _data_dir() -> Path:
-    from config.db_config import LIMA_DATA_DIR
+    from config.db_config import get_lima_data_dir
 
-    return Path(LIMA_DATA_DIR) if LIMA_DATA_DIR else Path("data")
+    return Path(get_lima_data_dir()) if get_lima_data_dir() else Path("data")
 
 
 def _telemetry_path() -> Path:

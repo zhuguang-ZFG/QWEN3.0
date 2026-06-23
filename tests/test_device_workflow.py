@@ -33,7 +33,7 @@ class TestTaskStates:
         assert TaskState(state)
 
     def test_state_count(self) -> None:
-        assert len(TaskState) == 9
+        assert len(TaskState) == 13
 
 
 class TestValidTransitions:

@@ -17,6 +17,20 @@ from pathlib import Path
 LIMA_DATA_DIR: str = os.environ.get("LIMA_DATA_DIR", ".lima-data")
 LIMA_DB_PATH: str = os.environ.get("LIMA_DB_PATH", "data/lima.db")
 
+
+def get_lima_db_path() -> str:
+    """Return the current LIMA_DB_PATH, reading the environment at call time.
+
+    This allows tests to monkeypatch ``os.environ`` or ``config.db_config.LIMA_DB_PATH``
+    after module import without leaking state across test cases.
+    """
+    return os.environ.get("LIMA_DB_PATH", LIMA_DB_PATH)
+
+
+def get_lima_data_dir() -> str:
+    """Return the current LIMA_DATA_DIR, reading the environment at call time."""
+    return os.environ.get("LIMA_DATA_DIR", LIMA_DATA_DIR)
+
 # ── SQLite database paths ──────────────────────────────────────────────────────
 BACKEND_PROFILE_DB: str = os.environ.get("LIMA_BACKEND_PROFILE_DB", "") or str(Path(LIMA_DATA_DIR) / "profiles.db")
 BACKEND_RETIREMENT_DB: str = os.environ.get("LIMA_BACKEND_RETIREMENT_DB", "") or str(Path(LIMA_DATA_DIR) / "retirement.db")

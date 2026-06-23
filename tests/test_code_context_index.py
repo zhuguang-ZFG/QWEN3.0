@@ -181,10 +181,10 @@ def test_graph_index_is_abstract():
 
 
 def test_build_graph_index_factory():
-    from code_context.graph_index import build_graph_index, InMemoryGraphIndex
+    from code_context.graph_index import build_graph_index, GraphIndex
 
     g = build_graph_index()
-    assert isinstance(g, InMemoryGraphIndex)
+    assert isinstance(g, GraphIndex)
 
 
 # -- ast_adapter -----------------------------------------------------------------

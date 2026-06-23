@@ -15,6 +15,31 @@ from . import store as store_mod
 _log = logging.getLogger(__name__)
 
 
+def record_motion_event_observability(message: dict[str, Any], device_id: str) -> None:
+    """Best-effort observability hook for a processed motion event."""
+    try:
+        from observability.correlation import record_motion_event_correlation
+
+        error_code = ""
+        error_reason = ""
+        err = message.get("error", {}) if isinstance(message.get("error"), dict) else {}
+        if not err:
+            error_code = message.get("error_code", "")
+            error_reason = message.get("error_message", "")
+        else:
+            error_code = err.get("code", "")
+            error_reason = err.get("reason", "")
+        record_motion_event_correlation(
+            task_id=message["task_id"],
+            device_id=device_id,
+            phase=message.get("phase", "unknown"),
+            error_code=error_code,
+            error_reason=error_reason,
+        )
+    except ImportError:
+        _log.warning("observability.correlation not installed")
+
+
 def task_snapshot(task_id: str) -> dict[str, Any] | None:
     return store_mod.task_store.task_snapshot(task_id)
 

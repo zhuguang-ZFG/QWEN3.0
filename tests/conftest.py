@@ -45,6 +45,34 @@ def pytest_addoption(parser):
     )
 
 
+def pytest_configure(config):
+    """Make access_guard API keys react to per-test os.environ changes."""
+    import access_guard
+
+    def _dynamic_configured_api_keys() -> set[str]:
+        # Combine any explicit module-level patches with current environment so
+        # per-test monkeypatch.setenv continues to work after centralization.
+        keys: set[str] = set(access_guard._API_KEYS)
+        primary = os.environ.get("LIMA_API_KEY", "").strip()
+        if primary:
+            keys.add(primary)
+        for raw in os.environ.get("LIMA_API_KEYS", "").split(","):
+            key = raw.strip()
+            if key:
+                keys.add(key)
+        return keys
+
+    access_guard.configured_api_keys = _dynamic_configured_api_keys
+
+    def _dynamic_anonymous_env_enabled() -> bool:
+        return (
+            os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower()
+            in {"1", "true", "yes", "on"}
+        )
+
+    access_guard._anonymous_access_env_enabled = _dynamic_anonymous_env_enabled
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Clean up test temp directory after session completes."""
     import shutil

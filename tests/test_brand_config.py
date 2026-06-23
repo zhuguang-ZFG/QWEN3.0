@@ -18,9 +18,15 @@ class TestBrandDefaults:
         assert "programming" in brand_config.CAPABILITY_BULLETS_EN
 
     def test_env_override(self):
-        with patch.dict("os.environ", {"PUBLIC_MODEL_NAME": "TestModel"}):
-            import importlib
-            import brand_config
+        import importlib
+        import brand_config
 
+        original_name = brand_config.PUBLIC_MODEL_NAME
+        try:
+            with patch.dict("os.environ", {"PUBLIC_MODEL_NAME": "TestModel"}):
+                importlib.reload(brand_config)
+                assert brand_config.PUBLIC_MODEL_NAME == "TestModel"
+        finally:
+            # Restore the module-level defaults so later tests see the production brand.
             importlib.reload(brand_config)
-            assert brand_config.PUBLIC_MODEL_NAME == "TestModel"
+            assert brand_config.PUBLIC_MODEL_NAME == original_name
