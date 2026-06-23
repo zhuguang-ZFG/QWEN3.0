@@ -2,11 +2,11 @@
 
 from unittest.mock import patch
 
-from session_memory.learning_loop.ingest import feed_task_outcome
+from session_memory.learning_loop.ingest import ingest_task_outcome
 from session_memory.learning_loop.models import TaskOutcome
 
 
-class TestFeedTaskOutcome:
+class TestIngestTaskOutcome:
     def test_feeds_all_channels(self):
         outcome = TaskOutcome(task_id="t1", status="succeeded", backend="groq", scenario="chat")
         with patch("session_memory.learning_loop.ingest._feed_eval") as mock_eval, \
@@ -17,7 +17,7 @@ class TestFeedTaskOutcome:
             mock_memory.return_value = {}
             mock_prompt.return_value = {}
             mock_routing.return_value = {}
-            result = feed_task_outcome(outcome)
+            result = ingest_task_outcome(outcome)
             assert "eval" in result
             assert "memory" in result
             assert "prompt" in result
@@ -29,5 +29,5 @@ class TestFeedTaskOutcome:
 
     def test_no_backend_routing_skipped(self):
         outcome = TaskOutcome(task_id="t2", status="succeeded", scenario="chat")
-        result = feed_task_outcome(outcome)
+        result = ingest_task_outcome(outcome)
         assert "routing" in result
