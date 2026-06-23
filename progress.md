@@ -10,6 +10,31 @@
 
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-23 LiMa 缺陷改善再推进（P3-16 Client Keys 持久化）
+
+- **目标**：关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P3-16（Client Keys 仅内存存储，重启丢失）。
+- **实现**：
+  - 新增 `routes/client_keys_store.py`：SQLite 持久化表 + `load_keys` / `save_key` / `delete_key` / `set_db_path_for_tests`。
+  - 修改 `routes/admin_extra_client_keys.py`：启动时从 SQLite 加载，增删改后同步回写。
+  - 新增 `tests/test_admin_extra_client_keys.py::TestClientKeysPersistence::test_key_survives_store_reload`。
+- **验证**：
+  - 全量 `.venv310/Scripts/python.exe -m pytest --tb=short -q`：**3522 passed, 17 skipped, 2 deselected**
+  - `ruff check` / `pyright` clean。
+
+## 2026-06-23 LiMa 缺陷改善批量收尾（P0/P1-7/P2-10/P2-19 + 文档同步）
+
+- **本批关闭**：
+  - P0-1 ~ P0-6：确认已在代码中修复，在 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 标记 ✅。
+  - P1-7：`tests/conftest.py` 模块级 `os.environ.setdefault` 改为捕获原始值并在 `pytest_sessionfinish` 恢复；`tests/test_phase26_28.py`、`tests/test_session_memory.py`、`tests/test_typed_memory.py` 改用 `monkeypatch.setenv`。
+  - P2-10：`requirements_dev.txt` 增加 `freezegun`；TTL 敏感测试加 `@freeze_time("2026-06-22T12:00:00")`；其余测试数据中的 `time.time()` 替换为 `MOCK_NOW` 常量。
+  - P2-19/P2-20：`coding_backend_scorer.py:43` 与 `device_gateway/profiles.py:259` 的 `_log.debug` 提升为 `_log.warning(..., exc_info=True)`。
+  - 文档勘误：P1-4 标注为 LiMa 核心已修复；P3-3/P3-4 说明 RequestContext/ResponsePipeline 已落地、原描述有误。
+- **验证**：
+  - `.venv310/Scripts/python.exe -m pytest --tb=short -q`：3521 passed, 17 skipped
+  - 聚焦测试通过；P2-10 相关 9 个文件 69 passed, 2 deselected。
+  - `ruff check` / `pyright` / 预提交检查通过。
+- **提交**：`f1ca5173 fix: close P0 doc markers, P1-7, P2-10, P2-19 and plan sync`，已 push origin main。
+
 ## 2026-06-23 LiMa P2-1 函数拆分再推进（6 文件）
 
 - **目标**：继续关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P2-1（函数 >50 行拆分）。

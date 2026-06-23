@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from routes.admin_extra_client_keys import router as client_keys_router
 from routes import admin_auth
+from routes import client_keys_store
 
 
 async def _noop_verify():
@@ -37,3 +38,19 @@ class TestClientKeys:
         assert data["ok"] is True
         assert data["key"]["label"] == "test"
         assert "key_masked" in data["key"]
+
+
+class TestClientKeysPersistence:
+    def test_key_survives_store_reload(self, tmp_path, monkeypatch):
+        db_path = str(tmp_path / "client_keys.db")
+        client_keys_store.set_db_path_for_tests(db_path)
+        monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))
+
+        client = TestClient(app)
+        response = client.post("/api/client-keys", json={"label": "persisted"})
+        assert response.status_code == 200
+        created = response.json()["key"]
+
+        reloaded = client_keys_store.load_keys()
+        assert created["key_id"] in reloaded
+        assert reloaded[created["key_id"]]["label"] == "persisted"

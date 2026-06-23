@@ -9,16 +9,14 @@ from device_logic.activation import reset_activation_store_for_tests
 from device_logic.auth import jwt
 from device_logic.db import _schema_ready_paths, connect
 
-MOCK_NOW = 1719043200.0
-
-
 def token(account_id: str) -> str:
+    now = int(time.time())
     payload = {
         "sub": account_id,
         "account_id": account_id,
         "role": "user",
-        "iat": int(MOCK_NOW),
-        "exp": int(MOCK_NOW) + 3600,
+        "iat": now,
+        "exp": now + 3600,
     }
     return jwt.encode(payload, "test-secret-minimum-32-bytes-long!!", algorithm="HS256")
 

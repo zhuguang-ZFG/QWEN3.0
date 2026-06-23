@@ -1,8 +1,8 @@
-"""Admin API: client API key management (in-memory panel state).
+"""Admin API: client API key management.
 
-ponytail: in-memory only. Keys are lost on server restart.
-  Upgrade path: persist to SQLite (session_memory/store_db.py) or Redis
-  when multi-node admin panel is required.
+Client keys are persisted to SQLite (routes/client_keys_store.py) so they
+survive server restarts. The in-memory dict is loaded at import time and kept
+in sync with the store on mutations.
 """
 
 from __future__ import annotations
@@ -14,10 +14,11 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from routes.admin_auth import verify_admin, verify_csrf
+from routes.client_keys_store import delete_key, load_keys, save_key
 
 router = APIRouter()
 
-_CLIENT_KEYS: dict[str, dict[str, Any]] = {}
+_CLIENT_KEYS: dict[str, dict[str, Any]] = load_keys()
 
 
 @router.get("/api/client-keys", dependencies=[Depends(verify_admin)])
@@ -49,6 +50,7 @@ async def create_client_key(req: Request):
         "created_at": time.time(),
     }
     _CLIENT_KEYS[key_id] = entry
+    save_key(entry)
     return {"ok": True, "key_value": key_value, "key": entry}
 
 
@@ -61,6 +63,7 @@ async def update_client_key(key_id: str, req: Request):
     for field in ("label", "enabled", "quota_daily", "quota_monthly", "rate_limit_rpm", "allowed_urls"):
         if field in body:
             entry[field] = body[field]
+    save_key(entry)
     return {"ok": True, "key": entry}
 
 
@@ -69,6 +72,7 @@ async def delete_client_key(key_id: str):
     if key_id not in _CLIENT_KEYS:
         raise HTTPException(404, "Key not found")
     del _CLIENT_KEYS[key_id]
+    delete_key(key_id)
     return {"ok": True}
 
 
@@ -80,4 +84,5 @@ async def regenerate_client_key(key_id: str):
     key_value = f"lima-{uuid.uuid4().hex}"
     entry["key_masked"] = key_value[:8] + "..." + key_value[-4:]
     entry["regenerated_at"] = time.time()
+    save_key(entry)
     return {"ok": True, "key_value": key_value}

@@ -848,7 +848,7 @@ except Exception:
 
 ---
 
-### P3-16：Client Keys 仅内存存储
+### P3-16：Client Keys 仅内存存储 ✅ 已修复
 
 **修复方案**：持久化到 SQLite 或 Redis，重启后恢复。
 
