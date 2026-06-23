@@ -2,7 +2,7 @@
 
 > **发布日期**：2026-06-24
 > **切片 / 里程碑**：M15 AI→Motion stage 5：从用户请求到 `motion_event` 终态/阻断证据的端到端追踪
-> **Git commit**：`________`（提交后补填）
+> **Git commit**：`8aa3d98f`
 > **操作员 / Agent**：Kimi Code CLI
 > **环境**：local（Windows 开发机）+ 后续补充 VPS `47.112.162.80`
 > **关联路线图**：[`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](../PROJECT_OPTIMIZATION_ROADMAP_CN.md) 阶段 5
