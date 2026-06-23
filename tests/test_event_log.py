@@ -2,12 +2,15 @@
 
 import time
 
+import pytest
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 from context_pipeline.event_log import EventLog, EventType, Event
 
 
 class TestEvent:
     def test_age_ms_increases(self):
-        e = Event(type=EventType.REQUEST_RECEIVED, timestamp=time.time() - 1)
+        e = Event(type=EventType.REQUEST_RECEIVED, timestamp=MOCK_NOW - 1)
         assert e.age_ms >= 500
 
 
@@ -63,3 +66,7 @@ class TestEventLog:
         s = log.summary()
         assert s["total_events"] == 0
         assert s["last_event"] is None
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

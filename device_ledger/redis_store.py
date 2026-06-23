@@ -10,6 +10,7 @@ from typing import Any
 from device_ledger.events import DuplicateLedgerEvent, LedgerEvent
 from device_ledger.store import _replay_from_events
 from device_gateway.redis_store_codec import connect_redis
+from device_gateway.store_utils import DeviceStoreBase
 
 _log = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ _log = logging.getLogger(__name__)
 _DEFAULT_LEDGER_TTL = int(os.environ.get("LIMA_REDIS_LEDGER_TTL", "7776000"))  # 90 days
 
 
-class RedisLedgerStore:
+class RedisLedgerStore(DeviceStoreBase):
     backend_name = "redis"
     shared_across_processes = True
 

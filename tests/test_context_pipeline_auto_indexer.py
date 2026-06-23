@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import time
 
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 import pytest
 
 from context_pipeline.auto_indexer import AutoIndexer, get_auto_indexer, run_indexer_scan, stop_auto_indexer
@@ -12,7 +14,7 @@ from context_pipeline.auto_indexer import AutoIndexer, get_auto_indexer, run_ind
 def test_should_scan_true_until_interval_elapsed():
     indexer = AutoIndexer(scan_interval=3600)
     assert indexer.should_scan() is True
-    indexer._last_scan = time.time()
+    indexer._last_scan = MOCK_NOW
     assert indexer.should_scan() is False
 
 
@@ -51,3 +53,7 @@ def test_start_and_stop_auto_indexer(monkeypatch):
 
     start_auto_indexer(interval_sec=60)
     stop_auto_indexer()
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

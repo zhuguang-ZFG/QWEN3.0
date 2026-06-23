@@ -10,6 +10,7 @@ from typing import Any, List, Optional
 
 from device_memory.schemas import MemoryEntry, MemoryType
 from device_gateway.redis_store_codec import connect_redis
+from device_gateway.store_utils import DeviceStoreBase
 
 _log = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ _log = logging.getLogger(__name__)
 _DEFAULT_INDEX_TTL = int(os.environ.get("LIMA_REDIS_MEMORY_INDEX_TTL", "2592000"))  # 30 days
 
 
-class RedisMemoryStore:
+class RedisMemoryStore(DeviceStoreBase):
     backend_name = "redis"
     shared_across_processes = True
 

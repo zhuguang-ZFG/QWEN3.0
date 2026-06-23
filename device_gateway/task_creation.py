@@ -26,11 +26,6 @@ from .task_creation_builders import (
 )
 
 
-def _run_sync(coro):
-    """Run a coroutine synchronously. Delegates to async_utils.run_coro_sync."""
-    return run_coro_sync(coro)
-
-
 async def project_to_motion_task_async(
     device_id: str, voice_task: dict[str, Any], request_id: str | None = None
 ) -> dict[str, Any]:
@@ -58,7 +53,7 @@ async def project_to_motion_task_async(
 
 
 def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
-    return _run_sync(project_to_motion_task_async(device_id, voice_task, request_id))
+    return run_coro_sync(project_to_motion_task_async(device_id, voice_task, request_id))
 
 
 async def create_task_from_transcript_async(device_id: str, text: str, request_id: str | None = None) -> dict[str, Any]:
@@ -66,4 +61,4 @@ async def create_task_from_transcript_async(device_id: str, text: str, request_i
 
 
 def create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict[str, Any]:
-    return _run_sync(create_task_from_transcript_async(device_id, text, request_id))
+    return run_coro_sync(create_task_from_transcript_async(device_id, text, request_id))

@@ -5,6 +5,8 @@ from __future__ import annotations
 import io
 import time
 
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -15,12 +17,14 @@ from device_logic.db import connect
 
 
 def _auth_headers(account_id: str = "a-upload") -> dict[str, str]:
+    # Fixed iat/exp bracket real time so the token stays valid regardless of
+    # when the test runs.
     payload = {
         "sub": account_id,
         "account_id": account_id,
         "role": "user",
-        "iat": int(time.time()),
-        "exp": int(time.time()) + 3600,
+        "iat": 1_700_000_000,
+        "exp": 2_100_000_000,
     }
     token = jwt.encode(payload, "test-secret-minimum-32-bytes-long!!", algorithm="HS256")
     return {"Authorization": f"Bearer {token}"}
@@ -184,3 +188,7 @@ def test_upload_rate_limited_per_account(upload_client, monkeypatch):
 async def test_serve_uploaded_file_blocks_path_traversal():
     response = await serve_uploaded_file("../../server.py")
     assert response.status_code == 404
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

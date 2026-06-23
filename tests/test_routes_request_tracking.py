@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import threading
 import time
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 from unittest.mock import patch
 
 import pytest
@@ -49,7 +51,7 @@ def test_detect_ide_cursor():
 
 
 def test_elapsed_ms():
-    start = time.time() - 0.123
+    start = MOCK_NOW - 0.123
     ms = rt.elapsed_ms(start)
     assert 120 <= ms <= 130
 
@@ -92,3 +94,7 @@ def test_get_ip_location_invalid():
 def test_get_ip_location_lookup(mock_urlopen):
     mock_urlopen.return_value.read.return_value = json.dumps({"country": "China", "city": "Beijing"}).encode()
     assert rt.get_ip_location("1.2.3.4") == "China Beijing"
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

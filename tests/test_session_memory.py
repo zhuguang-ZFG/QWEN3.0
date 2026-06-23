@@ -8,8 +8,11 @@ from session_memory.store import (
     count_memories,
     clear_session,
 )
+from unittest.mock import patch
+
 from session_memory.processor import (
     _session_id_from_headers,
+    _cross_session_fallback,
     session_memory_processor,
     save_request_memory,
 )
@@ -123,3 +126,13 @@ def test_save_request_memory():
     assert after == before + 1
     memories = get_recent_memories(sid, limit=1)
     assert "embeddings" in memories[0].summary
+
+
+def test_cross_session_fallback_logs_warning_on_failure(caplog):
+    with patch("session_memory.processor.search_memories_keyword") as mock_search:
+        mock_search.side_effect = RuntimeError("db locked")
+        with caplog.at_level("WARNING", logger="session_memory.processor"):
+            result = _cross_session_fallback("routing", limit=2)
+
+    assert result == []
+    assert "cross-session memory search failed" in caplog.text

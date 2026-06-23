@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 from typing import Any, List, Optional, Protocol
 
-from device_gateway.store_utils import StoreConfigMixin
+from device_gateway.store_utils import DeviceStoreBase, StoreConfigMixin, StoreManager
 from device_memory.schemas import MemoryEntry, MemoryType
 
 
@@ -104,14 +103,12 @@ class InMemoryMemoryStore(StoreConfigMixin):
 # Backward-compatible name used in tests and route type hints.
 MemoryStore = InMemoryMemoryStore
 
-memory_store: MemoryStoreBackend = InMemoryMemoryStore()
+memory_manager: StoreManager[MemoryStoreBackend] = StoreManager[MemoryStoreBackend](InMemoryMemoryStore)
+memory_store: MemoryStoreBackend = memory_manager.store
 
 
 def memory_store_health() -> dict[str, Any]:
-    return {
-        "backend": getattr(memory_store, "backend_name", memory_store.__class__.__name__),
-        "shared_across_processes": bool(getattr(memory_store, "shared_across_processes", False)),
-    }
+    return memory_manager.health()
 
 
 def get_memory_store() -> MemoryStoreBackend:
@@ -120,7 +117,8 @@ def get_memory_store() -> MemoryStoreBackend:
 
 def set_memory_store_for_tests(store: MemoryStoreBackend) -> None:
     global memory_store
-    memory_store = store
+    memory_manager.set(store)
+    memory_store = memory_manager.store
 
 
 def inject_memory_store(store: MemoryStoreBackend) -> None:
@@ -130,15 +128,13 @@ def inject_memory_store(store: MemoryStoreBackend) -> None:
 
 def configure_memory_store_from_env() -> None:
     global memory_store
-    backend = os.environ.get("LIMA_DEVICE_MEMORY_STORE", "").strip().lower()
     from config.db_config import DEVICE_REDIS_URL
 
-    redis_url = DEVICE_REDIS_URL
-    if backend == "redis":
-        if not redis_url:
-            raise RuntimeError("LIMA_DEVICE_REDIS_URL is required when LIMA_DEVICE_MEMORY_STORE=redis")
-        from device_memory.redis_store import RedisMemoryStore
+    from device_memory.redis_store import RedisMemoryStore
 
-        memory_store = RedisMemoryStore(redis_url)
-    else:
-        memory_store = InMemoryMemoryStore()
+    memory_manager.configure_from_env(
+        "LIMA_DEVICE_MEMORY_STORE",
+        DEVICE_REDIS_URL,
+        RedisMemoryStore,
+    )
+    memory_store = memory_manager.store

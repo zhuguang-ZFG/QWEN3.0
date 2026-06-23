@@ -1,6 +1,9 @@
 """Tests for device memory store isolation and controls."""
 
 import time
+import pytest
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 from device_memory.store import MemoryStore
 from device_memory.schemas import MemoryEntry, MemoryType
 
@@ -15,7 +18,7 @@ def test_create_and_recall_memory():
         key="favorite_color",
         value="blue",
         ttl_days=30,
-        created_at=int(time.time()),
+        created_at=int(MOCK_NOW),
         source="user_explicit",
     )
     store.create(entry)
@@ -27,7 +30,7 @@ def test_create_and_recall_memory():
 def test_recall_respects_ttl():
     """Expired memories are not recalled."""
     store = MemoryStore()
-    now = int(time.time())
+    now = int(MOCK_NOW)
     entry = MemoryEntry(
         id="mem_002",
         device_id="dev_a",
@@ -53,7 +56,7 @@ def test_recall_ignores_disabled():
         key="pref_disabled",
         value="data",
         ttl_days=30,
-        created_at=int(time.time()),
+        created_at=int(MOCK_NOW),
         source="inferred",
     )
     store.create(entry)
@@ -72,7 +75,7 @@ def test_cross_family_isolation():
         key="shared_key",
         value="value_a",
         ttl_days=30,
-        created_at=int(time.time()),
+        created_at=int(MOCK_NOW),
         source="user",
     )
     entry_b = MemoryEntry(
@@ -82,7 +85,7 @@ def test_cross_family_isolation():
         key="shared_key",
         value="value_b",
         ttl_days=30,
-        created_at=int(time.time()),
+        created_at=int(MOCK_NOW),
         source="user",
     )
     store.create(entry_a)
@@ -105,7 +108,7 @@ def test_delete_memory():
         key="to_delete",
         value="data",
         ttl_days=30,
-        created_at=int(time.time()),
+        created_at=int(MOCK_NOW),
         source="inferred",
     )
     store.create(entry)
@@ -123,7 +126,7 @@ def test_export_device_memories():
         key="export_key",
         value="export_val",
         ttl_days=30,
-        created_at=int(time.time()),
+        created_at=int(MOCK_NOW),
         source="user",
     )
     store.create(entry)
@@ -143,7 +146,7 @@ def test_reset_device_memories():
             key=f"key_{i}",
             value=f"val_{i}",
             ttl_days=30,
-            created_at=int(time.time()),
+            created_at=int(MOCK_NOW),
             source="user",
         )
         store.create(entry)
@@ -151,3 +154,7 @@ def test_reset_device_memories():
     count = store.reset("dev_reset")
     assert count == 3
     assert len(store.list_by_device("dev_reset")) == 0
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

@@ -48,6 +48,7 @@ def _cross_session_fallback(query: str, limit: int = 2) -> list:
     try:
         return search_memories_keyword("_global", query[:50], limit=limit)
     except Exception:
+        _log.warning("cross-session memory search failed", exc_info=True)
         return []
 
 

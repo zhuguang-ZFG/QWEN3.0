@@ -3,6 +3,9 @@
 import asyncio
 import json
 import time
+import pytest
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 from unittest.mock import patch
 
 from chat_models import ChatRequest, Message
@@ -22,7 +25,7 @@ def _ctx(*, fmt: str = "openai", memory_recall_meta: dict | None = None) -> Chat
     return ChatRunContext(
         chat_id="chat-test",
         query="hello",
-        t0=time.time() - 0.05,
+        t0=MOCK_NOW - 0.05,
         fmt=fmt,
         request_model=None,
         client_ip="127.0.0.1",
@@ -298,3 +301,7 @@ def test_finalize_clean_response_empty_fallback(
         query="hello",
         content="raw fallback",
     )
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

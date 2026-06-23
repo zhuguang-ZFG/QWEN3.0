@@ -8,11 +8,13 @@ to a daemon thread so asyncio.run() can be called without nesting loops.
 from __future__ import annotations
 
 import asyncio
-import threading
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Coroutine, TypeVar
+
+T = TypeVar("T")
 
 
-def run_coro_sync(coro) -> object:
+def run_coro_sync(coro: Coroutine[Any, Any, T]) -> T:
     """Run a coroutine synchronously, bridging sync/async boundaries.
 
     - No running loop → asyncio.run(coro)

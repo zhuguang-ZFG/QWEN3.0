@@ -74,13 +74,6 @@ def test_admin_logs(client):
     assert len(data) == 2
 
 
-@patch("context_pipeline.retrieval_trace.get_recent_traces", return_value=[{"id": "t1"}])
-def test_admin_retrieval_traces(_mock, client):
-    response = client.get("/api/retrieval-traces", headers=_auth_headers())
-    assert response.status_code == 200
-    assert response.json() == [{"id": "t1"}]
-
-
 def test_admin_backends_list(client):
     backends = {
         "be1": {"url": "https://example.com", "model": "m1", "fmt": "openai"},

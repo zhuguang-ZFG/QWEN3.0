@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import time
 
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 import pytest
 
 from device_memory.store import MemoryStore
@@ -21,7 +23,7 @@ def _make_episode(device_id: str, task_id: str, task_type: str, outcome: str) ->
         key=f"episode_{task_id}",
         value=json.dumps({"task_type": task_type, "outcome": outcome}),
         ttl_days=60,
-        created_at=int(time.time()),
+        created_at=int(MOCK_NOW),
         source="device_task",
         confidence=1.0 if outcome == "success" else 0.3,
     )
@@ -118,7 +120,7 @@ def test_expired_episodes_are_skipped():
         key="episode_old",
         value='{"task_type": "creative", "outcome": "success"}',
         ttl_days=1,
-        created_at=int(time.time()) - 86400 * 2,
+        created_at=int(MOCK_NOW) - 86400 * 2,
         source="device_task",
         confidence=1.0,
     )
@@ -126,3 +128,7 @@ def test_expired_episodes_are_skipped():
     store.create(_make_episode("dev-1", "t2", "creative", "success"))
     results = consolidate_task_episodes(store, "dev-1")
     assert results == []  # only 1 non-expired episode
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

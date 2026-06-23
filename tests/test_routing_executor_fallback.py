@@ -1,6 +1,9 @@
 """Tests for routing_executor_fallback.py — degraded backend execution."""
 
 import time
+import pytest
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 from unittest.mock import MagicMock
 
 from routing_executor_fallback import (
@@ -43,7 +46,7 @@ def test_serial_fallback_attempt_success():
     result = _serial_fallback_attempt(
         ["f1", "f2"], _make_call_fn(answer="fallback_ans"),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", time.time(),
+        4096, None, "chat", "chat", MOCK_NOW,
     )
     assert result is not None
     backend, answer = result
@@ -55,7 +58,7 @@ def test_serial_fallback_attempt_all_fail():
     result = _serial_fallback_attempt(
         ["fail1", "fail2"], _make_call_fn(success=False),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", time.time(),
+        4096, None, "chat", "chat", MOCK_NOW,
     )
     assert result is None
 
@@ -64,7 +67,7 @@ def test_serial_fallback_attempt_empty():
     """Empty candidates -> returns None."""
     result = _serial_fallback_attempt(
         [], _make_call_fn(), [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", time.time(),
+        4096, None, "chat", "chat", MOCK_NOW,
     )
     assert result is None
 
@@ -74,7 +77,7 @@ def test_fallback_phase_prefers_parallel_for_multi():
     result = _fallback_phase(
         ["a", "b", "c"], _make_call_fn(answer="phase_ok"),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", time.time(),
+        4096, None, "chat", "chat", MOCK_NOW,
     )
     assert result is not None
 
@@ -84,7 +87,7 @@ def test_fallback_phase_single_candidate():
     result = _fallback_phase(
         ["only_one"], _make_call_fn(answer="sole_result_long"),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", time.time(),
+        4096, None, "chat", "chat", MOCK_NOW,
     )
     assert result == ("only_one", "sole_result_long")
 
@@ -93,7 +96,7 @@ def test_fallback_phase_empty():
     """Empty backends -> returns None."""
     result = _fallback_phase(
         [], _make_call_fn(), [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", time.time(),
+        4096, None, "chat", "chat", MOCK_NOW,
     )
     assert result is None
 
@@ -103,6 +106,10 @@ def test_fallback_phase_all_fail():
     result = _fallback_phase(
         ["bad1", "bad2", "bad3"], _make_call_fn(success=False),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", time.time(),
+        4096, None, "chat", "chat", MOCK_NOW,
     )
     assert result is None
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

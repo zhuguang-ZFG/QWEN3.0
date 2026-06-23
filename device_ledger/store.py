@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import os
 from copy import deepcopy
 from typing import Any, Protocol
 
-from device_gateway.store_utils import StoreConfigMixin
+from device_gateway.store_utils import DeviceStoreBase, StoreConfigMixin, StoreManager
 
 from .events import DuplicateLedgerEvent, LedgerEvent
 
@@ -59,35 +58,32 @@ class InMemoryLedgerStore(StoreConfigMixin):
         return _replay_from_events(self.events_for_task(task_id), task_id)
 
 
-ledger_store: LedgerStoreBackend = InMemoryLedgerStore()
+ledger_manager: StoreManager[LedgerStoreBackend] = StoreManager[LedgerStoreBackend](InMemoryLedgerStore)
+ledger_store: LedgerStoreBackend = ledger_manager.store
 
 
 def ledger_store_health() -> dict[str, Any]:
-    return {
-        "backend": getattr(ledger_store, "backend_name", ledger_store.__class__.__name__),
-        "shared_across_processes": bool(getattr(ledger_store, "shared_across_processes", False)),
-    }
+    return ledger_manager.health()
 
 
 def set_ledger_store_for_tests(store: LedgerStoreBackend) -> None:
     global ledger_store
-    ledger_store = store
+    ledger_manager.set(store)
+    ledger_store = ledger_manager.store
 
 
 def configure_ledger_store_from_env() -> None:
     global ledger_store
-    backend = os.environ.get("LIMA_DEVICE_LEDGER_STORE", "").strip().lower()
     from config.db_config import DEVICE_REDIS_URL
 
-    redis_url = DEVICE_REDIS_URL
-    if backend == "redis":
-        if not redis_url:
-            raise RuntimeError("LIMA_DEVICE_REDIS_URL is required when LIMA_DEVICE_LEDGER_STORE=redis")
-        from device_ledger.redis_store import RedisLedgerStore
+    from device_ledger.redis_store import RedisLedgerStore
 
-        ledger_store = RedisLedgerStore(redis_url)
-    else:
-        ledger_store = InMemoryLedgerStore()
+    ledger_manager.configure_from_env(
+        "LIMA_DEVICE_LEDGER_STORE",
+        DEVICE_REDIS_URL,
+        RedisLedgerStore,
+    )
+    ledger_store = ledger_manager.store
 
 
 def _replay_from_events(events: list[LedgerEvent], task_id: str) -> dict[str, Any]:

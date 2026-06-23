@@ -9,6 +9,7 @@ from typing import Any
 
 from device_gateway.redis_store_codec import connect_redis, decode_redis_json, encode_redis_json
 from device_gateway.redis_store_helpers import RedisStoreHelpers, _ACTIVE_STATUSES
+from device_gateway.store_utils import DeviceStoreBase
 
 _log = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ _log = logging.getLogger(__name__)
 _DEFAULT_TASK_TTL = int(os.environ.get("LIMA_REDIS_TASK_TTL", "2592000"))  # 30 days
 
 
-class RedisDeviceTaskStore(RedisStoreHelpers):
+class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
     backend_name = "redis"
     shared_across_processes = True
 

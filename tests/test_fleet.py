@@ -5,6 +5,9 @@ from __future__ import annotations
 import os
 import sys
 import time
+import pytest
+
+MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 from unittest.mock import patch
 
 
@@ -51,7 +54,7 @@ class TestNodeRegistry:
         reg = NodeRegistry()
         node = reg.register("old-node")
         # Simulate old heartbeat
-        node.last_heartbeat = time.time() - HEARTBEAT_TIMEOUT - 10
+        node.last_heartbeat = MOCK_NOW - HEARTBEAT_TIMEOUT - 10
         assert not node.is_online
         online = reg.get_online_nodes()
         assert len(online) == 0
@@ -165,7 +168,7 @@ class TestTaskDispatcher:
         task = d.submit(task_type="shell", command="echo")
         d.complete_task(task.task_id, result="done")
         # Simulate old task
-        d.get_task(task.task_id).created_at = time.time() - 7200
+        d.get_task(task.task_id).created_at = MOCK_NOW - 7200
         removed = d.cleanup(max_age=3600)
         assert removed == 1
 
@@ -295,3 +298,7 @@ class TestFleetAPIAuth:
         client = self._client(admin_token="tok")
         resp = client.post("/fleet/heartbeat", json={"node_id": "n1"})
         assert resp.status_code == 401
+
+@pytest.fixture(autouse=True)
+def fixed_time(monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

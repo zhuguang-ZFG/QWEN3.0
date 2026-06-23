@@ -65,16 +65,6 @@ async def admin_logs():
         return list(reversed(stats["recent_logs"][-10:]))
 
 
-@router.get("/api/retrieval-traces", dependencies=[Depends(verify_admin)])
-async def admin_retrieval_traces():
-    try:
-        from context_pipeline.retrieval_trace import get_recent_traces
-
-        return get_recent_traces(limit=20)
-    except ImportError:
-        return []
-
-
 @router.get("/api/backends", dependencies=[Depends(verify_admin)])
 async def admin_backends():
     _stats, _lock, backend_enabled = stats_context()

@@ -255,14 +255,6 @@ def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
     backend_errors = _collect_backend_errors(health_map, backend_calls)
     learning = _collect_learning()
 
-    retrieval_traces: list[dict] = []
-    try:
-        from context_pipeline.retrieval_trace import get_recent_traces
-
-        retrieval_traces = get_recent_traces(limit=5)
-    except ImportError:
-        _log.warning("context_pipeline.retrieval_trace.get_recent_traces not available; retrieval traces unavailable")
-
     recent_tasks = recent_agent_tasks(limit=5)
 
     return {
@@ -282,7 +274,7 @@ def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
         "device_gateway": device,
         "agent_workers": agent,
         "learning": learning,
-        "retrieval_traces": retrieval_traces,
+        "retrieval_traces": [],
         "recent_agent_tasks": recent_tasks,
         "cli_telemetry": get_cli_telemetry(),
         "backend_telemetry": get_backend_telemetry(),

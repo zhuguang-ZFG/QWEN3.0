@@ -27,6 +27,33 @@
 
 ---
 
+## P1-9 — `context_pipeline` 死代码清理（2026-06-23）
+
+依据 [`PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`](PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md) P1-9，以下模块经 CodeGraph + ripgrep 确认无生产 fan-in，已删除并清理关联的 lazy import 与测试：
+
+| 模块 | 关联清理 |
+|------|----------|
+| `context_pipeline/graph_context_expander.py` | 移除 `code_context_injection.py` 中的 graph expansion 阶段 |
+| `context_pipeline/retrieval_trace.py` | 移除 `routes/admin_api.py` `/api/retrieval-traces` 端点；`ops_metrics/collectors.py` 中 `retrieval_traces` 固定为空列表 |
+| `context_pipeline/production_index.py` | 移除 `retrieval_injection.py` 中的 production corpus 搜索链路 |
+| `context_pipeline/entity_extraction.py` | 移除 `retrieval_injection.py` 中的实体提取调用 |
+
+**保留的入口行为**：
+- `retrieval_injection.run_retrieval()` 保持返回 `None`（与冷模块不可用时一致）。
+- `retrieval_injection.inject_retrieval_context()` 保持返回原消息与空字符串。
+- `ops_metrics_snapshot` 仍返回 `"retrieval_traces": []`，避免破坏前端/监控消费者。
+
+伴随删除的测试：
+- `tests/test_graph_context_expander.py`
+- `tests/test_retrieval_trace.py`
+- `tests/test_entity_extraction.py`
+- `tests/test_production_retrieval.py`
+- `tests/test_lightrag.py`（其中 graph retrieval / reranking 已有 `tests/test_graph_retrieval.py`、`tests/test_reranking.py` 覆盖）
+
+`scripts/codegraph_orphans.py` 的 `COLD_MODULES` 列表已同步移除上述模块。
+
+---
+
 ## P0 — 零生产 fan-in（**CP-1 已关闭 2026-06-16**）
 
 已删除并清理生产 lazy import：

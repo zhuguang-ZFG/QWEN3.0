@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import routing_engine
 from context_pipeline.retrieval_injection import (
     build_retrieval_text,
@@ -8,30 +6,19 @@ from context_pipeline.retrieval_injection import (
 )
 
 
-def test_build_and_inject_share_same_payload(monkeypatch):
-    payload = type(
-        "Payload",
-        (),
-        {
-            "query_terms": ["routing_engine.py"],
-            "candidates_searched": 3,
-            "reranked_results": [],
-            "text": "[代码上下文]\n[routing_engine.py]",
-        },
-    )()
+def test_run_retrieval_is_disabled():
+    assert run_retrieval([{"role": "user", "content": "fix routing_engine.py"}]) is None
 
-    with patch(
-        "context_pipeline.retrieval_injection.run_retrieval",
-        return_value=payload,
-    ):
-        text = build_retrieval_text([{"role": "user", "content": "fix routing_engine.py"}])
-        msgs, injected = inject_retrieval_context(
-            [{"role": "user", "content": "fix routing_engine.py"}],
-        )
 
-    assert text == payload.text
-    assert injected == payload.text
-    assert msgs[0]["content"] == payload.text
+def test_build_retrieval_text_returns_empty():
+    assert build_retrieval_text([{"role": "user", "content": "fix routing_engine.py"}]) == ""
+
+
+def test_inject_retrieval_context_passes_through_messages():
+    msgs = [{"role": "user", "content": "hello"}]
+    result_msgs, text = inject_retrieval_context(msgs)
+    assert result_msgs is msgs
+    assert text == ""
 
 
 def test_inject_retrieval_context_empty_messages():
@@ -48,9 +35,7 @@ def test_routing_engine_reuses_shared_injector(monkeypatch):
         injected = [{"role": "system", "content": "[retrieval]"}] + list(messages)
         return injected, "[retrieval]"
 
-    injected_messages, retrieval_text = fake_inject(
-        [{"role": "user", "content": "hello"}]
-    )
+    injected_messages, retrieval_text = fake_inject([{"role": "user", "content": "hello"}])
 
     monkeypatch.setattr(
         routing_engine,
@@ -90,7 +75,3 @@ def test_routing_engine_reuses_shared_injector(monkeypatch):
     assert result.answer == "ok done"
     assert result.retrieval_context == "[retrieval]"
     assert calls["count"] == 1
-
-
-def test_run_retrieval_returns_none_without_entities():
-    assert run_retrieval([{"role": "user", "content": "hello"}]) is None

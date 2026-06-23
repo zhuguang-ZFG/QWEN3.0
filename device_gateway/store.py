@@ -10,7 +10,6 @@ from __future__ import annotations
 from collections import deque
 from copy import deepcopy
 import itertools
-import os
 from typing import Any, Protocol
 
 from device_gateway.store_utils import StoreConfigMixin, StoreManager
@@ -208,34 +207,32 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
             return tasks[:limit]
 
 
-task_store: DeviceTaskStore = InMemoryDeviceTaskStore()
+task_manager: StoreManager[DeviceTaskStore] = StoreManager[DeviceTaskStore](InMemoryDeviceTaskStore)
+task_store: DeviceTaskStore = task_manager.store
 
 _ACTIVE_STATUSES = frozenset({"dispatched", "running", "processing", "progress", "accepted"})
 
 
 def task_store_health() -> dict[str, Any]:
-    return {
-        "backend": getattr(task_store, "backend_name", task_store.__class__.__name__),
-        "shared_across_processes": bool(getattr(task_store, "shared_across_processes", False)),
-    }
+    return task_manager.health()
 
 
 def set_task_store_for_tests(store: DeviceTaskStore) -> None:
     global task_store
-    task_store = store
+    task_manager.set(store)
+    task_store = task_manager.store
 
 
 def configure_task_store_from_env() -> None:
     global task_store
-    backend = os.environ.get("LIMA_DEVICE_TASK_STORE", "").strip().lower()
     from config.db_config import DEVICE_REDIS_URL
 
-    redis_url = DEVICE_REDIS_URL
-    if backend == "redis" or (backend == "" and redis_url):
-        if not redis_url:
-            raise RuntimeError("LIMA_DEVICE_REDIS_URL is required when LIMA_DEVICE_TASK_STORE=redis")
-        from .redis_store import RedisDeviceTaskStore
+    from .redis_store import RedisDeviceTaskStore
 
-        task_store = RedisDeviceTaskStore(redis_url)
-    else:
-        task_store = InMemoryDeviceTaskStore()
+    task_manager.configure_from_env(
+        "LIMA_DEVICE_TASK_STORE",
+        DEVICE_REDIS_URL,
+        RedisDeviceTaskStore,
+        use_redis_when_url_present=True,
+    )
+    task_store = task_manager.store

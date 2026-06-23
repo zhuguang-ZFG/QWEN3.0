@@ -213,7 +213,6 @@ def _build_async_stream_prompt(messages: list, ide: str) -> str:
     """Build system prompt for async stream: coding context or plain-text constraint."""
     sys_prompt = ""
     try:
-        from routing_engine import classify_scenario
         from lima_context import build_context_digest
 
         query = next(

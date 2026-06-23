@@ -51,9 +51,8 @@ def scan_and_build_context(
 
     1. Extract file mentions and identifiers from query (regex)
     2. Also run semantic retrieval for implicit relevant files
-    3. Expand via graph relationships
-    4. Scan all candidates with tree-sitter
-    5. Build concise context string
+    3. Scan all candidates with tree-sitter
+    4. Build concise context string
     """
     file_mentions, identifiers = extract_file_mentions(query, messages)
     parts: list[str] = []
@@ -74,10 +73,7 @@ def scan_and_build_context(
     # Phase 2: Semantic retrieval
     parts, total, scanned_files = _phase_semantic_retrieval(query, messages, parts, total, scanned_files, max_chars)
 
-    # Phase 3: Graph expansion
-    parts, total, scanned_files = _phase_graph_expansion(parts, total, scanned_files, max_chars)
-
-    # Phase 4: Identifier search
+    # Phase 3: Identifier search
     for ident in identifiers[:3]:
         if total >= max_chars or len(scanned_files) >= _MAX_FILES:
             break
@@ -123,32 +119,6 @@ def _phase_semantic_retrieval(
                 total += len(ctx) + 30
     except ImportError as exc:
         _log.warning("context_pipeline.semantic_code_retrieval not installed; semantic retrieval disabled: %s", exc)
-    return parts, total, scanned
-
-
-def _phase_graph_expansion(
-    parts: list[str],
-    total: int,
-    scanned: set[str],
-    max_chars: int,
-) -> tuple[list[str], int, set[str]]:
-    """Phase 3: Graph expansion for remaining budget."""
-    if total >= max_chars * 0.5 or len(scanned) >= _MAX_FILES:
-        return parts, total, scanned
-    try:
-        from context_pipeline.graph_context_expander import expand_context
-
-        expanded = expand_context(list(scanned), max_hops=1, max_files=3)
-        for ef in expanded:
-            if len(scanned) >= _MAX_FILES or ef.file_path in scanned:
-                continue
-            scanned.add(ef.file_path)
-            ctx = _scan_single_file(Path(ef.file_path))
-            if ctx and total + len(ctx) < max_chars:
-                parts.append(ctx)
-                total += len(ctx)
-    except ImportError as exc:
-        _log.warning("context_pipeline.graph_context_expander not installed; graph expansion disabled: %s", exc)
     return parts, total, scanned
 
 

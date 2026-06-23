@@ -36,7 +36,7 @@ def speculative_call(
         return await asyncio.to_thread(call_fn, b, m, mt)
 
     try:
-        return _run_coro_sync(
+        return run_coro_sync(
             speculative_call_async(
                 backends,
                 _wrap_sync,
@@ -52,11 +52,6 @@ def speculative_call(
         raise
     except Exception as e:
         raise RuntimeError(f"Speculative execution failed: {e}") from e
-
-
-def _run_coro_sync(coro):
-    """Run a coroutine synchronously. Delegates to async_utils.run_coro_sync."""
-    return run_coro_sync(coro)
 
 
 async def _spec_worker(
