@@ -6,6 +6,13 @@ from unittest.mock import patch
 from routes.admin_backends import _is_safe_backend_url, _resolve_vendor
 
 
+class TestResolveVendor:
+    def test_longcat(self):
+        assert _resolve_vendor("https://longcat.ai") == "LongCat"
+
+    def test_nvidia(self):
+        assert _resolve_vendor("https://nvidia.example.com") == "英伟达 NVIDIA"
+
     def test_unknown(self):
         assert _resolve_vendor("https://example.com") == "未知"
 
