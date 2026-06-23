@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import random
 
+from context_pipeline.complexity import assess_complexity
+
 AFFINITY = {
     "simple_fast": [
         "longcat_lite",
@@ -109,14 +111,10 @@ def _has_code_signals(query: str) -> bool:
 
 def classify_complexity(query: str, messages: list[dict]) -> str:
     """Return 'simple' | 'code' | 'complex' for routing strategy selection."""
-    query_len = len(query)
-    total_context = sum(len(m.get("content", "")) for m in messages if isinstance(m.get("content"), str))
-
     if _has_code_signals(query.lower()):
         return "code"
-    if total_context > 3000 or query_len > 500:
-        return "complex"
-    if len(messages) > 8:
+    assessment = assess_complexity(messages)
+    if assessment.score >= 5:
         return "complex"
     return "simple"
 
