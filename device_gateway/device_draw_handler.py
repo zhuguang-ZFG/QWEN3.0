@@ -135,35 +135,24 @@ async def _generate_image(
     return client.generate(prompt=enhanced_prompt, model=model, size=size, n=1)
 
 
-async def _convert_and_optimize(
-    image_url: str,
-    model: str,
-) -> Dict[str, Any]:
-    """Convert image to SVG, validate, optimize and return the final payload."""
+async def _convert_image_to_svg(image_url: str) -> Dict[str, Any]:
+    """Convert an image URL to an SVG result dict."""
     converter = SVGConverter()
-    svg_result = await converter.convert_url_to_svg(image_url, skeletonize=True)
+    return await converter.convert_url_to_svg(image_url, skeletonize=True)
 
-    if svg_result["status"] != "success":
-        return _build_partial_response(
-            image_url,
-            0,
-            0,
-            model,
-            error=f"SVG conversion failed: {svg_result['error']}",
-        )
 
+def _validate_svg(svg_result: Dict[str, Any]) -> tuple[Any, str]:
+    """Validate SVG path and return (validation, error_message)."""
     svg_path = svg_result["svg_path"]
     validation = validate_svg_path(svg_path, workspace=(200, 200))
     if not validation.valid:
-        logger.warning(f"SVG validation failed: {validation.errors}")
-        return _build_partial_response(
-            image_url,
-            svg_result["width"],
-            svg_result["height"],
-            model,
-            error=f"SVG validation failed: {', '.join(validation.errors)}",
-        )
+        logger.warning("SVG validation failed: %s", validation.errors)
+        return validation, f"SVG validation failed: {', '.join(validation.errors)}"
+    return validation, ""
 
+
+def _optimize_svg_path(svg_path: Any, svg_result: Dict[str, Any]) -> Any:
+    """Optimize SVG path and log statistics."""
     optimization = optimize_svg_path(
         svg_path,
         tolerance=2.0,
@@ -173,17 +162,44 @@ async def _convert_and_optimize(
     if svg_result.get("skeleton_applied"):
         logger.info("Skeleton SVG optimized as open strokes (method=%s)", svg_result.get("thinning_method"))
     logger.info(
-        f"Path optimized: {optimization.original_points} -> "
-        f"{optimization.optimized_points} points ({optimization.reduction_ratio:.1%} reduction)"
+        "Path optimized: %s -> %s points (%.1f%% reduction)",
+        optimization.original_points,
+        optimization.optimized_points,
+        optimization.reduction_ratio * 100,
     )
+    return optimization
+
+
+def _check_motion_bounds(optimization: Any) -> str | None:
+    """Return an error string if the optimized path exceeds motion bounds."""
     bounds_err = precheck_draw_motion_path(optimization.optimized_path)
     if bounds_err:
         logger.warning("Draw motion bounds precheck failed: %s", bounds_err)
+    return bounds_err
+
+
+async def _convert_and_optimize(
+    image_url: str,
+    model: str,
+) -> Dict[str, Any]:
+    """Convert image to SVG, validate, optimize and return the final payload."""
+    svg_result = await _convert_image_to_svg(image_url)
+    if svg_result["status"] != "success":
         return _build_partial_response(
-            image_url,
-            svg_result["width"],
-            svg_result["height"],
-            model,
+            image_url, 0, 0, model, error=f"SVG conversion failed: {svg_result['error']}"
+        )
+
+    validation, error = _validate_svg(svg_result)
+    if error:
+        return _build_partial_response(
+            image_url, svg_result["width"], svg_result["height"], model, error=error
+        )
+
+    optimization = _optimize_svg_path(svg_result["svg_path"], svg_result)
+    bounds_err = _check_motion_bounds(optimization)
+    if bounds_err:
+        return _build_partial_response(
+            image_url, svg_result["width"], svg_result["height"], model,
             error=f"Motion bounds precheck failed: {bounds_err}",
         )
     return _build_success_response(image_url, svg_result, optimization, model)
@@ -249,7 +265,7 @@ async def _try_preset_or_generate(
             style=config["style"],
             complexity=config["complexity"],
             previous_failed_prompts=config.get("failed_prompts") or None,
-            conversation_context=config.get("conversation_context"),
+            conversation_context=config.get("conversation_context") or "",
         )
         if result["status"] != "success" or not result["images"]:
             record_failed_draw_prompt(device_id, prompt, error=str(result.get("error") or "Unknown error"))

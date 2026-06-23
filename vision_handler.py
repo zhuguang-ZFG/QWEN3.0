@@ -114,52 +114,74 @@ async def _vision_route(messages: list, max_tokens: int = 4096, ide: str = "unkn
     return None
 
 
-def _call_vision_backend(backend_name: str, messages: list, max_tokens: int, ide: str) -> str | None:
-    """Call a vision-capable backend with image content."""
+def _build_anthropic_request(
+    b: dict, messages: list, max_tokens: int
+) -> tuple[bytes, dict[str, str]]:
+    """Build request body and headers for an Anthropic vision backend."""
+    anthropic_msgs = convert_openai_vision_to_anthropic(messages)
+    if b.get("no_system"):
+        system_text_block = {"type": "text", "text": VISION_SYSTEM_PROMPT}
+        if anthropic_msgs and anthropic_msgs[0]["role"] == "user":
+            anthropic_msgs[0]["content"].insert(0, system_text_block)
+        else:
+            anthropic_msgs.insert(0, {"role": "user", "content": [system_text_block]})
+        body = {"model": b["model"], "max_tokens": max_tokens, "messages": anthropic_msgs}
+    else:
+        body = {
+            "model": b["model"],
+            "max_tokens": max_tokens,
+            "system": VISION_SYSTEM_PROMPT,
+            "messages": anthropic_msgs,
+        }
+    p = json.dumps(body).encode()
+    if b.get("auth", "x-api-key") == "bearer":
+        h = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {b['key']}",
+            "anthropic-version": "2023-06-01",
+        }
+    else:
+        h = {"Content-Type": "application/json", "x-api-key": b["key"], "anthropic-version": "2023-06-01"}
+    return p, h
+
+
+def _build_openai_request(b: dict, messages: list, max_tokens: int) -> tuple[bytes, dict[str, str]]:
+    """Build request body and headers for an OpenAI vision backend."""
+    openai_msgs = [{"role": "system", "content": VISION_SYSTEM_PROMPT}] + messages
+    body = {"model": b["model"], "max_tokens": max_tokens, "messages": openai_msgs}
+    p = json.dumps(body).encode()
+    h = {"Content-Type": "application/json", "Authorization": f"Bearer {b['key']}"}
+    return p, h
+
+
+def _extract_vision_answer(d: dict, fmt: str) -> str:
+    """Extract answer text from a parsed vision response."""
+    if fmt == "anthropic":
+        return d["content"][0].get("text", "")
+    return d["choices"][0]["message"].get("content", "")
+
+
+def _send_vision_request(backend_name: str, b: dict, payload: bytes, headers: dict) -> dict:
+    """Send the HTTP request and return the parsed JSON response."""
     import urllib.request as _ur
 
+    req = _ur.Request(b["url"], data=payload, headers=headers)
+    _timeout = b.get("timeout", 60)
+    with _ur.urlopen(req, timeout=_timeout) as resp:
+        return json.loads(resp.read().decode())
+
+
+def _call_vision_backend(backend_name: str, messages: list, max_tokens: int, ide: str) -> str | None:
+    """Call a vision-capable backend with image content."""
     b = BACKENDS[backend_name]
     fmt = b.get("fmt", "openai")
-    auth_style = b.get("auth", "x-api-key")
     if fmt == "anthropic":
-        anthropic_msgs = convert_openai_vision_to_anthropic(messages)
-        if b.get("no_system"):
-            system_text_block = {"type": "text", "text": VISION_SYSTEM_PROMPT}
-            if anthropic_msgs and anthropic_msgs[0]["role"] == "user":
-                anthropic_msgs[0]["content"].insert(0, system_text_block)
-            else:
-                anthropic_msgs.insert(0, {"role": "user", "content": [system_text_block]})
-            body = {"model": b["model"], "max_tokens": max_tokens, "messages": anthropic_msgs}
-        else:
-            body = {
-                "model": b["model"],
-                "max_tokens": max_tokens,
-                "system": VISION_SYSTEM_PROMPT,
-                "messages": anthropic_msgs,
-            }
-        p = json.dumps(body).encode()
-        if auth_style == "bearer":
-            h = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {b['key']}",
-                "anthropic-version": "2023-06-01",
-            }
-        else:
-            h = {"Content-Type": "application/json", "x-api-key": b["key"], "anthropic-version": "2023-06-01"}
+        payload, headers = _build_anthropic_request(b, messages, max_tokens)
     else:
-        openai_msgs = [{"role": "system", "content": VISION_SYSTEM_PROMPT}] + messages
-        body = {"model": b["model"], "max_tokens": max_tokens, "messages": openai_msgs}
-        p = json.dumps(body).encode()
-        h = {"Content-Type": "application/json", "Authorization": f"Bearer {b['key']}"}
+        payload, headers = _build_openai_request(b, messages, max_tokens)
     try:
-        req = _ur.Request(b["url"], data=p, headers=h)
-        _timeout = b.get("timeout", 60)
-        with _ur.urlopen(req, timeout=_timeout) as resp:
-            d = json.loads(resp.read().decode())
-        if fmt == "anthropic":
-            answer = d["content"][0].get("text", "")
-        else:
-            answer = d["choices"][0]["message"].get("content", "")
+        d = _send_vision_request(backend_name, b, payload, headers)
+        answer = _extract_vision_answer(d, fmt)
         health_tracker.record_success(backend_name, 0)
         return clean_response(answer, backend_name)
     except Exception as e:

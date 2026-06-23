@@ -16,6 +16,63 @@ from routing_executor_telemetry import (
 _log = logging.getLogger(__name__)
 
 
+def _call_backend_with_tools(
+    call_fn: Callable,
+    backend: str,
+    messages: list[dict],
+    max_tokens: int,
+    tools: list[dict] | None,
+) -> str:
+    """Invoke *call_fn* with or without tool parameters."""
+    if tools:
+        return call_fn(backend, messages, max_tokens, tools=tools)
+    return call_fn(backend, messages, max_tokens)
+
+
+def _record_parallel_success(
+    backend: str,
+    scenario: str,
+    request_type: str,
+    latency_ms: float,
+    tools: list[dict] | None,
+) -> None:
+    """Record a successful parallel fallback attempt."""
+    budget_manager.record_usage(backend)
+    _record_backend_attempt(
+        backend=backend,
+        scenario=scenario,
+        request_type=request_type,
+        success=True,
+        latency_ms=latency_ms,
+        tools_requested=bool(tools),
+        attempt="parallel_fallback",
+    )
+
+
+def _record_parallel_failure(
+    backend: str,
+    scenario: str,
+    request_type: str,
+    latency_ms: float,
+    tools: list[dict] | None,
+    exc: Exception,
+    response_empty: bool = False,
+) -> None:
+    """Record a failed parallel fallback attempt."""
+    _record_backend_attempt(
+        backend=backend,
+        scenario=scenario,
+        request_type=request_type,
+        success=False,
+        latency_ms=latency_ms,
+        tools_requested=bool(tools),
+        status_code=extract_error_code(exc),
+        error=str(exc),
+        response_empty=response_empty,
+        attempt="parallel_fallback",
+    )
+
+
 def _try_one_parallel(
     backend: str,
     call_fn: Callable,
@@ -29,45 +86,17 @@ def _try_one_parallel(
     """Call a single backend for the parallel fallback pool."""
     started = time.time()
     try:
-        if tools:
-            answer = call_fn(backend, messages, max_tokens, tools=tools)
-        else:
-            answer = call_fn(backend, messages, max_tokens)
+        answer = _call_backend_with_tools(call_fn, backend, messages, max_tokens, tools)
         latency_ms = (time.time() - started) * 1000
         if answer and len(answer.strip()) > 5:
-            budget_manager.record_usage(backend)
-            _record_backend_attempt(
-                backend=backend,
-                scenario=scenario,
-                request_type=request_type,
-                success=True,
-                latency_ms=latency_ms,
-                tools_requested=bool(tools),
-                attempt="parallel_fallback",
-            )
+            _record_parallel_success(backend, scenario, request_type, latency_ms, tools)
             return backend, answer
-        _record_backend_attempt(
-            backend=backend,
-            scenario=scenario,
-            request_type=request_type,
-            success=False,
-            latency_ms=latency_ms,
-            tools_requested=bool(tools),
-            response_empty=True,
-            attempt="parallel_fallback",
+        _record_parallel_failure(
+            backend, scenario, request_type, latency_ms, tools, Exception("empty response"), response_empty=True
         )
     except Exception as exc:
-        _record_backend_attempt(
-            backend=backend,
-            scenario=scenario,
-            request_type=request_type,
-            success=False,
-            latency_ms=(time.time() - started) * 1000,
-            tools_requested=bool(tools),
-            status_code=extract_error_code(exc),
-            error=str(exc),
-            attempt="parallel_fallback",
-        )
+        latency_ms = (time.time() - started) * 1000
+        _record_parallel_failure(backend, scenario, request_type, latency_ms, tools, exc)
         _log.warning("parallel fallback backend=%s failed: %s", backend, exc)
     return None
 

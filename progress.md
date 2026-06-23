@@ -10,6 +10,22 @@
 
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-23 LiMa P2-1 函数拆分再推进（6 文件）
+
+- **目标**：继续关闭 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中 P2-1（函数 >50 行拆分）。
+- **本批拆分**：
+  - `context_pipeline/auto_indexer.py`：`scan_once` 拆为 `_process_changes` + `_build_stats`
+  - `context_pipeline/semantic_code_retrieval.py`：`_tokenize_query` 拆为 `_extract_query_text` + `_collect_identifier_terms` + `_filter_terms`
+  - `device_gateway/device_draw_handler.py`：`_convert_and_optimize` 拆为 `_convert_image_to_svg` + `_validate_svg` + `_optimize_svg_path` + `_check_motion_bounds`
+  - `routing_executor_parallel.py`：`_try_one_parallel` 拆出 `_call_backend_with_tools`、`_record_parallel_success`、`_record_parallel_failure`
+  - `routing_selector/scoring.py`：继续拆分 >50 行长函数
+  - `vision_handler.py`：继续拆分 >50 行长函数
+- **验证**：
+  - `.venv310/Scripts/python.exe -m pytest --tb=short -q`：3521 passed, 17 skipped
+  - `ruff check <6 文件>`：通过
+  - `pyright <6 文件>`：0 errors, 0 warnings
+- **剩余**：全仓库仍有 39 个函数超过 50 行，需继续拆分。
+
 ## 2026-06-22 LiMa 项目缺陷分析与改善计划（推进中 → 基本完成）
 
 - **目标**：响应「继续分析项目缺陷和问题；编写详细改善计划」及「完全修复完毕为止」指令，系统修复 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md` 中的 59 项缺陷/改善点。

@@ -124,60 +124,71 @@ def assess_code_complexity(
     return min((file_count_score * 0.4 + indicator_score * 0.3 + cross_ref_score * 0.3), 1.0)
 
 
-def _tokenize_query(query: str, messages: list[dict] | None = None) -> list[str]:
-    """Extract meaningful search terms from query."""
+def _extract_query_text(query: str, messages: list[dict] | None = None) -> str:
+    """Concatenate the query with the last two message contents."""
     text = query
     if messages:
         for msg in messages[-2:]:
             if isinstance(msg, dict):
                 text += " " + str(msg.get("content", ""))[:300]
+    return text
 
-    # Extract identifiers and keywords
-    terms = set()
 
-    # CamelCase and snake_case identifiers
+def _collect_identifier_terms(text: str) -> set[str]:
+    """Collect CamelCase, snake_case identifiers and file names from *text*."""
+    terms: set[str] = set()
     for match in re.finditer(r"\b([A-Z][a-zA-Z0-9]+)\b", text):
         terms.add(match.group(1).lower())
     for match in re.finditer(r"\b([a-z][a-z0-9_]{2,})\b", text):
         terms.add(match.group(1))
-
-    # File names
     for match in re.finditer(r"([\w/\\.-]+\.(?:py|js|ts|go|rs|java))\b", text):
         terms.add(match.group(1).lower())
+    return terms
 
-    # Stop words removal
-    stop_words = {
-        "the",
-        "this",
-        "that",
-        "with",
-        "from",
-        "have",
-        "been",
-        "were",
-        "does",
-        "what",
-        "when",
-        "where",
-        "which",
-        "there",
-        "their",
-        "about",
-        "would",
-        "could",
-        "should",
-        "will",
-        "just",
-        "also",
-        "some",
-        "than",
-        "them",
-        "into",
-        "over",
-        "such",
-        "your",
-    }
-    return [t for t in terms if t not in stop_words and len(t) > 1]
+
+_STOP_WORDS = {
+    "the",
+    "this",
+    "that",
+    "with",
+    "from",
+    "have",
+    "been",
+    "were",
+    "does",
+    "what",
+    "when",
+    "where",
+    "which",
+    "there",
+    "their",
+    "about",
+    "would",
+    "could",
+    "should",
+    "will",
+    "just",
+    "also",
+    "some",
+    "than",
+    "them",
+    "into",
+    "over",
+    "such",
+    "your",
+}
+
+
+def _filter_terms(terms: set[str]) -> list[str]:
+    """Drop stop words and overly short terms."""
+    return [t for t in terms if t not in _STOP_WORDS and len(t) > 1]
+
+
+def _tokenize_query(query: str, messages: list[dict] | None = None) -> list[str]:
+    """Extract meaningful search terms from query."""
+    text = _extract_query_text(query, messages)
+    terms = _collect_identifier_terms(text)
+    return _filter_terms(terms)
 
 
 def _build_file_index(root: Path) -> dict[str, dict]:

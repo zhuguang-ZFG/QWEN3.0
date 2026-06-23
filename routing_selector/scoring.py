@@ -30,6 +30,67 @@ def _score_sticky(backend: str, sticky_map: dict) -> float:
     return max(0, 1.0 - min(age / 60, 1.0))
 
 
+def _score_latency(avg_lat: float) -> float:
+    """Latency component: higher latency yields a lower score."""
+    return max(0.1, 1.0 - min(avg_lat / 3000, 1.0))
+
+
+def _error_penalty(state: dict) -> float:
+    """Penalty based on consecutive failures recorded in *state*."""
+    consec_fails = state.get("consecutive_failures", 0)
+    return min(consec_fails * 0.15, 0.9)
+
+
+def _apply_routing_weight(score: float, backend: str, scenario: str, request_type: str) -> float:
+    """Apply dynamic routing weight if the module is available."""
+    try:
+        from context_pipeline.routing_weights import get_routing_weights
+
+        return score * get_routing_weights().get_weight(backend, scenario or request_type)
+    except ImportError:
+        _log.warning("context_pipeline.routing_weights not available; using base score")
+        return score
+
+
+def _apply_coding_adjustments(
+    score: float,
+    backend: str,
+    scenario: str,
+    needs_tools: bool,
+    backend_meta: dict,
+) -> float:
+    """Apply coding-specific weight and tool bonus when relevant."""
+    if scenario != "coding":
+        return score
+    try:
+        from coding_backend_scorer import get_coding_weight
+
+        score *= get_coding_weight(backend)
+    except ImportError:
+        _log.warning("coding_backend_scorer not available; skipping coding weight")
+    if needs_tools and _is_strong_coding_tool_backend(backend, backend_meta):
+        score *= 1.25
+    return score
+
+
+def _apply_static_latency_bonus(score: float, backend: str, consec_fails: int) -> float:
+    """Add a small bonus for backends with low static latency and no recent failures."""
+    static_latency = _STATIC_LATENCY_ESTIMATE.get(backend)
+    if static_latency and consec_fails == 0:
+        score += max(0, (2000 - static_latency) / 100)
+    return score
+
+
+def _apply_guard_penalty(score: float, guard_decision: dict) -> float:
+    """Apply routing guard penalty multiplier when present."""
+    if not guard_decision:
+        return score
+    try:
+        return score * float(guard_decision.get("penalty_multiplier", 1.0))
+    except (TypeError, ValueError):
+        return score * 1.0
+
+
 def _compute_backend_score(
     backend: str,
     base: float,
@@ -48,41 +109,21 @@ def _compute_backend_score(
         return 0.0
 
     state = health_tracker.get_backend_state(backend)
-    consec_fails = state.get("consecutive_failures", 0)
-    error_penalty = min(consec_fails * 0.15, 0.9)
     recency_bonus = _score_sticky(backend, state)
-
-    avg_lat = latency_map.get(backend, 1500)
-    latency_score = max(0.1, 1.0 - min(avg_lat / 3000, 1.0))
+    latency_score = _score_latency(latency_map.get(backend, 1500))
+    error_penalty = _error_penalty(state)
 
     if health_factor < 1.0:
         score = base * health_factor * latency_score * recency_bonus
     else:
         score = base * latency_score * (1 - error_penalty) * recency_bonus
-    try:
-        from context_pipeline.routing_weights import get_routing_weights
 
-        score *= get_routing_weights().get_weight(backend, scenario or request_type)
-    except ImportError:
-        _log.warning("context_pipeline.routing_weights not available; using base score")
-    if scenario == "coding":
-        try:
-            from coding_backend_scorer import get_coding_weight
-
-            score *= get_coding_weight(backend)
-        except ImportError:
-            _log.warning("coding_backend_scorer not available; skipping coding weight")
-        if needs_tools and _is_strong_coding_tool_backend(backend, reg.BACKENDS.get(backend, {})):
-            score *= 1.25
-    static_latency = _STATIC_LATENCY_ESTIMATE.get(backend)
-    if static_latency and consec_fails == 0:
-        score += max(0, (2000 - static_latency) / 100)
-    guard_decision = routing_guard_decisions.get(backend, {})
-    if guard_decision:
-        try:
-            score *= float(guard_decision.get("penalty_multiplier", 1.0))
-        except (TypeError, ValueError):
-            score *= 1.0
+    score = _apply_routing_weight(score, backend, scenario, request_type)
+    score = _apply_coding_adjustments(
+        score, backend, scenario, needs_tools, reg.BACKENDS.get(backend, {})
+    )
+    score = _apply_static_latency_bonus(score, backend, state.get("consecutive_failures", 0))
+    score = _apply_guard_penalty(score, routing_guard_decisions.get(backend, {}))
     return score
 
 

@@ -58,16 +58,8 @@ class AutoIndexer:
         except Exception as exc:
             _log.warning("ChromaCodeIndex init failed: %s", exc)
 
-    def scan_once(self) -> dict:
-        """Run a single scan and update indexes. Returns stats."""
-        if not self._watcher:
-            self._init_components()
-        if not self._watcher:
-            return {"error": "watcher not available"}
-
-        t0 = time.time()
-        changed_paths, changes = self._watcher.scan()
-
+    def _process_changes(self, changed_paths: list[str]) -> tuple[int, int, int]:
+        """Index new files and remove deleted ones. Returns (indexed, deleted_count, errors)."""
         indexed = 0
         deleted_count = 0
         errors = 0
@@ -86,12 +78,22 @@ class AutoIndexer:
             except Exception as exc:
                 _log.warning("index %s failed: %s", path, exc)
                 errors += 1
+        return indexed, deleted_count, errors
 
-        duration = (time.time() - t0) * 1000
-        self._last_scan = time.time()
 
-        stats = {
-            "scanned": self._watcher.manifest.total_files,
+    def _build_stats(
+        self,
+        watcher,
+        changed_paths: list[str],
+        changes: list,
+        indexed: int,
+        deleted_count: int,
+        errors: int,
+        duration: float,
+    ) -> dict:
+        """Assemble the scan stats dict."""
+        return {
+            "scanned": watcher.manifest.total_files,
             "changed": len(changed_paths),
             "indexed": indexed,
             "deleted_count": deleted_count,
@@ -102,6 +104,22 @@ class AutoIndexer:
             "deleted": sum(1 for c in changes if c.change_type == "deleted"),
         }
 
+
+    def scan_once(self) -> dict:
+        """Run a single scan and update indexes. Returns stats."""
+        if not self._watcher:
+            self._init_components()
+        if not self._watcher:
+            return {"error": "watcher not available"}
+
+        watcher = self._watcher
+        t0 = time.time()
+        changed_paths, changes = watcher.scan()
+        indexed, deleted_count, errors = self._process_changes(changed_paths)
+        duration = (time.time() - t0) * 1000
+        self._last_scan = time.time()
+
+        stats = self._build_stats(watcher, changed_paths, changes, indexed, deleted_count, errors, duration)
         if indexed > 0 or deleted_count > 0:
             _log.info(
                 "AutoIndexer: %d indexed, %d deleted, %d changed in %.0fms",
@@ -110,7 +128,6 @@ class AutoIndexer:
                 len(changed_paths),
                 duration,
             )
-
         return stats
 
     def _delete_file(self, path: str) -> None:
