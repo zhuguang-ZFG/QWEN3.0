@@ -2,17 +2,7 @@
 
 from unittest.mock import patch
 
-from session_memory.embeddings import _generate_embedding, save_memory_with_embedding, is_embed_enabled
-
-
-class TestIsEmbedEnabled:
-    def test_enabled_by_default(self):
-        with patch.dict("os.environ", {}, clear=True):
-            assert is_embed_enabled() is True
-
-    def test_disabled(self):
-        with patch.dict("os.environ", {"LIMA_MEMORY_EMBED": "0"}):
-            assert is_embed_enabled() is False
+from session_memory.embeddings import _generate_embedding, save_memory_with_embedding
 
 
 class TestGenerateEmbedding:
@@ -32,4 +22,9 @@ class TestSaveMemoryWithEmbedding:
     def test_disabled_still_saves(self):
         with patch.dict("os.environ", {"LIMA_MEMORY_EMBED": "0"}):
             eid = save_memory_with_embedding("sid", "user", "test")
+            assert eid > 0
+
+    def test_saves_without_embedding_when_disabled(self):
+        with patch.dict("os.environ", {"LIMA_MEMORY_EMBED": "0"}):
+            eid = save_memory_with_embedding("sid2", "user", "content", memory_type="code_fact")
             assert eid > 0
