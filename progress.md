@@ -27,12 +27,12 @@
   - 新增测试覆盖关键空白：`entity_extraction.py`、`eval_gate.py`、`eval_gate_promotion.py`、`prompt_recall.py`、`memory_embeddings.py`、`redact.py`、`outcome_queries.py`、`device_draw_memory.py`、`cli_telemetry.py`、`learning_loop` 全 5 通道、`context_pipeline/_project_root.py`、`retrieval_trace.py`、`cache.py`、`type_helpers.py`、`backends_registry/_utils.py`、`brand_config.py`、`code_context/retriever.py` 等。
 
 - **新增提交**：
-  - 43 次本地提交，42 次成功推送 GitHub。
-  - 新增测试文件 65 个，新增测试用例 ~610 个。
+  - 44 次本地提交，43 次成功推送 GitHub。
+  - 新增测试文件 66 个，新增测试用例 ~615 个。
 
 - **剩余大项**（需单独里程碑）：
   - P3-14：SQLite 连接池代理已落地（`config/sqlite_pool.py::_PooledConnectionProxy`），`session_memory/store_db.py` 的 `_get_conn()` 已迁移；`store_crud.py`/`store_admin.py`/`store_promote.py` 等下游模块通过 `_get_conn()` 间接受益。
-  - P2-9：`routes/` 覆盖进行中：`admin_auth.py`、`admin_backends.py`、`security_headers.py`、`rate_limit_helper.py`、`async_compat.py`、`ws_common.py`、`json_body.py`、`admin_state.py`、`request_tracking.py`、`admin_extra_logs.py`、`admin_extra_alerts.py`、`admin_extra_config.py`、`admin_extra_devices.py`、`admin_extra_client_keys.py`、`admin_extra_insights.py`、`admin_extra_agent_tasks.py`、`chat_support.py` 已测，剩余 ~38 模块。
+  - P2-9：`routes/` 覆盖进行中：`admin_auth.py`、`admin_backends.py`、`security_headers.py`、`rate_limit_helper.py`、`async_compat.py`、`ws_common.py`、`json_body.py`、`admin_state.py`、`request_tracking.py`、`admin_extra_logs.py`、`admin_extra_alerts.py`、`admin_extra_config.py`、`admin_extra_devices.py`、`admin_extra_client_keys.py`、`admin_extra_insights.py`、`admin_extra_agent_tasks.py`、`chat_support.py`、`admin_extra_backend_edit.py` 已测，剩余 ~35 模块。
   - P1-2：新增 `config/settings.py`，已迁移 `LIMA_RATE_LIMIT_DISABLE`、`LIMA_ADMIN_LOGIN_PER_MIN`、`LIMA_MEMORY_EMBED`、`LIMA_DEBUG`、`LIMA_API_KEY`/`LIMA_API_KEYS`、`LIMA_ALLOW_ANONYMOUS`，剩余以 backend API key 为主的调用。
 
 ## 2026-06-22 LiMa 第七轮瘦身（完成）
