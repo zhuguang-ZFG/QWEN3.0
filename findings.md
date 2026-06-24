@@ -1136,3 +1136,15 @@
 **未处理项**
 - `local_retrieval/fts_index.py` 使用 `:memory:` 数据库，未接入连接池（不适用）。
 - `scripts/codegraph_orphans.py` 为一次性审计脚本，保持原样。
+
+
+## 2026-06-24 LiMa 官网按 taste-skill 重塑并公网验证
+
+| Item | Detail |
+|------|--------|
+| 设计技能 | `taste-skill`（design-taste-frontend）已安装到 `C:/Users/zhugu/.kimi-code/skills/taste-skill/` |
+| 三件套 | `donglicao-site/index.html`、`styles.css`、`site.js` 已重写 |
+| 部署路径 | VPS `/www/wwwroot/donglicao-site/`（nginx `www.donglicao.com.conf` 配置 `root`） |
+| 备份 | 远程 `index.html/styles.css/site.js` 已按时间戳备份 |
+| 公网验证 | `https://donglicao.com` 与 `https://www.donglicao.com` 均 200 OK，内容包含新 Hero 文案 |
+| 遗留 | 视觉素材仍为 Picsum 占位图，需后续替换 |

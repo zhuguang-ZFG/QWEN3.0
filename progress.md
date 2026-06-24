@@ -7778,3 +7778,22 @@ Agent Worker path.
   - `device_gateway/` 顶层 Python 文件从 54 降至 **39**（<40 目标达成）
   - 零新增 >300 行文件；新增/修改生产模块无新增 >50 行函数
 - **文档**：更新 `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`（P3-2/P3-10/P3-11/P3-13/P3-14/P3-15/P3-19/P3-20 标记完成并补充证据）、`STATUS.md`、`findings.md`。
+
+
+## 2026-06-24 按 taste-skill 重塑 LiMa 官网并部署上线
+
+- **目标**：安装并应用 `taste-skill`（design-taste-frontend）的设计规则，重塑 `donglicao-site/` 官网，并部署到 VPS 公网验证。
+- **设计旋钮**：DESIGN_VARIANCE=6 / MOTION_INTENSITY=5 / VISUAL_DENSITY=4。
+- **实现**：
+  - 重写 `donglicao-site/index.html`：不对称 Hero、Bento Grid 产品展示、Galaxy Canvas 实时路由可视化、技术管线、场景、Developer API。
+  - 重写 `donglicao-site/styles.css`：Geist 可变字体、暗色科技主题、单一 cyan 强调色、响应式布局。
+  - 重写 `donglicao-site/site.js`：IntersectionObserver 滚动揭示、统计数字动画、代码复制、导航状态；无 `window.addEventListener("scroll")`。
+  - taste-skill 预检通过：零 em-dash、无三列等卡、eyebrow 数量 ≤2、CTA 意图不重复、无 `h-screen`、使用 `100dvh`。
+- **部署**：
+  - 备份 VPS `/www/wwwroot/donglicao-site/` 的 `index.html`、`styles.css`、`site.js`。
+  - 上传新版三件套到同目录；`nginx -t` 通过并 reload。
+- **验证**：
+  - 本地静态服务器 `http.server` 验证所有文件 200。
+  - `https://donglicao.com` 与 `https://www.donglicao.com` 均返回 `HTTP/1.1 200 OK`。
+  - 页面内容命中新官网特征：`AI DEVICE NEBULA`、`把自然语言变成真实创作`、`170+ AI 后端`。
+- **待办**：Picsum 占位图需在上线前替换为生成的品牌视觉素材（已在 HTML head 中标记 TODO）。
