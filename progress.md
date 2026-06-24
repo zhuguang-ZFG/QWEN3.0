@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 donglicao-site 引入轻量动态视觉（动效/视频感）
+
+- **目标**：解决官网全是静图、缺少动态/视频感的问题，在不引入大体积视频文件的前提下提升视觉活力。
+- **实现**：
+  - Hero 主图增加 `kenBurns` 慢速缩放平移动画（22s 交替循环），让静图产生视频感。
+  - Hero 视觉区新增 `.hero-orbit` 量子轨道环（SVG 虚线圆环 + 80s 无限旋转），强化量子星云主题动效。
+  - 产品卡片背景图（`.bento-bg img`）增加 `floatSoft` 呼吸浮动动画（12s 缩放+位移交替）。
+  - 所有动画使用 CSS transform，已加 `will-change: transform`；触控设备自动降低轨道透明度，省电。
+  - `prefers-reduced-motion` 已自动禁用上述动画。
+- **验证**：
+  - `node --check site.js` 通过。
+  - 本地 `python -m http.server`：HTML 包含 `hero-orbit`，CSS 包含 `kenBurns`/`floatSoft`/`orbitRotate`。
+  - 公网 `https://donglicao.com` 200 OK，远程 CSS 命中全部新动画 keyframes。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **部署**：`scp` 上传 `donglicao-site/` 全部文件到 VPS，nginx reload。
+
 ## 2026-06-24 LiMa 官网品牌升级为「LiMa 量子星云系统」
 
 - **目标**：将官网从「LiMa 星云」全面升级为「LiMa 量子星云系统」，并突出量子路由、多模态坍缩、设备纠缠协同三大特色。

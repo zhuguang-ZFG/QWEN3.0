@@ -413,6 +413,21 @@ section {
   50% { opacity: 0.7; box-shadow: 0 0 0 8px rgba(6, 182, 212, 0); }
 }
 
+@keyframes kenBurns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.06) translate(-1%, -1%); }
+}
+
+@keyframes floatSoft {
+  0% { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.04) translateY(-6px); }
+}
+
+@keyframes orbitRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* ─── BUTTONS ─── */
 .btn {
   display: inline-flex;
@@ -597,6 +612,22 @@ section {
   height: 100%;
   object-fit: cover;
   opacity: 0.95;
+  animation: kenBurns 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.hero-orbit {
+  position: absolute;
+  inset: -12%;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.35;
+  animation: orbitRotate 80s linear infinite;
+}
+
+.hero-orbit svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* ─── PRODUCTS / BENTO ─── */
@@ -646,6 +677,8 @@ section {
   height: 100%;
   object-fit: cover;
   display: block;
+  animation: floatSoft 12s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 .bento-bg::after {
@@ -1802,6 +1835,11 @@ footer::before {
   /* Reduce canvas overdraw */
   #solar-canvas {
     opacity: 0.14;
+  }
+
+  /* Make decorative orbit more subtle on battery-powered devices */
+  .hero-orbit {
+    opacity: 0.18;
   }
 }
 
