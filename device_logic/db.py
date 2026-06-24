@@ -44,6 +44,25 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
     if "audio_id" not in voiceprint_columns:
         conn.execute("ALTER TABLE v2_voiceprint ADD COLUMN audio_id TEXT")
 
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS v2_pair_request (
+            id              TEXT PRIMARY KEY,
+            pair_token      TEXT UNIQUE NOT NULL,
+            device_sn       TEXT NOT NULL,
+            account_id      TEXT NOT NULL REFERENCES v2_account(id),
+            wifi_ssid       TEXT,
+            server_url      TEXT,
+            status          TEXT DEFAULT 'pending'
+                CHECK (status IN ('pending', 'completed', 'expired')),
+            created_at      TEXT DEFAULT (datetime('now')),
+            expires_at      TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_pair_token ON v2_pair_request(pair_token)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_pair_status ON v2_pair_request(status)")
+
     conn.commit()
 
 

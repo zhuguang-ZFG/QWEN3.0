@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 
 from config.settings import VOICE as _voice_settings
+from config.settings import VOICEPRINT as _voiceprint_settings
 
 _log = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ VOICE_ENABLED = _voice_settings.enabled
 ASR_PROVIDER = _voice_settings.asr_provider
 TTS_PROVIDER = _voice_settings.tts_provider
 VAD_PROVIDER = _voice_settings.vad_provider
+VOICEPRINT_MODE = _voiceprint_settings.mode
 
 # Lazy-loaded singletons
 _asr_instance = None
@@ -82,3 +84,36 @@ def get_voiceprint_provider():
     _voiceprint_instance = _get()
     _log.info("Voiceprint provider loaded")
     return _voiceprint_instance
+
+
+def self_check() -> dict:
+    """Verify each configured voice provider can be instantiated.
+
+    Returns a dict mapping component name to ``"ok"`` or an error string.
+    When voice is disabled all components report ``"disabled"``.
+    """
+    results = {"asr": "ok", "tts": "ok", "vad": "ok", "voiceprint": "ok"}
+    if not VOICE_ENABLED:
+        return {k: "disabled" for k in results}
+
+    for key, loader in (
+        ("asr", get_asr_provider),
+        ("tts", get_tts_provider),
+        ("vad", get_vad_provider),
+    ):
+        try:
+            loader()
+        except Exception as exc:  # noqa: BLE001
+            _log.warning("Voice %s provider failed self-check: %s", key, exc)
+            results[key] = str(exc)
+
+    if VOICEPRINT_MODE != "off":
+        try:
+            get_voiceprint_provider()
+        except Exception as exc:  # noqa: BLE001
+            _log.warning("Voiceprint provider failed self-check: %s", exc)
+            results["voiceprint"] = str(exc)
+    else:
+        results["voiceprint"] = "off"
+
+    return results

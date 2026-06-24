@@ -191,6 +191,25 @@ CREATE INDEX IF NOT EXISTS idx_v2_transfer_to ON v2_device_transfer_request(to_a
 CREATE INDEX IF NOT EXISTS idx_v2_transfer_status ON v2_device_transfer_request(status);
 
 -- ============================================================
+-- 7a. v2_pair_request - 设备配网请求
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_pair_request (
+    id              TEXT PRIMARY KEY,           -- UUID
+    pair_token      TEXT UNIQUE NOT NULL,       -- 设备端用于确认配网的 token
+    device_sn       TEXT NOT NULL,              -- 设备序列号
+    account_id      TEXT NOT NULL REFERENCES v2_account(id),
+    wifi_ssid       TEXT,                       -- Wi-Fi SSID
+    server_url      TEXT,                       -- 设备连接的服务器地址
+    status          TEXT DEFAULT 'pending'      -- 状态: pending/completed/expired
+        CHECK (status IN ('pending', 'completed', 'expired')),
+    created_at      TEXT DEFAULT (datetime('now')),
+    expires_at      TEXT NOT NULL               -- ISO 8601 过期时间
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_pair_token ON v2_pair_request(pair_token);
+CREATE INDEX IF NOT EXISTS idx_v2_pair_status ON v2_pair_request(status);
+
+-- ============================================================
 -- 8. v2_device_rma_event - 维修记录
 -- ============================================================
 CREATE TABLE IF NOT EXISTS v2_device_rma_event (

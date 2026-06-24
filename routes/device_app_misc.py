@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from typing import Any
 
 from fastapi import APIRouter, Header, Request
@@ -14,7 +15,9 @@ from device_logic.access import (
     require_device_access,
 )
 from device_logic.auth import authorize
+from device_logic.crud import bind_device
 from device_logic.db import connect
+from device_logic.errors import DeviceLogicError
 from device_logic.http import err, expires_at, new_id, now, query_int, read_body, str_field
 from device_logic.payloads import self_check_payload, supply_payload, transfer_payload
 
@@ -197,3 +200,99 @@ async def get_supplies(device_id: str, authorization: str = Header(default="")) 
             "SELECT * FROM v2_device_supply WHERE device_id=? ORDER BY supply_type", (device_id,)
         ).fetchall()
     return {"supplies": [supply_payload(row) for row in rows], "count": len(rows)}
+
+
+@router.post("/devices/provision")
+async def create_provision(request: Request, authorization: str = Header(default="")) -> Any:
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    device_sn = str_field(body, "deviceSn", "device_sn")
+    wifi_ssid = str_field(body, "wifiSsid", "ssid")
+    wifi_password = str_field(body, "wifiPassword", "password") or ""
+    if not device_sn:
+        return err(400, "deviceSn is required", 400)
+    if not wifi_ssid:
+        return err(400, "wifiSsid is required", 400)
+
+    provision_id = new_id()
+    provision_token = secrets.token_urlsafe(32)
+    server_url = f"wss://{request.headers.get('host') or 'chat.donglicao.com'}/device/v1/ws"
+    expires = expires_at(1800)
+
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO v2_pair_request
+            (id, pair_token, device_sn, account_id, wifi_ssid, server_url, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (provision_id, provision_token, device_sn, account["id"], wifi_ssid, server_url, expires),
+        )
+        conn.commit()
+
+    return {
+        "provisionId": provision_id,
+        "provisionToken": provision_token,
+        "deviceSn": device_sn,
+        "serverUrl": server_url,
+        "protocol": "lima-device-v1",
+        "expiresIn": 1800,
+        "configPayload": {
+            "wifi_ssid": wifi_ssid,
+            "wifi_password": wifi_password,
+            "server_url": server_url,
+            "pair_token": provision_token,
+            "device_sn": device_sn,
+        },
+    }
+
+
+@router.post("/devices/provision/confirm")
+async def confirm_provision(request: Request) -> Any:
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    token = str_field(body, "provisionToken", "pair_token")
+    device_sn = str_field(body, "deviceSn", "device_sn")
+    if not token:
+        return err(400, "provisionToken is required", 400)
+    if not device_sn:
+        return err(400, "deviceSn is required", 400)
+
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM v2_pair_request WHERE pair_token=? AND status='pending'", (token,)
+        ).fetchone()
+        if row is None:
+            return err(404, "provision token not found", 404)
+        if row["expires_at"] < now():
+            conn.execute("UPDATE v2_pair_request SET status='expired' WHERE id=?", (row["id"],))
+            conn.commit()
+            return err(400, "provision token expired", 400)
+        if row["device_sn"] != device_sn:
+            return err(400, "deviceSn does not match provision token", 400)
+        account_id = row["account_id"]
+        pair_request_id = row["id"]
+
+        try:
+            bind_device(
+                conn,
+                account_id=account_id,
+                device_sn=device_sn,
+                model="esp32s3_xyz",
+                firmware_ver="",
+                hardware_ver="",
+                metadata=None,
+                new_id=new_id,
+            )
+        except DeviceLogicError as exc:
+            return err(exc.code, exc.message, exc.http_status)
+
+        conn.execute("UPDATE v2_pair_request SET status='completed' WHERE id=?", (pair_request_id,))
+        conn.commit()
+
+    return {"deviceSn": device_sn, "status": "bound", "accountId": account_id}
