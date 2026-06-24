@@ -1,5 +1,7 @@
 """Cloudflare Worker / SCNet / other free web backends."""
 
+from config.backend_config import LLM7_API_KEY
+
 BACKENDS = {
     # ── lza6 系列 CF Workers (逆向网页 AI, 免费) ──
     "tele_reason": {
@@ -239,8 +241,8 @@ BACKENDS = {
     },
     "llm7": {
         "url": "https://api.llm7.io/v1/chat/completions",
-        "key": "none",
-        "model": "auto",
+        "key": LLM7_API_KEY or "none",
+        "model": "default",
         "fmt": "openai",
         "timeout": 20,
     },

@@ -62,6 +62,7 @@ FREE_CENTOS_KEY: str = os.environ.get("FREE_CENTOS_KEY", "")
 FREE_MUYUAN_KEY: str = os.environ.get("FREE_MUYUAN_KEY", "")
 FREE_AJIAKESI_KEY: str = os.environ.get("FREE_AJIAKESI_KEY", "")
 FREE_TEAM_SPEED_KEY: str = os.environ.get("FREE_TEAM_SPEED_KEY", "")
+LLM7_API_KEY: str = os.environ.get("LLM7_API_KEY", "")
 
 # Tunnel / proxy URLs
 DDG_TUNNEL_URL: str = os.environ.get("DDG_TUNNEL_URL", "http://localhost:4500")

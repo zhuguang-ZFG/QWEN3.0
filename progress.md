@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 接入 LLM7 API Key 配置
+
+- **目标**：将用户提供的 LLM7 信息加入后端，支持通过环境变量配置 API Key，并使用官方推荐的 `default` 模型。
+- **实现**：
+  - `config/backend_config.py` 新增 `LLM7_API_KEY`（从环境变量读取，默认空字符串）。
+  - `backends_registry/free_web_workers.py` 的 `llm7` 后端改用 `LLM7_API_KEY or "none"`，模型从 `"auto"` 改为 `"default"`。
+  - `.env.example` 增加 `LLM7_API_KEY=` 及说明（免费版每天 100 万 Tokens，15 个模型默认 default）。
+- **验证**：
+  - `py_compile` 与 `ruff check` 通过。
+  - `tests/test_backend_registry.py` 30 passed / 0 failed。
+- **Git**：已提交推送。
+
 ## 2026-06-24 第一部分：编码能力退役
 
 - **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 第一部分，退役非 IDE 的编码能力，简化路由管线。
