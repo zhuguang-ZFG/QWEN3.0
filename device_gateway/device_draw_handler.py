@@ -8,6 +8,7 @@ from xiaozhi_drawing.svg_validator import validate_svg_path
 from xiaozhi_drawing.path_optimizer import optimize_svg_path
 from xiaozhi_drawing.preset_shapes import get_preset_svg
 
+from device_gateway.device_profile.registry import get_device_profile
 from device_gateway.draw_prompt_enhancer import (
     enhance_drawing_prompt,
     get_draw_conversation_context,
@@ -15,6 +16,7 @@ from device_gateway.draw_prompt_enhancer import (
     record_device_draw_turn,
     record_failed_draw_prompt,
     resolve_device_type,
+    screen_drawing_request,
 )
 from device_gateway.path_pipeline import precheck_draw_motion_path
 
@@ -120,8 +122,10 @@ async def _generate_image(
     complexity: str = "中",
     previous_failed_prompts: list[str] | None = None,
     conversation_context: str = "",
+    device_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Enhance prompt and generate an image via DashScope."""
+    device_profile = get_device_profile(device_id) if device_id else None
     enhanced_prompt = enhance_drawing_prompt(
         prompt,
         style=style,
@@ -129,6 +133,7 @@ async def _generate_image(
         device_type=device_type,
         previous_failed_prompts=previous_failed_prompts,
         conversation_context=conversation_context,
+        device_profile=device_profile,
     )
     logger.info(f"Enhanced prompt: {enhanced_prompt[:100]}...")
     client = DashScopeImageClient()
@@ -253,9 +258,18 @@ async def _try_preset_or_generate(prompt: str, device_id: str | None, config: di
             record_failed_draw_prompt(device_id, prompt, error=str(preset.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, preset)
 
+    screen = screen_drawing_request(prompt, device_id)
+    if not screen["feasible"]:
+        record_failed_draw_prompt(device_id, prompt, error=screen["reason"])
+        return _finalize_draw_response(
+            device_id,
+            prompt,
+            _build_failed_response(config["model"], screen["suggestion"]),
+        )
+
     try:
         result = await _generate_image(
-            prompt,
+            screen["simplified_prompt"],
             config["model"],
             config["size"],
             device_type=config["device_type"],
@@ -263,6 +277,7 @@ async def _try_preset_or_generate(prompt: str, device_id: str | None, config: di
             complexity=config["complexity"],
             previous_failed_prompts=config.get("failed_prompts") or None,
             conversation_context=config.get("conversation_context") or "",
+            device_id=device_id,
         )
         if result["status"] != "success" or not result["images"]:
             record_failed_draw_prompt(device_id, prompt, error=str(result.get("error") or "Unknown error"))

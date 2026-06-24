@@ -8098,3 +8098,22 @@ Agent Worker path.
   - 本地 `http.server` 验证关键文件 200。
   - `donglicao.com`、`www.donglicao.com`、`chat.donglicao.com` 均 200 OK。
   - 远程 CSS 确认包含 violet/amber/rose token 及 cyan-violet 渐变。
+
+
+## 2026-06-24 绘图/写字机提示词强化
+
+- **目标**：针对 ESP32 笔绘机/写字机能力限制强化绘图提示词，避免复杂、写实、多主体等超出设备能力的描述直接触发图像生成。
+- **改动**：
+  - `device_gateway/draw_prompt_enhancer.py`：
+    - 重写系统提示词，明确绝对禁止项与必须遵守项，增加正/负面示例。
+    - 增加复杂度分级（simple/medium/complex）与关键词信号。
+    - 增加 `screen_drawing_request()` 预审门控：根据设备 profile 的 `max_path_points` 判断是否超出能力，拒绝时给出简化建议。
+    - 增加 `simplify_prompt_for_plotter()` 启发式简化。
+    - `enhance_drawing_prompt()` 注入设备工作区和路径点数约束。
+  - `device_gateway/device_draw_handler.py`：在 AI 生成前调用 `screen_drawing_request()`，拒绝过复杂请求并记录失败。
+  - `tests/test_draw_prompt_enhancer.py`：新增复杂度分级、预审、简化、提示词内容测试。
+  - `tests/test_device_draw_handler.py`：更新 mock 断言以匹配新增的 `device_profile` 参数。
+- **验证**：
+  - `pytest tests/test_draw_prompt_enhancer.py tests/test_draw_prompt_context.py tests/test_device_draw_handler.py tests/test_device_draw_handler_part2.py -q` → 32 passed。
+  - `pytest tests/device_gateway tests/test_device_gateway_*.py tests/test_routes_device_gateway.py -q` → 229 passed。
+  - `ruff check` / `pyright` 针对修改文件 0 error。

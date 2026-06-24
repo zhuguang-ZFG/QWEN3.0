@@ -163,6 +163,7 @@ class TestHandleDeviceDraw:
             device_type="esp32_xy_plotter",
             previous_failed_prompts=None,
             conversation_context="",
+            device_profile=None,
         )
         assert resp["image_url"] == "http://img/1"
         assert resp["svg_path"] == "M0,0"

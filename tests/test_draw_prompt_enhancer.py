@@ -1,97 +1,111 @@
-"""Tests for device_gateway.draw_prompt_enhancer."""
+"""Tests for plotter-focused prompt enhancement."""
 
 from __future__ import annotations
 
 import pytest
 
-from device_gateway.draw_prompt_enhancer import enhance_drawing_prompt
-
-
-class TestEnhanceDrawingPrompt:
-    def test_includes_pen_plotter_constraints(self):
-        result = enhance_drawing_prompt("猫")
-        assert "笔绘机" in result
-        assert "黑色线条" in result
-        assert "纯白背景" in result
-        assert "封闭图形" in result
-
-    def test_includes_user_subject(self):
-        result = enhance_drawing_prompt("一只在睡觉的猫")
-        assert "一只在睡觉的猫" in result
-
-    def test_default_style_and_complexity(self):
-        result = enhance_drawing_prompt("星星")
-        assert "简约风格" in result
-        assert "中复杂度" in result
-        assert "约20笔画" in result
-
-    def test_custom_style_and_complexity(self):
-        result = enhance_drawing_prompt("花", style="可爱", complexity="低")
-        assert "可爱风格" in result
-        assert "低复杂度" in result
-        assert "约10笔画" in result
-
-    def test_empty_prompt_falls_back(self):
-        result = enhance_drawing_prompt("  ")
-        assert "一个简单图形" in result
-
-    def test_non_string_input_converted(self):
-        result = enhance_drawing_prompt(123)  # type: ignore[arg-type]
-        assert "123" in result
-
-    def test_rejects_gray_and_fill(self):
-        result = enhance_drawing_prompt("房子")
-        assert "无阴影" in result
-        assert "无填充" in result
-        assert "无文字" in result
-
-    def test_includes_device_capability(self):
-        result = enhance_drawing_prompt("猫", device_type="esp32_xy_plotter")
-        assert "XY平台" in result
-        assert "G-code" in result
-
-    def test_includes_retry_hint_from_failed_prompts(self):
-        result = enhance_drawing_prompt("猫", previous_failed_prompts=["过于复杂的森林"])
-        assert "过于复杂的森林" in result
-        assert "生成失败" in result
-
-    def test_includes_conversation_context(self):
-        context = "近期绘图对话：\n- 画一只猫 [success]"
-        result = enhance_drawing_prompt("再画大一点", conversation_context=context)
-        assert "【对话上下文】" in result
-        assert "画一只猫" in result
-        assert "基于上一轮" in result
-
-
-class TestEnhanceDrawingPromptSingleLineKeywords:
-    def test_includes_single_stroke_style(self):
-        result = enhance_drawing_prompt("猫")
-        assert "单笔连续" in result
-        assert "coloring book outline" in result
-
-    def test_includes_no_gradient(self):
-        result = enhance_drawing_prompt("树")
-        assert "无渐变" in result
-
-    def test_includes_one_stroke_hint(self):
-        result = enhance_drawing_prompt("鸟")
-        assert "一笔画成" in result
-
-    def test_no_fixed_line_width_hint(self):
-        result = enhance_drawing_prompt("花")
-        assert "2-3px" not in result
-        assert "粗细约" not in result
-
-
-@pytest.mark.parametrize(
-    "complexity,expected_strokes",
-    [
-        ("低", "约10笔画"),
-        ("中", "约20笔画"),
-        ("高", "约40笔画"),
-        ("unknown", "约20笔画"),
-    ],
+from device_gateway.device_profile.models import DeviceCapability, DeviceProfile
+from device_gateway.device_profile.registry import (
+    get_device_profile,
+    register_device_profile,
+    reset_device_profiles_for_tests,
 )
-def test_complexity_strokes(complexity: str, expected_strokes: str) -> None:
-    result = enhance_drawing_prompt("树", complexity=complexity)
-    assert expected_strokes in result
+from device_gateway.draw_prompt_enhancer import (
+    classify_plotter_complexity,
+    enhance_drawing_prompt,
+    screen_drawing_request,
+    simplify_prompt_for_plotter,
+)
+
+
+@pytest.fixture(autouse=True)
+def _reset_profiles():
+    reset_device_profiles_for_tests()
+    yield
+    reset_device_profiles_for_tests()
+
+
+class TestClassifyPlotterComplexity:
+    def test_simple_prompt(self):
+        assert classify_plotter_complexity("画一个圆") == "simple"
+        assert classify_plotter_complexity("apple") == "simple"
+
+    def test_medium_prompt(self):
+        assert classify_plotter_complexity("画一棵树") == "medium"
+        assert classify_plotter_complexity("画一个卡通机器人") == "medium"
+
+    def test_complex_prompt(self):
+        assert classify_plotter_complexity("画一座城市和人群的照片") == "complex"
+        assert classify_plotter_complexity("a photorealistic cat with fur and shadow") == "complex"
+
+
+class TestSimplifyPrompt:
+    def test_strip_complex_modifiers(self):
+        simplified = simplify_prompt_for_plotter("画一只毛茸茸的猫在阳光下")
+        assert "毛茸茸" not in simplified
+        assert "阳光下" not in simplified
+        assert "简笔画" in simplified
+
+    def test_take_first_subject(self):
+        assert "苹果" in simplify_prompt_for_plotter("画一个苹果和一座房子")
+        assert "房子" not in simplify_prompt_for_plotter("画一个苹果和一座房子")
+
+    def test_fallback_for_empty(self):
+        result = simplify_prompt_for_plotter("   ")
+        assert "简笔画" in result
+
+
+class TestScreenDrawingRequest:
+    def test_feasible_when_no_profile(self):
+        result = screen_drawing_request("画一个圆", "unknown-device")
+        assert result["feasible"] is True
+        assert result["complexity"] == "simple"
+
+    def test_rejected_for_complex_on_limited_device(self):
+        profile = DeviceProfile(
+            device_id="dev-small",
+            max_path_points=50,
+            workspace_mm={"x": 60, "y": 60, "z": 10},
+            capabilities=("run_path",),
+            capability=DeviceCapability(supported_features=("vector_path",)),
+        )
+        register_device_profile(profile)
+        result = screen_drawing_request("画一座城市风景", "dev-small")
+        assert result["feasible"] is False
+        assert result["complexity"] == "complex"
+        assert result["max_allowed"] == "simple"
+        assert "建议简化" in result["suggestion"]
+
+    def test_medium_allowed_on_capable_device(self):
+        profile = DeviceProfile(
+            device_id="dev-medium",
+            max_path_points=120,
+            workspace_mm={"x": 100, "y": 100, "z": 10},
+            capabilities=("run_path",),
+            capability=DeviceCapability(supported_features=("vector_path",)),
+        )
+        register_device_profile(profile)
+        result = screen_drawing_request("画一棵树", "dev-medium")
+        assert result["feasible"] is True
+        assert result["complexity"] == "medium"
+
+
+class TestEnhancedPromptContent:
+    def test_includes_constraints_and_examples(self):
+        prompt = enhance_drawing_prompt("画一只猫")
+        assert "绝对禁止" in prompt
+        assert "正面示例" in prompt
+        assert "设备约束" in prompt
+
+    def test_includes_device_profile_constraints(self):
+        profile = DeviceProfile(
+            device_id="dev-constraint",
+            max_path_points=80,
+            workspace_mm={"x": 80, "y": 80, "z": 10},
+            capabilities=("run_path",),
+            capability=DeviceCapability(supported_features=("vector_path",)),
+        )
+        register_device_profile(profile)
+        prompt = enhance_drawing_prompt("画一只猫", device_profile=get_device_profile("dev-constraint"))
+        assert "80x80mm" in prompt
+        assert "80" in prompt
