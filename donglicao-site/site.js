@@ -143,23 +143,8 @@
 
   statValues.forEach((el) => statObserver.observe(el));
 
-  // Code copy button
-  const copyBtn = document.querySelector(".code-copy");
+  // Code copy buttons (bind one handler per .dev-code block)
   const toast = document.getElementById("copyToast");
-
-  if (copyBtn) {
-    copyBtn.addEventListener("click", async () => {
-      const codeBody = document.querySelector(".code-body");
-      if (!codeBody) return;
-      const text = codeBody.innerText;
-      try {
-        await navigator.clipboard.writeText(text);
-        showToast("已复制到剪贴板");
-      } catch (err) {
-        showToast("复制失败");
-      }
-    });
-  }
 
   function showToast(message) {
     if (!toast) return;
@@ -167,6 +152,25 @@
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 2200);
   }
+
+  document.querySelectorAll(".dev-code").forEach((devCode) => {
+    const copyBtn = devCode.querySelector(".code-copy");
+    if (!copyBtn) return;
+
+    copyBtn.addEventListener("click", async () => {
+      const visiblePanel =
+        devCode.querySelector('.code-panel:not([hidden])') ||
+        devCode.querySelector(".code-panel");
+      if (!visiblePanel) return;
+      const text = visiblePanel.innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("已复制到剪贴板");
+      } catch (err) {
+        showToast("复制失败");
+      }
+    });
+  });
 
   // Smooth anchor scrolling offset for fixed nav
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {

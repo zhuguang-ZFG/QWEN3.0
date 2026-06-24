@@ -40,6 +40,107 @@
         "sameAs": [
           "https://github.com/zhuguang-ZFG/QWEN3.0"
         ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "LiMa 支持哪些 AI 模型？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "LiMa 量子星云已接入 170+ 后端，覆盖 GPT、Claude、Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare 等主流模型，并通过量子路由按请求类型、成本与健康状态坍缩至最优模型。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "设备兼容哪些开发板？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AI 绘图机、写字机与 2D 数字人均基于 ESP32 系列硬件方案，支持 Wi-Fi / MQTT / WebSocket 接入。具体型号与固件可参考开发者文档。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "数据是否安全？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "LiMa 在传输层使用 TLS 加密，API 访问需校验 Key 与身份策略；设备指令经过策略验证与安全仿真，确保可执行且不会泄露隐私数据。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "如何部署？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "云端版本可直接使用 chat.donglicao.com，无需部署；本地或边缘部署提供 Docker 镜像与配置模板，按文档填写后端 Key 后即可启动服务。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "支持私有化部署吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "支持。企业客户可将 LiMa 路由核心、设备网关与数据库部署在自有服务器或私有云，满足合规与内网隔离要求，具体请联系商务团队。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "如何计费？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "按实际调用量计费，支持预付费套餐与按量后付。不同模型与能力单价不同，详情参考定价页面或控制台费率说明。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "可以退款吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "未消耗的预付费余额支持申请退款，购买后 7 天内且未使用可申请全额退；已消耗部分按实际使用结算，具体以购买协议为准。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "支持多种设备协同吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "支持。LiMa 的设备纠缠协同机制允许绘图机、写字机、数字人等多种设备在同一任务中联动，由路由中枢统一编排动作与状态。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "API 有速率限制吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "有。默认按账户级别设置 RPM 与 TPM 上限，免费体验额度较低；升级套餐或联系商务可提高限额。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "固件如何升级？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "设备支持 OTA 无线升级。LiMa 控制台推送新固件后，设备通过 MQTT 或 WebSocket 接收升级包并自动完成更新，也可使用 USB 线刷方式。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "小程序支持哪些语言？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "小程序 SDK 与示例目前支持中文与英文界面，语音交互默认支持中文普通话，后续将逐步扩展多语言 TTS 与 ASR。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "如何获取技术支持？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "可通过控制台工单、GitHub Issues 或发送邮件至 support@donglicao.com 获取技术支持，企业客户享有专属对接通道。"
+            }
+          }
+        ]
       }
     ]
   }
@@ -78,6 +179,7 @@
         <a href="#technology">技术</a>
         <a href="#scenarios">场景</a>
         <a href="#developer">开发者</a>
+        <a href="pricing.html">定价</a>
         <a href="https://chat.donglicao.com" target="_blank" rel="noopener" class="nav-cta">控制台</a>
       </div>
     </div>
@@ -411,19 +513,92 @@
           <a href="https://chat.donglicao.com" class="btn btn-primary" target="_blank" rel="noopener">获取 API Key <svg class="svg-icon" style="width:16px;height:16px"><use href="#i-arrow-right"/></svg></a>
         </div>
         <div class="dev-code">
-          <div class="code-header"><span class="code-dot red"></span><span class="code-dot yellow"></span><span class="code-dot green"></span><span class="code-filename">quick_start.py</span><button class="code-copy" type="button" aria-label="复制代码">复制</button></div>
+          <div class="code-header">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+            <div class="code-tabs" role="tablist" aria-label="选择编程语言">
+              <button class="tab active" type="button" role="tab" data-lang="python" id="tab-python" aria-selected="true" aria-controls="panel-python">Python</button>
+              <button class="tab" type="button" role="tab" data-lang="curl" id="tab-curl" aria-selected="false" aria-controls="panel-curl" tabindex="-1">cURL</button>
+              <button class="tab" type="button" role="tab" data-lang="javascript" id="tab-javascript" aria-selected="false" aria-controls="panel-javascript" tabindex="-1">JavaScript</button>
+              <button class="tab" type="button" role="tab" data-lang="go" id="tab-go" aria-selected="false" aria-controls="panel-go" tabindex="-1">Go</button>
+            </div>
+            <select class="code-tabs-select" aria-label="选择编程语言（移动端）">
+              <option value="python" selected>Python</option>
+              <option value="curl">cURL</option>
+              <option value="javascript">JavaScript</option>
+              <option value="go">Go</option>
+            </select>
+            <button class="code-copy" type="button" aria-label="复制当前代码">复制</button>
+          </div>
           <div class="code-body">
-            <span class="c-comment"># 一句话生成绘图指令</span><br>
-            <span class="c-keyword">import</span> openai<br><br>
-            client = openai.OpenAI(<br>
-            &nbsp;&nbsp;base_url=<span class="c-string">"https://chat.donglicao.com/v1"</span>,<br>
-            &nbsp;&nbsp;api_key=<span class="c-string">"your-key"</span><br>
-            )<br><br>
-            response = client.chat.completions.create(<br>
-            &nbsp;&nbsp;model=<span class="c-string">"lima"</span>,<br>
-            &nbsp;&nbsp;messages=[{<span class="c-key">"role"</span>: <span class="c-string">"user"</span>,<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="c-key">"content"</span>: <span class="c-string">"画一只猫"</span>}]<br>
-            )
+<pre class="code-panel active" data-lang="python" role="tabpanel" id="panel-python" aria-labelledby="tab-python"><code><span class="c-comment"># 一句话生成绘图指令</span>
+<span class="c-keyword">import</span> openai
+
+client = openai.OpenAI(
+  base_url=<span class="c-string">"https://chat.donglicao.com/v1"</span>,
+  api_key=<span class="c-string">"your-key"</span>
+)
+
+response = client.chat.completions.create(
+  model=<span class="c-string">"lima"</span>,
+  messages=[{<span class="c-key">"role"</span>: <span class="c-string">"user"</span>,
+    <span class="c-key">"content"</span>: <span class="c-string">"画一只猫"</span>}]
+)
+
+<span class="c-keyword">print</span>(response.choices[<span class="c-string">0</span>].message.content)</code></pre>
+<pre class="code-panel" data-lang="curl" role="tabpanel" id="panel-curl" aria-labelledby="tab-curl" hidden><code>curl -X POST <span class="c-string">"https://chat.donglicao.com/v1/chat/completions"</span> \\
+  -H <span class="c-string">"Content-Type: application/json"</span> \\
+  -H <span class="c-string">"Authorization: Bearer your-key"</span> \\
+  -d <span class="c-string">'{
+    "model": "lima",
+    "messages": [{"role": "user", "content": "画一只猫"}]
+  }'</span></code></pre>
+<pre class="code-panel" data-lang="javascript" role="tabpanel" id="panel-javascript" aria-labelledby="tab-javascript" hidden><code><span class="c-keyword">const</span> response = <span class="c-keyword">await</span> fetch(<span class="c-string">'https://chat.donglicao.com/v1/chat/completions'</span>, {
+  method: <span class="c-string">'POST'</span>,
+  headers: {
+    <span class="c-key">'Content-Type'</span>: <span class="c-string">'application/json'</span>,
+    <span class="c-key">'Authorization'</span>: <span class="c-string">'Bearer your-key'</span>
+  },
+  body: JSON.stringify({
+    model: <span class="c-string">'lima'</span>,
+    messages: [{ role: <span class="c-string">'user'</span>, content: <span class="c-string">'画一只猫'</span> }]
+  })
+});
+
+<span class="c-keyword">const</span> data = <span class="c-keyword">await</span> response.json();
+console.log(data.choices[<span class="c-string">0</span>].message.content);</code></pre>
+<pre class="code-panel" data-lang="go" role="tabpanel" id="panel-go" aria-labelledby="tab-go" hidden><code><span class="c-keyword">package</span> main
+
+<span class="c-keyword">import</span> (
+  <span class="c-string">"bytes"</span>
+  <span class="c-string">"encoding/json"</span>
+  <span class="c-string">"fmt"</span>
+  <span class="c-string">"log"</span>
+  <span class="c-string">"net/http"</span>
+)
+
+<span class="c-keyword">func</span> main() {
+  payload := <span class="c-keyword">map</span>[<span class="c-keyword">string</span>]any{
+    <span class="c-key">"model"</span>: <span class="c-string">"lima"</span>,
+    <span class="c-key">"messages"</span>: []<span class="c-keyword">map</span>[<span class="c-keyword">string</span>]<span class="c-keyword">string</span>{
+      {<span class="c-key">"role"</span>: <span class="c-string">"user"</span>, <span class="c-key">"content"</span>: <span class="c-string">"画一只猫"</span>},
+    },
+  }
+  body, _ := json.Marshal(payload)
+  req, _ := http.NewRequest(<span class="c-string">"POST"</span>,
+    <span class="c-string">"https://chat.donglicao.com/v1/chat/completions"</span>,
+    bytes.NewBuffer(body))
+  req.Header.Set(<span class="c-string">"Content-Type"</span>, <span class="c-string">"application/json"</span>)
+  req.Header.Set(<span class="c-string">"Authorization"</span>, <span class="c-string">"Bearer your-key"</span>)
+
+  resp, err := http.DefaultClient.Do(req)
+  <span class="c-keyword">if</span> err != nil {
+    log.Fatal(err)
+  }
+  <span class="c-keyword">defer</span> resp.Body.Close()
+  fmt.Println(resp.Status)
+}</code></pre>
           </div>
         </div>
       </div>
@@ -436,20 +611,52 @@
       </div>
       <div class="faq-list">
         <details class="faq-item">
-          <summary class="faq-question">LiMa 量子星云支持哪些 AI 模型？</summary>
+          <summary class="faq-question">LiMa 支持哪些 AI 模型？</summary>
           <div class="faq-answer"><p>LiMa 量子星云已接入 170+ 后端，覆盖 GPT、Claude、Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare 等主流模型，并通过量子路由按请求类型、成本与健康状态坍缩至最优模型。</p></div>
         </details>
         <details class="faq-item">
-          <summary class="faq-question">设备需要特殊硬件吗？</summary>
+          <summary class="faq-question">设备兼容哪些开发板？</summary>
           <div class="faq-answer"><p>AI 绘图机、写字机与 2D 数字人均基于 ESP32 系列硬件方案，支持 Wi-Fi / MQTT / WebSocket 接入。具体型号与固件可参考开发者文档。</p></div>
         </details>
         <details class="faq-item">
-          <summary class="faq-question">API 是否兼容 OpenAI？</summary>
-          <div class="faq-answer"><p>是的。LiMa 提供兼容 OpenAI 格式的 REST API，只需修改 base_url 与 api_key 即可接入现有应用。</p></div>
+          <summary class="faq-question">数据是否安全？</summary>
+          <div class="faq-answer"><p>LiMa 在传输层使用 TLS 加密，API 访问需校验 Key 与身份策略；设备指令经过策略验证与安全仿真，确保可执行且不会泄露隐私数据。</p></div>
         </details>
         <details class="faq-item">
-          <summary class="faq-question">如何获取 API Key？</summary>
-          <div class="faq-answer"><p>访问 <a href="https://chat.donglicao.com" target="_blank" rel="noopener">chat.donglicao.com</a> 注册并创建 Key，支持免费体验额度。</p></div>
+          <summary class="faq-question">如何部署？</summary>
+          <div class="faq-answer"><p>云端版本可直接使用 chat.donglicao.com，无需部署；本地或边缘部署提供 Docker 镜像与配置模板，按文档填写后端 Key 后即可启动服务。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-question">支持私有化部署吗？</summary>
+          <div class="faq-answer"><p>支持。企业客户可将 LiMa 路由核心、设备网关与数据库部署在自有服务器或私有云，满足合规与内网隔离要求，具体请联系商务团队。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-question">如何计费？</summary>
+          <div class="faq-answer"><p>按实际调用量计费，支持预付费套餐与按量后付。不同模型与能力单价不同，详情参考定价页面或控制台费率说明。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-question">可以退款吗？</summary>
+          <div class="faq-answer"><p>未消耗的预付费余额支持申请退款，购买后 7 天内且未使用可申请全额退；已消耗部分按实际使用结算，具体以购买协议为准。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-question">支持多种设备协同吗？</summary>
+          <div class="faq-answer"><p>支持。LiMa 的设备纠缠协同机制允许绘图机、写字机、数字人等多种设备在同一任务中联动，由路由中枢统一编排动作与状态。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-question">API 有速率限制吗？</summary>
+          <div class="faq-answer"><p>有。默认按账户级别设置 RPM 与 TPM 上限，免费体验额度较低；升级套餐或联系商务可提高限额。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-question">固件如何升级？</summary>
+          <div class="faq-answer"><p>设备支持 OTA 无线升级。LiMa 控制台推送新固件后，设备通过 MQTT 或 WebSocket 接收升级包并自动完成更新，也可使用 USB 线刷方式。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-question">小程序支持哪些语言？</summary>
+          <div class="faq-answer"><p>小程序 SDK 与示例目前支持中文与英文界面，语音交互默认支持中文普通话，后续将逐步扩展多语言 TTS 与 ASR。</p></div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-question">如何获取技术支持？</summary>
+          <div class="faq-answer"><p>可通过控制台工单、GitHub Issues 或发送邮件至 support@donglicao.com 获取技术支持，企业客户享有专属对接通道。</p></div>
         </details>
       </div>
     </section>
@@ -468,25 +675,53 @@
 
   <footer aria-label="站点底部">
     <div class="footer-inner">
-      <div class="footer-brand">
-        <div class="logo-mark"><svg class="svg-icon"><use href="#i-sparkles"/></svg></div>
-        <div>
-          <div class="footer-name">LiMa 量子星云</div>
-          <p class="footer-desc">量子化的 AI 智能设备星云系统</p>
+      <div class="footer-brand-col">
+        <div class="footer-brand">
+          <div class="logo-mark"><svg class="svg-icon"><use href="#i-sparkles"/></svg></div>
+          <div>
+            <div class="footer-name">LiMa 量子星云</div>
+            <p class="footer-desc">量子化的 AI 智能设备星云系统</p>
+          </div>
+        </div>
+        <div class="footer-social">
+          <button class="social-icon" type="button" aria-label="微信公众号二维码">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm4-1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-7.5-2C3.6 6.5 6.9 4 11 4c3.5 0 6.5 1.9 6.5 5 0 2.6-2.1 4.5-5 4.9l-1.5 1.5.5-1.8C8.2 13.2 5 12 5 10zm13.5 3c0-2.4-2.4-4.1-5.3-4.5.2.4.3.9.3 1.5 0 3.3-3.3 5.5-7 5.5-.6 0-1.2-.1-1.7-.2 1.1 2 3.8 3.2 6.7 3.2.6 0 1.1 0 1.7-.1l1.4 1.4-.5-1.6c2.4-.8 3.4-2.4 3.4-4.3z"/></svg>
+            <span class="qr-tooltip">
+              <img src="assets/wechat-qr.png" alt="微信公众号二维码" width="120" height="120">
+              <span>微信公众号</span>
+            </span>
+          </button>
+          <a class="social-icon" href="#" aria-label="微博">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.8 3.5c4.5 0 8.2 3 8.2 6.7 0 3.8-3.7 6.8-8.2 6.8-1 0-2-.1-2.9-.4L5.5 18l.6-2.4C4.5 14.2 3.5 12.6 3.5 10.8c0-4.2 3.3-7.3 7.3-7.3zm4.5 4.6c.4 0 .7-.3.7-.7s-.3-.7-.7-.7-.7.3-.7.7.3.7.7.7zm-3.4-.9c.3 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm1.5 3.5c-.4-1.4-2-2.1-3.5-1.7-1.5.4-2.4 1.8-2 3.1.4 1.3 1.9 2 3.4 1.6 1.5-.3 2.5-1.6 2.1-3z"/></svg>
+          </a>
+          <a class="social-icon" href="#" aria-label="哔哩哔哩">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 6h20l-2 13H4L2 6zm4 5h5v5H6v-5zm7 0h5v5h-5v-5z"/></svg>
+          </a>
+          <a class="social-icon" href="#" aria-label="抖音">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 4v9.5c0 2.5-2 4.5-4.5 4.5S7 16 7 13.5 9 9 11.5 9c.6 0 1.2.1 1.7.4V4h3z"/></svg>
+          </a>
+          <a class="social-icon" href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0 1 12 6.8c.85 0 1.71.11 2.51.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>
+          </a>
         </div>
       </div>
       <div class="footer-links">
-        <div class="footer-col"><h4>产品</h4><a href="#products">AI 绘图机</a><a href="#products">AI 写字机</a><a href="https://chat.donglicao.com/digital-human/" target="_blank" rel="noopener">2D 数字人</a></div>
+        <div class="footer-col"><h4>产品</h4><a href="index.html">首页</a><a href="pricing.html">定价</a><a href="https://docs.donglicao.com" target="_blank" rel="noopener">文档</a><a href="https://chat.donglicao.com" target="_blank" rel="noopener">控制台</a></div>
         <div class="footer-col"><h4>开发者</h4><a href="https://chat.donglicao.com" target="_blank" rel="noopener">API 文档</a><a href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener">GitHub</a><a href="https://gitee.com/zhuguang-cn/QWEN3.0" target="_blank" rel="noopener">Gitee</a></div>
-        <div class="footer-col"><h4>公司</h4><a href="#hero">关于我们</a><a href="#developer">联系方式</a></div>
+        <div class="footer-col"><h4>法律</h4><a href="privacy.html">隐私政策</a><a href="terms.html">用户协议</a></div>
+        <div class="footer-col"><h4>公司</h4><a href="index.html#hero">关于我们</a><a href="mailto:sales@donglicao.com">联系销售</a></div>
       </div>
     </div>
-    <div class="footer-bottom">深圳市动力巢科技有限公司 - Copyright 2024-2026 DongLiCao Technology. All rights reserved.</div>
+    <div class="footer-bottom">
+      <span>深圳市动力巢科技有限公司 - Copyright 2024-2026 DongLiCao Technology. All rights reserved.</span>
+      <span class="footer-icp">京ICP备XXXXXXXX号-1 <!-- 待替换为真实备案号 --></span>
+    </div>
   </footer>
 
   <div class="copy-toast" id="copyToast" role="status" aria-live="polite">已复制到剪贴板</div>
 
   <script src="site.js?v=taste2"></script>
+  <script src="js/code-tabs.js?v=taste2"></script>
   <script src="solar-system.js?v=taste2"></script>
   <script src="galaxy.js?v=taste2"></script>
 </body>
