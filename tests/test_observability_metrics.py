@@ -26,20 +26,27 @@ class TestRecord:
     def test_record_request_start(self):
         record(LiMaEvent(event_type="request_start", backend="groq"))
         s = get_metrics_snapshot()
-        assert s["total_requests"] >= 1
+        assert s["total_requests"] == 1
+        assert s["event_type_counts"]["request_start"] == 1
 
-    def test_record_success(self):
-        record(LiMaEvent(event_type="request_complete", backend="groq", latency_ms=150))
+    def test_record_success_tracks_backend(self):
+        record(LiMaEvent(event_type="backend_call", backend="groq", latency_ms=150))
         s = get_metrics_snapshot()
-        assert s["total_requests"] >= 1
+        assert s["backends"]["groq"]["success"] == 1
+        assert s["backends"]["groq"]["avg_latency_ms"] == 150
 
-    def test_record_failure(self):
-        record(LiMaEvent(event_type="request_complete", backend="groq", failure_class="timeout"))
+    def test_record_failure_tracks_failure_class(self):
+        record(LiMaEvent(event_type="backend_error", backend="groq", failure_class="timeout"))
         s = get_metrics_snapshot()
+        assert s["backends"]["groq"]["failure"] == 1
+        assert s["failure_class_counts"]["timeout"] == 1
 
-    def test_record_token_usage(self):
+    def test_record_token_usage_tracks_tokens(self):
         record(LiMaEvent(event_type="token_usage", backend="groq", prompt_tokens=100, completion_tokens=50))
         s = get_metrics_snapshot()
+        assert s["backends"]["groq"]["prompt_tokens"] == 100
+        assert s["backends"]["groq"]["completion_tokens"] == 50
+        assert s["backends"]["groq"]["token_requests"] == 1
 
     def test_summary_has_expected_keys(self):
         record(LiMaEvent(event_type="request_start", backend="test"))
@@ -55,6 +62,8 @@ class TestRecord:
         reset_metrics()
         s2 = get_metrics_snapshot()
         assert s2["total_requests"] == 0
+        assert s2["event_type_counts"] == {}
+        assert s2["backends"] == {}
 
     def test_multiple_events(self):
         for i in range(5):

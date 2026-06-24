@@ -62,7 +62,8 @@ def test_server_registers_xiaozhi_v1_compat_routes():
     assert "/device/v1/app/devices/{device_id}/tasks" in paths
 
 
-def test_server_can_opt_in_to_xiaozhi_v1_compat_routes(monkeypatch):
+def test_server_cannot_opt_in_to_retired_xiaozhi_v1_compat_routes(monkeypatch):
+    """XiaoZhi v1 compatibility layer is retired; env var opt-in is ignored."""
     from fastapi import FastAPI
 
     monkeypatch.setenv("LIMA_XIAOZHI_COMPAT_ENABLED", "1")
@@ -87,8 +88,8 @@ def test_server_can_opt_in_to_xiaozhi_v1_compat_routes(monkeypatch):
     route_registry.register_all_routes(app, deps)
 
     paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
-    assert "/api/v1/login" in paths
-    assert deps.loaded_modules.get("xiaozhi_v1_compat") is True
+    assert "/api/v1/login" not in paths
+    assert deps.loaded_modules.get("xiaozhi_v1_compat") is False
 
 
 def test_try_include_reraises_unexpected_module_errors(monkeypatch):

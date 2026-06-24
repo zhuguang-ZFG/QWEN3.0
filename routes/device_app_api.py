@@ -159,3 +159,33 @@ async def unbind_device(device_id: str, authorization: str = Header(default=""))
         except DeviceLogicError as exc:
             return _device_error(exc)
     return {"deviceId": device_id, "status": "unbound"}
+
+
+@router.post("/devices/manual-add")
+async def manual_add_device(request: Request, authorization: str = Header(default="")):
+    """管理员手动添加设备（无需激活码）。"""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    if account.get("role") != "admin":
+        return err(403, "only admin can manually add devices", 403)
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    device_sn = str_field(body, "deviceSn", "device_sn")
+    if not device_sn:
+        return err(400, "deviceSn is required", 400)
+    try:
+        with connect() as conn:
+            row = logic_manual_add_device(
+                conn,
+                device_sn=device_sn,
+                model=str_field(body, "model") or "esp32s3_xyz",
+                firmware_ver=str_field(body, "firmwareVer", "firmware_ver") or "",
+                hardware_ver=str_field(body, "hardwareVer", "hardware_ver") or "",
+                metadata=body.get("metadata"),
+                new_id=new_id,
+            )
+    except DeviceLogicError as exc:
+        return _device_error(exc)
+    return {"device": device_payload(row)}

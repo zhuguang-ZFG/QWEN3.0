@@ -67,8 +67,21 @@ class InMemoryArtifactStore:
             retention_days=retention_days,
         )
         with self._lock:
+            self._evict_expired()
             self._records.append(deepcopy(record))
         return deepcopy(record)
+
+    def _evict_expired(self) -> None:
+        """Remove records whose retention period has expired. Must be called under lock."""
+        if not self._records:
+            return
+        now = datetime.now(timezone.utc)
+        kept: list[ArtifactRecord] = []
+        for record in self._records:
+            age = (now - _parse_created_at(record.created_at)).total_seconds()
+            if age < record.retention_days * 86400:
+                kept.append(record)
+        self._records = kept
 
     def artifacts_for_task(self, task_id: str, artifact_type: str | None = None) -> list[ArtifactRecord]:
         with self._lock:
@@ -77,6 +90,14 @@ class InMemoryArtifactStore:
                 for record in self._records
                 if record.task_id == task_id and (artifact_type is None or record.artifact_type == artifact_type)
             ]
+
+
+def _parse_created_at(created_at: str) -> datetime:
+    """Parse the ISO-8601 created_at timestamp, tolerating trailing Z."""
+    try:
+        return datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.now(timezone.utc)
 
 
 def _content_hash(content: Any) -> str:

@@ -12,8 +12,8 @@ from fastapi import APIRouter, File, Header, Query, Request, UploadFile
 from config.env import upload_per_min
 from fastapi.responses import FileResponse, JSONResponse
 
+from device_logic.auth import authorize
 from routes.upload_tokens import public_upload_get_enabled, upload_access_token, verify_upload_access_token
-from routes.xiaozhi_compat.auth import authorize
 from routes.rate_limit_helper import check_key_limit
 
 logger = logging.getLogger(__name__)

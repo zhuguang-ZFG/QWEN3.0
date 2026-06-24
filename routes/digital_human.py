@@ -1,9 +1,9 @@
 """Serve the 2D digital human (Live2D) frontend assets.
 
-The original digital-human page lives in the legacy xiaozhi-esp32-server
-submodule. It already supports LiMa's ``lima-device-v1`` WebSocket protocol,
-so this module only needs to expose the static files and patch the default
-connection URL so the page works out of the box when served from LiMa.
+Assets are maintained under ``data/digital-human/`` (copied from the retired
+xiaozhi-esp32-server submodule). The page already supports LiMa's
+``lima-device-v1`` WebSocket protocol, so this module only needs to expose the
+static files and patch the default connection URL.
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ from fastapi.responses import FileResponse, HTMLResponse
 _log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_DEFAULT_DH_DIR = _PROJECT_ROOT / "esp32S_XYZ" / "server" / "xiaozhi-esp32-server" / "main" / "digital-human"
-_FALLBACK_DH_DIR = _PROJECT_ROOT / "data" / "digital-human"
+_DEFAULT_DH_DIR = _PROJECT_ROOT / "data" / "digital-human"
+_FALLBACK_DH_DIR = _PROJECT_ROOT / "esp32S_XYZ" / "server" / "xiaozhi-esp32-server" / "main" / "digital-human"
 
 
 def _resolve_assets() -> tuple[Path, Path] | None:

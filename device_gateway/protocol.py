@@ -1,10 +1,8 @@
 """Protocol helpers for LiMa direct device sessions.
 
-This module is a compatibility facade over the split protocol package:
-- protocol_core (merged): constants, ProtocolError, and low-level helpers
-- protocol_validators: uplink message validators
-- protocol_frames: downlink frame builders
-- protocol_lifecycle (merged): motion task lifecycle validation
+This module re-exports the protocol validators and frame builders, and
+defines core protocol constants (PROTOCOL_VERSION), the ProtocolError
+exception, and the motion task lifecycle validator.
 """
 
 from __future__ import annotations

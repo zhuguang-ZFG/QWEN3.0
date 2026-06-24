@@ -242,24 +242,25 @@ def load_profiles() -> int:
     if not _os.path.exists(DB_PATH):
         return 0
     try:
-        with pooled_sqlite_conn(DB_PATH) as conn:
-            cursor = conn.execute("SELECT * FROM backend_profiles")
-            count = 0
-            for row in cursor:
-                name = row[0]
-                profile = BackendProfile(
-                    name=name,
-                    latencies=json.loads(row[1]) if row[1] else [],
-                    successes=row[2] or 0,
-                    failures=row[3] or 0,
-                    response_lengths=json.loads(row[4]) if row[4] else [],
-                    scenario_successes=json.loads(row[5]) if row[5] else {},
-                    scenario_failures=json.loads(row[6]) if row[6] else {},
-                    total_requests=row[7] or 0,
-                    last_updated=row[8] or 0.0,
-                )
-                _profiles[name] = profile
-                count += 1
+        with _lock:
+            with pooled_sqlite_conn(DB_PATH) as conn:
+                cursor = conn.execute("SELECT * FROM backend_profiles")
+                count = 0
+                for row in cursor:
+                    name = row[0]
+                    profile = BackendProfile(
+                        name=name,
+                        latencies=json.loads(row[1]) if row[1] else [],
+                        successes=row[2] or 0,
+                        failures=row[3] or 0,
+                        response_lengths=json.loads(row[4]) if row[4] else [],
+                        scenario_successes=json.loads(row[5]) if row[5] else {},
+                        scenario_failures=json.loads(row[6]) if row[6] else {},
+                        total_requests=row[7] or 0,
+                        last_updated=row[8] or 0.0,
+                    )
+                    _profiles[name] = profile
+                    count += 1
         logger.info("Loaded %d backend profiles from %s", count, DB_PATH)
         return count
     except Exception as exc:

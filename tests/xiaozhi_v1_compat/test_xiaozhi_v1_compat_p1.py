@@ -1,3 +1,6 @@
+"""[DEPRECATED v3.1] Tests for retired XiaoZhi v1 compatibility layer.
+Kept for reference only; do not extend."""
+
 from .helpers import _client, _headers, _json, _seed_base, _token
 
 

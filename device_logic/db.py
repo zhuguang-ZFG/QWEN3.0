@@ -72,4 +72,7 @@ def connect() -> Generator[sqlite3.Connection, None, None]:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         ensure_schema(conn, str(path.resolve()))
-        yield conn
+        try:
+            yield conn
+        finally:
+            conn.row_factory = None

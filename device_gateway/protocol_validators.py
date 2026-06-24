@@ -110,6 +110,10 @@ def validate_motion_event(message: dict[str, Any]) -> dict[str, Any]:
     error = _motion_event_error(message)
     if error:
         normalized["error"] = error
+    # Preserve device-reported route_policy_evidence for terminal event tracking (M15)
+    route_evidence = message.get("route_policy_evidence")
+    if isinstance(route_evidence, dict):
+        normalized["route_policy_evidence"] = route_evidence
     return normalized
 
 

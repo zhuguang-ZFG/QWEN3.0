@@ -1,4 +1,7 @@
-"""Shared utilities barrel for XiaoZhi v1 compatibility API."""
+"""[DEPRECATED v3.1] XiaoZhi v1 compatibility layer retired.
+All endpoints have been migrated to routes/device_app_*.py
+Kept for reference only; do not import or register."""
+
 
 from __future__ import annotations
 

@@ -4,13 +4,20 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Header, Request, Response
 
 from config.env import wechat_dev_login_enabled, xiaozhi_dev_static_login_code_enabled
 from fastapi.responses import JSONResponse
 
-from device_logic.auth import account_payload, authorize, make_token
+from device_logic.auth import (
+    _hash_password,
+    _verify_password,
+    account_payload,
+    authorize,
+    make_token,
+)
 from device_logic.auth_rate import allow_device_auth
+from device_logic.captcha import create_captcha, generate_captcha_image
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, read_body, str_field
 from device_logic.sms import login_code_error, sms_verification_payload, validate_login_code
@@ -208,3 +215,41 @@ async def delete_account(authorization: str = Header(default="")):
         )
         conn.commit()
     return {"accountId": account["id"], "deletedAt": deleted_at}
+
+
+@router.get("/auth/captcha")
+async def get_captcha() -> Response:
+    """返回 PNG 图形验证码。"""
+    captcha_id, code = create_captcha()
+    image_bytes = generate_captcha_image(code)
+    if image_bytes is None:
+        return JSONResponse({"code": 503, "message": "Captcha unavailable"}, status_code=503)
+    headers = {"X-Captcha-Id": captcha_id, "Cache-Control": "no-store"}
+    return Response(content=image_bytes, media_type="image/png", headers=headers)
+
+
+@router.put("/auth/change-password")
+async def change_password(request: Request, authorization: str = Header(default="")):
+    """修改当前账户密码。"""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    old_password = str_field(body, "oldPassword", "old_password")
+    new_password = str_field(body, "newPassword", "new_password")
+    if not old_password or not new_password:
+        return err(400, "oldPassword and newPassword are required", 400)
+    if len(new_password) < 6:
+        return err(400, "newPassword must be at least 6 characters", 400)
+    current_hash = account.get("password_hash")
+    if not current_hash:
+        return err(4002, "Password is not set; use SMS login", 400)
+    if not _verify_password(old_password, current_hash):
+        return err(4003, "Incorrect old password", 400)
+    new_hash = _hash_password(new_password)
+    with connect() as conn:
+        conn.execute("UPDATE v2_account SET password_hash=? WHERE id=?", (new_hash, account["id"]))
+        conn.commit()
+    return {"accountId": account["id"], "updatedAt": now()}

@@ -1,4 +1,6 @@
-"""Tests for routes/xiaozhi_v1_compat.py."""
+"""[DEPRECATED v3.1] Tests for retired XiaoZhi v1 compatibility layer.
+Kept for reference only; do not extend."""
+
 
 from __future__ import annotations
 

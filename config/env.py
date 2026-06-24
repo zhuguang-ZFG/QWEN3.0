@@ -134,8 +134,12 @@ def public_demo_max_per_minute() -> int:
 
 
 def xiaozhi_compat_enabled() -> bool:
-    """Whether the Xiaozhi v1 compatibility router is mounted."""
-    return FLAGS.xiaozhi_compat
+    """[DEPRECATED v3.1] Xiaozhi v1 compatibility router is retired.
+
+    Always returns False. The endpoints have been migrated to
+    routes/device_app_*.py; kept for backward-compatible imports only.
+    """
+    return False
 
 
 def health_show_errors() -> bool:

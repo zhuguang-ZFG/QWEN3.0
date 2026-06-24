@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from device_gateway.task_recorder import (
     _STORAGE_BASE,
-    record_route_evidence,
+    record_route_evidence_sync,
     shutdown,
 )
 
@@ -43,7 +43,7 @@ class TestArtifactRecorder(unittest.TestCase):
 
     def test_record_writes_json_line(self):
         """record_route_evidence should write a JSON line to the log file."""
-        record_route_evidence(
+        record_route_evidence_sync(
             device_id="dev-001",
             task_id="task-123",
             route_policy={"route_role": "device_write", "model_required": False},
@@ -52,8 +52,6 @@ class TestArtifactRecorder(unittest.TestCase):
             reason="svg path detected",
             alternatives=[{"model": "gpt-4o-mini", "reason": "fallback"}],
         )
-        # Give the async write a moment
-        time.sleep(0.5)
         log_path = self._log_path("dev-001")
         self.assertTrue(log_path.exists(), f"Log file not created at {log_path}")
         lines = log_path.read_text(encoding="utf-8").strip().split("\n")
@@ -71,12 +69,11 @@ class TestArtifactRecorder(unittest.TestCase):
     def test_record_append_multiple(self):
         """Multiple records for the same device should append lines."""
         for i in range(3):
-            record_route_evidence(
+            record_route_evidence_sync(
                 device_id="dev-002",
                 task_id=f"task-{i}",
                 route_policy={"route_role": "device_control"},
             )
-        time.sleep(0.5)
         lines = self._log_path("dev-002").read_text(encoding="utf-8").strip().split("\n")
         self.assertEqual(len(lines), 3)
         task_ids = [json.loads(line)["task_id"] for line in lines]
@@ -84,9 +81,8 @@ class TestArtifactRecorder(unittest.TestCase):
 
     def test_record_per_device_separation(self):
         """Different devices get separate log files."""
-        record_route_evidence(device_id="dev-a", task_id="t1", route_policy={})
-        record_route_evidence(device_id="dev-b", task_id="t2", route_policy={})
-        time.sleep(0.5)
+        record_route_evidence_sync(device_id="dev-a", task_id="t1", route_policy={})
+        record_route_evidence_sync(device_id="dev-b", task_id="t2", route_policy={})
         self.assertTrue(self._log_path("dev-a").exists())
         self.assertTrue(self._log_path("dev-b").exists())
         self.assertNotEqual(
@@ -96,12 +92,11 @@ class TestArtifactRecorder(unittest.TestCase):
 
     def test_default_values(self):
         """Optional fields should default to empty when not provided."""
-        record_route_evidence(
+        record_route_evidence_sync(
             device_id="dev-003",
             task_id="task-defaults",
             route_policy={"route_role": "device_unknown"},
         )
-        time.sleep(0.5)
         lines = self._log_path("dev-003").read_text(encoding="utf-8").strip().split("\n")
         self.assertEqual(len(lines), 1)
         record = json.loads(lines[0])
@@ -115,7 +110,7 @@ class TestArtifactRecorder(unittest.TestCase):
         import concurrent.futures
 
         def _write(i: int):
-            record_route_evidence(
+            record_route_evidence_sync(
                 device_id="dev-concurrent",
                 task_id=f"task-{i:04d}",
                 route_policy={"index": i},
@@ -134,7 +129,7 @@ class TestArtifactRecorder(unittest.TestCase):
 
     def test_shutdown(self):
         """shutdown should drain pending work."""
-        record_route_evidence(
+        record_route_evidence_sync(
             device_id="dev-shutdown",
             task_id="task-shutdown",
             route_policy={},

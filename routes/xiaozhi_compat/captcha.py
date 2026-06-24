@@ -1,4 +1,7 @@
-"""Captcha generation and verification for XiaoZhi v1 compatibility API."""
+"""[DEPRECATED v3.1] XiaoZhi v1 compatibility layer retired.
+All endpoints have been migrated to routes/device_app_*.py
+Kept for reference only; do not import or register."""
+
 
 from __future__ import annotations
 
@@ -89,7 +92,8 @@ def generate_captcha_image(code: str) -> bytes | None:
             )
         try:
             font = ImageFont.truetype("arial.ttf", 22)
-        except Exception:
+        except Exception as exc:
+            _log.warning("Preferred captcha font unavailable, falling back to default: %s", exc)
             font = ImageFont.load_default()
         bbox = draw.textbbox((0, 0), code, font=font)
         text_width = bbox[2] - bbox[0]

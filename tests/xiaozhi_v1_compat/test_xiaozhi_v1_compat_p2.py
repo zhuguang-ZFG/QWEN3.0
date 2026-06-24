@@ -1,4 +1,6 @@
-"""P2 tests for XiaoZhi v1 compatibility layer: captcha, change-password, manual-add, OpenAPI aliases."""
+"""[DEPRECATED v3.1] Tests for retired XiaoZhi v1 compatibility layer.
+Kept for reference only; do not extend."""
+
 
 from __future__ import annotations
 

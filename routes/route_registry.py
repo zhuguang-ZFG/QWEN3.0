@@ -10,7 +10,7 @@ from typing import Any, Callable
 from fastapi import FastAPI
 
 from channel_retirement import mark_retired_modules
-from config.env import admin_token, lima_api_key, xiaozhi_compat_enabled
+from config.env import admin_token, lima_api_key
 
 
 @dataclass
@@ -199,10 +199,8 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
 def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     """Mount optional routers with graceful ImportError fallback."""
     loaded = deps.loaded_modules
-    if xiaozhi_compat_enabled():
-        _try_include(app, loaded, "routes.xiaozhi_v1_compat", "xiaozhi_v1_compat")
-    else:
-        loaded["xiaozhi_v1_compat"] = False
+    # XiaoZhi v1 compatibility layer is retired; endpoints migrated to routes/device_app_*.py.
+    loaded["xiaozhi_v1_compat"] = False
     _try_include(app, loaded, "routes.ops_metrics", "ops_metrics")
     _try_include(app, loaded, "routes.health_dashboard", "health_dashboard")
 

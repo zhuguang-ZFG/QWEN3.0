@@ -1,9 +1,6 @@
-"""Tests that xiaozhi_compat gateway tasks always carry a valid route_policy.
+"""[DEPRECATED v3.1] Tests for retired XiaoZhi v1 compatibility layer.
+Kept for reference only; do not extend."""
 
-Guards the Edge-C hard contract on the cloud side: build_gateway_task
-must attach route_policy so the downlink frame is contract-compliant
-regardless of which entry path produced the task.
-"""
 
 import sys
 from pathlib import Path

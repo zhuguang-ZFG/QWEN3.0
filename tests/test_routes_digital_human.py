@@ -59,8 +59,8 @@ def test_index_patched_content(client, assets_available):
     response = client.get("/digital-human/")
     assert response.status_code == 200
     text = response.text
-    assert "LiMa 星云数字人页面" in text
-    assert "LiMa 星云 AI 语音/视频通话" in text
+    assert "LiMa 量子星云数字人页面" in text
+    assert "LiMa 量子星云 AI 语音/视频通话" in text
     assert "limaWsUrl" in text
     assert "js/app.js?v=0205" in text
 

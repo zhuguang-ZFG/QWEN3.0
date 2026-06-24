@@ -17,7 +17,8 @@ from device_ledger.store import ledger_store
 # Module-level executor for non-blocking route-evidence writes
 _executor: ThreadPoolExecutor | None = None
 _lock = threading.Lock()
-_write_lock = threading.Lock()  # Serialize writes to avoid file-level races
+_write_locks: dict[str, threading.Lock] = {}
+_write_locks_lock = threading.Lock()
 _record_seq = iter(range(9, 1 << 32))  # Monotonic sequence for evidence uniqueness
 
 # Storage base directory
@@ -61,13 +62,49 @@ def record_route_evidence(
     _get_executor().submit(_write_evidence, device_id, evidence)
 
 
+def record_route_evidence_sync(
+    device_id: str,
+    task_id: str,
+    route_policy: dict[str, Any],
+    selected_model: str = "",
+    backend: str = "",
+    reason: str = "",
+    alternatives: list[dict[str, Any]] | None = None,
+    request_id: str = "",
+) -> None:
+    """Synchronous route-evidence write for tests and flush-sensitive callers."""
+    evidence = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "device_id": device_id,
+        "task_id": task_id,
+        "route_policy": route_policy,
+        "selected_model": selected_model,
+        "backend": backend,
+        "reason": reason,
+        "alternatives": alternatives or [],
+        "request_id": request_id,
+        "_rseq": next(_record_seq),
+    }
+    _write_evidence(device_id, evidence)
+
+
+def _get_write_lock(device_id: str) -> threading.Lock:
+    """Return a per-device write lock, creating one on first use."""
+    with _write_locks_lock:
+        lock = _write_locks.get(device_id)
+        if lock is None:
+            lock = threading.Lock()
+            _write_locks[device_id] = lock
+        return lock
+
+
 def _write_evidence(device_id: str, evidence: dict[str, Any]) -> None:
     """Write a single evidence record as JSON Lines to the device log file."""
     log_path = _STORAGE_BASE / f"route_evidence_{device_id}.log"
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps(evidence, ensure_ascii=False, default=str)
-        with _write_lock:
+        with _get_write_lock(device_id):
             with open(str(log_path), "a", encoding="utf-8") as f:
                 f.write(line + "\n")
                 f.flush()
@@ -83,6 +120,8 @@ def shutdown(wait: bool = True) -> None:
             _executor.shutdown(wait=wait)
             _executor = None
         _record_seq = iter(range(9, 1 << 32))
+    with _write_locks_lock:
+        _write_locks.clear()
 
 
 def record_task_created(task: dict[str, Any], status: str) -> None:

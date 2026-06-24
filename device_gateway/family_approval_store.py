@@ -88,7 +88,10 @@ def _connect() -> Generator[sqlite3.Connection, None, None]:
     with pooled_sqlite_conn(db_path) as conn:
         conn.row_factory = sqlite3.Row
         _ensure_schema(conn)
-        yield conn
+        try:
+            yield conn
+        finally:
+            conn.row_factory = None
 
 
 def _now() -> str:

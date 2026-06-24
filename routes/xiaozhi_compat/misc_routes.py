@@ -1,8 +1,7 @@
-"""xiaozhi v1 API - Miscellaneous Routes (7 endpoints)
+"""[DEPRECATED v3.1] XiaoZhi v1 compatibility layer retired.
+All endpoints have been migrated to routes/device_app_*.py
+Kept for reference only; do not import or register."""
 
-Extracted from routes/xiaozhi_v1_compat.py lines 1043-1184
-Device transfer, self-checks, supplies
-"""
 
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
