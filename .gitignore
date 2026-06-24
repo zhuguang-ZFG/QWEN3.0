@@ -363,3 +363,4 @@ test_ws*.py
 # === Guardian / architecture docs (auto-generated) ===
 .guardian/
 ARCHITECTURE_KNOWLEDGE.md
+.worktrees/
