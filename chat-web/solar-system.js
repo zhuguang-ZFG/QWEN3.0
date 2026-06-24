@@ -5,6 +5,17 @@
 (function() {
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
+  // Performance & motion preference scaling.
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  const isMobileViewport = window.innerWidth < 1024;
+  const lowMemory = typeof navigator !== 'undefined' && navigator.deviceMemory ? navigator.deviceMemory < 4 : false;
+  const lowCores = typeof navigator !== 'undefined' && navigator.hardwareConcurrency ? navigator.hardwareConcurrency < 4 : false;
+  const likelyLowEnd = (isCoarsePointer && isMobileViewport) || lowMemory || lowCores;
+
+  // 1 = high, 0.5 = low-end, 0 = reduced-motion.
+  const motionScale = prefersReducedMotion ? 0 : (likelyLowEnd ? 0.5 : 1);
+
   // ─── MODE 1: Full-screen background (solar-canvas) ───
   const bgCanvas = document.getElementById('solar-canvas');
   if (bgCanvas) {
@@ -23,9 +34,10 @@
     resizeBg();
     window.addEventListener('resize', resizeBg, { passive: true });
 
-    // Stars
+    // Stars (scaled by performance / motion preference).
+    const bgStarCount = Math.floor(200 * motionScale);
     const stars = [];
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < bgStarCount; i++) {
       stars.push({
         x: Math.random() * W, y: Math.random() * H,
         r: Math.random() * 1 + 0.3,
@@ -176,14 +188,14 @@
       });
 
       // Comets
-      if (Math.random() < 0.003) bgComets.push(new BgComet());
+      if (Math.random() < 0.003 * motionScale) bgComets.push(new BgComet());
       for (let i = bgComets.length - 1; i >= 0; i--) {
         const c = bgComets[i];
         c.update(); c.draw();
         if (c.done) bgComets.splice(i, 1);
       }
 
-      bgAnimFrame = requestAnimationFrame(bgAnimate);
+      if (motionScale > 0) bgAnimFrame = requestAnimationFrame(bgAnimate);
     }
     bgAnimate();
     document.addEventListener('visibilitychange', () => {
@@ -332,7 +344,7 @@
   }
 
   function hDrawComets() {
-    if (Math.random() < 0.005) hComets.push(new HComet());
+    if (Math.random() < 0.005 * motionScale) hComets.push(new HComet());
     for (let i = hComets.length - 1; i >= 0; i--) {
       const c = hComets[i];
       c.update(); c.draw();
@@ -349,7 +361,7 @@
     hDrawSun();
     hDrawPlanets();
     hDrawComets();
-    hAnimFrame = requestAnimationFrame(hAnimate);
+    if (motionScale > 0) hAnimFrame = requestAnimationFrame(hAnimate);
   }
   hAnimate();
   document.addEventListener('visibilitychange', () => {

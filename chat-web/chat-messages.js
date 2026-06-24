@@ -89,14 +89,48 @@ function attachCodeCopy(root) {
 
 function copyCode(btn) {
   const code = btn.closest('.code-card').querySelector('code').textContent;
-  navigator.clipboard.writeText(code).then(() => {
+  const markCopied = () => {
     const original = btn.textContent;
     btn.textContent = '已复制';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
-  }).catch(() => {
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(markCopied).catch((err) => {
+      // Fallback for non-secure contexts or denied permission.
+      if (tryExecCommandCopy(code)) {
+        markCopied();
+      } else {
+        console.warn('clipboard copy failed:', err);
+        showToast('复制失败，请手动复制', { error: true });
+      }
+    });
+  } else if (tryExecCommandCopy(code)) {
+    markCopied();
+  } else {
     showToast('复制失败，请手动复制', { error: true });
-  });
+  }
+}
+
+function tryExecCommandCopy(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, text.length);
+  let success = false;
+  try {
+    success = document.execCommand('copy');
+  } catch (e) {
+    success = false;
+  }
+  document.body.removeChild(textarea);
+  return success;
 }
 
 function attachImageLightbox(root) {

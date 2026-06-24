@@ -103,7 +103,10 @@
         </div>
         <div class="hero-visual">
           <div class="hero-image-wrap">
-            <picture>
+            <video class="hero-video" autoplay muted loop playsinline poster="assets/hero.jpg" preload="auto" aria-label="LiMa 量子星云网络可视化">
+              <source src="assets/hero-bg.mp4" type="video/mp4">
+            </video>
+            <picture class="hero-fallback">
               <source srcset="assets/hero.webp" type="image/webp">
               <img src="assets/hero.jpg" alt="LiMa 量子星云网络可视化" loading="eager" decoding="async" fetchpriority="high" width="1200" height="900">
             </picture>
@@ -128,7 +131,10 @@
       <div class="bento">
         <div class="bento-cell bento-large">
           <div class="bento-media">
-            <picture>
+            <video class="bento-video" autoplay muted loop playsinline poster="assets/product-draw.jpg" preload="metadata" aria-label="AI 绘图机绘制 SVG 图案">
+              <source src="assets/product-draw-loop.mp4" type="video/mp4">
+            </video>
+            <picture class="bento-fallback">
               <source srcset="assets/product-draw.webp" type="image/webp">
               <img src="assets/product-draw.jpg" alt="AI 绘图机绘制 SVG 图案" loading="lazy" decoding="async" width="800" height="600">
             </picture>

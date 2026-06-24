@@ -6,7 +6,7 @@
   <title>LiMa 星云 - AI 智能设备星云系统控制台</title>
   <meta name="description" content="LiMa 星云系统控制台 - 管理 AI 绘图机、写字机与 2D 数字人，一句话开始创作">
   <meta name="theme-color" content="#0a0a0f">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.pollinations.ai https://chat.donglicao.com https://api.donglicao.com; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net; upgrade-insecure-requests;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.pollinations.ai https://chat.donglicao.com https://api.donglicao.com; media-src 'self'; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net; upgrade-insecure-requests;">
   <link rel="stylesheet" href="styles.css?v=nebula2">
 </head>
 <body>
@@ -173,6 +173,11 @@
       <div class="chat-inner" id="chatInner">
         <!-- WELCOME -->
         <div class="welcome" id="welcomeScreen">
+          <div class="hero-video-wrap" aria-hidden="true">
+            <video class="hero-video" autoplay muted loop playsinline poster="assets/hero-bg-poster.jpg">
+              <source src="assets/hero-bg.mp4" type="video/mp4">
+            </video>
+          </div>
           <div class="hero-canvas" id="heroCanvasContainer">
             <canvas id="heroCanvas" width="160" height="160" style="width:160px;height:160px;"></canvas>
           </div>
@@ -182,7 +187,10 @@
             驱动 AI 绘图机、写字机或 2D 数字人完成创作。
           </p>
           <div class="quick-grid">
-            <div class="qa-card" onclick="sendQuick('画一只可爱的猫咪')">
+            <div class="qa-card has-video" onclick="sendQuick('画一只可爱的猫咪')">
+              <video class="qa-video" autoplay muted loop playsinline poster="assets/product-draw-loop-poster.jpg" aria-hidden="true">
+                <source src="assets/product-draw-loop.mp4" type="video/mp4">
+              </video>
               <div class="qa-icon draw"><svg class="svg-icon"><use href="icons.svg#i-pen-tool"/></svg></div>
               <div class="qa-title">画一只猫</div>
               <div class="qa-desc">自然语言 → SVG → 路径管线 → 绘图机</div>
@@ -231,7 +239,7 @@
               <svg class="svg-icon"><use href="icons.svg#i-image"/></svg>
               /image
             </button>
-            <button class="mic-btn" onclick="showToast('语音输入即将上线', {duration:2000})" title="语音输入" aria-label="语音输入">
+            <button class="mic-btn" id="micBtn" onclick="startVoiceInput()" title="语音输入" aria-label="语音输入">
               <svg class="svg-icon"><use href="icons.svg#i-mic"/></svg>
             </button>
           </div>

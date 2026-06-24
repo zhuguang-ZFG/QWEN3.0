@@ -55,6 +55,75 @@ function insertImageCommand() {
   autoResize(inputField);
 }
 
+// ─── VOICE INPUT (Web Speech API) ───
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = document.getElementById('micBtn');
+if (micBtn && !SpeechRecognition) {
+  micBtn.style.display = 'none';
+}
+
+let voiceRecognition = null;
+function startVoiceInput() {
+  if (!SpeechRecognition) {
+    showToast('当前浏览器不支持语音输入', { error: true });
+    return;
+  }
+  if (voiceRecognition) {
+    voiceRecognition.stop();
+    voiceRecognition = null;
+    micBtn?.classList.remove('listening');
+    return;
+  }
+
+  voiceRecognition = new SpeechRecognition();
+  voiceRecognition.lang = 'zh-CN';
+  voiceRecognition.interimResults = true;
+  voiceRecognition.maxAlternatives = 1;
+
+  let finalTranscript = '';
+  voiceRecognition.onstart = () => {
+    micBtn?.classList.add('listening');
+    showToast('正在聆听，请说话…', { duration: 2000 });
+  };
+  voiceRecognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interim += transcript;
+      }
+    }
+    inputField.value = finalTranscript + interim;
+    autoResize(inputField);
+  };
+  voiceRecognition.onerror = (event) => {
+    console.warn('voice recognition error:', event.error);
+    if (event.error !== 'aborted' && event.error !== 'no-speech') {
+      showToast('语音输入出错：' + event.error, { error: true });
+    }
+    micBtn?.classList.remove('listening');
+    voiceRecognition = null;
+  };
+  voiceRecognition.onend = () => {
+    micBtn?.classList.remove('listening');
+    voiceRecognition = null;
+    if (inputField.value.trim() && !isStreaming) {
+      handleSendClick();
+    }
+  };
+
+  try {
+    voiceRecognition.start();
+  } catch (err) {
+    console.warn('voice recognition start failed:', err);
+    showToast('无法启动语音输入', { error: true });
+    micBtn?.classList.remove('listening');
+    voiceRecognition = null;
+  }
+}
+
 function setSendLoading(loading) {
   sendBtn.classList.toggle('loading', loading);
   sendBtn.disabled = loading ? false : !inputField.value.trim();

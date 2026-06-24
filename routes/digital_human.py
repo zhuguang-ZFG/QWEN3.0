@@ -197,19 +197,19 @@ def _digital_human_defaults() -> dict[str, str | bool]:
 def _patch_index_html(content: str) -> str:
     """Inject auto-configuration script and brand patches into the digital-human index page."""
     # Replace brand in specific locations only (avoid breaking wake words that contain "小智")
-    content = content.replace("<title>小智数字人页面</title>", "<title>LiMa 星云数字人页面</title>")
+    content = content.replace("<title>小智数字人页面</title>", "<title>LiMa 量子星云数字人页面</title>")
     content = content.replace(
-        '<div class="brand">小智 AI 语音/视频通话</div>', '<div class="brand">LiMa 星云 AI 语音/视频通话</div>'
+        '<div class="brand">小智 AI 语音/视频通话</div>', '<div class="brand">LiMa 量子星云 AI 语音/视频通话</div>'
     )
-    content = content.replace("小智数字人页面", "LiMa 星云数字人页面")
-    content = content.replace("小智服务器", "星云服务器")
-    content = content.replace("小智 OTA", "LiMa 星云 OTA")
+    content = content.replace("小智数字人页面", "LiMa 量子星云数字人页面")
+    content = content.replace("小智服务器", "量子星云服务器")
+    content = content.replace("小智 OTA", "LiMa 量子星云 OTA")
     # Do NOT replace generic "小智" because wake words like "小智小智" must remain intact
     # Replace LiMa labels
-    content = content.replace('"LiMa (直连)"', '"LiMa 星云 (直连)"')
-    content = content.replace(">LiMa WebSocket 地址:<", ">LiMa 星云 WebSocket 地址:<")
-    content = content.replace('"LiMa 认证令牌:"', '"LiMa 星云认证令牌:"')
-    content = content.replace('placeholder="LiMa WebSocket地址', 'placeholder="LiMa 星云 WebSocket地址')
+    content = content.replace('"LiMa (直连)"', '"LiMa 量子星云 (直连)"')
+    content = content.replace(">LiMa WebSocket 地址:<", ">LiMa 量子星云 WebSocket 地址:<")
+    content = content.replace('"LiMa 认证令牌:"', '"LiMa 量子星云认证令牌:"')
+    content = content.replace('placeholder="LiMa WebSocket地址', 'placeholder="LiMa 量子星云 WebSocket地址')
     defaults = _digital_human_defaults()
     script = _build_auto_config_script(**defaults)  # type: ignore[arg-type]
     marker = '<script type="module" src="js/app.js?v=0205"></script>'

@@ -415,6 +415,57 @@ body::before {
   line-height: 1.7;
 }
 
+/* ─── LOOPING VIDEO BACKGROUNDS ─── */
+.welcome {
+  position: relative;
+}
+.hero-video-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.hero-video,
+.qa-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-video {
+  opacity: 0.45;
+  filter: saturate(1.1) contrast(1.05);
+}
+.welcome > .hero-canvas,
+.welcome > h2,
+.welcome > .welcome-desc,
+.welcome > .quick-grid {
+  position: relative;
+  z-index: 1;
+}
+.qa-card.has-video {
+  position: relative;
+  overflow: hidden;
+}
+.qa-video {
+  opacity: 0.35;
+  filter: saturate(1.1);
+  transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out);
+}
+.qa-card.has-video:hover .qa-video {
+  opacity: 0.55;
+  transform: scale(1.05);
+}
+.qa-card.has-video .qa-icon,
+.qa-card.has-video .qa-title,
+.qa-card.has-video .qa-desc {
+  position: relative;
+  z-index: 1;
+}
+
 /* Quick actions */
 .quick-grid {
   display: grid;
@@ -665,6 +716,17 @@ body::before {
 }
 .input-pill svg, .mic-btn svg { width: 14px; height: 14px; }
 .mic-btn { width: 36px; padding: 0; justify-content: center; }
+.mic-btn.listening {
+  background: rgba(244, 63, 94, 0.18);
+  border-color: rgba(244, 63, 94, 0.35);
+  color: var(--rose-light);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.14);
+  animation: micPulse 1.2s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.2); }
+  50% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0); }
+}
 
 .send-btn {
   width: 52px; height: 52px;
@@ -884,6 +946,18 @@ body::before {
   .topbar { padding: 0 14px; height: 48px; }
   .chat-inner { padding: 0 1rem; }
   .hero-canvas { width: 110px; height: 110px; }
+
+  /* Replace looping videos with static posters to save mobile bandwidth. */
+  .hero-video-wrap {
+    background: url('assets/hero-bg-poster.jpg') center / cover no-repeat;
+  }
+  .hero-video-wrap .hero-video,
+  .qa-card.has-video .qa-video {
+    display: none;
+  }
+  .qa-card.has-video {
+    background: url('assets/product-draw-loop-poster.jpg') center / cover no-repeat;
+  }
 }
 
 /* ─── SCROLLBAR ─── */
@@ -910,6 +984,18 @@ body::before {
   .message { opacity: 1; transform: none; }
   .canvas-ring, .canvas-draw-path, .canvas-write-line { animation: none; }
   body::before { animation: none; }
+
+  /* Disable autoplay video loops; fall back to the static poster frames. */
+  .hero-video-wrap {
+    background: url('assets/hero-bg-poster.jpg') center / cover no-repeat;
+  }
+  .hero-video-wrap .hero-video,
+  .qa-card.has-video .qa-video {
+    display: none;
+  }
+  .qa-card.has-video {
+    background: url('assets/product-draw-loop-poster.jpg') center / cover no-repeat;
+  }
 }
 
 /* ─── SELECTION ─── */
