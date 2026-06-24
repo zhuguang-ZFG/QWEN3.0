@@ -5,17 +5,32 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-24
+> Updated: 2026-06-25
 > Branch: `main`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
-> Tests: 全量 3545 passed / 17 skipped / 0 failed；ruff check clean；ruff format clean
+> Tests: 设备 App 相关 214 项 213 passed / 1 failed（预存在线聊天消息 404）；全量 3686 passed / 17 skipped / 33 failed / 11 errors（失败多为 device_gateway / fake_u1 / complexity / protocol negotiation 预存问题，与本次小程序增强无关）。ruff check clean；ruff format clean。
 > Code Size: 零 >300 行文件；>50 行函数 25（均为脚本/测试/MCP/xiaozhi，核心生产代码已清零）
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
-> 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted；缺陷改善计划全部 P0 项已关闭。
+> 安全审计：`findings.md` 2026-06-25 Phase 5 审查中安全项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-25）Phase 5：小程序 P1/P2 增强（M3-M10）
+
+- **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 完成小程序 P1/P2 能力，覆盖任务模板、推送通知、素材库、任务预览/批量、设备分享/访客模式、设备发现/配网、统计分析。
+- **关键结果**：
+  - 新增路由：`device_app_task_templates.py`、`device_app_notifications.py`、`device_app_assets.py`、`device_app_task_extras.py`、`device_app_sharing.py`、`device_app_discovery.py`、`device_app_stats.py`。
+  - 新增 `device_logic/notifications.py` 微信订阅消息 access_token 缓存与事件分发；`device_gateway/task_events.py` / `routes/device_gateway_ws.py` 在任务完成/失败/离线/固件更新时触发通知。
+  - `device_logic/db.py` 与 `migrations/xiaozhi_schema.sql` 新增任务模板、素材库、分享、通知、统计分析相关表。
+  - 代码审查后修复高危/关键问题：新增 `require_device_control` 区分 view/control 分享权限；通知订阅校验 deviceIds 并移除空列表匹配所有设备；`WeChatNotifier` 改用 `httpx.AsyncClient`；取消订阅检查 `rowcount`；任务模板校验 capability；设备发现 `server_url` 改用环境变量。
+  - 补充 9 个分享/通知/模板边界测试，并修复 `tests/test_routes_device_app_api.py` 与 `tests/test_routes_device_app_tasks.py` 的 fixture。
+- **验证**：
+  - `tests/test_device_app_*.py` + `tests/test_routes_device_app_*.py`：213 passed / 1 failed（预存）。
+  - `ruff check` clean；`pyright` 修改文件 0 errors。
+  - `scripts/deploy_unified.py` core 上传 1381 个文件，VPS 重启后 `https://chat.donglicao.com/health` OK，`device_app_*` 模块全部 loaded。
+- **Git**：commit `33ce83f3` 已推送到 `origin/main`。
 
 ### 最近完成（2026-06-24）第一部分：编码能力退役
 
