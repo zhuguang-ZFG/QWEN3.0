@@ -4,7 +4,7 @@ export default defineConfig({
   title: 'LiMa 文档',
   description: 'LiMa 量子星云开发者文档',
   lang: 'zh-CN',
-  base: '/',
+  base: '/docs/',
   appearance: 'force-dark',
   cleanUrls: true,
   lastUpdated: false,
