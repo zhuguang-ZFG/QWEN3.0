@@ -3,6 +3,35 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-24 接入 MP4 视频并优化 chat-web / 2D 数字人
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| VIDEO-1 | assets | 官网/chat-web 缺少视频类素材，全是静图 | Closed |
+| VIDEO-2 | perf | 直接引入外部视频存在版权与体积风险 | Mitigated |
+| CHAT-1 | ux | chat-web 语音输入按钮为占位，点击只弹 Toast | Closed |
+| CHAT-2 | perf | solar-system canvas 全设备满负荷运行 | Closed |
+| CHAT-3 | compat | 代码复制仅依赖 navigator.clipboard | Closed |
+| DH-1 | ux | 数字人背景切换闪白，无预加载 | Closed |
+| DH-2 | ux | Live2D canvas 可能拦截聊天/控件点击 | Closed |
+| DH-3 | reliability | 模型加载无超时与失败反馈 | Closed |
+
+**修复动作**
+- 用 OpenCV 从现有静图生成轻量 Ken Burns MP4 循环：`hero-bg.mp4`、`product-draw-loop.mp4`。
+- 官网 Hero 与 AI 绘图机卡片接入视频，提供 poster 与静图 fallback；移动端/reduced-motion 降级。
+- chat-web 增加 `media-src` CSP、接入视频演示、Web Speech API 语音输入、canvas 性能缩放、复制降级。
+- 2D 数字人改用双图层交叉淡入淡出背景、预加载、`pointer-events: none`、模型加载超时/失败提示。
+- `routes/digital_human.py` 补丁文案同步为「LiMa 量子星云」。
+
+**验证**
+- `node --check` 通过所有修改的 JS。
+- 本地 HTTP 服务验证 donglicao-site、chat-web、digital-human 的资源 200。
+- 公网 `donglicao.com` 与 `chat.donglicao.com` 均 200，各含 2 个 `<video>`。
+- 子模块 `esp32S_XYZ` 已 push 到 `perf/phase1-quick-wins`。
+
+**遗留**
+- 2D 数字人静态文件已更新在子模块，但 VPS 上 LiMa 服务未重启，数字人页面需下次统一部署后生效。
+
 ## 2026-06-24 donglicao-site 增加动态视觉
 
 | ID | Area | Finding | Status |

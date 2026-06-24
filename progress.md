@@ -1,5 +1,41 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 接入 MP4 视频素材并优化 chat-web / 2D 数字人
+
+- **目标**：把官网/chat-web 的静态图升级为 MP4 循环视频，突出科技感；同时优化 chat-web 性能与占位交互、2D 数字人体验。
+- **视频生成**：
+  - 新增 `scripts/generate_ken_burns_video.py`，用 OpenCV 从静图生成 Ken Burns 风格循环 MP4。
+  - 生成 `donglicao-site/assets/hero-bg.mp4`（886×665，12s，≈1.1 MB）与 `product-draw-loop.mp4`（800×600，8s，≈727 KB）。
+  - chat-web 与 digital-human 复用/衍生相同素材（含 poster 静图）。
+- **官网 donglicao-site**：
+  - Hero 区以 `<video autoplay muted loop playsinline poster>` 接入 `hero-bg.mp4`，原 `<picture>` 作为静图 fallback。
+  - AI 绘图机大卡片（`.bento-large`）接入 `product-draw-loop.mp4` 作为背景视频。
+  - 新增 `.hero-video` / `.bento-video` 样式；移动端与 `prefers-reduced-motion` 下隐藏视频、显示静图。
+- **chat-web**：
+  - CSP 增加 `media-src 'self'`。
+  - 欢迎屏与「画一只猫」快捷卡片分别接入背景/演示视频。
+  - `mic-btn` 改为 Web Speech API 实现，不支持时自动隐藏。
+  - `solar-system.js` 按 `prefers-reduced-motion`、触摸设备、内存/核心数动态降低星星/彗星数量。
+  - `chat-messages.js` 复制功能增加 `document.execCommand('copy')` 降级。
+- **2D 数字人（esp32S_XYZ 子模块）**：
+  - 背景切换改为双图层 `opacity` 交叉淡入淡出，并预加载下一张；支持 `<video>` 背景。
+  - `#live2d-stage` 改为 `pointer-events: none`，避免拦截聊天/控件点击。
+  - Live2D 模型加载增加 `Promise.race` 超时与失败提示。
+  - 子模块已单独 commit/push 到 `perf/phase1-quick-wins`。
+- **路由文案同步**：`routes/digital_human.py` 的页面补丁统一改为「LiMa 量子星云」。
+- **验证**：
+  - `node --check` 通过所有修改的 JS。
+  - 本地 HTTP 服务验证 donglicao-site / chat-web / digital-human 的资源 200。
+  - `nginx -t && systemctl reload nginx` 通过。
+  - 公网 `https://donglicao.com` 与 `https://chat.donglicao.com` 均 200，HTML 各包含 2 个 `<video>`。
+- **部署**：
+  - donglicao-site：`scp` 到 `/www/wwwroot/donglicao-site/`。
+  - chat-web：`scripts/deploy_chat_web.py` 因 paramiko 密钥解析失败，改用 `scp -r chat-web/*` 到 `/var/www/chat/`。
+  - 2D 数字人：子模块 commit/push 后，父仓库 submodule pointer 已更新；由于未执行 LiMa 服务重启，数字人页面待下次统一部署后生效。
+- **Git**：
+  - 父仓库 commit `a8618524` feat(site): add MP4 video loops to donglicao-site/chat-web and optimize digital-human。
+  - 子模块 commit `4001460` perf(digital-human): crossfade backgrounds, pointer-events fix, model load timeout。
+
 ## 2026-06-24 donglicao-site 引入轻量动态视觉（动效/视频感）
 
 - **目标**：解决官网全是静图、缺少动态/视频感的问题，在不引入大体积视频文件的前提下提升视觉活力。
