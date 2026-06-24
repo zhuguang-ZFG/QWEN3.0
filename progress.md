@@ -8117,3 +8117,37 @@ Agent Worker path.
   - `pytest tests/test_draw_prompt_enhancer.py tests/test_draw_prompt_context.py tests/test_device_draw_handler.py tests/test_device_draw_handler_part2.py -q` → 32 passed。
   - `pytest tests/device_gateway tests/test_device_gateway_*.py tests/test_routes_device_gateway.py -q` → 229 passed。
   - `ruff check` / `pyright` 针对修改文件 0 error。
+
+## 2026-06-24 Phase 1：小智服务器退役与能力补全
+
+- **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 第四部分，完成小智服务器退役与 LiMa 原生能力补全。
+- **实现**：
+  - **Phase 1-1**：迁移 3 个缺失端点到 `device_app`。
+    - 创建 `device_logic/captcha.py`（图形验证码 PNG）。
+    - `routes/device_app_auth.py` 新增 `GET /device/v1/app/auth/captcha`、`PUT /device/v1/app/auth/change-password`。
+    - `routes/device_app_api.py` 新增 `POST /device/v1/app/devices/manual-add`（管理员）。
+    - 新增 `tests/test_device_app_migrated_endpoints.py`。
+  - **Phase 1-2**：迁移数字人静态资源。
+    - 复制 `esp32S_XYZ/server/xiaozhi-esp32-server/main/digital-human/` → `data/digital-human/`。
+    - `routes/digital_human.py` 默认目录改为 `data/digital-human`，esp32S_XYZ 作为 fallback。
+    - 更新 `tests/test_routes_digital_human.py` 品牌断言为「LiMa 量子星云」。
+  - **Phase 1-3**：标记小智兼容层退役。
+    - `config/env.py`：`xiaozhi_compat_enabled()` 硬返回 `False`。
+    - `routes/route_registry.py`：无条件设置 `loaded["xiaozhi_v1_compat"] = False`，移除条件挂载。
+    - `routes/upload.py` 改从 `device_logic.auth` 导入 `authorize`。
+    - `routes/xiaozhi_v1_compat.py` 与 `routes/xiaozhi_compat/*.py` 添加 `DEPRECATED v3.1` 头注释。
+    - 相关测试标记 deprecated 并更新 opt-in 测试。
+  - **Phase 1-4**：LiMa 能力补全自检。
+    - `device_voice/__init__.py` 新增 `self_check()`，检查 ASR/TTS/VAD/voiceprint 可实例化状态。
+    - `migrations/xiaozhi_schema.sql` 与 `device_logic/db.py` 新增 `v2_pair_request` 表。
+    - `routes/device_app_misc.py` 新增 `POST /devices/provision` 与 `POST /devices/provision/confirm`。
+    - 新增 `tests/test_device_app_self_check.py` 覆盖自检、配网成功/失败/过期/冲突场景。
+    - grep 验证 `device_voice/`、设备 WS、浏览器语音、OTA 路由无 `routes.xiaozhi_compat` / `esp32S_XYZ` 导入。
+- **验证**：
+  - 聚焦 pytest 65 passed / 0 failed（device_app 迁移、数字人、小智退役、能力自检相关测试）。
+  - `ruff check` 修改文件 clean；`pyright` 0 errors。
+  - 无新增 >300 行文件 / >50 行函数。
+- **Git**：
+  - Phase 0-1 提交：`d5b6711a`（feat(device): retire xiaozhi v1 compat and migrate device_app endpoints）。
+  - Phase 1-4 提交：`526de41e`（feat(device): add voice self-check and device provisioning）。
+  - 均已 push 到 `origin/main`；Gitee remote 未配置。

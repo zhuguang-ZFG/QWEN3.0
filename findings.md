@@ -1451,3 +1451,33 @@
 | chat.html | 渐变品牌标题与顶部光线 |
 | 部署 | VPS `/www/wwwroot/donglicao-site/` + `/var/www/chat/`，nginx reload 成功 |
 | 验证 | 三个域名 200 OK；远程 CSS 包含新 token 与渐变 |
+
+## 2026-06-24 Phase 1：小智服务器退役与能力补全
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| XZ-RET-1 | routing | 小智 v1 兼容层仍可通过环境变量开启 | Closed |
+| XZ-RET-2 | auth | `routes/upload.py` 仍依赖 `routes.xiaozhi_compat.auth` | Closed |
+| XZ-RET-3 | compat | 退役后无生产代码标记为 deprecated | Closed |
+| XZ-MIG-1 | endpoints | `manual-add`、`captcha`、`change-password` 仅存在于小智层 | Closed |
+| XZ-MIG-2 | assets | 数字人静态资源仍从 esp32S_XYZ 子模块读取 | Closed |
+| LIMA-L1 | voice | `device_voice/` 缺少自检入口 | Closed |
+| LIMA-L2 | ws | 未验证设备 WS 语音端点无小智依赖 | Closed |
+| LIMA-L3 | voice | 未验证浏览器语音端点无小智依赖 | Closed |
+| LIMA-L4 | digital-human | 未验证数字人资源独立可用 | Closed |
+| LIMA-L5 | provision | 小智原配网接口在 LiMa 无对应实现 | Closed |
+| LIMA-L6 | ota | 未验证 OTA 链路无小智依赖 | Closed |
+
+**修复动作**
+- 硬禁用 `xiaozhi_compat_enabled()`，移除 `route_registry.py` 条件挂载；`upload.py` 迁移到 `device_logic.auth`。
+- 给小智兼容层所有文件及测试添加 `DEPRECATED v3.1` 头注释。
+- 迁移 3 个端点到 `device_app`；数字人资源复制到 `data/digital-human/`。
+- 新增 `device_voice.self_check()`、`v2_pair_request` 表、`/devices/provision` 与 `/devices/provision/confirm` 端点。
+- grep 确认 `device_voice/`、设备 WS、浏览器语音、OTA 路由无 `routes.xiaozhi_compat` / `esp32S_XYZ` 导入。
+
+**验证**
+- `tests/test_device_app_migrated_endpoints.py` 7 passed。
+- `tests/test_routes_digital_human.py` 10 passed。
+- `tests/test_route_registry.py`、`tests/test_routes_xiaozhi_v1_compat.py`、`tests/test_xiaozhi_compat_route_policy.py`、`tests/xiaozhi_v1_compat` 39 passed。
+- `tests/test_device_app_self_check.py` 9 passed。
+- `ruff check` / `pyright` clean。
