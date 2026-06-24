@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════
-// LiMa Nebula System — Solar System (Dual Mode)
+// LiMa Nebula System - Solar System (Dual Mode)
 // Full-screen background + mini hero canvas for chat-web
 // ═══════════════════════════════════════════
 (function() {
@@ -37,14 +37,14 @@
 
     const sunBaseR = 0.04;
     const PLANETS = [
-      { color: '168,162,158', orbit: 0.08, speed: 2.5, r: 2.5 },
-      { color: '217,186,140', orbit: 0.12, speed: 1.8, r: 3.5 },
-      { color: '59,130,246',  orbit: 0.17, speed: 1.5, r: 3.8 },
-      { color: '220,80,60',   orbit: 0.23, speed: 1.2, r: 3.0 },
-      { color: '200,160,100', orbit: 0.32, speed: 0.6, r: 7.0 },
-      { color: '190,170,130', orbit: 0.42, speed: 0.45, r: 6.0, hasRing: true, ringColor: '160,140,100' },
-      { color: '100,200,220', orbit: 0.52, speed: 0.3, r: 4.5 },
-      { color: '60,100,220',  orbit: 0.62, speed: 0.25, r: 4.2 },
+      { color: '6,182,212', orbit: 0.08, speed: 2.5, r: 2.5 },
+      { color: '22,211,238', orbit: 0.12, speed: 1.8, r: 3.5 },
+      { color: '6,182,212',  orbit: 0.17, speed: 1.5, r: 3.8 },
+      { color: '244,114,182',   orbit: 0.23, speed: 1.2, r: 3.0 },
+      { color: '34,211,238', orbit: 0.32, speed: 0.6, r: 7.0 },
+      { color: '14,165,233', orbit: 0.42, speed: 0.45, r: 6.0, hasRing: true, ringColor: '34,211,238' },
+      { color: '22,211,238', orbit: 0.52, speed: 0.3, r: 4.5 },
+      { color: '6,182,212',  orbit: 0.62, speed: 0.25, r: 4.2 },
     ];
 
     const planets = PLANETS.map(cfg => ({
@@ -69,7 +69,7 @@
         this.targetY = this.y + (Math.random() - 0.5) * 200;
         this.speed = 2 + Math.random() * 3;
         this.trail = []; this.done = false;
-        this.color = Math.random() < 0.5 ? '200,220,255' : '255,220,150';
+        this.color = Math.random() < 0.5 ? '200,255,255' : '180,240,255';
       }
       update() {
         this.trail.push({ x: this.x, y: this.y });
@@ -108,7 +108,7 @@
         const a = s.alpha * (0.5 + 0.5 * Math.sin(bgTime * s.twinkleSpeed + s.twinkle));
         bgCtx.beginPath();
         bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        bgCtx.fillStyle = `rgba(220,230,255,${a})`;
+        bgCtx.fillStyle = `rgba(200,255,255,${a})`;
         bgCtx.fill();
       });
 
@@ -125,22 +125,22 @@
       const sunPulse = Math.sin(bgTime * 1.5) * 0.15 + 0.85;
       const sunR = Math.min(W, H) * sunBaseR * sunPulse;
       const g1 = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, sunR * 12);
-      g1.addColorStop(0, 'rgba(255,200,80,0.12)');
-      g1.addColorStop(0.3, 'rgba(255,160,40,0.05)');
-      g1.addColorStop(1, 'rgba(255,120,20,0)');
+      g1.addColorStop(0, 'rgba(180,255,255,0.12)');
+      g1.addColorStop(0.3, 'rgba(100,230,255,0.05)');
+      g1.addColorStop(1, 'rgba(6,182,212,0)');
       bgCtx.fillStyle = g1;
       bgCtx.fillRect(cx - sunR * 12, cy - sunR * 12, sunR * 24, sunR * 24);
       const g2 = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, sunR * 4);
-      g2.addColorStop(0, 'rgba(255,240,200,0.3)');
-      g2.addColorStop(0.5, 'rgba(255,200,80,0.1)');
-      g2.addColorStop(1, 'rgba(255,140,20,0)');
+      g2.addColorStop(0, 'rgba(220,255,255,0.3)');
+      g2.addColorStop(0.5, 'rgba(180,255,255,0.1)');
+      g2.addColorStop(1, 'rgba(6,182,212,0)');
       bgCtx.fillStyle = g2;
       bgCtx.fillRect(cx - sunR * 4, cy - sunR * 4, sunR * 8, sunR * 8);
       const g3 = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, sunR);
-      g3.addColorStop(0, 'rgba(255,250,230,0.95)');
-      g3.addColorStop(0.4, 'rgba(255,220,100,0.8)');
+      g3.addColorStop(0, 'rgba(235,255,255,0.95)');
+      g3.addColorStop(0.4, 'rgba(150,245,255,0.8)');
       g3.addColorStop(0.8, 'rgba(255,160,30,0.4)');
-      g3.addColorStop(1, 'rgba(255,100,0,0)');
+      g3.addColorStop(1, 'rgba(6,182,212,0)');
       bgCtx.beginPath();
       bgCtx.arc(cx, cy, sunR, 0, Math.PI * 2);
       bgCtx.fillStyle = g3;
@@ -221,12 +221,12 @@
   }
 
   const hPlanets = [
-    { color: '168,162,158', orbit: 0.18, speed: 2.5, r: 2.2 },
-    { color: '217,186,140', orbit: 0.28, speed: 1.8, r: 2.8 },
-    { color: '59,130,246',  orbit: 0.38, speed: 1.5, r: 3.0 },
-    { color: '220,80,60',   orbit: 0.50, speed: 1.2, r: 2.5 },
-    { color: '200,160,100', orbit: 0.65, speed: 0.6, r: 4.5 },
-    { color: '190,170,130', orbit: 0.78, speed: 0.45, r: 3.8, hasRing: true, ringColor: '160,140,100' },
+    { color: '6,182,212', orbit: 0.18, speed: 2.5, r: 2.2 },
+    { color: '22,211,238', orbit: 0.28, speed: 1.8, r: 2.8 },
+    { color: '6,182,212',  orbit: 0.38, speed: 1.5, r: 3.0 },
+    { color: '244,114,182',   orbit: 0.50, speed: 1.2, r: 2.5 },
+    { color: '34,211,238', orbit: 0.65, speed: 0.6, r: 4.5 },
+    { color: '14,165,233', orbit: 0.78, speed: 0.45, r: 3.8, hasRing: true, ringColor: '34,211,238' },
   ];
 
   const hBodies = hPlanets.map(cfg => ({
@@ -264,7 +264,7 @@
         hCtx.beginPath();
         hCtx.moveTo(this.trail[i].x, this.trail[i].y);
         hCtx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
-        hCtx.strokeStyle = `rgba(200,220,255,${a})`;
+        hCtx.strokeStyle = `rgba(200,255,255,${a})`;
         hCtx.lineWidth = 1.5;
         hCtx.stroke();
       }
@@ -279,14 +279,14 @@
     const pulse = Math.sin(hTime * 1.5) * 0.15 + 0.85;
     const r = 8 * pulse;
     const g = hCtx.createRadialGradient(hCx, hCy, 0, hCx, hCy, r * 5);
-    g.addColorStop(0, 'rgba(255,220,100,0.25)');
-    g.addColorStop(0.5, 'rgba(255,160,40,0.1)');
-    g.addColorStop(1, 'rgba(255,100,0,0)');
+    g.addColorStop(0, 'rgba(150,245,255,0.25)');
+    g.addColorStop(0.5, 'rgba(100,230,255,0.1)');
+    g.addColorStop(1, 'rgba(6,182,212,0)');
     hCtx.fillStyle = g;
     hCtx.fillRect(hCx - r * 5, hCy - r * 5, r * 10, r * 10);
     const g2 = hCtx.createRadialGradient(hCx, hCy, 0, hCx, hCy, r);
-    g2.addColorStop(0, 'rgba(255,250,230,0.95)');
-    g2.addColorStop(0.5, 'rgba(255,220,100,0.8)');
+    g2.addColorStop(0, 'rgba(235,255,255,0.95)');
+    g2.addColorStop(0.5, 'rgba(150,245,255,0.8)');
     g2.addColorStop(1, 'rgba(255,160,30,0)');
     hCtx.beginPath();
     hCtx.arc(hCx, hCy, r, 0, Math.PI * 2);

@@ -1148,3 +1148,15 @@
 | 备份 | 远程 `index.html/styles.css/site.js` 已按时间戳备份 |
 | 公网验证 | `https://donglicao.com` 与 `https://www.donglicao.com` 均 200 OK，内容包含新 Hero 文案 |
 | 遗留 | 视觉素材仍为 Picsum 占位图，需后续替换 |
+
+
+## 2026-06-24 chat-web 按 taste-skill 重塑并公网验证
+
+| Item | Detail |
+|------|--------|
+| 范围 | `chat-web/index.html`、`styles.css`、`voice-call.html`、`solar-system.js` |
+| 设计统一 | 强调色从 `#3b82f6` 改为 `#06b6d4`；字体统一为 Geist；CSP 放行 `cdn.jsdelivr.net` |
+| 未改动 | `chat-ui.js`、`chat-messages.js`、`chat-api.js` 逻辑；`icons.svg` |
+| 部署路径 | VPS `/var/www/chat/`（nginx `chat.donglicao.com.conf` 配置） |
+| 备份 | 远程 8 个核心文件已按时间戳备份 |
+| 公网验证 | `https://chat.donglicao.com` 200 OK；远程 CSS 命中 cyan accent 与 Geist 字体 |

@@ -7797,3 +7797,21 @@ Agent Worker path.
   - `https://donglicao.com` 与 `https://www.donglicao.com` 均返回 `HTTP/1.1 200 OK`。
   - 页面内容命中新官网特征：`AI DEVICE NEBULA`、`把自然语言变成真实创作`、`170+ AI 后端`。
 - **待办**：Picsum 占位图需在上线前替换为生成的品牌视觉素材（已在 HTML head 中标记 TODO）。
+
+
+## 2026-06-24 按 taste-skill 重塑 chat-web 并部署上线
+
+- **目标**：将 `chat-web/`（`chat.donglicao.com`）的视觉系统与官网统一，应用 taste-skill 设计语言。
+- **范围**：
+  - `chat-web/index.html`：引入 Geist 字体、更新 CSP `font-src`、清理 em-dash。
+  - `chat-web/styles.css`：颜色 token 从蓝色 `#3b82f6` 统一为 cyan `#06b6d4`，字体统一为 Geist，保留布局骨架。
+  - `chat-web/voice-call.html`：同步 cyan 主题与 Geist 字体。
+  - `chat-web/solar-system.js`：星球/轨道/太阳颜色调整为青色系。
+  - `chat-ui.js`、`chat-messages.js`、`chat-api.js`：逻辑不变。
+- **实现方式**：编写一次性 Python 脚本完成安全的 token 批量替换与备份，随后删除脚本。
+- **部署**：备份 VPS `/var/www/chat/` 的 8 个核心文件，上传新版，`nginx -t` 通过并 reload。
+- **验证**：
+  - 本地 `http.server` 验证 `index.html`、`voice-call.html`、`styles.css`、`solar-system.js` 均 200。
+  - `https://chat.donglicao.com` 返回 `HTTP/1.1 200 OK`。
+  - 远程 `styles.css` 确认包含 `@font-face` Geist、`--accent: #06b6d4`、CSP 允许 `cdn.jsdelivr.net`。
+- **待办**：后续可考虑对 `voice-call.html` 做结构性重塑（当前仅颜色/字体同步）。
