@@ -1160,3 +1160,13 @@
 | 部署路径 | VPS `/var/www/chat/`（nginx `chat.donglicao.com.conf` 配置） |
 | 备份 | 远程 8 个核心文件已按时间戳备份 |
 | 公网验证 | `https://chat.donglicao.com` 200 OK；远程 CSS 命中 cyan accent 与 Geist 字体 |
+
+
+## 2026-06-24 donglicao-site/chat.html 视觉统一
+
+| Item | Detail |
+|------|--------|
+| 文件 | `donglicao-site/chat.html`（跳转至 `chat.donglicao.com`） |
+| 变更 | Geist 字体、cyan 强调色、`100dvh`、卡片式居中布局 |
+| 部署路径 | VPS `/www/wwwroot/donglicao-site/chat.html` |
+| 公网验证 | `https://donglicao.com/chat.html` 200 OK |

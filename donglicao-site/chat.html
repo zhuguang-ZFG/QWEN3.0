@@ -6,17 +6,45 @@
   <meta http-equiv="refresh" content="0; url=https://chat.donglicao.com/">
   <title>LiMa Chat</title>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; background: #060612; color: #eef0f6; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-    a { color: #22d3ee; }
+    @font-face {
+      font-family: 'Geist';
+      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/GeistVariableVF.woff2') format('woff2-variations');
+      font-weight: 100 900;
+      font-display: swap;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Geist', system-ui, -apple-system, sans-serif;
+      background: #07070f;
+      color: #f0f4f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      text-align: center;
+      padding: 1rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 18px;
+      padding: 2rem;
+      max-width: 420px;
+    }
+    a { color: #22d3ee; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    p { margin: 0.5rem 0; color: #94a3b8; }
+    .brand { color: #f0f4f8; font-weight: 600; margin-bottom: 0.5rem; }
   </style>
   <script>
     location.replace('https://chat.donglicao.com/');
   </script>
 </head>
 <body>
-  <div>
-    <p>LiMa Chat 已迁移至 <a href="https://chat.donglicao.com/">chat.donglicao.com</a>。</p>
-    <p>本地开发请直接打开 <a href="../chat-web/index.html">chat-web/index.html</a>。</p>
+  <div class="card">
+    <div class="brand">LiMa Chat</div>
+    <p>正在跳转到 <a href="https://chat.donglicao.com/">chat.donglicao.com</a></p>
+    <p>本地开发请直接打开 <a href="../chat-web/index.html">chat-web/index.html</a></p>
   </div>
 </body>
 </html>

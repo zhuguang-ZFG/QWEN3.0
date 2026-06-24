@@ -7815,3 +7815,15 @@ Agent Worker path.
   - `https://chat.donglicao.com` 返回 `HTTP/1.1 200 OK`。
   - 远程 `styles.css` 确认包含 `@font-face` Geist、`--accent: #06b6d4`、CSP 允许 `cdn.jsdelivr.net`。
 - **待办**：后续可考虑对 `voice-call.html` 做结构性重塑（当前仅颜色/字体同步）。
+
+
+## 2026-06-24 统一 donglicao-site/chat.html 跳转页视觉
+
+- **目标**：将 `donglicao-site/chat.html` 重定向页的视觉风格与官网/chat-web 统一。
+- **实现**：
+  - 引入 Geist 字体。
+  - 背景色改为 `#07070f`，强调色使用 cyan `#22d3ee`。
+  - 使用 `min-height: 100dvh` 替代 `height: 100vh`。
+  - 增加卡片式居中布局，文案更简洁。
+- **部署**：备份并上传至 VPS `/www/wwwroot/donglicao-site/chat.html`，reload nginx。
+- **验证**：`https://donglicao.com/chat.html` 返回 `HTTP/1.1 200 OK`。
