@@ -18,6 +18,23 @@
   - nginx 重新加载，公网访问正常。
 - **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
 
+## 2026-06-24 LiMa 官网性能与 SEO 优化
+
+- **目标**：在前一步品牌素材落地基础上，压缩图片体积、补全 Open Graph / Twitter Card / 结构化数据、刷新静态资源缓存戳。
+- **实现**：
+  - 使用 Pillow 将 7 张 JPG 重新压缩至质量 80、progressive，累计减少约 22KB（相对上一步）。
+  - 在 `index.html` 新增 `og:image` / `og:image:width` / `og:image:height` / `og:image:alt`。
+  - 新增 `twitter:card=summary_large_image` 与对应 `twitter:title` / `twitter:description` / `twitter:image`。
+  - 新增 `canonical` 链接与 JSON-LD 结构化数据（WebSite + Organization）。
+  - 将 `styles.css` 与 3 个 JS 文件的缓存戳从 `?v=taste` 升级到 `?v=taste2`。
+- **验证**：
+  - 本地 `python -m http.server 8088`：og 标签、twitter 标签、canonical、JSON-LD 均存在；`styles.css?v=taste2` 200 OK。
+  - 公网 `https://donglicao.com`：所有 og/twitter 元数据与缓存戳已生效；nginx 重新加载通过。
+- **部署**：
+  - `scp -r donglicao-site/* root@47.112.162.80:/www/wwwroot/donglicao-site/` 成功。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
+
 ## 2026-06-24 LiMa M15：AI→Motion 阶段 5 发布门追踪与终端回放
 
 - **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态或阻断证据的端到端追踪，产出首份阶段 5 发布证据报告。

@@ -23,6 +23,27 @@
 - 公网 `https://donglicao.com` 及 5 张资源均返回 `200 OK`。
 - `nginx -t && systemctl reload nginx` 通过。
 
+## 2026-06-24 官网性能与 SEO 优化
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SITE-PERF-1 | perf | 7 张品牌 JPG 可进一步压缩以减少首屏加载 | Closed |
+| SITE-SEO-1 | seo | 缺少 `og:image`，社交分享时无法展示品牌图 | Closed |
+| SITE-SEO-2 | seo | 缺少 Twitter Card 与 `canonical` 链接 | Closed |
+| SITE-SEO-3 | seo | 缺少结构化数据（JSON-LD） | Closed |
+| SITE-CACHE-1 | cache | 静态资源缓存戳未更新，旧版本可能被浏览器/CDN 缓存 | Closed |
+
+**修复动作**
+- 使用 Pillow 将 `donglicao-site/assets/*.jpg` 压缩至质量 80 + progressive，单图 46–103KB。
+- 新增 Open Graph / Twitter Card 元数据，指向 `https://donglicao.com/assets/hero.jpg`。
+- 新增 `canonical` 链接与 JSON-LD（WebSite + Organization）。
+- 将 CSS/JS 缓存戳从 `?v=taste` 升级到 `?v=taste2`。
+
+**验证**
+- 本地 `curl` 抓取 `index.html`：og/twitter/canonical/JSON-LD 均存在。
+- 公网 `https://donglicao.com` 验证 og 标签与 `?v=taste2` 已生效。
+- `nginx -t && systemctl reload nginx` 通过。
+
 ## 2026-06-24 P3 缺陷改善里程碑部署验证
 
 | ID | Area | Finding | Status |
