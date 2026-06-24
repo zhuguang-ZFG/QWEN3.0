@@ -35,6 +35,23 @@
   - `nginx -t && systemctl reload nginx` 通过。
 - **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
 
+## 2026-06-24 LiMa 官网视觉与性能深化
+
+- **目标**：继续优化官网：补全产品卡背景图、引入 WebP 现代格式、提升首屏加载性能。
+- **实现**：
+  - 为 AI 写字机、2D 数字人两个 Bento 小卡片增加背景图（使用 `product-write.jpg` / `product-human.jpg`），通过渐变遮罩保证文字可读。
+  - 为全部 7 张图片生成 WebP 版本（质量 80），体积比 JPG 小 30–40%。
+  - 将所有 `<img>` 改为 `<picture><source webp><img jpg></picture>`，JPEG 兜底兼容旧浏览器。
+  - 为 Hero 图添加 `fetchpriority="high"`；为所有图片添加 `decoding="async"`。
+  - 在 `styles.css` 新增 `.bento-bg` / `.has-bg` 样式。
+- **验证**：
+  - 本地 `python -m http.server 8088`：7 个 WebP source、2 个 `has-bg`、7 个 `decoding="async"`、1 个 `fetchpriority="high"` 均存在。
+  - 公网 `https://donglicao.com`：HTML 与 `.webp` 资源均 200 OK，元数据已生效。
+- **部署**：
+  - `scp -r donglicao-site/* root@47.112.162.80:/www/wwwroot/donglicao-site/` 成功。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
+
 ## 2026-06-24 LiMa M15：AI→Motion 阶段 5 发布门追踪与终端回放
 
 - **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态或阻断证据的端到端追踪，产出首份阶段 5 发布证据报告。

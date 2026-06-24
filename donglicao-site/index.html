@@ -96,7 +96,10 @@
         </div>
         <div class="hero-visual">
           <div class="hero-image-wrap">
-            <img src="assets/hero.jpg" alt="LiMa 星云网络可视化" loading="eager" width="1200" height="900">
+            <picture>
+              <source srcset="assets/hero.webp" type="image/webp">
+              <img src="assets/hero.jpg" alt="LiMa 星云网络可视化" loading="eager" decoding="async" fetchpriority="high" width="1200" height="900">
+            </picture>
           </div>
         </div>
       </div>
@@ -111,7 +114,10 @@
       <div class="bento">
         <div class="bento-cell bento-large">
           <div class="bento-media">
-            <img src="assets/product-draw.jpg" alt="AI 绘图机绘制 SVG 图案" loading="lazy" width="800" height="600">
+            <picture>
+              <source srcset="assets/product-draw.webp" type="image/webp">
+              <img src="assets/product-draw.jpg" alt="AI 绘图机绘制 SVG 图案" loading="lazy" decoding="async" width="800" height="600">
+            </picture>
           </div>
           <div class="bento-content">
             <div class="bento-icon draw"><svg class="svg-icon"><use href="#i-pen-tool"/></svg></div>
@@ -120,13 +126,25 @@
             <div class="tags"><span class="tag">SVG 生成</span><span class="tag">路径管线</span><span class="tag">G-code</span></div>
           </div>
         </div>
-        <div class="bento-cell">
+        <div class="bento-cell has-bg">
+          <div class="bento-bg" aria-hidden="true">
+            <picture>
+              <source srcset="assets/product-write.webp" type="image/webp">
+              <img src="assets/product-write.jpg" alt="" loading="lazy" decoding="async">
+            </picture>
+          </div>
           <div class="bento-icon write"><svg class="svg-icon"><use href="#i-pencil"/></svg></div>
           <h3>AI 写字机</h3>
           <p>笔画字体渲染、运动路径仿真，双 ESP32 协同精准书写。</p>
           <div class="tags"><span class="tag">笔画字体</span><span class="tag">双芯协作</span></div>
         </div>
-        <div class="bento-cell">
+        <div class="bento-cell has-bg">
+          <div class="bento-bg" aria-hidden="true">
+            <picture>
+              <source srcset="assets/product-human.webp" type="image/webp">
+              <img src="assets/product-human.jpg" alt="" loading="lazy" decoding="async">
+            </picture>
+          </div>
           <div class="bento-icon human"><svg class="svg-icon"><use href="#i-human"/></svg></div>
           <h3>2D 数字人</h3>
           <p>Live2D 实时语音交互，一句话唤醒、对话、表情同步。</p>
@@ -228,7 +246,10 @@
       <div class="scenario-grid">
         <div class="scenario-card scenario-feature">
           <div class="scenario-visual">
-            <img src="assets/scene-home.jpg" alt="家庭创作场景" loading="lazy" width="800" height="1000">
+            <picture>
+              <source srcset="assets/scene-home.webp" type="image/webp">
+              <img src="assets/scene-home.jpg" alt="家庭创作场景" loading="lazy" decoding="async" width="800" height="1000">
+            </picture>
           </div>
           <div class="scenario-body">
             <div class="scenario-icon"><svg class="svg-icon"><use href="#i-house"/></svg></div>
@@ -239,7 +260,10 @@
         </div>
         <div class="scenario-card">
           <div class="scenario-visual-sm">
-            <img src="assets/scene-edu.jpg" alt="教育课堂场景" loading="lazy" width="600" height="300">
+            <picture>
+              <source srcset="assets/scene-edu.webp" type="image/webp">
+              <img src="assets/scene-edu.jpg" alt="教育课堂场景" loading="lazy" decoding="async" width="600" height="300">
+            </picture>
           </div>
           <div class="scenario-icon"><svg class="svg-icon"><use href="#i-book-open"/></svg></div>
           <h3>教育课堂</h3>
@@ -248,7 +272,10 @@
         </div>
         <div class="scenario-card">
           <div class="scenario-visual-sm">
-            <img src="assets/scene-gift.jpg" alt="个性礼物定制场景" loading="lazy" width="600" height="300">
+            <picture>
+              <source srcset="assets/scene-gift.webp" type="image/webp">
+              <img src="assets/scene-gift.jpg" alt="个性礼物定制场景" loading="lazy" decoding="async" width="600" height="300">
+            </picture>
           </div>
           <div class="scenario-icon"><svg class="svg-icon"><use href="#i-gift"/></svg></div>
           <h3>个性定制</h3>

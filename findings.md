@@ -44,6 +44,26 @@
 - 公网 `https://donglicao.com` 验证 og 标签与 `?v=taste2` 已生效。
 - `nginx -t && systemctl reload nginx` 通过。
 
+## 2026-06-24 官网视觉与性能深化
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SITE-VIS-1 | visual | AI 写字机、2D 数字人 Bento 卡片只有图标，视觉权重不足 | Closed |
+| SITE-PERF-2 | perf | 缺少现代图片格式（WebP/AVIF），移动端流量浪费 | Closed |
+| SITE-PERF-3 | perf | Hero 图未声明高优先级，首屏 LCP 可优化 | Closed |
+| SITE-PERF-4 | perf | 图片缺少 `decoding="async"`，主线程解码可能阻塞交互 | Closed |
+
+**修复动作**
+- 为 AI 写字机、2D 数字人卡片新增 `.bento-bg` 背景图层（使用 `product-write.jpg` / `product-human.jpg`），加渐变遮罩确保可读。
+- 用 Pillow 生成 7 张 WebP（质量 80），并在 `index.html` 中用 `<picture>` 提供 WebP + JPEG fallback。
+- Hero 图添加 `fetchpriority="high"`；所有 `<img>` 添加 `decoding="async"`。
+- `styles.css` 新增 `.bento-bg` / `.has-bg` 定位与遮罩样式。
+
+**验证**
+- 本地 `python -m http.server 8088`：7 个 WebP source、2 个 `has-bg`、7 个 `decoding="async"`、1 个 `fetchpriority="high"` 均存在。
+- 公网 `https://donglicao.com`：HTML 与 `.webp` 资源均返回 `200 OK`。
+- `nginx -t && systemctl reload nginx` 通过。
+
 ## 2026-06-24 P3 缺陷改善里程碑部署验证
 
 | ID | Area | Finding | Status |
