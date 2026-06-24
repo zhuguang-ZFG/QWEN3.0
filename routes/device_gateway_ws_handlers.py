@@ -13,6 +13,7 @@ from device_gateway.protocol import (
     hello_ack,
     voice_status_frame,
 )
+from device_gateway.protocol_negotiator import ProtocolNegotiator
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.task_events import process_motion_event_core
 from device_gateway.tasks import (
@@ -64,14 +65,12 @@ __all__ = [
 ]
 
 
-async def handle_hello(
+async def _authenticate_hello(
     websocket: WebSocket,
-    message: dict[str, Any],
-    *,
+    device_id: str,
     request_id: str | None,
-) -> tuple[str | None, DeviceSession | None, bool]:
-    device_id = message["device_id"]
-    token = extract_ws_token(websocket)
+) -> bool:
+    """Validate device ticket and token; send error and close on failure."""
     bound_device_id = ticket_device_id(websocket)
     if bound_device_id and bound_device_id != device_id:
         _log.warning("device hello ticket device mismatch expected=%r got=%r", bound_device_id, device_id)
@@ -80,7 +79,8 @@ async def handle_hello(
             ProtocolError("E_UNAUTHORIZED_DEVICE", "device ticket does not match device_id", request_id),
         )
         await websocket.close(code=1008)
-        return None, None, False
+        return False
+    token = extract_ws_token(websocket)
     if not validate_device_token(device_id, token):
         _log.warning("device hello auth failed device=%r token_len=%d", device_id, len(token))
         await send_ws_error(
@@ -88,15 +88,50 @@ async def handle_hello(
             ProtocolError("E_UNAUTHORIZED_DEVICE", "device token is invalid", request_id),
         )
         await websocket.close(code=1008)
-        return None, None, False
-    _log.info("device hello auth succeeded device=%r", device_id)
+        return False
+    return True
 
-    session = DeviceSession(
+
+def _negotiate_hello_protocol(message: dict[str, Any]) -> tuple[str, frozenset[str]]:
+    """Negotiate protocol version and return (protocol, capabilities)."""
+    fw_rev = message.get("fw_rev", "")
+    device_protocol = message.get("protocol", "lima-device-v1")
+    negotiator = ProtocolNegotiator()
+    protocol = negotiator.negotiate(device_protocol, fw_rev)
+    return protocol, negotiator.capabilities_for_version(protocol)
+
+
+def _create_hello_session(
+    websocket: WebSocket,
+    device_id: str,
+    message: dict[str, Any],
+    protocol: str,
+    capabilities: frozenset[str],
+) -> DeviceSession:
+    return DeviceSession(
         device_id=device_id,
         websocket=websocket,
         fw_rev=message.get("fw_rev", ""),
         capabilities=message.get("capabilities", []),
+        protocol_version=protocol,
+        negotiated_capabilities=capabilities,
     )
+
+
+async def handle_hello(
+    websocket: WebSocket,
+    message: dict[str, Any],
+    *,
+    request_id: str | None,
+) -> tuple[str | None, DeviceSession | None, bool]:
+    device_id = message["device_id"]
+    if not await _authenticate_hello(websocket, device_id, request_id):
+        return None, None, False
+    _log.info("device hello auth succeeded device=%r", device_id)
+
+    protocol, negotiated_capabilities = _negotiate_hello_protocol(message)
+    session = _create_hello_session(websocket, device_id, message, protocol, negotiated_capabilities)
+
     previous = registry.register(session)
     if previous and previous.websocket is not websocket:
         reattach_tasks(session, previous.take_outstanding_tasks())
@@ -106,7 +141,14 @@ async def handle_hello(
             _log.warning("close superseded websocket device=%s: %s", device_id, exc)
     reattach_tasks(session, active_tasks_for_device(device_id))
     shadow_store.update_hello(message)
-    await session.send_json(hello_ack(device_id, shadow_store.delta_for_hello(device_id)))
+    await session.send_json(
+        hello_ack(
+            device_id,
+            shadow_store.delta_for_hello(device_id),
+            protocol_version=protocol,
+            capabilities=negotiated_capabilities,
+        )
+    )
     if not await drain_pending_tasks(session):
         return device_id, session, False
     return device_id, session, True

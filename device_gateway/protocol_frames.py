@@ -19,13 +19,21 @@ def error_frame(error: ProtocolError | Exception, request_id: str | None = None)
     return frame
 
 
-def hello_ack(device_id: str, shadow_delta: dict[str, Any] | None = None) -> dict[str, Any]:
-    frame = {
+def hello_ack(
+    device_id: str,
+    shadow_delta: dict[str, Any] | None = None,
+    *,
+    protocol_version: str = PROTOCOL_VERSION,
+    capabilities: frozenset[str] | None = None,
+) -> dict[str, Any]:
+    frame: dict[str, Any] = {
         "type": "hello_ack",
-        "protocol": PROTOCOL_VERSION,
+        "protocol": protocol_version,
         "device_id": device_id,
         "server_time": now_iso(),
     }
+    if capabilities:
+        frame["capabilities"] = sorted(capabilities)
     if shadow_delta:
         frame.update(shadow_delta)
     return frame

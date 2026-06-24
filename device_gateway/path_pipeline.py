@@ -27,6 +27,7 @@ from device_gateway.path_data import (
     _FONT_GLYPHS,
     clamp_path,
 )
+from device_gateway.path_optimizer import PathOptimizer, apply_multi_pass
 from device_gateway.safety import DEFAULT_WORKSPACE_MM
 from device_gateway.svg_parser import svg_path_to_motion
 
@@ -74,9 +75,19 @@ def text_to_path(
     return clamp_path(path)
 
 
-def render_text_task(text: str) -> dict[str, Any]:
+def render_text_task(
+    text: str,
+    passes: int = 1,
+    offset_mm: float = 0.5,
+    optimize: bool = True,
+) -> dict[str, Any]:
     """Render a write_text intent into a motion task params dict with preview."""
     path = text_to_path(text[:40])
+    if passes > 1:
+        path = apply_multi_pass(path, passes, offset_mm)
+    if optimize:
+        optimizer = PathOptimizer()
+        path = optimizer.smooth(optimizer.compress(path))
     return {
         "path": path,
         "preview_svg": preview_svg(path, title=f'text: "{text[:20]}"'),
@@ -109,10 +120,20 @@ def _normalize_path_to_workspace(
     ]
 
 
-def render_svg_task(d_string: str) -> dict[str, Any]:
+def render_svg_task(
+    d_string: str,
+    passes: int = 1,
+    offset_mm: float = 0.5,
+    optimize: bool = True,
+) -> dict[str, Any]:
     """Render an SVG path string into a motion task params dict with preview."""
     path = svg_path_to_motion(d_string[:2000])
     path = _normalize_path_to_workspace(path)
+    if passes > 1:
+        path = apply_multi_pass(path, passes, offset_mm)
+    if optimize:
+        optimizer = PathOptimizer()
+        path = optimizer.smooth(optimizer.compress(path))
     return {
         "path": path,
         "preview_svg": preview_svg(path, title=f"svg path — {len(path)} pts"),

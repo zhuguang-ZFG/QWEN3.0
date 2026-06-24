@@ -6,14 +6,17 @@ import re
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
 
-from config.env import device_ota_state_path
+from config.env import device_ota_state_path, ota_signing_public_key
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
 from access_guard import extract_bearer_token
 from device_gateway.auth import validate_device_token
-from device_ota.release import ReleaseGate
 from device_ota.canary import CanaryDeployment
+from device_ota.gradual import GradualRollout
+from device_ota.release import ReleaseGate
+from device_ota.rollback_monitor import RollbackMonitor
+from device_ota.signature import FirmwareSignatureError, FirmwareVerifier
 
 router = APIRouter(prefix="/device/v1/ota", tags=["device-ota"])
 _LOWER_HEX_SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -25,12 +28,16 @@ def _state_path() -> str | None:
 
 _gate = ReleaseGate(_state_path())
 _canary = CanaryDeployment(_state_path())
+_gradual = GradualRollout(_state_path())
+_monitor = RollbackMonitor(_gradual, _canary)
 
 
 def reset_ota_state_for_tests() -> None:
-    global _gate, _canary
+    global _gate, _canary, _gradual, _monitor
     _gate = ReleaseGate(_state_path())
     _canary = CanaryDeployment(_state_path())
+    _gradual = GradualRollout(_state_path())
+    _monitor = RollbackMonitor(_gradual, _canary)
 
 
 def get_release_gate() -> ReleaseGate:
@@ -92,13 +99,9 @@ async def deploy_version(version: str, body: dict | None = Body(default=None)):
 async def canary_status():
     """Check canary deployment health."""
     return JSONResponse(
-        {
-            "canary_devices": _canary.canary_devices,
-            "deployed_version": _canary.deployed_version,
-            "success_count": _canary.success_count,
-            "failure_count": _canary.failure_count,
-            "healthy": _canary.is_healthy(),
-        }
+        {"canary_devices": _canary.canary_devices, "deployed_version": _canary.deployed_version,
+         "success_count": _canary.success_count, "failure_count": _canary.failure_count,
+         "healthy": _canary.is_healthy()}
     )
 
 
@@ -121,13 +124,8 @@ async def record_canary_success(device_id: str):
     """Record a successful canary deployment for a device."""
     _canary.record_success(device_id)
     return JSONResponse(
-        {
-            "ok": True,
-            "device_id": device_id,
-            "success_count": _canary.success_count,
-            "failure_count": _canary.failure_count,
-            "healthy": _canary.is_healthy(),
-        }
+        {"ok": True, "device_id": device_id, "success_count": _canary.success_count,
+         "failure_count": _canary.failure_count, "healthy": _canary.is_healthy()}
     )
 
 
@@ -136,13 +134,8 @@ async def record_canary_failure(device_id: str):
     """Record a failed canary deployment for a device."""
     _canary.record_failure(device_id)
     return JSONResponse(
-        {
-            "ok": True,
-            "device_id": device_id,
-            "success_count": _canary.success_count,
-            "failure_count": _canary.failure_count,
-            "healthy": _canary.is_healthy(),
-        }
+        {"ok": True, "device_id": device_id, "success_count": _canary.success_count,
+         "failure_count": _canary.failure_count, "healthy": _canary.is_healthy()}
     )
 
 
@@ -180,14 +173,103 @@ async def device_install_result(body: dict, authorization: str = Header(default=
     else:
         _canary.record_failure(device_id)
     return JSONResponse(
+        {"ok": True, "device_id": device_id, "success_count": _canary.success_count,
+         "failure_count": _canary.failure_count, "healthy": _canary.is_healthy()}
+    )
+
+
+@router.post("/gradual/start/{version}", dependencies=[Depends(require_private_api_key)])
+async def start_gradual_release(version: str, body: dict | None = Body(default=None)):
+    """Start a new gradual rollout; signature is verified before any state changes."""
+    payload = body or {}
+    firmware = _firmware_metadata(version, payload)
+    devices = _device_list(payload.get("devices"))
+    if not devices:
+        raise HTTPException(status_code=400, detail="devices list is required")
+
+    if not _verify_firmware_or_raise(firmware):
+        raise HTTPException(status_code=400, detail="firmware signature verification failed")
+
+    _gradual.start(version, devices, firmware)
+    status = _gradual.status_dict()
+    return JSONResponse(
         {
             "ok": True,
-            "device_id": device_id,
-            "success_count": _canary.success_count,
-            "failure_count": _canary.failure_count,
-            "healthy": _canary.is_healthy(),
+            "version": version,
+            "stage": status["stage"],
+            "ratio": status["ratio"],
+            "selected_devices": status["selected_devices"],
+            "status": status,
         }
     )
+
+
+@router.post("/gradual/promote", dependencies=[Depends(require_private_api_key)])
+async def promote_gradual_stage():
+    """Manually advance to the next rollout stage."""
+    return _gradual_json({"promoted": _gradual.promote()})
+
+
+@router.post("/gradual/rollback", dependencies=[Depends(require_private_api_key)])
+async def rollback_gradual_stage():
+    """Manually move one rollout stage back."""
+    return _gradual_json({"rolled_back": _gradual.rollback()})
+
+
+@router.get("/gradual/status", dependencies=[Depends(require_private_api_key)])
+async def gradual_status():
+    """Return current rollout stage, counters, and selected devices."""
+    return JSONResponse(_gradual.status_dict())
+
+
+@router.post("/gradual/record-success/{device_id}", dependencies=[Depends(require_private_api_key)])
+async def record_gradual_success(device_id: str):
+    """Record a successful deployment for the current stage."""
+    _gradual.record_success(device_id)
+    return _gradual_json()
+
+
+@router.post("/gradual/record-failure/{device_id}", dependencies=[Depends(require_private_api_key)])
+async def record_gradual_failure(device_id: str):
+    """Record a failed deployment for the current stage."""
+    _gradual.record_failure(device_id)
+    return _gradual_json()
+
+
+@router.post("/verify-signature", dependencies=[Depends(require_private_api_key)])
+async def verify_firmware_signature(body: dict | None = Body(default=None)):
+    """Ad-hoc Ed25519 firmware signature verification."""
+    payload = body or {}
+    url = str(payload.get("url") or "").strip()
+    sha256 = str(payload.get("sha256") or "").strip()
+    signature = str(payload.get("signature") or "").strip()
+    if not url or not sha256 or not signature:
+        raise HTTPException(status_code=400, detail="url, sha256, and signature are required")
+    firmware = {"url": url, "sha256": sha256, "signature": signature}
+    return JSONResponse({"valid": _verify_firmware_or_raise(firmware)})
+
+
+def _gradual_json(extra: dict | None = None) -> JSONResponse:
+    body = {"ok": True, **(extra or {}), "status": _gradual.status_dict()}
+    return JSONResponse(body)
+
+
+def _verify_firmware_or_raise(firmware: dict[str, str]) -> bool:
+    public_key_pem = ota_signing_public_key()
+    if not public_key_pem:
+        raise HTTPException(status_code=503, detail="OTA signing public key is not configured")
+    try:
+        verifier = FirmwareVerifier(public_key_pem)
+    except FirmwareSignatureError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return verifier.verify(firmware["url"], firmware["sha256"], firmware["signature"])
+
+
+def _device_list(value: object) -> list[str]:
+    """Extract a list of non-empty device ids from a request payload."""
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    return []
 
 
 def _firmware_metadata(version: str, body: dict) -> dict[str, str]:

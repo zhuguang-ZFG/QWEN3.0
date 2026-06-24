@@ -14,6 +14,8 @@ class DeviceSession:
     websocket: Any
     fw_rev: str = ""
     capabilities: list[str] = field(default_factory=list)
+    protocol_version: str = "lima-device-v1"
+    negotiated_capabilities: frozenset[str] = field(default_factory=frozenset)
     last_uptime_ms: int = 0
     send_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     inflight_tasks: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)

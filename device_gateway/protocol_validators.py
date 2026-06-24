@@ -12,13 +12,18 @@ from device_gateway.protocol import (
     ensure_object,
     require_type,
 )
+from device_gateway.protocol_negotiator import SUPPORTED_PROTOCOLS
 
 
 def validate_hello(message: dict[str, Any]) -> dict[str, Any]:
     request_id = _optional_request_id(message)
     protocol = message.get("protocol")
-    if protocol != PROTOCOL_VERSION:
-        raise ProtocolError("E_PROTOCOL_VERSION", "protocol must be lima-device-v1", request_id)
+    if protocol not in SUPPORTED_PROTOCOLS:
+        raise ProtocolError(
+            "E_PROTOCOL_VERSION",
+            f"protocol must be one of {', '.join(SUPPORTED_PROTOCOLS)}",
+            request_id,
+        )
     device_id = _non_empty_string(message, "device_id")
     capabilities = message.get("capabilities", [])
     if capabilities is None:
@@ -32,7 +37,7 @@ def validate_hello(message: dict[str, Any]) -> dict[str, Any]:
         raise ProtocolError("E_INVALID_MESSAGE", "fw_rev must be a string", request_id)
     return {
         "type": "hello",
-        "protocol": PROTOCOL_VERSION,
+        "protocol": protocol,
         "device_id": device_id,
         "fw_rev": fw_rev,
         "capabilities": capabilities,

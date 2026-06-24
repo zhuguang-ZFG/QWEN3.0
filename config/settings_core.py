@@ -217,6 +217,7 @@ class OutcomeConfig:
 @dataclass
 class OtaConfig:
     state_path: str | None = os.environ.get("LIMA_DEVICE_OTA_STATE_PATH") or None
+    signing_public_key: str = os.environ.get("LIMA_OTA_SIGNING_PUBLIC_KEY", "")
 
 
 @dataclass

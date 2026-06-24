@@ -34,6 +34,7 @@ __all__ = [
     "health_show_errors",
     "jina_api_key",
     "lima_api_key",
+    "ota_signing_public_key",
     "outcome_ingest_per_min",
     "public_demo_enabled",
     "public_demo_max_per_minute",
@@ -82,6 +83,11 @@ def xiaozhi_dev_static_login_code_enabled() -> bool:
 def device_ota_state_path() -> str | None:
     """Path to OTA release-gate state file, if configured."""
     return OTA.state_path
+
+
+def ota_signing_public_key() -> str:
+    """Ed25519 public key (PEM) used to verify firmware signatures."""
+    return OTA.signing_public_key
 
 
 def voice_max_audio_bytes() -> int:
