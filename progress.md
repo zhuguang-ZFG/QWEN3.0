@@ -8151,3 +8151,29 @@ Agent Worker path.
   - Phase 0-1 提交：`d5b6711a`（feat(device): retire xiaozhi v1 compat and migrate device_app endpoints）。
   - Phase 1-4 提交：`526de41e`（feat(device): add voice self-check and device provisioning）。
   - 均已 push 到 `origin/main`；Gitee remote 未配置。
+
+## 2026-06-24 Phase 2：固件 P0 增强（F1-F3）
+
+- **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 第二部分，完成固件端 F1-F3 增强。
+- **实现**：
+  - **F1 OTA 增强套件**：
+    - 新建 `device_ota/gradual.py`：灰度发布引擎，5% → 20% → 50% → 100% 四阶段自动推进，基于设备 ID 稳定哈希选择设备。
+    - 新建 `device_ota/rollback_monitor.py`：每 60 秒检查健康，连续 3 次不健康自动回滚。
+    - 新建 `device_ota/signature.py`：Ed25519 固件签名验证。
+    - 扩展 `routes/device_ota.py`：新增 `/gradual/start/{version}`、`/gradual/promote`、`/gradual/rollback`、`/gradual/status`、`/gradual/record-success/{device_id}`、`/gradual/record-failure/{device_id}`、`/verify-signature` 端点。
+    - `config/settings_core.py` / `config/env.py` 增加 `LIMA_OTA_SIGNING_PUBLIC_KEY` 读取。
+  - **F2 协议版本管理**：
+    - 新建 `device_gateway/protocol_negotiator.py`：支持 `lima-device-v1` 与 `lima-device-v2-draft` 协商。
+    - 新建 `device_gateway/firmware_matrix.py`：`v1.0.0` 到 `v1.3.0` 固件能力矩阵。
+    - 修改 `device_gateway/protocol_validators.py`、`device_gateway/sessions.py`、`device_gateway/protocol_frames.py`、`routes/device_gateway_ws_handlers.py`：在 `handle_hello()` 中完成协议协商并返回能力集。
+  - **F3 路径管线增强**：
+    - 新建 `device_gateway/path_optimizer.py`：路径压缩（Douglas-Peucker-like）、平滑（3 点加权）、空行程重排序（最近邻贪心）、多遍绘制偏移生成。
+    - 修改 `device_gateway/path_pipeline.py`：`render_text_task()` / `render_svg_task()` 支持 `passes`、`offset_mm`、`optimize` 参数。
+  - 新增测试：`tests/test_device_ota_enhancements.py`（16 个）、`tests/test_protocol_negotiation.py`（13 个）、`tests/test_path_optimizer.py`（9 个）。
+- **验证**：
+  - 聚焦 pytest 70 passed / 0 failed。
+  - `ruff check` 修改文件 clean；`pyright` 0 errors。
+  - 修复 `routes/device_gateway_ws_handlers.py` `handle_hello` 超过 50 行问题，拆分为 `_authenticate_hello`、`_negotiate_hello_protocol`、`_create_hello_session`。
+- **Git**：
+  - 提交：`4c92b8e5`（feat(firmware): Phase 2 F1-F3 enhancements）。
+  - 已 push 到 `origin/main`。

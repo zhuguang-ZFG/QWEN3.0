@@ -1481,3 +1481,28 @@
 - `tests/test_route_registry.py`、`tests/test_routes_xiaozhi_v1_compat.py`、`tests/test_xiaozhi_compat_route_policy.py`、`tests/xiaozhi_v1_compat` 39 passed。
 - `tests/test_device_app_self_check.py` 9 passed。
 - `ruff check` / `pyright` clean。
+
+## 2026-06-24 Phase 2：固件 P0 增强（F1-F3）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| F1-1 | ota | 缺少自动灰度发布引擎 | Closed |
+| F1-2 | ota | 金丝雀失败时无自动回滚 | Closed |
+| F1-3 | ota | 固件签名仅校验存在性，未验证 Ed25519 | Closed |
+| F2-1 | protocol | 协议版本硬编码为 v1，无协商 | Closed |
+| F2-2 | firmware | 无固件版本能力矩阵 | Closed |
+| F3-1 | path | 路径管线无压缩/平滑/排序优化 | Closed |
+| F3-2 | path | 不支持多遍绘制加深笔迹 | Closed |
+
+**修复动作**
+- 新增 `device_ota/gradual.py`、`device_ota/rollback_monitor.py`、`device_ota/signature.py`。
+- 扩展 `routes/device_ota.py` 灰度与签名端点；从 `LIMA_OTA_SIGNING_PUBLIC_KEY` 读取公钥。
+- 新增 `device_gateway/protocol_negotiator.py`、`device_gateway/firmware_matrix.py`；在 WS `handle_hello()` 中完成协商并返回能力集。
+- 新增 `device_gateway/path_optimizer.py`；扩展 `path_pipeline.py` 支持压缩、平滑、空行程优化与多遍绘制。
+
+**验证**
+- `tests/test_device_ota_enhancements.py` 16 passed。
+- `tests/test_protocol_negotiation.py` 13 passed。
+- `tests/test_path_optimizer.py` 9 passed。
+- 相关回归测试共 70 passed。
+- `ruff check` / `pyright` clean。
