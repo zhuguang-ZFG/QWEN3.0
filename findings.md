@@ -30,7 +30,7 @@
 - 子模块 `esp32S_XYZ` 已 push 到 `perf/phase1-quick-wins`。
 
 **遗留**
-- 2D 数字人静态文件已更新在子模块，但 VPS 上 LiMa 服务未重启，数字人页面需下次统一部署后生效。
+- 2D 数字人静态文件已更新在子模块；已复制到 VPS `/opt/lima-router/data/digital-human/` 并重启 `lima-router.service`，页面已生效。
 
 ## 2026-06-24 donglicao-site 增加动态视觉
 

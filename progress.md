@@ -31,7 +31,7 @@
 - **部署**：
   - donglicao-site：`scp` 到 `/www/wwwroot/donglicao-site/`。
   - chat-web：`scripts/deploy_chat_web.py` 因 paramiko 密钥解析失败，改用 `scp -r chat-web/*` 到 `/var/www/chat/`。
-  - 2D 数字人：子模块 commit/push 后，父仓库 submodule pointer 已更新；由于未执行 LiMa 服务重启，数字人页面待下次统一部署后生效。
+  - 2D 数字人：子模块 commit/push 后，将静态文件复制到 VPS `/opt/lima-router/data/digital-human/`，并重启 `lima-router.service`；公网 `https://donglicao.com/digital-human/` 已 200。
 - **Git**：
   - 父仓库 commit `a8618524` feat(site): add MP4 video loops to donglicao-site/chat-web and optimize digital-human。
   - 子模块 commit `4001460` perf(digital-human): crossfade backgrounds, pointer-events fix, model load timeout。
