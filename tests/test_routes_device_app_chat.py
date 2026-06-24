@@ -35,6 +35,8 @@ def _patch_deps(account):
          patch.object(chat, "connect") as mock_connect, \
          patch.object(chat, "require_device_access", return_value=None):
         conn = MagicMock()
+        # get_chat_messages checks that the session row belongs to the device.
+        conn.execute.return_value.fetchone.return_value = {"device_id": "dev-1"}
         mock_connect.return_value.__enter__ = MagicMock(return_value=conn)
         mock_connect.return_value.__exit__ = MagicMock(return_value=False)
         yield

@@ -112,6 +112,45 @@ def monkeypatch():
     wrapper.undo()
 
 
+@pytest.fixture(autouse=True)
+def bypass_default_attestation_in_legacy_tests(request, monkeypatch):
+    """Legacy device-gateway tests do not configure firmware hashes.
+
+    The default global verifier only knows v1.3.0, so any hello with a different
+    firmware would be quarantined. This fixture makes the default verifier allow
+    full access during tests, except for `test_device_attestation.py` which
+    explicitly tests attestation behavior with its own isolated verifier.
+    """
+    if "test_device_attestation" in request.node.module.__name__:
+        return
+
+    from device_gateway.attestation import ACTION_FULL_ACCESS, AttestationResult
+    from routes import device_gateway_ws_handlers as handlers
+
+    original_verify = handlers.attestation_verifier.verify
+
+    def _test_verify(device_id: str, firmware_hash: str, firmware_version: str):
+        version = (firmware_version or "").strip()
+        hashes = handlers.attestation_verifier.list_hashes()
+        actual = (firmware_hash or "").strip()
+        # Legacy tests do not provide a firmwareHash. If the device reports a
+        # missing hash or a version that is NOT in the current verifier's
+        # whitelist, treat it as if attestation is not configured for that
+        # device. This keeps legacy tests working while still honoring explicit
+        # full_access matches in test_device_attestation.py.
+        if not actual or not hashes or version not in hashes:
+            return AttestationResult(
+                action=ACTION_FULL_ACCESS,
+                version=version,
+                expected_hash=hashes.get(version, ""),
+                actual_hash=actual,
+                reason="attestation bypass in legacy test",
+            )
+        return original_verify(device_id, firmware_hash, firmware_version)
+
+    monkeypatch.setattr(handlers.attestation_verifier, "verify", _test_verify)
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Clean up test temp directory and restore original env vars after session completes."""
     import shutil

@@ -13,13 +13,18 @@ def test_simple_chat_low_complexity():
 
 
 def test_medium_coding_request():
+    # After the coding-capability retirement, IDE-only code vocabulary no longer
+    # boosts complexity; the request is treated as a simple chat query.
     messages = [{"role": "user", "content": "fix the bug in server.py where the routing fails"}]
     result = assess_complexity(messages, ide="Cursor")
-    assert result.score >= 2
+    assert result.score <= 2
     assert result.recommended_parallelism == 1
+    assert result.recommended_tier == "weak"
 
 
 def test_complex_multi_file_refactor():
+    # Coding signals were retired in Phase 0, so this no longer scores as strong.
+    # It still registers a moderate complexity factor from length/file mentions.
     messages = [
         {
             "role": "user",
@@ -34,8 +39,9 @@ def test_complex_multi_file_refactor():
         }
     ]
     result = assess_complexity(messages, ide="Claude Code")
-    assert result.score >= 6
-    assert result.recommended_tier == "strong"
+    assert result.score >= 2
+    assert result.recommended_parallelism == 1
+    assert result.recommended_tier in ("weak", "medium")
 
 
 def test_long_code_input_high_complexity():

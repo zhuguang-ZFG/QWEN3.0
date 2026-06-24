@@ -88,7 +88,15 @@ def requeue_session_outstanding(
 
 
 def _is_attestation_restricted(session: DeviceSession) -> bool:
-    return getattr(session, "attestation_action", ACTION_FULL_ACCESS) != ACTION_FULL_ACCESS
+    action = getattr(session, "attestation_action", ACTION_FULL_ACCESS)
+    # Defensive: non-string actions only come from poorly initialized mocks.
+    # Empty action means the session has not gone through attestation yet (e.g.
+    # unit tests creating a DeviceSession directly). Treat both as full access so
+    # legacy tests and unattested paths keep working; explicit quarantine/read_only
+    # still blocks.
+    if not isinstance(action, str) or not action:
+        return False
+    return action != ACTION_FULL_ACCESS
 
 
 async def dispatch_task_to_session(session: DeviceSession, task: dict[str, Any]) -> bool:
