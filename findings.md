@@ -1528,3 +1528,32 @@
 - `tests/test_device_app_status.py` 8 passed。
 - `tests/test_device_app_*.py` + `tests/test_routes_device_gateway_ws_handlers.py` 共 78 passed。
 - `ruff check` / `pyright` clean。
+
+## 2026-06-24 Phase 4：固件 P1/P2 增强（F4-F7）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| F4-1 | health | 无多维设备健康评分 | Closed |
+| F4-2 | maintenance | 无 7 天趋势/预测性维护 | Closed |
+| F5-1 | attestation | 无固件远程证明 | Closed |
+| F5-2 | attestation | `read_only` 动作未在服务端执行 | Closed |
+| F5-3 | attestation | 白名单写入非原子 | Closed |
+| F6-1 | coordination | 无多设备 SVG 协同绘制 | Closed |
+| F7-1 | ledger | 事件类型仅 4 种 | Closed |
+| F7-2 | ledger | 无任务/设备投影 | Closed |
+| F7-3 | ledger | 无时间线/活动端点 | Closed |
+
+**修复动作**
+- 新增 `device_gateway/health_score.py`、`device_gateway/maintenance.py`、`routes/device_admin.py`。
+- 新增 `device_gateway/attestation.py`、`config/firmware_hashes.json`；集成到 WS hello；新增 OTA 白名单管理端点。
+- 新增 `device_gateway/coordinator.py`、`routes/device_app_tasks.py` batch-draw 端点。
+- 扩展 `device_ledger/events.py`；新增 `device_ledger/projection.py`、`routes/device_app_activity.py`；在任务/WS 生命周期追加事件。
+- 修复 `read_only` 任务下发门控与白名单原子写。
+
+**验证**
+- `tests/test_device_health.py` 16 passed。
+- `tests/test_device_attestation.py` 12 passed。
+- `tests/test_device_coordinator.py` 12 passed。
+- `tests/test_device_ledger_projection.py` 8 passed。
+- 相关回归测试共 110 passed。
+- `ruff check` / `pyright` clean。

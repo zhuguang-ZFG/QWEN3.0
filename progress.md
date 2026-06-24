@@ -8214,3 +8214,38 @@ Agent Worker path.
 
 - 已完成聊天历史持久化与实时设备状态两个 P0 项。
 - Git 提交：`31a5d1fe`（feat(device-app): Phase 3 M1-M2 chat history and real-time status），已 push 到 `origin/main`。
+
+## 2026-06-24 Phase 4：固件 P1/P2 增强（F4-F7）
+
+- **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 第二部分 F4-F7，完成设备健康、远程证明、多设备协同与事件溯源。
+- **实现**：
+  - **F4 设备健康与预测性维护**：
+    - 新建 `device_gateway/health_score.py`：`DeviceHealthScore` 五维评分（connectivity/task_success/response_time/firmware/hardware），返回 0-100 总分与状态等级。
+    - 新建 `device_gateway/maintenance.py`：`PredictiveMaintenance.analyze_trend()` 分析 7 天趋势、预测故障、维护建议。
+    - 新建 `routes/device_admin.py`：`GET /admin/devices/{device_id}/health` 管理端点。
+  - **F5 固件远程证明**：
+    - 新建 `device_gateway/attestation.py`：`AttestationVerifier` 支持 `full_access`/`read_only`/`quarantine` 三种降级动作。
+    - 新建 `config/firmware_hashes.json` 白名单。
+    - `routes/device_gateway_ws_handlers.py` 在 `handle_hello()` 中验证固件哈希，隔离模式发送 `attestation_failed` 后关闭连接；只读模式发送警告并阻止任务下发。
+    - `routes/device_ota.py` 新增 `/firmware-hashes` 管理端点，使用原子写持久化白名单。
+  - **F6 多设备协同绘制**：
+    - 新建 `device_gateway/coordinator.py`：`MultiDeviceCoordinator` 实现 SVG 网格分割、clipPath 裁剪、设备分配、结果合并与批量派发。
+    - `routes/device_app_tasks.py` 新增 `POST /devices/batch-draw`。
+  - **F7 事件溯源增强**：
+    - 扩展 `device_ledger/events.py` 事件类型到 10 种。
+    - 新建 `device_ledger/projection.py`：`TaskProjection` / `DeviceProjection` 状态重建、时间线、耗时分析。
+    - 新建 `routes/device_app_activity.py`：`GET /tasks/{task_id}/timeline`、`GET /devices/{device_id}/activity`。
+    - `device_gateway/task_events.py`、`routes/device_gateway_ws_handlers.py`、`routes/device_gateway_ws.py` 在关键生命周期追加新事件。
+  - 新增测试：`tests/test_device_health.py`（16）、`tests/test_device_attestation.py`（12）、`tests/test_device_coordinator.py`（12）、`tests/test_device_ledger_projection.py`（8）。
+- **验证后修复**：
+  - 拆分 `coordinator.execute_coordinated` 使其 ≤50 行。
+  - 健康评分固件版本比较改为语义版本解析。
+  - 白名单持久化改为 `tempfile` + `os.replace` 原子写。
+  - 在 `routes/device_gateway_dispatch.py` 增加 attestation 门控，quarantine/read_only 会话不下发任务。
+- **验证**：
+  - 聚焦 pytest 110 passed / 0 failed。
+  - `ruff check` / `pyright` clean。
+  - 无新增 >300 行文件 / >50 行函数。
+- **Git**：
+  - 提交：`120e26ce`（feat(firmware): Phase 4 F4-F7 health, attestation, coordination, ledger）。
+  - 已 push 到 `origin/main`。
