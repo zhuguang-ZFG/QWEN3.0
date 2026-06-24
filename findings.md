@@ -16,6 +16,7 @@
 
 **验证**
 - `py_compile` / `ruff check` 通过；`tests/test_backend_registry.py` 30 passed。
+- VPS `/opt/lima-router/.env` 已更新并备份，重启 `lima-router.service` 后状态 active。
 
 ## 2026-06-24 编码能力退役（第一部分）
 

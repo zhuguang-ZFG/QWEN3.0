@@ -10,6 +10,7 @@
 - **验证**：
   - `py_compile` 与 `ruff check` 通过。
   - `tests/test_backend_registry.py` 30 passed / 0 failed。
+- **VPS 部署**：已将 `LLM7_API_KEY` 写入 VPS `/opt/lima-router/.env`（先备份到 `.env.bak.20260624`），并重启 `lima-router.service`；服务状态 active，`.env` 中 key 已生效。
 - **Git**：已提交推送。
 
 ## 2026-06-24 第一部分：编码能力退役
