@@ -3,6 +3,9 @@
 All eval tuning knobs are read here so that eval modules do not repeat
 ``os.environ.get()`` calls. Values are resolved at call time so tests can
 change the environment without reimporting.
+
+Note: periodic coding eval was retired in v3.0.  The corresponding accessors
+remain as stubs returning safe defaults so imports do not break.
 """
 
 from __future__ import annotations
@@ -37,19 +40,18 @@ def full_backend_list() -> list[str]:
 
 
 def periodic_eval_enabled() -> bool:
-    return _truthy("LIMA_PERIODIC_CODING_EVAL", "0")
+    """Periodic coding eval is retired in v3.0; always disabled."""
+    return False
 
 
 def coding_eval_interval_hours() -> float:
-    raw = os.environ.get("LIMA_CODING_EVAL_INTERVAL_HOURS", "168")
-    try:
-        return float(raw)
-    except ValueError:
-        return 168.0
+    """Periodic coding eval is retired in v3.0; returns a safe default."""
+    return 168.0
 
 
 def interval_seconds() -> int:
-    return max(3600, int(coding_eval_interval_hours() * 3600))
+    """Periodic coding eval is retired in v3.0; returns a safe default."""
+    return 604800
 
 
 def periodic_notify_enabled() -> bool:

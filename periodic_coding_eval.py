@@ -1,100 +1,44 @@
+# DEPRECATED v3.0 — coding capability retired
 """Background periodic coding-backend eval (default off).
 
-Enable with ``LIMA_PERIODIC_CODING_EVAL=1``. Interval hours via
-``LIMA_CODING_EVAL_INTERVAL_HOURS`` (default 168 = weekly).
+DEPRECATED v3.0: Coding capability retired. Functions are kept with safe default
+returns to avoid breaking imports, but periodic coding eval is permanently disabled.
 """
 
 from __future__ import annotations
 
 import logging
-import subprocess
-import sys
 import threading
-from pathlib import Path
-
-from config import eval_config
-from eval_preflight import check_eval_health, quick_backend_list
 
 logger = logging.getLogger("periodic_coding_eval")
-
-ROOT = Path(__file__).resolve().parent
-
-
-def _log_info(msg: str, *args: object) -> None:
-    """Log to logger and stdout so systemd journal captures periodic eval."""
-    text = msg % args if args else msg
-    logger.info(text)
-    print(f"[periodic-coding-eval] {text}", flush=True)
-
 
 _stop = threading.Event()
 _thread: threading.Thread | None = None
 
 
 def enabled() -> bool:
-    return eval_config.periodic_eval_enabled()
+    """DEPRECATED — always False."""
+    return False
 
 
 def interval_seconds() -> int:
-    return eval_config.interval_seconds()
+    """DEPRECATED — returns 0."""
+    return 0
 
 
 def run_eval_slice(*, quick: bool = True) -> int:
-    from eval_quiet import set_eval_quiet
-
-    cmd = [sys.executable, str(ROOT / "scripts" / "run_radar_eval_slice.py"), "--preflight"]
-    if quick:
-        cmd.append("--quick")
-    else:
-        cmd.append("--full")
-    if quick:
-        backends = ",".join(quick_backend_list())
-        if backends:
-            cmd.extend(["--backends", backends])
-    _log_info("periodic coding eval: %s", " ".join(cmd))
-    set_eval_quiet(True)
-    try:
-        return subprocess.call(cmd, cwd=ROOT)
-    finally:
-        set_eval_quiet(False)
+    """DEPRECATED — no-op, returns 0."""
+    logger.debug("periodic_coding_eval is deprecated; run_eval_slice skipped")
+    return 0
 
 
 def start() -> None:
+    """DEPRECATED — no-op."""
     global _thread
-    if not enabled():
-        logger.debug("periodic coding eval disabled (LIMA_PERIODIC_CODING_EVAL=0)")
-        return
-    if _thread and _thread.is_alive():
-        return
-    _stop.clear()
-    _thread = threading.Thread(target=_loop, name="periodic-coding-eval", daemon=True)
-    _thread.start()
-    _log_info(
-        "Periodic coding eval started (interval=%sh, quick backends=%s)",
-        eval_config.coding_eval_interval_hours(),
-        ",".join(quick_backend_list()),
-    )
+    _thread = None
+    logger.debug("periodic_coding_eval is deprecated; start skipped")
 
 
 def stop() -> None:
+    """DEPRECATED — no-op."""
     _stop.set()
-
-
-def _loop() -> None:
-    # Stagger first run so server boot is not blocked by eval traffic.
-    _stop.wait(timeout=120)
-    while not _stop.is_set():
-        ok, detail = check_eval_health()
-        if ok:
-            try:
-                from eval_notify import notify_eval_finished, periodic_full_eval
-
-                quick = not periodic_full_eval()
-                code = run_eval_slice(quick=quick)
-                _log_info("periodic coding eval finished exit=%s (%s)", code, detail)
-                notify_eval_finished(code=code, quick=quick, source="periodic")
-            except Exception:
-                logger.exception("periodic coding eval subprocess failed")
-        else:
-            _log_info("periodic coding eval skipped: %s", detail)
-        _stop.wait(timeout=interval_seconds())

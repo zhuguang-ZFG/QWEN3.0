@@ -16,7 +16,6 @@ from routing_engine import PickResult, pick_backend
 
 # 用于跟踪消息在流水线中流转的标记消息
 _MSGS_RETRIEVAL: list[dict] = [{"role": "user", "content": "after-retrieval"}]
-_MSGS_CODING: list[dict] = [{"role": "user", "content": "after-coding"}]
 _MSGS_ENRICHED: list[dict] = [{"role": "user", "content": "enriched"}]
 _DEFAULT_MSGS: list[dict] = [{"role": "user", "content": "hi"}]
 
@@ -40,7 +39,6 @@ def mocks(monkeypatch):
         "classify_scenario": MagicMock(return_value="chat"),
         "try_recall_backend": MagicMock(return_value=None),
         "inject_retrieval_context": MagicMock(return_value=(_MSGS_RETRIEVAL, "")),
-        "inject_coding_context": MagicMock(return_value=(_MSGS_CODING, "")),
         "select": MagicMock(return_value=["alpha", "beta"]),
         "_enrich_with_intent_and_skills": MagicMock(return_value=(_MSGS_ENRICHED, "chat")),
     }

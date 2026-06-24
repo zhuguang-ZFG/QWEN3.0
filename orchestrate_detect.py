@@ -1,10 +1,15 @@
-"""Orchestration trigger heuristics."""
+# DEPRECATED v3.0 — coding capability retired
+"""Orchestration trigger heuristics.
+
+DEPRECATED: the multi-model orchestrator was retired in v3.0.  This module
+now always reports that orchestration is not needed so callers fall back to
+a direct route.
+"""
 
 from __future__ import annotations
 
-import re
 
-from orchestrate_constants import (
+from orchestrate_constants import (  # noqa: F401  kept for import compatibility
     COMPLEXITY_THRESHOLD,
     MULTI_DOMAIN_KEYWORDS,
     MULTI_STEP_INDICATORS,
@@ -12,24 +17,8 @@ from orchestrate_constants import (
 
 
 def needs_orchestration(query: str, intent: dict) -> bool:
-    """Return True when query complexity warrants multi-model orchestration."""
-    complexity = intent.get("complexity", 0.5)
+    """Return True when query complexity warrants multi-model orchestration.
 
-    if complexity < COMPLEXITY_THRESHOLD:
-        return False
-
-    domains_hit = 0
-    for _domain, keywords in MULTI_DOMAIN_KEYWORDS.items():
-        if any(kw in query for kw in keywords):
-            domains_hit += 1
-    if domains_hit >= 2:
-        return True
-
-    step_count = sum(1 for ind in MULTI_STEP_INDICATORS if re.search(ind, query))
-    if step_count >= 2:
-        return True
-
-    if len(query) > 300 and complexity >= 0.8:
-        return True
-
+    Always returns False since orchestration was retired in v3.0.
+    """
     return False

@@ -88,7 +88,6 @@ def test_pick_backend_scenario_uses_device_prompt_scenario(monkeypatch):
     monkeypatch.setattr(routing_engine, "classify_scenario", lambda *a, **k: "chat")
     monkeypatch.setattr(routing_engine, "try_recall_backend", lambda *a, **k: None)
     monkeypatch.setattr(routing_engine, "inject_retrieval_context", lambda msgs: (msgs, ""))
-    monkeypatch.setattr(routing_engine, "inject_coding_context", lambda msgs, *a, **k: (msgs, ""))
     monkeypatch.setattr(routing_engine.sticky_session, "compute_key", lambda *a, **k: "k")
     monkeypatch.setattr(routing_engine.health_tracker, "get_health_map", lambda: {})
     monkeypatch.setattr(routing_engine, "select", lambda *a, **k: ["longcat_chat"])

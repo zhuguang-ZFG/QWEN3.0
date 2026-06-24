@@ -14,7 +14,6 @@ from __future__ import annotations
 import time
 from typing import Callable
 
-import budget_manager
 import health_tracker
 import identity_guard
 import skills_injector as skills_mod
@@ -25,7 +24,6 @@ from routing_classifier import classify, classify_scenario
 from routing_intent import analyze_intent, intent_to_prompt_scenario
 from routing_engine_context import (
     auto_compress,
-    inject_coding_context,
     try_recall_backend,
 )
 from routing_engine_execute_strategy import execute_with_strategy
@@ -151,7 +149,6 @@ def _classify_and_recall(
     scenario = classify_scenario(messages, query=query, ide_source=ide_source, request_type=req_type)
     recall_attempt = try_recall_backend(messages, scenario)
     messages, retrieval_text = inject_retrieval_context(messages)
-    messages, _code_context_text = inject_coding_context(messages, scenario, query)
     return req_type, scenario, recall_attempt, retrieval_text
 
 

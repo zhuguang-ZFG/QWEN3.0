@@ -1,4 +1,5 @@
 ---
+# DEPRECATED v3.0 — coding capability retired
 id: javascript_style
 category: code
 detect_keywords:

@@ -18,7 +18,10 @@ def _read_skill_body(fpath: str) -> str:
 
 
 def load_registry_skills(skills_dir: str) -> list[dict[str, Any]]:
-    """Load skills declared in skills/_registry.json."""
+    """Load skills declared in skills/_registry.json.
+
+    Coding skills are filtered out because the coding capability was retired in v3.0.
+    """
     registry_path = os.path.join(skills_dir, "_registry.json")
     if not os.path.isfile(registry_path):
         return []
@@ -33,6 +36,8 @@ def load_registry_skills(skills_dir: str) -> list[dict[str, Any]]:
         rel_path = entry.get("path")
         skill_id = entry.get("id")
         if not isinstance(rel_path, str) or not isinstance(skill_id, str):
+            continue
+        if entry.get("category") == "code":
             continue
         fpath = os.path.join(skills_dir, rel_path)
         if not os.path.isfile(fpath):
@@ -58,9 +63,14 @@ def select_triggered_skills(
     route_role: str = "",
     scenario: str = "",
 ) -> list[dict[str, Any]]:
-    """Pick registry skills whose trigger matches the current request context."""
+    """Pick registry skills whose trigger matches the current request context.
+
+    Coding skills are ignored because the coding capability was retired in v3.0.
+    """
     selected: dict[str, dict[str, Any]] = {}
     for skill in registry_skills:
+        if skill.get("category") == "code":
+            continue
         trigger = skill.get("trigger") or {}
         matched = bool(trigger.get("always")) or skill.get("always_apply")
         if not matched and intent and intent in trigger.get("intent", []):

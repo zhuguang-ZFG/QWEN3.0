@@ -138,7 +138,7 @@ python scripts/deploy_unified.py --dry-run
 │   └── xiaozhi_v1_compat.py   # 小智 App 兼容层（默认关闭）
 ├── device_gateway/            # 设备协议、任务、路径规划
 ├── session_memory/            # 持久记忆与学习循环
-├── context_pipeline/          # 检索与代码上下文注入
+├── context_pipeline/          # 检索与上下文注入（编码模块已退役）
 ├── skills/                    # 可注入技能 Markdown
 ├── chat-web/                  # Web 聊天前端
 ├── scripts/                   # 工具、部署、冒烟脚本

@@ -26,7 +26,7 @@ def execute_with_strategy(
     tools: list[dict] | None,
     sticky_key: str,
 ) -> tuple[str, str]:
-    """根据复杂度选择执行策略（投机/代码优先/标准），返回 (backend, answer)。"""
+    """根据复杂度选择执行策略（投机/标准），返回 (backend, answer)。"""
     complexity = speculative.classify_complexity(query, messages)
 
     if needs_tools:
@@ -35,23 +35,13 @@ def execute_with_strategy(
         )
     elif complexity == "simple" and req_type in ("ide", "chat"):
         final_backend, answer = _try_speculative(backends, call_fn, messages, max_tokens, scenario, req_type)
-    elif complexity == "code":
-        final_backend, answer = _execute_code_priority(backends, call_fn, messages, max_tokens, scenario, req_type)
     else:
         final_backend, answer = _run_standard_execute(backends, call_fn, messages, max_tokens, scenario, req_type)
 
-    return _pin_backend_and_quality_retry(
-        final_backend,
-        answer,
-        backends,
-        call_fn,
-        messages,
-        max_tokens,
-        query,
-        scenario,
-        req_type,
-        sticky_key,
-    )
+    if final_backend != "exhausted":
+        sticky_session.pin_backend(sticky_key, final_backend)
+
+    return final_backend, answer
 
 
 def _run_standard_execute(
@@ -73,38 +63,6 @@ def _run_standard_execute(
         scenario=scenario,
         request_type=request_type,
     )
-    return final_backend, answer
-
-
-def _pin_backend_and_quality_retry(
-    final_backend: str,
-    answer: str,
-    backends: list[str],
-    call_fn: Callable,
-    messages: list[dict],
-    max_tokens: int,
-    query: str,
-    scenario: str,
-    request_type: str,
-    sticky_key: str,
-) -> tuple[str, str]:
-    """记录 sticky backend 并在 coding 场景执行质量重试。"""
-    if final_backend != "exhausted":
-        sticky_session.pin_backend(sticky_key, final_backend)
-
-    if answer and scenario == "coding":
-        final_backend, answer = _maybe_quality_retry(
-            final_backend,
-            answer,
-            backends,
-            call_fn,
-            messages,
-            max_tokens,
-            query,
-            scenario,
-            request_type,
-        )
-
     return final_backend, answer
 
 
@@ -147,78 +105,4 @@ def _try_speculative(
         scenario=scenario,
         request_type=req_type,
     )
-    return final_backend, answer
-
-
-def _execute_code_priority(
-    backends: list[str],
-    call_fn: Callable,
-    messages: list[dict],
-    max_tokens: int,
-    scenario: str,
-    req_type: str,
-) -> tuple[str, str]:
-    """代码场景优先使用 code affinity 后端。"""
-    code_backends = speculative.get_affinity_backends("code")
-    code_available = [
-        b for b in code_backends if not health_tracker.is_cooled_down(b) and budget_manager.is_budget_available(b)
-    ]
-    merged = code_available + [b for b in backends if b not in code_available]
-    final_backend, answer, _ = execute(
-        merged,
-        call_fn,
-        messages,
-        max_tokens,
-        scenario=scenario,
-        request_type=req_type,
-    )
-    return final_backend, answer
-
-
-def _maybe_quality_retry(
-    final_backend: str,
-    answer: str,
-    backends: list[str],
-    call_fn: Callable,
-    messages: list[dict],
-    max_tokens: int,
-    query: str,
-    scenario: str,
-    req_type: str,
-) -> tuple[str, str]:
-    """coding 场景质量验证不通过时自动重试。"""
-    try:
-        from context_pipeline.response_validator import validate_response
-
-        vr = validate_response(answer, query)
-        if not vr.passed and len(backends) > 1:
-            retry_backends = [b for b in backends if b != final_backend][:2]
-            if retry_backends:
-                _log.info(
-                    "response validation failed (score=%.2f, issues=%s), retrying with %s",
-                    vr.score,
-                    vr.issues[:3],
-                    retry_backends,
-                )
-                retry_backend, retry_answer, _ = execute(
-                    retry_backends,
-                    call_fn,
-                    messages,
-                    max_tokens,
-                    scenario=scenario,
-                    request_type=req_type,
-                )
-                if retry_answer:
-                    vr2 = validate_response(retry_answer, query)
-                    if vr2.score > vr.score:
-                        try:
-                            health_tracker.record_failure(final_backend, 200, "quality_retry")
-                        except Exception as exc:
-                            _log.warning(
-                                "quality retry health record failed: %s",
-                                exc,
-                            )
-                        return retry_backend, retry_answer
-    except Exception as exc:
-        _log.warning("response validation retry failed: %s", exc, exc_info=True)
     return final_backend, answer

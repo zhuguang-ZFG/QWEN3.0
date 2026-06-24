@@ -1,9 +1,15 @@
-"""Pinned-backend eval calls via routing_executor (health + budget telemetry)."""
+# DEPRECATED v3.0 — coding capability retired
+"""Pinned-backend eval calls via routing_executor (health + budget telemetry).
+
+DEPRECATED v3.0: Coding capability retired. Functions are kept with safe default
+returns to avoid breaking imports, but pinned eval calls are permanently disabled.
+"""
 
 from __future__ import annotations
 
-import http_caller
-from routing_executor import execute
+import logging
+
+logger = logging.getLogger(__name__)
 
 EVAL_SCENARIO = "eval"
 EVAL_REQUEST_TYPE = "eval"
@@ -14,17 +20,6 @@ def call_pinned_backend(
     messages: list[dict],
     max_tokens: int,
 ) -> tuple[str, str]:
-    """Call one named backend through routing_executor (no select/route)."""
-
-    def _call_fn(name: str, msgs: list[dict], mt: int) -> str:
-        return http_caller.call_api(name, msgs, mt)
-
-    final_backend, answer, _errors = execute(
-        [backend],
-        _call_fn,
-        messages,
-        max_tokens,
-        scenario=EVAL_SCENARIO,
-        request_type=EVAL_REQUEST_TYPE,
-    )
-    return final_backend, answer or ""
+    """DEPRECATED — returns ('exhausted', '') to signal eval capability retired."""
+    logger.debug("eval_pinned_call is deprecated; call_pinned_backend skipped")
+    return "exhausted", ""

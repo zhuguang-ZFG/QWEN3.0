@@ -1,73 +1,43 @@
-"""Local notifications after coding eval runs (periodic or manual hook)."""
+# DEPRECATED v3.0 — coding capability retired
+"""Local notifications after coding eval runs (periodic or manual hook).
+
+DEPRECATED v3.0: Coding capability retired. Functions are kept with safe default
+returns to avoid breaking imports, but eval notifications are permanently disabled.
+"""
 
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-
-from config import eval_config
 
 logger = logging.getLogger(__name__)
 
-ROOT = Path(__file__).resolve().parent
-
 
 def periodic_notify_enabled() -> bool:
-    return eval_config.periodic_notify_enabled()
+    """DEPRECATED — always returns False."""
+    return False
 
 
 def periodic_full_eval() -> bool:
-    return eval_config.periodic_full_eval()
+    """DEPRECATED — always returns False."""
+    return False
 
 
 def _build_message(*, code: int, quick: bool, source: str) -> str:
-    from eval_slice_summary import latest_scores_path, summarize_eval_json
-
-    label = "quick" if quick else "full-11"
-    lines = [f"[Eval] {source} {label} exit={code}"]
-    if code != 0:
-        return "\n".join(lines)
-
-    path = latest_scores_path(ROOT / "data", full=not quick)
-    if path:
-        try:
-            top = 5 if quick else 11
-            lines.append(summarize_eval_json(path, top_n=top))
-        except Exception:
-            logger.warning("eval notify summary failed", exc_info=True)
-
-    try:
-        from eval_pool_gate import demoted_backends, load_eval_averages, pool_gate_enabled
-
-        if pool_gate_enabled():
-            blocked = sorted(demoted_backends(ROOT / "data"))
-            scores = load_eval_averages(ROOT / "data")
-            lines.append(f"pool gate demoted={len(blocked)}")
-            for name in blocked[:5]:
-                lines.append(f"· {name}: avg={scores.get(name, 0):.0f}")
-    except Exception:
-        logger.warning("pool gate summary skipped", exc_info=True)
-
-    return "\n".join(lines)
+    """DEPRECATED — returns empty string."""
+    return ""
 
 
 def notify_eval_finished(*, code: int, quick: bool, source: str = "periodic") -> None:
-    """Record eval completion locally."""
-    if source == "periodic" and not periodic_notify_enabled():
-        return
-
-    text = _build_message(code=code, quick=quick, source=source)
-    logger.info("eval finished source=%s quick=%s code=%s\n%s", source, quick, code, text)
+    """DEPRECATED — no-op."""
+    logger.debug("eval_notify is deprecated; notify_eval_finished skipped")
 
 
 def schedule_status_lines() -> list[str]:
-    import periodic_coding_eval
-
-    lines = [
-        "Eval 周期任务",
-        f"LIMA_PERIODIC_CODING_EVAL={'1' if periodic_coding_eval.enabled() else '0'}",
-        f"interval_hours={eval_config.coding_eval_interval_hours()}",
-        f"full={'1' if periodic_full_eval() else '0'} (quick only if 0)",
-        f"notify={'1' if periodic_notify_enabled() else '0'}",
+    """DEPRECATED — returns minimal status indicating eval is retired."""
+    return [
+        "Eval 周期任务 (已退役)",
+        "LIMA_PERIODIC_CODING_EVAL=0",
+        "interval_hours=0",
+        "full=0 (quick only if 0)",
+        "notify=0",
     ]
-    return lines

@@ -1,10 +1,14 @@
-"""Graph-aware Retrieval — LightRAG-inspired dual-layer code search.
+# DEPRECATED v3.0 — coding capability retired
+"""Graph-aware Retrieval — LightRAG-inspired dual-layer code search (DEPRECATED).
 
 Combines two retrieval channels:
 1. Vector retrieval: semantic similarity (existing code_context)
 2. Graph retrieval: structural relationships (caller/callee/module)
 
 Results are merged and deduplicated before reranking.
+
+v3.0: coding capability retired. The dual-layer search function is disabled;
+CodeGraph data structure is kept importable for backward compatibility.
 """
 
 from dataclasses import dataclass, field
@@ -73,27 +77,5 @@ def dual_layer_search(
     graph: CodeGraph,
     max_results: int = 10,
 ) -> list[RetrievalResult]:
-    """Merge vector and graph retrieval results."""
-    merged: dict[str, RetrievalResult] = {}
-
-    for vr in vector_results:
-        merged[vr.path] = vr
-
-    for entity in query_entities:
-        relations = graph.get_related(entity, max_depth=2)
-        for rel in relations:
-            path = rel.target
-            if path in merged:
-                merged[path].score += 0.3
-                merged[path].source = "both"
-                merged[path].relations.append(f"{rel.relation_type}:{rel.source}")
-            else:
-                merged[path] = RetrievalResult(
-                    path=path,
-                    score=0.5,
-                    source="graph",
-                    relations=[f"{rel.relation_type}:{rel.source}"],
-                )
-
-    ranked = sorted(merged.values(), key=lambda r: -r.score)
-    return ranked[:max_results]
+    """Merge vector and graph retrieval results. (DEPRECATED)"""
+    return []

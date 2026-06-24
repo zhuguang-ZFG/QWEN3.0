@@ -20,47 +20,6 @@ def try_recall_backend(messages: list[dict], scenario: str) -> str:
     return ""
 
 
-def inject_coding_context(
-    messages: list[dict],
-    scenario: str,
-    query: str,
-) -> tuple[list[dict], str]:
-    """为 coding 场景注入代码上下文和历史记忆。返回 (messages, code_context_text)。"""
-    code_context_text = ""
-    if scenario != "coding":
-        return messages, code_context_text
-
-    try:
-        from context_pipeline.code_context_injection import scan_and_build_context
-
-        code_context_text = scan_and_build_context(query, messages)
-        if code_context_text:
-            code_ctx_msg = {"role": "system", "content": code_context_text}
-            if messages and messages[0].get("role") == "system":
-                messages.insert(1, code_ctx_msg)
-            else:
-                messages.insert(0, code_ctx_msg)
-    except Exception as exc:
-        _log.warning("code_context_injection failed: %s", exc, exc_info=True)
-
-    try:
-        from session_memory.store_promote import query_by_type
-
-        memory_parts: list[str] = []
-        for mt in ("code_fact", "routing_lesson"):
-            for mem in query_by_type(mt, limit=3):
-                memory_parts.append(f"[{mt}] {mem.summary}")
-        if memory_parts:
-            memory_ctx = "Past coding decisions:\n" + "\n".join(memory_parts)
-            mem_msg = {"role": "system", "content": memory_ctx}
-            insert_pos = 2 if messages and messages[0].get("role") == "system" else 1
-            messages.insert(insert_pos, mem_msg)
-    except Exception as exc:
-        _log.warning("code_context memory promote failed: %s", exc, exc_info=True)
-
-    return messages, code_context_text
-
-
 def assess_complexity(messages: list[dict], ide_source: str):
     """评估请求复杂度，返回 complexity info 或 None。"""
     try:

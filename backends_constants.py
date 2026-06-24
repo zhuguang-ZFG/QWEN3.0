@@ -1,11 +1,5 @@
 """Backend capability sets and routing constants."""
 
-from brand_config import PUBLIC_MODEL_NAME
-from backends_constants_code_tools import (
-    CODE_CAPABLE_BACKENDS,
-    TOOL_CAPABLE_BACKENDS,
-)
-
 
 # Thinking-capable backends in priority order
 THINKING_BACKENDS = [

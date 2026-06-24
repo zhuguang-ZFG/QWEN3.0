@@ -1,3 +1,4 @@
+# DEPRECATED v3.0 — coding capability retired
 """Speculative execution policy: complexity classification and backend affinity."""
 
 from __future__ import annotations
@@ -26,19 +27,6 @@ AFFINITY = {
         "google_gemma4",
         "github_gpt4o_mini",
     ],
-    "code": [
-        "nvidia_qwen_coder",
-        "cf_qwen_coder",
-        "mistral_devstral",
-        "groq_llama70b",
-        "cerebras_gptoss",
-        "github_codestral",
-        "or_qwen3_coder",
-        "mistral_codestral",
-        "scnet_qwen30b",
-        "scnet_qwen235b",
-        "scnet_ds_flash",
-    ],
     "complex_premium": [
         "longcat",
         "longcat_thinking",
@@ -49,59 +37,6 @@ AFFINITY = {
     ],
 }
 
-_CODE_SIGNALS = [
-    "代码",
-    "code",
-    "函数",
-    "function",
-    "bug",
-    "error",
-    "fix",
-    "def ",
-    "class ",
-    "import ",
-    "```",
-    "compile",
-    "debug",
-    "实现",
-    "implement",
-    "refactor",
-    "重构",
-    "优化",
-    "TypeError",
-    "ValueError",
-    "Exception",
-    "traceback",
-    "写",
-    "改",
-    "修复",
-    "报错",
-    "崩溃",
-    "编译",
-    "接口",
-    "接口文档",
-    "单元测试",
-    "部署",
-    "配置",
-    "算法",
-    "数据库",
-    "查询",
-    "性能",
-    "内存",
-    "多线程",
-    "并发",
-    "异步",
-    "协程",
-    "回调",
-    "正则",
-    "序列化",
-    "反序列化",
-    "编码",
-    "解码",
-]
-
-_CODE_INDICATORS = ["```", "def ", "class ", "function ", "import ", "const "]
-_FILE_EXTENSIONS = [".py", ".js", ".ts", ".go", ".rs", ".java", ".cpp"]
 _COMPLEX_KEYWORDS = [
     "refactor",
     "architecture",
@@ -112,11 +47,6 @@ _COMPLEX_KEYWORDS = [
     "optimize",
     "performance",
 ]
-
-
-def _has_code_signals(query: str) -> bool:
-    """Check if query contains code-related keywords."""
-    return any(kw in query for kw in _CODE_SIGNALS)
 
 
 def _extract_user_text(messages: list[dict]) -> str:
@@ -153,22 +83,6 @@ def score_request(messages: list[dict], ide: str = "") -> tuple[int, dict[str, s
         factors["medium_input"] = str(char_count)
         score += 1
 
-    code_hits = sum(1 for ind in _CODE_INDICATORS if ind in user_text)
-    if code_hits >= 3:
-        factors["heavy_code"] = str(code_hits)
-        score += 2
-    elif code_hits >= 1:
-        factors["has_code"] = str(code_hits)
-        score += 1
-
-    file_hits = sum(1 for ext in _FILE_EXTENSIONS if ext in user_text)
-    if file_hits >= 3:
-        factors["multi_file"] = str(file_hits)
-        score += 2
-    elif file_hits >= 1:
-        factors["single_file"] = str(file_hits)
-        score += 1
-
     lowered = user_text.lower()
     kw_hits = sum(1 for kw in _COMPLEX_KEYWORDS if kw in lowered)
     if kw_hits >= 2:
@@ -186,9 +100,7 @@ def score_request(messages: list[dict], ide: str = "") -> tuple[int, dict[str, s
 
 
 def classify_complexity(query: str, messages: list[dict]) -> str:
-    """Return 'simple' | 'code' | 'complex' for routing strategy selection."""
-    if _has_code_signals(query.lower()):
-        return "code"
+    """Return 'simple' | 'complex' for routing strategy selection."""
     score, _ = score_request(messages)
     if score >= 5:
         return "complex"
@@ -202,15 +114,12 @@ def get_affinity_backends(complexity: str) -> list[str]:
 
         intent = {
             "simple": "english",
-            "code": "code",
             "complex": "reasoning",
         }.get(complexity, "english")
         pool = capability_matrix.select_backends(intent, top_n=12)
     except Exception:
         if complexity == "simple":
             pool = list(AFFINITY["simple_fast"])
-        elif complexity == "code":
-            pool = list(AFFINITY["code"])
         else:
             pool = list(AFFINITY["complex_premium"])
     random.shuffle(pool)

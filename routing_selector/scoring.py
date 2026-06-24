@@ -8,7 +8,6 @@ import time
 import health_tracker
 
 from routing_selector.constants import _STATIC_LATENCY_ESTIMATE
-from routing_selector.helpers import _is_strong_coding_tool_backend
 
 _log = logging.getLogger(__name__)
 
@@ -52,27 +51,6 @@ def _apply_routing_weight(score: float, backend: str, scenario: str, request_typ
         return score
 
 
-def _apply_coding_adjustments(
-    score: float,
-    backend: str,
-    scenario: str,
-    needs_tools: bool,
-    backend_meta: dict,
-) -> float:
-    """Apply coding-specific weight and tool bonus when relevant."""
-    if scenario != "coding":
-        return score
-    try:
-        from coding_backend_scorer import get_coding_weight
-
-        score *= get_coding_weight(backend)
-    except ImportError:
-        _log.warning("coding_backend_scorer not available; skipping coding weight")
-    if needs_tools and _is_strong_coding_tool_backend(backend, backend_meta):
-        score *= 1.25
-    return score
-
-
 def _apply_static_latency_bonus(score: float, backend: str, consec_fails: int) -> float:
     """Add a small bonus for backends with low static latency and no recent failures."""
     static_latency = _STATIC_LATENCY_ESTIMATE.get(backend)
@@ -102,8 +80,6 @@ def _compute_backend_score(
     routing_guard_decisions: dict[str, dict],
 ) -> float:
     """Compute a single backend's health/latency/recency score."""
-    import backends_registry as reg
-
     health_factor = _score_health(backend, health_map)
     if health_factor == 0.0:
         return 0.0
@@ -119,9 +95,6 @@ def _compute_backend_score(
         score = base * latency_score * (1 - error_penalty) * recency_bonus
 
     score = _apply_routing_weight(score, backend, scenario, request_type)
-    score = _apply_coding_adjustments(
-        score, backend, scenario, needs_tools, reg.BACKENDS.get(backend, {})
-    )
     score = _apply_static_latency_bonus(score, backend, state.get("consecutive_failures", 0))
     score = _apply_guard_penalty(score, routing_guard_decisions.get(backend, {}))
     return score

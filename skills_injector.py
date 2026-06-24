@@ -65,7 +65,11 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
 
 
 def load_skills_from_dir(skills_dir: str) -> list[dict]:
-    """从 skills/ 目录加载所有 .md 文件，解析 frontmatter + body"""
+    """从 skills/ 目录加载所有 .md 文件，解析 frontmatter + body
+
+    Coding skills (category == "code") are ignored because the coding
+    capability was retired in v3.0.
+    """
     skills = []
     pattern = os.path.join(skills_dir, "**", "*.md")
     for fpath in glob_mod.glob(pattern, recursive=True):
@@ -74,6 +78,8 @@ def load_skills_from_dir(skills_dir: str) -> list[dict]:
                 raw = f.read()
             meta, body = parse_frontmatter(raw)
             if not meta or "id" not in meta:
+                continue
+            if meta.get("category") == "code":
                 continue
             skills.append(
                 {
@@ -237,7 +243,12 @@ def _injection_mode(
 
 
 def _filter_by_ide(skills: list[dict], ide_source: str) -> list[dict]:
-    """根据 IDE 已覆盖内容过滤不需要的 skills"""
+    """根据 IDE 已覆盖内容过滤不需要的 skills
+
+    Coding skills are always excluded because the coding capability was
+    retired in v3.0; there is no IDE_COVERAGE mapping for "code".
+    """
+    skills = [s for s in skills if s.get("category") != "code"]
     if not ide_source:
         return skills
     covered_cats = IDE_COVERAGE.get(ide_source, set())

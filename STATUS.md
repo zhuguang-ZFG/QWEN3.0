@@ -17,6 +17,23 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-24）第一部分：编码能力退役
+
+- **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 第一部分，退役非 IDE 的编码能力，简化路由管线。
+- **关键结果**：
+  - `routing_classifier.classify_scenario()` 仅 IDE 场景返回 `"coding"`，其余返回 `"chat"`。
+  - `speculative_policy` 移除 `"code"` 分支、`_CODE_SIGNALS`、`_CODE_INDICATORS`、`_FILE_EXTENSIONS` 与 `AFFINITY["code"]`。
+  - `routing_engine_execute_strategy` 删除 `_execute_code_priority()`、`_maybe_quality_retry()`，简化 sticky pin。
+  - `context_pipeline/code_context_injection.py`、`semantic_code_retrieval.py`、`code_scanner.py`、`graph_retrieval.py` 标记为 `DEPRECATED v3.0`。
+  - `coding_backend_scorer.py`、`periodic_coding_eval.py`、`eval_*.py`（7 文件）、`orchestrate*.py`（4 文件）标记为 `DEPRECATED v3.0`。
+  - `capability_matrix.DIMENSIONS` 移除 `code`/`debug`；`backends_constants_code_tools.py` 移除 `CODE_CAPABLE_BACKENDS`，保留 `TOOL_CAPABLE_BACKENDS`。
+  - `skills_registry.py` / `skills_injector.py` 过滤 `category == "code"` 的技能；`skills/code/*.md` 标记为 `DEPRECATED v3.0`。
+  - `config/eval_config.py` 与 `server_lifespan_phases.py` 关闭周期编码评测。
+  - 清理相关测试 9 个，更新 8 个测试文件以匹配新行为。
+- **验证**：
+  - 聚焦 pytest 148 passed / 0 failed。
+  - `ruff check` 修改文件 clean；核心模块 import 通过。
+
 ### 最近完成（2026-06-24）M15：AI→Motion 阶段 5 发布门追踪与终端回放
 
 - **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态/阻断证据的端到端追踪。

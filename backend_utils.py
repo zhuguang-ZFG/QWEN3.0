@@ -1,7 +1,6 @@
 """LiMa backend inspection and state helpers."""
 
 from backends_constants import (
-    CODE_CAPABLE_BACKENDS,
     KEY_POOL_PREFIXES,
     VISION_BACKENDS,
     WEAK_BACKENDS,
@@ -106,7 +105,7 @@ def detect_protocol(fmt: str) -> str:
 def detect_caps(name: str, cfg: dict | None = None) -> list[str]:
     explicit = set(cfg["caps"]) if cfg and cfg.get("caps") else set()
     caps = list(explicit)
-    if name in CODE_CAPABLE_BACKENDS or "coder" in name or "codestral" in name:
+    if "coder" in name or "codestral" in name:
         if "code" not in caps:
             caps.append("code")
     if name in VISION_BACKENDS:

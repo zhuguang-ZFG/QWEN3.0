@@ -1,4 +1,9 @@
-"""Shared constants for the 1+N orchestration pipeline."""
+# DEPRECATED v3.0 — coding capability retired
+"""Shared constants for the 1+N orchestration pipeline.
+
+DEPRECATED: the multi-model orchestrator was retired in v3.0 together with the
+coding capability. Constants are kept only so imports do not break.
+"""
 
 from __future__ import annotations
 

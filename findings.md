@@ -3,6 +3,29 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-24 编码能力退役（第一部分）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CODE-RET-1 | routing | 非 IDE 的 coding 场景检测仍可触发编码后端与质量重试 | Closed |
+| CODE-RET-2 | context | 代码上下文注入/扫描/图谱/语义检索模块增加延迟与 token 消耗 | Closed |
+| CODE-RET-3 | scoring | `CODE_CAPABLE_BACKENDS` 与 capability matrix code/debug 维度已无用 | Closed |
+| CODE-RET-4 | skills | `skills/code/` 编码技能仍被加载注入 | Closed |
+| CODE-RET-5 | orchestration | 多模型编排器仅服务编码场景 | Closed |
+| CODE-RET-6 | eval | 周期编码评测与 7 个 eval 脚本已废弃 | Closed |
+
+**修复动作**
+- 退役 `classify_scenario()` 非 IDE coding 检测、`speculative_policy` code 分支、执行策略 code 优先与质量重试。
+- 标记 `context_pipeline/code_*`、`graph_retrieval`、`coding_backend_scorer`、`periodic_coding_eval`、`eval_*.py`、`orchestrate*.py` 为 `DEPRECATED v3.0`。
+- 清理 capability matrix code/debug 维度与 `CODE_CAPABLE_BACKENDS`。
+- 过滤 code 类技能，标记 `skills/code/*.md`。
+- 关闭 `config/eval_config.py` 周期评测与 `server_lifespan_phases.py` 启动项。
+- 删除/更新相关测试。
+
+**验证**
+- 聚焦 pytest 148 passed。
+- `ruff check` 修改文件 clean；核心模块 import 通过。
+
 ## 2026-06-24 接入 MP4 视频并优化 chat-web / 2D 数字人
 
 | ID | Area | Finding | Status |

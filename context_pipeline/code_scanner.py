@@ -1,4 +1,5 @@
-"""Code Scanner — AST-based code relationship extractor.
+# DEPRECATED v3.0 — coding capability retired
+"""Code Scanner — AST-based code relationship extractor (DEPRECATED).
 
 Scans Python files to populate CodeGraph with structural relationships:
 - imports: file A imports from file B
@@ -6,78 +7,34 @@ Scans Python files to populate CodeGraph with structural relationships:
 - calls: function X calls function Y (basic heuristic)
 
 Uses only Python stdlib (ast module). No external dependencies.
+
+v3.0: coding capability retired. Main functions are disabled and return
+safe default values to keep imports working.
 """
 
-import ast
-from pathlib import Path
+from __future__ import annotations
 
-from config import settings
 from context_pipeline.graph_retrieval import CodeGraph
 
 
 def scan_directory(directory: str, graph: CodeGraph | None = None) -> CodeGraph:
-    """Scan all .py files in directory and build a CodeGraph."""
-    if graph is None:
-        graph = CodeGraph()
-
-    py_files = list(Path(directory).rglob("*.py"))
-    return scan_files([str(path) for path in py_files], graph=graph)
+    """Scan all .py files in directory and build a CodeGraph. (DEPRECATED)"""
+    return graph if graph is not None else CodeGraph()
 
 
 def scan_files(file_paths: list[str], graph: CodeGraph | None = None) -> CodeGraph:
-    """Scan explicit .py files and build a CodeGraph."""
-    if graph is None:
-        graph = CodeGraph()
-
-    module_map: dict[str, str] = {}
-    valid_files: list[Path] = []
-
-    for raw in file_paths:
-        path = Path(raw)
-        if not path.is_file() or path.suffix != ".py":
-            continue
-        valid_files.append(path)
-        module_map[path.stem] = path.name
-
-    for path in valid_files:
-        try:
-            source = path.read_text(encoding="utf-8", errors="replace")
-            tree = ast.parse(source, filename=str(path))
-            _extract_relations(path.name, tree, module_map, graph)
-        except (SyntaxError, UnicodeDecodeError):
-            continue
-
-    return graph
+    """Scan explicit .py files and build a CodeGraph. (DEPRECATED)"""
+    return graph if graph is not None else CodeGraph()
 
 
 def _extract_relations(
     filename: str,
-    tree: ast.Module,
+    tree,
     module_map: dict[str, str],
     graph: CodeGraph,
 ) -> None:
-    """Extract import and definition relationships from an AST."""
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                target = alias.name.split(".")[0]
-                if target in module_map:
-                    graph.add_relation(filename, module_map[target], "imports")
-
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                target = node.module.split(".")[0]
-                if target in module_map:
-                    graph.add_relation(filename, module_map[target], "imports")
-
-        elif isinstance(node, ast.ClassDef):
-            graph.add_relation(filename, node.name, "defines_class")
-            for base in node.bases:
-                if isinstance(base, ast.Name) and base.id in module_map:
-                    graph.add_relation(filename, module_map[base.id], "extends")
-
-        elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
-            graph.add_relation(filename, node.name, "defines_func")
+    """Extract import and definition relationships from an AST. (DEPRECATED)"""
+    return None
 
 
 # Singleton graph instance
@@ -91,29 +48,15 @@ def reset_code_graph() -> None:
 
 
 def get_code_graph(directory: str | None = None) -> CodeGraph:
-    """Get or build the global code graph."""
+    """Get or build the global code graph. (DEPRECATED)"""
     global _global_graph
     if _global_graph is None:
-        from context_pipeline.retrieval_corpus import resolve_production_corpus_paths
-
-        corpus_paths = resolve_production_corpus_paths()
-        if corpus_paths:
-            _global_graph = scan_files(corpus_paths)
-        else:
-            scan_dir = directory or settings.PATHS.code_dir
-            _global_graph = scan_directory(scan_dir)
+        _global_graph = CodeGraph()
     return _global_graph
 
 
 def refresh_graph(directory: str | None = None) -> CodeGraph:
-    """Force rebuild the code graph."""
+    """Force rebuild the code graph. (DEPRECATED)"""
     global _global_graph
-    from context_pipeline.retrieval_corpus import resolve_production_corpus_paths
-
-    corpus_paths = resolve_production_corpus_paths()
-    if corpus_paths:
-        _global_graph = scan_files(corpus_paths)
-    else:
-        scan_dir = directory or settings.PATHS.code_dir
-        _global_graph = scan_directory(scan_dir)
+    _global_graph = CodeGraph()
     return _global_graph

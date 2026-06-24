@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from collections.abc import Coroutine
 from typing import Callable
@@ -93,16 +92,6 @@ async def load_backend_profiles() -> None:
             _log.warning("backend_profile module not loaded; persisted backend profiles skipped: %s", exc)
 
 
-async def start_periodic_eval() -> None:
-    async with PhaseTimer("periodic_coding_eval.start"):
-        try:
-            import periodic_coding_eval
-
-            periodic_coding_eval.start()
-        except ImportError as exc:
-            _log.warning("periodic_coding_eval not installed; periodic coding eval skipped: %s", exc)
-
-
 async def start_session_memory_daemon() -> None:
     async with PhaseTimer("session_memory.daemon.start"):
         try:
@@ -175,15 +164,6 @@ async def stop_auto_indexer() -> None:
         _log.warning("auto_indexer not installed; auto indexer stop skipped: %s", exc)
 
 
-async def stop_periodic_eval() -> None:
-    try:
-        import periodic_coding_eval
-
-        periodic_coding_eval.stop()
-    except ImportError as exc:
-        _log.warning("periodic_coding_eval not installed; periodic eval stop skipped: %s", exc)
-
-
 async def stop_session_memory_daemon() -> None:
     try:
         from session_memory.daemon import stop_daemon
@@ -225,7 +205,6 @@ CRITICAL_PHASES: list[_PhaseFn] = [
 
 WARM_PHASES: list[tuple[str, _PhaseFn]] = [
     ("backend_profile.load", load_backend_profiles),
-    ("periodic_coding_eval.start", start_periodic_eval),
     ("session_memory.daemon.start", start_session_memory_daemon),
     ("observability.structured_logging", setup_structured_logging),
     ("context_pipeline.auto_indexer.start", start_auto_indexer),

@@ -95,7 +95,6 @@ def test_backend_has_capability_known_backend():
     assert backend_utils.backend_has_capability("cf_vision", "vision")
     assert backend_utils.backend_has_capability("nvidia_qwen_coder", "code")
     assert backend_utils.backend_has_capability("github_gpt4o", "tool_calls")
-    assert backend_utils.backend_has_capability("scnet_ds_pro", "code")
 
 
 def test_backend_has_capability_unknown_backend():
@@ -152,18 +151,6 @@ def test_every_backend_has_model():
 
 
 # ── Cap detection ────────────────────────────────────────────────────────────────
-
-
-def test_code_capable_backends_all_registered():
-    """Every CODE_CAPABLE_BACKENDS entry must be in BACKENDS."""
-    missing = [b for b in backends_constants.CODE_CAPABLE_BACKENDS if b not in backends_registry.BACKENDS]
-    assert not missing, f"CODE_CAPABLE_BACKENDS not in BACKENDS: {missing}"
-
-
-def test_detect_caps_code_backends_have_code_cap():
-    for b in backends_constants.CODE_CAPABLE_BACKENDS:
-        caps = backend_utils.detect_caps(b)
-        assert "code" in caps, f"{b} should have 'code' cap"
 
 
 def test_detect_caps_returns_list():

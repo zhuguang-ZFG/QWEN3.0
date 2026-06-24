@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Any
 
 from server_lifespan_phases import (
     CRITICAL_PHASES,
@@ -12,7 +11,6 @@ from server_lifespan_phases import (
     stop_auto_indexer,
     stop_device_gateway_runtime,
     stop_mqtt_client,
-    stop_periodic_eval,
     stop_prometheus,
     stop_probe_loop,
     stop_session_memory_daemon,
@@ -80,7 +78,6 @@ async def _run_shutdown_phases() -> None:
     stop_probe_loop()
     await stop_prometheus()
     await stop_auto_indexer()
-    await stop_periodic_eval()
     await stop_session_memory_daemon()
     await stop_device_gateway_runtime()
     await stop_mqtt_client()
