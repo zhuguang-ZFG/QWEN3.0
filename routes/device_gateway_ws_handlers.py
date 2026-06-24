@@ -10,12 +10,14 @@ from fastapi import WebSocket
 from device_gateway.protocol import (
     ProtocolError,
     ack_frame,
+    attestation_failed_frame,
+    attestation_warning_frame,
     hello_ack,
     voice_status_frame,
 )
 from device_gateway.protocol_negotiator import ProtocolNegotiator
 from device_gateway.sessions import DeviceSession, registry
-from device_gateway.task_events import process_motion_event_core
+from device_gateway.task_events import process_motion_event_core, record_device_connected, record_motion_event_side_effects
 from device_gateway.tasks import (
     ack_processing_task,
     active_tasks_for_device,
@@ -47,6 +49,7 @@ from routes.ws_lifecycle_helpers import reattach_tasks
 from routes.ws_task_helpers import record_outcome_ledger, send_recovery_ack
 from routes.ws_voice_transcript_helpers import handle_voice_transcript
 from routes.ws_voiceprint_helpers import handle_voiceprint_sample
+from device_gateway.attestation import ACTION_READ_ONLY, AttestationResult, verifier as attestation_verifier
 from device_gateway.auth import validate_device_token
 
 _log = logging.getLogger(__name__)
@@ -107,6 +110,7 @@ def _create_hello_session(
     message: dict[str, Any],
     protocol: str,
     capabilities: frozenset[str],
+    attestation_action: str,
 ) -> DeviceSession:
     return DeviceSession(
         device_id=device_id,
@@ -115,7 +119,29 @@ def _create_hello_session(
         capabilities=message.get("capabilities", []),
         protocol_version=protocol,
         negotiated_capabilities=capabilities,
+        attestation_action=attestation_action,
     )
+
+
+async def _check_attestation(
+    websocket: WebSocket,
+    device_id: str,
+    message: dict[str, Any],
+    request_id: str | None,
+) -> AttestationResult | None:
+    """Verify firmware attestation; send frame and return None on quarantine."""
+    version = message.get("firmwareVersion") or message.get("fw_rev", "")
+    firmware_hash = message.get("firmwareHash", "")
+    result = attestation_verifier.verify(device_id, firmware_hash, version)
+    if result.action == "quarantine":
+        _log.warning("device attestation quarantined device=%s version=%r reason=%s", device_id, result.version, result.reason)
+        await websocket.send_json(attestation_failed_frame(device_id, result.reason, request_id))
+        await websocket.close(code=1008)
+        return None
+    if result.action == "read_only":
+        _log.warning("device attestation warning device=%s version=%r reason=%s", device_id, result.version, result.reason)
+        await websocket.send_json(attestation_warning_frame(device_id, result.reason, request_id))
+    return result
 
 
 async def handle_hello(
@@ -129,10 +155,17 @@ async def handle_hello(
         return None, None, False
     _log.info("device hello auth succeeded device=%r", device_id)
 
+    attestation = await _check_attestation(websocket, device_id, message, request_id)
+    if attestation is None:
+        return None, None, False
+
     protocol, negotiated_capabilities = _negotiate_hello_protocol(message)
-    session = _create_hello_session(websocket, device_id, message, protocol, negotiated_capabilities)
+    session = _create_hello_session(
+        websocket, device_id, message, protocol, negotiated_capabilities, attestation.action
+    )
 
     previous = registry.register(session)
+    record_device_connected(device_id)
     if previous and previous.websocket is not websocket:
         reattach_tasks(session, previous.take_outstanding_tasks())
         try:
@@ -149,6 +182,9 @@ async def handle_hello(
             capabilities=negotiated_capabilities,
         )
     )
+    if attestation.action == ACTION_READ_ONLY:
+        # Read-only sessions stay connected but do not receive queued tasks.
+        return device_id, session, True
     if not await drain_pending_tasks(session):
         return device_id, session, False
     return device_id, session, True
@@ -226,12 +262,15 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
         session.mark_task_acknowledged(message["task_id"])
         await session.send_json(ack_frame("motion_event_ack", device_id, **summary, request_id=request_id))
 
+    record_motion_event_side_effects(device_id, message)
+
     phase = message.get("phase", "")
+    task_id = str(message.get("task_id", ""))
     if phase in ("accepted", "running", "done", "failed"):
         _log.info(
             "device task phase device_id=%s task_id=%s phase=%s",
             device_id,
-            message.get("task_id", ""),
+            task_id,
             phase,
         )
 

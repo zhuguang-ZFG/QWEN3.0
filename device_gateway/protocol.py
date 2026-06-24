@@ -96,6 +96,8 @@ def validate_motion_task_lifecycle(events: list[dict[str, Any]]) -> dict[str, An
 
 from device_gateway.protocol_frames import (  # noqa: E402
     ack_frame,
+    attestation_failed_frame,
+    attestation_warning_frame,
     audio_reply_frame,
     build_voiceprint_sample_ack,
     error_frame,
@@ -122,6 +124,8 @@ __all__ = [
     "TERMINAL_MOTION_PHASES",
     "ProtocolError",
     "ack_frame",
+    "attestation_failed_frame",
+    "attestation_warning_frame",
     "audio_reply_frame",
     "build_voiceprint_sample_ack",
     "ensure_object",

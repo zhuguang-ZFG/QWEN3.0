@@ -159,3 +159,37 @@ def motion_failure_event(
     if request_id:
         frame["request_id"] = request_id
     return frame
+
+
+def attestation_failed_frame(
+    device_id: str,
+    reason: str = "",
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    """Build an attestation failure frame; connection should be closed after sending."""
+    frame: dict[str, Any] = {
+        "type": "attestation_failed",
+        "device_id": device_id,
+        "reason": reason or "firmware attestation failed",
+        "server_time": now_iso(),
+    }
+    if request_id:
+        frame["request_id"] = request_id
+    return frame
+
+
+def attestation_warning_frame(
+    device_id: str,
+    reason: str = "",
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    """Build an attestation warning frame; connection may remain open."""
+    frame: dict[str, Any] = {
+        "type": "attestation_warning",
+        "device_id": device_id,
+        "reason": reason or "firmware attestation warning",
+        "server_time": now_iso(),
+    }
+    if request_id:
+        frame["request_id"] = request_id
+    return frame

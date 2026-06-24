@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import WebSocket
 
+from device_gateway.attestation import AttestationVerifier
 from device_gateway.protocol import ProtocolError
 from device_gateway.sessions import DeviceSession
 from routes import device_gateway_ws_handlers as handlers
@@ -44,16 +45,24 @@ async def test_handle_hello_success(websocket, monkeypatch):
         "type": "hello",
         "protocol": "lima-device-v1",
         "device_id": "dev-1",
-        "fw_rev": "1.0",
+        "fw_rev": "v1.3.0",
+        "firmwareVersion": "v1.3.0",
+        "firmwareHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
         "capabilities": [],
     }
-    with patch.object(handlers, "drain_pending_tasks", new_callable=AsyncMock, return_value=True) as mock_drain:
+    with patch.object(handlers, "drain_pending_tasks", new_callable=AsyncMock, return_value=True) as mock_drain, patch.object(handlers, "attestation_verifier", _isolated_verifier()):
         device_id, session, keep_open = await handlers.handle_hello(websocket, message, request_id="r1")
     assert device_id == "dev-1"
     assert isinstance(session, DeviceSession)
     assert keep_open is True
     websocket.send_json.assert_awaited_once()
     mock_drain.assert_awaited_once_with(session)
+
+
+def _isolated_verifier() -> AttestationVerifier:
+    v = AttestationVerifier()
+    v.register("v1.3.0", "sha256:" + "0" * 64)
+    return v
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from device_gateway.attestation import ACTION_FULL_ACCESS
 from device_gateway.notifier import publish_task_available
 from device_gateway.protocol import ProtocolError, error_frame
 from device_gateway.sessions import DeviceSession, registry
@@ -86,7 +87,20 @@ def requeue_session_outstanding(
     return requeue_pending_tasks(session.device_id, tasks)
 
 
+def _is_attestation_restricted(session: DeviceSession) -> bool:
+    return getattr(session, "attestation_action", ACTION_FULL_ACCESS) != ACTION_FULL_ACCESS
+
+
 async def dispatch_task_to_session(session: DeviceSession, task: dict[str, Any]) -> bool:
+    if _is_attestation_restricted(session):
+        _log.warning(
+            "dispatch blocked device=%s attestation=%s task=%s",
+            session.device_id,
+            session.attestation_action,
+            task.get("task_id", ""),
+        )
+        requeue_session_outstanding(session, [task])
+        return False
     try:
         await session.send_json(task)
     except Exception as exc:
@@ -106,6 +120,13 @@ async def dispatch_task_to_session(session: DeviceSession, task: dict[str, Any])
 
 
 async def drain_pending_tasks(session: DeviceSession) -> bool:
+    if _is_attestation_restricted(session):
+        _log.warning(
+            "drain blocked device=%s attestation=%s",
+            session.device_id,
+            session.attestation_action,
+        )
+        return False
     while True:
         pending_tasks = pop_pending_tasks(session.device_id)
         if not pending_tasks:

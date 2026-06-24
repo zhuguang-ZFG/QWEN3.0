@@ -8,8 +8,10 @@ from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 
 from device_gateway import store as store_mod
+from device_gateway.coordinator import MultiDeviceCoordinator
 from device_gateway.path_validator import validate_capability_params
 from device_gateway.task_creation import project_to_motion_task_async
+from device_gateway.task_events import record_task_paused, record_task_resumed
 from device_gateway.tasks import DeviceTaskRequest, create_and_route_task, task_snapshot
 from device_workflow.state import TaskState
 from routes.device_app_task_store import (
@@ -135,9 +137,10 @@ async def _create_structured_task(
         return err(400, "invalid source", 400)
     raw_params = body.get("params")
     params: dict[str, Any] = dict(raw_params) if isinstance(raw_params, dict) else {}
+    capability = str_field(body, "capability", "intent") or "write_text"
     task, error = await _build_app_gateway_task(
         device_id,
-        str_field(body, "capability", "intent") or "write_text",
+        capability,
         params,
         source,
         str_field(body, "requestId", "request_id"),
@@ -145,6 +148,10 @@ async def _create_structured_task(
     if error:
         return error
     assert task is not None
+    if capability == "pause":
+        record_task_paused(str(task["task_id"]), device_id)
+    elif capability == "resume":
+        record_task_resumed(str(task["task_id"]), device_id)
     dispatch, status = await _dispatch_or_wait(device_id, task, source, params)
     row = insert_task_row(device_id, account, task, source, status, body, params)
     data = task_row_payload(row)
@@ -252,3 +259,30 @@ async def reject_task(task_id: str, request: Request, authorization: str = Heade
     data = task_row_payload(row_or_error)
     data["reason"] = reason
     return data
+
+
+@router.post("/devices/batch-draw")
+async def batch_draw(request: Request, authorization: str = Header(default="")):
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+
+    device_ids = body.get("device_ids")
+    svg = str_field(body, "svg")
+    coordinator_id = str_field(body, "coordinator_id", "coordinatorId")
+    if not isinstance(device_ids, list) or not device_ids or not svg or not coordinator_id:
+        return err(400, "device_ids (non-empty list), svg and coordinator_id are required", 400)
+
+    with connect() as conn:
+        for device_id in device_ids:
+            if not isinstance(device_id, str) or not device_id.strip():
+                return err(400, "device_ids must be non-empty strings", 400)
+            denied = require_device_access(conn, account, device_id.strip())
+            if denied:
+                return denied
+
+    result = await MultiDeviceCoordinator().execute_coordinated(svg, [d.strip() for d in device_ids], coordinator_id)
+    return result

@@ -14,6 +14,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from device_gateway.protocol import ProtocolError, validate_uplink
 from device_gateway.sessions import DeviceSession, registry
+from device_gateway.task_events import record_device_disconnected
 from routes.device_gateway_dispatch import requeue_session_outstanding, send_ws_error
 from routes.device_gateway_ws_handlers import (
     _cleanup_audio_registry,
@@ -136,3 +137,4 @@ async def handle_device_ws(websocket: WebSocket) -> None:
         if device_id:
             _cleanup_audio_registry(device_id)
             registry.unregister(device_id, websocket)
+            record_device_disconnected(device_id)

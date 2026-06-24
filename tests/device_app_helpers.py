@@ -73,6 +73,7 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     from routes.device_app_misc import router as misc_router
     from routes.device_app_status_ws import router as status_ws_router
     from routes.device_app_tasks import router as task_router
+    from routes.device_app_activity import router as activity_router
 
     registry.clear()
     app = FastAPI()
@@ -83,4 +84,5 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     app.include_router(misc_router)
     app.include_router(task_router)
     app.include_router(status_ws_router)
+    app.include_router(activity_router)
     return TestClient(app), store

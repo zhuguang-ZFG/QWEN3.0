@@ -8,7 +8,20 @@ from datetime import datetime, timezone
 from typing import Any
 import uuid
 
-EVENT_TYPES = frozenset({"task_created", "task_dispatched", "motion_event", "task_terminal"})
+EVENT_TYPES = frozenset(
+    {
+        "task_created",
+        "task_dispatched",
+        "motion_event",
+        "task_terminal",
+        "task_acknowledged",
+        "task_progress",
+        "task_paused",
+        "task_resumed",
+        "device_connected",
+        "device_disconnected",
+    }
+)
 
 
 class DuplicateLedgerEvent(ValueError):

@@ -149,6 +149,7 @@ def _register_system_routes(app: FastAPI, deps: RouteRegistryDeps):
 
 def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     """Mount device gateway and device app routers."""
+    from routes.device_admin import router as device_admin_router
     from routes.device_gateway import router as device_gateway_router
     from routes.device_app_api import router as device_app_router
     from routes.device_app_members import router as device_app_members_router
@@ -157,7 +158,9 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     from routes.device_app_tasks import router as device_app_tasks_router
     from routes.device_app_chat import router as device_app_chat_router
     from routes.device_app_status_ws import router as device_app_status_ws_router
+    from routes.device_app_activity import router as device_app_activity_router
 
+    app.include_router(device_admin_router)
     app.include_router(device_gateway_router)
     app.include_router(device_app_router)
     app.include_router(device_app_members_router)
@@ -166,6 +169,8 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     app.include_router(device_app_tasks_router)
     app.include_router(device_app_chat_router)
     app.include_router(device_app_status_ws_router)
+    app.include_router(device_app_activity_router)
+    loaded_modules["device_admin"] = True
     loaded_modules["device_gateway"] = True
     loaded_modules["device_app_api"] = True
     loaded_modules["device_app_members"] = True
@@ -174,6 +179,7 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     loaded_modules["device_app_tasks"] = True
     loaded_modules["device_app_chat"] = True
     loaded_modules["device_app_status_ws"] = True
+    loaded_modules["device_app_activity"] = True
 
 
 def _register_voice_routes(app: FastAPI, loaded_modules: dict) -> None:

@@ -92,6 +92,91 @@ def _recovery_for_event(event: dict[str, Any]) -> Any | None:
     return recovery_action(f"{error}:{code}")
 
 
+def record_motion_event_side_effects(device_id: str, message: dict[str, Any]) -> None:
+    """Emit ledger events derived from a device motion_event payload."""
+    phase = message.get("phase", "")
+    task_id = str(message.get("task_id", ""))
+    if phase == "accepted":
+        record_task_acknowledged(task_id, device_id)
+    if phase == "running" or "progress" in message:
+        progress_value = message.get("progress", 0)
+        if isinstance(progress_value, (int, float)):
+            record_task_progress(task_id, device_id, int(progress_value))
+
+
+def record_task_acknowledged(task_id: str, device_id: str, payload: dict[str, Any] | None = None) -> None:
+    ledger_store.append_event(
+        new_event(
+            event_type="task_acknowledged",
+            task_id=task_id,
+            device_id=device_id,
+            payload=payload or {},
+        )
+    )
+
+
+def record_task_progress(
+    task_id: str,
+    device_id: str,
+    progress: int = 0,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    merged = dict(payload or {})
+    merged["progress"] = progress
+    ledger_store.append_event(
+        new_event(
+            event_type="task_progress",
+            task_id=task_id,
+            device_id=device_id,
+            payload=merged,
+        )
+    )
+
+
+def record_task_paused(task_id: str, device_id: str) -> None:
+    ledger_store.append_event(
+        new_event(
+            event_type="task_paused",
+            task_id=task_id,
+            device_id=device_id,
+            payload={},
+        )
+    )
+
+
+def record_task_resumed(task_id: str, device_id: str) -> None:
+    ledger_store.append_event(
+        new_event(
+            event_type="task_resumed",
+            task_id=task_id,
+            device_id=device_id,
+            payload={},
+        )
+    )
+
+
+def record_device_connected(device_id: str) -> None:
+    ledger_store.append_event(
+        new_event(
+            event_type="device_connected",
+            task_id=device_id,
+            device_id=device_id,
+            payload={},
+        )
+    )
+
+
+def record_device_disconnected(device_id: str) -> None:
+    ledger_store.append_event(
+        new_event(
+            event_type="device_disconnected",
+            task_id=device_id,
+            device_id=device_id,
+            payload={},
+        )
+    )
+
+
 def _advance_workflow_on_event(task_id: str, phase: str) -> None:
     if not task_id:
         return
