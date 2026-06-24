@@ -17,6 +17,21 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-25）Phase A P0：官网与开发者体验改进
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase A P0，补齐官网转化漏斗与开发者文档入口。
+- **关键结果**：
+  - 官网新增 `donglicao-site/pricing.html` 四档定价页，支持响应式布局与无障碍访问。
+  - 首页开发者区新增 Python / cURL / JavaScript / Go 多语言代码 Tab，移动端自动切换为下拉。
+  - FAQ 从 4 条扩充到 12 条，并新增 `FAQPage` Schema.org JSON-LD。
+  - Footer 补完：微信公众号二维码占位、微博/B站/抖音/GitHub 社媒入口、ICP 备案号占位、产品/法律链接；新增 `privacy.html` / `terms.html` 占位页。
+  - 生成 `docs/openapi.yaml`：覆盖 `/v1/chat/completions`、`/v1/images/generations`、`/device/v1/app/*` 等 63 个公开端点，每个端点含请求/响应示例；脚本拆分为 `scripts/build_openapi.py` + `scripts/openapi_examples/` 包，单模块 ≤300 行。
+  - 搭建 VitePress 开发者文档站 `docs-site/`：16 个 Markdown 页面、暗色量子星云主题、本地搜索、Redoc API 参考页；`pnpm build` 通过。
+- **验证**：
+  - 全量 pytest **3699 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**（排除 worktree 中缺失 untracked 固件/测试辅助文件的 10 个预存失败）。
+  - `ruff check scripts/build_openapi.py scripts/openapi_examples/` clean。
+- **Git**：工作于独立 worktree 分支 `improve/20260625-phase-a`，commit `51ffdfec` + `98829dbe`。
+
 ### 最近完成（2026-06-25）修复全量 pytest 预存失败
 
 - **目标**：处理 Phase 5 完成后全量 pytest 中 33 failed / 11 errors 的预存失败，使全量测试通过。

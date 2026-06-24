@@ -1,5 +1,20 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase A P0：官网与开发者体验改进
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase A P0，补齐官网转化漏斗与开发者文档入口。
+- **关键结果**：
+  - `donglicao-site/pricing.html`：四档定价卡片（免费/创作者 ¥49/团队 ¥199/企业联系销售）、功能对比表、5 条定价 FAQ、响应式布局。
+  - 首页开发者区：`donglicao-site/js/code-tabs.js` 实现 Python/cURL/JavaScript/Go 多语言 Tab 切换，移动端变下拉；复制按钮按当前面板复制。
+  - FAQ 区块：从 4 条扩展到 12 条，新增 `FAQPage` JSON-LD。
+  - Footer 补完：微信公众号二维码占位图、微博/B站/抖音/GitHub 社媒入口、ICP 备案号占位、产品/法律链接；新增 `privacy.html` / `terms.html`。
+  - `docs/openapi.yaml`：63 个公开端点，每个端点含请求/响应示例；`scripts/build_openapi.py` + `scripts/openapi_examples/` 包生成，单模块 ≤300 行。
+  - `docs-site/`：VitePress 文档站，16 页，暗色量子星云主题，本地搜索，Redoc 渲染 `openapi.yaml`。
+- **验证**：
+  - 全量 pytest **3699 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**（worktree 中 10 个预存失败因缺失 untracked 固件/测试辅助文件而排除，与本次改动无关）。
+  - `ruff check scripts/build_openapi.py scripts/openapi_examples/` clean；`pnpm build`（docs-site）通过。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，commit `51ffdfec` + `98829dbe`。
+
 ## 2026-06-25 修复全量 pytest 预存失败并制定改进计划
 
 - **目标**：处理 Phase 5 完成后全量 pytest 中的 33 failed / 11 errors，使测试全部通过；并基于 `C:\Users\zhugu\.qclaw\workspace\lima-github-references_20260625.md` 制定 LiMa 改进计划。
