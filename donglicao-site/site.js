@@ -46,6 +46,7 @@
     ".pipeline-step",
     ".stat",
     ".scenario-card",
+    ".testimonial-card",
     ".dev-grid",
     ".galaxy-stage",
     ".galaxy-legend",
@@ -58,7 +59,7 @@
   revealEls.forEach((el) => el.classList.add("reveal"));
 
   // Group staggered children for motion sequencing
-  const staggerContainers = [".bento", ".pipeline", ".stats", ".scenario-grid", ".faq-list"];
+  const staggerContainers = [".bento", ".pipeline", ".stats", ".scenario-grid", ".testimonial-grid", ".faq-list"];
   staggerContainers.forEach((selector) => {
     document.querySelectorAll(selector).forEach((container) => {
       container.classList.add("reveal-stagger");

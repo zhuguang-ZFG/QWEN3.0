@@ -85,6 +85,23 @@
   - `nginx -t && systemctl reload nginx` 通过。
 - **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
 
+## 2026-06-24 LiMa 官网客户案例/证言区块
+
+- **目标**：按之前提出的优化顺序，继续补全官网缺失的转化能力：添加客户案例/证言区块，提升品牌可信度。
+- **实现**：
+  - 在 `#scenarios` 与 `#developer` 之间新增 `#testimonials` 区块。
+  - 设计 3 张证言卡片：创意工作室主理人、小学书法教师、手作礼物店主，分别对应产品场景。
+  - 使用姓名首字母头像（带 cyan/amber/rose 主题色），无需额外图片素材。
+  - 在 `styles.css` 新增 `.testimonial-grid`、`.testimonial-card`、`.testimonial-quote`、`.testimonial-author`、`.testimonial-avatar` 等样式，含 hover 抬升与渐变装饰。
+  - 在 `site.js` 将 `.testimonial-card` 加入 reveal 目标，`.testimonial-grid` 加入 stagger 容器。
+- **验证**：
+  - 本地 `python -m http.server 8092 --directory donglicao-site`：`#testimonials` 存在，3 张证言卡片结构完整。
+  - 公网 `https://donglicao.com`：证言区块已生效，布局与样式正常。
+- **部署**：
+  - `scp -r donglicao-site/* root@47.112.162.80:/www/wwwroot/donglicao-site/` 成功。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
+
 ## 2026-06-24 LiMa M15：AI→Motion 阶段 5 发布门追踪与终端回放
 
 - **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态或阻断证据的端到端追踪，产出首份阶段 5 发布证据报告。

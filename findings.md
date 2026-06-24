@@ -105,6 +105,25 @@
 - 公网 `https://donglicao.com`：FAQ 与 CTA 区块已生效。
 - `nginx -t && systemctl reload nginx` 通过。
 
+## 2026-06-24 官网客户案例/证言区块
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SITE-TESTI-1 | content | 缺少客户案例/证言，品牌可信度与转化说服力不足 | Closed |
+| SITE-TESTI-2 | visual | 证言卡片需要与现有暗色星云风格一致的头像/排版 | Closed |
+| SITE-TESTI-3 | ux | 新区块应加入滚动 reveal 与 stagger 动画，保持页面节奏 | Closed |
+
+**修复动作**
+- 在 `#scenarios` 与 `#developer` 之间新增 `#testimonials` 区块，含 3 张证言卡片。
+- 证言角色覆盖创意工作室、教育课堂、个性定制三个核心场景。
+- 使用姓名首字母圆形头像，主题色与产品能力色（cyan/amber/rose）对应，无需新增图片。
+- `styles.css` 新增证言网格、卡片、引号装饰、作者信息样式；`site.js` 加入 reveal/stagger。
+
+**验证**
+- 本地 `python -m http.server 8092 --directory donglicao-site`：`#testimonials` 存在，3 张卡片完整。
+- 公网 `https://donglicao.com`：证言区块已生效，布局正常。
+- `nginx -t && systemctl reload nginx` 通过。
+
 ## 2026-06-24 P3 缺陷改善里程碑部署验证
 
 | ID | Area | Finding | Status |
