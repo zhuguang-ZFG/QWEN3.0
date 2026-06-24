@@ -886,6 +886,38 @@ section {
   transform: scale(1.04);
 }
 
+.scenario-visual-sm {
+  height: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.scenario-visual-sm::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(7, 7, 15, 0.55) 100%);
+}
+
+.scenario-visual-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.92;
+  transition: transform 0.8s var(--ease);
+}
+
+.scenario-card:hover .scenario-visual-sm img {
+  transform: scale(1.04);
+}
+
+.scenario-card:has(.scenario-visual-sm) {
+  padding-top: 24px;
+}
+
 .scenario-body {
   padding: 28px;
   flex: 1;

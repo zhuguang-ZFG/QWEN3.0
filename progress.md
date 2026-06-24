@@ -1,5 +1,23 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 LiMa 官网品牌视觉本地化
+
+- **目标**：用 Pollinations AI 生成的品牌素材替换 `donglicao-site/index.html` 中的 Picsum 占位图，并为教育/礼物场景卡片补充图片，使官网视觉与 LiMa 星云品牌一致。
+- **实现**：
+  - 生成 7 张统一风格科技星云素材：hero / product-draw / product-write / product-human / scene-home / scene-edu / scene-gift，存放于 `donglicao-site/assets/`。
+  - 删除 `picsum.photos` preconnect 与占位注释。
+  - 将首页 3 处 Picsum 外链替换为本地 `assets/`。
+  - 在教育课堂、个性定制两个 scenario 卡片新增 `.scenario-visual-sm` 图片区域。
+  - 在 `styles.css` 新增 `.scenario-visual-sm` 样式（高度、渐变遮罩、hover 缩放）。
+- **验证**：
+  - 本地 `python -m http.server 8088`：HTML 引用 5 张素材，所有图片 200 OK。
+  - 公网 `https://donglicao.com`：index.html 与 5 张图片均 200 OK。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **部署**：
+  - `scp -r donglicao-site/* root@47.112.162.80:/www/wwwroot/donglicao-site/` 成功。
+  - nginx 重新加载，公网访问正常。
+- **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
+
 ## 2026-06-24 LiMa M15：AI→Motion 阶段 5 发布门追踪与终端回放
 
 - **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态或阻断证据的端到端追踪，产出首份阶段 5 发布证据报告。
