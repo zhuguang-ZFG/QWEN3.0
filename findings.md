@@ -124,6 +124,25 @@
 - 公网 `https://donglicao.com`：证言区块已生效，布局正常。
 - `nginx -t && systemctl reload nginx` 通过。
 
+## 2026-06-24 官网产品规格/能力对比区块
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SITE-SPECS-1 | content | 产品区缺少规格对比，用户难以快速区分三种设备能力 | Closed |
+| SITE-SPECS-2 | ux | 对比表格在移动端需要横向滚动与可读性优化 | Closed |
+| SITE-SPECS-3 | visual | 表头需要与产品能力色系统一，增强识别性 | Closed |
+
+**修复动作**
+- 在 `#products` 与 `#routing` 之间新增 `#specs` 区块。
+- 设计 6 行 × 3 列的能力对比表：输入方式、输出形式、核心技术、适用场景、接入协议、推荐后端。
+- 表头使用 cyan/amber/rose 胶囊标签，与 AI 绘图机/写字机/数字人图标颜色一致。
+- `styles.css` 新增表格容器、表格、表头胶囊、悬停高亮及移动端适配；`site.js` 加入 reveal。
+
+**验证**
+- 本地 `python -m http.server 8093 --directory donglicao-site`：`#specs` 存在，表格结构完整。
+- 公网 `https://donglicao.com`：规格对比区块已生效，响应式正常。
+- `nginx -t && systemctl reload nginx` 通过。
+
 ## 2026-06-24 P3 缺陷改善里程碑部署验证
 
 | ID | Area | Finding | Status |

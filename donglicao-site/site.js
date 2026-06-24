@@ -47,6 +47,7 @@
     ".stat",
     ".scenario-card",
     ".testimonial-card",
+    ".specs-table-wrap",
     ".dev-grid",
     ".galaxy-stage",
     ".galaxy-legend",

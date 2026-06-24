@@ -102,6 +102,23 @@
   - `nginx -t && systemctl reload nginx` 通过。
 - **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
 
+## 2026-06-24 LiMa 官网产品规格/能力对比区块
+
+- **目标**：按优化顺序继续补全官网：添加产品规格对比，帮助用户快速理解 AI 绘图机、AI 写字机、2D 数字人的差异。
+- **实现**：
+  - 在 `#products` 与 `#routing` 之间新增 `#specs` 区块。
+  - 设计响应式能力对比表，横向对比输入方式、输出形式、核心技术、适用场景、接入协议、推荐后端 6 个维度。
+  - 表头使用 cyan/amber/rose 主题色胶囊标签，与产品图标颜色对应。
+  - 在 `styles.css` 新增 `.specs-table-wrap`、`.specs-table`、`.spec-head` 等样式，支持横向滚动与悬停高亮。
+  - 在 `site.js` 将 `.specs-table-wrap` 加入滚动 reveal 目标。
+- **验证**：
+  - 本地 `python -m http.server 8093 --directory donglicao-site`：`#specs` 存在，表格结构完整。
+  - 公网 `https://donglicao.com`：规格对比区块已生效，响应式正常。
+- **部署**：
+  - `scp -r donglicao-site/* root@47.112.162.80:/www/wwwroot/donglicao-site/` 成功。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
+
 ## 2026-06-24 LiMa M15：AI→Motion 阶段 5 发布门追踪与终端回放
 
 - **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态或阻断证据的端到端追踪，产出首份阶段 5 发布证据报告。
