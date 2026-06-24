@@ -435,6 +435,18 @@ section {
   transform: scale(0.98);
 }
 
+.btn,
+.nav-links a,
+.mobile-btn {
+  touch-action: manipulation;
+}
+
+.bento-cell:active,
+.scenario-card:active,
+.testimonial-card:active {
+  transform: scale(0.985);
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--accent) 0%, var(--violet) 100%);
   color: var(--text-inverse);
@@ -1635,8 +1647,12 @@ footer::before {
     --nav-height: 58px;
   }
 
+  body.menu-open {
+    overflow: hidden;
+  }
+
   .nav-links {
-    display: none;
+    display: flex;
     position: absolute;
     top: calc(var(--nav-height) + 10px);
     left: 0;
@@ -1647,16 +1663,25 @@ footer::before {
     border-radius: var(--radius);
     padding: 12px;
     gap: 4px;
+    opacity: 0;
+    transform: translateY(-8px);
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s var(--ease), transform 0.25s var(--ease), visibility 0.25s;
   }
 
   .nav-links.open {
-    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .nav-links a {
     width: 100%;
     text-align: center;
     padding: 12px;
+    touch-action: manipulation;
   }
 
   .nav-cta {
@@ -1666,6 +1691,7 @@ footer::before {
 
   .mobile-btn {
     display: block;
+    touch-action: manipulation;
   }
 
   section {
@@ -1716,6 +1742,41 @@ footer::before {
   .footer-links {
     flex-wrap: wrap;
     gap: 32px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* Remove lift/scale hover effects on touch; keep color/border changes */
+  .logo:hover .logo-mark,
+  .btn:hover,
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .nav-links a:hover,
+  .bento-cell:hover,
+  .scenario-card:hover,
+  .testimonial-card:hover,
+  .footer-col a:hover,
+  .scenario-card:hover .scenario-visual-sm img {
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Backdrop-filter is expensive on many mobile GPUs */
+  #nav,
+  #nav.scrolled {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Reduce moving background work to save battery */
+  body::before {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  /* Reduce canvas overdraw */
+  #solar-canvas {
+    opacity: 0.14;
   }
 }
 

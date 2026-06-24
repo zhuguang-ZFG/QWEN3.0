@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 donglicao-site 移动端动效与性能深度优化
+
+- **目标**：补齐官网移动端体验缺口：菜单交互、触摸反馈、渲染性能。
+- **实现**：
+  - 为 `product-write` 与 `product-human` 图片补充 `width="800" height="600"`，消除 CLS 风险。
+  - 重构移动菜单：`styles.css` 使用 opacity/transform/visibility 实现展开/收起动画；`site.js` 新增 Escape 关闭、点击外部关闭、滚动锁定。
+  - 为按钮与导航链接添加 `touch-action: manipulation`，消除双击缩放延迟。
+  - 为 `.bento-cell`、`.scenario-card`、`.testimonial-card` 添加 `:active` 缩放反馈。
+  - 新增 `@media (hover: none) and (pointer: coarse)`：移除触控设备的悬停 lift/scale、禁用移动端 nav 的 `backdrop-filter`、关闭背景 `ambientShift` 动画、降低 solar canvas 不透明度以节省电量。
+- **验证**：
+  - `node --check site.js` 通过。
+  - 本地 `python -m http.server` 验证 HTML 包含 3 组尺寸属性与 `#specs`。
+  - 公网 `https://donglicao.com` 返回 200，HTML 包含 3 组 `width="800" height="600"`。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **部署**：`scp` 上传后 nginx reload 成功。
+
 ## 2026-06-24 LiMa 官网品牌视觉本地化
 
 - **目标**：用 Pollinations AI 生成的品牌素材替换 `donglicao-site/index.html` 中的 Picsum 占位图，并为教育/礼物场景卡片补充图片，使官网视觉与 LiMa 星云品牌一致。
