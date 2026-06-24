@@ -52,6 +52,23 @@
   - `nginx -t && systemctl reload nginx` 通过。
 - **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
 
+## 2026-06-24 LiMa 官网可访问性与 SEO 基础设施
+
+- **目标**：提升官网可访问性，并补全 SEO 基础设施。
+- **实现**：
+  - 新增「跳到主要内容」skip link，聚焦时滑入显示，`<main>` 添加 `id="main"` 作为目标。
+  - 新增全局 `:focus-visible` 焦点环样式，并保留鼠标点击时的默认轮廓清除。
+  - 新增 `@media (prefers-reduced-motion: reduce)`，禁用背景动画、滚动平滑与所有 transition/animation。
+  - 为复制代码按钮添加 `aria-label="复制代码"`。
+  - 新增 `donglicao-site/sitemap.xml` 与 `donglicao-site/robots.txt`，并互相引用。
+- **验证**：
+  - 本地 `python -m http.server 8089 --directory donglicao-site`：`/`、`/sitemap.xml`、`/robots.txt` 均 200 OK。
+  - 公网 `https://donglicao.com`：skip-link、focus-visible、reduced-motion、aria-label 均存在；sitemap/robots 可访问。
+- **部署**：
+  - `scp -r donglicao-site/* root@47.112.162.80:/www/wwwroot/donglicao-site/` 成功。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
+
 ## 2026-06-24 LiMa M15：AI→Motion 阶段 5 发布门追踪与终端回放
 
 - **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态或阻断证据的端到端追踪，产出首份阶段 5 发布证据报告。

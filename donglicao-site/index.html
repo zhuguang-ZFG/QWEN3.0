@@ -64,6 +64,8 @@
     <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5"/><rect x="3" y="7" width="18" height="4" rx="1"/></symbol>
   </svg>
 
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
   <nav aria-label="主导航" id="nav">
     <div class="nav-inner">
       <a href="#" class="logo">
@@ -81,7 +83,7 @@
     </div>
   </nav>
 
-  <main>
+  <main id="main">
     <section id="hero" class="hero">
       <div class="scroll-sentinel" aria-hidden="true"></div>
       <div class="hero-grid">
@@ -293,7 +295,7 @@
           <a href="https://chat.donglicao.com" class="btn btn-primary" target="_blank" rel="noopener">获取 API Key <svg class="svg-icon" style="width:16px;height:16px"><use href="#i-arrow-right"/></svg></a>
         </div>
         <div class="dev-code">
-          <div class="code-header"><span class="code-dot red"></span><span class="code-dot yellow"></span><span class="code-dot green"></span><span class="code-filename">quick_start.py</span><button class="code-copy" type="button">复制</button></div>
+          <div class="code-header"><span class="code-dot red"></span><span class="code-dot yellow"></span><span class="code-dot green"></span><span class="code-filename">quick_start.py</span><button class="code-copy" type="button" aria-label="复制代码">复制</button></div>
           <div class="code-body">
             <span class="c-comment"># 一句话生成绘图指令</span><br>
             <span class="c-keyword">import</span> openai<br><br>

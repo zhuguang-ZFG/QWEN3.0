@@ -64,6 +64,28 @@
 - 公网 `https://donglicao.com`：HTML 与 `.webp` 资源均返回 `200 OK`。
 - `nginx -t && systemctl reload nginx` 通过。
 
+## 2026-06-24 官网可访问性与 SEO 基础设施
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SITE-A11Y-1 | accessibility | 缺少 skip link，键盘用户无法快速跳到主要内容 | Closed |
+| SITE-A11Y-2 | accessibility | 焦点样式不明显，键盘导航可视性差 | Closed |
+| SITE-A11Y-3 | accessibility | 未响应 `prefers-reduced-motion`，对前庭敏感用户不友好 | Closed |
+| SITE-A11Y-4 | accessibility | 复制代码按钮仅有文本，缺少可访问性名称上下文 | Closed |
+| SITE-SEO-4 | seo | 缺少 `sitemap.xml` 与 `robots.txt` | Closed |
+
+**修复动作**
+- 在 `<nav>` 前新增 `.skip-link`，`<main>` 加 `id="main"`。
+- 新增全局 `:focus-visible` 焦点环，鼠标点击时不显示轮廓。
+- 新增 `@media (prefers-reduced-motion: reduce)`，禁用动画与平滑滚动。
+- 复制代码按钮添加 `aria-label="复制代码"`。
+- 新增 `sitemap.xml` 与 `robots.txt`，robots 中声明 Sitemap 地址。
+
+**验证**
+- 本地 `python -m http.server 8089 --directory donglicao-site`：`/`、`/sitemap.xml`、`/robots.txt` 均 200 OK。
+- 公网 `https://donglicao.com`：skip-link、focus-visible、reduced-motion、aria-label 均存在；sitemap/robots 可访问。
+- `nginx -t && systemctl reload nginx` 通过。
+
 ## 2026-06-24 P3 缺陷改善里程碑部署验证
 
 | ID | Area | Finding | Status |
