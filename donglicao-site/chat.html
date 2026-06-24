@@ -24,17 +24,42 @@
       text-align: center;
       padding: 1rem;
     }
-    .card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 18px;
-      padding: 2rem;
-      max-width: 420px;
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 900px 600px at 20% 30%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 700px 500px at 80% 70%, rgba(139, 92, 246, 0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
     }
-    a { color: #22d3ee; text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    .card {
+      position: relative;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 2.25rem;
+      max-width: 420px;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.5), rgba(139, 92, 246, 0.5), transparent);
+    }
+    a { color: #67e8f9; text-decoration: none; transition: all 0.2s; }
+    a:hover { color: #a78bfa; text-decoration: underline; }
     p { margin: 0.5rem 0; color: #94a3b8; }
-    .brand { color: #f0f4f8; font-weight: 600; margin-bottom: 0.5rem; }
+    .brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
   </style>
   <script>
     location.replace('https://chat.donglicao.com/');

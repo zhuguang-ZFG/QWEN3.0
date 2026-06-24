@@ -7827,3 +7827,34 @@ Agent Worker path.
   - 增加卡片式居中布局，文案更简洁。
 - **部署**：备份并上传至 VPS `/www/wwwroot/donglicao-site/chat.html`，reload nginx。
 - **验证**：`https://donglicao.com/chat.html` 返回 `HTTP/1.1 200 OK`。
+
+
+## 2026-06-24 第二轮视觉升级：引入多色星云调色板
+
+- **背景**：用户反馈首版 taste-skill 重塑后颜色太单调、像模板。
+- **目标**：在保留深色科技基调的同时，为不同产品和功能区分配鲜明但协调的强调色，并增强光晕、渐变、玻璃态质感。
+- **新调色板**：
+  - cyan `#06b6d4`：AI 核心 / 主 CTA
+  - violet `#8b5cf6`：数字人 / 创意
+  - amber `#f59e0b`：写字机 / 设备
+  - rose `#f43f5e`：绘图机 / 艺术
+  - blue `#3b82f6`：路由 / 语音
+  - emerald `#10b981`：在线 / 成功
+- **官网 `donglicao-site/` 改动**：
+  - `:root` 增加功能色 token；body 背景使用多色径向渐变光晕。
+  - Hero 图片包装、导航、按钮、 eyebrow 增加 cyan-violet 渐变和发光。
+  - Bento 卡片按产品类型分配不同 hover 边框发光。
+  - Pipeline、stats、scenario、developer、footer 增加渐变顶部线和悬停光效。
+  - `galaxy.js` 核心光晕改为 cyan-violet。
+- **chat-web 改动**：
+  - 同步新增功能色 token 和多彩背景光晕。
+  - 侧边栏设备卡片按 AI/绘图/写字/数字人/语音分配不同 active 主题色。
+  - 发送按钮、modal 主按钮、topbar 按钮使用 cyan-violet 渐变。
+  - 用户头像使用 violet 渐变，AI 头像使用 cyan 渐变。
+  - 输入区顶部线、欢迎屏标题、快速操作卡使用渐变/发光。
+- **voice-call.html / chat.html**：同步 cyan-violet 渐变主题。
+- **部署**：备份并上传所有相关文件到 VPS，`nginx -t` 通过并 reload。
+- **验证**：
+  - 本地 `http.server` 验证关键文件 200。
+  - `donglicao.com`、`www.donglicao.com`、`chat.donglicao.com` 均 200 OK。
+  - 远程 CSS 确认包含 violet/amber/rose token 及 cyan-violet 渐变。

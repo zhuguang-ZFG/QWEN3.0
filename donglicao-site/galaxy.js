@@ -169,17 +169,17 @@
 
   function drawCore() {
     // Core glow
-    const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 60);
-    coreGlow.addColorStop(0, 'rgba(59,130,246,0.3)');
-    coreGlow.addColorStop(0.5, 'rgba(139,92,246,0.15)');
-    coreGlow.addColorStop(1, 'rgba(59,130,246,0)');
+    const coreGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 70);
+    coreGlow.addColorStop(0, 'rgba(6,182,212,0.35)');
+    coreGlow.addColorStop(0.4, 'rgba(139,92,246,0.18)');
+    coreGlow.addColorStop(1, 'rgba(6,182,212,0)');
     ctx.fillStyle = coreGlow;
-    ctx.fillRect(cx - 60, cy - 60, 120, 120);
+    ctx.fillRect(cx - 70, cy - 70, 140, 140);
 
     // Core ring
     ctx.beginPath();
     ctx.arc(cx, cy, 12, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(59,130,246,0.4)';
+    ctx.strokeStyle = 'rgba(6,182,212,0.5)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
@@ -187,11 +187,11 @@
     const corePulse = Math.sin(time * 2) * 0.3 + 0.7;
     ctx.beginPath();
     ctx.arc(cx, cy, 5 * corePulse, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(59,130,246,0.9)';
+    ctx.fillStyle = 'rgba(6,182,212,0.95)';
     ctx.fill();
     ctx.beginPath();
     ctx.arc(cx, cy, 12 * corePulse, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(59,130,246,0.2)';
+    ctx.fillStyle = 'rgba(6,182,212,0.25)';
     ctx.fill();
 
     // Ring orbits
@@ -199,7 +199,7 @@
       const orbitR = (Math.min(W, H) * 0.38) * r;
       ctx.beginPath();
       ctx.ellipse(cx, cy, orbitR, orbitR * 0.55, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(59,130,246,${0.04 - i * 0.008})`;
+      ctx.strokeStyle = `rgba(6,182,212,${0.05 - i * 0.009})`;
       ctx.lineWidth = 1;
       ctx.stroke();
     });

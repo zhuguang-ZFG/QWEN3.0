@@ -1170,3 +1170,17 @@
 | 变更 | Geist 字体、cyan 强调色、`100dvh`、卡片式居中布局 |
 | 部署路径 | VPS `/www/wwwroot/donglicao-site/chat.html` |
 | 公网验证 | `https://donglicao.com/chat.html` 200 OK |
+
+
+## 2026-06-24 多色星云调色板视觉升级
+
+| Item | Detail |
+|------|--------|
+| 问题 | 首版 taste-skill 重塑后颜色单调、像模板 |
+| 方案 | 引入 cyan/violet/amber/rose/blue/emerald 功能色，增强渐变、光晕、玻璃态 |
+| 官网改动 | `:root` token、body 光晕、Hero/Nav/Button/Bento/Pipeline/Stats/Scenario/Developer/Footer 渐变发光 |
+| chat-web 改动 | 设备卡主题色、按钮渐变、头像分色、输入区/欢迎屏光效 |
+| voice-call | cyan-violet 渐变按钮与通话发光边框 |
+| chat.html | 渐变品牌标题与顶部光线 |
+| 部署 | VPS `/www/wwwroot/donglicao-site/` + `/var/www/chat/`，nginx reload 成功 |
+| 验证 | 三个域名 200 OK；远程 CSS 包含新 token 与渐变 |
