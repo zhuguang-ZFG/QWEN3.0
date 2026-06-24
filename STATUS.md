@@ -17,6 +17,19 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-25）Phase B P0：管理控制台增强
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P0，基于现有 `/admin` 控制台补齐登录、设备管理、API Key 用量。
+- **关键结果**：
+  - 新增 `device_gateway/registry.py`：管理后台设备列表/详情/重启指令落地到 `v2_device` 表和 WebSocket 会话注册表。
+  - 新增 admin email/password JWT 登录：`routes/admin_v1_auth.py`（`/admin/v1/auth/login`、`/me`、`/bootstrap`），`device_logic/admin_auth.py` 独立 `admin_users` 表 + bcrypt。
+  - 现有 `/admin/*` 路由同时接受静态 admin token 和 admin JWT。
+  - API Key 管理补充 `/admin/api/client-keys/{key_id}/usage` 和 `record_usage` 能力；`/admin/api/stats` 返回 client key 用量摘要。
+- **验证**：
+  - 新增 `tests/test_admin_v1_auth.py`、扩展 `tests/test_admin_extra_client_keys.py`、修复 `tests/test_admin_extra_devices.py`。
+  - 全量 pytest **3709 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**（排除 worktree 缺失 untracked 辅助文件的预存失败）。
+- **部署**：VPS `lima-router.service` 已重启，`/health` OK，`/admin/v1/auth/login` 可达。
+
 ### 最近完成（2026-06-25）Phase A P0：官网与开发者体验改进
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase A P0，补齐官网转化漏斗与开发者文档入口。

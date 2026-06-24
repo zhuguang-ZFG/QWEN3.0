@@ -1,5 +1,16 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase B P0：管理控制台增强
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase B P0，基于现有 `/admin` 控制台补齐登录、设备管理、API Key 用量。
+- **关键结果**：
+  - `device_gateway/registry.py`：修复管理后台设备列表/详情/重启，数据来自 `v2_device` + WebSocket 会话。
+  - `routes/admin_v1_auth.py` + `device_logic/admin_auth.py`：admin 邮箱/密码 JWT 登录、/me、/bootstrap；独立 `admin_users` 表。
+  - 现有 `/admin/*` 路由兼容静态 token 与 admin JWT。
+  - API Key 管理补充 usage 查询与 `record_usage`；`/admin/api/stats` 返回 key 用量摘要。
+- **验证**：新增/扩展 admin 相关测试；全量 pytest **3709 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+- **部署**：VPS `lima-router.service` 已重启，`/health` OK。
+
 ## 2026-06-25 完成 Phase A P0：官网与开发者体验改进
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase A P0，补齐官网转化漏斗与开发者文档入口。
