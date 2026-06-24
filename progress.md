@@ -1,5 +1,32 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 Phase 5：小程序 P1/P2 增强（M3-M10）完成并修复审查问题
+
+- **目标**：按增强方案完成小程序 P1/P2 能力（任务模板、推送通知、素材库、任务预览/批量、设备分享、设备发现、统计分析），通过代码审查并修复安全/正确性问题。
+- **实现**：
+  - 新增/完善路由：`device_app_task_templates.py`、`device_app_notifications.py`、`device_app_assets.py`、`device_app_task_extras.py`、`device_app_sharing.py`、`device_app_discovery.py`、`device_app_stats.py`。
+  - `device_logic/notifications.py` 实现微信订阅消息 access_token 缓存与事件分发。
+  - `routes/route_registry.py` 与 `tests/device_app_helpers.py` 集中注册新路由。
+  - 修复 `.gitignore` 中 `*_temp*.py` 误匹配 `device_app_task_templates.py` 的问题，改为 `*_temp.py`。
+  - 修复代码审查发现的高危/关键问题：
+    - 在 `device_logic/access.py` 新增 `require_device_control`，区分 view/control 分享权限。
+    - 任务创建/执行/批量/预览/素材渲染等控制端点统一改用 `require_device_control`，防止 view-only 访客实际控制设备。
+    - 通知订阅要求至少一个 `deviceId` 并校验设备访问权限；`_subscription_matches` 移除空列表匹配所有设备的逻辑。
+    - `WeChatNotifier` 改用 `httpx.AsyncClient`，避免在异步方法中阻塞事件循环。
+    - 取消订阅时检查 `rowcount`，未命中返回 404。
+    - 任务模板创建时校验 `capability` 有效性。
+    - `routes/device_app_task_extras.py` 从 `routes.device_app_tasks` 导入公共辅助函数，消除重复。
+    - 设备发现/配网的 `server_url` 改用环境变量 `LIMA_DEVICE_WS_URL`，不再直接信任 `Host` 请求头。
+    - `.env.example` 新增 `LIMA_WX_APPID`、`LIMA_WX_SECRET`、`LIMA_DEVICE_WS_URL`。
+  - 补充测试：分享 view/control 权限边界、通知 deviceId 校验与负向过滤、任务模板非法 source/缺失 deviceId/404/非法 capability、取消订阅 404。
+  - 顺手修复 `tests/test_routes_device_app_api.py` 中因模块属性更名导致的 fixture 错误（`require_device_access` → `_require_view` / `_require_control`）。
+- **验证**：
+  - 设备 App 相关测试：`tests/test_device_app_*.py` + `tests/test_routes_device_app_*.py` 共 214 项，213 passed，1 failed（`test_routes_device_app_chat.py::test_get_chat_messages_success`，预存在线聊天记录 404 问题，与本次改动无关）。
+  - 聚焦路由测试：`tests/test_routes_device_app_tasks.py` 12 passed，`tests/test_routes_device_app_api.py` 11 passed。
+  - `ruff check` 修改文件 clean；`pyright` 0 errors。
+  - 单文件/函数均未超过 300/50 行目标。
+- **Git**：待提交推送。
+
 ## 2026-06-24 接入 LLM7 API Key 配置
 
 - **目标**：将用户提供的 LLM7 信息加入后端，支持通过环境变量配置 API Key，并使用官方推荐的 `default` 模型。

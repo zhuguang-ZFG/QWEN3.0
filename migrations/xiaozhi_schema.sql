@@ -376,3 +376,119 @@ CREATE TABLE IF NOT EXISTS v2_audio_record (
 );
 
 CREATE INDEX IF NOT EXISTS idx_v2_audio_record_device ON v2_audio_record(device_id);
+
+-- ============================================================
+-- 14. v2_task_template - 任务模板
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_task_template (
+    id              TEXT PRIMARY KEY,
+    account_id      TEXT NOT NULL,
+    device_id       TEXT,
+    name            TEXT NOT NULL,
+    capability      TEXT NOT NULL,
+    params          TEXT NOT NULL,                  -- JSON
+    category        TEXT DEFAULT 'custom'           -- 'recent' / 'favorite' / 'custom'
+        CHECK (category IN ('recent', 'favorite', 'custom')),
+    use_count       INTEGER DEFAULT 0,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_task_template_account ON v2_task_template(account_id);
+CREATE INDEX IF NOT EXISTS idx_v2_task_template_device ON v2_task_template(device_id);
+CREATE INDEX IF NOT EXISTS idx_v2_task_template_category ON v2_task_template(category);
+
+-- ============================================================
+-- 15. v2_notification_subscription - 微信订阅消息授权
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_notification_subscription (
+    id              TEXT PRIMARY KEY,
+    account_id      TEXT NOT NULL REFERENCES v2_account(id),
+    openid          TEXT NOT NULL,
+    template_ids    TEXT NOT NULL,                  -- JSON array
+    device_ids      TEXT,                           -- JSON array
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL,
+    status          TEXT DEFAULT 'active'
+        CHECK (status IN ('active', 'unsubscribed'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_notification_subscription_account ON v2_notification_subscription(account_id);
+CREATE INDEX IF NOT EXISTS idx_v2_notification_subscription_status ON v2_notification_subscription(status);
+
+-- ============================================================
+-- 16. v2_notification_log - 通知发送记录
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_notification_log (
+    id              TEXT PRIMARY KEY,
+    account_id      TEXT NOT NULL,
+    device_id       TEXT,
+    event_type      TEXT NOT NULL,
+    template_id     TEXT NOT NULL,
+    payload         TEXT NOT NULL,                  -- JSON
+    sent_at         TEXT NOT NULL,
+    status          TEXT NOT NULL
+        CHECK (status IN ('sent', 'failed', 'pending')),
+    error           TEXT,
+    wx_response     TEXT                            -- JSON
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_notification_log_account ON v2_notification_log(account_id);
+CREATE INDEX IF NOT EXISTS idx_v2_notification_log_device ON v2_notification_log(device_id);
+CREATE INDEX IF NOT EXISTS idx_v2_notification_log_sent_at ON v2_notification_log(sent_at);
+
+-- ============================================================
+-- 17. v2_device_share - 设备分享与访客模式
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_device_share (
+    id              TEXT PRIMARY KEY,                   -- UUID
+    device_id       TEXT NOT NULL REFERENCES v2_device(id),
+    owner_account_id TEXT NOT NULL REFERENCES v2_account(id),
+    share_token     TEXT UNIQUE NOT NULL,               -- 访客接受分享时使用的 token
+    permission      TEXT DEFAULT 'view'                 -- view: 仅查看, control: 可控制
+        CHECK (permission IN ('view', 'control')),
+    status          TEXT DEFAULT 'pending'              -- pending/accepted/revoked/expired
+        CHECK (status IN ('pending', 'accepted', 'revoked', 'expired')),
+    guest_account_id TEXT REFERENCES v2_account(id),    -- 接受分享的访客账号
+    expires_at      TEXT NOT NULL,                      -- ISO 8601 过期时间
+    accepted_at     TEXT,
+    revoked_at      TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_share_token ON v2_device_share(share_token);
+CREATE INDEX IF NOT EXISTS idx_v2_share_device ON v2_device_share(device_id);
+CREATE INDEX IF NOT EXISTS idx_v2_share_guest ON v2_device_share(guest_account_id);
+CREATE INDEX IF NOT EXISTS idx_v2_share_status ON v2_device_share(status);
+
+CREATE TRIGGER IF NOT EXISTS trg_v2_device_share_updated
+    AFTER UPDATE ON v2_device_share
+    FOR EACH ROW
+    BEGIN
+        UPDATE v2_device_share SET updated_at = datetime('now') WHERE id = NEW.id;
+    END;
+
+-- ============================================================
+-- 18. v2_asset_library - 素材库
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_asset_library (
+    id              TEXT PRIMARY KEY,                   -- UUID
+    title           TEXT NOT NULL,
+    category        TEXT NOT NULL                       -- 'text' / 'image' / 'svg' / 'template'
+        CHECK (category IN ('text', 'image', 'svg', 'template')),
+    content         TEXT NOT NULL,                      -- SVG 路径或文本内容
+    preview_url     TEXT,
+    tags            TEXT,                               -- JSON array
+    difficulty      TEXT DEFAULT 'easy'                 -- 'easy' / 'medium' / 'hard'
+        CHECK (difficulty IN ('easy', 'medium', 'hard')),
+    use_count       INTEGER DEFAULT 0,
+    created_at      TEXT NOT NULL,
+    status          TEXT DEFAULT 'active'               -- 'active' / 'inactive' / 'deleted'
+        CHECK (status IN ('active', 'inactive', 'deleted'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_asset_category ON v2_asset_library(category);
+CREATE INDEX IF NOT EXISTS idx_v2_asset_difficulty ON v2_asset_library(difficulty);
+CREATE INDEX IF NOT EXISTS idx_v2_asset_status ON v2_asset_library(status);
+CREATE INDEX IF NOT EXISTS idx_v2_asset_use_count ON v2_asset_library(use_count DESC);

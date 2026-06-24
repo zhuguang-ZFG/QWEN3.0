@@ -152,33 +152,51 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     from routes.device_admin import router as device_admin_router
     from routes.device_gateway import router as device_gateway_router
     from routes.device_app_api import router as device_app_router
+    from routes.device_app_assets import router as device_app_assets_router
+    from routes.device_app_chat import router as device_app_chat_router
+    from routes.device_app_discovery import router as device_app_discovery_router
     from routes.device_app_members import router as device_app_members_router
     from routes.device_app_misc import router as device_app_misc_router
+    from routes.device_app_notifications import router as device_app_notifications_router
     from routes.device_app_auth import router as device_app_auth_router
-    from routes.device_app_tasks import router as device_app_tasks_router
-    from routes.device_app_chat import router as device_app_chat_router
+    from routes.device_app_stats import router as device_app_stats_router
     from routes.device_app_status_ws import router as device_app_status_ws_router
+    from routes.device_app_task_extras import router as device_app_task_extras_router
+    from routes.device_app_task_templates import router as device_app_templates_router
+    from routes.device_app_tasks import router as device_app_tasks_router
     from routes.device_app_activity import router as device_app_activity_router
 
     app.include_router(device_admin_router)
     app.include_router(device_gateway_router)
     app.include_router(device_app_router)
+    app.include_router(device_app_assets_router)
+    app.include_router(device_app_chat_router)
+    app.include_router(device_app_discovery_router)
     app.include_router(device_app_members_router)
     app.include_router(device_app_misc_router)
+    app.include_router(device_app_notifications_router)
     app.include_router(device_app_auth_router)
-    app.include_router(device_app_tasks_router)
-    app.include_router(device_app_chat_router)
+    app.include_router(device_app_stats_router)
     app.include_router(device_app_status_ws_router)
+    app.include_router(device_app_task_extras_router)
+    app.include_router(device_app_templates_router)
+    app.include_router(device_app_tasks_router)
     app.include_router(device_app_activity_router)
     loaded_modules["device_admin"] = True
     loaded_modules["device_gateway"] = True
     loaded_modules["device_app_api"] = True
+    loaded_modules["device_app_assets"] = True
+    loaded_modules["device_app_chat"] = True
+    loaded_modules["device_app_discovery"] = True
     loaded_modules["device_app_members"] = True
     loaded_modules["device_app_misc"] = True
+    loaded_modules["device_app_notifications"] = True
     loaded_modules["device_app_auth"] = True
-    loaded_modules["device_app_tasks"] = True
-    loaded_modules["device_app_chat"] = True
+    loaded_modules["device_app_stats"] = True
     loaded_modules["device_app_status_ws"] = True
+    loaded_modules["device_app_task_extras"] = True
+    loaded_modules["device_app_templates"] = True
+    loaded_modules["device_app_tasks"] = True
     loaded_modules["device_app_activity"] = True
 
 

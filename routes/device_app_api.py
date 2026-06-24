@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from typing import Any
 
 from fastapi import APIRouter, Header, Request
@@ -19,7 +20,7 @@ from device_logic import (
     update_device_row,
 )
 from device_logic.activation import ACTIVATION_TTL_SECONDS
-from device_logic.access import require_device_access
+from device_logic.access import check_share_permission, is_owner
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.device_sn import validate_device_sn
@@ -58,6 +59,7 @@ def _build_device_status(device_id: str) -> dict[str, Any]:
         "lastSeenAt": last_seen_at,
     }
 
+
 # L2 fix: rate-limit device registration to 5 calls per 60 s per account.
 # Prevents activation-code flooding and unbounded SQLite row creation.
 _register_limiter = RateLimiter(max_calls=5, window_seconds=60)
@@ -65,6 +67,22 @@ _register_limiter = RateLimiter(max_calls=5, window_seconds=60)
 
 def _device_error(exc: DeviceLogicError) -> JSONResponse:
     return err(exc.code, exc.message, exc.http_status)
+
+
+def _require_view(conn: sqlite3.Connection, account: dict[str, Any], device_id: str) -> JSONResponse | None:
+    if is_owner(conn, account, device_id):
+        return None
+    if check_share_permission(conn, device_id, account["id"], "view"):
+        return None
+    return err(403, "Device is not bound to this account", 403)
+
+
+def _require_control(conn: sqlite3.Connection, account: dict[str, Any], device_id: str) -> JSONResponse | None:
+    if is_owner(conn, account, device_id):
+        return None
+    if check_share_permission(conn, device_id, account["id"], "control"):
+        return None
+    return err(403, "control permission required", 403)
 
 
 @router.post("/devices/register")
@@ -142,7 +160,7 @@ async def get_device(device_id: str, authorization: str = Header(default="")):
     if isinstance(account, JSONResponse):
         return account
     with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
+        denied = _require_view(conn, account, device_id)
         if denied:
             return denied
         row = get_device_row(conn, device_id)
@@ -160,7 +178,7 @@ async def update_device(device_id: str, request: Request, authorization: str = H
     if isinstance(body, JSONResponse):
         return body
     with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
+        denied = _require_control(conn, account, device_id)
         if denied:
             return denied
         try:
@@ -176,9 +194,8 @@ async def unbind_device(device_id: str, authorization: str = Header(default=""))
     if isinstance(account, JSONResponse):
         return account
     with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
-        if denied:
-            return denied
+        if not is_owner(conn, account, device_id):
+            return err(403, "only the device owner can unbind", 403)
         try:
             logic_unbind_device(
                 conn,
@@ -198,7 +215,7 @@ async def get_device_status(device_id: str, authorization: str = Header(default=
     if isinstance(account, JSONResponse):
         return account
     with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
+        denied = _require_view(conn, account, device_id)
         if denied:
             return denied
     return _build_device_status(device_id)
@@ -232,3 +249,9 @@ async def manual_add_device(request: Request, authorization: str = Header(defaul
     except DeviceLogicError as exc:
         return _device_error(exc)
     return {"device": device_payload(row)}
+
+
+# Mount the sharing/guest-mode router under the same /device/v1/app prefix.
+from routes.device_app_sharing import router as _sharing_router
+
+router.include_router(_sharing_router)

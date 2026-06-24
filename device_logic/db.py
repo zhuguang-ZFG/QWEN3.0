@@ -77,12 +77,8 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_v2_chat_session_device_status ON v2_chat_session(device_id, status)"
-    )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_v2_chat_session_account ON v2_chat_session(account_id)"
-    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_chat_session_device_status ON v2_chat_session(device_id, status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_chat_session_account ON v2_chat_session(account_id)")
 
     conn.execute(
         """
@@ -114,6 +110,119 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         """
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_audio_record_device ON v2_audio_record(device_id)")
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS v2_task_template (
+            id              TEXT PRIMARY KEY,
+            account_id      TEXT NOT NULL,
+            device_id       TEXT,
+            name            TEXT NOT NULL,
+            capability      TEXT NOT NULL,
+            params          TEXT NOT NULL,
+            category        TEXT DEFAULT 'custom'
+                CHECK (category IN ('recent', 'favorite', 'custom')),
+            use_count       INTEGER DEFAULT 0,
+            created_at      TEXT NOT NULL,
+            updated_at      TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_task_template_account ON v2_task_template(account_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_task_template_device ON v2_task_template(device_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_task_template_category ON v2_task_template(category)")
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS v2_notification_subscription (
+            id              TEXT PRIMARY KEY,
+            account_id      TEXT NOT NULL REFERENCES v2_account(id),
+            openid          TEXT NOT NULL,
+            template_ids    TEXT NOT NULL,
+            device_ids      TEXT,
+            created_at      TEXT NOT NULL,
+            updated_at      TEXT NOT NULL,
+            status          TEXT DEFAULT 'active'
+                CHECK (status IN ('active', 'unsubscribed'))
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_v2_notification_subscription_account ON v2_notification_subscription(account_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_v2_notification_subscription_status ON v2_notification_subscription(status)"
+    )
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS v2_notification_log (
+            id              TEXT PRIMARY KEY,
+            account_id      TEXT NOT NULL,
+            device_id       TEXT,
+            event_type      TEXT NOT NULL,
+            template_id     TEXT NOT NULL,
+            payload         TEXT NOT NULL,
+            sent_at         TEXT NOT NULL,
+            status          TEXT NOT NULL
+                CHECK (status IN ('sent', 'failed', 'pending')),
+            error           TEXT,
+            wx_response     TEXT
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_notification_log_account ON v2_notification_log(account_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_notification_log_device ON v2_notification_log(device_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_notification_log_sent_at ON v2_notification_log(sent_at)")
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS v2_device_share (
+            id              TEXT PRIMARY KEY,
+            device_id       TEXT NOT NULL REFERENCES v2_device(id),
+            owner_account_id TEXT NOT NULL REFERENCES v2_account(id),
+            share_token     TEXT UNIQUE NOT NULL,
+            permission      TEXT DEFAULT 'view'
+                CHECK (permission IN ('view', 'control')),
+            status          TEXT DEFAULT 'pending'
+                CHECK (status IN ('pending', 'accepted', 'revoked', 'expired')),
+            guest_account_id TEXT REFERENCES v2_account(id),
+            expires_at      TEXT NOT NULL,
+            accepted_at     TEXT,
+            revoked_at      TEXT,
+            created_at      TEXT DEFAULT (datetime('now')),
+            updated_at      TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_share_token ON v2_device_share(share_token)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_share_device ON v2_device_share(device_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_share_guest ON v2_device_share(guest_account_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_share_status ON v2_device_share(status)")
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS v2_asset_library (
+            id              TEXT PRIMARY KEY,
+            title           TEXT NOT NULL,
+            category        TEXT NOT NULL
+                CHECK (category IN ('text', 'image', 'svg', 'template')),
+            content         TEXT NOT NULL,
+            preview_url     TEXT,
+            tags            TEXT,
+            difficulty      TEXT DEFAULT 'easy'
+                CHECK (difficulty IN ('easy', 'medium', 'hard')),
+            use_count       INTEGER DEFAULT 0,
+            created_at      TEXT NOT NULL,
+            status          TEXT DEFAULT 'active'
+                CHECK (status IN ('active', 'inactive', 'deleted'))
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_asset_category ON v2_asset_library(category)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_asset_difficulty ON v2_asset_library(difficulty)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_asset_status ON v2_asset_library(status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_asset_use_count ON v2_asset_library(use_count DESC)")
 
     conn.commit()
 

@@ -79,6 +79,7 @@ def _make_task_row(**overrides):
 def _patch_deps(account):
     with patch.object(tasks, "authorize", return_value=account), \
          patch.object(tasks, "require_device_access", return_value=None), \
+         patch.object(tasks, "require_device_control", return_value=None), \
          patch.object(tasks, "require_device_owner", return_value=None), \
          patch.object(tasks.store_mod, "task_store", MagicMock()) as mock_store, \
          patch.object(tasks, "create_and_route_task") as mock_create_route, \

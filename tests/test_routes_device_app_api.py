@@ -40,7 +40,8 @@ def _patch_deps(account):
          patch.object(api, "logic_unbind_device") as mock_unbind, \
          patch.object(api, "check_activation_code", return_value=True), \
          patch.object(api, "validate_device_sn", return_value="SN123"), \
-         patch.object(api, "require_device_access", return_value=None):
+         patch.object(api, "_require_view", return_value=None), \
+         patch.object(api, "_require_control", return_value=None):
         conn = MagicMock()
         mock_connect.return_value.__enter__ = MagicMock(return_value=conn)
         mock_connect.return_value.__exit__ = MagicMock(return_value=False)

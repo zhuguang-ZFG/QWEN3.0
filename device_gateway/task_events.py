@@ -9,12 +9,19 @@ from typing import Any
 from device_intelligence.recovery import recovery_action, should_retry
 from device_ledger.events import new_event
 from device_ledger.store import ledger_store
+from device_logic.http import now
 from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState
 
 from . import store as store_mod
 from .task_lifecycle import enqueue_pending_task
 from .task_recorder import record_device_consumed_route_evidence, record_recovery_route_evidence
+
+try:
+    from device_logic.notifications import dispatch_notification_later
+except ImportError as _notifications_import_err:
+    logging.warning("device_logic.notifications not available: %s", _notifications_import_err)
+    dispatch_notification_later = None  # type: ignore[assignment]
 
 _log = logging.getLogger(__name__)
 
@@ -62,7 +69,42 @@ def record_motion_event(event: dict[str, Any]) -> dict[str, Any]:
         )
         record_device_consumed_route_evidence(task_id, event)
         _extract_memory_from_terminal(task_id, str(event.get("device_id", "")), event)
+        _try_dispatch_terminal_notification(task_id, device_id, event)
     return summary
+
+
+def _try_dispatch_terminal_notification(
+    task_id: str,
+    device_id: str,
+    event: dict[str, Any],
+) -> None:
+    """Best-effort push notification for terminal task phases."""
+    if not device_id or dispatch_notification_later is None:
+        return
+    phase = event.get("phase", "")
+    if phase == "done":
+        event_type = "task_completed"
+    elif phase == "failed":
+        event_type = "task_failed"
+    else:
+        return
+    error = event.get("error", "") if isinstance(event.get("error"), str) else ""
+    data = {
+        "task_name": task_id[:8],
+        "task_id": task_id,
+        "error": error,
+        "completed_at": now(),
+    }
+    try:
+        dispatch_notification_later(device_id, event_type, data)
+    except Exception as exc:
+        _log.warning(
+            "terminal notification dispatch failed for task=%s device=%s: %s",
+            task_id,
+            device_id,
+            exc,
+            exc_info=True,
+        )
 
 
 def process_motion_event_core(device_id: str, message: dict[str, Any]) -> dict[str, Any]:

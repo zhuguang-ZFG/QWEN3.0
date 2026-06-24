@@ -22,7 +22,7 @@ from routes.device_app_task_store import (
     reject_task_row,
 )
 from device_logic.gateway import dispatch_or_enqueue
-from device_logic.access import require_device_access
+from device_logic.access import require_device_access, require_device_control
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, read_body, str_field
@@ -105,7 +105,7 @@ async def create_task(device_id: str, request: Request, authorization: str = Hea
     if isinstance(body, JSONResponse):
         return body
     with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
+        denied = require_device_control(conn, account, device_id)
         if denied:
             return denied
     text = str_field(body, "text", "prompt", "instruction")
@@ -280,7 +280,7 @@ async def batch_draw(request: Request, authorization: str = Header(default="")):
         for device_id in device_ids:
             if not isinstance(device_id, str) or not device_id.strip():
                 return err(400, "device_ids must be non-empty strings", 400)
-            denied = require_device_access(conn, account, device_id.strip())
+            denied = require_device_control(conn, account, device_id.strip())
             if denied:
                 return denied
 

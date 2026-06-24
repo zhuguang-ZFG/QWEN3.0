@@ -20,6 +20,30 @@ def device_access(conn: sqlite3.Connection, account: dict[str, Any], device_id: 
     return row is not None
 
 
+def check_share_permission(
+    conn: sqlite3.Connection,
+    device_id: str,
+    account_id: str,
+    required: str = "view",
+) -> bool:
+    """Return True when an accepted, unexpired share grants *required* permission."""
+    if required not in {"view", "control"}:
+        return False
+    row = conn.execute(
+        """
+        SELECT permission FROM v2_device_share
+        WHERE device_id=? AND guest_account_id=? AND status='accepted' AND expires_at > ?
+        """,
+        (device_id, account_id, now()),
+    ).fetchone()
+    if row is None:
+        return False
+    permission = row["permission"]
+    if required == "control":
+        return permission == "control"
+    return permission in {"view", "control"}
+
+
 def require_device_access(
     conn: sqlite3.Connection,
     account: dict[str, Any],
@@ -28,6 +52,19 @@ def require_device_access(
     if not device_access(conn, account, device_id):
         return err(403, "Device is not bound to this account", 403)
     return None
+
+
+def require_device_control(
+    conn: sqlite3.Connection,
+    account: dict[str, Any],
+    device_id: str,
+) -> JSONResponse | None:
+    """Require owner or an accepted 'control' share for the device."""
+    if is_owner(conn, account, device_id):
+        return None
+    if check_share_permission(conn, device_id, account["id"], "control"):
+        return None
+    return err(403, "control permission required", 403)
 
 
 def is_owner(conn: sqlite3.Connection, account: dict[str, Any], device_id: str) -> bool:

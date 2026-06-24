@@ -117,3 +117,21 @@ def self_check_payload(row: sqlite3.Row) -> dict[str, Any]:
         "triggeredBy": row["triggered_by"],
         "createdAt": row["created_at"],
     }
+
+
+def share_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "shareId": row["id"],
+        "id": row["id"],
+        "deviceId": row["device_id"],
+        "ownerAccountId": row["owner_account_id"],
+        "shareToken": row["share_token"],
+        "permission": row["permission"],
+        "status": row["status"],
+        "guestAccountId": row["guest_account_id"],
+        "expiresAt": row["expires_at"],
+        "acceptedAt": row["accepted_at"],
+        "revokedAt": row["revoked_at"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }

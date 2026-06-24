@@ -29,6 +29,14 @@ from routes.device_gateway_ws_handlers import (
     handle_voiceprint_sample,
 )
 
+try:
+    from device_logic.notifications import dispatch_notification
+except ImportError as _notifications_import_err:
+    logging.warning("device_logic.notifications not available: %s", _notifications_import_err)
+    dispatch_notification = None  # type: ignore[misc,assignment]
+
+from device_logic.http import now
+
 _log = logging.getLogger(__name__)
 
 
@@ -138,3 +146,24 @@ async def handle_device_ws(websocket: WebSocket) -> None:
             _cleanup_audio_registry(device_id)
             registry.unregister(device_id, websocket)
             record_device_disconnected(device_id)
+            await _try_dispatch_offline_notification(device_id)
+
+
+async def _try_dispatch_offline_notification(device_id: str) -> None:
+    """Best-effort offline push notification for a disconnected device."""
+    if dispatch_notification is None:
+        return
+    data = {
+        "device_name": device_id,
+        "device_id": device_id,
+        "offline_at": now(),
+    }
+    try:
+        await dispatch_notification(device_id, "device_offline", data)
+    except Exception as exc:
+        _log.warning(
+            "offline notification dispatch failed for device=%s: %s",
+            device_id,
+            exc,
+            exc_info=True,
+        )
