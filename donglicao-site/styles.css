@@ -534,6 +534,27 @@ section {
   flex-wrap: wrap;
 }
 
+.hero-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.feature-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  font-weight: 580;
+  color: var(--accent-text);
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.06);
+  letter-spacing: -0.01em;
+}
+
 .hero-visual {
   position: relative;
 }
@@ -1594,6 +1615,10 @@ footer::before {
   }
 
   .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-features {
     justify-content: center;
   }
 

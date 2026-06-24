@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════
 // LiMa Nebula System — Solar System Background
-// Dynamic solar system visualization for the LiMa 星云控制台
+// Dynamic solar system visualization for the LiMa 量子星云控制台
 // Center Sun = LiMa core; Orbiting planets = intelligent services
 // ═══════════════════════════════════════════
 (function() {

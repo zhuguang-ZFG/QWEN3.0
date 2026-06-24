@@ -1,5 +1,25 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-24 LiMa 官网品牌升级为「LiMa 量子星云系统」
+
+- **目标**：将官网从「LiMa 星云」全面升级为「LiMa 量子星云系统」，并突出量子路由、多模态坍缩、设备纠缠协同三大特色。
+- **实现**：
+  - `index.html`：标题、meta/OG/Twitter、JSON-LD、logo、hero 文案、section leads、FAQ、footer 全部改为「LiMa 量子星云系统 / LiMa 量子星云」。
+  - hero  eyebrow 改为 `QUANTUM AI NEBULA`；主标题改为「把自然语言坍缩为真实创作」；副标题突出三大量子特色。
+  - hero 新增 `.hero-features` 特性芯片条（量子路由 / 多模态坍缩 / 设备纠缠协同）。
+  - 产品区「星云路由」卡片改名为「量子星云路由」，描述加入「坍缩至最优模型」。
+  - 技术区标题改为「五层量子管线」，描述改为「意图逐层坍缩」。
+  - 路由区标题改为「170+ 智能节点，量子星云路由」。
+  - `styles.css` 新增 `.hero-features` 与 `.feature-chip` 样式，并在平板端居中。
+  - `chat.html` 标题与品牌名改为「LiMa 量子星云」。
+  - `lima-demo.js` 与 `solar-system.js` 中相关文案同步更新。
+- **验证**：
+  - `node --check site.js lima-demo.js` 通过。
+  - 本地 `python -m http.server` 验证页面包含 5 处「LiMa 量子星云系统」、4 处「坍缩为真实创作」、3 组特性芯片。
+  - 公网 `https://donglicao.com` 200 OK，返回内容与本地一致。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **部署**：`scp` 上传全部 `donglicao-site/` 文件到 VPS 后 reload nginx。
+
 ## 2026-06-24 donglicao-site 移动端动效与性能深度优化
 
 - **目标**：补齐官网移动端体验缺口：菜单交互、触摸反馈、渲染性能。

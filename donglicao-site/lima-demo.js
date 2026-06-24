@@ -64,7 +64,7 @@
     ctx.font = '13px system-ui, sans-serif';
     ctx.fillStyle = 'rgba(149,163,252,0.9)';
     ctx.textAlign = 'left';
-    ctx.fillText('Powered by LiMa 星云 AI', 16, canvas.height - 14);
+    ctx.fillText('Powered by LiMa 量子星云 AI', 16, canvas.height - 14);
     return canvas.toDataURL('image/png');
   }
 
@@ -73,7 +73,7 @@
   section.id = 'lima-demo';
   section.innerHTML = `
     <h2 class="lima-section-title">体验 AI 能力</h2>
-    <p class="lima-section-sub">无需注册，即刻体验 LiMa 星云 AI 的多模态能力</p>
+    <p class="lima-section-sub">无需注册，即刻体验 LiMa 量子星云 AI 的多模态能力</p>
     <div class="lima-grid">
       <div class="lima-card" id="lima-card-img">
         <div class="lima-card-title">AI 图片生成</div>
@@ -103,7 +103,7 @@
           <input class="lima-input" id="lima-chat-input" placeholder="输入你的问题...">
           <button class="lima-btn" id="lima-chat-btn">发送</button>
         </div>
-        <div class="lima-chat-footer">Powered by LiMa 星云 AI | DongLiCao.com</div>
+        <div class="lima-chat-footer">Powered by LiMa 量子星云 AI | DongLiCao.com</div>
       </div>
       <div class="lima-card" id="lima-card-video">
         <div class="lima-card-title">AI 场景序列 · Beta</div>
