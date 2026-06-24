@@ -13,7 +13,11 @@
 - **验证**：
   - 全量 pytest **3699 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**（worktree 中 10 个预存失败因缺失 untracked 固件/测试辅助文件而排除，与本次改动无关）。
   - `ruff check scripts/build_openapi.py scripts/openapi_examples/` clean；`pnpm build`（docs-site）通过。
-- **Git**：worktree 分支 `improve/20260625-phase-a`，commit `51ffdfec` + `98829dbe`。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，commit `51ffdfec` + `98829dbe` + `8aa7168c`。
+- **部署**：通过 VPS 部署密钥完成生产部署。
+  - `https://www.donglicao.com/pricing.html` 200 OK。
+  - `https://www.donglicao.com/docs/` 200 OK（路径 `/docs/`；`docs.donglicao.com` 子域 DNS 未指向 VPS，待 DNS 配置后可切子域）。
+  - nginx 配置已更新：`/etc/nginx/conf.d/www.donglicao.com.conf`，原配置已备份。
 
 ## 2026-06-25 修复全量 pytest 预存失败并制定改进计划
 
