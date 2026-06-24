@@ -1506,3 +1506,25 @@
 - `tests/test_path_optimizer.py` 9 passed。
 - 相关回归测试共 70 passed。
 - `ruff check` / `pyright` clean。
+
+## 2026-06-24 Phase 3：小程序 P0 增强（M1-M2）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| M1-1 | chat | 聊天会话/消息端点返回空列表 | Closed |
+| M1-2 | chat | 设备语音转录未持久化到聊天记录 | Closed |
+| M2-1 | status | 无设备实时状态 REST 查询 | Closed |
+| M2-2 | status | 无设备状态 WebSocket 推送 | Closed |
+
+**修复动作**
+- 新增 `v2_chat_session`、`v2_chat_message`、`v2_audio_record` 表；新增 `device_logic/chat_store.py`。
+- 重写 `routes/device_app_chat.py` 5 个端点；在 `routes/ws_voice_transcript_helpers.py` 中转录成功后写入消息。
+- `routes/device_app_api.py` 新增 `GET /devices/{device_id}/status`。
+- 新建 `routes/device_app_status_ws.py` 提供小程序 WebSocket 状态推送。
+- `device_gateway/sessions.py` 增加 `connected_at`；`routes/route_registry.py` 注册 WS 路由。
+
+**验证**
+- `tests/test_device_app_chat_history.py` 15 passed。
+- `tests/test_device_app_status.py` 8 passed。
+- `tests/test_device_app_*.py` + `tests/test_routes_device_gateway_ws_handlers.py` 共 78 passed。
+- `ruff check` / `pyright` clean。

@@ -8177,3 +8177,40 @@ Agent Worker path.
 - **Git**：
   - 提交：`4c92b8e5`（feat(firmware): Phase 2 F1-F3 enhancements）。
   - 已 push 到 `origin/main`。
+
+## 2026-06-24 M1：聊天历史实现
+
+- **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 第七部分 M1，实现设备聊天会话与消息持久化。
+- **实现**：
+  - 数据库：`migrations/xiaozhi_schema.sql` 新增 `v2_chat_session`、`v2_chat_message`、`v2_audio_record` 表及索引；`device_logic/db.py` `_run_migrations()` 增加 idempotent `CREATE TABLE IF NOT EXISTS` 迁移。
+  - 新建 `device_logic/chat_store.py`：会话/消息的 CRUD、隐式会话创建、声纹音频历史查询、payload 转换。
+  - 重写 `routes/device_app_chat.py`：实现 `POST /devices/{device_id}/chat-sessions`、`GET /devices/{device_id}/chat-sessions`、`GET /devices/{device_id}/chat-sessions/{session_id}/messages`、`DELETE /chat-sessions/{session_id}`、`GET /devices/{device_id}/chat-history`；保留 `GET /devices/{device_id}/audio/{audio_id}`。
+  - 修改 `routes/ws_voice_transcript_helpers.py`：`handle_voice_transcript()` 在成功转录后调用 `_persist_transcript()`，将用户文本写入设备最新活动会话（无会话则隐式创建）。
+  - 新增测试 `tests/test_device_app_chat_history.py`：覆盖创建/列出会话、分页消息、删除会话、chat-history 端点、转录入库；更新 `tests/test_device_app_chat.py` 以匹配新行为。
+- **验证**：
+  - `tests/test_device_app_chat_history.py` 15 passed / 0 failed。
+  - `tests/test_device_app_chat.py` + `tests/test_device_app_chat_history.py` 23 passed / 0 failed。
+  - `tests/test_device_app_*.py` 66 passed / 0 failed。
+  - `tests/test_routes_device_gateway_ws_handlers.py` 12 passed / 0 failed。
+  - `ruff check` 修改文件 clean；`pyright` 0 errors。
+  - 无新增 >300 行文件 / >50 行函数。
+
+## 2026-06-24 M2：实时设备状态
+
+- **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 第七部分 M2，实现设备实时状态查询与推送。
+- **实现**：
+  - `routes/device_app_api.py` 新增 `GET /devices/{device_id}/status`，返回在线/工作中/固件版本/协议版本/最后活跃时间等。
+  - 新建 `routes/device_app_status_ws.py`：小程序 WebSocket `GET /devices/{device_id}/ws`，认证后推送 `status_snapshot`、`device_online`/`device_offline`、`task_started`/`task_completed` 等事件；`task_progress`/`firmware_update` 预留 TODO。
+  - `device_gateway/sessions.py` 为 `DeviceSession` 增加 `connected_at` 字段。
+  - `routes/route_registry.py` 注册新的 status WS 路由；`tests/device_app_helpers.py` 同步更新测试 fixture。
+  - 新增测试 `tests/test_device_app_status.py`：覆盖 REST 离线/在线/活跃任务/越权，以及 WS 连接、快照、在线离线切换。
+- **验证**：
+  - `tests/test_device_app_status.py` 8 passed / 0 failed。
+  - `tests/test_device_app_*.py` + `tests/test_routes_device_gateway_ws_handlers.py` 共 78 passed。
+  - `ruff check` / `pyright` clean。
+  - 无新增 >300 行文件 / >50 行函数。
+
+## 2026-06-24 Phase 3：小程序 P0 增强（M1-M2）小结
+
+- 已完成聊天历史持久化与实时设备状态两个 P0 项。
+- Git 提交：`31a5d1fe`（feat(device-app): Phase 3 M1-M2 chat history and real-time status），已 push 到 `origin/main`。
