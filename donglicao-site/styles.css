@@ -1036,6 +1036,112 @@ section {
   margin-bottom: 16px;
 }
 
+/* ─── FAQ ─── */
+.faq {
+  padding-top: 0;
+}
+
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.faq-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.3s var(--ease);
+}
+
+.faq-item:hover {
+  border-color: var(--border-hover);
+}
+
+.faq-item[open] {
+  border-color: rgba(6, 182, 212, 0.25);
+}
+
+.faq-question {
+  padding: 22px 26px;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text);
+}
+
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+.faq-question::after {
+  content: '+';
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--accent-text);
+  flex-shrink: 0;
+  transition: transform 0.3s var(--ease);
+}
+
+.faq-item[open] .faq-question::after {
+  transform: rotate(45deg);
+}
+
+.faq-answer {
+  padding: 0 26px 22px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.faq-answer a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ─── CONTACT CTA ─── */
+.contact {
+  padding-top: 0;
+}
+
+.contact-inner {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 56px 40px;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(6, 182, 212, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid var(--border);
+}
+
+.contact-inner h2 {
+  margin-bottom: 12px;
+}
+
+.contact-inner p {
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+  font-size: 1.05rem;
+}
+
+.contact-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 /* ─── DEVELOPER ─── */
 .developer {
   padding-top: 0;

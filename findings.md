@@ -86,6 +86,25 @@
 - 公网 `https://donglicao.com`：skip-link、focus-visible、reduced-motion、aria-label 均存在；sitemap/robots 可访问。
 - `nginx -t && systemctl reload nginx` 通过。
 
+## 2026-06-24 官网内容转化区补全
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SITE-CONV-1 | content | 缺少 FAQ，用户常见疑问无官方解答 | Closed |
+| SITE-CONV-2 | content | 页面末尾缺少强转化 CTA，访客流失路径末端无引导 | Closed |
+| SITE-CONV-3 | ux | FAQ 若依赖 JS 可能破坏可访问性与 SEO | Closed |
+
+**修复动作**
+- 使用原生 `<details>` / `<summary>` 实现 FAQ 手风琴，无需 JS，支持键盘、屏幕阅读器与搜索引擎抓取。
+- 新增 4 条 FAQ：支持模型、硬件要求、API 兼容性、Key 获取。
+- 在 FAQ 后新增 `#contact` 区块，含标题、说明与「免费体验」「查看 GitHub」双 CTA。
+- `styles.css` 新增 FAQ 与 CTA 样式；`site.js` 将新区块加入 reveal/stagger。
+
+**验证**
+- 本地 `python -m http.server 8090 --directory donglicao-site`：`#faq`、`#contact` 存在，4 个 FAQ 可展开。
+- 公网 `https://donglicao.com`：FAQ 与 CTA 区块已生效。
+- `nginx -t && systemctl reload nginx` 通过。
+
 ## 2026-06-24 P3 缺陷改善里程碑部署验证
 
 | ID | Area | Finding | Status |

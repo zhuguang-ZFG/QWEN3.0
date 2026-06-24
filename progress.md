@@ -69,6 +69,22 @@
   - `nginx -t && systemctl reload nginx` 通过。
 - **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
 
+## 2026-06-24 LiMa 官网内容转化区补全
+
+- **目标**：补全官网缺失的转化与答疑能力，降低用户决策成本。
+- **实现**：
+  - 新增 FAQ 手风琴区块（`#faq`），使用原生 `<details>` / `<summary>` 实现，无需额外 JS，支持键盘与屏幕阅读器。
+  - 新增底部联系/CTA 区块（`#contact`），含主标题、说明与「免费体验」「查看 GitHub」双按钮。
+  - 在 `styles.css` 新增 `.faq-list`、`.faq-item`、`.faq-question`、`.faq-answer`、`.contact-inner` 等样式。
+  - 在 `site.js` 将 `.faq-item` 与 `.contact-inner` 加入滚动 reveal 目标；将 `.faq-list` 加入 stagger 容器。
+- **验证**：
+  - 本地 `python -m http.server 8090 --directory donglicao-site`：`#faq` 与 `#contact` 区块存在，4 个 FAQ 条目可展开。
+  - 公网 `https://donglicao.com`：FAQ 与 CTA 区块已生效，交互正常。
+- **部署**：
+  - `scp -r donglicao-site/* root@47.112.162.80:/www/wwwroot/donglicao-site/` 成功。
+  - `nginx -t && systemctl reload nginx` 通过。
+- **Git**：仅 GitHub `origin` 可推送；Gitee remote 未配置。
+
 ## 2026-06-24 LiMa M15：AI→Motion 阶段 5 发布门追踪与终端回放
 
 - **目标**：推进 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 5，建立从用户请求到 `motion_event` 终态或阻断证据的端到端追踪，产出首份阶段 5 发布证据报告。
