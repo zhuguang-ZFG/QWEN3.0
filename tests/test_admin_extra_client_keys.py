@@ -40,6 +40,22 @@ class TestClientKeys:
         assert "key_masked" in data["key"]
 
 
+class TestClientKeysUsage:
+    def test_usage_endpoint(self):
+        client = TestClient(app)
+        created = client.post("/api/client-keys", json={"label": "usage-test"}).json()["key"]
+        key_id = created["key_id"]
+
+        response = client.get(f"/api/client-keys/{key_id}/usage")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["usage_daily"] == 0
+
+        client.post(f"/api/client-keys/{key_id}/record-usage")
+        response = client.get(f"/api/client-keys/{key_id}/usage")
+        assert response.json()["usage_daily"] == 1
+
+
 class TestClientKeysPersistence:
     def test_key_survives_store_reload(self, tmp_path, monkeypatch):
         db_path = str(tmp_path / "client_keys.db")

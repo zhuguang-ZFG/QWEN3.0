@@ -11,6 +11,7 @@ import logging
 import os
 import sqlite3
 import threading
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generator
@@ -122,6 +123,43 @@ def save_key(entry: dict[str, Any]) -> None:
                 )
         except (sqlite3.Error, OSError) as exc:
             _log.warning("Failed to persist client key %s: %s", entry.get("key_id"), exc, exc_info=True)
+
+
+def record_usage(key_id: str, tokens: int = 0) -> None:
+    """Increment usage counters for a client key and update last_used_at."""
+    with _lock:
+        try:
+            with _pooled_conn() as conn:
+                conn.execute(
+                    """
+                    UPDATE client_keys
+                    SET usage_daily = usage_daily + 1,
+                        usage_monthly = usage_monthly + 1,
+                        last_used_at = ?
+                    WHERE key_id = ?
+                    """,
+                    (time.time(), key_id),
+                )
+                conn.commit()
+        except (sqlite3.Error, OSError) as exc:
+            _log.warning("Failed to record usage for client key %s: %s", key_id, exc, exc_info=True)
+
+
+def get_key(key_id: str) -> dict[str, Any] | None:
+    """Load a single key from persistence."""
+    with _lock:
+        try:
+            with _pooled_conn() as conn:
+                row = conn.execute("SELECT * FROM client_keys WHERE key_id = ?", (key_id,)).fetchone()
+                if row is None:
+                    return None
+                entry = dict(row)
+                entry["enabled"] = bool(entry["enabled"])
+                entry["allowed_urls"] = json.loads(entry["allowed_urls"])
+                return entry
+        except (sqlite3.Error, OSError) as exc:
+            _log.warning("Failed to load client key %s: %s", key_id, exc, exc_info=True)
+            return None
 
 
 def delete_key(key_id: str) -> None:

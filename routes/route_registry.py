@@ -121,6 +121,10 @@ def _register_admin_and_static_routes(app: FastAPI, deps: RouteRegistryDeps) -> 
     admin_mod.inject_state(deps.stats, deps.stats_lock, deps.backend_enabled)
     app.include_router(admin_router)
 
+    from routes.admin_v1_auth import router as admin_v1_auth_router
+
+    app.include_router(admin_v1_auth_router)
+
     from routes.static_files import router as static_files_router
     from routes.upload import router as upload_router
 

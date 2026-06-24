@@ -23,7 +23,7 @@ class TestAdminDevices:
         assert response.status_code == 200
         assert "devices" in response.json()
 
-    def test_device_detail_gateway_unavailable(self):
+    def test_device_detail_not_found(self):
         client = TestClient(app)
         response = client.get("/api/devices/nonexistent")
-        assert response.status_code == 503
+        assert response.status_code == 404

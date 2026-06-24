@@ -14,7 +14,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from routes.admin_auth import verify_admin, verify_csrf
-from routes.client_keys_store import delete_key, load_keys, save_key
+from routes.client_keys_store import delete_key, get_key, load_keys, record_usage, save_key
 
 router = APIRouter()
 
@@ -86,3 +86,30 @@ async def regenerate_client_key(key_id: str):
     entry["regenerated_at"] = time.time()
     save_key(entry)
     return {"ok": True, "key_value": key_value}
+
+
+@router.get("/api/client-keys/{key_id}/usage", dependencies=[Depends(verify_admin)])
+async def client_key_usage(key_id: str):
+    """Return current usage counters for a client API key."""
+    entry = get_key(key_id)
+    if entry is None:
+        raise HTTPException(404, "Key not found")
+    return {
+        "key_id": key_id,
+        "label": entry["label"],
+        "usage_daily": entry["usage_daily"],
+        "usage_monthly": entry["usage_monthly"],
+        "quota_daily": entry["quota_daily"],
+        "quota_monthly": entry["quota_monthly"],
+        "last_used_at": entry["last_used_at"],
+    }
+
+
+@router.post("/api/client-keys/{key_id}/record-usage", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+async def client_key_record_usage(key_id: str):
+    """Manually bump usage counters (for testing or backfill)."""
+    if get_key(key_id) is None:
+        raise HTTPException(404, "Key not found")
+    record_usage(key_id)
+    _CLIENT_KEYS[key_id] = get_key(key_id)
+    return {"ok": True, "key": _CLIENT_KEYS[key_id]}

@@ -28,6 +28,7 @@ from routes.admin_backends import (
     test_backend_sync,
 )
 from routes.admin_state import FALLBACK_LOG, stats_context
+from routes.client_keys_store import load_keys
 from routes.ops_metrics import backend_call_detail
 
 router = APIRouter()
@@ -52,6 +53,19 @@ async def admin_stats():
                 ips.add(log["ip"])
             ide = log.get("ide", "未知")
             ide_dist[ide] = ide_dist.get(ide, 0) + 1
+        keys = load_keys()
+        key_summary = [
+            {
+                "key_id": k["key_id"],
+                "label": k["label"],
+                "enabled": k["enabled"],
+                "usage_daily": k["usage_daily"],
+                "usage_monthly": k["usage_monthly"],
+                "quota_daily": k["quota_daily"],
+                "quota_monthly": k["quota_monthly"],
+            }
+            for k in keys.values()
+        ]
         return {
             "total_requests": total,
             "uptime_seconds": uptime,
@@ -60,6 +74,7 @@ async def admin_stats():
             "intent_distribution": dict(stats["intent_distribution"]),
             "unique_ips": len(ips),
             "ide_distribution": ide_dist,
+            "client_keys": key_summary,
         }
 
 

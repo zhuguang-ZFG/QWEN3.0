@@ -48,8 +48,18 @@ async def verify_admin(
     from access_guard import extract_bearer_token, constant_time_equals
 
     presented = extract_bearer_token(authorization)
-    if not presented or not constant_time_equals(presented, token_expected):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    if presented and constant_time_equals(presented, token_expected):
+        return
+
+    # Also accept a valid admin JWT issued by /admin/v1/auth/login
+    if presented:
+        from device_logic.admin_auth import decode_admin_token
+
+        payload = decode_admin_token(presented)
+        if payload is not None and payload.get("role") in {"admin", "superadmin"}:
+            return
+
+    raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 def _header_hostname(value: str) -> str:
