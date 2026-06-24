@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
@@ -21,11 +23,40 @@ from device_logic.access import require_device_access
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.device_sn import validate_device_sn
+from device_gateway.sessions import registry
+from device_gateway.tasks import active_tasks_for_device
 from device_logic.http import err, new_id, now, read_body, str_field
 from device_logic.payloads import device_payload
 from device_logic.rate_limit import RateLimiter
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app"])
+
+
+def _build_device_status(device_id: str) -> dict[str, Any]:
+    """Build the canonical device status payload used by REST and WebSocket."""
+    session = registry.get(device_id)
+    tasks = active_tasks_for_device(device_id)
+    active_task_id = tasks[0].get("task_id") if tasks else None
+    online = session is not None
+    connected_at: str | None = None
+    firmware_version: str | None = None
+    protocol_version: str | None = None
+    last_seen_at: str | None = None
+    if session is not None:
+        connected_at = getattr(session, "connected_at", None) or None
+        firmware_version = session.fw_rev or None
+        protocol_version = session.protocol_version or None
+        last_seen_at = now()
+    return {
+        "deviceId": device_id,
+        "online": online,
+        "connectedAt": connected_at,
+        "working": bool(active_task_id),
+        "activeTaskId": active_task_id,
+        "firmwareVersion": firmware_version,
+        "protocolVersion": protocol_version,
+        "lastSeenAt": last_seen_at,
+    }
 
 # L2 fix: rate-limit device registration to 5 calls per 60 s per account.
 # Prevents activation-code flooding and unbounded SQLite row creation.
@@ -159,6 +190,18 @@ async def unbind_device(device_id: str, authorization: str = Header(default=""))
         except DeviceLogicError as exc:
             return _device_error(exc)
     return {"deviceId": device_id, "status": "unbound"}
+
+
+@router.get("/devices/{device_id}/status")
+async def get_device_status(device_id: str, authorization: str = Header(default="")):
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with connect() as conn:
+        denied = require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+    return _build_device_status(device_id)
 
 
 @router.post("/devices/manual-add")

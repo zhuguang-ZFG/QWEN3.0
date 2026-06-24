@@ -28,15 +28,12 @@ def test_list_chat_sessions_returns_empty(chat_client):
     assert data["count"] == 0
 
 
-def test_get_chat_messages_returns_empty(chat_client):
+def test_get_chat_messages_returns_404_for_missing_session(chat_client):
     response = chat_client.get(
         "/device/v1/app/devices/d-chat/chat-sessions/s-1/messages",
         headers=headers("a-owner"),
     )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["messages"] == []
-    assert data["sessionId"] == "s-1"
+    assert response.status_code == 404
 
 
 def test_get_audio_info_requires_auth(chat_client):

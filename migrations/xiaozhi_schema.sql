@@ -328,3 +328,51 @@ CREATE TRIGGER IF NOT EXISTS trg_v2_supply_updated
     BEGIN
         UPDATE v2_device_supply SET updated_at = datetime('now') WHERE id = NEW.id;
     END;
+
+-- ============================================================
+-- 11. v2_chat_session - 设备聊天会话
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_chat_session (
+    id              TEXT PRIMARY KEY,
+    device_id       TEXT NOT NULL REFERENCES v2_device(id),
+    account_id      TEXT NOT NULL REFERENCES v2_account(id),
+    title           TEXT DEFAULT '',
+    last_message_at TEXT,
+    created_at      TEXT NOT NULL,
+    status          TEXT DEFAULT 'active'
+        CHECK (status IN ('active', 'deleted'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_chat_session_device_status ON v2_chat_session(device_id, status);
+CREATE INDEX IF NOT EXISTS idx_v2_chat_session_account ON v2_chat_session(account_id);
+
+-- ============================================================
+-- 12. v2_chat_message - 聊天消息
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_chat_message (
+    id              TEXT PRIMARY KEY,
+    session_id      TEXT NOT NULL REFERENCES v2_chat_session(id),
+    role            TEXT NOT NULL
+        CHECK (role IN ('user', 'assistant', 'system')),
+    content         TEXT NOT NULL,
+    audio_id        TEXT,
+    voiceprint_id   TEXT,
+    created_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_chat_message_session ON v2_chat_message(session_id);
+CREATE INDEX IF NOT EXISTS idx_v2_chat_message_audio ON v2_chat_message(audio_id);
+
+-- ============================================================
+-- 13. v2_audio_record - 音频记录
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_audio_record (
+    id              TEXT PRIMARY KEY,
+    device_id       TEXT NOT NULL REFERENCES v2_device(id),
+    session_id      TEXT REFERENCES v2_chat_session(id),
+    audio_id        TEXT NOT NULL,
+    duration_ms     INTEGER,
+    created_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_audio_record_device ON v2_audio_record(device_id);

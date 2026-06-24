@@ -12,6 +12,22 @@ from routes.device_gateway_dispatch import send_ws_error
 _log = logging.getLogger(__name__)
 
 
+def _persist_transcript(device_id: str, text: str) -> None:
+    """Persist the user transcript into the device's latest active chat session.
+
+    An implicit session is created if none exists and the device has a bound owner.
+    Failures are logged but do not break the voice pipeline.
+    """
+    try:
+        from device_logic.chat_store import persist_user_transcript
+        from device_logic.db import connect
+
+        with connect() as conn:
+            persist_user_transcript(conn, device_id, text)
+    except Exception:
+        _log.warning("device=%s failed to persist voice transcript", device_id, exc_info=True)
+
+
 def _voice_enabled() -> bool:
     from device_voice import VOICE_ENABLED
 
@@ -38,6 +54,8 @@ async def handle_voice_transcript(
             ProtocolError("E_VOICE_DISABLED", "voice pipeline is not enabled", request_id),
         )
         return True
+
+    _persist_transcript(device_id, text)
 
     await session.send_json(voice_status_frame(device_id, "thinking", transcript=text, request_id=request_id))
     try:

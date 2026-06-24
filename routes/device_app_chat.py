@@ -4,24 +4,56 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 
 from device_logic.access import require_device_access
 from device_logic.auth import authorize
+from device_logic.chat_store import (
+    create_session,
+    get_messages,
+    list_audio_history,
+    list_sessions,
+    session_payload,
+    message_payload,
+    audio_history_payload,
+    soft_delete_session,
+)
 from device_logic.db import connect
-from device_logic.http import err
+from device_logic.http import err, read_body, str_field
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-chat"])
 
 
-@router.get("/devices/{device_id}/chat-sessions")
-async def list_chat_sessions(device_id: str, authorization: str = Header(default="")) -> Any:
-    """List chat sessions for a device.
+def _not_found(message: str = "session not found") -> JSONResponse:
+    return err(404, message, 404)
 
-    Currently returns an empty list; future implementation can persist
-    conversation summaries from device voice transcripts.
-    """
+
+@router.post("/devices/{device_id}/chat-sessions")
+async def create_chat_session(
+    device_id: str, request: Request, authorization: str = Header(default="")
+) -> Any:
+    """Create a chat session for a device."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    with connect() as conn:
+        denied = require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        session_id = create_session(conn, device_id, account["id"], str_field(body, "title"))
+        row = conn.execute("SELECT * FROM v2_chat_session WHERE id=?", (session_id,)).fetchone()
+    return session_payload(row)
+
+
+@router.get("/devices/{device_id}/chat-sessions")
+async def list_chat_sessions(
+    device_id: str, authorization: str = Header(default="")
+) -> Any:
+    """List active chat sessions for a device."""
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -29,16 +61,19 @@ async def list_chat_sessions(device_id: str, authorization: str = Header(default
         denied = require_device_access(conn, account, device_id)
         if denied:
             return denied
-    return {"sessions": [], "total": 0, "count": 0}
+        rows = list_sessions(conn, device_id, account["id"])
+    return {"sessions": [session_payload(row) for row in rows], "count": len(rows)}
 
 
 @router.get("/devices/{device_id}/chat-sessions/{session_id}/messages")
-async def get_chat_messages(device_id: str, session_id: str, authorization: str = Header(default="")) -> Any:
-    """Get messages for a chat session.
-
-    Currently returns an empty list; future implementation can persist
-    transcript messages from device voice interactions.
-    """
+async def get_chat_messages(
+    device_id: str,
+    session_id: str,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    authorization: str = Header(default=""),
+) -> Any:
+    """Get paginated messages for a chat session."""
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -46,16 +81,32 @@ async def get_chat_messages(device_id: str, session_id: str, authorization: str 
         denied = require_device_access(conn, account, device_id)
         if denied:
             return denied
-    return {"messages": [], "sessionId": session_id, "count": 0}
+        row = conn.execute(
+            "SELECT device_id FROM v2_chat_session WHERE id=? AND account_id=? AND status='active'",
+            (session_id, account["id"]),
+        ).fetchone()
+        if row is None or row["device_id"] != device_id:
+            return _not_found()
+        rows = get_messages(conn, session_id, limit=limit, offset=offset)
+    return {"messages": [message_payload(row) for row in rows], "sessionId": session_id, "count": len(rows)}
+
+
+@router.delete("/chat-sessions/{session_id}")
+async def delete_chat_session(session_id: str, authorization: str = Header(default="")) -> Any:
+    """Soft-delete a chat session if the caller owns it."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with connect() as conn:
+        deleted = soft_delete_session(conn, session_id, account["id"])
+    if not deleted:
+        return _not_found()
+    return {"sessionId": session_id, "status": "deleted"}
 
 
 @router.get("/devices/{device_id}/chat-history")
 async def list_chat_history(device_id: str, authorization: str = Header(default="")) -> Any:
-    """List audio-capable chat history entries for voiceprint vector selection.
-
-    Currently returns an empty list; future implementation can persist
-    voice transcripts and filter entries that have an associated audio_id.
-    """
+    """List user messages that have an associated audio_id (for voiceprint selection)."""
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -63,7 +114,8 @@ async def list_chat_history(device_id: str, authorization: str = Header(default=
         denied = require_device_access(conn, account, device_id)
         if denied:
             return denied
-    return {"chatHistory": [], "count": 0}
+        rows = list_audio_history(conn, device_id)
+    return {"chatHistory": [audio_history_payload(row) for row in rows], "count": len(rows)}
 
 
 @router.get("/devices/{device_id}/audio/{audio_id}")

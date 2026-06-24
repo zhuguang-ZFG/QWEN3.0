@@ -156,6 +156,7 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     from routes.device_app_auth import router as device_app_auth_router
     from routes.device_app_tasks import router as device_app_tasks_router
     from routes.device_app_chat import router as device_app_chat_router
+    from routes.device_app_status_ws import router as device_app_status_ws_router
 
     app.include_router(device_gateway_router)
     app.include_router(device_app_router)
@@ -164,6 +165,7 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     app.include_router(device_app_auth_router)
     app.include_router(device_app_tasks_router)
     app.include_router(device_app_chat_router)
+    app.include_router(device_app_status_ws_router)
     loaded_modules["device_gateway"] = True
     loaded_modules["device_app_api"] = True
     loaded_modules["device_app_members"] = True
@@ -171,6 +173,7 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     loaded_modules["device_app_auth"] = True
     loaded_modules["device_app_tasks"] = True
     loaded_modules["device_app_chat"] = True
+    loaded_modules["device_app_status_ws"] = True
 
 
 def _register_voice_routes(app: FastAPI, loaded_modules: dict) -> None:

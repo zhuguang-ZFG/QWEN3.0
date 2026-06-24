@@ -5,7 +5,12 @@ from __future__ import annotations
 import asyncio
 import threading
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 @dataclass
@@ -20,6 +25,7 @@ class DeviceSession:
     send_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     inflight_tasks: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
     inflight_lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
+    connected_at: str = field(default_factory=_now_iso)
 
     async def send_json(self, payload: dict[str, Any]) -> None:
         async with self.send_lock:

@@ -3,6 +3,7 @@ import time
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from device_gateway.sessions import registry
 from device_gateway.store import InMemoryDeviceTaskStore
 from device_gateway.tasks import install_task_store_for_tests, reset_tasks_for_tests
 from device_logic.activation import reset_activation_store_for_tests
@@ -70,8 +71,10 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     from routes.device_app_chat import router as chat_router
     from routes.device_app_members import router as member_router
     from routes.device_app_misc import router as misc_router
+    from routes.device_app_status_ws import router as status_ws_router
     from routes.device_app_tasks import router as task_router
 
+    registry.clear()
     app = FastAPI()
     app.include_router(app_router)
     app.include_router(auth_router)
@@ -79,4 +82,5 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     app.include_router(member_router)
     app.include_router(misc_router)
     app.include_router(task_router)
+    app.include_router(status_ws_router)
     return TestClient(app), store
