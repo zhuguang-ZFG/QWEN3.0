@@ -18,6 +18,7 @@
 | `device_gateway/task_events.py:182` | 182 | `routes.device_memory` lazy import（`get_memory_store`） | 运行时反向依赖 | 引入 memory store 接口抽象后消除 |
 | `device_gateway/mqtt_client.py:81` | 81 | `routes.device_gateway_ws_handlers` lazy import（`handle_motion_event`） | 运行时反向依赖 | 引入事件处理协议接口后消除 |
 | `ruff.toml` | — | F401 未加入全局门禁，仅豁免已知 re-export 文件 | ~115 个生产 F401 残留为整洁度噪音 | 引入 `pyright --verifytypes` 或逐文件清理后启用 F401 门禁 |
+| `check_code_size.py` 残留 | — | 12 个 51-54 行函数未拆分（scripts/tests/MCP/xiaozhi） | 单函数轻微超标 1-4 行，非核心生产路径 | 触发下一个生产函数超 50 行时一并清理 |
 
 ## 待处理项
 
@@ -25,6 +26,8 @@
 
 ## 已结清
 
+- [x] 2026-06-26：极致瘦身——删除 19 个 DEPRECATED v3.0 退役 shim（orchestrate*、eval_*、context_pipeline/{code_scanner,semantic_code_retrieval,code_context_injection,graph_retrieval,reranking} 等）+ 4 测试；本地磁盘清理 ~2.1GB（.worktrees + reference + donglicao-site-backup）；冗余 IDE 配置删除（.codex/.qoder/.trae/.roo）；部署排除清单补全（donglicao-site*、docs-site、chat-web）。Python 文件 2471→1177(-52%)，行数 273827→130913(-52%)。
+- [x] 2026-06-26：impeccable 设计系统安装 + 官网设计基线（PRODUCT.md + DESIGN.md + .impeccable/live/config.json）+ AI slop 修复（gradient-text、broken-image）+ CI 集成。
 - [x] 2026-06-26：PD-001 `GradualRollout.is_device_selected` 缓存——在 `_load`/`start`/`promote`/`rollback` 重建 `_selected_cache: set[str]`，热路径从 O(N log N) + N SHA256 降为 O(1) 集合成员查询；`routes/device_ota_app.py` 的 ponytail 注释移除。
 - [x] 2026-06-22：删除 `search_gateway/` 整包（零生产引用）。
 - [x] 2026-06-22：`lima_mcp_stdio/` 移出生产部署路径。
