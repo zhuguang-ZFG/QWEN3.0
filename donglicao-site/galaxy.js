@@ -5,6 +5,8 @@
 (function() {
   const canvas = document.getElementById('galaxy-canvas');
   if (!canvas) return;
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute('aria-label', 'LiMa 后端路由星云图，悬停节点可查看模型信息');
   const ctx = canvas.getContext('2d');
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
   let W, H, cx, cy, animFrame;
@@ -26,6 +28,52 @@
   ];
 
   const TOTAL_NODES = CATEGORIES.reduce((s, c) => s + c.count, 0);
+
+  const MODELS_BY_CATEGORY = {
+    GPT: [
+      { name: 'GPT-4o', latency: '300-800ms', price: '中' },
+      { name: 'GPT-4o-mini', latency: '200-500ms', price: '低' },
+      { name: 'GPT-4-turbo', latency: '300-700ms', price: '中' },
+      { name: 'GPT-3.5-turbo', latency: '150-400ms', price: '低' },
+      { name: 'o1-preview', latency: '800-2000ms', price: '高' },
+    ],
+    Claude: [
+      { name: 'Claude 3.5 Sonnet', latency: '200-500ms', price: '中' },
+      { name: 'Claude 3 Opus', latency: '400-900ms', price: '高' },
+      { name: 'Claude 3 Haiku', latency: '150-350ms', price: '低' },
+    ],
+    Groq: [
+      { name: 'Llama 3 70B (Groq)', latency: '50-150ms', price: '免费' },
+      { name: 'Mixtral 8x7B (Groq)', latency: '40-120ms', price: '免费' },
+      { name: 'Gemma 2 9B (Groq)', latency: '30-100ms', price: '免费' },
+    ],
+    NVIDIA: [
+      { name: 'Nemotron-4', latency: '100-300ms', price: '低' },
+      { name: 'Llama 3 70B (NVIDIA)', latency: '120-350ms', price: '低' },
+    ],
+    Local: [
+      { name: 'Qwen2-7B', latency: '80-250ms', price: '低' },
+      { name: 'Phi-3-mini', latency: '60-180ms', price: '低' },
+      { name: 'Llama 3 8B', latency: '70-200ms', price: '低' },
+    ],
+    Image: [
+      { name: 'DALL·E 3', latency: '2-5s', price: '高' },
+      { name: 'Stable Diffusion XL', latency: '1-3s', price: '中' },
+      { name: 'Midjourney-proxy', latency: '3-8s', price: '高' },
+    ],
+    Voice: [
+      { name: 'Whisper V3', latency: '300-800ms', price: '中' },
+      { name: 'GPT-4o Voice', latency: '400-1000ms', price: '高' },
+    ],
+    Fallback: [
+      { name: 'Cloudflare AI Gateway', latency: '200-600ms', price: '免费' },
+    ],
+  };
+
+  function pickModel(cat, index) {
+    const list = MODELS_BY_CATEGORY[cat.name];
+    return list ? list[index % list.length] : { name: cat.name, latency: '-', price: '-' };
+  }
 
   function resize() {
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -62,6 +110,7 @@
       this.pulseSpeed = 0.5 + Math.random() * 1.5;
       this.index = index;
       this.hovered = false;
+      this.model = pickModel(category, index);
     }
     update(time) {
       this.angle += this.speed;
@@ -158,14 +207,132 @@
     }
   });
 
+  const tooltip = document.createElement('div');
+  tooltip.id = 'galaxy-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  tooltip.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(tooltip);
+
+  let activeNode = null;
+  let touchHideTimer = null;
+  let tooltipRect = { width: 0, height: 0 };
+  let pendingPos = null;
+  let positionRaf = null;
+
+  function findNearest(x, y, radius) {
+    let nearest = null;
+    let best = radius * radius;
+    for (const p of particles) {
+      const dx = p.x - x;
+      const dy = p.y - y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < best) {
+        best = d2;
+        nearest = p;
+      }
+    }
+    return nearest;
+  }
+
+  function updateTooltipRect() {
+    const rect = tooltip.getBoundingClientRect();
+    tooltipRect.width = rect.width;
+    tooltipRect.height = rect.height;
+  }
+
+  function positionTooltip(pageX, pageY) {
+    const offsetX = 16;
+    const offsetY = 16;
+    let left = pageX + offsetX;
+    let top = pageY + offsetY;
+    if (left + tooltipRect.width > window.innerWidth - 8) {
+      left = pageX - tooltipRect.width - offsetX;
+    }
+    if (top + tooltipRect.height > window.innerHeight - 8) {
+      top = pageY - tooltipRect.height - offsetY;
+    }
+    tooltip.style.left = `${left + window.scrollX}px`;
+    tooltip.style.top = `${top + window.scrollY}px`;
+  }
+
+  function schedulePosition(pageX, pageY) {
+    pendingPos = { pageX, pageY };
+    if (positionRaf) return;
+    positionRaf = requestAnimationFrame(() => {
+      positionRaf = null;
+      if (pendingPos) positionTooltip(pendingPos.pageX, pendingPos.pageY);
+    });
+  }
+
+  function showTooltip(node, pageX, pageY) {
+    if (!node || !node.model) {
+      hideTooltip();
+      return;
+    }
+    if (activeNode !== node) {
+      activeNode = node;
+      tooltip.textContent = '';
+      const strong = document.createElement('strong');
+      strong.textContent = node.model.name;
+      const span = document.createElement('span');
+      span.textContent = `延迟 ${node.model.latency} · 价格 ${node.model.price}`;
+      tooltip.appendChild(strong);
+      tooltip.appendChild(span);
+      tooltip.classList.add('visible');
+      tooltip.setAttribute('aria-hidden', 'false');
+      updateTooltipRect();
+    }
+    schedulePosition(pageX, pageY);
+  }
+
+  function hideTooltip() {
+    activeNode = null;
+    tooltip.classList.remove('visible');
+    tooltip.setAttribute('aria-hidden', 'true');
+    if (positionRaf) {
+      cancelAnimationFrame(positionRaf);
+      positionRaf = null;
+    }
+    pendingPos = null;
+  }
+
   let time = 0;
   let mouseX = -1, mouseY = -1;
   canvas.addEventListener('mousemove', e => {
     const rect = canvas.getBoundingClientRect();
     mouseX = e.clientX - rect.left;
     mouseY = e.clientY - rect.top;
+    const node = findNearest(mouseX, mouseY, 20);
+    showTooltip(node, e.pageX, e.pageY);
   });
-  canvas.addEventListener('mouseleave', () => { mouseX = -1; mouseY = -1; });
+  canvas.addEventListener('mouseleave', () => {
+    mouseX = -1;
+    mouseY = -1;
+    hideTooltip();
+  });
+
+  function updateTouch(touch) {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = touch.clientX - rect.left;
+    mouseY = touch.clientY - rect.top;
+    const node = findNearest(mouseX, mouseY, 30);
+    showTooltip(node, touch.pageX, touch.pageY);
+  }
+
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length) updateTouch(e.touches[0]);
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    if (e.touches.length) updateTouch(e.touches[0]);
+  }, { passive: true });
+  canvas.addEventListener('touchend', () => {
+    if (touchHideTimer) clearTimeout(touchHideTimer);
+    touchHideTimer = setTimeout(() => {
+      mouseX = -1;
+      mouseY = -1;
+      hideTooltip();
+    }, 400);
+  });
 
   function drawCore() {
     // Core glow

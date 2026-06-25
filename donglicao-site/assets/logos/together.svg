@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="Together AI">
+  <path d="M18 18 H38 M18 24 H38 M18 30 H30" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="48" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#eef2ff">Together</text>
+</svg>

@@ -54,7 +54,11 @@ export default defineConfig({
       '/changelog/': [
         {
           text: '更新日志',
-          items: [{ text: '更新日志', link: '/changelog/' }],
+          items: [
+            { text: '时间线', link: '/changelog/' },
+            { text: 'Phase 5 小程序增强', link: '/changelog/2026-06-25-phase5' },
+            { text: '编码能力退役', link: '/changelog/2026-06-24-coding-retirement' },
+          ],
         },
       ],
     },

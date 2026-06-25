@@ -8330,3 +8330,25 @@ Agent Worker path.
 - **Git**：
   - 提交：`120e26ce`（feat(firmware): Phase 4 F4-F7 health, attestation, coordination, ledger）。
   - 已 push 到 `origin/main`。
+
+## 2026-06-25 Phase B P0：官网生态与文档体验
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P0 中 B-5/B-6/B-8 三项：生态 logo 墙、星云路由节点交互、更新日志。
+- **实现**：
+  - **B-5 生态 logo 墙**：
+    - 设计并添加 23 个 SVG logo 到 `donglicao-site/assets/logos/`。
+    - 在 `donglicao-site/index.html` 新增合作伙伴/模型生态墙，支持懒加载、灰度→彩色悬停、响应式网格与键盘聚焦。
+    - `donglicao-site/styles.css` 补充 logo 墙与 tooltip 样式。
+  - **B-6 星云路由节点交互**：
+    - 重写/扩展 `donglicao-site/galaxy.js`：为每个轨道节点绑定模型元数据（名称、延迟、价格）。
+    - 实现鼠标悬停与触摸 tooltip，通过 `createElement`/`textContent` 安全渲染，位置更新使用 `requestAnimationFrame` 节流。
+    - 为 canvas 增加 `role="img"` 与中文 `aria-label`，提升无障碍。
+  - **B-8 更新日志**：
+    - 新增 `docs-site/changelog/2026-06-25-phase5.md` 与 `docs-site/changelog/2026-06-24-coding-retirement.md`。
+    - 更新 `docs-site/changelog/index.md`，按时间倒序记录 Phase 5、Phase A/B/C 关键变更。
+    - 在 `docs-site/.vitepress/config.ts` 注册 changelog 导航入口。
+- **验证**：
+  - Python 改动 `ruff check` clean；`pyright` 0 errors。
+  - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态路由的误报 404。
+  - 全量 pytest **3712 passed / 17 skipped / 2 deselected / 4 failed / 0 errors**；4 个失败均因 worktree 缺失 `esp32S_XYZ` 固件文件与 `deploy/jdcloud/deploy_jd.py` 这些非本分支 tracked 的辅助文件，非本次改动引入。
+- **部署**：官网与文档站静态文件已同步到 VPS，`lima-router.service` 已重启；公网可访问。

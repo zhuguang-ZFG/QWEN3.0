@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="Zhipu">
+  <path d="M20 14 H36 V34 H20 Z" fill="none" stroke="#1a80e5" stroke-width="2.5"/>
+  <path d="M24 22 H32 M24 26 H32" stroke="#1a80e5" stroke-width="2"/>
+  <text x="44" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#e3f2fd">Zhipu</text>
+</svg>

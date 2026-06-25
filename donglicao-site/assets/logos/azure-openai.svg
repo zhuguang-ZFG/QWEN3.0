@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="Azure OpenAI">
+  <path d="M20 30 L28 12 L36 30 L24 30 Z" fill="none" stroke="#0078d4" stroke-width="2.5" stroke-linejoin="round"/>
+  <text x="44" y="24" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#e6f4fc">Azure</text>
+  <text x="44" y="36" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#b3e0f7">OpenAI</text>
+</svg>

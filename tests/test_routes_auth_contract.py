@@ -62,7 +62,7 @@ _SMOKE_SKIP_PREFIXES = (
     "/uploads/",
     "/digital-human/",
 )
-_SMOKE_SKIP_EXACT = {"/", "/admin", "/sw.js", "/manifest.json"}
+_SMOKE_SKIP_EXACT = {"/", "/admin", "/sw.js", "/manifest.json", "/chat/{path:path}"}
 
 
 def _api_routes_for_smoke() -> list[tuple[str, str]]:

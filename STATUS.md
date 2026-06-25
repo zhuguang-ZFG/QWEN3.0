@@ -17,6 +17,19 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-25）Phase B P0：官网生态与文档体验
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P0 中面向访客与开发者的体验项：生态 logo 墙、星云路由交互、更新日志。
+- **关键结果**：
+  - **B-5 生态 logo 墙**：在 `donglicao-site/index.html` 新增“170+ 模型与平台”合作伙伴墙，覆盖 OpenAI、Anthropic、Groq、NVIDIA、DeepSeek、Cloudflare 等 23 个 SVG logo；实现懒加载、灰度→彩色悬停、响应式网格、键盘可访问；logo 文件统一存放于 `donglicao-site/assets/logos/`。
+  - **B-6 星云路由交互**：在 `donglicao-site/galaxy.js` 中为 canvas 节点新增 tooltip，悬停/触摸时展示模型名、典型延迟、价格区间；使用 `createElement`/`textContent` 无 `innerHTML`，tooltip 位置通过 `requestAnimationFrame` 节流更新；canvas 增加 `role="img"` 与 `aria-label`。
+  - **B-8 更新日志**：在 VitePress 文档站新增 `docs-site/changelog/2026-06-25-phase5.md` 与 `2026-06-24-coding-retirement.md`；`docs-site/changelog/index.md` 按时间倒序收录 Phase 5、Phase A/B/C 关键变更；`docs-site/.vitepress/config.ts` 注册 changelog 导航。
+- **验证**：
+  - 新增/修改的 Python 文件 `ruff check` clean、`pyright` 0 errors。
+  - 全量 pytest **3712 passed / 17 skipped / 2 deselected / 4 failed / 0 errors**（4 个失败均为 worktree 中缺失 `esp32S_XYZ` 固件文件与 `deploy/jdcloud/deploy_jd.py` 这些非本分支 tracked 的辅助文件所致，非本次改动引入）。
+  - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
+- **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
+
 ### 最近完成（2026-06-25）Phase C P2：C-3 API Playground
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 的 API Playground。

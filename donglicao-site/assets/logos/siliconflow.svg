@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="SiliconFlow">
+  <path d="M18 32 Q28 12 38 32" fill="none" stroke="#ff6b35" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="28" cy="22" r="4" fill="#ff6b35"/>
+  <text x="48" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#ffeee8">SiliconFlow</text>
+</svg>

@@ -1,12 +1,37 @@
 # 更新日志
 
-## 2026-06-25 Phase 5：小程序 P1/P2 增强（M3-M10）
+> 按时间倒序排列。每条记录可点击标题查看详情。
+
+---
+
+## 2026-06-25 Phase C P2：API Playground 上线
+
+- 新增 `chat-web/playground.html`：基于 Monaco Editor 与 ECharts 的在线 API 请求调试工具。
+- 支持 OpenAI 兼容 Chat Completions、模型选择、流式响应、cURL 复制与本地历史记录。
+- 线上地址：`https://chat.donglicao.com/chat/playground.html`。
+
+## 2026-06-25 Phase B P0：管理控制台增强
+
+- 修复 `/admin/api/devices`：新增 `device_gateway/registry.py`，设备列表/详情/重启指令落地到 `v2_device` 表。
+- 新增 admin 邮箱/密码 JWT 登录（`/admin/v1/auth/login`），现有 `/admin/*` 同时兼容静态 token。
+- API Key 管理补充 per-key 用量查询；`/admin/api/stats` 返回 key 用量摘要。
+
+## 2026-06-25 Phase A P0：官网与开发者体验改进
+
+- 官网新增[定价页](https://www.donglicao.com/pricing.html)四档定价卡片。
+- 首页开发者区新增 Python / cURL / JavaScript / Go 多语言代码 Tab。
+- FAQ 从 4 条扩展到 12 条，并新增 `FAQPage` JSON-LD。
+- Footer 补完社媒入口、ICP 备案号、产品/法律链接。
+- 新增 VitePress 开发者文档站：`https://www.donglicao.com/docs/`。
+- 生成 `docs/openapi.yaml` 公开 API 规范。
+
+## 2026-06-25 [Phase 5：小程序 P1/P2 增强（M3-M10）](./2026-06-25-phase5.md)
 
 - 完成设备 App 小程序 M3-M10 增强，包括聊天历史、实时状态、语音任务审批、家庭成员、设备共享、素材库、批量绘图等能力。
 - 修复 Phase 5 全量 pytest 中的失败用例，测试通过。
 - 新增/更新设备开发者文档与发布证据。
 
-## 2026-06-24 编码能力退役
+## 2026-06-24 [编码能力退役](./2026-06-24-coding-retirement.md)
 
 - 完成编码辅助能力的退役与清理。
 - 移除代码编辑、IDE 插件相关路由与入口。

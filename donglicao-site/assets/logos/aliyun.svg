@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="Aliyun">
+  <path d="M16 30 Q28 14 40 30" fill="none" stroke="#ff6a00" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M22 28 Q28 18 34 28" fill="none" stroke="#ff6a00" stroke-width="2" stroke-linecap="round"/>
+  <text x="48" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#fff3e6">Aliyun</text>
+</svg>
