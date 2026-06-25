@@ -49,7 +49,7 @@
             "name": "LiMa 支持哪些 AI 模型？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "LiMa 量子星云已接入 170+ 后端，覆盖 GPT、Claude、Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare 等主流模型，并通过量子路由按请求类型、成本与健康状态坍缩至最优模型。"
+              "text": "LiMa 量子星云已接入 170+ 后端，覆盖 30+ 供应商，包括 GPT、Claude、DeepSeek、Groq、NVIDIA、OpenRouter、Cloudflare 等主流模型，并通过量子路由按请求类型、成本与健康状态坍缩至最优模型。"
             }
           },
           {
@@ -57,7 +57,7 @@
             "name": "设备兼容哪些开发板？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "AI 绘图机、写字机与 2D 数字人均基于 ESP32 系列硬件方案，支持 Wi-Fi / MQTT / WebSocket 接入。具体型号与固件可参考开发者文档。"
+              "text": "AI 绘图机、写字机与 2D 数字人均基于 ESP32 系列硬件方案，兼容 ESP32-S3、ESP32-C3 等主流开发板，支持 Wi-Fi / MQTT / WebSocket 接入。具体型号与固件可参考 GitHub 硬件参考。"
             }
           },
           {
@@ -65,7 +65,7 @@
             "name": "数据是否安全？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "LiMa 在传输层使用 TLS 加密，API 访问需校验 Key 与身份策略；设备指令经过策略验证与安全仿真，确保可执行且不会泄露隐私数据。"
+              "text": "LiMa 采用远程证明、A/B 安全分区、固件签名验证与全链路 TLS 传输，确保设备身份可信、数据加密传输，并支持灰度升级与快速回滚。"
             }
           },
           {
@@ -73,7 +73,7 @@
             "name": "如何部署？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "云端版本可直接使用 chat.donglicao.com，无需部署；本地或边缘部署提供 Docker 镜像与配置模板，按文档填写后端 Key 后即可启动服务。"
+              "text": "LiMa 支持 Docker 一键部署、VPS 云端部署与本地开发环境三种方式。Docker 镜像已包含全部运行时依赖，本地开发仅需 Python 3.10+ 与 Redis。"
             }
           },
           {
@@ -81,7 +81,7 @@
             "name": "支持私有化部署吗？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "支持。企业客户可将 LiMa 路由核心、设备网关与数据库部署在自有服务器或私有云，满足合规与内网隔离要求，具体请联系商务团队。"
+              "text": "企业版支持私有化部署与专属模型接入，可按需定制安全策略与审计合规方案。请联系 sales@donglicao.com 获取方案与报价。"
             }
           },
           {
@@ -89,7 +89,7 @@
             "name": "如何计费？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "按实际调用量计费，支持预付费套餐与按量后付。不同模型与能力单价不同，详情参考定价页面或控制台费率说明。"
+              "text": "LiMa 按实际调用 Token 计费，不同模型与档位单价不同。您可在 chat.donglicao.com 控制台查看实时用量与账单明细。"
             }
           },
           {
@@ -97,7 +97,7 @@
             "name": "可以退款吗？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "未消耗的预付费余额支持申请退款，购买后 7 天内且未使用可申请全额退；已消耗部分按实际使用结算，具体以购买协议为准。"
+              "text": "支持 7 天无理由退款。如需退款，请联系 support@donglicao.com 客服处理，剩余未消耗额度将按原路退回。"
             }
           },
           {
@@ -105,7 +105,7 @@
             "name": "支持多种设备协同吗？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "支持。LiMa 的设备纠缠协同机制允许绘图机、写字机、数字人等多种设备在同一任务中联动，由路由中枢统一编排动作与状态。"
+              "text": "支持。LiMa 提供多设备协同与事件溯源能力，绘图机、写字机、2D 数字人可在同一任务流中联动，并通过 MQTT + WebSocket 双通道保持状态同步。"
             }
           },
           {
@@ -113,7 +113,7 @@
             "name": "API 有速率限制吗？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "有。默认按账户级别设置 RPM 与 TPM 上限，免费体验额度较低；升级套餐或联系商务可提高限额。"
+              "text": "API 按账号档位设置速率限制，例如团队版默认 60 RPM。具体限额可在 chat.donglicao.com 控制台查看，企业版可按需提升配额。"
             }
           },
           {
@@ -121,7 +121,7 @@
             "name": "固件如何升级？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "设备支持 OTA 无线升级。LiMa 控制台推送新固件后，设备通过 MQTT 或 WebSocket 接收升级包并自动完成更新，也可使用 USB 线刷方式。"
+              "text": "设备支持 OTA 远程升级，云平台可分批灰度推送新版本，并在异常时自动回滚至上一稳定分区，降低升级风险。"
             }
           },
           {
@@ -129,7 +129,7 @@
             "name": "小程序支持哪些语言？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "小程序 SDK 与示例目前支持中文与英文界面，语音交互默认支持中文普通话，后续将逐步扩展多语言 TTS 与 ASR。"
+              "text": "小程序目前已支持简体中文、繁体中文、英语、德语、葡萄牙语与越南语，可根据设备绑定地区自动切换显示语言。"
             }
           },
           {
@@ -137,7 +137,7 @@
             "name": "如何获取技术支持？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "可通过控制台工单、GitHub Issues 或发送邮件至 support@donglicao.com 获取技术支持，企业客户享有专属对接通道。"
+              "text": "您可通过 GitHub Issues 参与社区讨论，或发送邮件至 support@donglicao.com；团队版与企业版用户还可获得专属客服与优先响应通道。"
             }
           }
         ]
@@ -652,51 +652,51 @@ console.log(data.choices[<span class="c-string">0</span>].message.content);</cod
       <div class="faq-list">
         <details class="faq-item">
           <summary class="faq-question">LiMa 支持哪些 AI 模型？</summary>
-          <div class="faq-answer"><p>LiMa 量子星云已接入 170+ 后端，覆盖 GPT、Claude、Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare 等主流模型，并通过量子路由按请求类型、成本与健康状态坍缩至最优模型。</p></div>
+          <div class="faq-answer"><p>LiMa 量子星云已接入 170+ 后端，覆盖 30+ 供应商，包括 GPT、Claude、DeepSeek、Groq、NVIDIA、OpenRouter、Cloudflare 等主流模型，并通过量子路由按请求类型、成本与健康状态坍缩至最优模型。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">设备兼容哪些开发板？</summary>
-          <div class="faq-answer"><p>AI 绘图机、写字机与 2D 数字人均基于 ESP32 系列硬件方案，支持 Wi-Fi / MQTT / WebSocket 接入。具体型号与固件可参考开发者文档。</p></div>
+          <div class="faq-answer"><p>AI 绘图机、写字机与 2D 数字人均基于 ESP32 系列硬件方案，兼容 ESP32-S3、ESP32-C3 等主流开发板，支持 Wi-Fi / MQTT / WebSocket 接入。具体型号与固件可参考 <a href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener">GitHub 硬件参考</a>。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">数据是否安全？</summary>
-          <div class="faq-answer"><p>LiMa 在传输层使用 TLS 加密，API 访问需校验 Key 与身份策略；设备指令经过策略验证与安全仿真，确保可执行且不会泄露隐私数据。</p></div>
+          <div class="faq-answer"><p>LiMa 采用远程证明、A/B 安全分区、固件签名验证与全链路 TLS 传输，确保设备身份可信、数据加密传输，并支持灰度升级与快速回滚。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">如何部署？</summary>
-          <div class="faq-answer"><p>云端版本可直接使用 chat.donglicao.com，无需部署；本地或边缘部署提供 Docker 镜像与配置模板，按文档填写后端 Key 后即可启动服务。</p></div>
+          <div class="faq-answer"><p>LiMa 支持 Docker 一键部署、VPS 云端部署与本地开发环境三种方式。Docker 镜像已包含全部运行时依赖，本地开发仅需 Python 3.10+ 与 Redis。详细步骤请参考 <a href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener">GitHub 部署文档</a>。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">支持私有化部署吗？</summary>
-          <div class="faq-answer"><p>支持。企业客户可将 LiMa 路由核心、设备网关与数据库部署在自有服务器或私有云，满足合规与内网隔离要求，具体请联系商务团队。</p></div>
+          <div class="faq-answer"><p>企业版支持私有化部署与专属模型接入，可按需定制安全策略与审计合规方案。请联系 <a href="mailto:sales@donglicao.com">sales@donglicao.com</a> 获取方案与报价。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">如何计费？</summary>
-          <div class="faq-answer"><p>按实际调用量计费，支持预付费套餐与按量后付。不同模型与能力单价不同，详情参考定价页面或控制台费率说明。</p></div>
+          <div class="faq-answer"><p>LiMa 按实际调用 Token 计费，不同模型与档位单价不同。您可在 <a href="https://chat.donglicao.com" target="_blank" rel="noopener">chat.donglicao.com</a> 控制台查看实时用量与账单明细。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">可以退款吗？</summary>
-          <div class="faq-answer"><p>未消耗的预付费余额支持申请退款，购买后 7 天内且未使用可申请全额退；已消耗部分按实际使用结算，具体以购买协议为准。</p></div>
+          <div class="faq-answer"><p>支持 7 天无理由退款。如需退款，请联系 <a href="mailto:support@donglicao.com">support@donglicao.com</a> 客服处理，剩余未消耗额度将按原路退回。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">支持多种设备协同吗？</summary>
-          <div class="faq-answer"><p>支持。LiMa 的设备纠缠协同机制允许绘图机、写字机、数字人等多种设备在同一任务中联动，由路由中枢统一编排动作与状态。</p></div>
+          <div class="faq-answer"><p>支持。LiMa 提供多设备协同与事件溯源能力，绘图机、写字机、2D 数字人可在同一任务流中联动，并通过 MQTT + WebSocket 双通道保持状态同步。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">API 有速率限制吗？</summary>
-          <div class="faq-answer"><p>有。默认按账户级别设置 RPM 与 TPM 上限，免费体验额度较低；升级套餐或联系商务可提高限额。</p></div>
+          <div class="faq-answer"><p>API 按账号档位设置速率限制，例如团队版默认 60 RPM。具体限额可在 <a href="https://chat.donglicao.com" target="_blank" rel="noopener">chat.donglicao.com</a> 控制台查看，企业版可按需提升配额。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">固件如何升级？</summary>
-          <div class="faq-answer"><p>设备支持 OTA 无线升级。LiMa 控制台推送新固件后，设备通过 MQTT 或 WebSocket 接收升级包并自动完成更新，也可使用 USB 线刷方式。</p></div>
+          <div class="faq-answer"><p>设备支持 OTA 远程升级，云平台可分批灰度推送新版本，并在异常时自动回滚至上一稳定分区，降低升级风险。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">小程序支持哪些语言？</summary>
-          <div class="faq-answer"><p>小程序 SDK 与示例目前支持中文与英文界面，语音交互默认支持中文普通话，后续将逐步扩展多语言 TTS 与 ASR。</p></div>
+          <div class="faq-answer"><p>小程序目前已支持简体中文、繁体中文、英语、德语、葡萄牙语与越南语，可根据设备绑定地区自动切换显示语言。</p></div>
         </details>
         <details class="faq-item">
           <summary class="faq-question">如何获取技术支持？</summary>
-          <div class="faq-answer"><p>可通过控制台工单、GitHub Issues 或发送邮件至 support@donglicao.com 获取技术支持，企业客户享有专属对接通道。</p></div>
+          <div class="faq-answer"><p>您可通过 <a href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener">GitHub Issues</a> 参与社区讨论，或发送邮件至 <a href="mailto:support@donglicao.com">support@donglicao.com</a>；团队版与企业版用户还可获得专属客服与优先响应通道。</p></div>
         </details>
       </div>
     </section>
