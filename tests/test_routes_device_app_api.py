@@ -134,7 +134,18 @@ def test_get_device_success(client, auth_header):
     with patch.object(api, "get_device_row", return_value=row):
         response = client.get("/device/v1/app/devices/dev-1", headers=auth_header)
     assert response.status_code == 200
-    assert response.json()["deviceId"] == "dev-1"
+    data = response.json()
+    assert data["deviceId"] == "dev-1"
+
+
+def test_device_payload_omits_mqtt_topic(client, auth_header):
+    """Security: mqtt_topic must not leak to app clients (broker structure exposure)."""
+    row = _make_device_row(mqtt_topic="lima/device/dev-1/cmd")
+    with patch.object(api, "get_device_row", return_value=row):
+        response = client.get("/device/v1/app/devices/dev-1", headers=auth_header)
+    data = response.json()
+    assert "mqttTopic" not in data
+    assert "mqtt_topic" not in data
 
 
 def test_get_device_not_found(client, auth_header):

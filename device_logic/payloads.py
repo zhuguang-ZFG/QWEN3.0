@@ -19,7 +19,6 @@ def device_payload(row: sqlite3.Row) -> dict[str, Any]:
         "hardwareVer": row["hardware_ver"],
         "status": row["status"],
         "lastHeartbeat": row["last_heartbeat"],
-        "mqttTopic": row["mqtt_topic"],
         "metadata": row["metadata"],
     }
 

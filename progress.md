@@ -9127,3 +9127,10 @@ uff check（6 个变更 Python 文件）全通过。
 - **测试**：新增 `tests/test_device_ota_gradual_cache.py`（7 例），覆盖缓存与即时计算一致性、start/promote/rollback/reload 失效、空 rollout、以及 perf 契约（50 次成员查询触发 0 次重算）。
 - **验证**：`pytest`（gradual_cache + 3 个 OTA 回归文件）**40 passed**；`ruff check` 变更文件 clean；`check_code_size.py` 变更文件 0 违规。
 - **债务台账**：PD-001 移至 `PONYTAIL-DEBT.md` 已结清。
+## 2026-06-26 device_payload 移除 mqtt_topic 字段（最小权限收敛）
+
+- **目标**：按 AGENTS「安全优于聪明」原则，从 App 端 `device_payload` 移除 `mqtt_topic` 字段——App 用户无业务需求，暴露 MQTT 主题结构有助于攻击者推断 broker 拓扑。
+- **实现**：`device_logic/payloads.py::device_payload` 删除 `"mqttTopic": row["mqtt_topic"]` 一行。`ip_address`/`mac_address` 本就未暴露，保持不变。
+- **测试**：`tests/test_routes_device_app_api.py` 新增 `test_device_payload_omits_mqtt_topic`，断言 `GET /device/v1/app/devices/{id}` 响应不含 `mqttTopic`/`mqtt_topic`。
+- **验证**：device_app 测试族（api + sharing + members + tasks）**36 passed**；`ruff check` clean；VPS 部署 2 文件 health=OK。
+- **影响**：前端（chat-web / 小程序）无 `mqtt_topic` 消费，零破坏性。
