@@ -248,6 +248,7 @@ def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     _try_include(app, loaded, "routes.device_memory", "device_memory")
     _try_include(app, loaded, "routes.device_support", "device_support")
     _try_include(app, loaded, "routes.device_ota", "device_ota")
+    _try_include(app, loaded, "routes.device_ota_app", "device_ota_app")
 
     # Retired subsystems — see docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md P5.
     loaded["mcp"] = False
