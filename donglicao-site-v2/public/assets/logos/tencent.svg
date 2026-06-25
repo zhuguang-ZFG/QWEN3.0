@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="Tencent">
+  <path d="M20 16 H36 V32 H20 Z" fill="none" stroke="#0052d9" stroke-width="2.5"/>
+  <path d="M24 20 H32 M24 24 H32 M24 28 H32" stroke="#0052d9" stroke-width="2"/>
+  <text x="44" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#e6f0fc">Tencent</text>
+</svg>

@@ -1,0 +1,32 @@
+{
+  "name": "lima-sdk",
+  "version": "0.1.0",
+  "description": "Official JavaScript SDK for LiMa (https://chat.donglicao.com)",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./types/index.d.ts"
+    }
+  },
+  "scripts": {
+    "test": "node --test tests/test_sdk.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "lima",
+    "ai",
+    "sdk",
+    "openai"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "typescript": "^5.5.0"
+  }
+}

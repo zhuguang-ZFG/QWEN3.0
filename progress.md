@@ -1,5 +1,108 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（产品子页面 draw/write/human）
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，将三个产品页迁移到 `donglicao-site-v2`。
+- **关键结果**：
+  - 新增通用组件 `app/components/ProductPage.tsx`，支持 Hero、核心能力、技术规格、使用场景、FAQ 配置。
+  - 新增 `app/components/Icon.tsx`，提供产品页所需 SVG 图标。
+  - 新增三个页面：
+    - `app/product-draw/page.tsx`：AI 绘图机（cyan 主题）。
+    - `app/product-write/page.tsx`：AI 写字机（violet 主题），含场景与 FAQ。
+    - `app/product-human/page.tsx`：2D 数字人（pink 主题），含场景与 FAQ。
+- **验证**：
+  - `npm run build` 成功，静态生成 `/`、`/pricing`、`/product-draw`、`/product-write`、`/product-human`。
+  - 聚焦后端 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+- **待完成**：首页剩余区块（技术/场景/FAQ/Footer 社媒）、developer 代码 Tab、Lighthouse 优化。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
+## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（pricing 页面）
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，将官网定价页迁移到 `donglicao-site-v2`。
+- **关键结果**：
+  - 新增 `app/pricing/page.tsx`：
+    - 四档定价卡片（免费版/创作者版/团队版/企业版），团队版标记「最受欢迎」。
+    - 功能对比表：月费、AI 对话、设备接入、SVG 生成、API Key、支持方式。
+    - 定价 FAQ（5 条）与底部 CTA。
+  - 复用 `Navbar` / `Footer` 组件，统一暗色主题与 cyan 强调色。
+- **验证**：
+  - `npm run build` 成功，静态生成 `/` 与 `/pricing`。
+  - 聚焦后端 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+- **待完成**：product-draw/write/human、FAQ、developer 代码 Tab 等子页面迁移。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
+## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（首页骨架）
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，启动 `donglicao-site-v2` Next.js 官网迁移。
+- **关键结果**：
+  - 使用 `create-next-app@latest` 初始化 `donglicao-site-v2`（Next.js 16 + Tailwind CSS + TypeScript + App Router）。
+  - 配置 `next.config.ts`：`output: "export"`、`distDir: "dist"`、`images.unoptimized: true`、`trailingSlash: true`。
+  - 复制 `donglicao-site/assets` 到 `public/assets`。
+  - 创建首页组件：`Navbar` / `Hero` / `Products` / `Partners` / `Footer`。
+  - 使用系统字体避免 Google Fonts 网络拉取失败。
+- **验证**：
+  - `npm run build` 成功，生成 `dist/index.html`。
+  - 聚焦后端 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+- **待完成**： pricing / product-* / FAQ / developer / code-tabs 页面迁移；视觉还原；Lighthouse 优化。
+- **部署**：本次未执行 VPS 部署；后续可通过 `dist/` 静态目录同步。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
+## 2026-06-25 完成 Phase D-3：Go SDK 初始实现
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase D 规划，启动 Go SDK（`lima-sdk-go`）。
+- **关键结果**：
+  - 新增 `sdk/go/lima/`：
+    - `client.go`：`Client` 与 `ClientConfig`，统一 `baseURL`/`apiKey`/`http.Client`。
+    - `chat.go`：非流式 `Create` 与流式 `CreateStream`（SSE 扫描 + 双 channel 返回）。
+    - `images.go`、`devices.go`、`assets.go`：对应命名空间 API。
+    - `errors.go`：`LiMaSDKError`、`LiMaAPIError`。
+    - `go.mod`、`README.md`。
+  - 新增 `lima_test.go`：使用 `httptest` 本地 Mock 服务器，覆盖聊天、流式、图片、设备任务、素材、错误处理。
+- **验证**：
+  - `go test ./... -v` **7 passed / 0 failed**。
+  - `gofmt -w .` + `go vet ./...` clean。
+  - 聚焦后端 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+- **部署**：SDK 为客户端库，本次不涉及 VPS 部署。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
+## 2026-06-25 完成 Phase D-2：JavaScript SDK 初始实现
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase D 规划，启动 JavaScript SDK（`lima-sdk-js`）。
+- **关键结果**：
+  - 新增 `sdk/js/lima-sdk/`：
+    - `src/client.js`：`LiMaClient`（ESM），支持 `baseUrl`/`timeout`/可注入 `fetch`。
+    - 命名空间：`client.chat.create`、`client.images.generate`、`client.devices.*`、`client.assets.*`。
+    - `src/streaming.js`：SSE 异步解析器。
+    - `src/errors.js`：`LiMaSDKError`、`LiMaAPIError`。
+    - `types/index.d.ts`：完整 TypeScript 类型声明。
+  - 新增 `tests/test_sdk.js`：使用 Node 内置 `node:test` + `node:http` 本地 Mock 服务器，覆盖聊天、流式、图片、设备任务、素材、错误处理。
+  - 新增 `tsconfig.json`、`package.json`（`type: "module"`）、`README.md`。
+- **验证**：
+  - `npm test` **7 passed / 0 failed**。
+  - `npm run typecheck`（`tsc --noEmit`）**0 errors**。
+  - 聚焦后端 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+- **部署**：SDK 为客户端库，本次不涉及 VPS 部署。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
+## 2026-06-25 完成 Phase D-1：Python SDK 初始实现
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase D 规划，启动 Python SDK（`lima-sdk-python`）。
+- **关键结果**：
+  - 新增 `sdk/python/lima_sdk/`：
+    - `client.py`：同步 `LiMaClient` + 异步 `AsyncLiMaClient`，统一 `base_url`/`api_key`/`timeout`，支持注入 `transport`（便于测试）。
+    - 命名空间 API：`client.chat.completions.create`、`client.images.generate`、`client.devices.list|get|status|create_task|list_tasks|get_task`、`client.assets.list|create`。
+    - `_base.py`：通用请求辅助与错误转换；`_streaming.py`：SSE 解析。
+    - `exceptions.py`：`LiMaSDKError`、`LiMaAPIError`（携带 `status_code`、`code`、`response_body`）。
+  - 新增 `tests/sdk/test_python_sdk.py`：覆盖同步/异步聊天、图片生成、设备任务、素材、错误、流式输出，使用 `httpx.MockTransport` 避免真实网络请求。
+  - 新增 `sdk/python/README.md`：安装说明、快速开始、流式与异步示例。
+- **验证**：
+  - `PYTHONPATH=sdk/python python -m pytest tests/sdk/test_python_sdk.py -v` **9 passed / 0 failed**。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+  - `ruff check sdk/python/lima_sdk tests/sdk/test_python_sdk.py` clean。
+  - `PYTHONPATH=sdk/python npx pyright sdk/python/lima_sdk tests/sdk/test_python_sdk.py` **0 errors / 0 warnings**。
+- **部署**：SDK 为客户端库，本次不涉及 VPS 部署。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase C P2 C-2（语音输入增强）：控制台按住说话
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，增强控制台语音输入体验。

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="LongCat">
+  <ellipse cx="28" cy="24" rx="10" ry="13" fill="none" stroke="#ff6b9d" stroke-width="2.5"/>
+  <circle cx="24" cy="20" r="2" fill="#ff6b9d"/>
+  <circle cx="32" cy="20" r="2" fill="#ff6b9d"/>
+  <text x="46" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#ffebf2">LongCat</text>
+</svg>

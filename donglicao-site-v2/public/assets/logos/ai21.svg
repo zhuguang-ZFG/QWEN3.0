@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="AI21">
+  <rect x="18" y="14" width="12" height="20" rx="3" fill="none" stroke="#0d9488" stroke-width="2.5"/>
+  <rect x="34" y="14" width="8" height="20" rx="2" fill="none" stroke="#0d9488" stroke-width="2.5"/>
+  <text x="50" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#e6f7f5">AI21</text>
+</svg>

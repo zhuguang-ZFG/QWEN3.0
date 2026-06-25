@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="Baidu">
+  <circle cx="22" cy="20" r="4" fill="#2932e1"/>
+  <circle cx="34" cy="20" r="4" fill="#2932e1"/>
+  <circle cx="28" cy="32" r="4" fill="#2932e1"/>
+  <path d="M22 20 L28 32 L34 20" fill="none" stroke="#2932e1" stroke-width="2"/>
+  <text x="46" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#e8eaf6">Baidu</text>
+</svg>

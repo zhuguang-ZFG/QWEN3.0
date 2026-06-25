@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-label="NVIDIA">
+  <ellipse cx="28" cy="24" rx="15" ry="9" fill="none" stroke="#76b900" stroke-width="2.5"/>
+  <circle cx="28" cy="24" r="4" fill="#76b900"/>
+  <text x="52" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#e8f3d6">NVIDIA</text>
+</svg>
