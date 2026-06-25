@@ -21,7 +21,7 @@ def client(monkeypatch):
 def assets_available(tmp_path, monkeypatch):
     index = tmp_path / "index.html"
     index.write_text(
-        '<html><head><title>小智数字人页面</title></head><body>'
+        "<html><head><title>小智数字人页面</title></head><body>"
         '<div class="brand">小智 AI 语音/视频通话</div>'
         '<script type="module" src="js/app.js?v=0205"></script></body></html>',
         encoding="utf-8",

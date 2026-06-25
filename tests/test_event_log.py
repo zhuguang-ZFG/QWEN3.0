@@ -67,6 +67,7 @@ class TestEventLog:
         assert s["total_events"] == 0
         assert s["last_event"] is None
 
+
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

@@ -20,6 +20,7 @@ def _make_call_fn(success=True, answer="fallback_ok", delay=0):
         if success:
             return answer
         raise RuntimeError("backend error")
+
     return fn
 
 
@@ -44,9 +45,14 @@ def test_select_fallback_candidates_empty():
 def test_serial_fallback_attempt_success():
     """Fallback attempt succeeds on first candidate."""
     result = _serial_fallback_attempt(
-        ["f1", "f2"], _make_call_fn(answer="fallback_ans"),
+        ["f1", "f2"],
+        _make_call_fn(answer="fallback_ans"),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", MOCK_NOW,
+        4096,
+        None,
+        "chat",
+        "chat",
+        MOCK_NOW,
     )
     assert result is not None
     backend, answer = result
@@ -56,9 +62,14 @@ def test_serial_fallback_attempt_success():
 def test_serial_fallback_attempt_all_fail():
     """All fallback candidates fail -> returns None."""
     result = _serial_fallback_attempt(
-        ["fail1", "fail2"], _make_call_fn(success=False),
+        ["fail1", "fail2"],
+        _make_call_fn(success=False),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", MOCK_NOW,
+        4096,
+        None,
+        "chat",
+        "chat",
+        MOCK_NOW,
     )
     assert result is None
 
@@ -66,8 +77,14 @@ def test_serial_fallback_attempt_all_fail():
 def test_serial_fallback_attempt_empty():
     """Empty candidates -> returns None."""
     result = _serial_fallback_attempt(
-        [], _make_call_fn(), [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", MOCK_NOW,
+        [],
+        _make_call_fn(),
+        [{"role": "user", "content": "hi"}],
+        4096,
+        None,
+        "chat",
+        "chat",
+        MOCK_NOW,
     )
     assert result is None
 
@@ -75,9 +92,14 @@ def test_serial_fallback_attempt_empty():
 def test_fallback_phase_prefers_parallel_for_multi():
     """When >=2 candidates, parallel is preferred."""
     result = _fallback_phase(
-        ["a", "b", "c"], _make_call_fn(answer="phase_ok"),
+        ["a", "b", "c"],
+        _make_call_fn(answer="phase_ok"),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", MOCK_NOW,
+        4096,
+        None,
+        "chat",
+        "chat",
+        MOCK_NOW,
     )
     assert result is not None
 
@@ -85,9 +107,14 @@ def test_fallback_phase_prefers_parallel_for_multi():
 def test_fallback_phase_single_candidate():
     """Single candidate falls back to serial attempt."""
     result = _fallback_phase(
-        ["only_one"], _make_call_fn(answer="sole_result_long"),
+        ["only_one"],
+        _make_call_fn(answer="sole_result_long"),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", MOCK_NOW,
+        4096,
+        None,
+        "chat",
+        "chat",
+        MOCK_NOW,
     )
     assert result == ("only_one", "sole_result_long")
 
@@ -95,8 +122,14 @@ def test_fallback_phase_single_candidate():
 def test_fallback_phase_empty():
     """Empty backends -> returns None."""
     result = _fallback_phase(
-        [], _make_call_fn(), [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", MOCK_NOW,
+        [],
+        _make_call_fn(),
+        [{"role": "user", "content": "hi"}],
+        4096,
+        None,
+        "chat",
+        "chat",
+        MOCK_NOW,
     )
     assert result is None
 
@@ -104,11 +137,17 @@ def test_fallback_phase_empty():
 def test_fallback_phase_all_fail():
     """All options exhausted -> returns None."""
     result = _fallback_phase(
-        ["bad1", "bad2", "bad3"], _make_call_fn(success=False),
+        ["bad1", "bad2", "bad3"],
+        _make_call_fn(success=False),
         [{"role": "user", "content": "hi"}],
-        4096, None, "chat", "chat", MOCK_NOW,
+        4096,
+        None,
+        "chat",
+        "chat",
+        MOCK_NOW,
     )
     assert result is None
+
 
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):

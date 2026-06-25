@@ -36,7 +36,9 @@ async def test_handle_audio_chunk_invalid_data():
 async def test_handle_audio_chunk_valid_data():
     with patch.object(dvh, "_feed_audio_to_pipeline") as mock_feed:
         data = base64.b64encode(b"pcm").decode()
-        result = await dvh.handle_audio_chunk(websocket := MagicMock(), "dev-1", {"data": data, "is_end": True}, "req-1")
+        result = await dvh.handle_audio_chunk(
+            websocket := MagicMock(), "dev-1", {"data": data, "is_end": True}, "req-1"
+        )
     assert result is True
     mock_feed.assert_awaited_once()
 
@@ -44,8 +46,9 @@ async def test_handle_audio_chunk_valid_data():
 def test_get_vad_state_initializes(monkeypatch):
     fake_state = MagicMock()
     fake_provider = MagicMock()
-    with patch("device_voice.vad.VADState", return_value=fake_state), patch(
-        "device_voice.get_vad_provider", return_value=fake_provider
+    with (
+        patch("device_voice.vad.VADState", return_value=fake_state),
+        patch("device_voice.get_vad_provider", return_value=fake_provider),
     ):
         state_pair = dvh._get_vad_state("dev-1")
     assert state_pair == (fake_state, fake_provider)
@@ -96,11 +99,17 @@ async def test_process_utterance_success():
     websocket = MagicMock()
     websocket.send_json = AsyncMock()
     websocket.send_bytes = AsyncMock()
-    with patch("device_voice.dialogue.process_voice_utterance", return_value={
-        "transcript": "hello",
-        "reply_audio": b"audio",
-        "voiceprint": {"member_id": "m1"},
-    }) as mock_process, patch("routes.device_voice_ws_helpers.shadow_store") as mock_shadow:
+    with (
+        patch(
+            "device_voice.dialogue.process_voice_utterance",
+            return_value={
+                "transcript": "hello",
+                "reply_audio": b"audio",
+                "voiceprint": {"member_id": "m1"},
+            },
+        ) as mock_process,
+        patch("routes.device_voice_ws_helpers.shadow_store") as mock_shadow,
+    ):
         await dvh._process_utterance(websocket, "dev-1", b"pcm")
     mock_process.assert_awaited_once()
     mock_shadow.update_voiceprint_result.assert_called_once_with("dev-1", {"member_id": "m1"})
@@ -132,9 +141,10 @@ async def test_feed_audio_to_pipeline_utterance_end():
     vad_provider = MagicMock()
     vad_provider.is_utterance_end.return_value = True
     dvh._audio_registry["dev-1"] = (vad_state, vad_provider)
-    with patch("device_voice.VOICE_ENABLED", True), patch.object(
-        dvh, "_process_utterance", new=AsyncMock()
-    ) as mock_process:
+    with (
+        patch("device_voice.VOICE_ENABLED", True),
+        patch.object(dvh, "_process_utterance", new=AsyncMock()) as mock_process,
+    ):
         await dvh._feed_audio_to_pipeline(websocket, "dev-1", b"chunk")
     vad_provider.reset.assert_called_once_with(vad_state)
     mock_process.assert_awaited_once_with(websocket, "dev-1", b"utterance")
@@ -170,9 +180,11 @@ async def test_extract_and_store_voiceprint_embedding_success():
     provider.enabled = True
     provider.register_speaker = AsyncMock(return_value=[0.1, 0.2])
     provider.invalidate_cache = AsyncMock()
-    with patch("device_voice.VOICE_ENABLED", True), patch(
-        "device_voice.voiceprint.get_voiceprint_provider", return_value=provider
-    ), patch("session_memory.store_voiceprint.store_voiceprint_embedding") as mock_store:
+    with (
+        patch("device_voice.VOICE_ENABLED", True),
+        patch("device_voice.voiceprint.get_voiceprint_provider", return_value=provider),
+        patch("session_memory.store_voiceprint.store_voiceprint_embedding") as mock_store,
+    ):
         await dvh._extract_and_store_voiceprint_embedding(validated, "vp-1", "member-1", "dev-1")
     provider.register_speaker.assert_awaited_once_with(b"wav-audio", "member-1", "dev-1")
     mock_store.assert_called_once()
@@ -184,8 +196,9 @@ async def test_extract_and_store_voiceprint_embedding_provider_disabled():
     validated = {"audio_data": base64.b64encode(b"wav-audio").decode(), "format": "wav"}
     provider = MagicMock()
     provider.enabled = False
-    with patch("device_voice.VOICE_ENABLED", True), patch(
-        "device_voice.voiceprint.get_voiceprint_provider", return_value=provider
+    with (
+        patch("device_voice.VOICE_ENABLED", True),
+        patch("device_voice.voiceprint.get_voiceprint_provider", return_value=provider),
     ):
         await dvh._extract_and_store_voiceprint_embedding(validated, "vp-1", "member-1", "dev-1")
     provider.register_speaker.assert_not_called()

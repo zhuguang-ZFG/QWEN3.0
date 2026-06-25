@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """MCP protocol layer for prompt compression — JSON-RPC dispatch."""
+
 from __future__ import annotations
 
 import json

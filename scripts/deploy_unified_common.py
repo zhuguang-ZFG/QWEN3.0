@@ -39,7 +39,6 @@ CORE_DIRS = [
     "context_pipeline",
     "session_memory",
     "code_context",
-
     "observability",
     "device_ledger",
     "device_memory",

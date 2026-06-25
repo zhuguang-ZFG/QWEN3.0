@@ -105,9 +105,7 @@ def test_device_status_ws_connect_and_snapshot(tmp_path, monkeypatch):
     seed_account_and_device()
     seed_binding()
 
-    with client.websocket_connect(
-        "/device/v1/app/devices/dev-1/ws", params=_auth_query("a-owner")
-    ) as websocket:
+    with client.websocket_connect("/device/v1/app/devices/dev-1/ws", params=_auth_query("a-owner")) as websocket:
         message = websocket.receive_json()
         assert message["event"] == "status_snapshot"
         assert message["payload"]["deviceId"] == "dev-1"
@@ -130,9 +128,7 @@ def test_device_status_ws_rejects_unbound_account(tmp_path, monkeypatch):
     seed_binding()
 
     with pytest.raises(WebSocketDisconnect):
-        with client.websocket_connect(
-            "/device/v1/app/devices/dev-1/ws", params=_auth_query("a-other")
-        ):
+        with client.websocket_connect("/device/v1/app/devices/dev-1/ws", params=_auth_query("a-other")):
             pass
 
 
@@ -152,9 +148,7 @@ def test_device_status_ws_online_offline_transition(tmp_path, monkeypatch):
     seed_account_and_device()
     seed_binding()
 
-    with client.websocket_connect(
-        "/device/v1/app/devices/dev-1/ws", params=_auth_query("a-owner")
-    ) as websocket:
+    with client.websocket_connect("/device/v1/app/devices/dev-1/ws", params=_auth_query("a-owner")) as websocket:
         snapshot = websocket.receive_json()
         assert snapshot["event"] == "status_snapshot"
         assert snapshot["payload"]["online"] is False

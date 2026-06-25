@@ -134,9 +134,7 @@ async def create_pair(request: Request, authorization: str = Header(default=""))
 
     pair_id = new_id()
     pair_token = secrets.token_urlsafe(32)
-    server_url = os.environ.get(
-        "LIMA_DEVICE_WS_URL", "wss://chat.donglicao.com/device/v1/ws"
-    )
+    server_url = os.environ.get("LIMA_DEVICE_WS_URL", "wss://chat.donglicao.com/device/v1/ws")
     expires = expires_at(1800)
 
     with connect() as conn:
@@ -180,9 +178,7 @@ async def confirm_pair(request: Request) -> Any:
         return err(400, "deviceSn is required", 400)
 
     with connect() as conn:
-        row = conn.execute(
-            "SELECT * FROM v2_pair_request WHERE pair_token=? AND status='pending'", (token,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM v2_pair_request WHERE pair_token=? AND status='pending'", (token,)).fetchone()
         if row is None:
             return err(404, "pair token not found", 404)
         if row["expires_at"] < now():

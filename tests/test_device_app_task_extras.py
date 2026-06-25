@@ -76,10 +76,7 @@ def test_preview_rejects_unsupported_capability(tmp_path, monkeypatch):
 
 def test_batch_creates_up_to_twenty_tasks(tmp_path, monkeypatch):
     client, _store = _client(tmp_path, monkeypatch)
-    tasks = [
-        {"capability": "run_path", "params": {"path": [{"x": i, "y": i, "z": 0}]}}
-        for i in range(20)
-    ]
+    tasks = [{"capability": "run_path", "params": {"path": [{"x": i, "y": i, "z": 0}]}} for i in range(20)]
 
     response = client.post(
         "/device/v1/app/devices/dev-1/batch-tasks",
@@ -98,10 +95,7 @@ def test_batch_creates_up_to_twenty_tasks(tmp_path, monkeypatch):
 
 def test_batch_rejects_more_than_twenty_tasks(tmp_path, monkeypatch):
     client, _store = _client(tmp_path, monkeypatch)
-    tasks = [
-        {"capability": "run_path", "params": {"path": [{"x": i, "y": i, "z": 0}]}}
-        for i in range(21)
-    ]
+    tasks = [{"capability": "run_path", "params": {"path": [{"x": i, "y": i, "z": 0}]}} for i in range(21)]
 
     response = client.post(
         "/device/v1/app/devices/dev-1/batch-tasks",

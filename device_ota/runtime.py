@@ -6,6 +6,7 @@ routes/device_ota_app.py) import from here so the OTA domain lifecycle is
 not subordinate to an HTTP adapter. Tests reset state via
 ``reset_for_tests()`` instead of poking sibling route privates.
 """
+
 from __future__ import annotations
 
 from config.env import device_ota_state_path

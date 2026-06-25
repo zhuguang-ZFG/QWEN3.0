@@ -76,9 +76,7 @@ def _aggregate_usage(rows: list[Any]) -> tuple[dict[str, Any], list[dict[str, An
         day["requests"] += 1
         day["cost"] += cost
 
-        cap = by_capability.setdefault(
-            capability, {"capability": capability, "requests": 0, "tokens": 0, "cost": 0.0}
-        )
+        cap = by_capability.setdefault(capability, {"capability": capability, "requests": 0, "tokens": 0, "cost": 0.0})
         cap["requests"] += 1
         cap["tokens"] += tokens
         cap["cost"] += cost

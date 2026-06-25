@@ -74,7 +74,9 @@ def test_live_key_with_env(client, monkeypatch):
 
 
 @patch.object(se, "BACKENDS", {"backend-a": {}, "backend-b": {}})
-@patch.object(se.health_state, "get_backend_quality", return_value={"total_requests": 0, "empty_count": 0, "error_msg_count": 0})
+@patch.object(
+    se.health_state, "get_backend_quality", return_value={"total_requests": 0, "empty_count": 0, "error_msg_count": 0}
+)
 @patch.object(se.health_tracker, "is_cooled_down", return_value=False)
 @patch.object(se.health_state, "get_backend_state", return_value={"state": "ok"})
 @patch.object(se.health_state, "get_latency_map", return_value={})

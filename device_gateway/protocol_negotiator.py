@@ -31,13 +31,35 @@ class ProtocolNegotiator:
     def capabilities_for_version(self, protocol_version: str) -> frozenset[str]:
         """返回该协议版本支持的能力集。"""
         if protocol_version == "lima-device-v2-draft":
-            return frozenset({
-                "run_path", "write_text", "draw_generated", "draw_asset",
-                "home", "pause", "resume", "stop", "get_device_info",
-                "self_check", "estop", "voice_command",  # v2 新增
-                "multi_pass", "variable_speed",           # v2 新增
-            })
-        return frozenset({
-            "run_path", "write_text", "draw_generated", "draw_asset",
-            "home", "pause", "resume", "stop", "get_device_info", "self_check",
-        })
+            return frozenset(
+                {
+                    "run_path",
+                    "write_text",
+                    "draw_generated",
+                    "draw_asset",
+                    "home",
+                    "pause",
+                    "resume",
+                    "stop",
+                    "get_device_info",
+                    "self_check",
+                    "estop",
+                    "voice_command",  # v2 新增
+                    "multi_pass",
+                    "variable_speed",  # v2 新增
+                }
+            )
+        return frozenset(
+            {
+                "run_path",
+                "write_text",
+                "draw_generated",
+                "draw_asset",
+                "home",
+                "pause",
+                "resume",
+                "stop",
+                "get_device_info",
+                "self_check",
+            }
+        )

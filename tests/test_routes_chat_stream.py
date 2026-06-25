@@ -164,16 +164,9 @@ async def test_stream_thinking_response(mock_sentences, mock_thinking):
 @patch.object(cs, "speculative_stream_chunks")
 @patch.object(cs, "stream_sentences")
 @patch.object(cs, "_resolve_authoritative_content", return_value="auth answer")
-async def test_stream_speculative_fallback_when_no_chunks(
-    mock_auth, mock_sentences, mock_spec
-):
+async def test_stream_speculative_fallback_when_no_chunks(mock_auth, mock_sentences, mock_spec):
     mock_spec.return_value = _async_gen([])
     mock_sentences.return_value = _async_gen(["fallback chunk"])
-    chunks = [
-        c
-        async for c in cs._stream_speculative(
-            "q", [], "cid", sys_prompt_preview="", ide_source="", prefer=""
-        )
-    ]
+    chunks = [c async for c in cs._stream_speculative("q", [], "cid", sys_prompt_preview="", ide_source="", prefer="")]
     assert chunks == ["fallback chunk"]
     mock_auth.assert_called_once()

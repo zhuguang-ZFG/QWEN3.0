@@ -97,12 +97,8 @@ def test_rebuild_state_pause_and_resume():
             payload={"task": {"task_id": task_id, "device_id": device_id}, "status": "created"},
         )
     )
-    ledger_store.append_event(
-        new_event(event_type="task_paused", task_id=task_id, device_id=device_id, payload={})
-    )
-    ledger_store.append_event(
-        new_event(event_type="task_resumed", task_id=task_id, device_id=device_id, payload={})
-    )
+    ledger_store.append_event(new_event(event_type="task_paused", task_id=task_id, device_id=device_id, payload={}))
+    ledger_store.append_event(new_event(event_type="task_resumed", task_id=task_id, device_id=device_id, payload={}))
 
     state = task_projection.rebuild_state(task_id)
 

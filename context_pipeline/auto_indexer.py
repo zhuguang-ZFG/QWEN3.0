@@ -79,7 +79,6 @@ class AutoIndexer:
                 errors += 1
         return indexed, deleted_count, errors
 
-
     def _build_stats(
         self,
         watcher,
@@ -102,7 +101,6 @@ class AutoIndexer:
             "modified": sum(1 for c in changes if c.change_type == "modified"),
             "deleted": sum(1 for c in changes if c.change_type == "deleted"),
         }
-
 
     def scan_once(self) -> dict:
         """Run a single scan and update indexes. Returns stats."""

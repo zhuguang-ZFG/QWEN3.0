@@ -50,7 +50,9 @@ VALID_TRANSITIONS: dict[TaskState, frozenset[TaskState]] = {
     TaskState.READY_TO_DISPATCH: frozenset({TaskState.DISPATCHED}),
     TaskState.DISPATCHED: frozenset({TaskState.RUNNING, TaskState.IN_PROGRESS, TaskState.FAILED, TaskState.CANCELLED}),
     TaskState.RUNNING: frozenset({TaskState.TERMINAL, TaskState.RECOVERING}),
-    TaskState.IN_PROGRESS: frozenset({TaskState.COMPLETED, TaskState.FAILED, TaskState.CANCELLED, TaskState.RECOVERING}),
+    TaskState.IN_PROGRESS: frozenset(
+        {TaskState.COMPLETED, TaskState.FAILED, TaskState.CANCELLED, TaskState.RECOVERING}
+    ),
     TaskState.RECOVERING: frozenset({TaskState.RUNNING, TaskState.TERMINAL, TaskState.IN_PROGRESS}),
     TaskState.TERMINAL: frozenset(),
     TaskState.COMPLETED: frozenset(),

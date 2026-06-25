@@ -9,10 +9,12 @@ from session_memory.learning_loop.models import TaskOutcome
 class TestIngestTaskOutcome:
     def test_feeds_all_channels(self):
         outcome = TaskOutcome(task_id="t1", status="succeeded", backend="groq", scenario="chat")
-        with patch("session_memory.learning_loop.ingest._feed_eval") as mock_eval, \
-             patch("session_memory.learning_loop.ingest._feed_memory") as mock_memory, \
-             patch("session_memory.learning_loop.ingest._feed_prompt") as mock_prompt, \
-             patch("session_memory.learning_loop.ingest._feed_routing") as mock_routing:
+        with (
+            patch("session_memory.learning_loop.ingest._feed_eval") as mock_eval,
+            patch("session_memory.learning_loop.ingest._feed_memory") as mock_memory,
+            patch("session_memory.learning_loop.ingest._feed_prompt") as mock_prompt,
+            patch("session_memory.learning_loop.ingest._feed_routing") as mock_routing,
+        ):
             mock_eval.return_value = {}
             mock_memory.return_value = {}
             mock_prompt.return_value = {}

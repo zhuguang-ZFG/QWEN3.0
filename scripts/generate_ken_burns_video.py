@@ -4,6 +4,7 @@
 Usage:
     python scripts/generate_ken_burns_video.py assets/hero.jpg assets/hero-bg.mp4 --duration 10 --fps 15
 """
+
 import argparse
 import sys
 from pathlib import Path

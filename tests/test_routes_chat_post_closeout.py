@@ -86,20 +86,14 @@ class TestMaybeLogDistillQueue:
     def test_enabled_calls_log(self, monkeypatch):
         monkeypatch.setenv("DISTILL_LOG", "1")
         with patch("routes.chat_post_closeout._log_to_distill_queue") as mock_log:
-            maybe_log_distill_queue(
-                query="q", content="a", intent="chat", backend="groq"
-            )
+            maybe_log_distill_queue(query="q", content="a", intent="chat", backend="groq")
             mock_log.assert_called_once_with("q", "a", {"intent": "chat"}, "groq")
 
     def test_non_dict_intent_wrapped(self, monkeypatch):
         monkeypatch.setenv("DISTILL_LOG", "1")
         with patch("routes.chat_post_closeout._log_to_distill_queue") as mock_log:
-            maybe_log_distill_queue(
-                query="q", content="a", intent={"complexity": 0.5}, backend="x"
-            )
-            mock_log.assert_called_once_with(
-                "q", "a", {"complexity": 0.5}, "x"
-            )
+            maybe_log_distill_queue(query="q", content="a", intent={"complexity": 0.5}, backend="x")
+            mock_log.assert_called_once_with("q", "a", {"complexity": 0.5}, "x")
 
     def test_exception_is_logged(self, monkeypatch, caplog):
         monkeypatch.setenv("DISTILL_LOG", "1")
@@ -109,6 +103,8 @@ class TestMaybeLogDistillQueue:
         ):
             maybe_log_distill_queue(query="q", content="a", intent={}, backend="x")
         assert "distill queue log skipped" in caplog.text
+
+
 class TestLogToDistillQueue:
     def test_disabled_does_nothing(self, monkeypatch, tmp_path):
         monkeypatch.setenv("DISTILL_LOG", "0")

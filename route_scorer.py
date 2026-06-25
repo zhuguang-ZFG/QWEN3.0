@@ -110,12 +110,7 @@ def _apply_penalty(
     quota_score: float,
 ) -> float:
     """Apply weighted penalty components (reputation, learned weight, quota) to base score."""
-    return (
-        base_score
-        + reputation * 0.15
-        + learned * 0.10
-        + max(0.0, min(quota_score, 1.0)) * 0.05
-    )
+    return base_score + reputation * 0.15 + learned * 0.10 + max(0.0, min(quota_score, 1.0)) * 0.05
 
 
 def _apply_boost(scored: float, profile_bonus: float) -> float:
@@ -166,11 +161,7 @@ def effective_score(
         profile_bonus = 0.5
 
     # Base: health 35%, stability 20%, latency 15% — core performance metrics
-    base_score = (
-        _norm_score(health_score) * 0.35
-        + stability_score(state) * 0.20
-        + latency_score(avg_latency_ms) * 0.15
-    )
+    base_score = _norm_score(health_score) * 0.35 + stability_score(state) * 0.20 + latency_score(avg_latency_ms) * 0.15
     scored = _apply_penalty(base_score, reputation, learned, quota_score)
     return _apply_boost(scored, profile_bonus)
 

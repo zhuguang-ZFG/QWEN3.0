@@ -16,9 +16,7 @@ JDCLOUD_REMOTE_PROBE_PATH: str = "/opt/lima-probe"
 
 DEPLOY_KEY_PATH: str = os.environ.get("LIMA_DEPLOY_KEY_PATH", "~/.ssh/id_ed25519")
 
-JDCLOUD_SERVER: str = (
-    os.environ.get("LIMA_JDCLOUD_SERVER") or os.environ.get("JDCLOUD_HOST") or "117.72.118.95"
-)
+JDCLOUD_SERVER: str = os.environ.get("LIMA_JDCLOUD_SERVER") or os.environ.get("JDCLOUD_HOST") or "117.72.118.95"
 JDCLOUD_USER: str = os.environ.get("JDCLOUD_USER", "root")
 JDCLOUD_ROOT_PASSWORD: str = os.environ.get("LIMA_JDCLOUD_ROOT_PASSWORD", "")
 

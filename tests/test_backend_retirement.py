@@ -147,6 +147,7 @@ def test_is_retired_reloads_from_sqlite(monkeypatch):
     br._retired_backends.clear()
     assert br.is_retired("reload_sync_backend")
 
+
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

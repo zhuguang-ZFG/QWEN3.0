@@ -129,6 +129,7 @@ _load_matrix()
 _CHINESE_SIGNALS = ["中文", "chinese", "翻译", "解释一下", "什么是", "怎么"]
 _REASONING_SIGNALS = ["计算", "推理", "数学", "逻辑", "证明", "分析", "calculate", "math", "prove", "logic", "reason"]
 
+
 def classify_intent(query: str, messages: list[dict] = None) -> str:
     """
     精细意图分类: chinese | reasoning | english | simple

@@ -21,10 +21,14 @@ _SHA256 = "a" * 64
 
 def _key_pair():
     private_key = Ed25519PrivateKey.generate()
-    public_pem = private_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("utf-8")
+    public_pem = (
+        private_key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode("utf-8")
+    )
     return private_key, public_pem
 
 
@@ -38,6 +42,7 @@ def _ota_client(monkeypatch, public_key_pem: str):
     from fastapi.testclient import TestClient
     import access_guard
     from routes import device_ota
+
     monkeypatch.setattr(access_guard, "_API_KEYS", {"test-private-token"})
     monkeypatch.setattr(device_ota, "ota_signing_public_key", lambda: public_key_pem)
     device_ota.reset_ota_state_for_tests()
@@ -178,7 +183,12 @@ def test_gradual_start_rejects_bad_signature(monkeypatch):
     response = client.post(
         "/device/v1/ota/gradual/start/v1.0.0",
         headers={"Authorization": "Bearer test-private-token"},
-        json={"devices": ["dev-1"], "url": _URL, "sha256": _SHA256, "signature": base64.b64encode(b"bad").decode("utf-8")},
+        json={
+            "devices": ["dev-1"],
+            "url": _URL,
+            "sha256": _SHA256,
+            "signature": base64.b64encode(b"bad").decode("utf-8"),
+        },
     )
     assert response.status_code == 400
     assert "signature" in response.json()["detail"].lower()
@@ -226,12 +236,14 @@ def test_verify_signature_endpoint(monkeypatch):
     client = _ota_client(monkeypatch, public_pem)
     headers = {"Authorization": "Bearer test-private-token"}
     valid = client.post(
-        "/device/v1/ota/verify-signature", headers=headers,
+        "/device/v1/ota/verify-signature",
+        headers=headers,
         json={"url": _URL, "sha256": _SHA256, "signature": _sign(private_key, _URL, _SHA256)},
     ).json()
     assert valid["valid"] is True
     invalid = client.post(
-        "/device/v1/ota/verify-signature", headers=headers,
+        "/device/v1/ota/verify-signature",
+        headers=headers,
         json={"url": _URL, "sha256": "b" * 64, "signature": _sign(private_key, _URL, _SHA256)},
     ).json()
     assert invalid["valid"] is False

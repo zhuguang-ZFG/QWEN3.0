@@ -64,9 +64,15 @@ def test_try_include_import_error(mock_import):
 
 def test_register_all_routes_returns_aliases(deps):
     app = FastAPI()
-    with patch.object(rr, "_register_core_routes") as mock_core, patch.object(rr, "_register_optional_routes") as mock_opt, patch.object(rr, "mark_retired_modules"):
+    with (
+        patch.object(rr, "_register_core_routes") as mock_core,
+        patch.object(rr, "_register_optional_routes") as mock_opt,
+        patch.object(rr, "mark_retired_modules"),
+    ):
         chat_mod = SimpleNamespace(chat_completions=MagicMock())
-        sys_mod = SimpleNamespace(list_models=MagicMock(), health=MagicMock(), live_key=MagicMock(), router_status=MagicMock())
+        sys_mod = SimpleNamespace(
+            list_models=MagicMock(), health=MagicMock(), live_key=MagicMock(), router_status=MagicMock()
+        )
         mock_core.return_value = (chat_mod, sys_mod)
         result = rr.register_all_routes(app, deps)
         assert result.chat_completions is chat_mod.chat_completions

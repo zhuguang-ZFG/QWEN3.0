@@ -23,16 +23,10 @@ class CloudflareCredentials:
         return bool(self.account_id and self.token)
 
     def chat_url(self) -> str:
-        return (
-            f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}"
-            "/ai/v1/chat/completions"
-        )
+        return f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/ai/v1/chat/completions"
 
     def search_url(self) -> str:
-        return (
-            f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}"
-            "/ai/models/search"
-        )
+        return f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/ai/models/search"
 
 
 CLOUDFLARE = CloudflareCredentials()

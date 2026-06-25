@@ -61,9 +61,7 @@ class _StreamingRecognizerState:
         self.completed.set()
 
 
-def _create_streaming_transcriber(
-    state: _StreamingRecognizerState, url: str, token: str, appkey: str
-) -> Any:
+def _create_streaming_transcriber(state: _StreamingRecognizerState, url: str, token: str, appkey: str) -> Any:
     """Build an NlsSpeechTranscriber wired to *state* callbacks."""
     try:
         import nls
@@ -99,9 +97,7 @@ def _start_streaming_transcriber(transcriber: Any, sample_rate: int) -> None:
     )
 
 
-def _feed_audio_until_end(
-    transcriber: Any, queue: asyncio.Queue[bytes | None]
-) -> None:
+def _feed_audio_until_end(transcriber: Any, queue: asyncio.Queue[bytes | None]) -> None:
     """Forward audio chunks from *queue* until a ``None`` sentinel arrives."""
     while True:
         try:

@@ -9,9 +9,7 @@ def setup_logging(log_file: Path, level: str = "INFO") -> None:
     logger.setLevel(getattr(logging, level.upper(), logging.INFO))
     logger.handlers.clear()
 
-    formatter = logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s - %(message)s")
 
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)

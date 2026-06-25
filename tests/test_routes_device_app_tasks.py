@@ -48,13 +48,17 @@ def _ctx_manager(conn):
     class Ctx:
         def __enter__(self):
             return conn
+
         def __exit__(self, *args):
             return False
+
     return Ctx()
 
 
 def _patch_conn(rows=None, fetchone_sequence=None):
-    return patch.object(tasks, "connect", return_value=_ctx_manager(_make_conn(rows=rows, fetchone_sequence=fetchone_sequence)))
+    return patch.object(
+        tasks, "connect", return_value=_ctx_manager(_make_conn(rows=rows, fetchone_sequence=fetchone_sequence))
+    )
 
 
 def _make_task_row(**overrides):
@@ -63,7 +67,7 @@ def _make_task_row(**overrides):
         "device_id": overrides.get("device_id", "dev-1"),
         "account_id": overrides.get("account_id", "acc-1"),
         "intent": overrides.get("intent", "write_text"),
-        "params": overrides.get("params", '{}'),
+        "params": overrides.get("params", "{}"),
         "source": overrides.get("source", "api"),
         "status": overrides.get("status", "approved"),
         "progress": overrides.get("progress", 0),
@@ -77,21 +81,23 @@ def _make_task_row(**overrides):
 
 @pytest.fixture(autouse=True)
 def _patch_deps(account):
-    with patch.object(tasks, "authorize", return_value=account), \
-         patch.object(tasks, "require_device_access", return_value=None), \
-         patch.object(tasks, "require_device_control", return_value=None), \
-         patch.object(tasks, "require_device_owner", return_value=None), \
-         patch.object(tasks.store_mod, "task_store", MagicMock()) as mock_store, \
-         patch.object(tasks, "create_and_route_task") as mock_create_route, \
-         patch.object(tasks, "project_to_motion_task_async") as mock_project, \
-         patch.object(tasks, "validate_capability_params", return_value=({}, None)), \
-         patch.object(tasks, "dispatch_or_enqueue", return_value={"sent": True, "queueDepth": 0}), \
-         patch.object(tasks, "task_snapshot", return_value=None), \
-         patch.object(tasks, "insert_task_row") as mock_insert, \
-         patch.object(tasks, "approve_task_row") as mock_approve, \
-         patch.object(tasks, "dispatch_approved_task") as mock_dispatch_approved, \
-         patch.object(tasks, "reject_task_row") as mock_reject, \
-         patch.object(tasks, "record_rejection"):
+    with (
+        patch.object(tasks, "authorize", return_value=account),
+        patch.object(tasks, "require_device_access", return_value=None),
+        patch.object(tasks, "require_device_control", return_value=None),
+        patch.object(tasks, "require_device_owner", return_value=None),
+        patch.object(tasks.store_mod, "task_store", MagicMock()) as mock_store,
+        patch.object(tasks, "create_and_route_task") as mock_create_route,
+        patch.object(tasks, "project_to_motion_task_async") as mock_project,
+        patch.object(tasks, "validate_capability_params", return_value=({}, None)),
+        patch.object(tasks, "dispatch_or_enqueue", return_value={"sent": True, "queueDepth": 0}),
+        patch.object(tasks, "task_snapshot", return_value=None),
+        patch.object(tasks, "insert_task_row") as mock_insert,
+        patch.object(tasks, "approve_task_row") as mock_approve,
+        patch.object(tasks, "dispatch_approved_task") as mock_dispatch_approved,
+        patch.object(tasks, "reject_task_row") as mock_reject,
+        patch.object(tasks, "record_rejection"),
+    ):
         mock_store.list_tasks_for_device.return_value = []
         mock_create_route.return_value = SimpleNamespace(
             task={"task_id": "task-1"},

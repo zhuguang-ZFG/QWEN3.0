@@ -30,18 +30,20 @@ def account():
 
 @pytest.fixture(autouse=True)
 def _patch_deps(account):
-    with patch.object(api, "authorize", return_value=account), \
-         patch.object(api, "connect") as mock_connect, \
-         patch.object(api, "new_activation_code", return_value="code-123"), \
-         patch.object(api, "logic_bind_device") as mock_bind, \
-         patch.object(api, "list_device_rows", return_value=[]), \
-         patch.object(api, "get_device_row", return_value=None), \
-         patch.object(api, "update_device_row") as mock_update, \
-         patch.object(api, "logic_unbind_device") as mock_unbind, \
-         patch.object(api, "check_activation_code", return_value=True), \
-         patch.object(api, "validate_device_sn", return_value="SN123"), \
-         patch.object(api, "_require_view", return_value=None), \
-         patch.object(api, "_require_control", return_value=None):
+    with (
+        patch.object(api, "authorize", return_value=account),
+        patch.object(api, "connect") as mock_connect,
+        patch.object(api, "new_activation_code", return_value="code-123"),
+        patch.object(api, "logic_bind_device") as mock_bind,
+        patch.object(api, "list_device_rows", return_value=[]),
+        patch.object(api, "get_device_row", return_value=None),
+        patch.object(api, "update_device_row") as mock_update,
+        patch.object(api, "logic_unbind_device") as mock_unbind,
+        patch.object(api, "check_activation_code", return_value=True),
+        patch.object(api, "validate_device_sn", return_value="SN123"),
+        patch.object(api, "_require_view", return_value=None),
+        patch.object(api, "_require_control", return_value=None),
+    ):
         conn = MagicMock()
         mock_connect.return_value.__enter__ = MagicMock(return_value=conn)
         mock_connect.return_value.__exit__ = MagicMock(return_value=False)
@@ -86,9 +88,12 @@ def test_register_device_rate_limited(client, auth_header):
     original_max = api._register_limiter._max_calls
     api._register_limiter._max_calls = 1
     try:
-        assert client.post(
-            "/device/v1/app/devices/register", json={"macAddress": "aa:bb"}, headers=auth_header
-        ).status_code == 200
+        assert (
+            client.post(
+                "/device/v1/app/devices/register", json={"macAddress": "aa:bb"}, headers=auth_header
+            ).status_code
+            == 200
+        )
         response = client.post("/device/v1/app/devices/register", json={"macAddress": "aa:cc"}, headers=auth_header)
         assert response.status_code == 429
     finally:

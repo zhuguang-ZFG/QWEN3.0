@@ -30,9 +30,7 @@ def _not_found(message: str = "session not found") -> JSONResponse:
 
 
 @router.post("/devices/{device_id}/chat-sessions")
-async def create_chat_session(
-    device_id: str, request: Request, authorization: str = Header(default="")
-) -> Any:
+async def create_chat_session(device_id: str, request: Request, authorization: str = Header(default="")) -> Any:
     """Create a chat session for a device."""
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
@@ -50,9 +48,7 @@ async def create_chat_session(
 
 
 @router.get("/devices/{device_id}/chat-sessions")
-async def list_chat_sessions(
-    device_id: str, authorization: str = Header(default="")
-) -> Any:
+async def list_chat_sessions(device_id: str, authorization: str = Header(default="")) -> Any:
     """List active chat sessions for a device."""
     account = authorize(authorization)
     if isinstance(account, JSONResponse):

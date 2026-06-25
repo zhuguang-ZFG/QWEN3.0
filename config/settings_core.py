@@ -40,7 +40,12 @@ class RedisConfig:
 class SecurityConfig:
     admin_token: str = os.environ.get("LIMA_ADMIN_TOKEN", "")
     admin_login_per_min: int = int(os.environ.get("LIMA_ADMIN_LOGIN_PER_MIN", "10"))
-    rate_limit_disable: bool = os.environ.get("LIMA_RATE_LIMIT_DISABLE", "").strip().lower() in {"1", "true", "yes", "on"}
+    rate_limit_disable: bool = os.environ.get("LIMA_RATE_LIMIT_DISABLE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     api_key: str = os.environ.get("LIMA_API_KEY", "")
     api_keys: str = os.environ.get("LIMA_API_KEYS", "")
     allow_anonymous: bool = os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower() in {"1", "true", "yes", "on"}
@@ -56,9 +61,7 @@ class PathsConfig:
     project_root: str = os.environ.get("LIMA_PROJECT_ROOT", "")
     code_dir: str = os.environ.get("LIMA_CODE_DIR", "/opt/lima-router")
     routing_model_path: str = os.environ.get("LIMA_ROUTING_MODEL_PATH", "data/routing_model.json")
-    local_router_url: str = os.environ.get(
-        "LOCAL_ROUTER_URL", "http://127.0.0.1:11434/v1/chat/completions"
-    )
+    local_router_url: str = os.environ.get("LOCAL_ROUTER_URL", "http://127.0.0.1:11434/v1/chat/completions")
 
 
 @dataclass
@@ -67,38 +70,51 @@ class FeatureFlags:
     memory_embed: bool = os.environ.get("LIMA_MEMORY_EMBED", "1").strip().lower() in {"1", "true", "yes"}
     verify_host: bool = os.environ.get("LIMA_VERIFY_HOST", "1").strip().lower() in {"1", "true", "yes"}
     device_llm_planner: bool = os.environ.get("LIMA_DEVICE_LLM_PLANNER", "0") == "1"
-    allow_http_backends: bool = (
-        os.environ.get("LIMA_ALLOW_HTTP_BACKENDS", "").strip().lower() in {"1", "true", "yes", "on"}
-    )
+    allow_http_backends: bool = os.environ.get("LIMA_ALLOW_HTTP_BACKENDS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     distill_log: bool = os.environ.get("DISTILL_LOG", "0") == "1"
-    wechat_dev_login: bool = (
-        os.environ.get("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", "").strip().lower() in {"1", "true", "yes", "on"}
-    )
-    xiaozhi_dev_static_login_code: bool = (
-        os.environ.get("LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE", "").strip().lower()
-        in {"1", "true", "yes", "on"}
-    )
-    public_demo: bool = (
-        os.environ.get("LIMA_PUBLIC_DEMO_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
-    )
+    wechat_dev_login: bool = os.environ.get("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    xiaozhi_dev_static_login_code: bool = os.environ.get("LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    public_demo: bool = os.environ.get("LIMA_PUBLIC_DEMO_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
     public_demo_max_per_minute: int = max(
         1,
         min(60, int(os.environ.get("LIMA_PUBLIC_DEMO_MAX_PER_MINUTE", "6") or "6")),
     )
-    health_show_errors: bool = (
-        os.environ.get("LIMA_HEALTH_SHOW_ERRORS", "0").strip().lower() in {"1", "true", "yes"}
-    )
+    health_show_errors: bool = os.environ.get("LIMA_HEALTH_SHOW_ERRORS", "0").strip().lower() in {"1", "true", "yes"}
     enable_leann: bool = os.environ.get("LIMA_ENABLE_LEANN", "") == "1"
     runtime_env: str = os.environ.get("LIMA_RUNTIME_ENV", "").strip().lower()
-    enable_local_proxies: bool = (
-        os.environ.get("LIMA_ENABLE_LOCAL_PROXIES", "").strip().lower() in {"1", "true", "yes", "on"}
-    )
-    runtime_local_proxies: bool = (
-        os.environ.get("LIMA_RUNTIME_LOCAL_PROXIES", "").strip().lower() in {"1", "true", "yes", "on"}
-    )
-    healthcheck_enabled: bool = (
-        os.environ.get("LIMA_HEALTHCHECK_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
-    )
+    enable_local_proxies: bool = os.environ.get("LIMA_ENABLE_LOCAL_PROXIES", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    runtime_local_proxies: bool = os.environ.get("LIMA_RUNTIME_LOCAL_PROXIES", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    healthcheck_enabled: bool = os.environ.get("LIMA_HEALTHCHECK_ENABLED", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     device_mode: bool = os.environ.get("LIMA_DEVICE_MODE", "").strip() == "1"
 
 
@@ -144,13 +160,9 @@ class EmbeddingConfig:
 @dataclass
 class DeviceConfig:
     tokens: str = os.environ.get("LIMA_DEVICE_TOKENS", "")
-    digital_human_default_device_id: str = (
-        os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip()
-    )
+    digital_human_default_device_id: str = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip()
     digital_human_default_token: str = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip()
-    mqtt_enabled: bool = (
-        os.environ.get("LIMA_DEVICE_MQTT_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
-    )
+    mqtt_enabled: bool = os.environ.get("LIMA_DEVICE_MQTT_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
     mqtt_broker: str = os.environ.get("LIMA_DEVICE_MQTT_BROKER", "localhost")
     mqtt_port: int = int(os.environ.get("LIMA_DEVICE_MQTT_PORT", "1883"))
     mqtt_client_id: str = os.environ.get("LIMA_DEVICE_MQTT_CLIENT_ID", "lima-router")
@@ -161,9 +173,7 @@ class DeviceConfig:
     auth_sms_per_min: int = int(os.environ.get("LIMA_DEVICE_AUTH_SMS_PER_MIN", "10") or "10")
     activation_code: str = os.environ.get("LIMA_XIAOZHI_ACTIVATION_CODE", "").strip()
     login_code: str = os.environ.get("LIMA_XIAOZHI_LOGIN_CODE", "").strip()
-    captcha_required: bool = (
-        os.environ.get("LIMA_XIAOZHI_CAPTCHA_REQUIRED", "").strip().lower() in {"1", "true", "yes"}
-    )
+    captcha_required: bool = os.environ.get("LIMA_XIAOZHI_CAPTCHA_REQUIRED", "").strip().lower() in {"1", "true", "yes"}
     redis_memory_index_ttl: int = int(os.environ.get("LIMA_REDIS_MEMORY_INDEX_TTL", "2592000"))
     redis_ledger_ttl: int = int(os.environ.get("LIMA_REDIS_LEDGER_TTL", "7776000"))
 
@@ -177,9 +187,7 @@ class SessionMemoryConfig:
         os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "memory_inbox"),
     )
     consolidation_interval: int = int(os.environ.get("LIMA_MEMORY_CONSOLIDATION_INTERVAL", "300"))
-    outcome_ledger_enabled: bool = (
-        os.environ.get("LIMA_OUTCOME_LEDGER", "1").strip().lower() in {"1", "true", "yes"}
-    )
+    outcome_ledger_enabled: bool = os.environ.get("LIMA_OUTCOME_LEDGER", "1").strip().lower() in {"1", "true", "yes"}
     outcome_db: str = os.environ.get(
         "LIMA_OUTCOME_DB",
         str(Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / "data" / "outcome_ledger.db"),
@@ -190,13 +198,10 @@ class SessionMemoryConfig:
 class DigitalHumanConfig:
     directory: str = os.environ.get("LIMA_DIGITAL_HUMAN_DIR", "").strip()
     device_id: str = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip()
-    device_name: str = (
-        os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_NAME", "LiMa 星云数字人").strip()
-    )
+    device_name: str = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_NAME", "LiMa 星云数字人").strip()
     client_id: str = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_CLIENT_ID", "web_test_client").strip()
     wakeword_enabled: bool = (
-        os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_WAKEUP_WORD_ENABLED", "false").strip().lower()
-        == "true"
+        os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_WAKEUP_WORD_ENABLED", "false").strip().lower() == "true"
     )
 
 
@@ -220,37 +225,31 @@ class OtaConfig:
 class UploadConfig:
     per_min: int = int(os.environ.get("LIMA_UPLOAD_PER_MIN", "30"))
     token_secret: str = os.environ.get("LIMA_UPLOAD_TOKEN_SECRET") or os.environ.get("LIMA_JWT_SECRET", "")
-    public_get_enabled: bool = (
-        os.environ.get("LIMA_UPLOAD_PUBLIC_GET", "0").strip().lower() in {"1", "true", "yes"}
-    )
+    public_get_enabled: bool = os.environ.get("LIMA_UPLOAD_PUBLIC_GET", "0").strip().lower() in {"1", "true", "yes"}
     token_ttl: int = int(os.environ.get("LIMA_UPLOAD_TOKEN_TTL", "86400"))
 
 
 @dataclass
 class ObservabilityConfig:
-    telemetry_jsonl_max_bytes: int = int(
-        os.environ.get("LIMA_TELEMETRY_JSONL_MAX_BYTES", str(1024 * 1024))
-    )
-    openobserve_enabled: bool = (
-        os.environ.get("OPENOBSERVE_ENABLED", "").strip().lower() in {"1", "true", "yes"}
-    )
-    prometheus_metrics: bool = (
-        os.environ.get("LIMA_PROMETHEUS_METRICS", "0").strip().lower() in {"1", "true", "yes", "on"}
-    )
-    structured_logging: bool = (
-        os.environ.get("LIMA_STRUCTURED_LOGGING", "0").strip().lower() in {"1", "true", "yes"}
-    )
+    telemetry_jsonl_max_bytes: int = int(os.environ.get("LIMA_TELEMETRY_JSONL_MAX_BYTES", str(1024 * 1024)))
+    openobserve_enabled: bool = os.environ.get("OPENOBSERVE_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+    prometheus_metrics: bool = os.environ.get("LIMA_PROMETHEUS_METRICS", "0").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    structured_logging: bool = os.environ.get("LIMA_STRUCTURED_LOGGING", "0").strip().lower() in {"1", "true", "yes"}
     service_name: str = os.environ.get("LIMA_SERVICE_NAME", "lima-router")
-    routing_guard_enabled: bool = (
-        os.environ.get("LIMA_ROUTING_GUARD_ENABLED", "1").strip().lower() not in {"0", "false", "no", "off"}
-    )
+    routing_guard_enabled: bool = os.environ.get("LIMA_ROUTING_GUARD_ENABLED", "1").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
     routing_guard_window_sec: int = int(os.environ.get("LIMA_ROUTING_GUARD_WINDOW_SEC", "600"))
-    routing_guard_quarantine_sec: int = int(
-        os.environ.get("LIMA_ROUTING_GUARD_QUARANTINE_SEC", "180")
-    )
-    routing_guard_failure_threshold: int = int(
-        os.environ.get("LIMA_ROUTING_GUARD_FAILURE_THRESHOLD", "3")
-    )
+    routing_guard_quarantine_sec: int = int(os.environ.get("LIMA_ROUTING_GUARD_QUARANTINE_SEC", "180"))
+    routing_guard_failure_threshold: int = int(os.environ.get("LIMA_ROUTING_GUARD_FAILURE_THRESHOLD", "3"))
 
 
 @dataclass
@@ -263,9 +262,7 @@ class IntegrationsConfig:
     supabase_url: str = os.environ.get("SUPABASE_URL", "").strip()
     supabase_key: str = os.environ.get("SUPABASE_SECRET", "").strip()
     langsmith_key: str = os.environ.get("LANGSMITH_API_KEY", "").strip()
-    gitee_token: str = (
-        os.environ.get("GITEE_TOKEN", "").strip() or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
-    )
+    gitee_token: str = os.environ.get("GITEE_TOKEN", "").strip() or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
 
 
 @dataclass

@@ -48,16 +48,28 @@ class TestProtocolNegotiator:
         negotiator = ProtocolNegotiator()
         caps = negotiator.capabilities_for_version("lima-device-v2-draft")
         expected = {
-            "run_path", "write_text", "draw_generated", "draw_asset",
-            "home", "pause", "resume", "stop", "get_device_info",
-            "self_check", "estop", "voice_command",
-            "multi_pass", "variable_speed",
+            "run_path",
+            "write_text",
+            "draw_generated",
+            "draw_asset",
+            "home",
+            "pause",
+            "resume",
+            "stop",
+            "get_device_info",
+            "self_check",
+            "estop",
+            "voice_command",
+            "multi_pass",
+            "variable_speed",
         }
         assert caps == expected
 
     def test_capabilities_for_unknown_version_defaults_to_v1(self) -> None:
         negotiator = ProtocolNegotiator()
-        assert negotiator.capabilities_for_version("lima-device-v99") == negotiator.capabilities_for_version("lima-device-v1")
+        assert negotiator.capabilities_for_version("lima-device-v99") == negotiator.capabilities_for_version(
+            "lima-device-v1"
+        )
 
 
 class TestFirmwareMatrix:

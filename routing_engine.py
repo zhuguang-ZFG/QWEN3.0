@@ -116,11 +116,22 @@ def pick_backend(
 ) -> PickResult:
     """选路前半段：与 route() 共享 classify/inject/select/skills 管线，不执行 HTTP。"""
     req_type, scenario, recall_attempt, retrieval_text = _classify_and_recall(
-        query, messages, fmt, ide_source, system_prompt, headers or {},
+        query,
+        messages,
+        fmt,
+        ide_source,
+        system_prompt,
+        headers or {},
     )
 
     sticky_key, backends = _select_backends(
-        req_type, scenario, recall_attempt, messages, needs_tools, preferred_backend, model,
+        req_type,
+        scenario,
+        recall_attempt,
+        messages,
+        needs_tools,
+        preferred_backend,
+        model,
     )
 
     messages, prompt_scenario = _enrich_with_intent_and_skills(messages, query, system_prompt, ide_source, backends)
@@ -165,8 +176,12 @@ def _select_backends(
     sticky_key = sticky_session.compute_key(model or "default", messages)
     hmap = health_tracker.get_health_map()
     backends = select(
-        req_type, hmap, sticky_key=sticky_key, scenario=scenario,
-        needs_tools=needs_tools, recalled_backend=recall_attempt,
+        req_type,
+        hmap,
+        sticky_key=sticky_key,
+        scenario=scenario,
+        needs_tools=needs_tools,
+        recalled_backend=recall_attempt,
         preferred_backend=preferred_backend or "",
     )
     return sticky_key, backends

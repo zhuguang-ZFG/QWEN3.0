@@ -102,10 +102,7 @@ async def list_assets(
 
     where = " AND ".join(clauses)
     count_sql = f"SELECT COUNT(*) AS cnt FROM v2_asset_library WHERE {where}"
-    list_sql = (
-        f"SELECT * FROM v2_asset_library WHERE {where} "
-        "ORDER BY use_count DESC, created_at DESC LIMIT ? OFFSET ?"
-    )
+    list_sql = f"SELECT * FROM v2_asset_library WHERE {where} ORDER BY use_count DESC, created_at DESC LIMIT ? OFFSET ?"
 
     with connect() as conn:
         total = conn.execute(count_sql, params).fetchone()["cnt"]
@@ -121,9 +118,7 @@ async def get_asset(asset_id: str, authorization: str = Header(default="")):
         return account
 
     with connect() as conn:
-        row = conn.execute(
-            "SELECT * FROM v2_asset_library WHERE id=? AND status='active'", (asset_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM v2_asset_library WHERE id=? AND status='active'", (asset_id,)).fetchone()
         if row is None:
             return err(404, "asset not found", 404)
         conn.execute("UPDATE v2_asset_library SET use_count=use_count+1 WHERE id=?", (asset_id,))
@@ -201,9 +196,7 @@ async def render_asset(asset_id: str, request: Request, authorization: str = Hea
         denied = require_device_control(conn, account, device_id)
         if denied:
             return denied
-        row = conn.execute(
-            "SELECT * FROM v2_asset_library WHERE id=? AND status='active'", (asset_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM v2_asset_library WHERE id=? AND status='active'", (asset_id,)).fetchone()
         if row is None:
             return err(404, "asset not found", 404)
 

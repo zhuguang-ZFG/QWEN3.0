@@ -26,9 +26,7 @@ class FirmwareVerifier:
         try:
             key = serialization.load_pem_public_key(public_key_pem.encode("utf-8"))
         except Exception as exc:
-            raise FirmwareSignatureError(
-                f"OTA signing public key is invalid: {type(exc).__name__}"
-            ) from exc
+            raise FirmwareSignatureError(f"OTA signing public key is invalid: {type(exc).__name__}") from exc
         if not isinstance(key, Ed25519PublicKey):
             raise FirmwareSignatureError("OTA signing public key must be an Ed25519 key")
         self._public_key = cast(Ed25519PublicKey, key)

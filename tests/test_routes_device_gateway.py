@@ -69,9 +69,10 @@ def test_device_gateway_events_invalid_protocol(client):
 
 def test_device_gateway_events_motion_event(client):
     message = {"type": "motion_event", "device_id": "dev-1", "task_id": "t1", "phase": "done"}
-    with patch.object(dg, "validate_uplink", return_value=message), patch.object(
-        dg, "process_motion_event_core", return_value={"phase": "done"}
-    ) as mock_process:
+    with (
+        patch.object(dg, "validate_uplink", return_value=message),
+        patch.object(dg, "process_motion_event_core", return_value={"phase": "done"}) as mock_process,
+    ):
         response = client.post(
             "/device/v1/events",
             json=message,
@@ -84,9 +85,10 @@ def test_device_gateway_events_motion_event(client):
 
 def test_device_gateway_events_device_info(client):
     message = {"type": "device_info", "device_id": "dev-1"}
-    with patch.object(dg, "validate_uplink", return_value=message), patch.object(
-        dg.shadow_store, "update_device_info"
-    ) as mock_update:
+    with (
+        patch.object(dg, "validate_uplink", return_value=message),
+        patch.object(dg.shadow_store, "update_device_info") as mock_update,
+    ):
         response = client.post(
             "/device/v1/events",
             json=message,
@@ -99,9 +101,10 @@ def test_device_gateway_events_device_info(client):
 
 def test_device_gateway_events_self_check(client):
     message = {"type": "self_check", "device_id": "dev-1", "status": "ok"}
-    with patch.object(dg, "validate_uplink", return_value=message), patch.object(
-        dg.shadow_store, "update_self_check"
-    ) as mock_update:
+    with (
+        patch.object(dg, "validate_uplink", return_value=message),
+        patch.object(dg.shadow_store, "update_self_check") as mock_update,
+    ):
         response = client.post(
             "/device/v1/events",
             json=message,
@@ -155,9 +158,10 @@ def test_device_gateway_tasks_creates_task(client):
     result.sent = False
     result.queue_depth = 1
     result.task = {"task_id": "t1"}
-    with patch.object(dg, "create_and_route_task", new_callable=AsyncMock, return_value=result), patch.object(
-        dg, "_record_device_task_evidence"
-    ) as mock_record:
+    with (
+        patch.object(dg, "create_and_route_task", new_callable=AsyncMock, return_value=result),
+        patch.object(dg, "_record_device_task_evidence") as mock_record,
+    ):
         response = client.post(
             "/device/v1/tasks",
             json={"device_id": "dev-1", "text": "draw a circle", "request_id": "r1"},

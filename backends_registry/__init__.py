@@ -70,6 +70,7 @@ def get_backend(name: str) -> dict | None:
     """Get backend config, or None if not found."""
     return BACKENDS.get(name)
 
+
 # M6: All host-dependent backends migrated to VPS or deleted.
 DISABLED_HOST_DEPENDENT_BACKENDS: dict[str, dict] = {}
 

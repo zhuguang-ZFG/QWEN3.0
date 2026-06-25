@@ -83,4 +83,6 @@ def create_task_from_transcript(
     source: str | None = None,
     entrypoint: str | None = None,
 ) -> dict[str, Any]:
-    return run_coro_sync(create_task_from_transcript_async(device_id, text, request_id, source=source, entrypoint=entrypoint))
+    return run_coro_sync(
+        create_task_from_transcript_async(device_id, text, request_id, source=source, entrypoint=entrypoint)
+    )

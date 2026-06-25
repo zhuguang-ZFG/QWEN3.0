@@ -65,13 +65,15 @@ class LimaCodeQuery:
             return results
         try:
             for r in self._index.search(query, limit=limit):
-                results.append({
-                    "path": r.path,
-                    "symbols": [s.name for s in r.symbols][:10],
-                    "imports": [imp[0] for imp in r.imports][:10],
-                    "mtime": r.mtime,
-                    "source": "keyword",
-                })
+                results.append(
+                    {
+                        "path": r.path,
+                        "symbols": [s.name for s in r.symbols][:10],
+                        "imports": [imp[0] for imp in r.imports][:10],
+                        "mtime": r.mtime,
+                        "source": "keyword",
+                    }
+                )
         except Exception as e:
             logger.warning("keyword index search failed for query %r: %s", query, e)
         return results

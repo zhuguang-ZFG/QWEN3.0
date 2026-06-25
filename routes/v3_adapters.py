@@ -151,7 +151,6 @@ def v3_call_api(backend, messages, max_tokens, ide):
     """V3 非流式调用适配器。含场景检测 + 反向约束。"""
     sys_prompt = ""
     try:
-
         query = next(
             (m["content"] for m in reversed(messages) if m.get("role") == "user" and isinstance(m.get("content"), str)),
             "",
@@ -211,7 +210,10 @@ def _build_async_stream_prompt(messages: list, ide: str) -> str:
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
             scenario = classify_scenario(
-                messages, query=query, ide_source=ide if is_ide else "", request_type="ide" if is_ide else "chat",
+                messages,
+                query=query,
+                ide_source=ide if is_ide else "",
+                request_type="ide" if is_ide else "chat",
             )
             if scenario == "coding":
                 digest = build_context_digest(query, messages, ide_source=ide)
@@ -224,7 +226,10 @@ def _build_async_stream_prompt(messages: list, ide: str) -> str:
                     if tpc.get("context_files"):
                         ctx_summary = "\nRelated files: " + ", ".join(tpc["context_files"][:5])
                         if messages and messages[-1].get("role") == "user":
-                            messages[-1] = {**messages[-1], "content": str(messages[-1].get("content", "")) + ctx_summary}
+                            messages[-1] = {
+                                **messages[-1],
+                                "content": str(messages[-1].get("content", "")) + ctx_summary,
+                            }
             else:
                 sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
     except Exception as e:
@@ -236,7 +241,6 @@ async def v3_call_api_async(backend, messages, max_tokens, ide):
     """Async non-streaming adapter."""
     sys_prompt = ""
     try:
-
         query = next(
             (m["content"] for m in reversed(messages) if m.get("role") == "user" and isinstance(m.get("content"), str)),
             "",

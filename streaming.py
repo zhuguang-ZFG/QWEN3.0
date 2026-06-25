@@ -72,7 +72,10 @@ async def _aclose_stream(stream, backend: str) -> None:
 
 
 async def _async_fallback_to_api(
-    backend: str, messages: list, max_tokens: int, ide: str,
+    backend: str,
+    messages: list,
+    max_tokens: int,
+    ide: str,
     call_api_async_fn: CallApiAsyncFn,
 ) -> AsyncIterator[str]:
     """Fallback: non-streaming call when stream returned empty."""

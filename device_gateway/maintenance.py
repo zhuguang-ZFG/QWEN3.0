@@ -74,9 +74,7 @@ class PredictiveMaintenance:
     def _predicted_failures(self, failure_rate: float, trend: str, total: int) -> int:
         if total == 0:
             return 0
-        multiplier = {"critical": 1.2, "degrading": 1.0, "stable": 0.8, "improving": 0.5}.get(
-            trend, 1.0
-        )
+        multiplier = {"critical": 1.2, "degrading": 1.0, "stable": 0.8, "improving": 0.5}.get(trend, 1.0)
         return max(0, int(round(failure_rate * total * multiplier)))
 
     def _recommended_actions(

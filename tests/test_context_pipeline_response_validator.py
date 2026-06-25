@@ -78,10 +78,7 @@ def test_validate_js_pattern_issues():
 
 
 def test_validate_multiple_blocks():
-    response = (
-        "```python\ndef good():\n    return 1\n```\n"
-        "```python\neval(x)\n```"
-    )
+    response = "```python\ndef good():\n    return 1\n```\n```python\neval(x)\n```"
     result = validate_response(response)
     assert result.blocks_checked == 2
     assert result.passed is False

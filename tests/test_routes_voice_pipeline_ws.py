@@ -42,11 +42,14 @@ def test_authorized_websocket_accepts_text_message(client):
     fake_vad.is_utterance_end.return_value = False
     fake_vad.reset = MagicMock()
 
-    with patch("routes.voice_pipeline_ws.authenticate_websocket", return_value=(True, "header")), patch(
-        "routes.voice_pipeline_ws.create_vad_provider", return_value=fake_vad
-    ), patch("routes.voice_pipeline_ws.VADState") as mock_state_cls, patch(
-        "routes.voice_pipeline_ws.process_text_utterance",
-        return_value={"transcript": "", "reply_text": "hello", "reply_audio": b""},
+    with (
+        patch("routes.voice_pipeline_ws.authenticate_websocket", return_value=(True, "header")),
+        patch("routes.voice_pipeline_ws.create_vad_provider", return_value=fake_vad),
+        patch("routes.voice_pipeline_ws.VADState") as mock_state_cls,
+        patch(
+            "routes.voice_pipeline_ws.process_text_utterance",
+            return_value={"transcript": "", "reply_text": "hello", "reply_audio": b""},
+        ),
     ):
         mock_state_cls.return_value = MagicMock(speech_buffer=bytearray(), is_speaking=False, silence_frames=0)
         with client.websocket_connect("/v1/voice") as websocket:
@@ -62,7 +65,7 @@ def test_simple_energy_vad():
     # Frame of silence (zeros) should not trigger voice.
     assert vad.detect(b"\x00" * vp._SimpleEnergyVAD._FRAME_BYTES, state) is False
     # Loud frame should trigger voice.
-    loud = (b"\xff\x7f" * (vp._SimpleEnergyVAD._FRAME_BYTES // 2))
+    loud = b"\xff\x7f" * (vp._SimpleEnergyVAD._FRAME_BYTES // 2)
     assert vad.detect(loud, state) is True
 
 
@@ -87,6 +90,7 @@ def test_voice_session_handle_audio():
                 await mock_handle(message["bytes"])
 
         import asyncio
+
         asyncio.run(run_once())
     mock_handle.assert_awaited_once_with(b"\x00" * vp.FRAME_BYTES)
 
@@ -96,5 +100,6 @@ def test_send_audio_chunks_splits_large_audio():
     fake_ws.send_json = AsyncMock()
     session = vp._VoiceSession(fake_ws, MagicMock())
     import asyncio
+
     asyncio.run(session._send_audio_chunks(b"a" * 100000, chunk_size=48000))
     assert fake_ws.send_json.await_count == 3

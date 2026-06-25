@@ -197,7 +197,9 @@ def _extract_memory_from_terminal(task_id: str, device_id: str, event: dict[str,
     except Exception:
         _log.warning(
             "memory extraction failed device=%s task=%s; skipping to avoid blocking task lifecycle",
-            device_id, task_id, exc_info=True,
+            device_id,
+            task_id,
+            exc_info=True,
         )
 
 

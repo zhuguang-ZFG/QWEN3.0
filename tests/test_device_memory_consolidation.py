@@ -129,6 +129,7 @@ def test_expired_episodes_are_skipped():
     results = consolidate_task_episodes(store, "dev-1")
     assert results == []  # only 1 non-expired episode
 
+
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

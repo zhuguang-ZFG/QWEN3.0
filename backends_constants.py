@@ -1,6 +1,5 @@
 """Backend capability sets and routing constants."""
 
-
 # Thinking-capable backends in priority order
 THINKING_BACKENDS = [
     "scnet_ds_pro",  # 支持深度推理（优先，本地可用）

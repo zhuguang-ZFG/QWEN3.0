@@ -174,7 +174,9 @@ def test_upload_rate_limited_per_account(upload_client, monkeypatch):
 
     # A different account should still be allowed.
     with connect() as conn:
-        conn.execute("INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)", ("a-upload-2", "13011", "uploader2"))
+        conn.execute(
+            "INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)", ("a-upload-2", "13011", "uploader2")
+        )
         conn.commit()
     allowed = upload_client.post(
         "/upload",
@@ -188,6 +190,7 @@ def test_upload_rate_limited_per_account(upload_client, monkeypatch):
 async def test_serve_uploaded_file_blocks_path_traversal():
     response = await serve_uploaded_file("../../server.py")
     assert response.status_code == 404
+
 
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):

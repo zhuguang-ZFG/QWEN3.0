@@ -20,7 +20,7 @@ def test_public_chat_code_blocks_escape_html() -> None:
     text = (ROOT / "chat-web/chat-messages.js").read_text(encoding="utf-8")
     # Code captured from triple backticks must be HTML-escaped before insertion.
     assert re.search(r"<code[^>]*>\$\{escapeHtml\(code\)\}</code>", text), "code block must escape HTML"
-    assert "onclick=\"copyCode" not in text
+    assert 'onclick="copyCode' not in text
 
 
 def test_public_chat_renderer_does_not_restore_unescaped_image_attributes() -> None:

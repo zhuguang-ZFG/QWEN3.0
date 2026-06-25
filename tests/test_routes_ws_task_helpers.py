@@ -38,9 +38,11 @@ async def test_send_recovery_ack_home(session):
 
 @pytest.mark.asyncio
 async def test_send_recovery_ack_retry(session):
-    with patch("routes.ws_task_helpers.ack_frame", return_value={"type": "ack"}) as mock_ack, patch(
-        "routes.ws_task_helpers.mark_task_dispatched"
-    ) as mock_mark, patch("routes.ws_task_helpers.remove_pending_task") as mock_remove:
+    with (
+        patch("routes.ws_task_helpers.ack_frame", return_value={"type": "ack"}) as mock_ack,
+        patch("routes.ws_task_helpers.mark_task_dispatched") as mock_mark,
+        patch("routes.ws_task_helpers.remove_pending_task") as mock_remove,
+    ):
         retry_task = {"task_id": "task-2"}
         await wth.send_recovery_ack(
             session,

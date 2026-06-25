@@ -81,17 +81,21 @@ def _ctx_manager(conn):
     class Ctx:
         def __enter__(self):
             return conn
+
         def __exit__(self, *args):
             return False
+
     return Ctx()
 
 
 @pytest.fixture(autouse=True)
 def _patch_deps(account):
-    with patch.object(members, "authorize", return_value=account), \
-         patch.object(members, "require_device_access", return_value=None), \
-         patch.object(members, "ALLOWED_MEMBER_ROLES", {"child", "adult", "admin"}), \
-         patch.object(members, "new_id", return_value="new-id"):
+    with (
+        patch.object(members, "authorize", return_value=account),
+        patch.object(members, "require_device_access", return_value=None),
+        patch.object(members, "ALLOWED_MEMBER_ROLES", {"child", "adult", "admin"}),
+        patch.object(members, "new_id", return_value="new-id"),
+    ):
         yield
 
 

@@ -16,7 +16,13 @@ from routes import request_tracking as rt
 
 
 def _request(client_host: str, headers: dict | None = None) -> Request:
-    return Request({"type": "http", "client": (client_host, 0), "headers": [[k.lower().encode(), v.encode()] for k, v in (headers or {}).items()]})
+    return Request(
+        {
+            "type": "http",
+            "client": (client_host, 0),
+            "headers": [[k.lower().encode(), v.encode()] for k, v in (headers or {}).items()],
+        }
+    )
 
 
 def test_client_ip_returns_direct_for_untrusted():
@@ -94,6 +100,7 @@ def test_get_ip_location_invalid():
 def test_get_ip_location_lookup(mock_urlopen):
     mock_urlopen.return_value.read.return_value = json.dumps({"country": "China", "city": "Beijing"}).encode()
     assert rt.get_ip_location("1.2.3.4") == "China Beijing"
+
 
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):

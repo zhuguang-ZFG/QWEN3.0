@@ -25,13 +25,14 @@ def client(monkeypatch):
 
 
 def test_websocket_route_accepts_and_receives(client):
-    with patch.object(dgws, "handle_hello", new_callable=AsyncMock, return_value=("dev-1", MagicMock(), True)) as mock_hello, patch.object(
-        dgws, "handle_heartbeat", new_callable=AsyncMock
-    ) as mock_heartbeat, patch.object(
-        dgws, "requeue_session_outstanding"
-    ) as mock_requeue, patch.object(
-        dgws, "_cleanup_audio_registry"
-    ) as mock_cleanup:
+    with (
+        patch.object(
+            dgws, "handle_hello", new_callable=AsyncMock, return_value=("dev-1", MagicMock(), True)
+        ) as mock_hello,
+        patch.object(dgws, "handle_heartbeat", new_callable=AsyncMock) as mock_heartbeat,
+        patch.object(dgws, "requeue_session_outstanding") as mock_requeue,
+        patch.object(dgws, "_cleanup_audio_registry") as mock_cleanup,
+    ):
         with client.websocket_connect("/device/v1/ws") as ws:
             ws.send_json({"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1"})
             ws.send_json({"type": "heartbeat", "device_id": "dev-1", "uptime_ms": 1000})
@@ -42,8 +43,9 @@ def test_websocket_route_accepts_and_receives(client):
 
 
 def test_websocket_route_invalid_json(client):
-    with patch.object(dgws, "send_ws_error", new_callable=AsyncMock) as mock_send_error, patch.object(
-        dgws, "requeue_session_outstanding"
+    with (
+        patch.object(dgws, "send_ws_error", new_callable=AsyncMock) as mock_send_error,
+        patch.object(dgws, "requeue_session_outstanding"),
     ):
         with client.websocket_connect("/device/v1/ws") as ws:
             ws.send_text("not-json")
@@ -67,7 +69,9 @@ async def test_handle_device_ws_hello_then_disconnect():
     websocket.close = AsyncMock()
 
     with (
-        patch.object(dgws, "handle_hello", new_callable=AsyncMock, return_value=("dev-1", MagicMock(), True)) as mock_hello,
+        patch.object(
+            dgws, "handle_hello", new_callable=AsyncMock, return_value=("dev-1", MagicMock(), True)
+        ) as mock_hello,
         patch.object(dgws, "requeue_session_outstanding") as mock_requeue,
         patch.object(dgws, "_cleanup_audio_registry") as mock_cleanup,
         patch.object(dgws.registry, "unregister") as mock_unregister,
@@ -112,9 +116,7 @@ async def test_handle_text_frame_hello_required():
     websocket.send_json = AsyncMock()
     raw = {"type": "heartbeat", "device_id": "dev-1", "uptime_ms": 1000}
     with patch.object(dgws, "send_ws_error", new_callable=AsyncMock) as mock_send_error:
-        device_id, session, authenticated, keep_open = await dgws._handle_text_frame(
-            websocket, raw, None, None, False
-        )
+        device_id, session, authenticated, keep_open = await dgws._handle_text_frame(websocket, raw, None, None, False)
     assert device_id is None
     assert authenticated is False
     assert keep_open is True
@@ -143,9 +145,10 @@ async def test_handle_text_frame_protocol_error():
     websocket = MagicMock()
     websocket.send_json = AsyncMock()
     raw = {"type": "bad"}
-    with patch.object(
-        dgws, "validate_uplink", side_effect=ProtocolError("E_UNSUPPORTED_TYPE", "bad")
-    ) as mock_validate, patch.object(dgws, "send_ws_error", new_callable=AsyncMock) as mock_send_error:
+    with (
+        patch.object(dgws, "validate_uplink", side_effect=ProtocolError("E_UNSUPPORTED_TYPE", "bad")) as mock_validate,
+        patch.object(dgws, "send_ws_error", new_callable=AsyncMock) as mock_send_error,
+    ):
         await dgws._handle_text_frame(websocket, raw, None, None, False)
     mock_validate.assert_called_once_with(raw)
     mock_send_error.assert_awaited_once()

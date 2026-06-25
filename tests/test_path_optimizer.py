@@ -75,8 +75,7 @@ def test_smooth_moves_points_toward_neighbors(optimizer: PathOptimizer) -> None:
 
 def _total_distance(path: list[dict[str, Any]]) -> float:
     return sum(
-        math.hypot(path[i]["x"] - path[i - 1]["x"], path[i]["y"] - path[i - 1]["y"])
-        for i in range(1, len(path))
+        math.hypot(path[i]["x"] - path[i - 1]["x"], path[i]["y"] - path[i - 1]["y"]) for i in range(1, len(path))
     )
 
 

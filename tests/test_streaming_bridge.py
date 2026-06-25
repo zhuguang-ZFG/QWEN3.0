@@ -75,7 +75,12 @@ class TestStartSyncStreamWorker:
             return iter(chunks)
 
         thread = streaming_bridge.start_sync_stream_worker(
-            q, cancel, backend="b", messages=[], max_tokens=100, ide="vscode",
+            q,
+            cancel,
+            backend="b",
+            messages=[],
+            max_tokens=100,
+            ide="vscode",
             call_stream_fn=fake_stream,
         )
         thread.join(timeout=2.0)
@@ -89,7 +94,12 @@ class TestStartSyncStreamWorker:
         # We already drained chunks; re-check by re-running in order.
         q2 = queue_mod.Queue()
         streaming_bridge.start_sync_stream_worker(
-            q2, cancel, backend="b", messages=[], max_tokens=100, ide="vscode",
+            q2,
+            cancel,
+            backend="b",
+            messages=[],
+            max_tokens=100,
+            ide="vscode",
             call_stream_fn=fake_stream,
         ).join(timeout=2.0)
         all_items = []
@@ -113,7 +123,12 @@ class TestStartSyncStreamWorker:
         # Set cancel after a short delay so the worker sees it soon.
         cancel.set()
         thread = streaming_bridge.start_sync_stream_worker(
-            q, cancel, backend="b", messages=[], max_tokens=100, ide="vscode",
+            q,
+            cancel,
+            backend="b",
+            messages=[],
+            max_tokens=100,
+            ide="vscode",
             call_stream_fn=infinite_stream,
         )
         thread.join(timeout=2.0)
@@ -134,7 +149,12 @@ class TestStartSyncStreamWorker:
             yield  # make it a generator  # noqa: E501
 
         thread = streaming_bridge.start_sync_stream_worker(
-            q, cancel, backend="b", messages=[], max_tokens=100, ide="vscode",
+            q,
+            cancel,
+            backend="b",
+            messages=[],
+            max_tokens=100,
+            ide="vscode",
             call_stream_fn=failing_stream,
         )
         thread.join(timeout=2.0)
@@ -160,7 +180,12 @@ class TestFallbackToSyncCall:
             return "ok result"
 
         result = await streaming_bridge.fallback_to_sync_call(
-            ok_fn, "b", [], 100, "vscode", log_label="test",
+            ok_fn,
+            "b",
+            [],
+            100,
+            "vscode",
+            log_label="test",
         )
         assert result == "ok result"
 
@@ -170,7 +195,12 @@ class TestFallbackToSyncCall:
             return "[ERR] something failed"
 
         result = await streaming_bridge.fallback_to_sync_call(
-            err_fn, "b", [], 100, "vscode", log_label="test",
+            err_fn,
+            "b",
+            [],
+            100,
+            "vscode",
+            log_label="test",
         )
         assert result is None
 
@@ -180,9 +210,15 @@ class TestFallbackToSyncCall:
             raise ConnectionError("nope")
 
         import logging
+
         with caplog.at_level(logging.WARNING, logger="streaming_bridge"):
             result = await streaming_bridge.fallback_to_sync_call(
-                exploding_fn, "b", [], 100, "vscode", log_label="test",
+                exploding_fn,
+                "b",
+                [],
+                100,
+                "vscode",
+                log_label="test",
             )
         assert result is None
         assert any("nope" not in r.message and "ConnectionError" in r.message for r in caplog.records)

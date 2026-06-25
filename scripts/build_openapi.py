@@ -216,17 +216,14 @@ def main() -> None:
             continue
         clean_path = clean_public_path(path)
         new_methods = {
-            method: enrich_operation(clean_path, method, spec["paths"][path][method])
-            for method in spec["paths"][path]
+            method: enrich_operation(clean_path, method, spec["paths"][path][method]) for method in spec["paths"][path]
         }
         new_paths[clean_path] = new_methods
     spec["paths"] = new_paths
 
     used = referenced_schemas(spec)
     if "components" in spec and "schemas" in spec["components"]:
-        spec["components"]["schemas"] = {
-            k: v for k, v in spec["components"]["schemas"].items() if k in used
-        }
+        spec["components"]["schemas"] = {k: v for k, v in spec["components"]["schemas"].items() if k in used}
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT, "w", encoding="utf-8") as f:

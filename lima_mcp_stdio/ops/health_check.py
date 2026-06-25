@@ -34,8 +34,7 @@ def _health_detail(shost, label, run_ssh, results):
     results.append(_format_result(label, shost, summary=False))
     health = run_ssh(
         shost,
-        "curl -s -o /dev/null -w '%{http_code} %{time_total}s'"
-        " http://localhost:8080/health 2>/dev/null || echo 'N/A'",
+        "curl -s -o /dev/null -w '%{http_code} %{time_total}s' http://localhost:8080/health 2>/dev/null || echo 'N/A'",
     )
     if health and health != "N/A":
         code, t = health.split()

@@ -54,9 +54,7 @@ async def _send_online_transition(
     online: bool,
 ) -> None:
     event = "device_online" if online else "device_offline"
-    await websocket.send_json(
-        {"event": event, "payload": {"deviceId": device_id, "timestamp": now()}}
-    )
+    await websocket.send_json({"event": event, "payload": {"deviceId": device_id, "timestamp": now()}})
 
 
 async def _send_task_transition(

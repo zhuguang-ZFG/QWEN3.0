@@ -33,8 +33,9 @@ def registry_and_dispatcher():
     registry = NodeRegistry()
     dispatcher = TaskDispatcher()
     registry.register("node-1", capabilities=NodeCapabilities(shell=True))
-    with patch("fleet.node_registry.get_registry", return_value=registry), patch(
-        "fleet.task_dispatcher.get_dispatcher", return_value=dispatcher
+    with (
+        patch("fleet.node_registry.get_registry", return_value=registry),
+        patch("fleet.task_dispatcher.get_dispatcher", return_value=dispatcher),
     ):
         yield registry, dispatcher
 

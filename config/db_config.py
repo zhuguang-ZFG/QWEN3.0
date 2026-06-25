@@ -39,7 +39,9 @@ def get_session_db_path() -> str:
 
 # ── SQLite database paths ──────────────────────────────────────────────────────
 BACKEND_PROFILE_DB: str = os.environ.get("LIMA_BACKEND_PROFILE_DB", "") or str(Path(LIMA_DATA_DIR) / "profiles.db")
-BACKEND_RETIREMENT_DB: str = os.environ.get("LIMA_BACKEND_RETIREMENT_DB", "") or str(Path(LIMA_DATA_DIR) / "retirement.db")
+BACKEND_RETIREMENT_DB: str = os.environ.get("LIMA_BACKEND_RETIREMENT_DB", "") or str(
+    Path(LIMA_DATA_DIR) / "retirement.db"
+)
 HEALTH_STATE_DB: str = os.environ.get("LIMA_HEALTH_STATE_DB", "") or "data/health_state.db"
 SESSION_DB: str = os.environ.get("LIMA_SESSION_DB", "") or str(Path(LIMA_DATA_DIR) / "session.db")
 TOKEN_HEALTH_DB: str = os.environ.get("LIMA_TOKEN_HEALTH_DB", "") or str(Path(LIMA_DATA_DIR) / "token_health.db")

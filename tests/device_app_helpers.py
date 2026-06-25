@@ -10,6 +10,7 @@ from device_logic.activation import reset_activation_store_for_tests
 from device_logic.auth import jwt
 from device_logic.db import _schema_ready_paths, connect
 
+
 def token(account_id: str) -> str:
     now = int(time.time())
     payload = {

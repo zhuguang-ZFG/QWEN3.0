@@ -28,6 +28,7 @@ from .task_lifecycle import (
     requeue_pending_tasks,
     task_snapshot,
 )
+
 # ponytail: lazy import routes.device_gateway_dispatch in callers to avoid a
 # module-load circular dependency (device_gateway → routes → device_gateway).
 # Runtime reverse dependency remains; upgrade path is a TaskDispatcher protocol.

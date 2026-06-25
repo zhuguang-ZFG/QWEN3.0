@@ -3,21 +3,39 @@
 from __future__ import annotations
 
 COMPATIBILITY_MATRIX: dict[str, frozenset[str]] = {
-    "v1.0.0": frozenset({
-        "write_text", "run_path", "home", "pause", "resume", "stop", "get_device_info"
-    }),
-    "v1.1.0": frozenset({
-        "write_text", "run_path", "home", "pause", "resume", "stop",
-        "get_device_info", "draw_generated"
-    }),
-    "v1.2.0": frozenset({
-        "write_text", "run_path", "home", "pause", "resume", "stop",
-        "get_device_info", "draw_generated", "draw_asset", "self_check"
-    }),
-    "v1.3.0": frozenset({
-        "write_text", "run_path", "home", "pause", "resume", "stop",
-        "get_device_info", "draw_generated", "draw_asset", "self_check", "estop"
-    }),
+    "v1.0.0": frozenset({"write_text", "run_path", "home", "pause", "resume", "stop", "get_device_info"}),
+    "v1.1.0": frozenset(
+        {"write_text", "run_path", "home", "pause", "resume", "stop", "get_device_info", "draw_generated"}
+    ),
+    "v1.2.0": frozenset(
+        {
+            "write_text",
+            "run_path",
+            "home",
+            "pause",
+            "resume",
+            "stop",
+            "get_device_info",
+            "draw_generated",
+            "draw_asset",
+            "self_check",
+        }
+    ),
+    "v1.3.0": frozenset(
+        {
+            "write_text",
+            "run_path",
+            "home",
+            "pause",
+            "resume",
+            "stop",
+            "get_device_info",
+            "draw_generated",
+            "draw_asset",
+            "self_check",
+            "estop",
+        }
+    ),
 }
 
 

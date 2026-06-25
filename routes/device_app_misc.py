@@ -264,9 +264,7 @@ async def confirm_provision(request: Request) -> Any:
         return err(400, "deviceSn is required", 400)
 
     with connect() as conn:
-        row = conn.execute(
-            "SELECT * FROM v2_pair_request WHERE pair_token=? AND status='pending'", (token,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM v2_pair_request WHERE pair_token=? AND status='pending'", (token,)).fetchone()
         if row is None:
             return err(404, "provision token not found", 404)
         if row["expires_at"] < now():

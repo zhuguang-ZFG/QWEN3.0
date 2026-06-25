@@ -54,6 +54,7 @@ def test_start_and_stop_auto_indexer(monkeypatch):
     start_auto_indexer(interval_sec=60)
     stop_auto_indexer()
 
+
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

@@ -31,9 +31,11 @@ def account():
 
 @pytest.fixture(autouse=True)
 def _patch_deps(account):
-    with patch.object(chat, "authorize", return_value=account), \
-         patch.object(chat, "connect") as mock_connect, \
-         patch.object(chat, "require_device_access", return_value=None):
+    with (
+        patch.object(chat, "authorize", return_value=account),
+        patch.object(chat, "connect") as mock_connect,
+        patch.object(chat, "require_device_access", return_value=None),
+    ):
         conn = MagicMock()
         # get_chat_messages checks that the session row belongs to the device.
         conn.execute.return_value.fetchone.return_value = {"device_id": "dev-1"}
@@ -61,8 +63,10 @@ def test_list_chat_history_success(client, auth_header):
 
 
 def test_get_audio_info_success(client, auth_header):
-    with patch("routes.upload._safe_upload_path", return_value=Path("/tmp/audio.wav")), \
-         patch("routes.upload_tokens.upload_access_token", return_value="tok-abc"):
+    with (
+        patch("routes.upload._safe_upload_path", return_value=Path("/tmp/audio.wav")),
+        patch("routes.upload_tokens.upload_access_token", return_value="tok-abc"),
+    ):
         response = client.get("/device/v1/app/devices/dev-1/audio/aid-1", headers=auth_header)
     assert response.status_code == 200
     assert response.json()["audioId"] == "aid-1"

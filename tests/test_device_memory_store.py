@@ -155,6 +155,7 @@ def test_reset_device_memories():
     assert count == 3
     assert len(store.list_by_device("dev_reset")) == 0
 
+
 @pytest.fixture(autouse=True)
 def fixed_time(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: MOCK_NOW)

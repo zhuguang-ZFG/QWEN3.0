@@ -55,6 +55,7 @@ def mocks(monkeypatch):
 # 1. 基本 happy path — PickResult 所有字段正确填充
 # ---------------------------------------------------------------------------
 
+
 def test_happy_path_returns_pick_result(mocks):
     """验证 pick_backend 返回包含所有预期字段的 PickResult。"""
     msgs = [{"role": "user", "content": "hello"}]
@@ -79,6 +80,7 @@ def test_happy_path_returns_pick_result(mocks):
 # 2. fmt 参数正确转发到 classify()
 # ---------------------------------------------------------------------------
 
+
 def test_fmt_forwarded_to_classify(mocks):
     """fmt="anthropic" 应透传至 classify 的关键字参数。"""
     pick_backend("q", _DEFAULT_MSGS, fmt="anthropic")
@@ -90,6 +92,7 @@ def test_fmt_forwarded_to_classify(mocks):
 # 3. ide_source 参数正确转发到 classify()
 # ---------------------------------------------------------------------------
 
+
 def test_ide_source_forwarded_to_classify(mocks):
     """ide_source="cursor" 应透传至 classify 的关键字参数。"""
     pick_backend("q", _DEFAULT_MSGS, ide_source="cursor")
@@ -100,6 +103,7 @@ def test_ide_source_forwarded_to_classify(mocks):
 # ---------------------------------------------------------------------------
 # 4. classify_scenario 返回 "coding" 时正确转发到 select()
 # ---------------------------------------------------------------------------
+
 
 def test_classify_scenario_coding_forwarded_to_select(mocks):
     """scenario="coding" 应作为关键字参数传递给 select()。"""
@@ -114,6 +118,7 @@ def test_classify_scenario_coding_forwarded_to_select(mocks):
 # 5. try_recall_backend 返回已召回后端 → 传给 select()
 # ---------------------------------------------------------------------------
 
+
 def test_recalled_backend_forwarded_to_select(mocks):
     """当 sticky recall 命中时，recalled_backend 应传给 select()。"""
     mocks["try_recall_backend"].return_value = "recalled_be"
@@ -126,6 +131,7 @@ def test_recalled_backend_forwarded_to_select(mocks):
 # ---------------------------------------------------------------------------
 # 6. try_recall_backend 返回 None → recalled_backend=None 传给 select()
 # ---------------------------------------------------------------------------
+
 
 def test_no_recalled_backend_forwarded_as_none(mocks):
     """当 sticky recall 未命中时，recalled_backend 应为 None。"""
@@ -140,6 +146,7 @@ def test_no_recalled_backend_forwarded_as_none(mocks):
 # 7. inject_retrieval_context 返回非空文本 → retrieval_context 填充
 # ---------------------------------------------------------------------------
 
+
 def test_retrieval_context_populated(mocks):
     """retrieval 注入有内容时，PickResult.retrieval_context 应非空。"""
     mocks["inject_retrieval_context"].return_value = (_MSGS_RETRIEVAL, "some context text")
@@ -152,6 +159,7 @@ def test_retrieval_context_populated(mocks):
 # 8. needs_tools=True 正确转发到 select()
 # ---------------------------------------------------------------------------
 
+
 def test_needs_tools_forwarded_to_select(mocks):
     """needs_tools=True 应透传至 select() 的关键字参数。"""
     pick_backend("q", _DEFAULT_MSGS, needs_tools=True)
@@ -163,6 +171,7 @@ def test_needs_tools_forwarded_to_select(mocks):
 # 9. preferred_backend 正确转发到 select()
 # ---------------------------------------------------------------------------
 
+
 def test_preferred_backend_forwarded_to_select(mocks):
     """preferred_backend="openai" 应透传至 select() 的关键字参数。"""
     pick_backend("q", _DEFAULT_MSGS, preferred_backend="openai")
@@ -173,6 +182,7 @@ def test_preferred_backend_forwarded_to_select(mocks):
 # ---------------------------------------------------------------------------
 # 10. select() 返回空列表 → backend 回退到 "longcat_chat"
 # ---------------------------------------------------------------------------
+
 
 def test_empty_select_falls_back_to_longcat_chat(mocks):
     """当 select() 无可用后端时，backend 应回退到 longcat_chat。"""
@@ -186,6 +196,7 @@ def test_empty_select_falls_back_to_longcat_chat(mocks):
 # ---------------------------------------------------------------------------
 # 11. headers 正确转发到 classify()
 # ---------------------------------------------------------------------------
+
 
 def test_headers_forwarded_to_classify(mocks):
     """自定义 headers 应透传至 classify()。"""
@@ -207,6 +218,7 @@ def test_headers_none_sends_empty_dict(mocks):
 # ---------------------------------------------------------------------------
 # 额外覆盖：model 转发到 compute_key、system_prompt 转发到 classify
 # ---------------------------------------------------------------------------
+
 
 def test_model_forwarded_to_compute_key(mocks):
     """指定 model 时应传给 sticky_session.compute_key。"""

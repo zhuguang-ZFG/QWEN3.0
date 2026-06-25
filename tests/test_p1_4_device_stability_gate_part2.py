@@ -103,7 +103,6 @@ def test_multi_device_independent_queues():
     assert d2 >= 1, f"dev-2 should have at least 1 pending task, got {d2}"
 
 
-
 # ── Stability repeat loop ──────────────────────────────────────────────────────
 
 

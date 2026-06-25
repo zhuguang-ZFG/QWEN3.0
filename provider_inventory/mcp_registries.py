@@ -12,6 +12,7 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 from config import settings
+
 logger = logging.getLogger(__name__)
 
 OFFICIAL_REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0/servers"

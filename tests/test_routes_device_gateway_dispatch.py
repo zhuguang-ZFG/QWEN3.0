@@ -106,9 +106,10 @@ async def test_dispatch_task_to_session_success():
     session.device_id = "dev-1"
     session.send_json = AsyncMock()
     task = {"task_id": "t1"}
-    with patch.object(dispatch, "registry") as mock_registry, patch.object(
-        dispatch, "mark_task_dispatched"
-    ) as mock_mark:
+    with (
+        patch.object(dispatch, "registry") as mock_registry,
+        patch.object(dispatch, "mark_task_dispatched") as mock_mark,
+    ):
         result = await dispatch.dispatch_task_to_session(session, task)
     assert result is True
     session.send_json.assert_awaited_once_with(task)
@@ -141,9 +142,10 @@ async def test_drain_pending_tasks_success():
     session = MagicMock(spec=DeviceSession)
     session.device_id = "dev-1"
     session.send_json = AsyncMock()
-    with patch.object(dispatch, "pop_pending_tasks", side_effect=[[{"task_id": "t1"}], []]) as mock_pop, patch.object(
-        dispatch, "mark_task_dispatched"
-    ) as mock_mark:
+    with (
+        patch.object(dispatch, "pop_pending_tasks", side_effect=[[{"task_id": "t1"}], []]) as mock_pop,
+        patch.object(dispatch, "mark_task_dispatched") as mock_mark,
+    ):
         result = await dispatch.drain_pending_tasks(session)
     assert result is True
     mock_pop.assert_any_call("dev-1")

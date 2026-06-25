@@ -85,9 +85,7 @@ def soft_delete_session(conn: sqlite3.Connection, session_id: str, account_id: s
     return cursor.rowcount > 0
 
 
-def get_messages(
-    conn: sqlite3.Connection, session_id: str, limit: int = 50, offset: int = 0
-) -> list[sqlite3.Row]:
+def get_messages(conn: sqlite3.Connection, session_id: str, limit: int = 50, offset: int = 0) -> list[sqlite3.Row]:
     """Return paginated messages for a session."""
     rows = conn.execute(
         """

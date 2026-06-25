@@ -61,17 +61,13 @@ class TestEnforceHttpsScheme:
 
 
 class TestCallApiSchemeEnforcement:
-    def test_call_api_blocks_http_public(
-        self, clear_allow_http, monkeypatch, http_backend, patched_caller_deps
-    ):
+    def test_call_api_blocks_http_public(self, clear_allow_http, monkeypatch, http_backend, patched_caller_deps):
         monkeypatch.setattr(http_sync, "BACKENDS", {"http-backend": http_backend})
         with pytest.raises(BackendError) as exc_info:
             http_sync.call_api("http-backend", [{"role": "user", "content": "hi"}])
         assert "plaintext HTTP" in str(exc_info.value)
 
-    def test_call_api_allows_https(
-        self, monkeypatch, patched_caller_deps
-    ):
+    def test_call_api_allows_https(self, monkeypatch, patched_caller_deps):
         cfg = {
             "url": "https://example.com/v1",
             "fmt": "openai",
@@ -87,9 +83,7 @@ class TestCallApiSchemeEnforcement:
 
 
 class TestStreamSchemeEnforcement:
-    def test_call_api_stream_blocks_http_public(
-        self, clear_allow_http, monkeypatch, http_backend, patched_caller_deps
-    ):
+    def test_call_api_stream_blocks_http_public(self, clear_allow_http, monkeypatch, http_backend, patched_caller_deps):
         monkeypatch.setattr(http_stream, "BACKENDS", {"http-backend": http_backend})
         with pytest.raises(BackendError) as exc_info:
             list(http_stream.call_api_stream("http-backend", [{"role": "user", "content": "hi"}]))

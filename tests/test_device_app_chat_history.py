@@ -35,16 +35,12 @@ def _insert_message(session_id: str, role: str, content: str, audio_id: str | No
 
 
 def test_create_chat_session_requires_device_access(chat_client):
-    response = chat_client.post(
-        "/device/v1/app/devices/d-chat/chat-sessions", headers=headers("a-other"), json={}
-    )
+    response = chat_client.post("/device/v1/app/devices/d-chat/chat-sessions", headers=headers("a-other"), json={})
     assert response.status_code == 403
 
 
 def test_create_chat_session_without_title(chat_client):
-    response = chat_client.post(
-        "/device/v1/app/devices/d-chat/chat-sessions", headers=headers("a-owner"), json={}
-    )
+    response = chat_client.post("/device/v1/app/devices/d-chat/chat-sessions", headers=headers("a-owner"), json={})
     assert response.status_code == 200, response.text
     data = response.json()
     assert data["deviceId"] == "d-chat"
@@ -198,11 +194,16 @@ async def test_voice_transcript_persists_user_message(tmp_path, monkeypatch):
     session.websocket = MagicMock()
     session.websocket.send_bytes = AsyncMock()
 
-    with patch.object(vt, "_voice_enabled", return_value=True), patch(
-        "device_voice.dialogue.process_text_utterance",
-        return_value={"reply_text": "hi", "reply_audio": b""},
-    ), patch.object(vt, "voice_status_frame", side_effect=lambda *a, **k: {"status": a[1] if len(a) > 1 else k.get("status")}), patch.object(
-        vt, "audio_reply_frame", return_value={"type": "audio"}
+    with (
+        patch.object(vt, "_voice_enabled", return_value=True),
+        patch(
+            "device_voice.dialogue.process_text_utterance",
+            return_value={"reply_text": "hi", "reply_audio": b""},
+        ),
+        patch.object(
+            vt, "voice_status_frame", side_effect=lambda *a, **k: {"status": a[1] if len(a) > 1 else k.get("status")}
+        ),
+        patch.object(vt, "audio_reply_frame", return_value={"type": "audio"}),
     ):
         result = await vt.handle_voice_transcript(session, "d-transcript", "hello", "req-1")
 
@@ -237,10 +238,16 @@ async def test_voice_transcript_skips_persistence_without_binding(tmp_path, monk
     session.websocket = MagicMock()
     session.websocket.send_bytes = AsyncMock()
 
-    with patch.object(vt, "_voice_enabled", return_value=True), patch(
-        "device_voice.dialogue.process_text_utterance",
-        return_value={"reply_text": "hi", "reply_audio": b""},
-    ), patch.object(vt, "voice_status_frame", side_effect=lambda *a, **k: {"status": a[1] if len(a) > 1 else k.get("status")}):
+    with (
+        patch.object(vt, "_voice_enabled", return_value=True),
+        patch(
+            "device_voice.dialogue.process_text_utterance",
+            return_value={"reply_text": "hi", "reply_audio": b""},
+        ),
+        patch.object(
+            vt, "voice_status_frame", side_effect=lambda *a, **k: {"status": a[1] if len(a) > 1 else k.get("status")}
+        ),
+    ):
         result = await vt.handle_voice_transcript(session, "d-orphan", "hello", "req-1")
 
     assert result is True

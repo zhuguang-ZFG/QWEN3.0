@@ -47,13 +47,17 @@ def _ctx_manager(conn):
     class Ctx:
         def __enter__(self):
             return conn
+
         def __exit__(self, *args):
             return False
+
     return Ctx()
 
 
 def _patch_conn(rows=None, fetchone_sequence=None):
-    return patch.object(misc, "connect", return_value=_ctx_manager(_make_conn(rows=rows, fetchone_sequence=fetchone_sequence)))
+    return patch.object(
+        misc, "connect", return_value=_ctx_manager(_make_conn(rows=rows, fetchone_sequence=fetchone_sequence))
+    )
 
 
 def _make_transfer_row(**overrides):
@@ -73,11 +77,13 @@ def _make_transfer_row(**overrides):
 
 @pytest.fixture(autouse=True)
 def _patch_deps(account):
-    with patch.object(misc, "authorize", return_value=account), \
-         patch.object(misc, "require_device_access", return_value=None), \
-         patch.object(misc, "is_owner", return_value=True), \
-         patch.object(misc, "expire_pending_transfers"), \
-         patch.object(misc, "new_id", return_value="new-id"):
+    with (
+        patch.object(misc, "authorize", return_value=account),
+        patch.object(misc, "require_device_access", return_value=None),
+        patch.object(misc, "is_owner", return_value=True),
+        patch.object(misc, "expire_pending_transfers"),
+        patch.object(misc, "new_id", return_value="new-id"),
+    ):
         yield
 
 

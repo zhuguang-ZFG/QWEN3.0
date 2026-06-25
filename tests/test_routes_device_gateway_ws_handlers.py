@@ -50,7 +50,10 @@ async def test_handle_hello_success(websocket, monkeypatch):
         "firmwareHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
         "capabilities": [],
     }
-    with patch.object(handlers, "drain_pending_tasks", new_callable=AsyncMock, return_value=True) as mock_drain, patch.object(handlers, "attestation_verifier", _isolated_verifier()):
+    with (
+        patch.object(handlers, "drain_pending_tasks", new_callable=AsyncMock, return_value=True) as mock_drain,
+        patch.object(handlers, "attestation_verifier", _isolated_verifier()),
+    ):
         device_id, session, keep_open = await handlers.handle_hello(websocket, message, request_id="r1")
     assert device_id == "dev-1"
     assert isinstance(session, DeviceSession)
@@ -118,7 +121,10 @@ async def test_handle_transcript_with_text_chat_capability(websocket):
 @pytest.mark.asyncio
 async def test_handle_transcript_task_error(websocket):
     with patch.object(
-        handlers, "create_task_from_transcript_async", new_callable=AsyncMock, return_value={"task_id": "t1", "error": "fail"}
+        handlers,
+        "create_task_from_transcript_async",
+        new_callable=AsyncMock,
+        return_value={"task_id": "t1", "error": "fail"},
     ):
         result = await handlers.handle_transcript(websocket, "dev-1", {"text": "hello"}, request_id="r1")
     assert result is True
@@ -129,9 +135,12 @@ async def test_handle_transcript_task_error(websocket):
 @pytest.mark.asyncio
 async def test_handle_transcript_enqueues_when_no_session(websocket):
     task = {"task_id": "t1"}
-    with patch.object(
-        handlers, "create_task_from_transcript_async", new_callable=AsyncMock, return_value=task
-    ) as mock_create, patch.object(handlers, "enqueue_pending_task", return_value=1) as mock_enqueue:
+    with (
+        patch.object(
+            handlers, "create_task_from_transcript_async", new_callable=AsyncMock, return_value=task
+        ) as mock_create,
+        patch.object(handlers, "enqueue_pending_task", return_value=1) as mock_enqueue,
+    ):
         result = await handlers.handle_transcript(websocket, "dev-1", {"text": "hello"}, request_id="r1")
     assert result is False
     mock_enqueue.assert_called_once_with("dev-1", task)
@@ -145,9 +154,11 @@ async def test_handle_motion_event(websocket):
     session = DeviceSession(device_id="dev-1", websocket=websocket)
     handlers.registry.register(session)
     message = {"type": "motion_event", "device_id": "dev-1", "task_id": "t1", "phase": "done"}
-    with patch.object(handlers, "process_motion_event_core", return_value={"phase": "done"}), patch.object(
-        handlers, "execute_recovery", return_value=None
-    ), patch.object(handlers, "record_outcome_ledger") as mock_ledger:
+    with (
+        patch.object(handlers, "process_motion_event_core", return_value={"phase": "done"}),
+        patch.object(handlers, "execute_recovery", return_value=None),
+        patch.object(handlers, "record_outcome_ledger") as mock_ledger,
+    ):
         await handlers.handle_motion_event("dev-1", message, request_id="r1")
     websocket.send_json.assert_awaited_once()
     assert websocket.send_json.await_args.args[0]["type"] == "motion_event_ack"
@@ -160,11 +171,12 @@ async def test_handle_motion_event_recovery(websocket):
     handlers.registry.register(session)
     message = {"type": "motion_event", "device_id": "dev-1", "task_id": "t1", "phase": "failed"}
     recovery = {"action": "retry", "attempt": 1}
-    with patch.object(handlers, "process_motion_event_core", return_value={"phase": "failed"}), patch.object(
-        handlers, "execute_recovery", return_value=recovery
-    ), patch.object(handlers, "send_recovery_ack", new_callable=AsyncMock) as mock_recovery_ack, patch.object(
-        handlers, "record_outcome_ledger"
-    ) as mock_ledger:
+    with (
+        patch.object(handlers, "process_motion_event_core", return_value={"phase": "failed"}),
+        patch.object(handlers, "execute_recovery", return_value=recovery),
+        patch.object(handlers, "send_recovery_ack", new_callable=AsyncMock) as mock_recovery_ack,
+        patch.object(handlers, "record_outcome_ledger") as mock_ledger,
+    ):
         await handlers.handle_motion_event("dev-1", message, request_id="r1")
     mock_recovery_ack.assert_awaited_once()
     mock_ledger.assert_called_once_with("dev-1", message, "failed")

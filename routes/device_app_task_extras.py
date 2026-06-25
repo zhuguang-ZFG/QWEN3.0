@@ -101,6 +101,7 @@ def _error_message(error: JSONResponse) -> str:
         if isinstance(payload, bytes):
             payload = payload.decode("utf-8")
         import json
+
         data = json.loads(payload) if isinstance(payload, str) else payload
         if isinstance(data, dict):
             return str(data.get("message", "unknown error"))

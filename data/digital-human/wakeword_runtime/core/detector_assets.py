@@ -42,9 +42,7 @@ class DetectorAssetsBuilder:
         if self._has_required_files(preferred):
             return preferred
 
-        raise FileNotFoundError(
-            "No valid model directory found. Expected configured model files to exist."
-        )
+        raise FileNotFoundError("No valid model directory found. Expected configured model files to exist.")
 
     def _write_keywords_file(self, model_root: Path) -> Path:
         try:
@@ -79,9 +77,7 @@ class DetectorAssetsBuilder:
                     tokens.append(final)
 
             if not tokens:
-                raise ValueError(
-                    f"failed to generate pinyin tokens for wake word: {keyword_text}"
-                )
+                raise ValueError(f"failed to generate pinyin tokens for wake word: {keyword_text}")
 
             lines.append(f"{' '.join(tokens)} @{keyword_text}")
 

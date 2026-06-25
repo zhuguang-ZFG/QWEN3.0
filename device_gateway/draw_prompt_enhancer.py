@@ -50,18 +50,76 @@ _WRITING_HINTS = ("writing", "write", "u8", "写字", "书写机")
 _PLOTTER_HINTS = ("plotter", "xy", "draw", "u1", "笔绘")
 
 # 复杂度信号词：命中任一即视为对应复杂度
-_COMPLEXITY_HIGH_SIGNALS = frozenset({
-    "照片", "photorealistic", "3d", "三维", "立体", "透视", "阴影", "shadow",
-    "渐变", "gradient", "填充", "fill", "涂色", "coloring", "上色", "纹理",
-    "texture", "毛发", "fur", "羽毛", "树叶", "叶子", "人群", "建筑", "城市",
-    "风景", "山水", "复杂", "complicated", "detailed", "超精细", "大量", "many",
-    "多个", "多个人", "背景", "background", "场景", "油画", "水彩", "素描",
-    "sketch", "写实", "realistic", "肖像", "portrait", "人脸",
-})
-_COMPLEXITY_MEDIUM_SIGNALS = frozenset({
-    "树", "花", "动物", "房子", "车", "飞机", "船", "机器人", "卡通", "cartoon",
-    "表情", "细节", "some details", "small", "小",
-})
+_COMPLEXITY_HIGH_SIGNALS = frozenset(
+    {
+        "照片",
+        "photorealistic",
+        "3d",
+        "三维",
+        "立体",
+        "透视",
+        "阴影",
+        "shadow",
+        "渐变",
+        "gradient",
+        "填充",
+        "fill",
+        "涂色",
+        "coloring",
+        "上色",
+        "纹理",
+        "texture",
+        "毛发",
+        "fur",
+        "羽毛",
+        "树叶",
+        "叶子",
+        "人群",
+        "建筑",
+        "城市",
+        "风景",
+        "山水",
+        "复杂",
+        "complicated",
+        "detailed",
+        "超精细",
+        "大量",
+        "many",
+        "多个",
+        "多个人",
+        "背景",
+        "background",
+        "场景",
+        "油画",
+        "水彩",
+        "素描",
+        "sketch",
+        "写实",
+        "realistic",
+        "肖像",
+        "portrait",
+        "人脸",
+    }
+)
+_COMPLEXITY_MEDIUM_SIGNALS = frozenset(
+    {
+        "树",
+        "花",
+        "动物",
+        "房子",
+        "车",
+        "飞机",
+        "船",
+        "机器人",
+        "卡通",
+        "cartoon",
+        "表情",
+        "细节",
+        "some details",
+        "small",
+        "小",
+    }
+)
 
 # 简化提示词时需要剥离的修饰词/短语
 _SIMPLIFICATION_REMOVE_PATTERNS: list[re.Pattern] = [
@@ -177,7 +235,9 @@ def enhance_drawing_prompt(
     strokes = COMPLEXITY_STROKES.get(complexity, COMPLEXITY_STROKES["中"])
     medium_desc = f"{complexity}复杂度（{strokes}）"
 
-    prefix = "。".join(_assemble_instruction_parts(device_type, conversation_context, previous_failed_prompts, device_profile))
+    prefix = "。".join(
+        _assemble_instruction_parts(device_type, conversation_context, previous_failed_prompts, device_profile)
+    )
     return (
         f"{prefix}。"
         f"{_build_subject_expansion(user_prompt)}，"

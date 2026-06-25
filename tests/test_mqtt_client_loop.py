@@ -33,9 +33,7 @@ def test_motion_event_without_running_loop_warns_and_drops(caplog):
         patch("device_gateway.auth.validate_device_token", return_value=True),
         patch("routes.device_gateway_ws_handlers.handle_motion_event") as mock_handle,
     ):
-        mqtt_client._handle_mqtt_message(
-            MagicMock(), "device/dev-1/uplink", payload, json, time
-        )
+        mqtt_client._handle_mqtt_message(MagicMock(), "device/dev-1/uplink", payload, json, time)
 
     mock_handle.assert_not_called()
     assert any("no running event loop" in m for m in caplog.messages), caplog.messages
@@ -59,9 +57,7 @@ def test_motion_event_with_main_loop_forwards_via_threadsafe():
         patch("routes.device_gateway_ws_handlers.handle_motion_event") as mock_handle,
         patch("asyncio.run_coroutine_threadsafe") as mock_run,
     ):
-        mqtt_client._handle_mqtt_message(
-            MagicMock(), "device/dev-1/uplink", payload, json, time
-        )
+        mqtt_client._handle_mqtt_message(MagicMock(), "device/dev-1/uplink", payload, json, time)
 
     # Calling an async function returns a coroutine; the body is not executed.
     expected_message = {

@@ -115,9 +115,7 @@ async def _vision_route(messages: list, max_tokens: int = 4096, ide: str = "unkn
     return None
 
 
-def _build_anthropic_request(
-    b: dict, messages: list, max_tokens: int
-) -> tuple[bytes, dict[str, str]]:
+def _build_anthropic_request(b: dict, messages: list, max_tokens: int) -> tuple[bytes, dict[str, str]]:
     """Build request body and headers for an Anthropic vision backend."""
     anthropic_msgs = convert_openai_vision_to_anthropic(messages)
     if b.get("no_system"):

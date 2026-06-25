@@ -262,9 +262,7 @@ def _upload_map(settings: Any) -> dict[str, tuple[Any, str, Callable[[str | None
 
 def _integrations_map(settings: Any) -> dict[str, tuple[Any, str, Callable[[str | None], Any]]]:
     def _gitee_token(_value: str | None) -> str:
-        return (os.environ.get("GITEE_TOKEN") or "").strip() or (
-            os.environ.get("GITEE_ACCESS_TOKEN") or ""
-        ).strip()
+        return (os.environ.get("GITEE_TOKEN") or "").strip() or (os.environ.get("GITEE_ACCESS_TOKEN") or "").strip()
 
     return {
         "SUPABASE_URL": (settings.INTEGRATIONS, "supabase_url", _strip_or_empty),

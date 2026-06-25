@@ -33,9 +33,10 @@ async def test_empty_text_returns_error(session):
 
 @pytest.mark.asyncio
 async def test_voice_disabled_returns_error(session):
-    with patch("routes.ws_voice_transcript_helpers._voice_enabled", return_value=False), patch(
-        "routes.ws_voice_transcript_helpers.send_ws_error"
-    ) as mock_error:
+    with (
+        patch("routes.ws_voice_transcript_helpers._voice_enabled", return_value=False),
+        patch("routes.ws_voice_transcript_helpers.send_ws_error") as mock_error,
+    ):
         result = await vt.handle_voice_transcript(session, "dev-1", "hello", "req-1")
     assert result is True
     mock_error.assert_called_once()
@@ -43,14 +44,15 @@ async def test_voice_disabled_returns_error(session):
 
 @pytest.mark.asyncio
 async def test_successful_text_reply(session):
-    with patch("routes.ws_voice_transcript_helpers._voice_enabled", return_value=True), patch(
-        "routes.ws_voice_transcript_helpers.voice_status_frame", side_effect=_status_frame
-    ), patch(
-        "routes.ws_voice_transcript_helpers.audio_reply_frame", return_value={"type": "audio"}
-    ), patch(
-        "device_voice.dialogue.process_text_utterance",
-        return_value={"reply_text": "hi there", "reply_audio": b"audio-data"},
-    ) as mock_process:
+    with (
+        patch("routes.ws_voice_transcript_helpers._voice_enabled", return_value=True),
+        patch("routes.ws_voice_transcript_helpers.voice_status_frame", side_effect=_status_frame),
+        patch("routes.ws_voice_transcript_helpers.audio_reply_frame", return_value={"type": "audio"}),
+        patch(
+            "device_voice.dialogue.process_text_utterance",
+            return_value={"reply_text": "hi there", "reply_audio": b"audio-data"},
+        ) as mock_process,
+    ):
         result = await vt.handle_voice_transcript(session, "dev-1", "hello", "req-1")
     assert result is True
     mock_process.assert_awaited_once_with("hello", "dev-1")
@@ -60,11 +62,13 @@ async def test_successful_text_reply(session):
 
 @pytest.mark.asyncio
 async def test_success_without_audio(session):
-    with patch("routes.ws_voice_transcript_helpers._voice_enabled", return_value=True), patch(
-        "routes.ws_voice_transcript_helpers.voice_status_frame", side_effect=_status_frame
-    ), patch(
-        "device_voice.dialogue.process_text_utterance",
-        return_value={"reply_text": "hi there"},
+    with (
+        patch("routes.ws_voice_transcript_helpers._voice_enabled", return_value=True),
+        patch("routes.ws_voice_transcript_helpers.voice_status_frame", side_effect=_status_frame),
+        patch(
+            "device_voice.dialogue.process_text_utterance",
+            return_value={"reply_text": "hi there"},
+        ),
     ):
         result = await vt.handle_voice_transcript(session, "dev-1", "hello", "req-1")
     assert result is True
@@ -73,10 +77,10 @@ async def test_success_without_audio(session):
 
 @pytest.mark.asyncio
 async def test_pipeline_exception_returns_idle(session):
-    with patch("routes.ws_voice_transcript_helpers._voice_enabled", return_value=True), patch(
-        "routes.ws_voice_transcript_helpers.voice_status_frame", side_effect=_status_frame
-    ), patch(
-        "device_voice.dialogue.process_text_utterance", side_effect=RuntimeError("boom")
+    with (
+        patch("routes.ws_voice_transcript_helpers._voice_enabled", return_value=True),
+        patch("routes.ws_voice_transcript_helpers.voice_status_frame", side_effect=_status_frame),
+        patch("device_voice.dialogue.process_text_utterance", side_effect=RuntimeError("boom")),
     ):
         result = await vt.handle_voice_transcript(session, "dev-1", "hello", "req-1")
     assert result is True

@@ -22,9 +22,7 @@ def session():
 @patch.object(ws_lh.workflow, "get_state")
 @patch.object(ws_lh.workflow, "advance")
 @patch.object(ws_lh.ledger_store, "append_event")
-def test_reattach_tasks_dispatches_new_and_recover(
-    mock_append, mock_advance, mock_get_state, session
-):
+def test_reattach_tasks_dispatches_new_and_recover(mock_append, mock_advance, mock_get_state, session):
     mock_get_state.return_value = TaskState.DISPATCHED
     tasks = [
         {"task_id": "t-new", "capability": "move"},
@@ -46,9 +44,7 @@ def test_reattach_tasks_dispatches_new_and_recover(
 @patch.object(ws_lh.workflow, "get_state")
 @patch.object(ws_lh.workflow, "advance")
 @patch.object(ws_lh.ledger_store, "append_event")
-def test_reattach_tasks_running_state_recovery(
-    mock_append, mock_advance, mock_get_state, session
-):
+def test_reattach_tasks_running_state_recovery(mock_append, mock_advance, mock_get_state, session):
     mock_get_state.return_value = TaskState.RUNNING
     ws_lh.reattach_tasks(session, [{"task_id": "t2"}])
     # RUNNING -> RECOVERING -> RUNNING
@@ -58,9 +54,7 @@ def test_reattach_tasks_running_state_recovery(
 @patch.object(ws_lh.workflow, "get_state")
 @patch.object(ws_lh.workflow, "advance")
 @patch.object(ws_lh.ledger_store, "append_event")
-def test_reattach_tasks_logs_transition_error(
-    mock_append, mock_advance, mock_get_state, session, caplog
-):
+def test_reattach_tasks_logs_transition_error(mock_append, mock_advance, mock_get_state, session, caplog):
     mock_get_state.return_value = TaskState.RUNNING
     mock_advance.side_effect = WorkflowTransitionError("invalid transition")
     with caplog.at_level(logging.DEBUG):

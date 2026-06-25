@@ -191,9 +191,7 @@ async def dispatch_notification(
         return
 
     with connect() as conn:
-        rows = conn.execute(
-            "SELECT * FROM v2_notification_subscription WHERE status='active'"
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM v2_notification_subscription WHERE status='active'").fetchall()
         matched = [r for r in rows if _subscription_matches(r, device_id, event_type)]
 
     if not matched:

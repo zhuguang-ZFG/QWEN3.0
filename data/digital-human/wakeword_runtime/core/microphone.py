@@ -9,12 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 class AudioListener(Protocol):
-    def on_audio_data(self, audio_data: np.ndarray) -> None:
-        ...
+    def on_audio_data(self, audio_data: np.ndarray) -> None: ...
 
 
 class MicrophoneListener:
-
     def __init__(self, config: RuntimeConfig) -> None:
         self.config = config
         self._stream = None

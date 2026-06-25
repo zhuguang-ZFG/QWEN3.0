@@ -137,16 +137,12 @@ def prepare_chat_preflight(
     )
 
     try:
-        request_messages, prompt_context_messages = apply_token_budget(
-            req, request_messages, system_prompt, ide_source
-        )
+        request_messages, prompt_context_messages = apply_token_budget(req, request_messages, system_prompt, ide_source)
     except ImportError:
         _log.warning("token budget module not installed; skipping apply_token_budget")
 
     try:
-        system_prompt, prompt_context_messages = adapt_identity_prompt(
-            system_prompt, client_ip, request_messages
-        )
+        system_prompt, prompt_context_messages = adapt_identity_prompt(system_prompt, client_ip, request_messages)
     except ImportError:
         _log.warning("identity adapter not installed; skipping adapt_identity_prompt")
 

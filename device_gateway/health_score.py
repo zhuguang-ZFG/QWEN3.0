@@ -65,9 +65,7 @@ class DeviceHealthScore:
             return 50
 
         successes = sum(
-            1
-            for e in terminal
-            if self._terminal_phase(e.payload.get("terminal_event", {})) in SUCCESS_PHASES
+            1 for e in terminal if self._terminal_phase(e.payload.get("terminal_event", {})) in SUCCESS_PHASES
         )
         return int(100 * successes / len(terminal))
 
@@ -108,9 +106,7 @@ class DeviceHealthScore:
             from device_logic.db import connect
 
             with connect() as conn:
-                row = conn.execute(
-                    "SELECT firmware_ver FROM v2_device WHERE id=?", (device_id,)
-                ).fetchone()
+                row = conn.execute("SELECT firmware_ver FROM v2_device WHERE id=?", (device_id,)).fetchone()
             return str(row["firmware_ver"]) if row and row["firmware_ver"] else ""
         except Exception:
             _log.warning("failed to read firmware version for %s", device_id, exc_info=True)

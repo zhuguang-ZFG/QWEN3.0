@@ -45,8 +45,8 @@ def test_chat_completion() -> None:
 
 def test_chat_completion_stream() -> None:
     lines = [
-        "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n",
-        "data: {\"choices\":[{\"delta\":{\"content\":\"!\"}}]}\n",
+        'data: {"choices":[{"delta":{"content":"hi"}}]}\n',
+        'data: {"choices":[{"delta":{"content":"!"}}]}\n',
         "data: [DONE]\n",
     ]
 
@@ -136,9 +136,7 @@ async def test_async_chat() -> None:
 
 @pytest.mark.anyio
 async def test_async_devices() -> None:
-    transport = _mock_transport(
-        {("GET", f"{BASE_URL}/device/v1/app/devices"): {"devices": [{"deviceId": "d2"}]}}
-    )
+    transport = _mock_transport({("GET", f"{BASE_URL}/device/v1/app/devices"): {"devices": [{"deviceId": "d2"}]}})
     async with AsyncLiMaClient(API_KEY, base_url=BASE_URL, transport=transport) as client:
         devices = await client.devices.list()
     assert devices["devices"][0]["deviceId"] == "d2"

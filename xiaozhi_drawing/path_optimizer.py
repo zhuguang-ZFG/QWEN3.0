@@ -17,7 +17,6 @@ class OptimizationResult:
     reduction_ratio: float
 
 
-
 def _optimize_curve_phases(
     point_lists: list[list[tuple[float, float]]],
     tolerance: float,

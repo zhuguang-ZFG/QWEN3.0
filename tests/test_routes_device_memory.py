@@ -104,9 +104,7 @@ def test_trigger_consolidation(client, mock_store):
     entry = MagicMock()
     entry.model_dump.return_value = {"id": "e2"}
     with patch.object(dm, "consolidate_task_episodes", return_value=[entry]) as mock_consolidate:
-        response = client.post(
-            "/device/v1/memory/dev-1/consolidate", headers={"Authorization": "Bearer test-key"}
-        )
+        response = client.post("/device/v1/memory/dev-1/consolidate", headers={"Authorization": "Bearer test-key"})
     assert response.status_code == 200
     assert response.json()["consolidated"] == 1
     mock_consolidate.assert_called_once_with(mock_store, "dev-1")

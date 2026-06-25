@@ -62,6 +62,7 @@ def get_servers() -> dict:
                 servers[s["host"]] = {"host": s["host"], "label": name}
     return servers
 
+
 # ========== MCP 协议 ==========
 
 TOOLS = {
@@ -173,13 +174,24 @@ def handle_request(req: dict) -> dict:
             if tool == "server_status":
                 text = tool_server_status(args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
             elif tool == "device_connections":
-                text = tool_device_connections(args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
+                text = tool_device_connections(
+                    args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers
+                )
             elif tool == "tail_log":
-                text = tool_tail_log(args["module"], args.get("lines", 30), args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
+                text = tool_tail_log(
+                    args["module"],
+                    args.get("lines", 30),
+                    args.get("host"),
+                    args.get("summary", True),
+                    run_ssh=run_ssh,
+                    servers=servers,
+                )
             elif tool == "health_check":
                 text = tool_health_check(args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
             elif tool == "restart_service":
-                text = tool_restart_service(args.get("service", "lima"), args.get("host"), run_ssh=run_ssh, servers=servers)
+                text = tool_restart_service(
+                    args.get("service", "lima"), args.get("host"), run_ssh=run_ssh, servers=servers
+                )
             else:
                 raise ValueError(f"Unknown tool: {tool}")
 

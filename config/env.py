@@ -138,7 +138,6 @@ def public_demo_max_per_minute() -> int:
     return FLAGS.public_demo_max_per_minute
 
 
-
 def health_show_errors() -> bool:
     """Expose startup errors in the health payload."""
     return FLAGS.health_show_errors

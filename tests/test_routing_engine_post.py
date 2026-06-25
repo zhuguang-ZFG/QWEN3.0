@@ -1,4 +1,5 @@
 """Tests for routing_engine_post.py — all branches."""
+
 from __future__ import annotations
 
 import types
@@ -9,13 +10,16 @@ import pytest
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _patch_integrations(monkeypatch):
     """Stub apply_post_route_integrations so we don't need real dependencies."""
     import routing_engine_post as mod
+
     calls = []
     monkeypatch.setattr(
-        mod, "apply_post_route_integrations",
+        mod,
+        "apply_post_route_integrations",
         lambda **kw: calls.append(kw),
     )
     return calls
@@ -25,6 +29,7 @@ def _patch_integrations(monkeypatch):
 def _patch_record_event(monkeypatch):
     """Patch routes.agent_events.record_event used by _record_routing_event."""
     import routing_engine_post as mod
+
     calls = []
 
     def _fake_record(event_type, data):
@@ -32,6 +37,7 @@ def _patch_record_event(monkeypatch):
 
     # Patch the import inside _record_routing_event via sys.modules
     import sys
+
     fake_mod = types.ModuleType("routes.agent_events")
     fake_mod.record_event = _fake_record
     sys.modules["routes.agent_events"] = fake_mod
@@ -67,6 +73,7 @@ def _patch_feedback_bridge(monkeypatch):
 # ---------------------------------------------------------------------------
 # post_route tests
 # ---------------------------------------------------------------------------
+
 
 class TestPostRoute:
     """post_route() — integrations, fallback detection, success flag."""
@@ -163,7 +170,9 @@ class TestPostRoute:
         rec = _patch_record_event[-1]
         assert rec[1]["success"] is False
 
-    def test_integrations_called_with_correct_args(self, _patch_integrations, _patch_record_event, _patch_feedback_bridge):
+    def test_integrations_called_with_correct_args(
+        self, _patch_integrations, _patch_record_event, _patch_feedback_bridge
+    ):
         import routing_engine_post as mod
 
         msgs = [{"role": "user", "content": "test"}]
@@ -207,6 +216,7 @@ class TestPostRoute:
 # _record_routing_event exception path
 # ---------------------------------------------------------------------------
 
+
 class TestRecordRoutingEvent:
     def test_happy_path(self, _patch_record_event):
         import routing_engine_post as mod
@@ -225,6 +235,7 @@ class TestRecordRoutingEvent:
 
         # Make the import raise
         import builtins
+
         _real_import = builtins.__import__
 
         def _bad_import(name, *args, **kwargs):

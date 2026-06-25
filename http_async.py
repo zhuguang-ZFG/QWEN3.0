@@ -69,8 +69,14 @@ async def call_api_async(
 
 
 def _handle_async_api_success(
-    backend: str, payload: dict, cfg: dict, answer: str,
-    started: float, hc, key_provider: str, selected_key: str,
+    backend: str,
+    payload: dict,
+    cfg: dict,
+    answer: str,
+    started: float,
+    hc,
+    key_provider: str,
+    selected_key: str,
 ) -> str:
     """Process a successful async API response: record health, budget, and clean."""
     latency_ms = int((time.time() - started) * 1000)

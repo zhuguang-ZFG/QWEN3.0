@@ -54,18 +54,21 @@ def _make_conn(rows=None):
 @pytest.fixture(autouse=True)
 def _patch_deps(account):
     from device_logic import db as db_module
-    with patch.object(auth, "authorize", return_value=account), \
-         patch.object(key_routes, "authorize", return_value=account), \
-         patch.object(auth, "allow_device_auth", return_value=True), \
-         patch.object(key_routes, "allow_device_auth", return_value=True), \
-         patch.object(auth_core, "make_token", return_value="token-123"), \
-         patch.object(auth, "validate_login_code", return_value=True), \
-         patch.object(auth, "login_code_error", return_value=None), \
-         patch.object(auth, "sms_verification_payload", return_value={"code": "123456"}), \
-         patch.object(auth, "client_ip", return_value="127.0.0.1"), \
-         patch.object(auth, "connect") as mock_connect, \
-         patch.object(db_module, "connect") as mock_db_connect, \
-         patch.object(auth, "new_id", return_value="new-id"):
+
+    with (
+        patch.object(auth, "authorize", return_value=account),
+        patch.object(key_routes, "authorize", return_value=account),
+        patch.object(auth, "allow_device_auth", return_value=True),
+        patch.object(key_routes, "allow_device_auth", return_value=True),
+        patch.object(auth_core, "make_token", return_value="token-123"),
+        patch.object(auth, "validate_login_code", return_value=True),
+        patch.object(auth, "login_code_error", return_value=None),
+        patch.object(auth, "sms_verification_payload", return_value={"code": "123456"}),
+        patch.object(auth, "client_ip", return_value="127.0.0.1"),
+        patch.object(auth, "connect") as mock_connect,
+        patch.object(db_module, "connect") as mock_db_connect,
+        patch.object(auth, "new_id", return_value="new-id"),
+    ):
         mock_conn = _make_conn([account])
         mock_connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
         mock_connect.return_value.__exit__ = MagicMock(return_value=False)
@@ -154,15 +157,21 @@ def test_delete_account_success(client, auth_header):
 
 
 def test_register_email_success(client):
-    with patch.object(email_auth, "_hash_password", return_value="hashed"), \
-         patch.object(email_auth, "account_by_email", return_value=None):
-        response = client.post("/device/v1/app/auth/register-email", json={"email": "new@example.com", "password": "secret123"})
+    with (
+        patch.object(email_auth, "_hash_password", return_value="hashed"),
+        patch.object(email_auth, "account_by_email", return_value=None),
+    ):
+        response = client.post(
+            "/device/v1/app/auth/register-email", json={"email": "new@example.com", "password": "secret123"}
+        )
     assert response.status_code == 200
     assert response.json()["token"] == "token-123"
 
 
 def test_register_email_invalid_email(client):
-    response = client.post("/device/v1/app/auth/register-email", json={"email": "not-an-email", "password": "secret123"})
+    response = client.post(
+        "/device/v1/app/auth/register-email", json={"email": "not-an-email", "password": "secret123"}
+    )
     assert response.status_code == 400
 
 
@@ -172,9 +181,13 @@ def test_register_email_weak_password(client):
 
 
 def test_login_email_success(client, account):
-    with patch.object(email_auth, "account_by_email", return_value=account), \
-         patch.object(email_auth, "_verify_password", return_value=True):
-        response = client.post("/device/v1/app/auth/login-email", json={"email": "tester@example.com", "password": "secret123"})
+    with (
+        patch.object(email_auth, "account_by_email", return_value=account),
+        patch.object(email_auth, "_verify_password", return_value=True),
+    ):
+        response = client.post(
+            "/device/v1/app/auth/login-email", json={"email": "tester@example.com", "password": "secret123"}
+        )
     assert response.status_code == 200
     data = response.json()
     assert data["token"] == "token-123"
@@ -182,9 +195,13 @@ def test_login_email_success(client, account):
 
 
 def test_login_email_invalid_password(client, account):
-    with patch.object(email_auth, "account_by_email", return_value=account), \
-         patch.object(email_auth, "_verify_password", return_value=False):
-        response = client.post("/device/v1/app/auth/login-email", json={"email": "tester@example.com", "password": "wrong"})
+    with (
+        patch.object(email_auth, "account_by_email", return_value=account),
+        patch.object(email_auth, "_verify_password", return_value=False),
+    ):
+        response = client.post(
+            "/device/v1/app/auth/login-email", json={"email": "tester@example.com", "password": "wrong"}
+        )
     assert response.status_code == 401
 
 
@@ -194,7 +211,18 @@ def test_login_email_missing_fields(client):
 
 
 def test_create_api_key_success(client, auth_header):
-    with patch.object(key_routes, "create_key", return_value={"id": "key-1", "name": "test", "prefix": "sk-lima-abc", "key": "sk-lima-secret", "status": "active", "createdAt": "2024-01-01T00:00:00Z"}):
+    with patch.object(
+        key_routes,
+        "create_key",
+        return_value={
+            "id": "key-1",
+            "name": "test",
+            "prefix": "sk-lima-abc",
+            "key": "sk-lima-secret",
+            "status": "active",
+            "createdAt": "2024-01-01T00:00:00Z",
+        },
+    ):
         response = client.post("/device/v1/app/keys", headers=auth_header, json={"name": "test"})
     assert response.status_code == 200
     data = response.json()

@@ -131,9 +131,7 @@ class PathOptimizer:
             segments.append(current)
         return segments
 
-    def _reorder_segments_greedy(
-        self, segments: list[list[dict[str, Any]]]
-    ) -> list[list[dict[str, Any]]]:
+    def _reorder_segments_greedy(self, segments: list[list[dict[str, Any]]]) -> list[list[dict[str, Any]]]:
         """Greedy nearest-neighbor ordering with optional segment reversal."""
         if not segments:
             return []
@@ -172,9 +170,7 @@ class PathOptimizer:
         return ordered
 
     @staticmethod
-    def _point_to_line_distance(
-        px: float, py: float, x1: float, y1: float, x2: float, y2: float
-    ) -> float:
+    def _point_to_line_distance(px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> float:
         """Perpendicular distance from point (px, py) to line (x1,y1)-(x2,y2)."""
         dx = x2 - x1
         dy = y2 - y1
@@ -191,9 +187,7 @@ class PathOptimizer:
         return math.hypot(x2 - x1, y2 - y1)
 
 
-def apply_multi_pass(
-    base_path: list[dict[str, Any]], passes: int, offset_mm: float
-) -> list[dict[str, Any]]:
+def apply_multi_pass(base_path: list[dict[str, Any]], passes: int, offset_mm: float) -> list[dict[str, Any]]:
     """Generate ``passes`` copies of ``base_path`` offset along the X axis.
 
     The first pass is unchanged; pass ``n`` (0-indexed) is shifted by

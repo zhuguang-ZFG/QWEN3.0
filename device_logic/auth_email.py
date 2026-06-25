@@ -16,6 +16,4 @@ def is_valid_email(value: str) -> bool:
 
 def account_by_email(email: str) -> Any | None:
     with connect() as conn:
-        return conn.execute(
-            "SELECT * FROM v2_account WHERE email=? AND status='active'", (email,)
-        ).fetchone()
+        return conn.execute("SELECT * FROM v2_account WHERE email=? AND status='active'", (email,)).fetchone()

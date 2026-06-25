@@ -17,7 +17,11 @@ from device_gateway.protocol import (
 )
 from device_gateway.protocol_negotiator import ProtocolNegotiator
 from device_gateway.sessions import DeviceSession, registry
-from device_gateway.task_events import process_motion_event_core, record_device_connected, record_motion_event_side_effects
+from device_gateway.task_events import (
+    process_motion_event_core,
+    record_device_connected,
+    record_motion_event_side_effects,
+)
 from device_gateway.tasks import (
     ack_processing_task,
     active_tasks_for_device,
@@ -134,12 +138,16 @@ async def _check_attestation(
     firmware_hash = message.get("firmwareHash", "")
     result = attestation_verifier.verify(device_id, firmware_hash, version)
     if result.action == "quarantine":
-        _log.warning("device attestation quarantined device=%s version=%r reason=%s", device_id, result.version, result.reason)
+        _log.warning(
+            "device attestation quarantined device=%s version=%r reason=%s", device_id, result.version, result.reason
+        )
         await websocket.send_json(attestation_failed_frame(device_id, result.reason, request_id))
         await websocket.close(code=1008)
         return None
     if result.action == "read_only":
-        _log.warning("device attestation warning device=%s version=%r reason=%s", device_id, result.version, result.reason)
+        _log.warning(
+            "device attestation warning device=%s version=%r reason=%s", device_id, result.version, result.reason
+        )
         await websocket.send_json(attestation_warning_frame(device_id, result.reason, request_id))
     return result
 

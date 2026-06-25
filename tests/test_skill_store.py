@@ -13,29 +13,82 @@ def _make_msgs(text: str = "hello") -> list[dict]:
 
 class TestRoutingSkill:
     def test_default_weight(self):
-        skill = RoutingSkill(skill_key="k", backend="b", scenario="chat", complexity_score=1, latency_ms=100, created_at=MOCK_NOW, last_used=MOCK_NOW)
+        skill = RoutingSkill(
+            skill_key="k",
+            backend="b",
+            scenario="chat",
+            complexity_score=1,
+            latency_ms=100,
+            created_at=MOCK_NOW,
+            last_used=MOCK_NOW,
+        )
         assert skill.weight == 1.0
 
     def test_on_success_increases_weight(self):
-        skill = RoutingSkill(skill_key="k", backend="b", scenario="chat", complexity_score=1, latency_ms=100, created_at=MOCK_NOW, last_used=MOCK_NOW, weight=1.0)
+        skill = RoutingSkill(
+            skill_key="k",
+            backend="b",
+            scenario="chat",
+            complexity_score=1,
+            latency_ms=100,
+            created_at=MOCK_NOW,
+            last_used=MOCK_NOW,
+            weight=1.0,
+        )
         skill.on_success()
         assert skill.weight > 1.0
 
     def test_on_failure_decreases_weight(self):
-        skill = RoutingSkill(skill_key="k", backend="b", scenario="chat", complexity_score=1, latency_ms=100, created_at=MOCK_NOW, last_used=MOCK_NOW, weight=1.0)
+        skill = RoutingSkill(
+            skill_key="k",
+            backend="b",
+            scenario="chat",
+            complexity_score=1,
+            latency_ms=100,
+            created_at=MOCK_NOW,
+            last_used=MOCK_NOW,
+            weight=1.0,
+        )
         skill.on_failure()
         assert skill.weight < 1.0
 
     def test_is_expired_when_weight_low(self):
-        skill = RoutingSkill(skill_key="k", backend="b", scenario="chat", complexity_score=1, latency_ms=100, created_at=MOCK_NOW, last_used=MOCK_NOW, weight=0.05)
+        skill = RoutingSkill(
+            skill_key="k",
+            backend="b",
+            scenario="chat",
+            complexity_score=1,
+            latency_ms=100,
+            created_at=MOCK_NOW,
+            last_used=MOCK_NOW,
+            weight=0.05,
+        )
         assert skill.is_expired is True
 
     def test_not_expired_when_weight_high(self):
-        skill = RoutingSkill(skill_key="k", backend="b", scenario="chat", complexity_score=1, latency_ms=100, created_at=MOCK_NOW, last_used=MOCK_NOW, weight=1.0)
+        skill = RoutingSkill(
+            skill_key="k",
+            backend="b",
+            scenario="chat",
+            complexity_score=1,
+            latency_ms=100,
+            created_at=MOCK_NOW,
+            last_used=MOCK_NOW,
+            weight=1.0,
+        )
         assert skill.is_expired is False
 
     def test_weight_capped_at_3(self):
-        skill = RoutingSkill(skill_key="k", backend="b", scenario="chat", complexity_score=1, latency_ms=100, created_at=MOCK_NOW, last_used=MOCK_NOW, weight=2.9)
+        skill = RoutingSkill(
+            skill_key="k",
+            backend="b",
+            scenario="chat",
+            complexity_score=1,
+            latency_ms=100,
+            created_at=MOCK_NOW,
+            last_used=MOCK_NOW,
+            weight=2.9,
+        )
         for _ in range(5):
             skill.on_success()
         assert skill.weight <= 3.0

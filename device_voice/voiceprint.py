@@ -53,7 +53,9 @@ class VoiceprintProvider:
     async def identify_speaker(self, wav_data: bytes, device_id: str) -> SpeakerIdentity:
         from device_voice.voiceprint_policy import _identify_speaker_impl
 
-        return await _identify_speaker_impl(self, wav_data, device_id, VOICEPRINT.similarity_threshold, _cosine_similarity)
+        return await _identify_speaker_impl(
+            self, wav_data, device_id, VOICEPRINT.similarity_threshold, _cosine_similarity
+        )
 
     async def register_speaker(self, wav_data: bytes, member_id: str, device_id: str) -> Optional[list[float]]:
         if not self.enabled:

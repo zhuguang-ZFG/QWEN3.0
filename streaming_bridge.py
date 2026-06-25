@@ -185,8 +185,13 @@ async def bridge_stream(
     q: queue_mod.Queue = queue_mod.Queue()
     cancel = threading.Event()
     thread = start_sync_stream_worker(
-        q, cancel, backend=backend, messages=messages,
-        max_tokens=max_tokens, ide=ide, call_stream_fn=call_stream_fn,
+        q,
+        cancel,
+        backend=backend,
+        messages=messages,
+        max_tokens=max_tokens,
+        ide=ide,
+        call_stream_fn=call_stream_fn,
     )
 
     async for chunk in _wait_for_first_chunk(q, cancel, thread, timeout, backend, call_fn, messages, max_tokens, ide):

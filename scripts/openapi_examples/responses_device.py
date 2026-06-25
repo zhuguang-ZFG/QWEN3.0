@@ -10,9 +10,7 @@ from .shared import uuid
 
 def _resp_devices_list() -> Any:
     return {
-        "items": [
-            {"id": uuid("dev"), "name": "Living Room", "model": "LiMa-Draw-V1", "online": True}
-        ],
+        "items": [{"id": uuid("dev"), "name": "Living Room", "model": "LiMa-Draw-V1", "online": True}],
         "total": 1,
     }
 

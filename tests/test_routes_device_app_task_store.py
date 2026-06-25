@@ -39,8 +39,10 @@ def _ctx_manager(conn):
     class Ctx:
         def __enter__(self):
             return conn
+
         def __exit__(self, *args):
             return False
+
     return Ctx()
 
 
@@ -50,22 +52,30 @@ def _patch_conn(row=None, rows=None):
 
 @pytest.fixture(autouse=True)
 def _patch_deps():
-    with patch.object(store, "json_params", return_value='{"requestId": "req-1"}'), \
-         patch.object(store, "task_snapshot", return_value={"task": {"task_id": "task-1"}}), \
-         patch.object(store, "record_motion_event"), \
-         patch.object(store.workflow, "get_state", return_value=store.TaskState.WAITING_APPROVAL), \
-         patch.object(store.workflow, "advance"), \
-         patch.object(store, "dispatch_or_enqueue", return_value={"sent": True, "queueDepth": 0}) as mock_dispatch, \
-         patch.object(store, "require_device_owner", return_value=None):
+    with (
+        patch.object(store, "json_params", return_value='{"requestId": "req-1"}'),
+        patch.object(store, "task_snapshot", return_value={"task": {"task_id": "task-1"}}),
+        patch.object(store, "record_motion_event"),
+        patch.object(store.workflow, "get_state", return_value=store.TaskState.WAITING_APPROVAL),
+        patch.object(store.workflow, "advance"),
+        patch.object(store, "dispatch_or_enqueue", return_value={"sent": True, "queueDepth": 0}) as mock_dispatch,
+        patch.object(store, "require_device_owner", return_value=None),
+    ):
         yield
 
 
 def test_insert_task_row(account, task):
-    row = {"id": "task-1", "device_id": "dev-1", "account_id": "acc-1", "intent": "write_text", "params": '{"requestId": "req-1"}', "source": "api", "status": "approved"}
+    row = {
+        "id": "task-1",
+        "device_id": "dev-1",
+        "account_id": "acc-1",
+        "intent": "write_text",
+        "params": '{"requestId": "req-1"}',
+        "source": "api",
+        "status": "approved",
+    }
     with _patch_conn(row=row):
-        result = store.insert_task_row(
-            "dev-1", account, task, "api", "approved", {"requestId": "req-1"}, {}
-        )
+        result = store.insert_task_row("dev-1", account, task, "api", "approved", {"requestId": "req-1"}, {})
     assert result["id"] == "task-1"
 
 

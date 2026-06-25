@@ -93,10 +93,7 @@ def pytest_configure(config):
     access_guard.configured_api_keys = _dynamic_configured_api_keys
 
     def _dynamic_anonymous_env_enabled() -> bool:
-        return (
-            os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower()
-            in {"1", "true", "yes", "on"}
-        )
+        return os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower() in {"1", "true", "yes", "on"}
 
     access_guard._anonymous_access_env_enabled = _dynamic_anonymous_env_enabled
 

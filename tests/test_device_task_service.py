@@ -31,7 +31,9 @@ async def test_create_and_route_task_queues_when_device_offline() -> None:
 
 @pytest.mark.asyncio
 async def test_create_and_route_task_returns_failed_for_invalid_projection(monkeypatch) -> None:
-    async def fake_create_task_from_transcript_async(device_id: str, text: str, request_id: str | None = None, **kwargs: Any) -> dict:
+    async def fake_create_task_from_transcript_async(
+        device_id: str, text: str, request_id: str | None = None, **kwargs: Any
+    ) -> dict:
         return {
             "type": "motion_task",
             "task_id": "task-invalid",

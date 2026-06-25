@@ -115,9 +115,7 @@ class FtsIndex(LocalRetrievalIndex):
         conn.commit()
 
         if not self._source_root and existing_paths:
-            self._source_root = os.path.commonpath(
-                [os.path.abspath(p) for p in existing_paths]
-            )
+            self._source_root = os.path.commonpath([os.path.abspath(p) for p in existing_paths])
             if os.path.isfile(self._source_root):
                 self._source_root = os.path.dirname(self._source_root)
 

@@ -109,9 +109,7 @@ class TestRuntimeHttpServer:
                     return
 
                 accept_source = websocket_key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-                accept_value = base64.b64encode(
-                    hashlib.sha1(accept_source.encode("utf-8")).digest()
-                ).decode("ascii")
+                accept_value = base64.b64encode(hashlib.sha1(accept_source.encode("utf-8")).digest()).decode("ascii")
 
                 client_queue = bridge.add_client()
                 self.send_response(HTTPStatus.SWITCHING_PROTOCOLS)
@@ -295,10 +293,7 @@ class TestRuntimeHttpServer:
                 payload = self._read_exact(payload_length) if payload_length else b""
 
                 if masked and payload:
-                    payload = bytes(
-                        byte ^ masking_key[index % 4]
-                        for index, byte in enumerate(payload)
-                    )
+                    payload = bytes(byte ^ masking_key[index % 4] for index, byte in enumerate(payload))
 
                 if opcode == 0x8:
                     raise ConnectionAbortedError("websocket closed by client")

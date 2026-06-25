@@ -1,4 +1,5 @@
 """Tests for routing_engine_post.py — notification bridge & injected IDs."""
+
 from __future__ import annotations
 
 import types
@@ -8,6 +9,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def _patch_feedback_bridge(monkeypatch):
@@ -54,6 +56,7 @@ class TestNotifyFeedbackBridge:
         sys.modules.pop("routing_loop.feedback_bridge", None)
 
         import builtins
+
         _real_import = builtins.__import__
 
         def _bad_import(name, *args, **kwargs):

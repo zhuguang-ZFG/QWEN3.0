@@ -25,14 +25,15 @@ async def test_handle_voiceprint_sample_success(websocket):
         "audio_data": "data",
         "format": "wav",
     }
-    with patch("routes.ws_voiceprint_helpers.shadow_store") as mock_shadow, patch(
-        "session_memory.store_voiceprint.upsert_voiceprint_sample"
-    ) as mock_upsert, patch(
-        "routes.ws_voiceprint_helpers.build_voiceprint_sample_ack",
-        return_value={"type": "voiceprint_sample_ack"},
-    ) as mock_ack, patch(
-        "routes.device_voice_ws_helpers._extract_and_store_voiceprint_embedding"
-    ) as mock_extract:
+    with (
+        patch("routes.ws_voiceprint_helpers.shadow_store") as mock_shadow,
+        patch("session_memory.store_voiceprint.upsert_voiceprint_sample") as mock_upsert,
+        patch(
+            "routes.ws_voiceprint_helpers.build_voiceprint_sample_ack",
+            return_value={"type": "voiceprint_sample_ack"},
+        ) as mock_ack,
+        patch("routes.device_voice_ws_helpers._extract_and_store_voiceprint_embedding") as mock_extract,
+    ):
         mock_shadow.validate_voiceprint_sample.return_value = validated
         await vp.handle_voiceprint_sample(websocket, "dev-1", {"raw": "msg"}, "req-1")
 
@@ -59,13 +60,17 @@ async def test_handle_voiceprint_sample_success(websocket):
 @pytest.mark.asyncio
 async def test_handle_voiceprint_sample_import_error_fallback(websocket):
     validated = {"voiceprint_id": "vp-1", "sample_index": 0}
-    with patch("routes.ws_voiceprint_helpers.shadow_store") as mock_shadow, patch(
-        "session_memory.store_voiceprint.upsert_voiceprint_sample",
-        side_effect=ImportError("no db"),
-    ), patch(
-        "routes.ws_voiceprint_helpers.ack_frame",
-        return_value={"type": "fallback_ack"},
-    ) as mock_ack:
+    with (
+        patch("routes.ws_voiceprint_helpers.shadow_store") as mock_shadow,
+        patch(
+            "session_memory.store_voiceprint.upsert_voiceprint_sample",
+            side_effect=ImportError("no db"),
+        ),
+        patch(
+            "routes.ws_voiceprint_helpers.ack_frame",
+            return_value={"type": "fallback_ack"},
+        ) as mock_ack,
+    ):
         mock_shadow.validate_voiceprint_sample.return_value = validated
         await vp.handle_voiceprint_sample(websocket, "dev-1", {"raw": "msg"}, "req-1")
 
