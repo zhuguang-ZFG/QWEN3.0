@@ -32,9 +32,12 @@
   - 聚焦 pytest `tests/test_device_ota.py` + `tests/test_device_ota_app.py` → **17 passed / 0 failed**。
   - `ruff check` / `py_compile` / `git diff --check` clean；`scripts/check_code_size.py` 确认本次修改文件均 ≤300 行。
   - `donglicao-site-v2` `npm run build` 通过（含 `/en/privacy`、`/en/terms`）。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core` → **1591 uploaded / 0 failed**；远程备份 `/opt/lima-router/backups/unified-core-20260625_190718/runtime-before.tgz`。
+  - 公网健康：`https://chat.donglicao.com/health` 200，`status=ok`，`device_ota_app` 模块 loaded，`startup.status=ready`。
+  - `https://chat.donglicao.com/device/v1/health` 200，`production_ready=true`，`auth_configured=true`。
 - **待确认/阻塞**：
   - Gitee 远程未配置（`git remote -v` 仅 `origin`），本次未推送到 Gitee；如需同步请提供 Gitee 仓库 URL 与 token/SSH key。
-  - VPS 部署待执行（需 `LIMA_DEPLOY_PASS` 或可用 SSH key）。
 
 ### 最近完成（2026-06-25）Phase A/B/C 收尾：官网、文档、SDK 与 CI 完整通过
 

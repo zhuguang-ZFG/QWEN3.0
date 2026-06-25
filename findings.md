@@ -14,7 +14,7 @@
 | PHASEA-5 | code_size | 新增 App OTA 接口后 `routes/device_ota.py` 将超 300 行 | Closed |
 | PHASEA-6 | git | `improve/20260625-phase-a` 需合并回 `main` 并推送 | Closed |
 | PHASEA-7 | git | 仓库未配置 Gitee remote，无法同步到 Gitee | Accepted |
-| PHASEA-8 | deploy | 合并后尚未部署到 VPS | Open |
+| PHASEA-8 | deploy | 合并后尚未部署到 VPS | Closed |
 
 **修复动作**
 - 新增 `donglicao-site-v2/app/en/privacy/page.tsx`、`app/en/terms/page.tsx`；为中英文 privacy/terms 页面注入 `canonical` 与 `hreflang alternate`。
@@ -31,9 +31,13 @@
 - `scripts/check_code_size.py` 本次修改文件均 ≤300 行；历史遗留 >300 行文件 5 个未触及。
 - `donglicao-site-v2` `npm run build` 通过。
 
+**部署**
+- `python scripts/deploy_unified.py --slice core` → **1591 uploaded / 0 failed / 0 skipped**；远程备份 `/opt/lima-router/backups/unified-core-20260625_190718/runtime-before.tgz`。
+- 公网 `https://chat.donglicao.com/health` 200，`status=ok`，`device_ota_app` 已加载，`startup.status=ready`。
+- 公网 `https://chat.donglicao.com/device/v1/health` 200，`production_ready=true`，`auth_configured=true`。
+
 **遗留/阻塞**
 - Gitee 镜像：仓库无 `gitee` remote，且本地无 `GITEE_TOKEN` / SSH key；如需同步请提供 Gitee 仓库 URL 与凭证。
-- VPS 部署：待执行 `scripts/deploy_unified.py` 并验证 `/health`。
 
 ---
 
