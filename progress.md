@@ -16,6 +16,24 @@
 - **Git**：
   - 提交并推送 `origin improve/20260625-phase-a` 成功。
 
+## 2026-06-25 完成 Phase A P0：OpenAPI 规范通过 Redocly lint
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase A-2，使 `docs/openapi.yaml` 通过 Redocly 推荐规则校验。
+- **关键结果**：
+  - 新增 `scripts/fix_openapi_spec.py`，自动补全以下缺失项：
+    - 顶层 `components/securitySchemes` 定义 `bearerAuth`（HTTP Bearer）。
+    - 顶层 `security` 默认要求 Bearer 认证。
+    - 为公开端点（`/auth/login`、`/auth/register`、`/auth/captcha`）设置 `security: []` 覆盖。
+    - 为每个操作生成 `operationId`。
+    - 为每个操作补充 `400` / `401` 4XX 响应。
+    - `info` 增加 `license` 字段。
+  - 运行 `npx @redocly/cli lint public/openapi.yaml` 通过：`Your API description is valid.`
+  - `docs-site` 重新 `pnpm run build` 成功。
+- **验证**：
+  - 聚焦后端 pytest **44 passed / 0 failed**。
+- **Git**：
+  - 本地提交成功；推送 `origin improve/20260625-phase-a` 因网络中断失败（TLS `Send failure: Connection was aborted`），待网络恢复后重试。
+
 ## 2026-06-25 完成 Phase B P1：官网集成生态 logo 墙扩展
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase B-5，将 Next.js 官网合作伙伴 logo 墙扩展至 20+ 并增强交互。
