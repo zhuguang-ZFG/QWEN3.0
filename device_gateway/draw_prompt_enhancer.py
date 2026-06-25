@@ -15,6 +15,7 @@ from typing import Any
 
 from device_gateway.device_profile.models import DeviceProfile
 from device_gateway.device_profile.registry import get_device_profile
+from device_gateway.draw_prompt_few_shot import PLOTTER_FEW_SHOT
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +29,6 @@ SYSTEM_INSTRUCTION = (
     "用最少线条表达特征，避免交叉线、虚线、点阵、装饰性背景。"
     "【失败处理】如果用户描述超出能力，主动建议简化，不要勉强生成。"
     "【自检】生成前问自己：这个图能用单支笔一笔一笔描出来吗？"
-)
-
-PLOTTER_FEW_SHOT = (
-    "【正面示例】"
-    "用户：画一只猫 → 生成：一只猫的简笔画，侧面轮廓，黑线白底，封闭轮廓，约15笔画。"
-    "用户：画个苹果 → 生成：一个苹果的轮廓线，带小蒂，黑线白底，封闭图形。"
-    "【负面示例】"
-    "用户：画一只毛茸茸的猫在阳光下的照片 → 拒绝：过于复杂，包含毛发、光影、背景。"
-    "用户：画一座城市和人群 → 拒绝：主体过多，超出单笔画能力。"
 )
 
 CAPABILITY_PROMPT_MAP = {
