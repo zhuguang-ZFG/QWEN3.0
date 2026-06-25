@@ -1,5 +1,24 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P2 C-2（Markdown 增强）：控制台代码高亮与公式渲染
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台聊天消息增加代码语法高亮与 KaTeX 公式渲染。
+- **关键结果**：
+  - `chat-web/index.html` 引入 highlight.js 11.9.0（atom-one-dark 主题）与 KaTeX 0.16.9（含 auto-render）。
+  - 更新 CSP：`script-src` / `style-src` 增加 `https://cdn.jsdelivr.net`。
+  - `chat-web/chat-messages.js`：
+    - 重构 `formatContent`，先提取 fenced code block 再统一转义，避免代码被二次 HTML 转义。
+    - 代码块输出 `<code class="language-{lang}">`，支持 `highlight.js` 高亮。
+    - 新增 `highlightAndRender(root)`：对代码块调用 `hljs.highlightElement`，对数学公式调用 `renderMathInElement`（`$$...$$` 块级、`$...$` 行级）。
+    - 用户消息即时高亮；AI 流式消息在生成结束后调用 `finalizeLastMessage()` 统一高亮。
+  - `chat-web/chat-api.js`：流式响应完成后调用 `finalizeLastMessage()`。
+- **验证**：
+  - `node --check chat-web/chat-messages.js` 与 `chat-web/chat-api.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+  - `git diff --check` 无行尾空格问题。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）；文件已就绪，配置密码后可通过 `scripts/deploy_chat_web.py` 同步。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase C P2 C-2（设备状态指示）：控制台侧边栏实时设备状态
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台侧边栏增加已绑定设备的在线/离线/运行中状态指示。

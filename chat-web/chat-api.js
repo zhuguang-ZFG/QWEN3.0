@@ -157,6 +157,7 @@ async function sendMessage() {
       if (modelTag) modelTag.textContent = modelName;
     }
 
+    finalizeLastMessage();
     messages.push({ role: 'assistant', content: fullText });
     addToHistory(text);
 

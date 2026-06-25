@@ -28,6 +28,9 @@ function addMessage(role, content, meta) {
   chatInner.appendChild(msg);
   attachCodeCopy(msg);
   attachImageLightbox(msg);
+  if (role === 'user') {
+    highlightAndRender(msg);
+  }
   scrollToBottom();
   return msg;
 }
@@ -65,20 +68,34 @@ function isAllowedImageUrl(url) {
 }
 
 function formatContent(text) {
-  return text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  // Extract fenced code blocks first so their content is escaped exactly once.
+  const codeBlocks = [];
+  let withoutBlocks = String(text || '').replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    const key = `__CODE_BLOCK_${codeBlocks.length}__`;
+    codeBlocks.push({ lang: lang || 'plaintext', code });
+    return key;
+  });
+
+  let html = escapeHtml(withoutBlocks)
     .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (match, alt, url) => {
       if (!isAllowedImageUrl(url)) {
         return `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">[图片: ${escapeHtml(alt || 'image')}]</a>`;
       }
       return `<div class="media-card"><img src="${escapeAttr(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
     })
-    .replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-      return `<div class="code-card"><div class="code-header"><div class="code-lights"><span></span><span></span><span></span></div><button class="copy-btn" data-action="copy-code">复制</button></div><pre><code>${escapeHtml(code)}</code></pre></div>`;
-    })
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br>');
+
+  codeBlocks.forEach(({ lang, code }, i) => {
+    const key = `__CODE_BLOCK_${i}__`;
+    html = html.replace(
+      key,
+      `<div class="code-card"><div class="code-header"><div class="code-lights"><span></span><span></span><span></span></div><button class="copy-btn" data-action="copy-code">复制</button></div><pre><code class="language-${lang}">${escapeHtml(code)}</code></pre></div>`
+    );
+  });
+
+  return html;
 }
 
 function attachCodeCopy(root) {
@@ -160,5 +177,37 @@ function updateLastMessage(text) {
     attachCodeCopy(lastMsg.parentElement);
     attachImageLightbox(lastMsg.parentElement);
     scrollToBottom();
+  }
+}
+
+function highlightAndRender(root) {
+  if (window.hljs) {
+    root.querySelectorAll('pre code').forEach((el) => {
+      try {
+        window.hljs.highlightElement(el);
+      } catch (e) {
+        console.warn('highlight failed:', e);
+      }
+    });
+  }
+  if (window.renderMathInElement) {
+    try {
+      window.renderMathInElement(root, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false },
+        ],
+        throwOnError: false,
+      });
+    } catch (e) {
+      console.warn('math render failed:', e);
+    }
+  }
+}
+
+function finalizeLastMessage() {
+  const lastMsg = chatInner.querySelector('.message.ai:last-of-type');
+  if (lastMsg) {
+    highlightAndRender(lastMsg);
   }
 }

@@ -4,6 +4,11 @@
 
 ---
 
+## 2026-06-25 Phase C P2：控制台 Markdown 增强
+
+- `chat-web/index.html` 引入 highlight.js 与 KaTeX CDN，更新 CSP。
+- `chat-web/chat-messages.js` 支持 fenced code block 语法高亮（highlight.js）与 `$...$` / `$$...$$` 公式渲染（KaTeX auto-render）。
+
 ## 2026-06-25 Phase C P2：控制台侧边栏设备状态
 
 - 新增 `chat-web/js/sidebar-devices.js`：登录后从 `/device/v1/app/devices` 拉取已绑定设备，轮询 `/devices/{id}/status` 刷新在线/离线/运行中状态。
