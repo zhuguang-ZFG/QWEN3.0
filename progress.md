@@ -1,5 +1,14 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P2：C-3 API Playground
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 的 API Playground。
+- **关键结果**：
+  - `chat-web/playground.html` + `js/playground*.js`：Monaco Editor、ECharts、模型选择、参数调节、流式响应、cURL 复制、历史记录。
+  - 新增 `/chat/{path:path}` 静态路由，Playground 线上可访问。
+- **验证**：代码质量审查通过；全量 pytest **3709 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+- **部署**：VPS 已重启，`https://chat.donglicao.com/chat/playground.html` 可访问。
+
 ## 2026-06-25 完成 Phase B P0：管理控制台增强
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase B P0，基于现有 `/admin` 控制台补齐登录、设备管理、API Key 用量。

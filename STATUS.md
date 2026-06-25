@@ -17,6 +17,19 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-25）Phase C P2：C-3 API Playground
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 的 API Playground。
+- **关键结果**：
+  - 新增 `chat-web/playground.html` + `chat-web/js/playground.js` + `chat-web/js/playground-ui.js` + `chat-web/js/playground-utils.js`。
+  - Monaco Editor 编辑 JSON 请求体，ECharts 展示 Token 柱状图，支持模型选择、temperature/max_tokens/stream 参数。
+  - 支持流式/非流式响应实时展示、cURL 复制、localStorage 历史请求。
+  - 新增 `/chat/{path:path}` 静态文件路由，使 Playground 可通过 `https://chat.donglicao.com/chat/playground.html` 访问。
+- **验证**：
+  - 代码质量审查通过（IIFE、≤300 行/文件、≤50 行/函数、SRI、CSP、无静默吞异常）。
+  - 全量 pytest **3709 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+- **部署**：VPS `lima-router.service` 已重启；`https://chat.donglicao.com/chat/playground.html` 可访问。
+
 ### 最近完成（2026-06-25）Phase B P0：管理控制台增强
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P0，基于现有 `/admin` 控制台补齐登录、设备管理、API Key 用量。
