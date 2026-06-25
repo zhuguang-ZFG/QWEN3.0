@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/developer/playground",
     "/login",
     "/register",
+    "/en",
     "/blog",
     ...posts.map((post) => `/blog/${post.slug}`),
   ];

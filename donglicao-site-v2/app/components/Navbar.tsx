@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const isEn = pathname?.startsWith("/en") ?? false;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#07070f]/80 backdrop-blur-md">
@@ -54,6 +57,14 @@ export default function Navbar() {
             >
               控制台
             </a>
+            <Link
+              href={isEn ? "/" : "/en/"}
+              className="rounded-full border border-white/10 px-3 py-2 text-center text-sm text-slate-300 hover:border-white/20 hover:text-slate-100"
+              onClick={() => setOpen(false)}
+              aria-label={isEn ? "Switch to Chinese" : "Switch to English"}
+            >
+              {isEn ? "中文" : "EN"}
+            </Link>
           </div>
         </div>
       </div>
