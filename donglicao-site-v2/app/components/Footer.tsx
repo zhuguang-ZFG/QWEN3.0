@@ -39,6 +39,7 @@ const footerLinks = [
     title: "公司",
     links: [
       { label: "关于我们", href: "/#hero" },
+      { label: "博客", href: "/blog/" },
       { label: "联系销售", href: "mailto:sales@donglicao.com" },
     ],
   },
