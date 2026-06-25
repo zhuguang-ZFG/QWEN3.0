@@ -34,6 +34,21 @@
 - **Git**：
   - 本地提交成功；推送 `origin improve/20260625-phase-a` 因网络中断失败（TLS `Send failure: Connection was aborted`），待网络恢复后重试。
 
+## 2026-06-25 完成 Phase C P2：Next.js 官网博客骨架
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C-1，为 Next.js 官网新增博客模块。
+- **关键结果**：
+  - 新增 `app/blog/posts.ts`：3 篇文章（欢迎、三步构建设备、编码能力退役）。
+  - 新增 `app/blog/page.tsx`：博客列表页，卡片展示标题、日期、作者、摘要。
+  - 新增 `app/blog/[slug]/page.tsx`：文章详情页，静态生成每篇文章，注入 `BlogPosting` JSON-LD。
+  - 更新 `app/sitemap.ts`：收录 `/blog/` 与 3 篇文章路径。
+  - 更新 `Footer.tsx`：公司栏增加「博客」链接。
+- **验证**：
+  - `npm run build` 成功，生成 `/blog` 与 3 个 SSG 文章页。
+  - 聚焦后端 pytest **44 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase A P0：VitePress 文档站自动部署工作流
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase A-1，为 VitePress 文档站配置 CI/CD，支持部署到 `docs.donglicao.com`。
