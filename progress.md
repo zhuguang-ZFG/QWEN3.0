@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网 Web App Manifest
+
+- **目标**：为 `donglicao-site-v2` 添加 PWA manifest，提升安装/可发现性。
+- **关键结果**：
+  - 新增 `app/manifest.ts`，生成 `/manifest.webmanifest`。
+  - 配置 `name`、`short_name`、`theme_color`、`background_color`、`display: standalone`。
+- **验证**：
+  - `npm run build` 成功，静态生成 `/manifest.webmanifest`。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **Git**：
+  - 网络恢复，`git push origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网性能优化
 
 - **目标**：为 `donglicao-site-v2` 做性能优化，提升 Lighthouse 预期分数。
