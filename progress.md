@@ -34,6 +34,24 @@
 - **Git**：
   - 本地提交成功；推送 `origin improve/20260625-phase-a` 因网络中断失败（TLS `Send failure: Connection was aborted`），待网络恢复后重试。
 
+## 2026-06-25 完成 Phase A P0：VitePress 文档站自动部署工作流
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase A-1，为 VitePress 文档站配置 CI/CD，支持部署到 `docs.donglicao.com`。
+- **关键结果**：
+  - 新增 `.github/workflows/deploy-docs-site.yml`：
+    - 触发条件：`main` 分支变更 `docs-site/` 或 workflow 文件，支持手动触发。
+    - 使用 `pnpm/action-setup@v4` + Node 20 安装依赖并执行 `pnpm run build`。
+    - 使用 `appleboy/scp-action` 将 `docs-site/.vitepress/dist/` 同步到 VPS（依赖 `secrets.DOCS_SITE_DIR`）。
+    - 使用 `appleboy/ssh-action` 执行 `nginx -t && systemctl reload nginx`。
+  - 调整 `docs-site/.vitepress/config.ts`：`base: '/'`，适配子域根路径部署。
+- **依赖**：
+  - `secrets.VPS_HOST`、`secrets.VPS_USER`（默认 root）、`secrets.VPS_SSH_KEY`、`secrets.DOCS_SITE_DIR`。
+- **验证**：
+  - 本地 `pnpm run build` 成功，输出资源使用根路径（`/assets/...`）。
+  - 聚焦后端 pytest **44 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase B P1：官网集成生态 logo 墙扩展
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase B-5，将 Next.js 官网合作伙伴 logo 墙扩展至 20+ 并增强交互。
