@@ -58,44 +58,43 @@ function insertImageCommand() {
 // ─── VOICE INPUT (Web Speech API) ───
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const micBtn = document.getElementById('micBtn');
+const voiceStatus = document.getElementById('voiceStatus');
 if (micBtn && !SpeechRecognition) {
   micBtn.style.display = 'none';
 }
 
 let voiceRecognition = null;
-function startVoiceInput() {
-  if (!SpeechRecognition) {
-    showToast('当前浏览器不支持语音输入', { error: true });
-    return;
-  }
-  if (voiceRecognition) {
-    voiceRecognition.stop();
-    voiceRecognition = null;
-    micBtn?.classList.remove('listening');
-    return;
-  }
+let voiceStartTime = 0;
+let voiceHoldActive = false;
+let voiceFinalTranscript = '';
 
+function setVoiceListening(listening) {
+  micBtn?.classList.toggle('listening', listening);
+  if (voiceStatus) voiceStatus.hidden = !listening;
+}
+
+function startVoiceRecognition() {
+  if (!SpeechRecognition || voiceRecognition) return;
+  voiceFinalTranscript = '';
   voiceRecognition = new SpeechRecognition();
   voiceRecognition.lang = 'zh-CN';
   voiceRecognition.interimResults = true;
   voiceRecognition.maxAlternatives = 1;
 
-  let finalTranscript = '';
   voiceRecognition.onstart = () => {
-    micBtn?.classList.add('listening');
-    showToast('正在聆听，请说话…', { duration: 2000 });
+    setVoiceListening(true);
   };
   voiceRecognition.onresult = (event) => {
     let interim = '';
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
       if (event.results[i].isFinal) {
-        finalTranscript += transcript;
+        voiceFinalTranscript += transcript;
       } else {
         interim += transcript;
       }
     }
-    inputField.value = finalTranscript + interim;
+    inputField.value = voiceFinalTranscript + interim;
     autoResize(inputField);
   };
   voiceRecognition.onerror = (event) => {
@@ -103,15 +102,17 @@ function startVoiceInput() {
     if (event.error !== 'aborted' && event.error !== 'no-speech') {
       showToast('语音输入出错：' + event.error, { error: true });
     }
-    micBtn?.classList.remove('listening');
+    setVoiceListening(false);
     voiceRecognition = null;
+    voiceHoldActive = false;
   };
   voiceRecognition.onend = () => {
-    micBtn?.classList.remove('listening');
+    setVoiceListening(false);
     voiceRecognition = null;
-    if (inputField.value.trim() && !isStreaming) {
+    if (voiceHoldActive && inputField.value.trim() && !isStreaming) {
       handleSendClick();
     }
+    voiceHoldActive = false;
   };
 
   try {
@@ -119,9 +120,46 @@ function startVoiceInput() {
   } catch (err) {
     console.warn('voice recognition start failed:', err);
     showToast('无法启动语音输入', { error: true });
-    micBtn?.classList.remove('listening');
+    setVoiceListening(false);
     voiceRecognition = null;
+    voiceHoldActive = false;
   }
+}
+
+function stopVoiceRecognition() {
+  if (voiceRecognition) {
+    try { voiceRecognition.stop(); } catch {}
+  }
+}
+
+function onVoicePointerDown(e) {
+  if (e.button && e.button !== 0) return;
+  e.preventDefault();
+  voiceHoldActive = true;
+  voiceStartTime = Date.now();
+  startVoiceRecognition();
+}
+
+function onVoicePointerUp(e) {
+  if (!voiceHoldActive) return;
+  const held = Date.now() - voiceStartTime;
+  if (held < 500) {
+    voiceHoldActive = false;
+    stopVoiceRecognition();
+    inputField.value = '';
+    autoResize(inputField);
+    showToast('按住时间太短，已取消', { duration: 1500 });
+    return;
+  }
+  stopVoiceRecognition();
+}
+
+if (micBtn && SpeechRecognition) {
+  micBtn.addEventListener('mousedown', onVoicePointerDown);
+  micBtn.addEventListener('touchstart', onVoicePointerDown, { passive: false });
+  micBtn.addEventListener('mouseup', onVoicePointerUp);
+  micBtn.addEventListener('mouseleave', onVoicePointerUp);
+  micBtn.addEventListener('touchend', onVoicePointerUp);
 }
 
 function setSendLoading(loading) {

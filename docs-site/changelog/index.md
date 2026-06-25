@@ -4,6 +4,11 @@
 
 ---
 
+## 2026-06-25 Phase C P2：控制台按住说话
+
+- `chat-web/chat-ui.js` 语音输入改为按住说话：按住开始识别，松开自动发送；短按取消。
+- `chat-web/index.html` 新增「正在聆听…」状态与麦克风脉冲动画。
+
 ## 2026-06-25 Phase C P2：设备任务进度条
 
 - `chat-web/js/devices.js`：设备详情抽屉对活跃任务展示进度条，每 2 秒轮询 `/device/v1/app/tasks/{task_id}` 更新进度。

@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P2 C-2（语音输入增强）：控制台按住说话
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，增强控制台语音输入体验。
+- **关键结果**：
+  - `chat-web/chat-ui.js`：
+    - 将语音输入从「点击切换」改为「按住说话」交互：按住麦克风按钮开始识别，松开自动发送。
+    - 增加按住时间过短（<500ms）的取消逻辑，避免误触。
+    - 识别期间麦克风按钮脉冲动画，并显示「正在聆听…」状态文字。
+    - 松开时若输入框有内容且未在生成中，自动调用 `handleSendClick()` 发送消息。
+  - `chat-web/index.html`：麦克风按钮改为事件监听，新增 `#voiceStatus` 与脉冲动画样式。
+- **验证**：
+  - `node --check chat-web/chat-ui.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+  - `git diff --check` 无行尾空格问题。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）；文件已就绪，配置密码后可通过 `scripts/deploy_chat_web.py` 同步。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase C P2 C-2（任务进度条）：设备详情抽屉任务进度轮询
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为设备管理页的任务列表增加实时进度条。
