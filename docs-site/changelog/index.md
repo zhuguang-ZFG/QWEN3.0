@@ -4,6 +4,11 @@
 
 ---
 
+## 2026-06-25 Phase C P2：控制台侧边栏设备状态
+
+- 新增 `chat-web/js/sidebar-devices.js`：登录后从 `/device/v1/app/devices` 拉取已绑定设备，轮询 `/devices/{id}/status` 刷新在线/离线/运行中状态。
+- `index.html` 侧边栏新增「我的设备」区，点击跳转设备管理页。
+
 ## 2026-06-25 Phase B P1：设备管理页
 
 - 新增 `chat-web/devices.html` + `js/devices.js`：已绑定设备列表、详情抽屉、实时 WebSocket 状态、添加/解绑设备。

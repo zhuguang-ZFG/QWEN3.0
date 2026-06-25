@@ -30,6 +30,21 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase C P2 C-2：控制台侧边栏实时设备状态
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-2，为控制台侧边栏增加已绑定设备的在线/离线/运行中状态指示。
+- **关键结果**：
+  - 新增 `chat-web/js/sidebar-devices.js`：登录后自动拉取 `/device/v1/app/devices` 与 `/devices/{id}/status`，在 `index.html` 侧边栏渲染「我的设备」列表。
+  - 设备卡片展示名称、状态圆点（在线/离线/运行中），每 10 秒轮询刷新。
+  - 点击设备跳转 `devices.html?id=...`。
+  - `index.html` 引入 `js/api.js`、`js/auth.js`、`js/sidebar-devices.js`。
+  - `scripts/deploy_chat_web.py` 静态清单纳入 `js/sidebar-devices.js`。
+- **验证**：
+  - `node --check chat-web/js/sidebar-devices.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+  - `ruff check` / `pyright` 修改 Python 文件 clean。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）。
+
 ### 最近完成（2026-06-25）Phase B P1：B-4 设备管理页
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-4，为用户控制台新增已绑定设备列表、详情抽屉、实时状态与解绑能力。
