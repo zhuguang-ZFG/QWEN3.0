@@ -7,7 +7,6 @@ import logging
 from typing import AsyncGenerator, Callable
 
 import routing_intent
-from orchestrate import orchestrate
 from response_builder import build_stream_chunk, stream_sentences
 from routes.stream_handlers import speculative_stream_chunks
 from routes.v3_adapters import v3_route
@@ -40,16 +39,7 @@ async def _authoritative_route(
     max_tokens: int = 4096,
     use_orchestration: bool = False,
 ) -> dict:
-    """Non-stream fallback via orchestrate (multi-step) or v3_route (routing_engine.route)."""
-    if use_orchestration:
-        return await asyncio.to_thread(
-            orchestrate,
-            query,
-            messages=messages,
-            ide_source=ide_source,
-            system_prompt=sys_prompt_preview,
-            max_tokens=max_tokens,
-        )
+    """Non-stream fallback via v3_route (routing_engine.route)."""
     return await asyncio.to_thread(
         v3_route,
         query,

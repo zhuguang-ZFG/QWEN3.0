@@ -51,7 +51,6 @@ CORE_DIRS = [
 
 SLICE_FILES = {
     "phase_a": [
-        "context_pipeline/code_context_injection.py",
         "routing_engine.py",
         "routing_selector/__init__.py",
     ],
@@ -98,6 +97,11 @@ _DEPLOY_EXCLUDES = {
     "andrej-karpathy-skills",
     "data",
     "docs",
+    "donglicao-site",
+    "donglicao-site-backup",
+    "donglicao-site-v2",
+    "docs-site",
+    "chat-web",
     "esp32S_XYZ",
     "infra",
     "lima_mcp_stdio",

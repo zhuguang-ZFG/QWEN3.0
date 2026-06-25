@@ -179,9 +179,8 @@ async def test_maybe_thinking_response_non_stream(mock_thinking):
 
 
 @patch("routes.chat_handler_dispatch.routing_intent.analyze_intent", return_value={"intent": "chat"})
-@patch("routes.chat_handler_dispatch.needs_orchestration", return_value=False)
 @patch("routes.chat_handler_dispatch.stream_response")
-def test_build_streaming_response(mock_stream, mock_needs, mock_intent):
+def test_build_streaming_response(mock_stream, mock_intent):
     async def _gen():
         yield "data: {}\n\n"
 
@@ -199,24 +198,11 @@ def test_build_streaming_response(mock_stream, mock_needs, mock_intent):
 
 @pytest.mark.asyncio
 @patch("routes.chat_handler_dispatch.routing_intent.analyze_intent", return_value={"intent": "chat"})
-@patch("routes.chat_handler_dispatch.needs_orchestration", return_value=False)
 @patch("routes.chat_handler_dispatch.v3_route", return_value={"answer": "ok"})
-async def test_execute_non_stream_route_v3(mock_v3, mock_needs, mock_intent):
+async def test_execute_non_stream_route_v3(mock_v3, mock_intent):
     ctx_obj = make_ctx()
     req = _request()
     result, intent = await dispatch.execute_non_stream_route(ctx_obj, req)
     assert result["answer"] == "ok"
     assert intent == {"intent": "chat"}
     mock_v3.assert_called_once()
-
-
-@pytest.mark.asyncio
-@patch("routes.chat_handler_dispatch.routing_intent.analyze_intent", return_value={"intent": "complex"})
-@patch("routes.chat_handler_dispatch.needs_orchestration", return_value=True)
-@patch("routes.chat_handler_dispatch.orchestrate", return_value={"answer": "orchestrated"})
-async def test_execute_non_stream_route_orchestrate(mock_orch, mock_needs, mock_intent):
-    ctx_obj = make_ctx()
-    req = _request()
-    result, intent = await dispatch.execute_non_stream_route(ctx_obj, req)
-    assert result["answer"] == "orchestrated"
-    mock_orch.assert_called_once()

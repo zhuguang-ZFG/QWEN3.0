@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 import routing_intent
 from chat_models import ChatRequest
-from orchestrate import needs_orchestration, orchestrate
 from routes.v3_adapters import v3_route
 from response_builder import (
     build_anthropic_response,
@@ -192,14 +191,13 @@ async def maybe_thinking_response(
 
 
 def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> StreamingResponse:
-    intent = routing_intent.analyze_intent(ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source)
+    routing_intent.analyze_intent(ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source)
     _chat_handler()  # ensures chat_handler deps are imported/injected
-    use_orchestration = needs_orchestration(ctx.query, intent) if not ctx.prefs.prefer else False
     return StreamingResponse(
         stream_response(
             ctx.chat_id,
             ctx.query,
-            use_orchestration,
+            False,
             ide_source=ctx.ide_source,
             sys_prompt_preview=ctx.sys_prompt_preview,
             use_thinking=ctx.prefs.use_thinking,
@@ -214,28 +212,15 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
 async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tuple[dict, dict]:
     intent = routing_intent.analyze_intent(ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source)
     _chat_handler()  # ensures chat_handler deps are imported/injected
-    use_orchestration = needs_orchestration(ctx.query, intent) if not ctx.prefs.prefer else False
-    if use_orchestration:
-        result = await asyncio.to_thread(
-            orchestrate,
-            ctx.query,
-            messages=ctx.preflight.request_messages,
-            ide_source=ctx.ide_source,
-            system_prompt=ctx.sys_prompt_preview,
-            max_tokens=req.max_tokens or 4096,
-            needs_tools=req.has_tools,
-            tools=req.tools,
-        )
-    else:
-        result = await asyncio.to_thread(
-            v3_route,
-            ctx.query,
-            ctx.preflight.request_messages,
-            system_prompt=ctx.sys_prompt_preview,
-            ide=ctx.ide_source,
-            max_tokens=req.max_tokens or 4096,
-            needs_tools=req.has_tools,
-            tools=req.tools,
-            prefer=ctx.prefs.prefer,
-        )
+    result = await asyncio.to_thread(
+        v3_route,
+        ctx.query,
+        ctx.preflight.request_messages,
+        system_prompt=ctx.sys_prompt_preview,
+        ide=ctx.ide_source,
+        max_tokens=req.max_tokens or 4096,
+        needs_tools=req.has_tools,
+        tools=req.tools,
+        prefer=ctx.prefs.prefer,
+    )
     return result, intent if isinstance(intent, dict) else {}
