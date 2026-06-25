@@ -6,6 +6,7 @@ import Scenarios from "./components/Scenarios";
 import Testimonials from "./components/Testimonials";
 import Developer from "./components/Developer";
 import Partners from "./components/Partners";
+import FAQ from "./components/FAQ";
 import Footer from "./components/Footer";
 import Reveal from "./components/Reveal";
 
@@ -32,6 +33,9 @@ export default function Home() {
         </Reveal>
         <Reveal>
           <Partners />
+        </Reveal>
+        <Reveal>
+          <FAQ />
         </Reveal>
       </main>
       <Footer />
