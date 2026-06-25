@@ -13,6 +13,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/privacy",
     "/terms",
     "/developer/playground",
+    "/login",
+    "/register",
   ];
   return paths.map((path) => ({
     url: `${baseUrl}${path}`,

@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase B P2：Next.js 官网登录/注册页面
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase B P2，为官网新增登录/注册页。
+- **关键结果**：
+  - 新增 `app/login/page.tsx`：邮箱密码登录，POST `/device/v1/app/auth/login-email`，成功后保存 `lima_token` 并跳转控制台。
+  - 新增 `app/register/page.tsx`：邮箱密码注册，POST `/device/v1/app/auth/register-email`，成功后保存 token 并跳转。
+  - `Footer.tsx` 增加「账户」栏（登录/注册）和「API Playground」链接。
+  - `sitemap.ts` 收录 `/login`、`/register`。
+- **验证**：
+  - `npm run build` 成功，静态生成 `/login`、`/register`。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网可访问性增强（减少动画、焦点样式）
 
 - **目标**：提升 `donglicao-site-v2` 的可访问性，适配偏好减少动画用户。

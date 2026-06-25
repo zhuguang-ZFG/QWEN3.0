@@ -16,8 +16,16 @@ const footerLinks = [
     title: "开发者",
     links: [
       { label: "API 文档", href: "https://docs.donglicao.com", external: true },
+      { label: "API Playground", href: "/developer/playground/" },
       { label: "GitHub", href: "https://github.com/zhuguang-ZFG/QWEN3.0", external: true },
       { label: "Gitee", href: "https://gitee.com/zhuguang-cn/QWEN3.0", external: true },
+    ],
+  },
+  {
+    title: "账户",
+    links: [
+      { label: "登录", href: "/login/" },
+      { label: "注册", href: "/register/" },
     ],
   },
   {
