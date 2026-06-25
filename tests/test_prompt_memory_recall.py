@@ -92,7 +92,6 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
     monkeypatch.setattr(routing_intent, "detect_image_intent", lambda query: (False, ""))
     monkeypatch.setattr(routing_intent, "detect_thinking_intent", lambda query: False)
     monkeypatch.setattr(routing_intent, "analyze_intent", fake_analyze)
-    monkeypatch.setattr(dispatch, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(dispatch, "v3_route", fake_v3_route)
     monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)
 
@@ -143,7 +142,6 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     monkeypatch.setattr(routing_intent, "detect_image_intent", lambda query: (False, ""))
     monkeypatch.setattr(routing_intent, "detect_thinking_intent", lambda query: False)
     monkeypatch.setattr(routing_intent, "analyze_intent", fake_analyze)
-    monkeypatch.setattr(dispatch, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(dispatch, "v3_route", fake_v3_route)
     monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)
 
