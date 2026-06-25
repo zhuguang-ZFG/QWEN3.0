@@ -37,6 +37,7 @@
   let selectedDeviceId = null;
   let ws = null;
   let statusPoller = null;
+  let activeTaskPollers = [];
 
   function escapeHtml(str) {
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -152,6 +153,8 @@
       try { ws.close(); } catch {}
       ws = null;
     }
+    activeTaskPollers.forEach((id) => clearInterval(id));
+    activeTaskPollers = [];
   }
 
   function connectStatusWs(deviceId) {
@@ -205,21 +208,37 @@
     el.innerHTML = `<span class="status-dot ${statusClass(status)}"></span>${statusLabel(status)}`;
   }
 
+  function isTaskActive(status) {
+    return ["pending", "running", "approved", "paused"].includes((status || "").toLowerCase());
+  }
+
+  function taskProgressHtml(task) {
+    const pct = task.progress == null ? 0 : Math.max(0, Math.min(100, task.progress));
+    return `<div class="task-progress"><div class="task-progress-bar" style="width:${pct}%"></div></div>`;
+  }
+
+  function buildTaskItem(task) {
+    const active = isTaskActive(task.status);
+    return `
+      <div class="task-item" data-task-id="${escapeHtml(task.taskId || task.id || "")}" data-task-status="${escapeHtml(task.status || "")}">
+        <div class="cap">${escapeHtml(task.capability || "task")} · <span class="task-status-text" style="color:var(--text-muted)">${escapeHtml(task.status || "—")}</span></div>
+        <div class="sub task-meta">${formatTime(task.createdAt)}${task.progress != null ? " · 进度 " + task.progress + "%" : ""}</div>
+        ${active ? taskProgressHtml(task) : ""}
+      </div>
+    `;
+  }
+
   async function renderDrawer(device) {
     const status = statuses[device.deviceId] || { online: false, working: false };
     let tasksHtml = "";
+    let items = [];
     try {
       const tasksData = await LiMaAPI.get(`${TASKS_API}?device_id=${encodeURIComponent(device.deviceId)}&limit=5`, token);
-      const items = tasksData.tasks || [];
+      items = tasksData.tasks || [];
       if (items.length === 0) {
         tasksHtml = `<div class="empty" style="padding:24px 0;">最近无任务</div>`;
       } else {
-        tasksHtml = `<div class="task-list">${items.map((task) => `
-          <div class="task-item">
-            <div class="cap">${escapeHtml(task.capability || "task")} · <span style="color:var(--text-muted)">${escapeHtml(task.status || "—")}</span></div>
-            <div class="sub">${formatTime(task.createdAt)}${task.progress != null ? " · 进度 " + task.progress + "%" : ""}</div>
-          </div>
-        `).join("")}</div>`;
+        tasksHtml = `<div class="task-list">${items.map(buildTaskItem).join("")}</div>`;
       }
     } catch {
       tasksHtml = `<div class="empty" style="padding:24px 0;">无法加载任务</div>`;
@@ -243,6 +262,54 @@
         ${tasksHtml}
       </div>
     `;
+
+    startTaskPolling(items);
+  }
+
+  async function updateTaskItem(taskId) {
+    try {
+      const data = await LiMaAPI.get(`${TASKS_API}/${encodeURIComponent(taskId)}`, token);
+      const task = data.task || data;
+      const el = drawerBody.querySelector(`.task-item[data-task-id="${CSS.escape(taskId)}"]`);
+      if (!el) return;
+      const statusText = el.querySelector(".task-status-text");
+      const meta = el.querySelector(".task-meta");
+      if (statusText) statusText.textContent = task.status || "—";
+      if (meta) meta.textContent = `${formatTime(task.createdAt)}${task.progress != null ? " · 进度 " + task.progress + "%" : ""}`;
+      const pct = task.progress == null ? 0 : Math.max(0, Math.min(100, task.progress));
+      let bar = el.querySelector(".task-progress-bar");
+      if (isTaskActive(task.status)) {
+        if (!bar) {
+          const wrap = document.createElement("div");
+          wrap.className = "task-progress";
+          wrap.innerHTML = `<div class="task-progress-bar" style="width:${pct}%"></div>`;
+          el.appendChild(wrap);
+        } else {
+          bar.style.width = pct + "%";
+        }
+      } else if (bar) {
+        bar.parentElement.remove();
+      }
+      el.dataset.taskStatus = task.status || "";
+      return !isTaskActive(task.status);
+    } catch {
+      return false;
+    }
+  }
+
+  function startTaskPolling(items) {
+    activeTaskPollers.forEach((id) => clearInterval(id));
+    activeTaskPollers = [];
+    items.forEach((task) => {
+      const taskId = task.taskId || task.id;
+      if (!taskId || !isTaskActive(task.status)) return;
+      updateTaskItem(taskId);
+      const id = setInterval(async () => {
+        const done = await updateTaskItem(taskId);
+        if (done) clearInterval(id);
+      }, 2000);
+      activeTaskPollers.push(id);
+    });
   }
 
   function openBindModal() {

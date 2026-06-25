@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P2 C-2（任务进度条）：设备详情抽屉任务进度轮询
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为设备管理页的任务列表增加实时进度条。
+- **关键结果**：
+  - `chat-web/js/devices.js`：
+    - 设备详情抽屉的「最近 5 条任务」对 `pending` / `running` / `approved` / `paused` 状态任务展示进度条。
+    - 每 2 秒轮询 `GET /device/v1/app/tasks/{task_id}`，更新状态文字、进度百分比与进度条宽度。
+    - 任务到达终态后自动停止轮询并移除进度条。
+    - 关闭抽屉时清理所有轮询定时器。
+  - `chat-web/devices.html`：新增 `.task-progress` / `.task-progress-bar` 样式。
+- **验证**：
+  - `node --check chat-web/js/devices.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+  - `git diff --check` 无行尾空格问题。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）；文件已就绪，配置密码后可通过 `scripts/deploy_chat_web.py` 同步。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase C P2 C-2（文件上传）：控制台素材上传到资产库
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台增加图片/SVG 素材上传到资产库能力。

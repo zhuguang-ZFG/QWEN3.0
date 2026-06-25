@@ -4,6 +4,11 @@
 
 ---
 
+## 2026-06-25 Phase C P2：设备任务进度条
+
+- `chat-web/js/devices.js`：设备详情抽屉对活跃任务展示进度条，每 2 秒轮询 `/device/v1/app/tasks/{task_id}` 更新进度。
+- `chat-web/devices.html` 新增进度条样式。
+
 ## 2026-06-25 Phase C P2：控制台素材上传
 
 - `chat-web/js/asset-upload.js`：输入区新增上传按钮，支持 SVG/图片上传到 `/device/v1/app/assets`。
