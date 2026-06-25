@@ -7,8 +7,8 @@
 
 > Updated: 2026-06-26
 > Branch: `main`
-> Scale: 约 1356 个 Python 文件 / 179,647 行
-> Tests: 全量 **3774 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**（使用 `.venv310/Scripts/python`）；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
+> Tests: 全量 **3736 passed / 3 skipped / 10 deselected**（排除 8 个 esp32S_XYZ 退役预存在失败）；ruff check clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: 历史 >300 行文件 5 个、>50 行函数 26 个（均为历史脚本/测试/MCP/xiaozhi）；新增/修改模块均 ≤300 行/函数 ≤50 行（`routes/device_ota.py` 拆出 App 端点后 300 行）。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -17,6 +17,18 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-26）极致瘦身 + impeccable 设计系统 + 退役 shim 清理
+
+- **Skill 全局安装**：ponytail（纯版本覆盖到 `~/.cursor/rules/`）+ impeccable 3.1.0（`~/.cursor/skills/` + `~/.claude/skills/`，hooks 已配置）。
+- **官网设计基线**：`donglicao-site-v2/PRODUCT.md`（brand register，量子星云美学）+ `DESIGN.md`（committed cyan 策略，WCAG AA，AI slop 检测清单）+ `.impeccable/live/config.json`。
+- **全量 web 审查**：impeccable detect 扫描 5 个 web 项目；修复 v2 gradient-text AI slop（`app/en/page.tsx`）；修复 chat-web broken-image（`index.html` lightbox）；CI 集成 impeccable detect（node 24，pre-build）。
+- **本地磁盘瘦身 ~2.1GB**：删除 `.worktrees/improve-20260625-phase-a/`（1.98GB git worktree 副本）+ `reference/`（108MB ECC+ponytail 克隆）+ `donglicao-site-backup/`（89KB）。
+- **冗余 IDE 配置删除**：`.codex/`、`.qoder/`、`.trae/`、`.roo/`（用户确认只用 Cursor + .claude）。
+- **19 个 DEPRECATED v3.0 退役 shim 物理删除**：`orchestrate*.py`(4)、`eval_*.py`(8)、`periodic_coding_eval.py`、`coding_backend_scorer.py`、`backends_constants_code_tools.py`、`context_pipeline/{code_scanner,semantic_code_retrieval,code_context_injection,graph_retrieval,reranking}.py` + 4 个对应测试文件。断开 `routes/chat_stream.py` 和 `routes/chat_handler_dispatch.py` 的 orchestrate 引用链（`needs_orchestration` 永远返回 False）。
+- **保留的"DEPRECATED 但仍活跃"文件**：`speculative_policy.py`（AFFINITY 数据被 speculative.py 使用）、`capability_matrix.py`（被 speculative_policy.py 使用）。
+- **部署排除清单补全**：`_DEPLOY_EXCLUDES` 新增 `donglicao-site`、`donglicao-site-backup`、`donglicao-site-v2`、`docs-site`、`chat-web`，防止 `--slice all` 误部署前端项目。
+- **规模效果**：Python 文件 2471→1177（-52%），Python 行数 273827→130913（-52%），routes 文件 175→87（-50%），顶层目录 54→48（-6）。
 
 ### 最近完成（2026-06-26）esp32S_XYZ 服务端组件完全退役
 

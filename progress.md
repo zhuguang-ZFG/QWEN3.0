@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-26 完成极致瘦身 + impeccable 设计系统 + 退役 shim 清理
+
+- **目标**：全局安装 ponytail + impeccable skills；基于 donglicao-site-v2 用 impeccable 重设计官网；全量 web 审查；项目级极致瘦身降低代码规模。
+- **关键结果**：
+  - Skills：ponytail 纯版本安装到 ~/.cursor/rules/；impeccable 3.1.0 安装到 ~/.cursor/skills/ + ~/.claude/skills/。
+  - 官网设计基线：donglicao-site-v2/PRODUCT.md + DESIGN.md + .impeccable/live/config.json。
+  - Web 审查：impeccable detect 扫描 5 个项目；修复 v2 gradient-text；修复 chat-web broken-image；CI 集成。
+  - 瘦身 ~2.1GB：删 .worktrees(1.98GB) + reference(108MB) + donglicao-site-backup + .codex/.qoder/.trae/.roo。
+  - 19 个退役 shim 删除 + 4 测试；断开 chat_stream/chat_handler_dispatch 引用链。
+  - 部署清单补全：_DEPLOY_EXCLUDES 新增 donglicao-site*、docs-site、chat-web。
+  - 规模效果：Python 文件 2471->1177(-52%)，行数 273827->130913(-52%)，routes 175->87(-50%)。
+- 验证：3736 passed / 3 skipped / 10 deselected；ruff check clean；npm run build 25 页面成功。
+- Git：759fe5b1(web) -> 3cf5e54e(shim removal) 推送 origin 成功。
+
 ## 2026-06-25 完成 Phase A P0：官网首页 FAQ 扩展至 12 条
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase A-5，将官网首页 FAQ 从 4 条扩充到 12 条并支持展开/折叠。
