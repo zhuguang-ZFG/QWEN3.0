@@ -48,6 +48,19 @@
 - **Git**：
   - 提交并推送 `origin improve/20260625-phase-a` 成功。
 
+## 2026-06-25 完成 Phase C P2：/en 英文版官网首页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C-1，为 Next.js 官网提供 `/en` 英文版入口。
+- **关键结果**：
+  - 新增 `donglicao-site-v2/app/en/page.tsx`：英文版首页，含 Hero、产品卡片、Partners、FAQ、CTA。
+  - `Navbar.tsx` 增加语言切换按钮：中文页显示「EN」，英文页显示「中文」。
+  - `app/sitemap.ts` 收录 `/en/`。
+- **验证**：
+  - `npm run build` 成功，静态生成 `/en`。
+  - 聚焦后端 pytest **44 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P2：Next.js 官网博客骨架
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C-1，为 Next.js 官网新增博客模块。
