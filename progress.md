@@ -1,5 +1,18 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网 SEO（robots + sitemap）
+
+- **目标**：为 `donglicao-site-v2` 添加 robots.txt 与 sitemap.xml。
+- **关键结果**：
+  - 新增 `app/robots.ts`，生成 `/robots.txt`。
+  - 新增 `app/sitemap.ts`，生成 `/sitemap.xml`，覆盖 7 个页面。
+  - 均标记 `export const dynamic = "force-static"` 以兼容 `output: "export"`。
+- **验证**：
+  - `npm run build` 成功，静态生成 `/robots.txt`、`/sitemap.xml`。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网 Navbar 修复与滚动动画
 
 - **目标**：提升 `donglicao-site-v2` 移动端体验并添加滚动 reveal 动画。
