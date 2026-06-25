@@ -21,3 +21,23 @@ body {
 ::selection {
   background: rgba(6, 182, 212, 0.3);
 }
+
+.legal-content h2 {
+  margin-top: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.legal-content ul {
+  margin-left: 1.25rem;
+  list-style-type: disc;
+}
+
+.legal-content a {
+  color: #22d3ee;
+}
+
+.legal-content a:hover {
+  text-decoration: underline;
+}

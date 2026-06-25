@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（privacy / terms 法律页）
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，迁移隐私政策与用户协议页。
+- **关键结果**：
+  - 新增通用法律页组件 `app/components/LegalPage.tsx`。
+  - 新增 `app/privacy/page.tsx` 与 `app/terms/page.tsx`。
+  - `globals.css` 增加 `.legal-content` 样式。
+- **验证**：
+  - `npm run build` 成功，静态页面新增 `/privacy`、`/terms`。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **待完成**：Lighthouse 优化、动效与响应式精调。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（Footer 站点地图与社媒）
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，完善 `donglicao-site-v2` Footer。
