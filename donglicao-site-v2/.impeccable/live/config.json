@@ -1,0 +1,7 @@
+{
+  "files": ["app/**/*.tsx"],
+  "insertBefore": "</section>",
+  "commentSyntax": "{/* %s */}",
+  "cspChecked": true,
+  "framework": "next"
+}
