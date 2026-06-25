@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html class="playground" lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LiMa 星云 - API Playground</title>
+  <meta name="description" content="LiMa 星云 API Playground - 在线编辑并发送 OpenAI 兼容 API 请求">
+  <meta name="theme-color" content="#0a0a0f">
+  <!--
+    CSP 说明：script-src 包含 'unsafe-eval'，因为 Monaco Editor 在加载 Web Worker 时
+    会使用 new Function()/eval 进行编译。其余脚本仅允许同源和精确版本的 CDN 源，
+    外部脚本均带有 Subresource Integrity (SRI) 校验。
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; img-src 'self' data: blob:;">
+  <link rel="stylesheet" href="styles.css?v=nebula2">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"
+          integrity="sha384-BQKzmHvQLMCAnL3UtDBA1Al5tFjsCz1wrMlIUA1wkzo14DYkRWjywW+p9pCj0cwd"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"
+          integrity="sha384-SF/kPhqG3NMxqsYAbQqHkdF53WQx8yTkY0Ys+M+ayeC20QNujPyyxIuUEdEf0eG/"
+          crossorigin="anonymous"></script>
+</head>
+<body class="playground">
+  <noscript>
+    <div style="padding:2rem;text-align:center;background:#0a0a0f;color:#e2e8f0;">
+      请启用 JavaScript 以使用 API Playground。
+    </div>
+  </noscript>
+
+  <div class="playground-page">
+    <header class="playground-topbar">
+      <div class="playground-topbar-left">
+        <a href="index.html" class="topbar-btn" title="返回控制台">返回</a>
+        <h1 class="playground-topbar-title">
+          <svg class="svg-icon"><use href="icons.svg#i-terminal"/></svg>
+          API Playground
+        </h1>
+      </div>
+      <div class="playground-topbar-right">
+        <button class="topbar-btn" id="pgSetKeyBtn" title="设置 API Key">Key</button>
+        <a class="topbar-btn" href="https://donglicao.com" target="_blank">官网</a>
+      </div>
+    </header>
+
+    <div class="playground-body">
+      <!-- LEFT: Request Editor -->
+      <section class="playground-panel" aria-label="请求编辑">
+        <div class="playground-panel-header">
+          <div>
+            <div class="playground-panel-title">请求编辑</div>
+            <div class="playground-panel-sub">POST /v1/chat/completions</div>
+          </div>
+        </div>
+
+        <div class="playground-controls">
+          <div class="pg-control">
+            <label for="pgAuth">Authorization (Bearer Token)</label>
+            <input type="text" id="pgAuth" placeholder="sk-..." autocomplete="off">
+          </div>
+
+          <div class="pg-control-row">
+            <div class="pg-control">
+              <label for="pgModel">模型</label>
+              <select id="pgModel"></select>
+            </div>
+            <div class="pg-control">
+              <label for="pgMaxTokens">Max Tokens</label>
+              <input type="number" id="pgMaxTokens" min="1" max="8192" step="1" value="1024">
+            </div>
+          </div>
+
+          <div class="pg-control-row">
+            <div class="pg-control">
+              <label for="pgTemperature">Temperature <span id="pgTempValue">0.7</span></label>
+              <input type="range" id="pgTemperature" min="0" max="2" step="0.1" value="0.7">
+              <div class="pg-range-hint"><span>0</span><span>2</span></div>
+            </div>
+            <div class="pg-control" style="justify-content:center;display:flex;flex-direction:column;gap:8px;">
+              <label class="pg-checkbox" for="pgStream">
+                <input type="checkbox" id="pgStream" checked>
+                流式响应 (stream)
+              </label>
+              <span class="playground-panel-sub" style="margin-left:24px;">Ctrl + Enter 发送请求 · Esc 取消</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="playground-editor-wrap">
+          <div id="pgEditor" role="textbox" aria-label="JSON 请求体编辑器"></div>
+        </div>
+
+        <div class="playground-actions">
+          <button class="pg-btn primary" id="pgSendBtn">
+            <svg class="svg-icon"><use href="icons.svg#i-play"/></svg>
+            发送请求
+          </button>
+          <button class="pg-btn" id="pgCopyCurlBtn">
+            <svg class="svg-icon"><use href="icons.svg#i-copy"/></svg>
+            复制 cURL
+          </button>
+        </div>
+      </section>
+
+      <!-- RIGHT: Response -->
+      <section class="playground-panel" aria-label="响应面板">
+        <div class="playground-panel-header">
+          <div class="playground-panel-title">响应</div>
+          <div class="playground-response-meta" id="pgResponseMeta">
+            <span class="pg-meta-pill" id="pgStatusPill">Status: —</span>
+            <span class="pg-meta-pill" id="pgTimePill">Time: —</span>
+            <span class="pg-meta-pill" id="pgTokensPill">Tokens: —</span>
+          </div>
+        </div>
+        <pre class="playground-response-body" id="pgResponseBody" tabindex="0" aria-live="polite">等待发送请求...</pre>
+        <div class="playground-chart-wrap">
+          <div id="pgTokenChart" role="img" aria-label="Token 统计图表"></div>
+        </div>
+      </section>
+
+      <!-- HISTORY -->
+      <section class="playground-history" aria-label="历史请求">
+        <div class="playground-panel-header">
+          <div class="playground-panel-title">
+            <svg class="svg-icon" style="width:14px;height:14px;vertical-align:-2px;"><use href="icons.svg#i-history"/></svg>
+            历史请求
+          </div>
+          <div class="playground-panel-sub" id="pgHistoryCount">0 / 20</div>
+        </div>
+        <div class="playground-history-list" id="pgHistoryList">
+          <div class="pg-history-empty">暂无历史请求</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="pgAnnouncer" aria-live="polite" aria-atomic="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"></div>
+
+  <div class="modal-overlay" id="pgKeyModal" role="dialog" aria-modal="true" aria-labelledby="pgKeyModalTitle">
+    <div class="modal">
+      <div class="modal-title" id="pgKeyModalTitle">设置 API Key</div>
+      <div class="modal-desc">输入 Bearer Token（可选）。留空则清除已保存的 Key。</div>
+      <input type="text" class="modal-input" id="pgKeyModalInput" placeholder="sk-..." autocomplete="off">
+      <div class="modal-actions">
+        <button class="modal-btn" id="pgKeyModalCancel">取消</button>
+        <button class="modal-btn primary" id="pgKeyModalSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="pgToast"></div>
+
+  <script src="js/playground-utils.js?v=1"></script>
+  <script src="js/playground-ui.js?v=1"></script>
+  <script src="js/playground.js?v=1"></script>
+</body>
+</html>
