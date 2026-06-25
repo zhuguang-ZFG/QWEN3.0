@@ -5,7 +5,7 @@
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-25
+> Updated: 2026-06-26
 > Branch: `main`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
 > Tests: 全量 **3774 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**（使用 `.venv310/Scripts/python`）；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
@@ -17,6 +17,15 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-26）esp32S_XYZ 服务端组件完全退役
+
+- **目标**：确认小智服务端能力已被 LiMa 集成后，物理删除 `esp32S_XYZ` 子模块内的 4 个服务端组件，仅保留固件与小程序。
+- **证据**：manager-api(:8002) VPS 探活 HTTP 000（已停服）；`/digital-human` 公网 301（LiMa `routes/digital_human.py` 提供）；小程序 `getEnvBaseUrl()` 默认 `https://chat.donglicao.com`（连 LiMa）。
+- **删除**（esp32S_XYZ commit `baa097d`，~1393 文件 / ~164MB）：`xiaozhi-server/`（Python AI 引擎）、`manager-api/`（Java Spring Boot）、`manager-web/`（Vue.js 后台）、`digital-human/`（Live2D Web 客户端）。
+- **依赖清理**：Makefile、`.github/workflows/ci.yml`、`ops/monitoring/`（告警/dashboard/scrape/secret）、`tests/ci/`（15 测试文件）同步清理。
+- **保留**：`firmware/`（U1/U8）+ `manager-mobile/`（微信小程序）。
+- **验证**：esp32S_XYZ `pytest tests/ci/` = 93 passed / 18 failed（预存在失败，无新增）。主仓库子模块指针 `abecbb8` → `baa097d`。
 
 ### 最近完成（2026-06-25）文档全面刷新与过时引用清理
 

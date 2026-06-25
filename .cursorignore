@@ -3,11 +3,6 @@
 .venv*/
 venv/
 env/
-
-# 固件/嵌入式（没用过）
-esp32S_XYZ/
-esp32*/
-
 # IDE/工具缓存
 .opencode/
 .roo/

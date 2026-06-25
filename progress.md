@@ -9134,3 +9134,25 @@ uff check（6 个变更 Python 文件）全通过。
 - **测试**：`tests/test_routes_device_app_api.py` 新增 `test_device_payload_omits_mqtt_topic`，断言 `GET /device/v1/app/devices/{id}` 响应不含 `mqttTopic`/`mqtt_topic`。
 - **验证**：device_app 测试族（api + sharing + members + tasks）**36 passed**；`ruff check` clean；VPS 部署 2 文件 health=OK。
 - **影响**：前端（chat-web / 小程序）无 `mqtt_topic` 消费，零破坏性。
+## 2026-06-26 esp32S_XYZ 服务端组件完全退役（xiaozhi-server/manager-api/manager-web/digital-human）
+
+- **目标**：用户问「小智服务器是不是可以完全退役了？」——确认能力已被 LiMa 集成后，物理删除 esp32S_XYZ 子模块内的 4 个服务端组件，仅保留固件与小程序。
+- **证据**：
+  - manager-api(:8002) VPS 探活 HTTP 000（连接拒绝），已停服。
+  - /digital-human 公网返回 301（LiMa outes/digital_human.py 提供路由）。
+  - 小程序 getEnvBaseUrl() 默认 https://chat.donglicao.com（连 LiMa，非本地服务端）。
+- **删除**（esp32S_XYZ 仓库内，commit aa097d）：
+  - server/.../xiaozhi-server/（Python AI 引擎，213 文件）
+  - server/.../manager-api/（Java Spring Boot，621 文件）
+  - server/.../manager-web/（Vue.js 后台，459 文件）
+  - server/.../digital-human/（Live2D Web 客户端，100 文件）
+  - 共 ~1393 文件，~164MB。
+- **依赖清理**：
+  - Makefile：移除 build-server / test-java / clean manager-api 目标。
+  - .github/workflows/ci.yml：移除 manager-api-tests job。
+  - ops/monitoring/：删除 manager-api 告警规则 / Grafana dashboard / Prometheus scrape / secret 挂载；prometheus.yml 与 dashboards.yml 重写为 LiMa-runtime 残留 stub。
+  - 	ests/ci/：删除 15 个测试文件（7 manager_api + 7 xiaozhi_server + 1 monitoring）；更新 test_ci_workflow_contract.py 与 test_runbook_command_contract.py 移除 manager-api 断言。
+  - STATUS.md（esp32S_XYZ）重写反映退役后状态。
+- **保留**：irmware/（U1/U8 固件）+ manager-mobile/（微信小程序）。
+- **验证**：esp32S_XYZ pytest tests/ci/ = 93 passed / 18 failed（18 个失败均为预存在 manager_mobile 失败，与本次清理无关；无新增失败）。
+- **主仓库**：子模块指针 becbb8 → aa097d，stage 后提交。
