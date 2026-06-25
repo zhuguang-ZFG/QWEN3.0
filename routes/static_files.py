@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
 router = APIRouter()
@@ -77,3 +77,35 @@ async def serve_admin_js():
     return FileResponse(
         file_path, media_type="application/javascript", headers={"Cache-Control": "public, max-age=3600"}
     )
+
+
+_MEDIA_TYPES: dict[str, str] = {
+    ".html": "text/html",
+    ".css": "text/css",
+    ".js": "application/javascript",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".ico": "image/x-icon",
+    ".woff2": "font/woff2",
+    ".woff": "font/woff",
+    ".ttf": "font/ttf",
+    ".json": "application/json",
+}
+
+
+@router.get("/chat/{path:path}")
+async def serve_chat_web_asset(request: Request, path: str):
+    """Serve any other chat-web static asset from the chat-web directory."""
+    safe_path = Path(path)
+    if safe_path.is_absolute() or ".." in safe_path.parts:
+        raise HTTPException(404, "Not found")
+
+    file_path = (_BASE_DIR / "chat-web" / safe_path).resolve()
+    if not file_path.is_file():
+        raise HTTPException(404, "Not found")
+
+    media_type = _MEDIA_TYPES.get(file_path.suffix, "application/octet-stream")
+    return FileResponse(file_path, media_type=media_type, headers={"Cache-Control": "public, max-age=3600"})
