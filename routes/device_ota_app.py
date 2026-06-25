@@ -38,9 +38,6 @@ def _ota_status_for_device(device_id: str, current_version: str) -> dict:
     gradual_firmware = gradual.firmware
 
     selected_in_canary = canary.is_canary(device_id)
-    # ponytail: is_device_selected recomputes O(N log N) sort + N SHA256 per
-    # request. Ceiling: device pool ~10^4. Upgrade path: cache the current
-    # stage's selected set in GradualRollout, recomputed on start/promote/rollback.
     selected_in_gradual = gradual.is_device_selected(device_id)
 
     available_version = canary_version or gradual_version or ""

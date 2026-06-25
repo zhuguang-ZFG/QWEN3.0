@@ -44,6 +44,11 @@ class GradualRollout:
         self.stage_index: int = 0
         self.stage_success: int = 0
         self.stage_failure: int = 0
+        # ponytail: cache of the current stage's selected device ids. Rebuilt on
+        # every state change (start/promote/rollback/_load) so is_device_selected
+        # is O(1) on the per-request hot path instead of O(N log N) + N SHA256.
+        # Ceiling: none — invalidated at every mutation; upgrade path is N/A.
+        self._selected_cache: set[str] = set()
 
         self._load()
 
@@ -56,6 +61,7 @@ class GradualRollout:
         self.stage_success = 0
         self.stage_failure = 0
         self._save()
+        self._rebuild_selected_cache()
 
     def select_devices_for_stage(
         self,
@@ -80,7 +86,7 @@ class GradualRollout:
 
     def is_device_selected(self, device_id: str) -> bool:
         """Check whether a device is part of the current stage's rollout subset."""
-        return device_id in self.select_devices_for_stage()
+        return device_id in self._selected_cache
 
     def should_promote(self) -> bool:
         """Return True when the current stage has enough healthy samples to advance."""
@@ -104,6 +110,7 @@ class GradualRollout:
         self.stage_success = 0
         self.stage_failure = 0
         self._save()
+        self._rebuild_selected_cache()
         return True
 
     def rollback(self) -> bool:
@@ -117,6 +124,7 @@ class GradualRollout:
         self.stage_success = 0
         self.stage_failure = 0
         self._save()
+        self._rebuild_selected_cache()
         return True
 
     def record_success(self, device_id: str | None = None) -> None:
@@ -153,6 +161,7 @@ class GradualRollout:
     def _load(self) -> None:
         state = load_state(self._state_path).get("gradual", {})
         if not isinstance(state, dict):
+            self._rebuild_selected_cache()
             return
         self.version = str(state.get("version") or "")
         devices = state.get("all_devices", [])
@@ -164,6 +173,15 @@ class GradualRollout:
         self.stage_index = max(0, min(int(state.get("stage_index") or 0), len(self.STAGES) - 1))
         self.stage_success = int(state.get("stage_success") or 0)
         self.stage_failure = int(state.get("stage_failure") or 0)
+        self._rebuild_selected_cache()
+
+    def _rebuild_selected_cache(self) -> None:
+        """Recompute the selected-set cache from current state.
+
+        Called after every mutation that affects membership (version, stage,
+        or fleet). Keeps `is_device_selected` O(1) on the hot path.
+        """
+        self._selected_cache = set(self.select_devices_for_stage())
 
     def _save(self) -> None:
         save_section(

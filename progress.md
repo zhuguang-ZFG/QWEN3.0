@@ -9115,3 +9115,15 @@ uff check（6 个变更 Python 文件）全通过。
   - check_code_size.py 变更文件 0 违规。
   - 最终独立 code-review（code-reviewer + architect 双车道）：APPROVE + CLEAR。
 - **部署**：scripts/deploy_unified.py 同步 430 文件到 VPS，服务重启 health=OK；公网 /health 返回 device_ota:true, device_ota_app:true（确认移入核心 cohort 生效）；/device/v1/ota/check 与 /device/v1/ota/release/status 返回 401（路由已挂载，认证守卫生效，非 404）。
+
+## 2026-06-26 PD-001：GradualRollout 选定集合缓存（清偿技术债）
+
+- **目标**：清偿 PONYTAIL-DEBT PD-001，消除 `routes/device_ota_app._ota_status_for_device` 每请求 O(N log N) 排序 + N 次 SHA256 的热路径开销。
+- **实现**：
+  - `device_ota/gradual.py`：新增 `_selected_cache: set[str]` 与 `_rebuild_selected_cache()`；在 `_load`/`start`/`promote`/`rollback`（即所有改变 version/stage/fleet 的变更点）末尾重建缓存。
+  - `is_device_selected` 从 `device_id in self.select_devices_for_stage()` 改为 `device_id in self._selected_cache`，热路径降为 O(1) 集合成员查询。
+  - `select_devices_for_stage` 保留不变（仍被 `status_dict` 与外部测试用于返回有序列表）。
+  - `routes/device_ota_app.py`：移除已兑现的 `ponytail:` 注释。
+- **测试**：新增 `tests/test_device_ota_gradual_cache.py`（7 例），覆盖缓存与即时计算一致性、start/promote/rollback/reload 失效、空 rollout、以及 perf 契约（50 次成员查询触发 0 次重算）。
+- **验证**：`pytest`（gradual_cache + 3 个 OTA 回归文件）**40 passed**；`ruff check` 变更文件 clean；`check_code_size.py` 变更文件 0 违规。
+- **债务台账**：PD-001 移至 `PONYTAIL-DEBT.md` 已结清。
