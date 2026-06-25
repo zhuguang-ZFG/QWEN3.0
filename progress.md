@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P3：Next.js 官网 API Playground
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P3，在官网新增 API Playground。
+- **关键结果**：
+  - 新增 `app/developer/playground/page.tsx`：
+    - 支持选择 Endpoint（Chat Completions / Images / Models）。
+    - 可配置 Base URL、API Key、Model、Prompt。
+    - 浏览器端直接调用 LiMa API，展示格式化 JSON 响应或错误。
+    - API Key 自动保存到 `localStorage`。
+  - `Developer.tsx` 增加「API Playground」入口按钮。
+  - `sitemap.ts` 收录 `/developer/playground`。
+- **验证**：
+  - `npm run build` 成功，静态生成 `/developer/playground`。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网 SEO（robots + sitemap）
 
 - **目标**：为 `donglicao-site-v2` 添加 robots.txt 与 sitemap.xml。

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 const snippets = [
@@ -84,17 +85,25 @@ export default function Developer() {
           <p className="text-lg text-slate-400">
             兼容 OpenAI 格式的 API，支持设备控制、内容生成、多模型路由。一行代码接入 LiMa 云端能力。
           </p>
-          <a
-            href="https://chat.donglicao.com"
-            target="_blank"
-            rel="noopener"
-            className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-6 py-3 font-semibold text-slate-950 hover:bg-cyan-400"
-          >
-            获取 API Key
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </a>
+          <div className="flex flex-wrap gap-4">
+            <a
+              href="https://chat.donglicao.com"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-6 py-3 font-semibold text-slate-950 hover:bg-cyan-400"
+            >
+              获取 API Key
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+            <Link
+              href="/developer/playground/"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 px-6 py-3 font-semibold text-slate-200 hover:border-cyan-500/50 hover:text-cyan-400"
+            >
+              API Playground
+            </Link>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0d1117]">
