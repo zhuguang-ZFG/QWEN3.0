@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS v2_account (
     id              TEXT PRIMARY KEY,           -- UUID
     phone           TEXT UNIQUE,                -- 手机号（登录凭证）
     wechat_openid   TEXT UNIQUE,                -- 微信 OpenID（小程序登录）
+    email           TEXT UNIQUE,                -- 邮箱（控制台登录凭证）
     nickname        TEXT,                       -- 昵称
     avatar_url      TEXT,                       -- 头像 URL
     password_hash   TEXT,                       -- 密码哈希（bcrypt），当前主登录模型为短信码

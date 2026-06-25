@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from fastapi import APIRouter, Header, Request, Response
@@ -32,6 +33,9 @@ def _static_login_code_error() -> JSONResponse | None:
     return err(503, "Static SMS verification code is disabled outside dev mode", 503)
 
 
+_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
+
 def _login_response(row):
     token = make_token(row)
     if token is None:
@@ -42,7 +46,19 @@ def _login_response(row):
         "accountId": row["id"],
         "userId": row["id"],
         "phone": row["phone"],
+        "email": row["email"],
     }
+
+
+def _is_valid_email(value: str) -> bool:
+    return bool(value and _EMAIL_RE.match(value))
+
+
+def _account_by_email(email: str) -> Any | None:
+    with connect() as conn:
+        return conn.execute(
+            "SELECT * FROM v2_account WHERE email=? AND status='active'", (email,)
+        ).fetchone()
 
 
 def _wechat_openid_from_code(code: str) -> str:
@@ -155,6 +171,57 @@ async def register(request: Request):
             )
             conn.commit()
             row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
+    data = _login_response(row)
+    if isinstance(data, JSONResponse):
+        return data
+    return data
+
+
+@router.post("/auth/register-email")
+async def register_email(request: Request):
+    if not allow_device_auth("register", client_ip(request)):
+        return err(429, "Too many registration attempts", 429)
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    email = str_field(body, "email")
+    password = str_field(body, "password")
+    if not _is_valid_email(email):
+        return err(400, "A valid email is required", 400)
+    if not password or len(password) < 6:
+        return err(400, "password must be at least 6 characters", 400)
+    if _account_by_email(email):
+        return err(409, "Email already registered", 409)
+    account_id = new_id()
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO v2_account (id, email, password_hash, nickname) VALUES (?, ?, ?, ?)",
+            (account_id, email, _hash_password(password), body.get("nickname") or email.split("@")[0]),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
+    data = _login_response(row)
+    if isinstance(data, JSONResponse):
+        return data
+    return data
+
+
+@router.post("/auth/login-email")
+async def login_email(request: Request):
+    if not allow_device_auth("login", client_ip(request)):
+        return err(429, "Too many login attempts", 429)
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    email = str_field(body, "email")
+    password = str_field(body, "password")
+    if not _is_valid_email(email):
+        return err(400, "A valid email is required", 400)
+    if not password:
+        return err(400, "password is required", 400)
+    row = _account_by_email(email)
+    if row is None or not _verify_password(password, row.get("password_hash")):
+        return err(401, "Invalid email or password", 401)
     data = _login_response(row)
     if isinstance(data, JSONResponse):
         return data

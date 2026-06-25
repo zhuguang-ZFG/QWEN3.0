@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-06-25 Phase B P1：控制台登录/注册
+
+- `v2_account` 新增 `email` 字段，支持邮箱/密码注册与 JWT 登录。
+- 新增 `/device/v1/app/auth/register-email` 与 `/device/v1/app/auth/login-email`。
+- 新增 `chat-web/login.html` 与 `chat-web/register.html`，登录后进入控制台。
+
 ## 2026-06-25 Phase C P2：OpenAPI / Redoc 参考页
 
 - 新增 `docs-site/api/reference.md`：从 `openapi.yaml` 自动渲染交互式 API 文档。

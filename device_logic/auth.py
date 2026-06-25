@@ -117,6 +117,7 @@ def account_payload(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
     return {
         "accountId": account["id"],
         "phone": account["phone"],
+        "email": account["email"],
         "nickname": account["nickname"],
         "avatarUrl": account["avatar_url"],
         "role": account["role"],

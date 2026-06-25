@@ -29,6 +29,7 @@ def account():
     return {
         "id": "acc-1",
         "phone": "12345678901",
+        "email": "tester@example.com",
         "role": "user",
         "status": "active",
         "nickname": "tester",
@@ -139,3 +140,41 @@ def test_delete_account_success(client, auth_header):
     response = client.post("/device/v1/app/auth/account/delete", headers=auth_header)
     assert response.status_code == 200
     assert response.json()["accountId"] == "acc-1"
+
+
+def test_register_email_success(client):
+    with patch.object(auth, "_hash_password", return_value="hashed"), \
+         patch.object(auth, "_account_by_email", return_value=None):
+        response = client.post("/device/v1/app/auth/register-email", json={"email": "new@example.com", "password": "secret123"})
+    assert response.status_code == 200
+    assert response.json()["token"] == "token-123"
+
+
+def test_register_email_invalid_email(client):
+    response = client.post("/device/v1/app/auth/register-email", json={"email": "not-an-email", "password": "secret123"})
+    assert response.status_code == 400
+
+
+def test_register_email_weak_password(client):
+    response = client.post("/device/v1/app/auth/register-email", json={"email": "new@example.com", "password": "123"})
+    assert response.status_code == 400
+
+
+def test_login_email_success(client):
+    with patch.object(auth, "_verify_password", return_value=True):
+        response = client.post("/device/v1/app/auth/login-email", json={"email": "tester@example.com", "password": "secret123"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["token"] == "token-123"
+    assert data["accountId"] == "acc-1"
+
+
+def test_login_email_invalid_password(client):
+    with patch.object(auth, "_verify_password", return_value=False):
+        response = client.post("/device/v1/app/auth/login-email", json={"email": "tester@example.com", "password": "wrong"})
+    assert response.status_code == 401
+
+
+def test_login_email_missing_fields(client):
+    response = client.post("/device/v1/app/auth/login-email", json={"email": "tester@example.com"})
+    assert response.status_code == 400

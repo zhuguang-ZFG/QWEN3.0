@@ -23,6 +23,9 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
     columns = {row[1] for row in conn.execute("PRAGMA table_info(v2_account)")}
     if "password_hash" not in columns:
         conn.execute("ALTER TABLE v2_account ADD COLUMN password_hash TEXT")
+    if "email" not in columns:
+        conn.execute("ALTER TABLE v2_account ADD COLUMN email TEXT")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_v2_account_email ON v2_account(email)")
 
     conn.execute(
         """

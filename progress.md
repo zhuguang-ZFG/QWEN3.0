@@ -8381,3 +8381,19 @@ Agent Worker path.
   - `pnpm build` 成功生成 `api/reference.html` 与 `openapi.yaml`。
   - 文档站已部署到 VPS `/www/wwwroot/docs-site/`，线上地址可访问。
 - **部署**：使用 tar 同步 `docs-site/.vitepress/dist` 到 VPS。
+
+## 2026-06-25 Phase B P1：B-1 控制台登录/注册页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-1，为用户控制台增加邮箱/密码登录与注册能力。
+- **实现**：
+  - 数据库：`migrations/xiaozhi_schema.sql` 与 `device_logic/db.py` 迁移为 `v2_account` 新增 `email` 字段与唯一索引。
+  - 后端：`routes/device_app_auth.py` 新增 `/device/v1/app/auth/register-email` 与 `/device/v1/app/auth/login-email`；使用 bcrypt 哈希与现有 JWT 签发逻辑。
+  - `device_logic/auth.py` 更新 `_login_response` 与 `account_payload` 以返回 `email`。
+  - 前端：新增 `chat-web/login.html`、`chat-web/register.html`、`chat-web/js/api.js`、`chat-web/js/auth.js`；实现表单校验、错误提示、JWT 存储与跳转。
+  - 测试：更新 `tests/test_routes_device_app_auth.py` 账号 fixture，新增 6 个邮箱注册/登录用例。
+- **验证**：
+  - `tests/test_routes_device_app_auth.py` 19 passed / 0 failed。
+  - 全量 pytest（排除 worktree 缺失辅助文件）3717 passed / 0 failed。
+  - `ruff check` / `pyright` 修改文件 clean（仅历史 jwt import warning）。
+  - 公网冒烟：服务健康、`/login.html`、`/register.html`、注册接口均 200。
+- **部署**：后端文件同步到 VPS 并重启服务；chat-web 同步到 `/var/www/chat/` 与 `/opt/lima-router/chat-web/`。
