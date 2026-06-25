@@ -9166,3 +9166,13 @@ uff check（6 个变更 Python 文件）全通过。
   - 行为不变：相同的 DDL 顺序、相同的列守卫（PRAGMA table_info 检查）、相同的 commit 时机。
 - **测试**：新建 	ests/test_device_logic_db_migrations.py（3 例）：幂等性（apply 两次不报错）、11 表齐全、email 唯一索引存在。device_app 测试族 58 passed 无回归。
 - **验证**：uff check 2 文件 clean；check_code_size.py 主代码 _run_migrations 违规消除（仅 .worktrees 旧副本仍违规）。
+
+## 2026-06-26 draw_prompt_enhancer.py 拆分：记忆门面提取
+
+- **目标**：消除 device_gateway/draw_prompt_enhancer.py 358 行文件违规（check_code_size.py 第 2 大文件违规）。
+- **实现**：
+  - 新建 device_gateway/draw_prompt_memory.py（89 行）：提取 5 个 session_memory.device_draw_memory 薄包装函数（eset_draw_prompt_history_for_tests / get_draw_conversation_context / ecord_device_draw_turn / ecord_failed_draw_prompt / get_failed_draw_prompts）+ _MAX_FAILED 常量。
+  - draw_prompt_enhancer.py：用模块级 rom ... import 重新导出 5 函数（
+oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至 290 行。
+- **测试**：draw_prompt_enhancer + draw_prompt_context + device_draw_handler（part1+2）= 32 passed，无回归。
+- **验证**：uff check 2 文件 clean；导入无循环依赖。
