@@ -1,0 +1,52 @@
+name: Deploy Next.js Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "donglicao-site-v2/**"
+      - ".github/workflows/deploy-site-v2.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-site-v2
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies and build
+        working-directory: donglicao-site-v2
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to VPS
+        if: ${{ secrets.VPS_HOST != '' && secrets.SITE_V2_DIR != '' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "donglicao-site-v2/dist/*"
+          target: ${{ secrets.SITE_V2_DIR }}
+          strip_components: 2
+          rm: true
+
+      - name: Reload nginx
+        if: ${{ secrets.VPS_HOST != '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            nginx -t && systemctl reload nginx

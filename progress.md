@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 站点 GitHub Actions 自动部署工作流
+
+- **目标**：为 `donglicao-site-v2` 添加 GitHub Actions 自动部署到 VPS。
+- **关键结果**：
+  - 新增 `.github/workflows/deploy-site-v2.yml`：
+    - 触发条件：`main` 分支变更 `donglicao-site-v2/` 或 workflow 文件，并支持 `workflow_dispatch` 手动触发。
+    - 使用 Node 20 安装依赖并执行 `npm run build`。
+    - 使用 `appleboy/scp-action` 将 `dist/` 同步到 VPS（依赖 `secrets.SITE_V2_DIR`）。
+    - 使用 `appleboy/ssh-action` 执行 `nginx -t && systemctl reload nginx`。
+- **依赖**：
+  - `secrets.VPS_HOST`、`secrets.VPS_USER`（默认 root）、`secrets.VPS_SSH_KEY`、`secrets.SITE_V2_DIR`。
+- **验证**：
+  - workflow YAML 语法通过本地 `node --check` 不适用；已检查缩进与字段完整性。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase B P2：Next.js 官网登录/注册页面
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase B P2，为官网新增登录/注册页。
