@@ -9141,7 +9141,7 @@ uff check（6 个变更 Python 文件）全通过。
   - manager-api(:8002) VPS 探活 HTTP 000（连接拒绝），已停服。
   - /digital-human 公网返回 301（LiMa outes/digital_human.py 提供路由）。
   - 小程序 getEnvBaseUrl() 默认 https://chat.donglicao.com（连 LiMa，非本地服务端）。
-- **删除**（esp32S_XYZ 仓库内，commit aa097d）：
+- **删除**（esp32S_XYZ 仓库内，commit `f01991f`，基于 main `5c0dfc6` cherry-pick）：
   - server/.../xiaozhi-server/（Python AI 引擎，213 文件）
   - server/.../manager-api/（Java Spring Boot，621 文件）
   - server/.../manager-web/（Vue.js 后台，459 文件）
@@ -9155,4 +9155,4 @@ uff check（6 个变更 Python 文件）全通过。
   - STATUS.md（esp32S_XYZ）重写反映退役后状态。
 - **保留**：irmware/（U1/U8 固件）+ manager-mobile/（微信小程序）。
 - **验证**：esp32S_XYZ pytest tests/ci/ = 93 passed / 18 failed（18 个失败均为预存在 manager_mobile 失败，与本次清理无关；无新增失败）。
-- **主仓库**：子模块指针 becbb8 → aa097d，stage 后提交。
+- **主仓库**：子模块指针 `abecbb8` → `f01991f`（cherry-pick 到 esp32S_XYZ main `5c0dfc6` 之上，保留 main 的 i18n/lint 提交），stage 后提交。

@@ -22,10 +22,10 @@
 
 - **目标**：确认小智服务端能力已被 LiMa 集成后，物理删除 `esp32S_XYZ` 子模块内的 4 个服务端组件，仅保留固件与小程序。
 - **证据**：manager-api(:8002) VPS 探活 HTTP 000（已停服）；`/digital-human` 公网 301（LiMa `routes/digital_human.py` 提供）；小程序 `getEnvBaseUrl()` 默认 `https://chat.donglicao.com`（连 LiMa）。
-- **删除**（esp32S_XYZ commit `baa097d`，~1393 文件 / ~164MB）：`xiaozhi-server/`（Python AI 引擎）、`manager-api/`（Java Spring Boot）、`manager-web/`（Vue.js 后台）、`digital-human/`（Live2D Web 客户端）。
+- **删除**（esp32S_XYZ commit `f01991f`，基于 main `5c0dfc6`，~1393 文件 / ~164MB）：`xiaozhi-server/`（Python AI 引擎）、`manager-api/`（Java Spring Boot）、`manager-web/`（Vue.js 后台）、`digital-human/`（Live2D Web 客户端）。
 - **依赖清理**：Makefile、`.github/workflows/ci.yml`、`ops/monitoring/`（告警/dashboard/scrape/secret）、`tests/ci/`（15 测试文件）同步清理。
 - **保留**：`firmware/`（U1/U8）+ `manager-mobile/`（微信小程序）。
-- **验证**：esp32S_XYZ `pytest tests/ci/` = 93 passed / 18 failed（预存在失败，无新增）。主仓库子模块指针 `abecbb8` → `baa097d`。
+- **验证**：esp32S_XYZ `pytest tests/ci/` = 94 passed / 17 failed（预存在失败，无新增）。主仓库子模块指针 `abecbb8` → `f01991f`（cherry-pick 到 esp32S_XYZ main 之上）。
 
 ### 最近完成（2026-06-25）文档全面刷新与过时引用清理
 
