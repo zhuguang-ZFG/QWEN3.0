@@ -8,7 +8,7 @@
 > Updated: 2026-06-25
 > Branch: `improve/20260625-phase-a`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
-> Tests: 全量 **3759 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**；ruff check clean；ruff format clean。
+> Tests: 全量 **3759 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > Code Size: 历史 >300 行文件 6 个、>50 行函数 26 个（均为历史脚本/测试/MCP/xiaozhi）；新增模块均 ≤300 行/函数 ≤50 行。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml`、`.github/workflows/deploy.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-docs-site.yml` 已配置；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（ secrets 待配置）。
