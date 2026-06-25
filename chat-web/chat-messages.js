@@ -1,7 +1,7 @@
 // ─── MESSAGES ───
 let messageCounter = 0;
 
-function addMessage(role, content, meta) {
+function renderMessage(role, content, meta) {
   if (welcomeScreen.style.display !== 'none') {
     welcomeScreen.style.display = 'none';
   }
@@ -28,10 +28,15 @@ function addMessage(role, content, meta) {
   chatInner.appendChild(msg);
   attachCodeCopy(msg);
   attachImageLightbox(msg);
+  scrollToBottom();
+  return msg;
+}
+
+function addMessage(role, content, meta) {
+  const msg = renderMessage(role, content, meta);
   if (role === 'user') {
     highlightAndRender(msg);
   }
-  scrollToBottom();
   return msg;
 }
 
@@ -211,3 +216,126 @@ function finalizeLastMessage() {
     highlightAndRender(lastMsg);
   }
 }
+
+
+// ─── SESSIONS ───
+let currentSessionId = null;
+const SESSIONS_KEY = 'lima_sessions';
+const MAX_SESSIONS = 50;
+
+function getSessions() {
+  try {
+    return JSON.parse(localStorage.getItem(SESSIONS_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function setSessions(sessions) {
+  try {
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS)));
+  } catch {}
+}
+
+function sessionTitle(msgs) {
+  const firstUser = msgs.find((m) => m.role === 'user');
+  const text = firstUser ? firstUser.content : '新对话';
+  return text.replace(/\s+/g, ' ').trim().slice(0, 40) || '新对话';
+}
+
+function saveCurrentSession() {
+  if (!messages.length) return;
+  const sessions = getSessions();
+  const title = sessionTitle(messages);
+  const existing = sessions.find((s) => s.id === currentSessionId);
+  if (existing) {
+    existing.title = title;
+    existing.messages = messages.slice();
+    existing.model = window.getSelectedModel ? window.getSelectedModel() : 'lima';
+    existing.updatedAt = new Date().toISOString();
+  } else {
+    currentSessionId = currentSessionId || 'sess_' + Date.now();
+    sessions.unshift({
+      id: currentSessionId,
+      title,
+      messages: messages.slice(),
+      model: window.getSelectedModel ? window.getSelectedModel() : 'lima',
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  sessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  setSessions(sessions);
+  renderSessionList();
+}
+
+function renderSessionList() {
+  const list = document.getElementById('chatHistory');
+  if (!list) return;
+  const sessions = getSessions();
+  if (!sessions.length) {
+    list.innerHTML = '';
+    return;
+  }
+  list.innerHTML = sessions.map((s) => `
+    <div class="history-item ${s.id === currentSessionId ? 'active' : ''}" data-session-id="${s.id}">
+      <span class="history-title">${escapeHtml(s.title)}</span>
+      <button class="history-delete" data-delete-id="${s.id}" aria-label="删除会话">×</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.history-item').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.history-delete')) return;
+      loadSession(item.dataset.sessionId);
+    });
+  });
+  list.querySelectorAll('.history-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteSession(btn.dataset.deleteId);
+    });
+  });
+}
+
+function loadSession(id) {
+  const sessions = getSessions();
+  const session = sessions.find((s) => s.id === id);
+  if (!session) return;
+
+  saveCurrentSession();
+  messages = session.messages.slice();
+  currentSessionId = session.id;
+  document.querySelectorAll('.message').forEach((m) => m.remove());
+  if (messages.length) {
+    welcomeScreen.style.display = 'none';
+    messages.forEach((m) => {
+      const meta = m.role === 'assistant' ? { model: session.model || '...' } : {};
+      const el = renderMessage(m.role, m.content, meta);
+      if (m.role === 'user') highlightAndRender(el);
+    });
+    finalizeLastMessage();
+  } else {
+    welcomeScreen.style.display = 'flex';
+  }
+  renderSessionList();
+  if (window.innerWidth <= 768) toggleSidebar();
+}
+
+function deleteSession(id) {
+  let sessions = getSessions();
+  sessions = sessions.filter((s) => s.id !== id);
+  setSessions(sessions);
+  if (id === currentSessionId) {
+    currentSessionId = null;
+    messages = [];
+    document.querySelectorAll('.message').forEach((m) => m.remove());
+    welcomeScreen.style.display = 'flex';
+  }
+  renderSessionList();
+}
+
+function initSessions() {
+  renderSessionList();
+}
+
+initSessions();

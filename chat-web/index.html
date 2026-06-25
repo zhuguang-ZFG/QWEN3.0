@@ -13,6 +13,11 @@
   <style>
     .topbar-select { margin-left:12px; padding:6px 10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-card); color:var(--text); font-size:12px; max-width:160px; }
     @media (max-width:640px) { .topbar-select { max-width:110px; } }
+    .history-item { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .history-item.active { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.08); }
+    .history-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .history-delete { width:20px; height:20px; display:flex; align-items:center; justify-content:center; border-radius:4px; border:none; background:transparent; color:var(--text-muted); cursor:pointer; font-size:14px; line-height:1; }
+    .history-delete:hover { background:rgba(239,68,68,.15); color:#ef4444; }
   </style>
 </head>
 <body>

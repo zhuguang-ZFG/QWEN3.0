@@ -30,6 +30,19 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase C P2 C-2：控制台历史会话管理
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-2，为控制台增加可切换、可删除的历史会话列表。
+- **关键结果**：
+  - `chat-web/chat-messages.js` 新增会话管理：拆分 `renderMessage()` / `addMessage()`，支持从 `localStorage` 恢复会话；提供保存、加载、删除、列表渲染函数。
+  - `chat-web/chat-ui.js`：`newChat()` 先保存当前会话再清空。
+  - `chat-web/chat-api.js`：聊天与图片生成完成后调用 `saveCurrentSession()`。
+  - `chat-web/index.html`：新增会话列表项 active 与删除按钮样式。
+- **验证**：
+  - `node --check chat-web/chat-messages.js` / `chat-web/chat-api.js` / `chat-web/chat-ui.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）。
+
 ### 最近完成（2026-06-25）Phase C P2 C-2：控制台多模型切换
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-2，为控制台聊天界面增加模型切换能力。

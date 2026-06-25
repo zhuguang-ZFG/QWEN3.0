@@ -60,7 +60,7 @@ async function generateImage(prompt) {
     msg.querySelector('.msg-bubble').innerHTML = mediaHtml;
     attachImageLightbox(msg.querySelector('.msg-bubble'));
     messages.push({ role: 'assistant', content: url });
-    addToHistory('/image ' + prompt);
+    saveCurrentSession();
   } catch (err) {
     hideTyping();
     if (err.name !== 'AbortError') {
@@ -159,7 +159,7 @@ async function sendMessage() {
 
     finalizeLastMessage();
     messages.push({ role: 'assistant', content: fullText });
-    addToHistory(text);
+    saveCurrentSession();
 
   } catch (err) {
     hideTyping();
@@ -177,21 +177,6 @@ async function sendMessage() {
 function sendMessageWithText(text) {
   inputField.value = text;
   sendMessage();
-}
-
-
-
-// ─── HISTORY ───
-function addToHistory(text) {
-  const history = document.getElementById('chatHistory');
-  const item = document.createElement('div');
-  item.className = 'history-item';
-  item.textContent = text;
-  item.onclick = () => { inputField.value = text; inputField.focus(); };
-  history.insertBefore(item, history.firstChild);
-  while (history.children.length > 20) {
-    history.removeChild(history.lastChild);
-  }
 }
 
 

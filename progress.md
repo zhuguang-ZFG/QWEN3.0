@@ -1,5 +1,24 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P2 C-2（会话列表）：控制台历史会话管理
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台增加可切换、可删除的历史会话列表。
+- **关键结果**：
+  - `chat-web/chat-messages.js`：
+    - 拆分 `renderMessage()`（纯 DOM 渲染）与 `addMessage()`（渲染 + 状态写入），支持从历史会话恢复消息。
+    - 新增会话管理：`saveCurrentSession()`、`loadSession()`、`deleteSession()`、`renderSessionList()`。
+    - 会话数据持久化到 `localStorage`（`lima_sessions`），最多保留 50 条，按更新时间倒序。
+    - 会话标题取第一条用户消息前 40 字。
+  - `chat-web/chat-ui.js`：`newChat()` 先保存当前会话再清空，并重新渲染会话列表。
+  - `chat-web/chat-api.js`：聊天与图片生成完成后调用 `saveCurrentSession()`；移除旧的单条 `addToHistory()`。
+  - `chat-web/index.html`：新增会话列表项的 active 与删除按钮样式。
+- **验证**：
+  - `node --check chat-web/chat-messages.js` / `chat-web/chat-api.js` / `chat-web/chat-ui.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+  - `git diff --check` 无行尾空格问题。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）；文件已就绪，配置密码后可通过 `scripts/deploy_chat_web.py` 同步。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase C P2 C-2（多模型切换）：控制台模型选择器
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台聊天界面增加模型切换能力。

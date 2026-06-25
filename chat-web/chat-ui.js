@@ -160,9 +160,12 @@ function selectDevice(el, name) {
 }
 
 function newChat() {
+  saveCurrentSession();
   messages = [];
+  currentSessionId = null;
   document.querySelectorAll('.message').forEach(m => m.remove());
   welcomeScreen.style.display = 'flex';
+  renderSessionList();
   if (window.innerWidth <= 768) toggleSidebar();
 }
 

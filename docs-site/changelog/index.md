@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-06-25 Phase C P2：控制台历史会话管理
+
+- `chat-web/chat-messages.js` 新增会话管理：会话数据持久化到 `localStorage`，支持保存、切换、删除。
+- `chat-web/chat-ui.js` 的「新对话」自动保存当前会话。
+- `chat-web/chat-api.js` 在聊天与图片生成完成后保存会话。
+
 ## 2026-06-25 Phase C P2：控制台多模型切换
 
 - `chat-web/js/model-selector.js`：顶部工具栏模型选择器，从 `/v1/models` 拉取模型列表，无 Key 时回退 `lima`，选择结果存入 `localStorage`。
