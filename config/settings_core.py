@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from config import db_config
-from config.voice_settings import VOICE, VOICEPRINT, VOICE_PROVIDERS
 
 
 @dataclass

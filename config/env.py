@@ -44,7 +44,6 @@ __all__ = [
     "upload_token_ttl",
     "voice_max_audio_bytes",
     "wechat_dev_login_enabled",
-    "xiaozhi_compat_enabled",
     "xiaozhi_dev_static_login_code_enabled",
     "DigitalHumanConfig",
 ]
@@ -138,14 +137,6 @@ def public_demo_max_per_minute() -> int:
     """Public demo per-client rate limit."""
     return FLAGS.public_demo_max_per_minute
 
-
-def xiaozhi_compat_enabled() -> bool:
-    """[DEPRECATED v3.1] Xiaozhi v1 compatibility router is retired.
-
-    Always returns False. The endpoints have been migrated to
-    routes/device_app_*.py; kept for backward-compatible imports only.
-    """
-    return False
 
 
 def health_show_errors() -> bool:
