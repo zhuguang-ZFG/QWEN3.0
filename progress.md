@@ -1,5 +1,20 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase B P1：官网集成生态 logo 墙扩展
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase B-5，将 Next.js 官网合作伙伴 logo 墙扩展至 20+ 并增强交互。
+- **关键结果**：
+  - 重写 `donglicao-site-v2/app/components/Partners.tsx`：
+    - logo 数量从 15 个扩展到 21 个（新增 Gemini、Cohere、Replicate、Together AI 等）。
+    - 默认灰度 + 60% 透明度，悬停时恢复彩色 + 100% 透明度并轻微放大。
+    - 卡片增加背景高亮与阴影过渡。
+    - 响应式网格：移动端 3 列、小屏 4 列、桌面 6 列。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **44 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 CI 预提交检查与 pytest 路径修复
 
 - **目标**：运行完整 CI 预提交检查，修复由新增 SDK 测试导致的路径问题。
