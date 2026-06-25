@@ -3,6 +3,25 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-25 全量 pytest collection error / 失败修复（Phase A/B/C 收尾）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| TEST-FIX-5 | submodule | worktree 未初始化 `esp32S_XYZ`，`fake_device_server`/`fake_u1` 缺失导致 7 个 collection error | Closed |
+| TEST-FIX-6 | deploy | `deploy/jdcloud/deploy_jd.py` 缺失，`test_deploy_jd_prometheus.py` 报 FileNotFoundError | Closed |
+| TEST-FIX-7 | frontend test | `test_public_chat_code_blocks_escape_html` 要求 `<code>${escapeHtml(code)}</code>` 字面量，与带 `class` 的高亮实现冲突 | Closed |
+
+**修复动作**
+- `git submodule update --init --recursive` 恢复 `esp32S_XYZ`。
+- 新增 `deploy/jdcloud/deploy_jd.py`：HTTPS 下载 Prometheus v2.52.0、pinned SHA256、`sha256sum -c prometheus.sha256` 校验。
+- `tests/test_frontend_security_static.py`：改为正则 `<code[^>]*>\$\{escapeHtml\(code\)\}</code>`，仍禁止 `onclick="copyCode"`。
+
+**验证**
+- 全量 pytest **3759 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+- `tests/test_deploy_jd_prometheus.py` + `tests/test_frontend_security_static.py` 7 passed。
+
+---
+
 ## 2026-06-25 全量 pytest 预存失败修复
 
 | ID | Area | Finding | Status |

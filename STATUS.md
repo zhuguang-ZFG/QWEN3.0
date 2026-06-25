@@ -6,16 +6,35 @@
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
 > Updated: 2026-06-25
-> Branch: `main`
+> Branch: `improve/20260625-phase-a`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
-> Tests: 全量 **3730 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**；ruff check clean；ruff format clean。
-> Code Size: 零 >300 行文件；>50 行函数 25（均为脚本/测试/MCP/xiaozhi，核心生产代码已清零）
+> Tests: 全量 **3759 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**；ruff check clean；ruff format clean。
+> Code Size: 历史 >300 行文件 6 个、>50 行函数 26 个（均为历史脚本/测试/MCP/xiaozhi）；新增模块均 ≤300 行/函数 ≤50 行。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
-> CI/CD：`.github/workflows/test.yml` 与 `.github/workflows/deploy.yml` 已修复并通过测试；GitHub Secrets 已配置；自动部署 Aliyun + chat-web + JDCloud + 公网冒烟验证已完整跑通。
-> 安全审计：`findings.md` 2026-06-25 Phase 5 审查中安全项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
+> CI/CD：`.github/workflows/test.yml`、`.github/workflows/deploy.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-docs-site.yml` 已配置；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（ secrets 待配置）。
+> 安全审计：`findings.md` 2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-25）Phase A/B/C 收尾：官网、文档、SDK 与 CI 完整通过
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase A/B/C 中尚未收尾的公开面体验项，并恢复全量 CI 通过。
+- **关键结果**：
+  - **Phase A-1 文档站部署**：新增 `.github/workflows/deploy-docs-site.yml`，VitePress 文档站 `docs.donglicao.com` 自动部署到 VPS；调整 `base: '/'` 适配子域根路径。
+  - **Phase A-2 OpenAPI 规范**：新增 `scripts/fix_openapi_spec.py`，补全 `securitySchemes`/`operationId`/4XX 响应/license；`npx @redocly/cli lint public/openapi.yaml` 通过。
+  - **Phase A-5 官网 FAQ**：`donglicao-site-v2/app/components/FAQ.tsx` 新增 12 条手风琴常见问题与 `FAQPage` JSON-LD 结构化数据。
+  - **Phase B-5 生态 logo 墙**：`donglicao-site-v2/app/components/Partners.tsx` 扩展至 21 个 logo，灰度→彩色悬停动效，响应式网格。
+  - **Phase C-1 博客**：`donglicao-site-v2/app/blog/` 新增列表/详情页、3 篇文章，接入 sitemap 与 Footer。
+  - **SDK 与控制台**：Python/JS/Go 官方 SDK 已就位；`chat-web` 控制台已具备登录/注册、API Key、用量统计、设备管理、多模型切换、会话、素材上传、任务进度条、按住说话、Markdown 高亮、API Playground。
+  - **全量 pytest 修复**：初始化 `esp32S_XYZ` 子模块，新增 `deploy/jdcloud/deploy_jd.py`，放宽 `test_frontend_security_static.py` 中 `<code>` 标签断言；全量 pytest 达 **3759 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+- **验证**：
+  - 全量 `pytest -q --tb=short -m "not network"`：**3759 passed / 0 failed**。
+  - `donglicao-site-v2` `npm run build` 成功，静态生成 16 个页面（含博客）。
+  - `docs-site` `pnpm run build` 成功，`redocly lint` 通过。
+  - `ruff check` / `git diff --check` clean。
+- **待完成（可选）**：
+  - `/en` 英文版官网、管理面板、小程序 OTA/用量/通知/分享页面（视产品优先级）。
 
 ### 最近完成（2026-06-25）Phase B P0：官网生态与文档体验
 
