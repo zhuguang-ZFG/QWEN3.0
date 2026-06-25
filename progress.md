@@ -1,5 +1,15 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网自定义 404 页面
+
+- **目标**：为 `donglicao-site-v2` 添加自定义 404 页面，提升 UX。
+- **关键结果**：
+  - 新增 `app/not-found.tsx`：暗色主题 404 提示 + 返回首页按钮，复用 Navbar/Footer。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **待完成**：Lighthouse 实测优化、动效与响应式精调。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网可访问性与 SEO 增强
 
 - **目标**：提升 `donglicao-site-v2` 的可访问性与 SEO，为 Lighthouse 优化打基础。
