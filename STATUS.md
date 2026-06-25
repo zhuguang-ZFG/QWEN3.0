@@ -34,15 +34,17 @@
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-1，为用户控制台增加邮箱/密码登录与注册。
 - **关键结果**：
-  - 后端：`v2_account` 表新增 `email` 字段并迁移；`routes/device_app_auth.py` 新增 `/device/v1/app/auth/register-email` 与 `/device/v1/app/auth/login-email`，复用 bcrypt + JWT。
-  - `device_logic/auth.py` 的 `account_payload` 与 `_login_response` 返回 `email`。
+  - 后端：`v2_account` 表新增 `email` 字段并迁移；邮箱端点拆分到 `routes/device_app_auth_email.py`，由 `routes/device_app_auth.py` 包含，保持主文件 ≤300 行。
+  - `device_logic/auth_email.py`：邮箱格式校验与 `account_by_email` 查找 helper。
+  - `device_logic/auth.py`：`_login_response` 下沉复用，统一短信/微信/邮箱登录响应；`account_payload` 与 `_login_response` 返回 `email`。
   - 前端：新增 `chat-web/login.html`、`chat-web/register.html`、`chat-web/js/api.js`、`chat-web/js/auth.js`；表单含邮箱校验、密码最小 6 位、错误提示、登录后跳转 `index.html`。
-  - 更新 `tests/test_routes_device_app_auth.py`：补充账号 fixture 的 `email` 字段，并新增 6 个邮箱注册/登录用例。
+  - 更新 `tests/test_routes_device_app_auth.py`：补充账号 fixture 的 `email`/`password_hash` 字段，新增 6 个邮箱注册/登录用例，并对邮箱子模块局部打桩。
+  - 修复生产环境 `sqlite3.Row` 无 `.get()` 导致的 500 错误（改用 `row["password_hash"]`）。
 - **验证**：
   - 聚焦 pytest `tests/test_routes_device_app_auth.py` **19 passed / 0 failed**。
-  - 全量 pytest（排除 worktree 缺失辅助文件）**3717 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+  - 全量 pytest（排除 worktree 缺失辅助文件）**3697 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
   - `ruff check` / `pyright` 修改文件 clean（仅历史 jwt import warning）。
-  - 公网冒烟：`/health`、`/login.html`、`/register.html`、`/device/v1/app/auth/register-email` 均 200。
+  - 公网冒烟：`/health`、`/login.html`、`/register.html`、`POST /device/v1/app/auth/login-email` 均 200/401 正常。
 - **部署**：后端文件已同步并重启 `lima-router.service`；chat-web 文件已同步到 `/var/www/chat/` 与 `/opt/lima-router/chat-web/`。
 
 ### 最近完成（2026-06-25）Phase C P2：C-4 OpenAPI / Redoc 参考页

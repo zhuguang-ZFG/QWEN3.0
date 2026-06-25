@@ -65,7 +65,7 @@ def jwt_secret() -> str | None:
     return None
 
 
-def make_token(account: sqlite3.Row, expires_in: int = 86400) -> str | None:
+def make_token(account: sqlite3.Row | dict[str, Any], expires_in: int = 86400) -> str | None:
     if jwt is None:
         _log.warning("PyJWT is not installed: %s", _JWT_IMPORT_ERROR)
         return None
@@ -111,6 +111,20 @@ def authorize(authorization: str) -> dict[str, Any] | JSONResponse:
     if row is None:
         return err(401, "Unauthorized", 401)
     return dict(row)
+
+
+def _login_response(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any] | JSONResponse:
+    token = make_token(account)
+    if token is None:
+        return err(503, "JWT support is unavailable", 503)
+    return {
+        "token": token,
+        "expiresIn": 86400,
+        "accountId": account["id"],
+        "userId": account["id"],
+        "phone": account["phone"],
+        "email": account["email"],
+    }
 
 
 def account_payload(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:

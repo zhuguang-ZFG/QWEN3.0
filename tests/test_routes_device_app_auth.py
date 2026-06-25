@@ -8,7 +8,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from device_logic import auth as auth_core
 from routes import device_app_auth as auth
+from routes import device_app_auth_email as email_auth
 
 
 @pytest.fixture
@@ -30,6 +32,7 @@ def account():
         "id": "acc-1",
         "phone": "12345678901",
         "email": "tester@example.com",
+        "password_hash": "hashed",
         "role": "user",
         "status": "active",
         "nickname": "tester",
@@ -49,17 +52,22 @@ def _make_conn(rows=None):
 
 @pytest.fixture(autouse=True)
 def _patch_deps(account):
+    from device_logic import db as db_module
     with patch.object(auth, "authorize", return_value=account), \
          patch.object(auth, "allow_device_auth", return_value=True), \
-         patch.object(auth, "make_token", return_value="token-123"), \
+         patch.object(auth_core, "make_token", return_value="token-123"), \
          patch.object(auth, "validate_login_code", return_value=True), \
          patch.object(auth, "login_code_error", return_value=None), \
          patch.object(auth, "sms_verification_payload", return_value={"code": "123456"}), \
          patch.object(auth, "client_ip", return_value="127.0.0.1"), \
          patch.object(auth, "connect") as mock_connect, \
+         patch.object(db_module, "connect") as mock_db_connect, \
          patch.object(auth, "new_id", return_value="new-id"):
-        mock_connect.return_value.__enter__ = MagicMock(return_value=_make_conn([account]))
+        mock_conn = _make_conn([account])
+        mock_connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
         mock_connect.return_value.__exit__ = MagicMock(return_value=False)
+        mock_db_connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
+        mock_db_connect.return_value.__exit__ = MagicMock(return_value=False)
         yield
 
 
@@ -143,8 +151,8 @@ def test_delete_account_success(client, auth_header):
 
 
 def test_register_email_success(client):
-    with patch.object(auth, "_hash_password", return_value="hashed"), \
-         patch.object(auth, "_account_by_email", return_value=None):
+    with patch.object(email_auth, "_hash_password", return_value="hashed"), \
+         patch.object(email_auth, "account_by_email", return_value=None):
         response = client.post("/device/v1/app/auth/register-email", json={"email": "new@example.com", "password": "secret123"})
     assert response.status_code == 200
     assert response.json()["token"] == "token-123"
@@ -160,8 +168,9 @@ def test_register_email_weak_password(client):
     assert response.status_code == 400
 
 
-def test_login_email_success(client):
-    with patch.object(auth, "_verify_password", return_value=True):
+def test_login_email_success(client, account):
+    with patch.object(email_auth, "account_by_email", return_value=account), \
+         patch.object(email_auth, "_verify_password", return_value=True):
         response = client.post("/device/v1/app/auth/login-email", json={"email": "tester@example.com", "password": "secret123"})
     assert response.status_code == 200
     data = response.json()
@@ -169,8 +178,9 @@ def test_login_email_success(client):
     assert data["accountId"] == "acc-1"
 
 
-def test_login_email_invalid_password(client):
-    with patch.object(auth, "_verify_password", return_value=False):
+def test_login_email_invalid_password(client, account):
+    with patch.object(email_auth, "account_by_email", return_value=account), \
+         patch.object(email_auth, "_verify_password", return_value=False):
         response = client.post("/device/v1/app/auth/login-email", json={"email": "tester@example.com", "password": "wrong"})
     assert response.status_code == 401
 

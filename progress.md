@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase B P1 B-1：控制台邮箱/密码登录与注册
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase B P1 B-1，为用户控制台新增邮箱/密码注册与 JWT 登录。
+- **关键结果**：
+  - `device_logic/auth_email.py`：邮箱格式校验与账号查找 helper。
+  - `routes/device_app_auth_email.py`：独立邮箱注册/登录端点（`/device/v1/app/auth/register-email`、`/device/v1/app/auth/login-email`），使用 bcrypt 哈希与 JWT。
+  - `device_logic/auth.py`：`_login_response` 下沉复用，统一短信/微信/邮箱登录响应。
+  - `routes/device_app_auth.py`：包含邮箱子路由。
+  - `chat-web/login.html`、`register.html`、`js/api.js`、`js/auth.js`：登录/注册页（已在前期提交）。
+  - 修复生产环境 `sqlite3.Row` 无 `.get()` 导致的 500 错误（改用 `row["password_hash"]`）。
+- **验证**：
+  - `tests/test_routes_device_app_auth.py` 19 passed；聚焦 pytest 3697 passed / 17 skipped / 2 deselected（4 个 worktree 预存文件缺失失败已排除）。
+  - `ruff check` 修改文件 clean；`pyright` 0 errors（仅历史 jwt import warning）。
+  - 生产冒烟：`POST /device/v1/app/auth/login-email` 返回 200。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase C P2：C-3 API Playground
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 的 API Playground。
