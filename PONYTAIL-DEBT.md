@@ -17,6 +17,7 @@
 | `device_gateway/tasks.py:31` | 31 | `routes.device_gateway_dispatch` 改为 lazy import 避免模块加载循环依赖 | 运行时反向依赖仍存在（device_gateway → routes） | 引入 `TaskDispatcher` 协议抽象后消除 |
 | `device_gateway/task_events.py:182` | 182 | `routes.device_memory` lazy import（`get_memory_store`） | 运行时反向依赖 | 引入 memory store 接口抽象后消除 |
 | `device_gateway/mqtt_client.py:81` | 81 | `routes.device_gateway_ws_handlers` lazy import（`handle_motion_event`） | 运行时反向依赖 | 引入事件处理协议接口后消除 |
+| `ruff.toml` | — | F401 未加入全局门禁，仅豁免已知 re-export 文件 | ~115 个生产 F401 残留为整洁度噪音 | 引入 `pyright --verifytypes` 或逐文件清理后启用 F401 门禁 |
 
 ## 待处理项
 

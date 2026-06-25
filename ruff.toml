@@ -22,3 +22,8 @@ select = ["E9", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507"]
 "**/__init__.py" = ["F401"]
 "http_caller.py" = ["F401"]
 "routing_engine.py" = ["F401"]
+# ponytail: intentional re-export surface for test monkeypatching
+# (tests patch device_gateway.tasks.*). Ceiling: silent F401 noise hides real
+# dead imports in these files. Upgrade path: extract a public API module.
+"device_gateway/tasks.py" = ["F401"]
+"device_gateway/task_creation.py" = ["F401"]
