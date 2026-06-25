@@ -4,6 +4,11 @@
 
 ---
 
+## 2026-06-25 Phase C P2：控制台多模型切换
+
+- `chat-web/js/model-selector.js`：顶部工具栏模型选择器，从 `/v1/models` 拉取模型列表，无 Key 时回退 `lima`，选择结果存入 `localStorage`。
+- `chat-web/chat-api.js`：`/v1/chat/completions` 使用选中的模型。
+
 ## 2026-06-25 Phase C P2：控制台 Markdown 增强
 
 - `chat-web/index.html` 引入 highlight.js 与 KaTeX CDN，更新 CSP。

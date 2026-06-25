@@ -47,6 +47,7 @@ FILES = [
     "solar-system.js",
     "js/api.js",
     "js/auth.js",
+    "js/model-selector.js",
     "js/keys.js",
     "js/usage.js",
     "js/devices.js",

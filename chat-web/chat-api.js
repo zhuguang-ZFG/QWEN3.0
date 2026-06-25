@@ -100,7 +100,7 @@ async function sendMessage() {
       signal: abortController.signal,
       headers: authHeaders(),
       body: JSON.stringify({
-        model: 'lima',
+        model: window.getSelectedModel ? window.getSelectedModel() : 'lima',
         messages: messages,
         stream: true,
       }),

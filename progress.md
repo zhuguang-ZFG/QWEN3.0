@@ -1,5 +1,25 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P2 C-2（多模型切换）：控制台模型选择器
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台聊天界面增加模型切换能力。
+- **关键结果**：
+  - 新增 `chat-web/js/model-selector.js`：
+    - 顶部工具栏渲染 `<select id="modelSelect">` 模型选择器。
+    - 若用户已设置 API Key，调用 `/v1/models` 拉取可用模型列表。
+    - 无 Key 或拉取失败时回退到默认模型 `lima`。
+    - 选中模型保存到 `localStorage`（`lima-model`），刷新后保持。
+    - 暴露 `window.getSelectedModel()` 供聊天请求使用。
+  - `chat-web/chat-api.js`：`/v1/chat/completions` 的 `model` 字段改为 `window.getSelectedModel()` 动态取值。
+  - `chat-web/index.html`：工具栏新增模型下拉框，引入 `js/model-selector.js`。
+  - `scripts/deploy_chat_web.py`：静态文件清单纳入 `js/model-selector.js`。
+- **验证**：
+  - `node --check chat-web/js/model-selector.js` 与 `chat-web/chat-api.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+  - `ruff check` / `pyright` 修改 Python 文件 clean。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）；文件已就绪，配置密码后可通过 `scripts/deploy_chat_web.py` 同步。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase C P2 C-2（Markdown 增强）：控制台代码高亮与公式渲染
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台聊天消息增加代码语法高亮与 KaTeX 公式渲染。

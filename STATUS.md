@@ -30,6 +30,19 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase C P2 C-2：控制台多模型切换
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-2，为控制台聊天界面增加模型切换能力。
+- **关键结果**：
+  - 新增 `chat-web/js/model-selector.js`：顶部工具栏模型下拉框，有 API Key 时拉取 `/v1/models`，否则回退 `lima`；选中模型持久化到 `localStorage`。
+  - `chat-web/chat-api.js`：`/v1/chat/completions` 使用 `window.getSelectedModel()` 动态选择模型。
+  - `chat-web/index.html` 新增模型选择器并引入脚本。
+  - `scripts/deploy_chat_web.py` 纳入 `js/model-selector.js`。
+- **验证**：
+  - `node --check chat-web/js/model-selector.js` / `chat-web/chat-api.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）。
+
 ### 最近完成（2026-06-25）Phase C P2 C-2：控制台 Markdown 增强
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-2，为控制台聊天消息增加代码语法高亮与 KaTeX 公式渲染。
