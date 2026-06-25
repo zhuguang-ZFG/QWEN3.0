@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（首页完整版）
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，补齐 `donglicao-site-v2` 首页剩余区块。
+- **关键结果**：
+  - 新增 `app/components/Technology.tsx`：量子流水线 5 步骤 + 数字统计动画。
+  - 新增 `app/components/Scenarios.tsx`：家庭创作 / 教育课堂 / 个性定制场景卡片。
+  - 新增 `app/components/Testimonials.tsx`：用户评价卡片。
+  - 新增 `app/components/Developer.tsx`：Python / cURL / JavaScript / Go 四语言代码 Tab。
+  - `app/page.tsx` 整合所有区块。
+- **验证**：
+  - `npm run build` 成功，生成 `/`、`/pricing`、`/product-*`。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **待完成**：Footer 社媒链接、Lighthouse 优化、响应式/动效精调。
+
 ## 2026-06-25 里程碑提交（控制台增强 + SDK trio + Next.js 官网骨架）
 
 - **变更范围**：
