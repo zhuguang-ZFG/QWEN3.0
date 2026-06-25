@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase B P1 B-3：用量统计页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase B P1 B-3，为用户控制台新增 Token/请求/费用用量统计。
+- **关键结果**：
+  - `routes/device_app_stats.py`：新增 `GET /device/v1/app/stats/usage?days=30`，基于 `v2_task` 已完成任务按意图估算 Token 与费用，返回汇总、每日折线/柱状数据、能力饼图、分页明细。
+  - 能力映射：draw/image → `draw_generated`；write/text/run_path → `write_text`；其余 → `chat`。
+  - 费用估算：按能力固定单任务 Token 与单价（chat 500/¥0.0015、draw 1500/¥0.0045、write 1000/¥0.003）。
+  - `chat-web/usage.html` + `js/usage.js`：ECharts 暗色主题（折线/柱状/饼图）、汇总卡片、分页明细、7/30/90 天切换。
+  - `chat-web/usage.html` CSP 允许 `cdn.jsdelivr.net` 加载 ECharts。  - `scripts/deploy_chat_web.py`：更新清单纳入 `usage.html` 与 `js/usage.js`。
+  - `tests/test_device_app_stats.py`：新增 2 个用量接口用例。
+- **验证**：
+  - `tests/test_device_app_stats.py` 7 passed；`tests/test_routes_device_app_auth.py` 24 passed。
+  - `ruff check` / `pyright` 修改文件 clean。
+  - 生产冒烟：`GET /device/v1/app/stats/usage?days=30` 200、`/usage.html` 200。
+- **部署**：VPS `lima-router.service` 已重启；chat-web 已同步到 `/var/www/chat/`。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase B P1 B-2：API Key 管理页
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase B P1 B-2，为用户控制台新增 API Key 自助创建/列表/删除。

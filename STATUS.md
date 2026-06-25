@@ -30,6 +30,20 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase B P1：B-3 用量统计页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-3，为用户控制台增加 Token/请求/费用用量统计。
+- **关键结果**：
+  - 后端：`routes/device_app_stats.py` 新增 `GET /device/v1/app/stats/usage?days=30`，基于 `v2_task` 已完成任务按意图估算 Token 与费用；返回汇总、每日折线/柱状数据、能力饼图、分页明细。
+  - 估算策略：chat 500 tokens/¥0.0015、draw_generated 1500 tokens/¥0.0045、write_text 1000 tokens/¥0.003。
+  - 前端：`chat-web/usage.html` + `js/usage.js` 引入 ECharts CDN，暗色主题折线图、柱状图、饼图、汇总卡片与分页明细表格；支持 7/30/90 天切换。
+  - 更新 `chat-web/usage.html` CSP 允许 `cdn.jsdelivr.net`；`scripts/deploy_chat_web.py` 纳入新文件。
+- **验证**：
+  - 聚焦 pytest `tests/test_device_app_stats.py` **7 passed / 0 failed**；`tests/test_routes_device_app_auth.py` **24 passed / 0 failed**。
+  - `ruff check` / `pyright` 修改文件 clean。
+  - 公网冒烟：`GET /device/v1/app/stats/usage?days=30` 200、`/usage.html` 200。
+- **部署**：后端文件已同步并重启 `lima-router.service`；chat-web 文件已同步到 `/var/www/chat/`。
+
 ### 最近完成（2026-06-25）Phase B P1：B-2 API Key 管理页
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-2，为用户控制台增加 API Key 自助管理。

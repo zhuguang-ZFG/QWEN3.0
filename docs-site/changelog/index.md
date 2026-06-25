@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-06-25 Phase B P1：用量统计页
+
+- 新增 `/device/v1/app/stats/usage?days=30`：按已完成任务估算每日 Token 消耗、请求次数、费用明细与能力分布。
+- 新增 `chat-web/usage.html` + `js/usage.js`：ECharts 暗色主题折线图、柱状图、饼图与分页明细表格。
+- 时间范围支持 7/30/90 天切换。
+
 ## 2026-06-25 Phase B P1：API Key 管理页
 
 - 新增 `v2_api_key` 表与 `device_logic/api_key.py`，用于生成、列表与软删除用户 API Key。

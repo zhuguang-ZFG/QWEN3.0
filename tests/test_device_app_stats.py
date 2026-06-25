@@ -179,3 +179,37 @@ def test_empty_stats(client):
     assert data["mostUsedCapability"] is None
     assert data["dailyBreakdown"] == []
     assert data["hourlyPattern"] == [0] * 24
+
+
+def test_usage_stats_shape(client):
+    _seed_accounts_devices()
+    _insert_task("t1", "dev-1", "a-owner", "draw_image", "completed", _iso(1), _iso(1), _iso(1))
+    _insert_task("t2", "dev-1", "a-owner", "draw_image", "completed", _iso(1), _iso(1), _iso(1))
+    _insert_task("t3", "dev-1", "a-owner", "run_path", "completed", _iso(1), _iso(1), _iso(1))
+    _insert_task("t4", "dev-1", "a-owner", "home", "completed", _iso(2), _iso(2), _iso(2))
+
+    resp = client.get("/device/v1/app/stats/usage?days=7", headers=_headers("a-owner"))
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["days"] == 7
+    assert data["accountId"] == "a-owner"
+    assert data["summary"]["totalRequests"] == 4
+    assert data["summary"]["totalTokens"] == 4500  # 2*1500 + 1000 + 500
+    assert data["summary"]["estimatedCost"] == pytest.approx(0.0135, 0.001)
+    assert len(data["daily"]) >= 1
+    assert len(data["byCapability"]) == 3
+    assert data["details"]["page"] == 1
+    assert data["details"]["total"] == 4
+    assert len(data["details"]["items"]) == 4
+
+
+def test_usage_stats_pagination(client):
+    _seed_accounts_devices()
+    _insert_task("t1", "dev-1", "a-owner", "home", "completed", _iso(1), _iso(1), _iso(1))
+    _insert_task("t2", "dev-1", "a-owner", "home", "completed", _iso(1), _iso(1), _iso(1))
+
+    resp = client.get("/device/v1/app/stats/usage?days=7&page=1&page_size=1", headers=_headers("a-owner"))
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["details"]["total"] == 2
+    assert len(data["details"]["items"]) == 1
