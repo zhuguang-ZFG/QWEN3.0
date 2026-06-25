@@ -47,7 +47,7 @@ export default function ProductPage({
   return (
     <>
       <Navbar />
-      <main className="flex-1 px-6 pt-32 pb-20">
+      <main id="main" className="flex-1 px-6 pt-32 pb-20">
         <section className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
           <div className="space-y-6">
             <div

@@ -115,7 +115,7 @@ export default function PricingPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 px-6 pt-32 pb-20">
+      <main id="main" className="flex-1 px-6 pt-32 pb-20">
         <div className="mx-auto max-w-7xl">
           <div className="mb-16 text-center">
             <div className="mb-3 text-xs font-medium uppercase tracking-wider text-cyan-400">Pricing</div>

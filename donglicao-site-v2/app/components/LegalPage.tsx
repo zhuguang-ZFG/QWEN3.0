@@ -10,7 +10,7 @@ export default function LegalPage({ title, children }: LegalPageProps) {
   return (
     <>
       <Navbar />
-      <main className="flex-1 px-6 pt-32 pb-20">
+      <main id="main" className="flex-1 px-6 pt-32 pb-20">
         <div className="mx-auto max-w-3xl">
           <div className="mb-10 text-center">
             <div className="mb-3 text-xs font-medium uppercase tracking-wider text-cyan-400">Legal</div>

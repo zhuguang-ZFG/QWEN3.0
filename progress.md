@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网可访问性与 SEO 增强
+
+- **目标**：提升 `donglicao-site-v2` 的可访问性与 SEO，为 Lighthouse 优化打基础。
+- **关键结果**：
+  - 新增 `app/components/SkipLink.tsx`，支持键盘用户跳到 `#main`。
+  - `app/layout.tsx` 增加 keywords、twitter、canonical、结构化数据（WebSite + Organization）。
+  - 所有页面 `<main>` 统一添加 `id="main"`。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **待完成**：Lighthouse 实测优化、动效与响应式精调。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（privacy / terms 法律页）
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，迁移隐私政策与用户协议页。
