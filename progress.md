@@ -48,6 +48,20 @@
 - **Git**：
   - 提交并推送 `origin improve/20260625-phase-a` 成功。
 
+## 2026-06-25 完成 Phase C P2：/en 英文版官网扩展（定价 + 产品页）
+
+- **目标**：将 Next.js 官网英文版从首页扩展到定价页与三个产品页。
+- **关键结果**：
+  - 重构 `app/components/ProductPage.tsx`：新增可选 `labels` 属性，默认中文，英文页传入英文标签，保持中文页零改动。
+  - 新增 `app/en/pricing/page.tsx`：4 档定价卡片、功能对比表、定价 FAQ、CTA。
+  - 新增 `app/en/product-draw/page.tsx`、`product-write/page.tsx`、`product-human/page.tsx`：英文产品详情。
+  - `app/sitemap.ts` 收录 `/en/pricing` 与 3 个英文产品页。
+- **验证**：
+  - `npm run build` 成功，静态生成 25 个页面（含 5 个 /en 页面）。
+  - 聚焦后端 pytest **44 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P2：/en 英文版官网首页
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C-1，为 Next.js 官网提供 `/en` 英文版入口。

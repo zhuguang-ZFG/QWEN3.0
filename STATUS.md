@@ -25,7 +25,7 @@
   - **Phase A-2 OpenAPI 规范**：新增 `scripts/fix_openapi_spec.py`，补全 `securitySchemes`/`operationId`/4XX 响应/license；`npx @redocly/cli lint public/openapi.yaml` 通过。
   - **Phase A-5 官网 FAQ**：`donglicao-site-v2/app/components/FAQ.tsx` 新增 12 条手风琴常见问题与 `FAQPage` JSON-LD 结构化数据。
   - **Phase B-5 生态 logo 墙**：`donglicao-site-v2/app/components/Partners.tsx` 扩展至 21 个 logo，灰度→彩色悬停动效，响应式网格。
-  - **Phase C-1 博客 + /en 英文首页**：`donglicao-site-v2/app/blog/` 新增列表/详情页、3 篇文章；新增 `/en/` 英文首页与 Navbar 语言切换按钮。
+  - **Phase C-1 博客 + /en 英文站点**：`donglicao-site-v2/app/blog/` 新增列表/详情页、3 篇文章；新增 `/en/` 英文首页、定价页、3 个产品页与 Navbar 语言切换按钮。
   - **SDK 与控制台**：Python/JS/Go 官方 SDK 已就位；`chat-web` 控制台已具备登录/注册、API Key、用量统计、设备管理、多模型切换、会话、素材上传、任务进度条、按住说话、Markdown 高亮、API Playground。
   - **全量 pytest 修复**：初始化 `esp32S_XYZ` 子模块，新增 `deploy/jdcloud/deploy_jd.py`，放宽 `test_frontend_security_static.py` 中 `<code>` 标签断言；全量 pytest 达 **3759 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
 - **验证**：
