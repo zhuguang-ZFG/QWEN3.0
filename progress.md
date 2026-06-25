@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 CI 预提交检查与 pytest 路径修复
+
+- **目标**：运行完整 CI 预提交检查，修复由新增 SDK 测试导致的路径问题。
+- **关键结果**：
+  - 更新 `pytest.ini`，在 `pythonpath` 中追加 `sdk/python`，使 `tests/sdk/test_python_sdk.py` 可在标准 pytest 中导入。
+  - `ruff check` 通过，`git diff --check` 通过。
+- **验证**：
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` + `tests/sdk/test_python_sdk.py` **44 passed / 0 failed**。
+  - 全量 `pytest` 仍因历史模块缺失（`fake_device_server`、`route_policy_validator`）导致 7 个 collection error；这些非本次改动引入，需单独处理子模块/依赖。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P3：API Playground 流式输出支持
 
 - **目标**：为 Next.js 官网的 API Playground 增加流式响应能力。
