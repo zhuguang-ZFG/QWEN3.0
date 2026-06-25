@@ -30,7 +30,30 @@ export interface ProductPageProps {
   specs: [string, string][];
   scenarios?: Scenario[];
   faqs?: FAQ[];
+  labels?: {
+    ctaTry?: string;
+    ctaDocs?: string;
+    coreTitle?: string;
+    coreSubtitle?: string;
+    specsTitle?: string;
+    specsSubtitle?: string;
+    scenariosTitle?: string;
+    scenariosSubtitle?: string;
+    faqTitle?: string;
+  };
 }
+
+const defaultLabels = {
+  ctaTry: "在线体验",
+  ctaDocs: "查看文档",
+  coreTitle: "核心能力",
+  coreSubtitle: "从输入到执行，全流程自动化。",
+  specsTitle: "技术规格",
+  specsSubtitle: "硬件与性能参数，供采购与集成参考。",
+  scenariosTitle: "使用场景",
+  scenariosSubtitle: "已在这些场景中释放真实价值。",
+  faqTitle: "常见问题",
+};
 
 export default function ProductPage({
   eyebrow,
@@ -43,7 +66,9 @@ export default function ProductPage({
   specs,
   scenarios,
   faqs,
+  labels: labelsProp,
 }: ProductPageProps) {
+  const labels = { ...defaultLabels, ...labelsProp };
   return (
     <>
       <Navbar />
@@ -71,7 +96,7 @@ export default function ProductPage({
                 className="rounded-full px-6 py-3 font-semibold text-slate-950"
                 style={{ backgroundColor: accent }}
               >
-                在线体验
+                {labels.ctaTry}
               </a>
               <a
                 href="https://docs.donglicao.com"
@@ -79,7 +104,7 @@ export default function ProductPage({
                 rel="noopener"
                 className="rounded-full border border-white/10 px-6 py-3 font-semibold text-slate-200 hover:border-cyan-500/50 hover:text-cyan-400"
               >
-                查看文档
+                {labels.ctaDocs}
               </a>
             </div>
           </div>
@@ -98,8 +123,8 @@ export default function ProductPage({
 
         <section className="mx-auto mt-24 max-w-7xl">
           <div className="mb-10 text-center">
-            <h2 className="text-2xl font-bold text-slate-50 md:text-3xl">核心能力</h2>
-            <p className="mt-2 text-slate-400">从输入到执行，全流程自动化。</p>
+            <h2 className="text-2xl font-bold text-slate-50 md:text-3xl">{labels.coreTitle}</h2>
+            <p className="mt-2 text-slate-400">{labels.coreSubtitle}</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {features.map((f, i) => (
@@ -119,8 +144,8 @@ export default function ProductPage({
 
         <section className="mx-auto mt-24 max-w-4xl">
           <div className="mb-10 text-center">
-            <h2 className="text-2xl font-bold text-slate-50 md:text-3xl">技术规格</h2>
-            <p className="mt-2 text-slate-400">硬件与性能参数，供采购与集成参考。</p>
+            <h2 className="text-2xl font-bold text-slate-50 md:text-3xl">{labels.specsTitle}</h2>
+            <p className="mt-2 text-slate-400">{labels.specsSubtitle}</p>
           </div>
           <div className="overflow-hidden rounded-2xl border border-white/10">
             <table className="w-full text-left text-sm">
@@ -139,8 +164,8 @@ export default function ProductPage({
         {scenarios && scenarios.length > 0 && (
           <section className="mx-auto mt-24 max-w-7xl">
             <div className="mb-10 text-center">
-              <h2 className="text-2xl font-bold text-slate-50 md:text-3xl">使用场景</h2>
-              <p className="mt-2 text-slate-400">已在这些场景中释放真实价值。</p>
+              <h2 className="text-2xl font-bold text-slate-50 md:text-3xl">{labels.scenariosTitle}</h2>
+              <p className="mt-2 text-slate-400">{labels.scenariosSubtitle}</p>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
               {scenarios.map((s, i) => (
@@ -162,7 +187,7 @@ export default function ProductPage({
         {faqs && faqs.length > 0 && (
           <section className="mx-auto mt-24 max-w-3xl">
             <div className="mb-10 text-center">
-              <h2 className="text-2xl font-bold text-slate-50 md:text-3xl">常见问题</h2>
+              <h2 className="text-2xl font-bold text-slate-50 md:text-3xl">{labels.faqTitle}</h2>
             </div>
             <div className="space-y-4">
               {faqs.map((faq, i) => (

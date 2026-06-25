@@ -17,6 +17,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/login",
     "/register",
     "/en",
+    "/en/pricing",
+    "/en/product-draw",
+    "/en/product-write",
+    "/en/product-human",
     "/blog",
     ...posts.map((post) => `/blog/${post.slug}`),
   ];
