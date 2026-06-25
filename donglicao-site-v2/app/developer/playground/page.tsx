@@ -10,12 +10,49 @@ const endpoints = [
   { value: "/v1/models", label: "Models", method: "GET" },
 ];
 
+async function* readSSE(body: ReadableStream<Uint8Array>) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("data: ")) {
+        const payload = trimmed.slice(6).trim();
+        if (payload && payload !== "[DONE]") {
+          try {
+            yield JSON.parse(payload);
+          } catch {
+            yield { raw: payload };
+          }
+        }
+      }
+    }
+  }
+  if (buffer.trim().startsWith("data: ")) {
+    const payload = buffer.trim().slice(6).trim();
+    if (payload && payload !== "[DONE]") {
+      try {
+        yield JSON.parse(payload);
+      } catch {
+        yield { raw: payload };
+      }
+    }
+  }
+}
+
 export default function PlaygroundPage() {
   const [apiKey, setApiKey] = useState("");
   const [endpoint, setEndpoint] = useState("/v1/chat/completions");
   const [model, setModel] = useState("lima-1.3");
   const [prompt, setPrompt] = useState("你好，请介绍一下 LiMa 量子星云系统。");
   const [baseUrl, setBaseUrl] = useState("https://chat.donglicao.com");
+  const [stream, setStream] = useState(false);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -36,7 +73,7 @@ export default function PlaygroundPage() {
       const selected = endpoints.find((ep) => ep.value === endpoint)!;
       let body: unknown;
       if (endpoint === "/v1/chat/completions") {
-        body = { model, messages: [{ role: "user", content: prompt }] };
+        body = { model, messages: [{ role: "user", content: prompt }], stream };
       } else if (endpoint === "/v1/images/generations") {
         body = { model, prompt, size: "1024x1024", n: 1 };
       }
@@ -49,15 +86,26 @@ export default function PlaygroundPage() {
         },
         body: body ? JSON.stringify(body) : undefined,
       });
-      let data: unknown;
-      try {
-        data = await res.json();
-      } catch {
-        data = { raw: await res.text() };
-      }
+
       if (!res.ok) {
+        let data: unknown;
+        try {
+          data = await res.json();
+        } catch {
+          data = { raw: await res.text() };
+        }
         setError(`HTTP ${res.status}: ${JSON.stringify(data, null, 2)}`);
+        return;
+      }
+
+      if (stream && res.body) {
+        const chunks: unknown[] = [];
+        for await (const chunk of readSSE(res.body)) {
+          chunks.push(chunk);
+          setResponse(JSON.stringify(chunks, null, 2));
+        }
       } else {
+        const data = await res.json();
         setResponse(JSON.stringify(data, null, 2));
       }
     } catch (err) {
@@ -139,6 +187,18 @@ export default function PlaygroundPage() {
                   className="w-full rounded-lg border border-white/10 bg-[#0d1117] px-4 py-2 text-slate-200 outline-none focus:border-cyan-500"
                 />
               </div>
+            )}
+
+            {endpoint === "/v1/chat/completions" && (
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={stream}
+                  onChange={(e) => setStream(e.target.checked)}
+                  className="h-4 w-4 accent-cyan-500"
+                />
+                流式输出 (stream=true)
+              </label>
             )}
 
             <button

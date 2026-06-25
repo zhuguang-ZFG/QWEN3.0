@@ -1,5 +1,18 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P3：API Playground 流式输出支持
+
+- **目标**：为 Next.js 官网的 API Playground 增加流式响应能力。
+- **关键结果**：
+  - `app/developer/playground/page.tsx` 增加 `stream` 复选框（仅 Chat Completions）。
+  - 新增 `readSSE` 异步生成器解析服务器发送事件（SSE），实时追加到响应区。
+  - 非流式请求保持原有 JSON 格式化展示。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 站点 GitHub Actions 自动部署工作流
 
 - **目标**：为 `donglicao-site-v2` 添加 GitHub Actions 自动部署到 VPS。
