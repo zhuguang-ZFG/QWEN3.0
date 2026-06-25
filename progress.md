@@ -9156,3 +9156,13 @@ uff check（6 个变更 Python 文件）全通过。
 - **保留**：irmware/（U1/U8 固件）+ manager-mobile/（微信小程序）。
 - **验证**：esp32S_XYZ pytest tests/ci/ = 93 passed / 18 failed（18 个失败均为预存在 manager_mobile 失败，与本次清理无关；无新增失败）。
 - **主仓库**：子模块指针 `abecbb8` → `f01991f`（cherry-pick 到 esp32S_XYZ main `5c0dfc6` 之上，保留 main 的 i18n/lint 提交），stage 后提交。
+
+## 2026-06-26 device_logic/db.py 拆分：_run_migrations 数据驱动重构
+
+- **目标**：消除 device_logic/db.py::_run_migrations 229 行函数违规（check_code_size.py 最大函数违规），将 11 个 CREATE TABLE + 5 个 ALTER TABLE DDL 提取为数据驱动。
+- **实现**：
+  - 新建 device_logic/db_migrations.py（224 行）：_DDL_STATEMENTS 元组（38 条幂等 DDL）+ _ADD_COLUMN_MIGRATIONS 元组（5 条列增量）+ _POST_COLUMN_ADD 字典（email 唯一索引）+ pply_migrations() 编排函数（19 行）。
+  - device_logic/db.py：_run_migrations 改为 1 行委托 _apply_migrations(conn)；文件从 286 行降至 56 行。
+  - 行为不变：相同的 DDL 顺序、相同的列守卫（PRAGMA table_info 检查）、相同的 commit 时机。
+- **测试**：新建 	ests/test_device_logic_db_migrations.py（3 例）：幂等性（apply 两次不报错）、11 表齐全、email 唯一索引存在。device_app 测试族 58 passed 无回归。
+- **验证**：uff check 2 文件 clean；check_code_size.py 主代码 _run_migrations 违规消除（仅 .worktrees 旧副本仍违规）。
