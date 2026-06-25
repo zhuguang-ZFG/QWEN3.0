@@ -3,6 +3,40 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-25 Phase A 收尾：英文法律页、小程序 OTA、后端 OTA App 接口与合并推送
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| PHASEA-1 | site | 官网缺少英文隐私政策与服务条款页，影响国际访客合规与 SEO | Closed |
+| PHASEA-2 | seo | 中英文法律页缺少 `canonical` / `hreflang`，搜索引擎可能将其视为重复内容 | Closed |
+| PHASEA-3 | mobile | 小程序无设备固件 OTA 升级入口 | Closed |
+| PHASEA-4 | api | 后端缺少 App 可用的 OTA 检查/启动/回滚接口 | Closed |
+| PHASEA-5 | code_size | 新增 App OTA 接口后 `routes/device_ota.py` 将超 300 行 | Closed |
+| PHASEA-6 | git | `improve/20260625-phase-a` 需合并回 `main` 并推送 | Closed |
+| PHASEA-7 | git | 仓库未配置 Gitee remote，无法同步到 Gitee | Accepted |
+| PHASEA-8 | deploy | 合并后尚未部署到 VPS | Open |
+
+**修复动作**
+- 新增 `donglicao-site-v2/app/en/privacy/page.tsx`、`app/en/terms/page.tsx`；为中英文 privacy/terms 页面注入 `canonical` 与 `hreflang alternate`。
+- 在 `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile` 新增 `pages/ota/index.vue`、API 封装 `v2CheckOta` / `v2StartOta`、`pages.json` 路由、设备详情入口；`pnpm type-check` 与 `pnpm build:h5` 通过。
+- 新增 `routes/device_ota_app.py`：`GET /device/v1/ota/check`、`POST /device/v1/ota/start`（支持 rollback）；从 `routes/device_ota.py` 拆出 App 端点，原文件保持 300 行。
+- `routes/route_registry.py` 注册 `routes.device_ota_app`。
+- 拆分测试：`tests/test_device_ota.py` 保留管理员/设备端测试；新增 `tests/test_device_ota_app.py` 覆盖无发布、可升级未选中、启动升级、回滚取消 4 个场景。
+- `improve/20260625-phase-a` 已 fast-forward 合并到 `main` 并推送到 `origin/main`。
+
+**验证**
+- 全量 pytest `-m "not network"` → **3765 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+- 聚焦 pytest `tests/test_device_ota.py` + `tests/test_device_ota_app.py` → **17 passed / 0 failed**。
+- `ruff check routes/device_ota.py routes/device_ota_app.py routes/route_registry.py tests/test_device_ota.py tests/test_device_ota_app.py` clean。
+- `scripts/check_code_size.py` 本次修改文件均 ≤300 行；历史遗留 >300 行文件 5 个未触及。
+- `donglicao-site-v2` `npm run build` 通过。
+
+**遗留/阻塞**
+- Gitee 镜像：仓库无 `gitee` remote，且本地无 `GITEE_TOKEN` / SSH key；如需同步请提供 Gitee 仓库 URL 与凭证。
+- VPS 部署：待执行 `scripts/deploy_unified.py` 并验证 `/health`。
+
+---
+
 ## 2026-06-25 全量 pytest collection error / 失败修复（Phase A/B/C 收尾）
 
 | ID | Area | Finding | Status |

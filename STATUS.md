@@ -6,17 +6,35 @@
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
 > Updated: 2026-06-25
-> Branch: `improve/20260625-phase-a`
+> Branch: `main`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
-> Tests: 全量 **3759 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
-> 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/` 已上线。
-> Code Size: 历史 >300 行文件 6 个、>50 行函数 26 个（均为历史脚本/测试/MCP/xiaozhi）；新增模块均 ≤300 行/函数 ≤50 行。
+> Tests: 全量 **3765 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
+> Code Size: 历史 >300 行文件 5 个、>50 行函数 26 个（均为历史脚本/测试/MCP/xiaozhi）；新增/修改模块均 ≤300 行/函数 ≤50 行（`routes/device_ota.py` 拆出 App 端点后 300 行）。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml`、`.github/workflows/deploy.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-docs-site.yml` 已配置；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（ secrets 待配置）。
 > 安全审计：`findings.md` 2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-25）Phase A 收尾：英文法律页、小程序 OTA、后端 OTA App 接口与合并推送
+
+- **目标**：完成 Phase A 剩余公开面体验项（英文法律页 SEO、小程序 OTA 升级页、后端 App OTA 接口），将 `improve/20260625-phase-a` 合并回 `main` 并推送，准备部署。
+- **关键结果**：
+  - **英文法律页 + SEO**：新增 `donglicao-site-v2/app/en/privacy/page.tsx` 与 `app/en/terms/page.tsx`；为中英文 privacy/terms 页面注入 `canonical` 与 `hreflang` alternate（`en-US` / `zh-CN` / `x-default`）。
+  - **小程序 OTA 升级页**：在 `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/src/pages/ota/index.vue` 实现设备固件检查/升级/回滚 UI；新增 `v2CheckOta` / `v2StartOta` API；`pages.json` 注册并设备详情页添加入口；`pnpm type-check` 与 `pnpm build:h5` 通过。
+  - **后端 App OTA 接口**：新增 `routes/device_ota_app.py`，提供 `GET /device/v1/ota/check` 与 `POST /device/v1/ota/start`；拆分自 `routes/device_ota.py` 以维持 ≤300 行约束；`routes/route_registry.py` 注册新路由。
+  - **测试拆分**：`tests/test_device_ota.py` 保留发布门/金丝雀测试；新增 `tests/test_device_ota_app.py` 覆盖 App 端点 4 个场景。
+  - **合并推送**：`improve/20260625-phase-a` 已 fast-forward 合并到 `main` 并推送到 `origin/main`；子模块 `esp32S_XYZ` 同步指向 `perf/phase1-quick-wins` 最新提交。
+- **验证**：
+  - 全量 pytest `-m "not network"` → **3765 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+  - 聚焦 pytest `tests/test_device_ota.py` + `tests/test_device_ota_app.py` → **17 passed / 0 failed**。
+  - `ruff check` / `py_compile` / `git diff --check` clean；`scripts/check_code_size.py` 确认本次修改文件均 ≤300 行。
+  - `donglicao-site-v2` `npm run build` 通过（含 `/en/privacy`、`/en/terms`）。
+- **待确认/阻塞**：
+  - Gitee 远程未配置（`git remote -v` 仅 `origin`），本次未推送到 Gitee；如需同步请提供 Gitee 仓库 URL 与 token/SSH key。
+  - VPS 部署待执行（需 `LIMA_DEPLOY_PASS` 或可用 SSH key）。
 
 ### 最近完成（2026-06-25）Phase A/B/C 收尾：官网、文档、SDK 与 CI 完整通过
 
