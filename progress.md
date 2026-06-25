@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（Footer 站点地图与社媒）
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，完善 `donglicao-site-v2` Footer。
+- **关键结果**：
+  - 重写 `app/components/Footer.tsx`：
+    - 品牌区 + 简介 + 微信公众号二维码悬浮提示。
+    - 社媒图标：微信、微博、哔哩哔哩、抖音、GitHub。
+    - 站点地图：产品 / 开发者 / 法律 / 公司四栏。
+    - 底部版权与 ICP 占位。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **待完成**：`privacy` / `terms` 子页面、Lighthouse 优化、动效与响应式精调。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（首页完整版）
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，补齐 `donglicao-site-v2` 首页剩余区块。
