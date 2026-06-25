@@ -34,6 +34,20 @@
 - **Git**：
   - 本地提交成功；推送 `origin improve/20260625-phase-a` 因网络中断失败（TLS `Send failure: Connection was aborted`），待网络恢复后重试。
 
+## 2026-06-25 完成 CI 修复：全量 pytest 3759 passed
+
+- **目标**：修复全量 pytest collection errors 与 3 个失败用例，使 CI 完整通过。
+- **关键结果**：
+  - 初始化 git submodule `esp32S_XYZ`，恢复 `fake_device_server` 与 `fake_u1` 依赖，解决 7 个 collection error。
+  - 新增 `deploy/jdcloud/deploy_jd.py`：
+    - 使用 HTTPS 下载 Prometheus `v2.52.0` tarball。
+    - 包含 pinned SHA256 hash 并通过 `sha256sum -c prometheus.sha256` 校验。
+  - 放宽 `tests/test_frontend_security_static.py::test_public_chat_code_blocks_escape_html` 断言：允许 `<code>` 标签带 `class` 属性，仍要求 `escapeHtml(code)` 在 `<code>` 内且禁止 `onclick="copyCode"`。
+- **验证**：
+  - 全量 `pytest -q --tb=short -m "not network"`：**3759 passed, 17 skipped, 2 deselected**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P2：Next.js 官网博客骨架
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C-1，为 Next.js 官网新增博客模块。
