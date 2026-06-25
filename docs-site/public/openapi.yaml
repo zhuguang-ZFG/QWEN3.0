@@ -1,12 +1,69 @@
 openapi: 3.0.3
-info: {title: LiMa, description: 'LiMa public API surface for chat, image generation, and device-app integration.', version: '1.3'}
+info:
+  title: LiMa
+  description: LiMa public API surface for chat, image generation, and device-app integration.
+  version: '1.3'
+  license:
+    name: Proprietary
+    url: https://donglicao.com
 paths:
   /device/v1/app/assets:
     get:
-      tags: [device-app-assets]
+      tags:
+      - device-app-assets
       summary: List Assets
-      parameters: [{name: category, in: query, required: false, schema: {type: string, default: '', title: Category}, example: example_category}, {name: tag, in: query, required: false, schema: {type: string, default: '', title: Tag}, example: example_tag}, {name: difficulty, in: query, required: false, schema: {type: string, default: '', title: Difficulty}, example: example_difficulty}, {name: limit, in: query, required: false, schema: {type: integer, maximum: 100, minimum: 1, default: 20, title: Limit},
-          example: 20}, {name: offset, in: query, required: false, schema: {type: integer, minimum: 0, default: 0, title: Offset}, example: 0}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Category
+        example: example_category
+      - name: tag
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Tag
+        example: example_tag
+      - name: difficulty
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Difficulty
+        example: example_difficulty
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+        example: 20
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+        example: 0
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -14,65 +71,151 @@ paths:
             application/json:
               example:
                 assets:
-                - {id: ast-00000000-0000-0000-0000-000000000001, title: Cat line art}
+                - id: ast-00000000-0000-0000-0000-000000000001
+                  title: Cat line art
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_assets
     post:
-      tags: [device-app-assets]
+      tags:
+      - device-app-assets
       summary: Create Asset
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: ast-00000000-0000-0000-0000-000000000001, title: Cat line art}
+              example:
+                id: ast-00000000-0000-0000-0000-000000000001
+                title: Cat line art
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {title: Cat line art, prompt: A cute cat, category: animal}
+            example:
+              title: Cat line art
+              prompt: A cute cat
+              category: animal
+      operationId: post_device_v1_app_assets
   /device/v1/app/assets/{asset_id}:
     get:
-      tags: [device-app-assets]
+      tags:
+      - device-app-assets
       summary: Get Asset
-      parameters: [{name: asset_id, in: path, required: true, schema: {type: string, title: Asset Id}, example: ast-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Asset Id
+        example: ast-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: ast-00000000-0000-0000-0000-000000000001, title: Cat line art, prompt: A cute cat}
+              example:
+                id: ast-00000000-0000-0000-0000-000000000001
+                title: Cat line art
+                prompt: A cute cat
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_assets_asset_id
   /device/v1/app/assets/{asset_id}/render:
     post:
-      tags: [device-app-assets]
+      tags:
+      - device-app-assets
       summary: Render Asset
-      parameters: [{name: asset_id, in: path, required: true, schema: {type: string, title: Asset Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Asset Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {render_id: rnd-00000000-0000-0000-0000-000000000001, status: queued}
+              example:
+                render_id: rnd-00000000-0000-0000-0000-000000000001
+                status: queued
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {device_id: dev-00000000-0000-0000-0000-000000000001}
+            example:
+              device_id: dev-00000000-0000-0000-0000-000000000001
+      operationId: post_device_v1_app_assets_asset_id_render
   /device/v1/app/auth/account/delete:
     post:
-      tags: [device-app-auth]
+      tags:
+      - device-app-auth
       summary: Delete Account
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {success: true}
+              example:
+                success: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {password: your-password}
+            example:
+              password: your-password
+      operationId: post_device_v1_app_auth_account_delete
   /device/v1/app/auth/captcha:
     get:
-      tags: [device-app-auth]
+      tags:
+      - device-app-auth
       summary: Get Captcha
       description: 返回 PNG 图形验证码。
       responses:
@@ -80,123 +223,291 @@ paths:
           description: Successful response
           content:
             application/json:
-              example: {captcha_id: cap-00000000-0000-0000-0000-000000000001, image_url: 'https://example/captcha.png'}
-      parameters: [{name: width, in: query, required: false, schema: {type: integer, default: 120, title: Width}, example: 120}]
+              example:
+                captcha_id: cap-00000000-0000-0000-0000-000000000001
+                image_url: https://example/captcha.png
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      parameters:
+      - name: width
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 120
+          title: Width
+        example: 120
+      operationId: get_device_v1_app_auth_captcha
+      security: []
   /device/v1/app/auth/change-password:
     put:
-      tags: [device-app-auth]
+      tags:
+      - device-app-auth
       summary: Change Password
       description: 修改当前账户密码。
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {success: true}
+              example:
+                success: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {old_password: old, new_password: new}
+            example:
+              old_password: old
+              new_password: new
+      operationId: put_device_v1_app_auth_change_password
   /device/v1/app/auth/login:
     post:
-      tags: [device-app-auth]
+      tags:
+      - device-app-auth
       summary: Login
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {access_token: tok-00000000-0000-0000-0000-000000000001, token_type: bearer, expires_in: 3600}
+              example:
+                access_token: tok-00000000-0000-0000-0000-000000000001
+                token_type: bearer
+                expires_in: 3600
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       parameters: []
       requestBody:
         content:
           application/json:
-            example: {phone: +86-13800000000, password: your-password, captcha_id: cap-00000000-0000-0000-0000-000000000001, captcha_code: '1234'}
+            example:
+              phone: +86-13800000000
+              password: your-password
+              captcha_id: cap-00000000-0000-0000-0000-000000000001
+              captcha_code: '1234'
+      operationId: post_device_v1_app_auth_login
+      security: []
   /device/v1/app/auth/me:
     get:
-      tags: [device-app-auth]
+      tags:
+      - device-app-auth
       summary: Get Me
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: usr-00000000-0000-0000-0000-000000000001, phone: +86-13800000000, nickname: User}
+              example:
+                id: usr-00000000-0000-0000-0000-000000000001
+                phone: +86-13800000000
+                nickname: User
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_auth_me
   /device/v1/app/auth/register:
     post:
-      tags: [device-app-auth]
+      tags:
+      - device-app-auth
       summary: Register
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: usr-00000000-0000-0000-0000-000000000001, message: registered}
+              example:
+                id: usr-00000000-0000-0000-0000-000000000001
+                message: registered
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       parameters: []
       requestBody:
         content:
           application/json:
-            example: {phone: +86-13800000000, password: your-password, sms_code: '123456'}
+            example:
+              phone: +86-13800000000
+              password: your-password
+              sms_code: '123456'
+      operationId: post_device_v1_app_auth_register
+      security: []
   /device/v1/app/auth/sms-verification:
     post:
-      tags: [device-app-auth]
+      tags:
+      - device-app-auth
       summary: Sms Verification
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {success: true, message: code sent}
+              example:
+                success: true
+                message: code sent
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       parameters: []
       requestBody:
         content:
           application/json:
-            example: {phone: +86-13800000000, purpose: register}
+            example:
+              phone: +86-13800000000
+              purpose: register
+      operationId: post_device_v1_app_auth_sms_verification
   /device/v1/app/chat-sessions/{session_id}:
     delete:
-      tags: [device-app-chat]
+      tags:
+      - device-app-chat
       summary: Delete Chat Session
       description: Soft-delete a chat session if the caller owns it.
-      parameters: [{name: session_id, in: path, required: true, schema: {type: string, title: Session Id}, example: sess-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Session Id
+        example: sess-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {deleted: true}
+              example:
+                deleted: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: delete_device_v1_app_chat_sessions_session_id
   /device/v1/app/devices/{device_id}/share:
     post:
-      tags: [device-app, device-app-sharing]
+      tags:
+      - device-app
+      - device-app-sharing
       summary: Create Share
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {share_token: shr-00000000-0000-0000-0000-000000000001, status: active}
+              example:
+                share_token: shr-00000000-0000-0000-0000-000000000001
+                status: active
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {role: viewer}
+            example:
+              role: viewer
+      operationId: post_device_v1_app_devices_device_id_share
   /device/v1/app/devices/{device_id}/share/revoke:
     post:
-      tags: [device-app, device-app-sharing]
+      tags:
+      - device-app
+      - device-app-sharing
       summary: Revoke Share
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {revoked: true}
+              example:
+                revoked: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: post_device_v1_app_devices_device_id_share_revoke
   /device/v1/app/devices/{device_id}/shares:
     get:
-      tags: [device-app, device-app-sharing]
+      tags:
+      - device-app
+      - device-app-sharing
       summary: List Shares
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -204,23 +515,60 @@ paths:
             application/json:
               example:
                 shares:
-                - {token: shr-00000000-0000-0000-0000-000000000001, role: viewer}
+                - token: shr-00000000-0000-0000-0000-000000000001
+                  role: viewer
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_shares
   /device/v1/app/shares/{share_token}/accept:
     post:
-      tags: [device-app, device-app-sharing]
+      tags:
+      - device-app
+      - device-app-sharing
       summary: Accept Share
-      parameters: [{name: share_token, in: path, required: true, schema: {type: string, title: Share Token}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: share_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Share Token
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {share_token: shr-00000000-0000-0000-0000-000000000001, status: accepted}
+              example:
+                share_token: shr-00000000-0000-0000-0000-000000000001
+                status: accepted
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: post_device_v1_app_shares_share_token_accept
   /device/v1/app/devices:
     get:
-      tags: [device-app]
+      tags:
+      - device-app
       summary: List Devices
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -228,45 +576,94 @@ paths:
             application/json:
               example:
                 items:
-                - {id: dev-00000000-0000-0000-0000-000000000001, name: Living Room, model: LiMa-Draw-V1, online: true}
+                - id: dev-00000000-0000-0000-0000-000000000001
+                  name: Living Room
+                  model: LiMa-Draw-V1
+                  online: true
                 total: 1
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices
   /device/v1/app/devices/batch-draw:
     post:
-      tags: [device-app-tasks]
+      tags:
+      - device-app-tasks
       summary: Batch Draw
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {task_id: tsk-00000000-0000-0000-0000-000000000001, queued: true}
+              example:
+                task_id: tsk-00000000-0000-0000-0000-000000000001
+                queued: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
             example:
-              device_ids: [dev-00000000-0000-0000-0000-000000000001]
+              device_ids:
+              - dev-00000000-0000-0000-0000-000000000001
               prompt: a cat
+      operationId: post_device_v1_app_devices_batch_draw
   /device/v1/app/devices/bind:
     post:
-      tags: [device-app]
+      tags:
+      - device-app
       summary: Bind Device
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {device_id: dev-00000000-0000-0000-0000-000000000001, bound: true}
+              example:
+                device_id: dev-00000000-0000-0000-0000-000000000001
+                bound: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {device_id: dev-00000000-0000-0000-0000-000000000001, bind_code: '123456'}
+            example:
+              device_id: dev-00000000-0000-0000-0000-000000000001
+              bind_code: '123456'
+      operationId: post_device_v1_app_devices_bind
   /device/v1/app/devices/discover:
     post:
-      tags: [device-app-discovery]
+      tags:
+      - device-app-discovery
       summary: Discover Devices
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
@@ -274,134 +671,301 @@ paths:
             application/json:
               example:
                 devices:
-                - {id: dev-00000000-0000-0000-0000-000000000001, name: LiMa-Draw-V1, rssi: -45}
+                - id: dev-00000000-0000-0000-0000-000000000001
+                  name: LiMa-Draw-V1
+                  rssi: -45
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {timeout: 10}
+            example:
+              timeout: 10
+      operationId: post_device_v1_app_devices_discover
   /device/v1/app/devices/manual-add:
     post:
-      tags: [device-app]
+      tags:
+      - device-app
       summary: Manual Add Device
       description: 管理员手动添加设备（无需激活码）。
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {device_id: dev-00000000-0000-0000-0000-000000000001, added: true}
+              example:
+                device_id: dev-00000000-0000-0000-0000-000000000001
+                added: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {device_id: dev-00000000-0000-0000-0000-000000000001, name: Living Room}
+            example:
+              device_id: dev-00000000-0000-0000-0000-000000000001
+              name: Living Room
+      operationId: post_device_v1_app_devices_manual_add
   /device/v1/app/devices/pair:
     post:
-      tags: [device-app-discovery]
+      tags:
+      - device-app-discovery
       summary: Create Pair
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {pairing_token: pair-00000000-0000-0000-0000-000000000001, expires_in: 300}
+              example:
+                pairing_token: pair-00000000-0000-0000-0000-000000000001
+                expires_in: 300
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {device_id: dev-00000000-0000-0000-0000-000000000001}
+            example:
+              device_id: dev-00000000-0000-0000-0000-000000000001
+      operationId: post_device_v1_app_devices_pair
   /device/v1/app/devices/pair/confirm:
     post:
-      tags: [device-app-discovery]
+      tags:
+      - device-app-discovery
       summary: Confirm Pair
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {paired: true, device_id: dev-00000000-0000-0000-0000-000000000001}
+              example:
+                paired: true
+                device_id: dev-00000000-0000-0000-0000-000000000001
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       parameters: []
       requestBody:
         content:
           application/json:
-            example: {pairing_token: pair-00000000-0000-0000-0000-000000000001, code: '123456'}
+            example:
+              pairing_token: pair-00000000-0000-0000-0000-000000000001
+              code: '123456'
+      operationId: post_device_v1_app_devices_pair_confirm
   /device/v1/app/devices/provision:
     post:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: Create Provision
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {provision_token: prv-00000000-0000-0000-0000-000000000001, expires_in: 300}
+              example:
+                provision_token: prv-00000000-0000-0000-0000-000000000001
+                expires_in: 300
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {device_id: dev-00000000-0000-0000-0000-000000000001}
+            example:
+              device_id: dev-00000000-0000-0000-0000-000000000001
+      operationId: post_device_v1_app_devices_provision
   /device/v1/app/devices/provision/confirm:
     post:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: Confirm Provision
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {provisioned: true, device_id: dev-00000000-0000-0000-0000-000000000001}
+              example:
+                provisioned: true
+                device_id: dev-00000000-0000-0000-0000-000000000001
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       parameters: []
       requestBody:
         content:
           application/json:
-            example: {provision_token: prv-00000000-0000-0000-0000-000000000001, code: '123456'}
+            example:
+              provision_token: prv-00000000-0000-0000-0000-000000000001
+              code: '123456'
+      operationId: post_device_v1_app_devices_provision_confirm
   /device/v1/app/devices/register:
     post:
-      tags: [device-app]
+      tags:
+      - device-app
       summary: Register Device
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {device_id: dev-00000000-0000-0000-0000-000000000001, registered: true}
+              example:
+                device_id: dev-00000000-0000-0000-0000-000000000001
+                registered: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {model: LiMa-Draw-V1, sn: SN123456}
+            example:
+              model: LiMa-Draw-V1
+              sn: SN123456
+      operationId: post_device_v1_app_devices_register
   /device/v1/app/devices/{device_id}:
     get:
-      tags: [device-app]
+      tags:
+      - device-app
       summary: Get Device
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: dev-00000000-0000-0000-0000-000000000001, name: Living Room, model: LiMa-Draw-V1, online: true}
+              example:
+                id: dev-00000000-0000-0000-0000-000000000001
+                name: Living Room
+                model: LiMa-Draw-V1
+                online: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id
     put:
-      tags: [device-app]
+      tags:
+      - device-app
       summary: Update Device
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: dev-00000000-0000-0000-0000-000000000001, name: Living Room, updated: true}
+              example:
+                id: dev-00000000-0000-0000-0000-000000000001
+                name: Living Room
+                updated: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
             example:
               name: Living Room
               settings: {}
+      operationId: put_device_v1_app_devices_device_id
   /device/v1/app/devices/{device_id}/activity:
     get:
-      tags: [device-app-activity]
+      tags:
+      - device-app-activity
       summary: Get Device Activity
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: limit, in: query, required: false, schema: {type: integer, maximum: 1000, minimum: 1, default: 100, title: Limit}, example: 100}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 100
+          title: Limit
+        example: 100
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -409,43 +973,117 @@ paths:
             application/json:
               example:
                 activities:
-                - {time: '2024-01-01T00:00:00Z', event: draw_done}
+                - time: '2024-01-01T00:00:00Z'
+                  event: draw_done
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_activity
   /device/v1/app/devices/{device_id}/audio/{audio_id}:
     get:
-      tags: [device-app-chat]
+      tags:
+      - device-app-chat
       summary: Get Audio Info
       description: Return metadata for an audio recording tied to a device.
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: audio_id, in: path, required: true, schema: {type: string, title: Audio Id}, example: aud-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: audio_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Audio Id
+        example: aud-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {audio_id: aud-00000000-0000-0000-0000-000000000001, url: 'https://example/audio.mp3'}
+              example:
+                audio_id: aud-00000000-0000-0000-0000-000000000001
+                url: https://example/audio.mp3
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_audio_audio_id
   /device/v1/app/devices/{device_id}/batch-tasks:
     post:
-      tags: [device-app-task-extras]
+      tags:
+      - device-app-task-extras
       summary: Create Batch Tasks
       description: Create up to 20 tasks in a single batch and enqueue them.
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {task_id: tsk-00000000-0000-0000-0000-000000000001, queued: true}
+              example:
+                task_id: tsk-00000000-0000-0000-0000-000000000001
+                queued: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
             example:
               tasks:
-              - {type: draw, prompt: a cat}
+              - type: draw
+                prompt: a cat
+      operationId: post_device_v1_app_devices_device_id_batch_tasks
   /device/v1/app/devices/{device_id}/chat-history:
     get:
-      tags: [device-app-chat]
+      tags:
+      - device-app-chat
       summary: List Chat History
       description: List user messages that have an associated audio_id (for voiceprint selection).
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -453,28 +1091,72 @@ paths:
             application/json:
               example:
                 messages:
-                - {role: user, content: Hi}
+                - role: user
+                  content: Hi
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_chat_history
   /device/v1/app/devices/{device_id}/chat-sessions:
     post:
-      tags: [device-app-chat]
+      tags:
+      - device-app-chat
       summary: Create Chat Session
       description: Create a chat session for a device.
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: sess-00000000-0000-0000-0000-000000000001, title: New chat}
+              example:
+                id: sess-00000000-0000-0000-0000-000000000001
+                title: New chat
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {title: New chat}
+            example:
+              title: New chat
+      operationId: post_device_v1_app_devices_device_id_chat_sessions
     get:
-      tags: [device-app-chat]
+      tags:
+      - device-app-chat
       summary: List Chat Sessions
       description: List active chat sessions for a device.
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -482,14 +1164,61 @@ paths:
             application/json:
               example:
                 sessions:
-                - {id: sess-00000000-0000-0000-0000-000000000001, title: New chat}
+                - id: sess-00000000-0000-0000-0000-000000000001
+                  title: New chat
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_chat_sessions
   /device/v1/app/devices/{device_id}/chat-sessions/{session_id}/messages:
     get:
-      tags: [device-app-chat]
+      tags:
+      - device-app-chat
       summary: Get Chat Messages
       description: Get paginated messages for a chat session.
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: session_id, in: path, required: true, schema: {type: string, title: Session Id}, example: sess-00000000-0000-0000-0000-000000000001}, {name: limit, in: query, required: false, schema: {type: integer, maximum: 200, minimum: 1, default: 50, title: Limit}, example: 50}, {name: offset, in: query, required: false, schema: {type: integer, minimum: 0,
-            default: 0, title: Offset}, example: 0}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Session Id
+        example: sess-00000000-0000-0000-0000-000000000001
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+        example: 50
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+        example: 0
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -497,12 +1226,34 @@ paths:
             application/json:
               example:
                 messages:
-                - {role: user, content: Hi}
+                - role: user
+                  content: Hi
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_chat_sessions_session_id_messages
   /device/v1/app/devices/{device_id}/members:
     get:
-      tags: [device-app-members]
+      tags:
+      - device-app-members
       summary: List Members
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -510,12 +1261,34 @@ paths:
             application/json:
               example:
                 members:
-                - {id: usr-00000000-0000-0000-0000-000000000001, role: owner}
+                - id: usr-00000000-0000-0000-0000-000000000001
+                  role: owner
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_members
   /device/v1/app/devices/{device_id}/self-checks:
     get:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: List Self Checks
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -523,100 +1296,289 @@ paths:
             application/json:
               example:
                 checks:
-                - {name: pen, status: ok}
+                - name: pen
+                  status: ok
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_self_checks
   /device/v1/app/devices/{device_id}/stats:
     get:
-      tags: [device-app-stats]
+      tags:
+      - device-app-stats
       summary: Device Stats
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: period, in: query, required: false, schema: {type: string, pattern: ^(7d|30d|90d)$, default: 7d, title: Period}, example: 7d}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: period
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^(7d|30d|90d)$
+          default: 7d
+          title: Period
+        example: 7d
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {device_id: dev-00000000-0000-0000-0000-000000000001, tasks_total: 42, tasks_today: 3}
+              example:
+                device_id: dev-00000000-0000-0000-0000-000000000001
+                tasks_total: 42
+                tasks_today: 3
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_stats
   /device/v1/app/devices/{device_id}/status:
     get:
-      tags: [device-app]
+      tags:
+      - device-app
       summary: Get Device Status
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {device_id: dev-00000000-0000-0000-0000-000000000001, status: online, battery: 87}
+              example:
+                device_id: dev-00000000-0000-0000-0000-000000000001
+                status: online
+                battery: 87
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_status
   /device/v1/app/devices/{device_id}/supplies:
     put:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: Update Supplies
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {device_id: dev-00000000-0000-0000-0000-000000000001, updated: true}
+              example:
+                device_id: dev-00000000-0000-0000-0000-000000000001
+                updated: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {ink: 100, paper: 100}
+            example:
+              ink: 100
+              paper: 100
+      operationId: put_device_v1_app_devices_device_id_supplies
     get:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: Get Supplies
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {device_id: dev-00000000-0000-0000-0000-000000000001, ink: 80, paper: 65}
+              example:
+                device_id: dev-00000000-0000-0000-0000-000000000001
+                ink: 80
+                paper: 65
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_supplies
   /device/v1/app/devices/{device_id}/tasks:
     post:
-      tags: [device-app-tasks]
+      tags:
+      - device-app-tasks
       summary: Create Task
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {task_id: tsk-00000000-0000-0000-0000-000000000001, queued: true}
+              example:
+                task_id: tsk-00000000-0000-0000-0000-000000000001
+                queued: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {type: draw, prompt: a cat}
+            example:
+              type: draw
+              prompt: a cat
+      operationId: post_device_v1_app_devices_device_id_tasks
   /device/v1/app/devices/{device_id}/transfer:
     post:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: Request Transfer
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {transfer_id: trf-00000000-0000-0000-0000-000000000001, expires_in: 86400}
+              example:
+                transfer_id: trf-00000000-0000-0000-0000-000000000001
+                expires_in: 86400
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {to_user_phone: +86-13900000000}
+            example:
+              to_user_phone: +86-13900000000
+      operationId: post_device_v1_app_devices_device_id_transfer
   /device/v1/app/devices/{device_id}/unbind:
     post:
-      tags: [device-app]
+      tags:
+      - device-app
       summary: Unbind Device
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {unbound: true}
+              example:
+                unbound: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: post_device_v1_app_devices_device_id_unbind
   /device/v1/app/devices/{device_id}/voice-tasks/pending:
     post:
-      tags: [device-app-tasks]
+      tags:
+      - device-app-tasks
       summary: Pending Voice Tasks
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
@@ -624,18 +1586,41 @@ paths:
             application/json:
               example:
                 tasks:
-                - {id: tsk-00000000-0000-0000-0000-000000000001, text: draw a cat}
+                - id: tsk-00000000-0000-0000-0000-000000000001
+                  text: draw a cat
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
             example:
-              task_ids: [tsk-00000000-0000-0000-0000-000000000001]
+              task_ids:
+              - tsk-00000000-0000-0000-0000-000000000001
+      operationId: post_device_v1_app_devices_device_id_voice_tasks_pending
   /device/v1/app/devices/{device_id}/voiceprints:
     get:
-      tags: [device-app-members]
+      tags:
+      - device-app-members
       summary: List Voiceprints
       description: List voiceprints for a device, joined with member names.
-      parameters: [{name: device_id, in: path, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -643,44 +1628,93 @@ paths:
             application/json:
               example:
                 voiceprints:
-                - {id: vpr-00000000-0000-0000-0000-000000000001, name: Owner}
+                - id: vpr-00000000-0000-0000-0000-000000000001
+                  name: Owner
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_devices_device_id_voiceprints
   /device/v1/app/members:
     post:
-      tags: [device-app-members]
+      tags:
+      - device-app-members
       summary: Create Member
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {member_id: mbr-00000000-0000-0000-0000-000000000001, role: member}
+              example:
+                member_id: mbr-00000000-0000-0000-0000-000000000001
+                role: member
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {phone: +86-13800000000, role: member}
+            example:
+              phone: +86-13800000000
+              role: member
+      operationId: post_device_v1_app_members
   /device/v1/app/notifications/subscribe:
     post:
-      tags: [device-app-notifications]
+      tags:
+      - device-app-notifications
       summary: Subscribe Notifications
       description: Subscribe to WeChat subscription messages for device events.
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {subscription_id: sub-00000000-0000-0000-0000-000000000001, status: active}
+              example:
+                subscription_id: sub-00000000-0000-0000-0000-000000000001
+                status: active
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {type: push, token: device-push-token}
+            example:
+              type: push
+              token: device-push-token
+      operationId: post_device_v1_app_notifications_subscribe
   /device/v1/app/notifications/subscriptions:
     get:
-      tags: [device-app-notifications]
+      tags:
+      - device-app-notifications
       summary: List Subscriptions
       description: List the current account's active notification subscriptions.
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -688,36 +1722,122 @@ paths:
             application/json:
               example:
                 subscriptions:
-                - {id: sub-00000000-0000-0000-0000-000000000001, type: push}
+                - id: sub-00000000-0000-0000-0000-000000000001
+                  type: push
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_notifications_subscriptions
   /device/v1/app/notifications/subscriptions/{sub_id}:
     delete:
-      tags: [device-app-notifications]
+      tags:
+      - device-app-notifications
       summary: Unsubscribe
       description: Unsubscribe from a notification subscription.
-      parameters: [{name: sub_id, in: path, required: true, schema: {type: string, title: Sub Id}, example: sub-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: sub_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Sub Id
+        example: sub-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {deleted: true}
+              example:
+                deleted: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: delete_device_v1_app_notifications_subscriptions_sub_id
   /device/v1/app/stats/overview:
     get:
-      tags: [device-app-stats]
+      tags:
+      - device-app-stats
       summary: Account Stats
-      parameters: [{name: period, in: query, required: false, schema: {type: string, pattern: ^(7d|30d|90d)$, default: 7d, title: Period}, example: 7d}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: period
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^(7d|30d|90d)$
+          default: 7d
+          title: Period
+        example: 7d
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {total_devices: 1, total_tasks: 42}
+              example:
+                total_devices: 1
+                total_tasks: 42
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_stats_overview
   /device/v1/app/tasks:
     get:
-      tags: [device-app-tasks]
+      tags:
+      - device-app-tasks
       summary: List Tasks
-      parameters: [{name: device_id, in: query, required: true, schema: {type: string, title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: status, in: query, required: false, schema: {type: string, default: '', title: Status}, example: example_status}, {name: limit, in: query, required: false, schema: {type: integer, maximum: 100, minimum: 1, default: 20, title: Limit}, example: 20}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization},
-          example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Status
+        example: example_status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+        example: 20
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -725,43 +1845,115 @@ paths:
             application/json:
               example:
                 tasks:
-                - {id: tsk-00000000-0000-0000-0000-000000000001, status: pending}
+                - id: tsk-00000000-0000-0000-0000-000000000001
+                  status: pending
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_tasks
   /device/v1/app/tasks/preview:
     post:
-      tags: [device-app-task-extras]
+      tags:
+      - device-app-task-extras
       summary: Preview Task
       description: Preview the pattern a task would draw without dispatching it.
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {preview_url: 'https://example/preview.png'}
+              example:
+                preview_url: https://example/preview.png
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {prompt: a cat}
+            example:
+              prompt: a cat
+      operationId: post_device_v1_app_tasks_preview
   /device/v1/app/tasks/templates:
     post:
-      tags: [device-app-templates]
+      tags:
+      - device-app-templates
       summary: Create Task Template
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: tpl-00000000-0000-0000-0000-000000000001, name: Morning sketch}
+              example:
+                id: tpl-00000000-0000-0000-0000-000000000001
+                name: Morning sketch
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {name: Morning sketch, prompt: a sunny morning}
+            example:
+              name: Morning sketch
+              prompt: a sunny morning
+      operationId: post_device_v1_app_tasks_templates
     get:
-      tags: [device-app-templates]
+      tags:
+      - device-app-templates
       summary: List Task Templates
-      parameters: [{name: device_id, in: query, required: false, schema: {type: string, default: '', title: Device Id}, example: dev-00000000-0000-0000-0000-000000000001}, {name: category, in: query, required: false, schema: {type: string, default: '', title: Category}, example: example_category}, {name: limit, in: query, required: false, schema: {type: integer, maximum: 100, minimum: 1, default: 20, title: Limit}, example: 20}, {name: authorization, in: header, required: false, schema: {type: string,
-            default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: device_id
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Device Id
+        example: dev-00000000-0000-0000-0000-000000000001
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Category
+        example: example_category
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+        example: 20
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -769,79 +1961,212 @@ paths:
             application/json:
               example:
                 templates:
-                - {id: tpl-00000000-0000-0000-0000-000000000001, name: Morning sketch}
+                - id: tpl-00000000-0000-0000-0000-000000000001
+                  name: Morning sketch
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_tasks_templates
   /device/v1/app/tasks/templates/{template_id}/execute:
     post:
-      tags: [device-app-templates]
+      tags:
+      - device-app-templates
       summary: Execute Task Template
-      parameters: [{name: template_id, in: path, required: true, schema: {type: string, title: Template Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: template_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Template Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {task_id: tsk-00000000-0000-0000-0000-000000000001, status: queued}
+              example:
+                task_id: tsk-00000000-0000-0000-0000-000000000001
+                status: queued
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {device_id: dev-00000000-0000-0000-0000-000000000001}
+            example:
+              device_id: dev-00000000-0000-0000-0000-000000000001
+      operationId: post_device_v1_app_tasks_templates_template_id_execute
   /device/v1/app/tasks/{task_id}:
     get:
-      tags: [device-app-tasks]
+      tags:
+      - device-app-tasks
       summary: Get Task
-      parameters: [{name: task_id, in: path, required: true, schema: {type: string, title: Task Id}, example: tsk-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+        example: tsk-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: tsk-00000000-0000-0000-0000-000000000001, status: done, result_url: 'https://example/result.png'}
+              example:
+                id: tsk-00000000-0000-0000-0000-000000000001
+                status: done
+                result_url: https://example/result.png
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_tasks_task_id
   /device/v1/app/tasks/{task_id}/approve:
     post:
-      tags: [device-app-tasks]
+      tags:
+      - device-app-tasks
       summary: Approve Task
-      parameters: [{name: task_id, in: path, required: true, schema: {type: string, title: Task Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {task_id: tsk-00000000-0000-0000-0000-000000000001, status: approved}
+              example:
+                task_id: tsk-00000000-0000-0000-0000-000000000001
+                status: approved
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: post_device_v1_app_tasks_task_id_approve
   /device/v1/app/tasks/{task_id}/reject:
     post:
-      tags: [device-app-tasks]
+      tags:
+      - device-app-tasks
       summary: Reject Task
-      parameters: [{name: task_id, in: path, required: true, schema: {type: string, title: Task Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {task_id: tsk-00000000-0000-0000-0000-000000000001, status: rejected}
+              example:
+                task_id: tsk-00000000-0000-0000-0000-000000000001
+                status: rejected
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {reason: inappropriate}
+            example:
+              reason: inappropriate
+      operationId: post_device_v1_app_tasks_task_id_reject
   /device/v1/app/tasks/{task_id}/save-as-template:
     post:
-      tags: [device-app-templates]
+      tags:
+      - device-app-templates
       summary: Save Task As Template
-      parameters: [{name: task_id, in: path, required: true, schema: {type: string, title: Task Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {template_id: tpl-00000000-0000-0000-0000-000000000001, saved: true}
+              example:
+                template_id: tpl-00000000-0000-0000-0000-000000000001
+                saved: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {name: Saved template}
+            example:
+              name: Saved template
+      operationId: post_device_v1_app_tasks_task_id_save_as_template
   /device/v1/app/tasks/{task_id}/timeline:
     get:
-      tags: [device-app-activity]
+      tags:
+      - device-app-activity
       summary: Get Task Timeline
-      parameters: [{name: task_id, in: path, required: true, schema: {type: string, title: Task Id}, example: tsk-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Task Id
+        example: tsk-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -849,12 +2174,27 @@ paths:
             application/json:
               example:
                 events:
-                - {time: '2024-01-01T00:00:00Z', status: created}
+                - time: '2024-01-01T00:00:00Z'
+                  status: created
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_tasks_task_id_timeline
   /device/v1/app/transfers/pending:
     get:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: List Pending Transfers
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
@@ -862,79 +2202,196 @@ paths:
             application/json:
               example:
                 transfers:
-                - {id: trf-00000000-0000-0000-0000-000000000001, device_name: Bedroom}
+                - id: trf-00000000-0000-0000-0000-000000000001
+                  device_name: Bedroom
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: get_device_v1_app_transfers_pending
   /device/v1/app/transfers/{transfer_id}/accept:
     post:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: Accept Transfer
-      parameters: [{name: transfer_id, in: path, required: true, schema: {type: string, title: Transfer Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: transfer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Transfer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {transfer_id: trf-00000000-0000-0000-0000-000000000001, status: accepted}
+              example:
+                transfer_id: trf-00000000-0000-0000-0000-000000000001
+                status: accepted
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {accept: true}
+            example:
+              accept: true
+      operationId: post_device_v1_app_transfers_transfer_id_accept
   /device/v1/app/transfers/{transfer_id}/cancel:
     post:
-      tags: [device-app-misc]
+      tags:
+      - device-app-misc
       summary: Cancel Transfer
-      parameters: [{name: transfer_id, in: path, required: true, schema: {type: string, title: Transfer Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: transfer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Transfer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {transfer_id: trf-00000000-0000-0000-0000-000000000001, status: cancelled}
+              example:
+                transfer_id: trf-00000000-0000-0000-0000-000000000001
+                status: cancelled
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: post_device_v1_app_transfers_transfer_id_cancel
   /device/v1/app/voiceprints/enroll:
     post:
-      tags: [device-app-members]
+      tags:
+      - device-app-members
       summary: Enroll Voiceprint
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {voiceprint_id: vpr-00000000-0000-0000-0000-000000000001, status: enrolling}
+              example:
+                voiceprint_id: vpr-00000000-0000-0000-0000-000000000001
+                status: enrolling
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {device_id: dev-00000000-0000-0000-0000-000000000001, audio_url: 'https://example/voice.wav'}
+            example:
+              device_id: dev-00000000-0000-0000-0000-000000000001
+              audio_url: https://example/voice.wav
+      operationId: post_device_v1_app_voiceprints_enroll
   /device/v1/app/voiceprints/{voiceprint_id}:
     put:
-      tags: [device-app-members]
+      tags:
+      - device-app-members
       summary: Update Voiceprint
       description: Update voiceprint label/introduce metadata.
-      parameters: [{name: voiceprint_id, in: path, required: true, schema: {type: string, title: Voiceprint Id}}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: voiceprint_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Voiceprint Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {id: vpr-00000000-0000-0000-0000-000000000001, updated: true}
+              example:
+                id: vpr-00000000-0000-0000-0000-000000000001
+                updated: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {name: Owner}
+            example:
+              name: Owner
+      operationId: put_device_v1_app_voiceprints_voiceprint_id
     delete:
-      tags: [device-app-members]
+      tags:
+      - device-app-members
       summary: Delete Voiceprint
-      parameters: [{name: voiceprint_id, in: path, required: true, schema: {type: string, title: Voiceprint Id}, example: vpr-00000000-0000-0000-0000-000000000001}, {name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}, example: Bearer lima_api_token}]
+      parameters:
+      - name: voiceprint_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Voiceprint Id
+        example: vpr-00000000-0000-0000-0000-000000000001
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
+        example: Bearer lima_api_token
       responses:
         '200':
           description: Successful response
           content:
             application/json:
-              example: {deleted: true}
+              example:
+                deleted: true
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
+      operationId: delete_device_v1_app_voiceprints_voiceprint_id
   /v1/chat/completions:
     post:
       summary: Chat Completions
       description: OpenAI-compatible chat completions endpoint.
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
@@ -947,23 +2404,41 @@ paths:
                 model: lima-1.3
                 choices:
                 - index: 0
-                  message: {role: assistant, content: 'Hello! How can I help you?'}
+                  message:
+                    role: assistant
+                    content: Hello! How can I help you?
                   finish_reason: stop
-                usage: {prompt_tokens: 12, completion_tokens: 8, total_tokens: 20}
+                usage:
+                  prompt_tokens: 12
+                  completion_tokens: 8
+                  total_tokens: 20
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
             example:
               model: lima-1.3
               messages:
-              - {role: user, content: Hello!}
+              - role: user
+                content: Hello!
               temperature: 0.7
               stream: false
+      operationId: post_v1_chat_completions
   /v1/images/generations:
     post:
       summary: Image Generations
       description: OpenAI-compatible image generation endpoint using Pollinations.ai.
-      parameters: [{name: authorization, in: header, required: false, schema: {type: string, default: '', title: Authorization}}]
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Authorization
       responses:
         '200':
           description: Successful response
@@ -972,12 +2447,31 @@ paths:
               example:
                 created: 1700000000
                 data:
-                - {url: 'https://example.cdn/images/generated_001.png', revised_prompt: A serene mountain lake at sunrise}
+                - url: https://example.cdn/images/generated_001.png
+                  revised_prompt: A serene mountain lake at sunrise
+        '400':
+          description: 请求参数错误或未通过验证
+        '401':
+          description: 认证失败或 Token 无效
       requestBody:
         content:
           application/json:
-            example: {model: dall-e-3, prompt: A serene mountain lake at sunrise, n: 1, size: 1024x1024}
+            example:
+              model: dall-e-3
+              prompt: A serene mountain lake at sunrise
+              n: 1
+              size: 1024x1024
+      operationId: post_v1_images_generations
 components:
   schemas: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 使用 Bearer Token 认证，例如 `Bearer lima_api_token` 或用户 JWT。
 servers:
-- {url: 'https://chat.donglicao.com', description: Production}
+- url: https://chat.donglicao.com
+  description: Production
+security:
+- bearerAuth: []
