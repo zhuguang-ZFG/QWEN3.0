@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 里程碑提交（控制台增强 + SDK trio + Next.js 官网骨架）
+
+- **变更范围**：
+  - `chat-web/` 控制台增强（用量统计、设备管理、模型切换、会话、素材上传、进度条、按住说话）
+  - `sdk/python/lima_sdk/`、`sdk/js/lima-sdk/`、`sdk/go/lima/` 三个官方 SDK
+  - `donglicao-site-v2/` Next.js 官网（首页、定价、三个产品页）
+  - `tests/sdk/test_python_sdk.py`
+- **验证**：
+  - Python SDK：`PYTHONPATH=sdk/python pytest tests/sdk/test_python_sdk.py` **9 passed**
+  - JS SDK：`npm test` **7 passed**，`npm run typecheck` clean
+  - Go SDK：`go test ./... -v` **7 passed**，`gofmt` + `go vet` clean
+  - Next.js：`npm run build` 成功生成 5 个静态页面
+  - 聚焦后端 pytest **35 passed / 0 failed**
+- **Git**：
+  - 本地提交 `cd77726e`：`feat(sdk, site): add Python/JS/Go SDKs and Next.js site scaffold with pricing + products`
+  - 推送 `origin improve/20260625-phase-a` 失败：TLS connect error（环境网络/GitHub token 无效），待修复网络/凭证后重试。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网迁移（产品子页面 draw/write/human）
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P1，将三个产品页迁移到 `donglicao-site-v2`。
