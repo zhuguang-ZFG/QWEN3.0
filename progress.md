@@ -9183,3 +9183,10 @@ oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至
 - **实现**：新建 device_gateway/draw_responses.py（60 行），提取 3 个响应构建函数（uild_failed_response / uild_partial_response / uild_success_response）。device_draw_handler.py 导入并别名 _build_* 保持内部调用不变，降至 259 行。
 - **测试**：device_draw_handler（part1+2）= 14 passed，无回归。
 - **验证**：uff check 2 文件 clean。
+
+## 2026-06-26 task_events.py 拆分：ledger 事件记录器提取
+
+- **目标**：消除 device_gateway/task_events.py 301 行文件违规。
+- **实现**：新建 device_gateway/task_ledger_events.py（85 行），提取 6 个纯 ledger 记录函数（ecord_task_acknowledged / ecord_task_progress / ecord_task_paused / ecord_task_resumed / ecord_device_connected / ecord_device_disconnected）。	ask_events.py 重新导出保持调用方导入不变，降至 236 行。
+- **测试**：device_task_service + device_app_tasks + routes_device_app_tasks + tasks_http = 29 passed，无回归。
+- **验证**：uff check 2 文件 clean；导入无循环依赖。
