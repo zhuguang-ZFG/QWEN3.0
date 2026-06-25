@@ -8352,3 +8352,18 @@ Agent Worker path.
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态路由的误报 404。
   - 全量 pytest **3712 passed / 17 skipped / 2 deselected / 4 failed / 0 errors**；4 个失败均因 worktree 缺失 `esp32S_XYZ` 固件文件与 `deploy/jdcloud/deploy_jd.py` 这些非本分支 tracked 的辅助文件，非本次改动引入。
 - **部署**：官网与文档站静态文件已同步到 VPS，`lima-router.service` 已重启；公网可访问。
+
+## 2026-06-25 Phase B P1：B-7 产品独立详情页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_PHASE_a` 完成 Phase B P1 B-7，新增 AI 绘图机、AI 写字机、2D 数字人三个产品详情页。
+- **实现**：
+  - 新增 `donglicao-site/product-draw.html`：量子路由选模、SVG 矢量化、多机协同、安全仿真；规格表、场景、FAQ、CTA。
+  - 新增 `donglicao-site/product-write.html`：字体迁移、模板信纸、批量任务、预约执行；规格表、场景、FAQ、CTA。
+  - 新增 `donglicao-site/product-human.html`：语音驱动口型、多语言多音色、实时推流、姿态表情可控；规格表、场景、FAQ、CTA。
+  - 新增共享 `donglicao-site/product.css`（108 行），通过主题类切换紫/琥珀/玫瑰色，含响应式布局与导航下拉菜单样式。
+  - 修改 `donglicao-site/site.js`：增加 `.nav-dropdown` 移动端点击展开/收起逻辑。
+  - 修改 `donglicao-site/index.html` 与 `pricing.html`：导航增加「产品」下拉，页脚产品列增加三个产品页链接。
+- **验证**：
+  - `node --check donglicao-site/site.js` 通过。
+  - 公网冒烟：3 个产品页与定价页均返回 200。
+- **部署**：官网静态文件已同步到 VPS。

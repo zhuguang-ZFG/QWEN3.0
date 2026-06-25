@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 绘图机 - LiMa 量子星云</title>
+  <meta name="description" content="LiMa AI 绘图机：一句话将自然语言坍缩为真实笔触，支持 SVG 矢量化、多设备协同与 170+ AI 模型后端驱动。">
+  <meta property="og:title" content="AI 绘图机 - LiMa 量子星云">
+  <meta property="og:description" content="一句话驱动绘图机，把自然语言坍缩为真实创作">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://donglicao.com/product-draw.html">
+  <meta property="og:image" content="https://donglicao.com/assets/hero.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://donglicao.com/product-draw.html">
+  <meta name="theme-color" content="#07070f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2306b6d4'/%3E%3Cpath d='M50 20L58 45H82L62 62L70 86L50 70L30 86L38 62L18 45H42Z' fill='%23070f0f'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=taste2">
+  <link rel="stylesheet" href="product.css?v=taste2">
+</head>
+<body class="theme-draw">
+  <canvas id="solar-canvas"></canvas>
+
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></symbol>
+    <symbol id="i-pen-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"/><path d="m2.3 2.3 7.286 7.286"/><circle cx="11" cy="11" r="2"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M12 20v2M12 2v2M17 20v2M17 2v2M7 20v2M7 2v2M2 12h2M2 17h2M2 7h2M20 12h2M20 17h2M20 7h2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <nav aria-label="主导航" id="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-mark"><svg class="svg-icon" aria-hidden="true"><use href="#i-sparkles"/></svg></div>
+        <span class="logo-text">LiMa 量子星云</span>
+      </a>
+      <button class="mobile-btn" aria-label="菜单" aria-expanded="false"><svg class="svg-icon"><use href="#i-menu"/></svg></button>
+      <div class="nav-links">
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">产品<svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="nav-dropdown-menu" role="menu">
+            <a href="product-draw.html" role="menuitem" aria-current="page">AI 绘图机</a>
+            <a href="product-write.html" role="menuitem">AI 写字机</a>
+            <a href="product-human.html" role="menuitem">2D 数字人</a>
+          </div>
+        </div>
+        <a href="index.html#technology">技术</a>
+        <a href="index.html#scenarios">场景</a>
+        <a href="index.html#developer">开发者</a>
+        <a href="pricing.html">定价</a>
+        <a href="https://chat.donglicao.com" target="_blank" rel="noopener" class="nav-cta">控制台</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <section class="product-hero" aria-labelledby="draw-title">
+      <div class="product-hero-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span>AI DRAWING MACHINE</div>
+        <h1 id="draw-title">AI 绘图机<br><span>把想象绘成现实</span></h1>
+        <p>一句话生成矢量插画、工程草图或艺术画作，LiMa 通过量子路由选择最佳图像模型，将 SVG 路径实时下发到绘图机，让 AI 的想象力落在纸面。</p>
+        <div class="product-hero-actions">
+          <a href="https://chat.donglicao.com" class="btn btn-theme" target="_blank" rel="noopener">在线体验</a>
+          <a href="https://docs.donglicao.com" class="btn btn-secondary" target="_blank" rel="noopener">查看文档</a>
+        </div>
+      </div>
+      <div class="product-hero-visual" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-pen-tool"/></svg>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="draw-features">
+      <h2 id="draw-features" class="section-title">核心能力</h2>
+      <p class="section-subtitle">从 prompt 到落笔，全流程自动化，无需手动调参。</p>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-route"/></svg></div>
+          <h3>量子路由选模</h3>
+          <p>根据风格、成本与实时健康状态，自动在 170+ 后端中挑选最优图像模型。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-image"/></svg></div>
+          <h3>SVG 矢量化</h3>
+          <p>输出可无限缩放的矢量路径，适配不同尺寸纸张与雕刻/切割工艺。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-grid"/></svg></div>
+          <h3>多机协同</h3>
+          <p>超大画面可自动分割到多台绘图机并行绘制，结果无缝拼接。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-shield"/></svg></div>
+          <h3>安全仿真</h3>
+          <p>落笔前先在云端仿真路径，避免越界、撞机或损坏画布。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="draw-specs">
+      <h2 id="draw-specs" class="section-title">技术规格</h2>
+      <p class="section-subtitle">硬件与性能参数，供采购与集成参考。</p>
+      <div class="specs-table-wrap">
+        <table class="specs-table">
+          <tbody>
+            <tr><th>有效绘制面积</th><td>A3 / A4 / 自定义（最大 420mm × 300mm）</td></tr>
+            <tr><th>驱动方式</th><td>双轴步进电机 + GRBL 控制板</td></tr>
+            <tr><th>通信协议</th><td>MQTT / WebSocket / 本地串口</td></tr>
+            <tr><th>支持输入</th><td>文本 prompt、SVG、PNG 轮廓、草图参考</td></tr>
+            <tr><th>云端模型</th><td>Stable Diffusion / DALL·E / Recraft / 自定义</td></tr>
+            <tr><th>协同数量</th><td>单任务最多 16 台设备并行</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="draw-scenarios">
+      <h2 id="draw-scenarios" class="section-title">使用场景</h2>
+      <p class="section-subtitle">绘图机已在这些场景中落地，释放真实生产力。</p>
+      <div class="scenario-grid">
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-pen-tool"/></svg></div>
+          <h3>艺术创作</h3>
+          <p>将文字描述转化为线稿、插画或装饰画，支持定制尺寸与纸张。</p>
+        </article>
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-cpu"/></svg></div>
+          <h3>工程打样</h3>
+          <p>快速绘制 PCB 草图、建筑平面或机械零件轮廓，用于评审与教学。</p>
+        </article>
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-zap"/></svg></div>
+          <h3>活动定制</h3>
+          <p>现场生成嘉宾画像、活动海报或品牌标识，增强互动体验。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="draw-faq">
+      <h2 id="draw-faq" class="section-title">常见问题</h2>
+      <div class="product-faq" role="region" aria-label="AI 绘图机常见问题">
+        <details><summary>绘图机支持哪些纸张尺寸？</summary><p>出厂默认支持 A4 与 A3；通过修改 GRBL 行程与夹具，可扩展到更大尺寸。云端任务会自动适配画布边界。</p></details>
+        <details><summary>可以直接绘制照片吗？</summary><p>可以。上传照片后系统会提取轮廓并转为 SVG 路径，支持线条画、浮雕风等多种风格。</p></details>
+        <details><summary>绘图速度有多快？</summary><p>取决于线条复杂度，A4 简单线稿约 3-8 分钟，复杂插画约 15-30 分钟。任务可预约在低谷时段执行。</p></details>
+        <details><summary>多机协同需要额外配置吗？</summary><p>不需要。控制台开启协同模式后，LiMa 会自动分割画面、派发任务并合并结果。</p></details>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="draw-cta">
+      <div class="product-cta">
+        <h2 id="draw-cta">准备让 AI 为你画图？</h2>
+        <p>免费注册即可在线发送第一个绘图任务，无需购买硬件也可预览路径。</p>
+        <div class="product-hero-actions" style="justify-content:center">
+          <a href="https://chat.donglicao.com" class="btn btn-theme" target="_blank" rel="noopener">免费体验</a>
+          <a href="pricing.html" class="btn btn-secondary">查看定价</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer aria-label="站点底部">
+    <div class="footer-inner">
+      <div class="footer-brand-col">
+        <div class="footer-brand">
+          <div class="logo-mark"><svg class="svg-icon" aria-hidden="true"><use href="#i-sparkles"/></svg></div>
+          <div>
+            <div class="footer-name">LiMa 量子星云</div>
+            <p class="footer-desc">量子化的 AI 智能设备星云系统</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col"><h4>产品</h4><a href="index.html">首页</a><a href="pricing.html">定价</a><a href="product-draw.html">AI 绘图机</a><a href="product-write.html">AI 写字机</a><a href="product-human.html">2D 数字人</a><a href="https://docs.donglicao.com" target="_blank" rel="noopener">文档</a><a href="https://chat.donglicao.com" target="_blank" rel="noopener">控制台</a></div>
+        <div class="footer-col"><h4>开发者</h4><a href="https://chat.donglicao.com" target="_blank" rel="noopener">API 文档</a><a href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener">GitHub</a><a href="https://gitee.com/zhuguang-cn/QWEN3.0" target="_blank" rel="noopener">Gitee</a></div>
+        <div class="footer-col"><h4>法律</h4><a href="privacy.html">隐私政策</a><a href="terms.html">用户协议</a></div>
+        <div class="footer-col"><h4>公司</h4><a href="index.html#hero">关于我们</a><a href="mailto:sales@donglicao.com">联系销售</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>深圳市动力巢科技有限公司 - Copyright 2024-2026 DongLiCao Technology. All rights reserved.</span>
+      <span class="footer-icp">京ICP备XXXXXXXX号-1</span>
+    </div>
+  </footer>
+
+  <script src="site.js?v=taste2"></script>
+  <script src="solar-system.js?v=taste2"></script>
+</body>
+</html>

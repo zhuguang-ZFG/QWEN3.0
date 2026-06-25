@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 写字机 - LiMa 量子星云</title>
+  <meta name="description" content="LiMa AI 写字机：将电子文本转化为真实手写笔迹，支持字体迁移、信纸模板与批量任务，连接 170+ AI 后端。">
+  <meta property="og:title" content="AI 写字机 - LiMa 量子星云">
+  <meta property="og:description" content="电子文本一键生成真实手写笔迹">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://donglicao.com/product-write.html">
+  <meta property="og:image" content="https://donglicao.com/assets/hero.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://donglicao.com/product-write.html">
+  <meta name="theme-color" content="#07070f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2306b6d4'/%3E%3Cpath d='M50 20L58 45H82L62 62L70 86L50 70L30 86L38 62L18 45H42Z' fill='%23070f0f'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=taste2">
+  <link rel="stylesheet" href="product.css?v=taste2">
+</head>
+<body class="theme-write">
+  <canvas id="solar-canvas"></canvas>
+
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+    <symbol id="i-type" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5h16v2"/><path d="M9 21h6"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></symbol>
+    <symbol id="i-smile" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <nav aria-label="主导航" id="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-mark"><svg class="svg-icon" aria-hidden="true"><use href="#i-sparkles"/></svg></div>
+        <span class="logo-text">LiMa 量子星云</span>
+      </a>
+      <button class="mobile-btn" aria-label="菜单" aria-expanded="false"><svg class="svg-icon"><use href="#i-menu"/></svg></button>
+      <div class="nav-links">
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">产品<svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="nav-dropdown-menu" role="menu">
+            <a href="product-draw.html" role="menuitem">AI 绘图机</a>
+            <a href="product-write.html" role="menuitem" aria-current="page">AI 写字机</a>
+            <a href="product-human.html" role="menuitem">2D 数字人</a>
+          </div>
+        </div>
+        <a href="index.html#technology">技术</a>
+        <a href="index.html#scenarios">场景</a>
+        <a href="index.html#developer">开发者</a>
+        <a href="pricing.html">定价</a>
+        <a href="https://chat.donglicao.com" target="_blank" rel="noopener" class="nav-cta">控制台</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <section class="product-hero" aria-labelledby="write-title">
+      <div class="product-hero-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span>AI WRITING MACHINE</div>
+        <h1 id="write-title">AI 写字机<br><span>让文字有温度</span></h1>
+        <p>将电子文案、贺卡、签名或批量信函转换为真实手写笔迹。LiMa 支持字体迁移、纸张模板与个性化字库，让每一封信都像是亲手所写。</p>
+        <div class="product-hero-actions">
+          <a href="https://chat.donglicao.com" class="btn btn-theme" target="_blank" rel="noopener">在线体验</a>
+          <a href="https://docs.donglicao.com" class="btn btn-secondary" target="_blank" rel="noopener">查看文档</a>
+        </div>
+      </div>
+      <div class="product-hero-visual" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-pencil"/></svg>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="write-features">
+      <h2 id="write-features" class="section-title">核心能力</h2>
+      <p class="section-subtitle">从文本到手写，只需三步：输入内容、选择风格、下发设备。</p>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-type"/></svg></div>
+          <h3>字体迁移</h3>
+          <p>上传 20 字以上手写样本，云端训练专属字库，复刻个人笔迹。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-file-text"/></svg></div>
+          <h3>模板信纸</h3>
+          <p>支持横线、方格、空白、贺卡等多种模板，自动对齐行距与边距。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-layers"/></svg></div>
+          <h3>批量任务</h3>
+          <p>一次导入收件人列表与变量，自动生成并书写多份个性化信件。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-clock"/></svg></div>
+          <h3>预约执行</h3>
+          <p>支持定时书写与错峰队列，避免高峰排队，充分利用设备空闲时段。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="write-specs">
+      <h2 id="write-specs" class="section-title">技术规格</h2>
+      <p class="section-subtitle">硬件与性能参数，供采购与集成参考。</p>
+      <div class="specs-table-wrap">
+        <table class="specs-table">
+          <tbody>
+            <tr><th>有效书写面积</th><td>A4 / A5 / 自定义（最大 220mm × 320mm）</td></tr>
+            <tr><th>书写工具</th><td>中性笔 / 钢笔 / 马克笔（可换夹具）</td></tr>
+            <tr><th>通信协议</th><td>MQTT / WebSocket / 本地串口</td></tr>
+            <tr><th>支持输入</th><td>纯文本、Markdown、CSV 变量、Word 文档</td></tr>
+            <tr><th>字体来源</th><td>系统字体 / 用户上传 / AI 生成笔迹</td></tr>
+            <tr><th>批量上限</th><td>单次任务最多 1000 封信件</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="write-scenarios">
+      <h2 id="write-scenarios" class="section-title">使用场景</h2>
+      <p class="section-subtitle">写字机已在这些场景中释放真实价值。</p>
+      <div class="scenario-grid">
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-mail"/></svg></div>
+          <h3>商务信函</h3>
+          <p>批量生成带个人签名的感谢信、邀请函与节日贺卡，提升客户感知。</p>
+        </article>
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-pencil"/></svg></div>
+          <h3>教育练习</h3>
+          <p>生成字帖、错题本或笔记样本，帮助学生进行书写练习与临摹。</p>
+        </article>
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-smile"/></svg></div>
+          <h3>礼品定制</h3>
+          <p>将祝福语或情书以手写形式呈现，搭配信纸与信封，适合送礼场景。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="write-faq">
+      <h2 id="write-faq" class="section-title">常见问题</h2>
+      <div class="product-faq" role="region" aria-label="AI 写字机常见问题">
+        <details><summary>需要多少手写样本来训练字库？</summary><p>建议提供 20-50 个常用汉字，字迹清晰、光线均匀。样本越多，生成笔迹越自然。</p></details>
+        <details><summary>支持哪些语言？</summary><p>中文、英文、数字与常见标点。其他语言可通过上传对应字符样本扩展。</p></details>
+        <details><summary>可以模拟不同笔迹粗细吗？</summary><p>可以。系统会根据字体压力曲线与所选笔尖参数调整轨迹，配合可换笔夹实现粗细变化。</p></details>
+        <details><summary>批量任务出错怎么办？</summary><p>LiMa 会逐封信件记录执行状态，失败项可单独重试或导出失败清单，无需从头开始。</p></details>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="write-cta">
+      <div class="product-cta">
+        <h2 id="write-cta">想亲手写一封不亲手写的信？</h2>
+        <p>免费注册即可在线体验字体迁移与单页书写，无需购买硬件。</p>
+        <div class="product-hero-actions" style="justify-content:center">
+          <a href="https://chat.donglicao.com" class="btn btn-theme" target="_blank" rel="noopener">免费体验</a>
+          <a href="pricing.html" class="btn btn-secondary">查看定价</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer aria-label="站点底部">
+    <div class="footer-inner">
+      <div class="footer-brand-col">
+        <div class="footer-brand">
+          <div class="logo-mark"><svg class="svg-icon" aria-hidden="true"><use href="#i-sparkles"/></svg></div>
+          <div>
+            <div class="footer-name">LiMa 量子星云</div>
+            <p class="footer-desc">量子化的 AI 智能设备星云系统</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col"><h4>产品</h4><a href="index.html">首页</a><a href="pricing.html">定价</a><a href="product-draw.html">AI 绘图机</a><a href="product-write.html">AI 写字机</a><a href="product-human.html">2D 数字人</a><a href="https://docs.donglicao.com" target="_blank" rel="noopener">文档</a><a href="https://chat.donglicao.com" target="_blank" rel="noopener">控制台</a></div>
+        <div class="footer-col"><h4>开发者</h4><a href="https://chat.donglicao.com" target="_blank" rel="noopener">API 文档</a><a href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener">GitHub</a><a href="https://gitee.com/zhuguang-cn/QWEN3.0" target="_blank" rel="noopener">Gitee</a></div>
+        <div class="footer-col"><h4>法律</h4><a href="privacy.html">隐私政策</a><a href="terms.html">用户协议</a></div>
+        <div class="footer-col"><h4>公司</h4><a href="index.html#hero">关于我们</a><a href="mailto:sales@donglicao.com">联系销售</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>深圳市动力巢科技有限公司 - Copyright 2024-2026 DongLiCao Technology. All rights reserved.</span>
+      <span class="footer-icp">京ICP备XXXXXXXX号-1</span>
+    </div>
+  </footer>
+
+  <script src="site.js?v=taste2"></script>
+  <script src="solar-system.js?v=taste2"></script>
+</body>
+</html>

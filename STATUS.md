@@ -30,6 +30,20 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase B P1：B-7 产品独立详情页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-7，为三款硬件产品创建独立详情页。
+- **关键结果**：
+  - 新增 `donglicao-site/product-draw.html`（AI 绘图机）、`product-write.html`（AI 写字机）、`product-human.html`（2D 数字人）。
+  - 每页包含 Hero 区、4 个特性卡片、规格表、3 个场景卡片、4 条 FAQ 与 CTA。
+  - 新增共享 `donglicao-site/product.css`，通过 `.theme-draw`/`.theme-write`/`.theme-human` 切换紫/琥珀/玫瑰主题色。
+  - 首页与定价页导航增加「产品」下拉菜单，链接到三个产品页；页脚产品列同步更新。
+  - 三个产品页均配置 `og:title`、`og:description`、`canonical`、`theme-color` 与无障碍属性。
+- **验证**：
+  - `site.js` 语法检查通过（`node --check`）。
+  - 公网冒烟：`https://www.donglicao.com/product-draw.html`、`product-write.html`、`product-human.html` 均返回 200。
+- **部署**：官网静态文件已同步到 VPS `/www/wwwroot/donglicao-site/`。
+
 ### 最近完成（2026-06-25）Phase C P2：C-3 API Playground
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 的 API Playground。

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D 数字人 - LiMa 量子星云</title>
+  <meta name="description" content="LiMa 2D 数字人：基于语音驱动的实时口型与表情合成，支持多音色、多语言与多平台推流。">
+  <meta property="og:title" content="2D 数字人 - LiMa 量子星云">
+  <meta property="og:description" content="语音驱动 2D 数字人，实时口型与表情合成">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://donglicao.com/product-human.html">
+  <meta property="og:image" content="https://donglicao.com/assets/hero.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://donglicao.com/product-human.html">
+  <meta name="theme-color" content="#07070f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2306b6d4'/%3E%3Cpath d='M50 20L58 45H82L62 62L70 86L50 70L30 86L38 62L18 45H42Z' fill='%23070f0f'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=taste2">
+  <link rel="stylesheet" href="product.css?v=taste2">
+</head>
+<body class="theme-human">
+  <canvas id="solar-canvas"></canvas>
+
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></symbol>
+    <symbol id="i-human" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v1h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a3 3 0 0 1 3-3z"/><path d="M9 14h6"/><path d="M9 18h6"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+    <symbol id="i-cast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M2 12a10 10 0 0 1 10 10"/><path d="M2 16a6 6 0 0 1 6 6"/><path d="M2 20a2 2 0 0 1 2 2"/></symbol>
+    <symbol id="i-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7A9 9 0 1 1 12 21H3z"/></symbol>
+    <symbol id="i-headphones" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v3a2 2 0 0 0 2 2h2v-5H3z"/><path d="M17 14v5h2a2 2 0 0 0 2-2v-3h-4z"/><path d="M5 14H3a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4v0"/><path d="M19 14h2a4 4 0 0 0-4-4h0a4 4 0 0 0-4 4v0"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <nav aria-label="主导航" id="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-mark"><svg class="svg-icon" aria-hidden="true"><use href="#i-sparkles"/></svg></div>
+        <span class="logo-text">LiMa 量子星云</span>
+      </a>
+      <button class="mobile-btn" aria-label="菜单" aria-expanded="false"><svg class="svg-icon"><use href="#i-menu"/></svg></button>
+      <div class="nav-links">
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">产品<svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="nav-dropdown-menu" role="menu">
+            <a href="product-draw.html" role="menuitem">AI 绘图机</a>
+            <a href="product-write.html" role="menuitem">AI 写字机</a>
+            <a href="product-human.html" role="menuitem" aria-current="page">2D 数字人</a>
+          </div>
+        </div>
+        <a href="index.html#technology">技术</a>
+        <a href="index.html#scenarios">场景</a>
+        <a href="index.html#developer">开发者</a>
+        <a href="pricing.html">定价</a>
+        <a href="https://chat.donglicao.com" target="_blank" rel="noopener" class="nav-cta">控制台</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <section class="product-hero" aria-labelledby="human-title">
+      <div class="product-hero-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span>2D DIGITAL HUMAN</div>
+        <h1 id="human-title">2D 数字人<br><span>让声音拥有表情</span></h1>
+        <p>基于语音实时驱动口型、表情与动作，支持多音色、多语言与多平台推流。无论是直播、客服还是内容创作，LiMa 数字人都能 7×24 小时在线表达。</p>
+        <div class="product-hero-actions">
+          <a href="https://chat.donglicao.com" class="btn btn-theme" target="_blank" rel="noopener">在线体验</a>
+          <a href="https://docs.donglicao.com" class="btn btn-secondary" target="_blank" rel="noopener">查看文档</a>
+        </div>
+      </div>
+      <div class="product-hero-visual" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-human"/></svg>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="human-features">
+      <h2 id="human-features" class="section-title">核心能力</h2>
+      <p class="section-subtitle">语音到画面的端到端 pipeline，延迟低至毫秒级。</p>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-mic"/></svg></div>
+          <h3>语音驱动口型</h3>
+          <p>根据音频特征实时推理口型权重，唇形与发音精准对齐。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-globe"/></svg></div>
+          <h3>多语言多音色</h3>
+          <p>支持中、英、德、葡、越等多种语言，可切换不同性别与情感音色。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-video"/></svg></div>
+          <h3>实时推流</h3>
+          <p>输出 RTMP / WebRTC / HLS 流，可直接接入直播间或视频会议。</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon"><svg aria-hidden="true"><use href="#i-sliders"/></svg></div>
+          <h3>姿态与表情可控</h3>
+          <p>通过 prompt 或 API 参数控制微笑、眨眼、手势与情绪强度。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="human-specs">
+      <h2 id="human-specs" class="section-title">技术规格</h2>
+      <p class="section-subtitle">性能与接口参数，供集成与采购参考。</p>
+      <div class="specs-table-wrap">
+        <table class="specs-table">
+          <tbody>
+            <tr><th>输出分辨率</th><td>720p / 1080p（支持竖屏 9:16 与横屏 16:9）</td></tr>
+            <tr><th>端到端延迟</th><td>典型 200-500ms（取决于网络与模型选择）</td></tr>
+            <tr><th>输入格式</th><td>实时音频流、文本、SSML</td></tr>
+            <tr><th>输出格式</th><td>RTMP / WebRTC / HLS / MP4 录制</td></tr>
+            <tr><th>角色定制</th><td>立绘拆分、动作库、表情集、声纹克隆</td></tr>
+            <tr><th>并发路数</th><td>单节点支持 10+ 路实时推流</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="human-scenarios">
+      <h2 id="human-scenarios" class="section-title">使用场景</h2>
+      <p class="section-subtitle">数字人已在这些场景中持续创造价值。</p>
+      <div class="scenario-grid">
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-cast"/></svg></div>
+          <h3>直播带货</h3>
+          <p>7×24 小时自动讲解商品、回复弹幕，降低人力成本，提升开播时长。</p>
+        </article>
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-message-circle"/></svg></div>
+          <h3>智能客服</h3>
+          <p>在 App、小程序或网页中以拟人形象解答用户问题，增强品牌亲和力。</p>
+        </article>
+        <article class="scenario-card">
+          <div class="scenario-media"><svg aria-hidden="true"><use href="#i-headphones"/></svg></div>
+          <h3>内容创作</h3>
+          <p>将文本稿件快速生成口播视频，用于短视频、课程与新闻播报。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="human-faq">
+      <h2 id="human-faq" class="section-title">常见问题</h2>
+      <div class="product-faq" role="region" aria-label="2D 数字人常见问题">
+        <details><summary>数字人形象可以定制吗？</summary><p>可以。提供立绘素材后，LiMa 协助完成图层拆分、口型绑定与动作库配置，也可使用官方默认形象快速上线。</p></details>
+        <details><summary>支持实时互动吗？</summary><p>支持。通过 WebSocket 接入语音识别与 LLM 回复，数字人可实时回答观众提问并做出对应表情。</p></details>
+        <details><summary>直播推流需要什么硬件？</summary><p>云端渲染无需本地显卡，普通 PC 或服务器即可推流；本地私有化部署建议配备 GPU 以支持多路并发。</p></details>
+        <details><summary>能否克隆我的声音？</summary><p>可以。上传 5-30 分钟纯净人声样本，即可训练个人音色，并用于文本驱动播报。</p></details>
+      </div>
+    </section>
+
+    <section class="section-pad" aria-labelledby="human-cta">
+      <div class="product-cta">
+        <h2 id="human-cta">准备让你的品牌 24 小时在线？</h2>
+        <p>免费注册即可体验文本驱动数字人播报，无需准备硬件。</p>
+        <div class="product-hero-actions" style="justify-content:center">
+          <a href="https://chat.donglicao.com" class="btn btn-theme" target="_blank" rel="noopener">免费体验</a>
+          <a href="pricing.html" class="btn btn-secondary">查看定价</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer aria-label="站点底部">
+    <div class="footer-inner">
+      <div class="footer-brand-col">
+        <div class="footer-brand">
+          <div class="logo-mark"><svg class="svg-icon" aria-hidden="true"><use href="#i-sparkles"/></svg></div>
+          <div>
+            <div class="footer-name">LiMa 量子星云</div>
+            <p class="footer-desc">量子化的 AI 智能设备星云系统</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col"><h4>产品</h4><a href="index.html">首页</a><a href="pricing.html">定价</a><a href="product-draw.html">AI 绘图机</a><a href="product-write.html">AI 写字机</a><a href="product-human.html">2D 数字人</a><a href="https://docs.donglicao.com" target="_blank" rel="noopener">文档</a><a href="https://chat.donglicao.com" target="_blank" rel="noopener">控制台</a></div>
+        <div class="footer-col"><h4>开发者</h4><a href="https://chat.donglicao.com" target="_blank" rel="noopener">API 文档</a><a href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener">GitHub</a><a href="https://gitee.com/zhuguang-cn/QWEN3.0" target="_blank" rel="noopener">Gitee</a></div>
+        <div class="footer-col"><h4>法律</h4><a href="privacy.html">隐私政策</a><a href="terms.html">用户协议</a></div>
+        <div class="footer-col"><h4>公司</h4><a href="index.html#hero">关于我们</a><a href="mailto:sales@donglicao.com">联系销售</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>深圳市动力巢科技有限公司 - Copyright 2024-2026 DongLiCao Technology. All rights reserved.</span>
+      <span class="footer-icp">京ICP备XXXXXXXX号-1</span>
+    </div>
+  </footer>
+
+  <script src="site.js?v=taste2"></script>
+  <script src="solar-system.js?v=taste2"></script>
+</body>
+</html>
