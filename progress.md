@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase A P0：官网首页 FAQ 扩展至 12 条
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase A-5，将官网首页 FAQ 从 4 条扩充到 12 条并支持展开/折叠。
+- **关键结果**：
+  - 新增 `donglicao-site-v2/app/components/FAQ.tsx`：
+    - 12 条常见问题，覆盖模型支持、设备兼容、安全、部署、计费、退款、协同、速率限制、OTA、语言、技术支持。
+    - 手风琴交互，默认展开第一条，每次仅展开一项。
+    - 注入 `FAQPage` JSON-LD 结构化数据，便于搜索引擎展示富媒体摘要。
+    - 焦点环与键盘可访问。
+  - `app/page.tsx` 在 `Partners` 后引入 `FAQ` 区块。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **44 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase B P1：官网集成生态 logo 墙扩展
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase B-5，将 Next.js 官网合作伙伴 logo 墙扩展至 20+ 并增强交互。
