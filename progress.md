@@ -54,6 +54,7 @@
 - **全量验证**：
   - `pytest -q --tb=short -m "not network"`：**3759 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
   - `npm run build` 静态生成 25 个页面。
+  - Navbar 语言切换按钮在中英文页面间可正常跳转。
 - **关键结果**：
   - 重构 `app/components/ProductPage.tsx`：新增可选 `labels` 属性，默认中文，英文页传入英文标签，保持中文页零改动。
   - 新增 `app/en/pricing/page.tsx`：4 档定价卡片、功能对比表、定价 FAQ、CTA。
