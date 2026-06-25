@@ -116,6 +116,9 @@ def deploy(dry_run: bool = False) -> int:
         finally:
             sftp.close()
 
+        # Clean up stale assets (hero-bg-poster.jpg, *.mp4 etc. removed from repo)
+        _exec(ssh, f"rm -rf {REMOTE_DIR}/assets")
+
         code, _out, _err = _exec(ssh, "nginx -t && systemctl reload nginx")
         if code != 0:
             print("nginx reload failed", file=sys.stderr)
