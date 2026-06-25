@@ -30,6 +30,18 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase C P2 C-2：控制台素材上传
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-2，为控制台增加图片/SVG 素材上传到资产库能力。
+- **关键结果**：
+  - 新增 `chat-web/js/asset-upload.js`：输入区「上传」按钮，文件选择器支持 SVG/图片，读取后调用 `POST /device/v1/app/assets`。
+  - `chat-web/index.html` 新增上传按钮、隐藏文件输入与脚本引入。
+  - `scripts/deploy_chat_web.py` 纳入 `js/asset-upload.js`。
+- **验证**：
+  - `node --check chat-web/js/asset-upload.js` / `chat-web/chat-ui.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）。
+
 ### 最近完成（2026-06-25）Phase C P2 C-2：控制台历史会话管理
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-2，为控制台增加可切换、可删除的历史会话列表。

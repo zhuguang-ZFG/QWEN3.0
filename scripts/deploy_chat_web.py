@@ -52,6 +52,7 @@ FILES = [
     "js/usage.js",
     "js/devices.js",
     "js/sidebar-devices.js",
+    "js/asset-upload.js",
     "js/playground-ui.js",
     "js/playground-utils.js",
     "js/playground.js",

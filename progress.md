@@ -1,5 +1,23 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P2 C-2（文件上传）：控制台素材上传到资产库
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台增加图片/SVG 素材上传到资产库能力。
+- **关键结果**：
+  - 新增 `chat-web/js/asset-upload.js`：
+    - 在输入区新增「上传」按钮，点击打开文件选择器（支持 `.svg`、`.png`、`.jpg`、`.jpeg`、`.gif`、`.webp`）。
+    - SVG 以文本读取，其他图片以 base64 data URL 读取。
+    - 调用 `POST /device/v1/app/assets` 创建素材，category 自动识别为 `svg` 或 `image`。
+    - 限制单文件 2MB；未登录时提示先登录。
+  - `chat-web/index.html`：新增上传按钮、隐藏 `<input type="file">`、引入 `js/asset-upload.js`。
+  - `scripts/deploy_chat_web.py`：静态文件清单纳入 `js/asset-upload.js`。
+- **验证**：
+  - `node --check chat-web/js/asset-upload.js` / `chat-web/chat-ui.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_routes_device_app_auth.py` **35 passed / 0 failed**。
+  - `ruff check` / `pyright` 修改 Python 文件 clean。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）；文件已就绪，配置密码后可通过 `scripts/deploy_chat_web.py` 同步。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase C P2 C-2（会话列表）：控制台历史会话管理
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase C P2 C-2，为控制台增加可切换、可删除的历史会话列表。

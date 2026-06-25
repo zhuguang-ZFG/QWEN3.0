@@ -4,6 +4,11 @@
 
 ---
 
+## 2026-06-25 Phase C P2：控制台素材上传
+
+- `chat-web/js/asset-upload.js`：输入区新增上传按钮，支持 SVG/图片上传到 `/device/v1/app/assets`。
+- `chat-web/index.html` 引入脚本并新增上传按钮。
+
 ## 2026-06-25 Phase C P2：控制台历史会话管理
 
 - `chat-web/chat-messages.js` 新增会话管理：会话数据持久化到 `localStorage`，支持保存、切换、删除。

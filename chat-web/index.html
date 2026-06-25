@@ -286,6 +286,11 @@
               <svg class="svg-icon"><use href="icons.svg#i-image"/></svg>
               /image
             </button>
+            <button class="input-pill" onclick="document.getElementById('assetUpload').click()" title="上传素材到资产库">
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              上传
+            </button>
+            <input type="file" id="assetUpload" accept=".svg,.png,.jpg,.jpeg,.gif,.webp" style="display:none" onchange="handleAssetUpload(this)">
             <button class="mic-btn" id="micBtn" onclick="startVoiceInput()" title="语音输入" aria-label="语音输入">
               <svg class="svg-icon"><use href="icons.svg#i-mic"/></svg>
             </button>
@@ -354,6 +359,7 @@
   <script src="js/auth.js"></script>
   <script src="js/model-selector.js"></script>
   <script src="js/sidebar-devices.js"></script>
+  <script src="js/asset-upload.js"></script>
   <script src="solar-system.js?v=3"></script>
   <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
