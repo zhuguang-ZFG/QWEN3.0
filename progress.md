@@ -1,5 +1,18 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网 Navbar 修复与滚动动画
+
+- **目标**：提升 `donglicao-site-v2` 移动端体验并添加滚动 reveal 动画。
+- **关键结果**：
+  - 修复 `Navbar.tsx`：移动端点击链接后自动收起菜单，增加 `aria-expanded`。
+  - 新增 `Reveal.tsx`：基于 IntersectionObserver 的滚动进入动画。
+  - `app/page.tsx` 为 Products/Technology/Scenarios/Testimonials/Developer/Partners 包裹 `Reveal`。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网 Web App Manifest
 
 - **目标**：为 `donglicao-site-v2` 添加 PWA manifest，提升安装/可发现性。

@@ -18,7 +18,8 @@ export default function Navbar() {
 
         <button
           className="text-slate-300 md:hidden"
-          aria-label="菜单"
+          aria-label={open ? "关闭菜单" : "打开菜单"}
+          aria-expanded={open}
           onClick={() => setOpen(!open)}
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -26,17 +27,30 @@ export default function Navbar() {
           </svg>
         </button>
 
-        <div className={`${open ? "block" : "hidden"} absolute left-0 right-0 top-full border-b border-white/5 bg-[#07070f]/95 p-6 md:static md:block md:border-0 md:bg-transparent md:p-0`}>
+        <div
+          className={`${
+            open ? "block" : "hidden"
+          } absolute left-0 right-0 top-full border-b border-white/5 bg-[#07070f]/95 p-6 md:static md:block md:border-0 md:bg-transparent md:p-0`}
+        >
           <div className="flex flex-col gap-4 text-sm text-slate-300 md:flex-row md:items-center md:gap-8">
-            <Link href="/product-draw/" className="hover:text-cyan-400">AI 绘图机</Link>
-            <Link href="/product-write/" className="hover:text-cyan-400">AI 写字机</Link>
-            <Link href="/product-human/" className="hover:text-cyan-400">2D 数字人</Link>
-            <Link href="/pricing/" className="hover:text-cyan-400">定价</Link>
+            <Link href="/product-draw/" className="hover:text-cyan-400" onClick={() => setOpen(false)}>
+              AI 绘图机
+            </Link>
+            <Link href="/product-write/" className="hover:text-cyan-400" onClick={() => setOpen(false)}>
+              AI 写字机
+            </Link>
+            <Link href="/product-human/" className="hover:text-cyan-400" onClick={() => setOpen(false)}>
+              2D 数字人
+            </Link>
+            <Link href="/pricing/" className="hover:text-cyan-400" onClick={() => setOpen(false)}>
+              定价
+            </Link>
             <a
               href="https://chat.donglicao.com"
               target="_blank"
               rel="noopener"
               className="rounded-full bg-cyan-500 px-4 py-2 text-center font-medium text-slate-950 hover:bg-cyan-400"
+              onClick={() => setOpen(false)}
             >
               控制台
             </a>
