@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网可访问性增强（减少动画、焦点样式）
+
+- **目标**：提升 `donglicao-site-v2` 的可访问性，适配偏好减少动画用户。
+- **关键结果**：
+  - `globals.css`：增加全局 `:focus-visible` 焦点环、`scroll-behavior: smooth`、`prefers-reduced-motion` 媒体查询。
+  - `Reveal.tsx`：检测 `prefers-reduced-motion: reduce`，自动禁用滚动进入动画并保持内容可见。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **Git**：
+  - 提交并推送 `origin improve/20260625-phase-a` 成功。
+
 ## 2026-06-25 完成 Phase C P3：Next.js 官网 API Playground
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` Phase C P3，在官网新增 API Playground。
