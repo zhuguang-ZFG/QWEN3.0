@@ -14,6 +14,9 @@
 | `device_logic/activation.py:54` | 54 | 立即消费激活码（一次性使用） | TTL 内重放仍可能 | 引入幂等消费记录后移除 |
 | `scripts/guardian_test_index.py:114` | 114 | 跳过裸顶层包键（如 `routes`） | 可能漏检大目录下的缺失测试 | 目录级覆盖分析更精确后移除 |
 | `donglicao-site-v2/app/{en/,}{privacy,terms}/page.tsx` | — | 法律正文按 locale 硬编码于 JSX，无 i18n 单一来源 | 2 语言 (zh/en) | 第 3 个 locale 落地时改为单一 JSON/MD 源 + 共享组件渲染 |
+| `device_gateway/tasks.py:31` | 31 | `routes.device_gateway_dispatch` 改为 lazy import 避免模块加载循环依赖 | 运行时反向依赖仍存在（device_gateway → routes） | 引入 `TaskDispatcher` 协议抽象后消除 |
+| `device_gateway/task_events.py:182` | 182 | `routes.device_memory` lazy import（`get_memory_store`） | 运行时反向依赖 | 引入 memory store 接口抽象后消除 |
+| `device_gateway/mqtt_client.py:81` | 81 | `routes.device_gateway_ws_handlers` lazy import（`handle_motion_event`） | 运行时反向依赖 | 引入事件处理协议接口后消除 |
 
 ## 待处理项
 

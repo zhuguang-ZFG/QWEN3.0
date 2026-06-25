@@ -28,7 +28,9 @@ from .task_lifecycle import (
     requeue_pending_tasks,
     task_snapshot,
 )
-from routes.device_gateway_dispatch import dispatch_task_to_session, publish_task_available_safe
+# ponytail: lazy import routes.device_gateway_dispatch in callers to avoid a
+# module-load circular dependency (device_gateway → routes → device_gateway).
+# Runtime reverse dependency remains; upgrade path is a TaskDispatcher protocol.
 from device_gateway.sessions import registry
 
 # Backward-compatible monkeypatch surface (tests patch device_gateway.tasks.*)
@@ -99,6 +101,8 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
 
     session = registry.get(device_id)
     if session is not None:
+        from routes.device_gateway_dispatch import dispatch_task_to_session
+
         sent = await dispatch_task_to_session(session, task)
         return DeviceTaskRouteResult(
             "sent" if sent else "queued",
@@ -106,6 +110,8 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
             pending_count(device_id),
             task,
         )
+
+    from routes.device_gateway_dispatch import publish_task_available_safe
 
     queue_depth = enqueue_pending_task(device_id, task)
     await publish_task_available_safe(device_id, str(task.get("task_id", "")))
