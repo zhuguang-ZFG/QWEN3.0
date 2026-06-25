@@ -30,6 +30,22 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase B P1：B-2 API Key 管理页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-2，为用户控制台增加 API Key 自助管理。
+- **关键结果**：
+  - 后端：`device_logic/db.py` 新增 `v2_api_key` 表；`device_logic/api_key.py` 实现 Key 生成（`sk-lima-*`）、哈希存储、列表与软删除。
+  - 路由：`routes/device_app_auth_keys.py` 提供 `POST /device/v1/app/keys`、`GET /device/v1/app/keys`、`DELETE /device/v1/app/keys/{id}`；由 `routes/device_app_auth.py` 包含。
+  - 前端：`chat-web/keys.html` + `js/keys.js`，支持创建（仅显一次完整 Key）、复制、前缀列表、删除确认；未登录自动跳转登录页。
+  - `device_logic/auth_rate.py` 新增 `key_create` 速率限制并增强缺失配置的容错。
+  - `scripts/deploy_chat_web.py` 更新静态文件清单，纳入新页面与 JS。
+- **验证**：
+  - 聚焦 pytest `tests/test_routes_device_app_auth.py` **24 passed / 0 failed**。
+  - 全量 pytest（排除 worktree 缺失辅助文件）**3697 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+  - `ruff check` / `pyright` 修改文件 clean（仅历史 jwt import warning）。
+  - 公网冒烟：`POST /device/v1/app/keys` 200、`GET /device/v1/app/keys` 200、`/keys.html` 200。
+- **部署**：后端文件已同步并重启 `lima-router.service`；chat-web 文件已同步到 `/var/www/chat/`。
+
 ### 最近完成（2026-06-25）Phase B P1：B-1 控制台登录/注册页
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-1，为用户控制台增加邮箱/密码登录与注册。

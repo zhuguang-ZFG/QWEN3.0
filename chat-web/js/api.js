@@ -34,5 +34,16 @@
       }
       return data;
     },
+
+    async del(path, token) {
+      const headers = {};
+      if (token) headers["Authorization"] = "Bearer " + token;
+      const res = await fetch(API_BASE + path, { method: "DELETE", headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || data.error || res.statusText);
+      }
+      return data;
+    },
   };
 })();

@@ -33,12 +33,22 @@ REMOTE_DIR = "/var/www/chat"
 FILES = [
     "index.html",
     "voice-call.html",
+    "login.html",
+    "register.html",
+    "keys.html",
+    "playground.html",
     "styles.css",
     "icons.svg",
     "chat-ui.js",
     "chat-messages.js",
     "chat-api.js",
     "solar-system.js",
+    "js/api.js",
+    "js/auth.js",
+    "js/keys.js",
+    "js/playground-ui.js",
+    "js/playground-utils.js",
+    "js/playground.js",
 ]
 
 

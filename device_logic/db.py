@@ -227,6 +227,26 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_asset_status ON v2_asset_library(status)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_asset_use_count ON v2_asset_library(use_count DESC)")
 
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS v2_api_key (
+            id              TEXT PRIMARY KEY,
+            account_id      TEXT NOT NULL REFERENCES v2_account(id),
+            name            TEXT NOT NULL,
+            key_prefix      TEXT NOT NULL,
+            key_hash        TEXT NOT NULL,
+            status          TEXT DEFAULT 'active'
+                CHECK (status IN ('active', 'revoked', 'deleted')),
+            created_at      TEXT NOT NULL,
+            expires_at      TEXT,
+            daily_limit     INTEGER
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_api_key_account ON v2_api_key(account_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_api_key_status ON v2_api_key(status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_v2_api_key_hash ON v2_api_key(key_hash)")
+
     conn.commit()
 
 

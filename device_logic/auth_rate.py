@@ -10,20 +10,22 @@ _DEFAULTS = {
     "register": 5,
     "login": 20,
     "sms": 10,
+    "key_create": 10,
 }
 
 _LIMIT_ATTRS = {
     "register": "auth_register_per_min",
     "login": "auth_login_per_min",
     "sms": "auth_sms_per_min",
+    "key_create": "auth_key_create_per_min",
 }
 
 
 def _limit_per_minute(action: str) -> int:
-    value = getattr(settings.DEVICE, _LIMIT_ATTRS[action])
+    value = getattr(settings.DEVICE, _LIMIT_ATTRS.get(action, ""), None)
     if isinstance(value, int) and value > 0:
         return value
-    return _DEFAULTS[action]
+    return _DEFAULTS.get(action, 10)
 
 
 def allow_device_auth(action: str, client_ip: str) -> bool:

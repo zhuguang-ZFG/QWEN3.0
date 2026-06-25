@@ -1,5 +1,25 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase B P1 B-2：API Key 管理页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase B P1 B-2，为用户控制台新增 API Key 自助创建/列表/删除。
+- **关键结果**：
+  - `device_logic/db.py`：新增 `v2_api_key` 表（含前缀、哈希、状态、有效期、日限额字段）。
+  - `device_logic/api_key.py`：安全生成 `sk-lima-*` 格式 Key，SHA-256 哈希存储，仅创建时返回明文。
+  - `routes/device_app_auth_keys.py`：`POST /keys`、`GET /keys`、`DELETE /keys/{id}`；JWT 认证与创建速率限制。
+  - `routes/device_app_auth.py`：包含 keys 子路由。
+  - `device_logic/auth_rate.py`：补充 `key_create` 动作与缺失配置的容错回退。
+  - `chat-web/keys.html` + `js/keys.js`：管理页，含创建弹窗（仅显一次完整 Key）、复制、前缀列表、删除确认、未登录跳转。
+  - `chat-web/js/api.js`：新增 `del` 方法。
+  - `scripts/deploy_chat_web.py`：更新静态文件清单，纳入登录/注册/Key/Playground 新文件。
+  - `tests/test_routes_device_app_auth.py`：新增 5 个 Key 管理用例。
+- **验证**：
+  - `tests/test_routes_device_app_auth.py` 24 passed；聚焦 pytest 3697 passed / 17 skipped / 2 deselected（4 个 worktree 预存文件缺失失败已排除）。
+  - `ruff check` / `pyright` 修改文件 clean（仅历史 jwt import warning）。
+  - 生产冒烟：`POST /device/v1/app/keys` 200、`GET /device/v1/app/keys` 200、`/keys.html` 200。
+- **部署**：VPS `lima-router.service` 已重启；chat-web 已同步到 `/var/www/chat/`。
+- **Git**：worktree 分支 `improve/20260625-phase-a`，待提交。
+
 ## 2026-06-25 完成 Phase B P1 B-1：控制台邮箱/密码登录与注册
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 执行 Phase B P1 B-1，为用户控制台新增邮箱/密码注册与 JWT 登录。

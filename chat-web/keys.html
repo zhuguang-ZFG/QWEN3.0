@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>API Key 管理 - LiMa 星云</title>
+  <meta name="description" content="管理 LiMa 星云 API Key，创建、查看与删除访问密钥。">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net; upgrade-insecure-requests;">
+  <link rel="stylesheet" href="styles.css?v=nebula2">
+  <style>
+    .keys-layout { display:flex; min-height:100vh; width:100%; }
+    .keys-main { flex:1; padding:32px; position:relative; z-index:1; max-width:960px; margin:0 auto; width:100%; }
+    .keys-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+    .keys-header h1 { font-size:1.5rem; }
+    .keys-empty { color:var(--text-muted); text-align:center; padding:48px 24px; border:1px dashed var(--border); border-radius:var(--radius); }
+    .keys-table { width:100%; border-collapse:collapse; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .keys-table th, .keys-table td { padding:14px 16px; text-align:left; border-bottom:1px solid var(--border); }
+    .keys-table th { color:var(--text-muted); font-weight:500; font-size:.85rem; background:rgba(255,255,255,.02); }
+    .keys-table tr:last-child td { border-bottom:none; }
+    .key-prefix { font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color:var(--accent-light); }
+    .btn-sm { padding:6px 12px; border-radius:var(--radius-sm); border:none; cursor:pointer; font-size:.85rem; }
+    .btn-danger { background:rgba(244,63,94,.12); color:var(--rose-light); }
+    .btn-danger:hover { background:rgba(244,63,94,.22); }
+    .btn-primary { background:var(--accent); color:var(--bg); font-weight:600; }
+    .btn-primary:hover { filter:brightness(1.1); }
+    .btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+    .toast { position:fixed; bottom:24px; right:24px; padding:12px 16px; border-radius:var(--radius-sm); background:var(--bg-card); border:1px solid var(--border); color:var(--text); z-index:100; }
+    .toast.success { border-color:var(--green); color:var(--green); }
+    .toast.error { border-color:var(--rose); color:var(--rose-light); }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:50; }
+    .modal { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:28px; width:100%; max-width:520px; margin:24px; }
+    .modal h2 { margin-bottom:12px; }
+    .modal p { color:var(--text-muted); margin-bottom:16px; font-size:.95rem; }
+    .key-reveal { display:flex; gap:8px; align-items:center; }
+    .key-reveal input { flex:1; padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-input); color:var(--text); font-family:ui-monospace, monospace; }
+    .key-reveal button { padding:12px; border-radius:var(--radius-sm); border:none; background:var(--bg-card-hover); color:var(--text); cursor:pointer; }
+    .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+    .modal-actions button { padding:10px 16px; border-radius:var(--radius-sm); border:none; cursor:pointer; }
+    .hidden { display:none !important; }
+    @media (max-width:640px) {
+      .keys-main { padding:20px; }
+      .keys-header { flex-direction:column; align-items:flex-start; gap:12px; }
+      .keys-table th:nth-child(3), .keys-table td:nth-child(3) { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="solar-canvas"></canvas>
+  <div class="keys-layout">
+    <aside class="sidebar" style="width:var(--sidebar-w); flex-shrink:0;">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="brand-mark"><svg class="svg-icon"><use href="icons.svg#i-sparkles"/></svg></div>
+          <div class="brand-text"><h1>LiMa 星云</h1><div class="brand-text-sub">控制台</div></div>
+        </div>
+      </div>
+      <div class="section-label">账户</div>
+      <div class="device-list">
+        <a href="index.html" class="device-card" style="text-decoration:none; color:inherit;">
+          <div class="device-card-top"><div class="device-icon ai"><svg class="svg-icon"><use href="icons.svg#i-bot"/></svg></div><div class="device-meta"><div class="device-name">对话</div><div class="device-sub">星云 AI</div></div></div>
+        </a>
+        <a href="keys.html" class="device-card active" style="text-decoration:none; color:inherit;">
+          <div class="device-card-top"><div class="device-icon draw"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></div><div class="device-meta"><div class="device-name">API Key</div><div class="device-sub">访问密钥</div></div></div>
+        </a>
+      </div>
+      <div class="section-label" style="margin-top:auto;">账户</div>
+      <div class="device-list">
+        <button class="device-card" id="logoutBtn" style="width:100%; text-align:left; background:none; border:none; color:inherit;">
+          <div class="device-card-top"><div class="device-icon" style="background:rgba(244,63,94,.12)"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div><div class="device-meta"><div class="device-name">退出登录</div></div></div>
+        </button>
+      </div>
+    </aside>
+
+    <main class="keys-main">
+      <div class="keys-header">
+        <h1>API Key 管理</h1>
+        <button class="btn-primary" id="createBtn">+ 创建新 Key</button>
+      </div>
+      <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+      <div id="empty" class="keys-empty hidden">暂无 API Key，点击右上角创建。</div>
+      <table class="keys-table" id="keysTable" aria-label="API Key 列表">
+        <thead><tr><th>名称</th><th>前缀</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+        <tbody id="keysBody"></tbody>
+      </table>
+    </main>
+  </div>
+
+  <div class="modal-overlay hidden" id="newKeyModal" role="dialog" aria-modal="true" aria-labelledby="newKeyTitle">
+    <div class="modal">
+      <h2 id="newKeyTitle">保存你的 API Key</h2>
+      <p>完整 Key 仅显示这一次，请立即复制并妥善保存。</p>
+      <div class="key-reveal">
+        <input type="text" id="newKeyInput" readonly aria-label="完整 API Key">
+        <button id="copyKeyBtn" type="button">复制</button>
+      </div>
+      <div class="modal-actions">
+        <button id="closeModalBtn" type="button" style="background:var(--bg-card-hover); color:var(--text);">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js?v=nebula2"></script>
+  <script src="js/auth.js?v=nebula2"></script>
+  <script src="js/keys.js?v=nebula2"></script>
+  <script src="solar-system.js?v=nebula2"></script>
+</body>
+</html>

@@ -21,11 +21,12 @@ from device_logic.captcha import create_captcha, generate_captcha_image
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, read_body, str_field
 from device_logic.sms import login_code_error, sms_verification_payload, validate_login_code
-from routes import device_app_auth_email
+from routes import device_app_auth_email, device_app_auth_keys
 from routes.request_tracking import client_ip
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-auth"])
 router.include_router(device_app_auth_email.router)
+router.include_router(device_app_auth_keys.router)
 
 
 def _static_login_code_error() -> JSONResponse | None:

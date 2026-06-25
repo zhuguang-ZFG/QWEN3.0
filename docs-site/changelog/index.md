@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-06-25 Phase B P1：API Key 管理页
+
+- 新增 `v2_api_key` 表与 `device_logic/api_key.py`，用于生成、列表与软删除用户 API Key。
+- 新增 `/device/v1/app/keys`（创建/列表）与 `/device/v1/app/keys/{id}`（删除）。
+- 新增 `chat-web/keys.html` + `js/keys.js`：创建 Key 时仅显示一次完整密钥、复制按钮、前缀列表、删除确认。
+- 未登录用户访问 `keys.html` 自动跳转登录页。
+
 ## 2026-06-25 Phase B P1：控制台登录/注册
 
 - `v2_account` 新增 `email` 字段，支持邮箱/密码注册与 JWT 登录。

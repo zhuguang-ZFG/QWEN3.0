@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from device_logic import auth as auth_core
 from routes import device_app_auth as auth
 from routes import device_app_auth_email as email_auth
+from routes import device_app_auth_keys as key_routes
 
 
 @pytest.fixture
@@ -54,7 +55,9 @@ def _make_conn(rows=None):
 def _patch_deps(account):
     from device_logic import db as db_module
     with patch.object(auth, "authorize", return_value=account), \
+         patch.object(key_routes, "authorize", return_value=account), \
          patch.object(auth, "allow_device_auth", return_value=True), \
+         patch.object(key_routes, "allow_device_auth", return_value=True), \
          patch.object(auth_core, "make_token", return_value="token-123"), \
          patch.object(auth, "validate_login_code", return_value=True), \
          patch.object(auth, "login_code_error", return_value=None), \
@@ -188,3 +191,37 @@ def test_login_email_invalid_password(client, account):
 def test_login_email_missing_fields(client):
     response = client.post("/device/v1/app/auth/login-email", json={"email": "tester@example.com"})
     assert response.status_code == 400
+
+
+def test_create_api_key_success(client, auth_header):
+    with patch.object(key_routes, "create_key", return_value={"id": "key-1", "name": "test", "prefix": "sk-lima-abc", "key": "sk-lima-secret", "status": "active", "createdAt": "2024-01-01T00:00:00Z"}):
+        response = client.post("/device/v1/app/keys", headers=auth_header, json={"name": "test"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "key-1"
+    assert data["key"] == "sk-lima-secret"
+
+
+def test_create_api_key_missing_name(client, auth_header):
+    response = client.post("/device/v1/app/keys", headers=auth_header, json={})
+    assert response.status_code == 400
+
+
+def test_list_api_keys_success(client, auth_header):
+    with patch.object(key_routes, "list_keys", return_value=[{"id": "key-1", "name": "test", "prefix": "sk-lima-abc"}]):
+        response = client.get("/device/v1/app/keys", headers=auth_header)
+    assert response.status_code == 200
+    assert response.json()["keys"][0]["id"] == "key-1"
+
+
+def test_delete_api_key_success(client, auth_header):
+    with patch.object(key_routes, "delete_key", return_value=True):
+        response = client.delete("/device/v1/app/keys/key-1", headers=auth_header)
+    assert response.status_code == 200
+    assert response.json()["deleted"] is True
+
+
+def test_delete_api_key_not_found(client, auth_header):
+    with patch.object(key_routes, "delete_key", return_value=False):
+        response = client.delete("/device/v1/app/keys/key-1", headers=auth_header)
+    assert response.status_code == 404
