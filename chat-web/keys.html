@@ -6,7 +6,7 @@
   <title>API Key 管理 - LiMa 星云</title>
   <meta name="description" content="管理 LiMa 星云 API Key，创建、查看与删除访问密钥。">
   <meta name="theme-color" content="#0a0a0f">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net; upgrade-insecure-requests;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; upgrade-insecure-requests;">
   <link rel="stylesheet" href="styles.css?v=nebula2">
   <style>
     .keys-layout { display:flex; min-height:100vh; width:100%; }
@@ -46,7 +46,6 @@
   </style>
 </head>
 <body>
-  <canvas id="solar-canvas"></canvas>
   <div class="keys-layout">
     <aside class="sidebar" style="width:var(--sidebar-w); flex-shrink:0;">
       <div class="sidebar-header">
@@ -109,6 +108,5 @@
   <script src="js/api.js?v=nebula2"></script>
   <script src="js/auth.js?v=nebula2"></script>
   <script src="js/keys.js?v=nebula2"></script>
-  <script src="solar-system.js?v=nebula2"></script>
 </body>
 </html>

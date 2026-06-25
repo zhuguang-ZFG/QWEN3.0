@@ -6,7 +6,7 @@
   <title>用量统计 - LiMa 星云</title>
   <meta name="description" content="查看 LiMa 星云 API 用量、Token 消耗与费用估算。">
   <meta name="theme-color" content="#0a0a0f">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net; upgrade-insecure-requests;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; upgrade-insecure-requests;">
   <link rel="stylesheet" href="styles.css?v=nebula2">
   <style>
     .usage-layout { display:flex; min-height:100vh; width:100%; }
@@ -38,7 +38,6 @@
   </style>
 </head>
 <body>
-  <canvas id="solar-canvas"></canvas>
   <div class="usage-layout">
     <aside class="sidebar" style="width:var(--sidebar-w); flex-shrink:0;">
       <div class="sidebar-header">
@@ -101,6 +100,5 @@
   <script src="js/api.js?v=nebula2"></script>
   <script src="js/auth.js?v=nebula2"></script>
   <script src="js/usage.js?v=nebula2"></script>
-  <script src="solar-system.js?v=nebula2"></script>
 </body>
 </html>

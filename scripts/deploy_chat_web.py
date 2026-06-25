@@ -44,7 +44,6 @@ FILES = [
     "chat-ui.js",
     "chat-messages.js",
     "chat-api.js",
-    "solar-system.js",
     "js/api.js",
     "js/auth.js",
     "js/model-selector.js",

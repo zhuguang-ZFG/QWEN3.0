@@ -6,13 +6,6 @@
 <meta name="theme-color" content="#000000">
 <title>LiMa 星云 AI 语音/视频通话</title>
 <style>
-@font-face {
-  font-family: 'Geist';
-  src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/GeistVariableVF.woff2') format('woff2-variations');
-  font-weight: 100 900;
-  font-display: swap;
-}
-
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --accent:#06b6d4;
@@ -29,7 +22,7 @@
 body{
   background:var(--bg);
   color:var(--text);
-  font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
   height:100vh;
   height:100dvh;
   display:flex;
@@ -56,9 +49,7 @@ body::before{
   font-size:1.1rem;
   font-weight:700;
   letter-spacing:-0.02em;
-  background:linear-gradient(90deg,var(--accent),var(--violet-light));
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
+  color:var(--text);
   z-index:1;
 }
 .status{
