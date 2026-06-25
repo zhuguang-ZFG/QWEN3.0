@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-06-25 Phase B P1：设备管理页
+
+- 新增 `chat-web/devices.html` + `js/devices.js`：已绑定设备列表、详情抽屉、实时 WebSocket 状态、添加/解绑设备。
+- 复用已有后端 `/device/v1/app/devices`、`/device/v1/app/devices/{id}/status`、`/device/v1/app/devices/{id}/ws`、`/device/v1/app/tasks`。
+- 同步 `index.html`、`keys.html`、`usage.html` 侧边栏入口。
+
 ## 2026-06-25 Phase B P1：用量统计页
 
 - 新增 `/device/v1/app/stats/usage?days=30`：按已完成任务估算每日 Token 消耗、请求次数、费用明细与能力分布。

@@ -30,6 +30,24 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase B P1：B-4 设备管理页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-4，为用户控制台新增已绑定设备列表、详情抽屉、实时状态与解绑能力。
+- **关键结果**：
+  - 新增 `chat-web/devices.html` + `js/devices.js`：
+    - 卡片式设备列表，展示在线/离线/运行中状态、型号、固件版本。
+    - 右侧抽屉详情，显示设备信息、最近 5 条任务、实时 WebSocket 状态推送。
+    - 添加设备弹窗（SN + 激活码）调用已有 `POST /device/v1/app/devices/bind`。
+    - 解绑确认弹窗调用已有 `POST /device/v1/app/devices/{id}/unbind`。
+  - `chat-web/js/api.js`：新增 `put` 方法。
+  - 同步 `chat-web/index.html`、`keys.html`、`usage.html` 侧边栏，新增「设备管理」入口。
+  - `scripts/deploy_chat_web.py`：静态文件清单纳入 `devices.html` 与 `js/devices.js`。
+- **验证**：
+  - `node --check chat-web/js/devices.js` 通过。
+  - 聚焦 pytest `tests/test_routes_device_app_api.py` + `tests/test_device_app_stats.py` + `tests/test_routes_device_app_auth.py` **42 passed / 0 failed**。
+  - `ruff check` / `pyright` 修改 Python 文件 clean。
+- **部署**：本次未执行 VPS 自动部署（本地环境缺少 `LIMA_DEPLOY_PASS` 且 paramiko 无法解析当前 SSH 私钥）；文件已就绪，配置密码后可通过 `scripts/deploy_chat_web.py` 同步。
+
 ### 最近完成（2026-06-25）Phase B P1：B-3 用量统计页
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-3，为用户控制台增加 Token/请求/费用用量统计。

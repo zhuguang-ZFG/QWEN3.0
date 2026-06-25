@@ -45,5 +45,20 @@
       }
       return data;
     },
+
+    async put(path, body, token) {
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = "Bearer " + token;
+      const res = await fetch(API_BASE + path, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || data.error || res.statusText);
+      }
+      return data;
+    },
   };
 })();
