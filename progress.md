@@ -9176,3 +9176,10 @@ uff check（6 个变更 Python 文件）全通过。
 oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至 290 行。
 - **测试**：draw_prompt_enhancer + draw_prompt_context + device_draw_handler（part1+2）= 32 passed，无回归。
 - **验证**：uff check 2 文件 clean；导入无循环依赖。
+
+## 2026-06-26 device_draw_handler.py 拆分：响应构建器提取
+
+- **目标**：消除 device_gateway/device_draw_handler.py 311 行文件违规。
+- **实现**：新建 device_gateway/draw_responses.py（60 行），提取 3 个响应构建函数（uild_failed_response / uild_partial_response / uild_success_response）。device_draw_handler.py 导入并别名 _build_* 保持内部调用不变，降至 259 行。
+- **测试**：device_draw_handler（part1+2）= 14 passed，无回归。
+- **验证**：uff check 2 文件 clean。

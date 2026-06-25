@@ -19,6 +19,9 @@ from device_gateway.draw_prompt_enhancer import (
     screen_drawing_request,
 )
 from device_gateway.path_pipeline import precheck_draw_motion_path
+from device_gateway.draw_responses import build_failed_response as _build_failed_response
+from device_gateway.draw_responses import build_partial_response as _build_partial_response
+from device_gateway.draw_responses import build_success_response as _build_success_response
 
 logger = logging.getLogger(__name__)
 
@@ -31,61 +34,6 @@ PRESET_KEYWORDS = {
     "heart": ["心", "心形", "heart", "爱心"],
     "crescent": ["月", "月亮", "月牙", "crescent"],
 }
-
-
-def _build_failed_response(model: str, error: str) -> Dict[str, Any]:
-    """Build a failed draw response payload."""
-    return {
-        "status": "failed",
-        "image_url": "",
-        "svg_path": None,
-        "width": 0,
-        "height": 0,
-        "model": model,
-        "error": error,
-    }
-
-
-def _build_partial_response(
-    image_url: str,
-    width: int,
-    height: int,
-    model: str,
-    error: str,
-) -> Dict[str, Any]:
-    """Build a partial draw response payload."""
-    return {
-        "status": "partial",
-        "image_url": image_url,
-        "svg_path": None,
-        "width": width,
-        "height": height,
-        "model": model,
-        "error": error,
-    }
-
-
-def _build_success_response(
-    image_url: str,
-    svg_result: Dict[str, Any],
-    optimization: Any,
-    model: str,
-) -> Dict[str, Any]:
-    """Build a successful draw response payload."""
-    return {
-        "status": "success",
-        "image_url": image_url,
-        "svg_path": optimization.optimized_path,
-        "width": svg_result["width"],
-        "height": svg_result["height"],
-        "model": model,
-        "error": None,
-        "optimization": {
-            "original_points": optimization.original_points,
-            "optimized_points": optimization.optimized_points,
-            "reduction_ratio": optimization.reduction_ratio,
-        },
-    }
 
 
 def _try_preset_shape(prompt: str) -> Optional[Dict[str, Any]]:
