@@ -15,9 +15,11 @@ def test_public_chat_has_content_security_policy() -> None:
 
 
 def test_public_chat_code_blocks_escape_html() -> None:
+    import re
+
     text = (ROOT / "chat-web/chat-messages.js").read_text(encoding="utf-8")
     # Code captured from triple backticks must be HTML-escaped before insertion.
-    assert "<code>${escapeHtml(code)}</code>" in text
+    assert re.search(r"<code[^>]*>\$\{escapeHtml\(code\)\}</code>", text), "code block must escape HTML"
     assert "onclick=\"copyCode" not in text
 
 
