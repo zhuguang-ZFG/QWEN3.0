@@ -86,9 +86,6 @@ class FeatureFlags:
         1,
         min(60, int(os.environ.get("LIMA_PUBLIC_DEMO_MAX_PER_MINUTE", "6") or "6")),
     )
-    xiaozhi_compat: bool = (
-        os.environ.get("LIMA_XIAOZHI_COMPAT_ENABLED", "").strip().lower() in {"1", "true", "yes"}
-    )
     health_show_errors: bool = (
         os.environ.get("LIMA_HEALTH_SHOW_ERRORS", "0").strip().lower() in {"1", "true", "yes"}
     )

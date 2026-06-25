@@ -54,7 +54,7 @@ def test_server_registers_xiaozhi_v1_compat_routes():
     paths = _api_paths()
 
     assert "/api/v1/login" not in paths
-    assert server._loaded_modules.get("xiaozhi_v1_compat") is False
+    assert "xiaozhi_v1_compat" not in server._loaded_modules
     assert "/device/v1/app/devices" in paths
     assert "/device/v1/app/tasks" in paths
     assert "/device/v1/app/members" in paths
@@ -63,7 +63,7 @@ def test_server_registers_xiaozhi_v1_compat_routes():
 
 
 def test_server_cannot_opt_in_to_retired_xiaozhi_v1_compat_routes(monkeypatch):
-    """XiaoZhi v1 compatibility layer is retired; env var opt-in is ignored."""
+    """XiaoZhi v1 compatibility layer is fully removed; env var has no effect."""
     from fastapi import FastAPI
 
     monkeypatch.setenv("LIMA_XIAOZHI_COMPAT_ENABLED", "1")
@@ -89,7 +89,7 @@ def test_server_cannot_opt_in_to_retired_xiaozhi_v1_compat_routes(monkeypatch):
 
     paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
     assert "/api/v1/login" not in paths
-    assert deps.loaded_modules.get("xiaozhi_v1_compat") is False
+    assert "xiaozhi_v1_compat" not in deps.loaded_modules
 
 
 def test_try_include_reraises_unexpected_module_errors(monkeypatch):
@@ -139,7 +139,7 @@ def test_register_all_routes_is_idempotent_on_fresh_app():
         paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
         assert "/v1/chat/completions" in paths
         assert "/api/v1/login" not in paths
-        assert deps.loaded_modules.get("xiaozhi_v1_compat") is False
+        assert "xiaozhi_v1_compat" not in deps.loaded_modules
         assert registered.health is not None
     finally:
         chat_endpoints_mod._deps.clear()

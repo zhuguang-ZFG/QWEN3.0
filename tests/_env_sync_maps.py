@@ -125,11 +125,6 @@ def _flags_map(settings: Any) -> dict[str, tuple[Any, str, Callable[[str | None]
             "public_demo_max_per_minute",
             _clamp_public_demo_rate,
         ),
-        "LIMA_XIAOZHI_COMPAT_ENABLED": (
-            settings.FLAGS,
-            "xiaozhi_compat",
-            lambda v: _bool_env(v, frozenset({"1", "true", "yes"})),
-        ),
         "LIMA_HEALTH_SHOW_ERRORS": (
             settings.FLAGS,
             "health_show_errors",

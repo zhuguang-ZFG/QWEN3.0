@@ -612,7 +612,7 @@
 
 ### 最近完成（2026-06-18）小智服务器退役：LiMa 原生设备/固件/移动端贯通
 
-- **实现**：新增并注册 `/device/v1/app` 原生管理面，覆盖账号、设备、任务、成员/声纹、转移、耗材、自检；`xiaozhi_v1_compat` 默认关闭，仅 `LIMA_XIAOZHI_COMPAT_ENABLED=1` opt-in。
+- **实现**：新增并注册 `/device/v1/app` 原生管理面，覆盖账号、设备、任务、成员/声纹、转移、耗材、自检；`xiaozhi_v1_compat` 兼容层于 2026-06-26 物理删除（`routes/xiaozhi_v1_compat.py` + `routes/xiaozhi_compat/` 包 + 退役测试），`LIMA_XIAOZHI_COMPAT_ENABLED` 标志同步移除。
 - **固件/移动端**：`esp32S_XYZ` 固件默认连接 `wss://chat.donglicao.com/device/v1/ws` 并使用 `lima-device-v1`；manager-mobile 默认 LiMa 公网、v2 页面和 `/device/v1/app` API，设置页用 `/health` 验证服务地址。
 - **OTA**：补齐设备侧升级计划和安装结果上报，发布/灰度状态可持久化。
 - **验证**：全量 `pytest` → **1746 passed, 37 skipped**；`ruff check .`、`ruff format --check` clean；pyright 目标文件 0 errors；`tests/test_firmware_hardware_gate.py` → **13 passed**；manager-mobile `type-check` 和 `build:h5` 通过；VPS 公网 `/health`、`/device/v1/health` 验证通过，OpenAPI 已有 `/device/v1/app/*` 与 `/device/v1/ota/upgrade-plan`，默认无 `/api/v1/devices`。
@@ -933,7 +933,7 @@ ruff check: clean（触及文件）
 | 项目 | 状态 |
 |------|------|
 | P0 违规 | ✅ 已修复 |
-| xiaozhi_v1_compat 重构 | ✅ 完成 (1184→518, 7 模块) |
+| xiaozhi_v1_compat 重构 → 物理删除 | ✅ 完成（2026-06-26 删除包+门面+退役测试+env 标志） |
 | admin_ui 模块化 | ✅ 完成 (482→55, 4 模块) |
 | ops_metrics 重构 | ✅ 完成 (3 模块拆分) |
 | tasks.py 拆分 | ✅ 完成 (task_recorder.py) |

@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routes.upload import router as upload_router, serve_uploaded_file
-from routes.xiaozhi_compat.auth import jwt
+from device_logic.auth import jwt
 from device_logic.db import connect
 
 

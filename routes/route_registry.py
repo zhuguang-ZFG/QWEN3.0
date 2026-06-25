@@ -247,8 +247,6 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
 def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     """Mount optional routers with graceful ImportError fallback."""
     loaded = deps.loaded_modules
-    # XiaoZhi v1 compatibility layer is retired; endpoints migrated to routes/device_app_*.py.
-    loaded["xiaozhi_v1_compat"] = False
     _try_include(app, loaded, "routes.ops_metrics", "ops_metrics")
     _try_include(app, loaded, "routes.health_dashboard", "health_dashboard")
 
