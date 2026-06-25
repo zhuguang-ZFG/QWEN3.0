@@ -202,6 +202,23 @@ def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     loaded_modules["device_app_templates"] = True
     loaded_modules["device_app_tasks"] = True
     loaded_modules["device_app_activity"] = True
+    _register_device_ota_routes(app, loaded_modules)
+
+
+def _register_device_ota_routes(app: FastAPI, loaded_modules: dict) -> None:
+    """Mount OTA routers as a core device-cloud cohort.
+
+    OTA is core post 2026-06-09 pivot; both routers share device_ota.runtime
+    singletons and must succeed together, so they ride the core path rather
+    than the optional _try_include fallback.
+    """
+    from routes.device_ota import router as device_ota_router
+    from routes.device_ota_app import router as device_ota_app_router
+
+    app.include_router(device_ota_router)
+    app.include_router(device_ota_app_router)
+    loaded_modules["device_ota"] = True
+    loaded_modules["device_ota_app"] = True
 
 
 def _register_voice_routes(app: FastAPI, loaded_modules: dict) -> None:
@@ -247,8 +264,6 @@ def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     _try_include(app, loaded, "routes.token_sync", "token_sync")
     _try_include(app, loaded, "routes.device_memory", "device_memory")
     _try_include(app, loaded, "routes.device_support", "device_support")
-    _try_include(app, loaded, "routes.device_ota", "device_ota")
-    _try_include(app, loaded, "routes.device_ota_app", "device_ota_app")
 
     # Retired subsystems — see docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md P5.
     loaded["mcp"] = False

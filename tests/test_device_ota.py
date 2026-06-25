@@ -104,14 +104,20 @@ def _ota_client(monkeypatch):
 
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from routes.device_ota import router, _gate, _canary
 
-    # Reset shared state for test isolation
-    _gate.criteria = {name: False for name in _gate.criteria}
-    _canary.canary_devices.clear()
-    _canary.deployed_version = ""
-    _canary.success_count = 0
-    _canary.failure_count = 0
+    from device_ota import runtime as ota_runtime
+    from routes.device_ota import router
+
+    # Reset shared state via the canonical OTA runtime; route modules are pure
+    # adapters and no longer own the singletons.
+    ota_runtime.reset_for_tests()
+    gate = ota_runtime.get_release_gate()
+    canary = ota_runtime.get_canary()
+    gate.criteria = {name: False for name in gate.criteria}
+    canary.canary_devices.clear()
+    canary.deployed_version = ""
+    canary.success_count = 0
+    canary.failure_count = 0
 
     app = FastAPI()
     app.include_router(router)

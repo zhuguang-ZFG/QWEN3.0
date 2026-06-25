@@ -598,7 +598,8 @@
   - 能力映射：draw/image → `draw_generated`；write/text/run_path → `write_text`；其余 → `chat`。
   - 费用估算：按能力固定单任务 Token 与单价（chat 500/¥0.0015、draw 1500/¥0.0045、write 1000/¥0.003）。
   - `chat-web/usage.html` + `js/usage.js`：ECharts 暗色主题（折线/柱状/饼图）、汇总卡片、分页明细、7/30/90 天切换。
-  - `chat-web/usage.html` CSP 允许 `cdn.jsdelivr.net` 加载 ECharts。  - `scripts/deploy_chat_web.py`：更新清单纳入 `usage.html` 与 `js/usage.js`。
+  - `chat-web/usage.html` CSP 允许 `cdn.jsdelivr.net` 加载 ECharts。
+  - `scripts/deploy_chat_web.py`：更新清单纳入 `usage.html` 与 `js/usage.js`。
   - `tests/test_device_app_stats.py`：新增 2 个用量接口用例。
 - **验证**：
   - `tests/test_device_app_stats.py` 7 passed；`tests/test_routes_device_app_auth.py` 24 passed。
@@ -9087,3 +9088,30 @@ Agent Worker path.
   - `.venv310/Scripts/python -m pytest -m "not network" -q` → **3774 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
   - `git status --short` 显示 18 个文档文件已修改，无意外二进制/密钥文件进入暂存区。
 - **后续**：提交（conventional commit `docs:`），推送到 `origin/main`；如未改动运行时，VPS 部署可仅做健康检查。
+
+## 2026-06-25 OTA 安全/性能/架构修复（code-review 全量修复）
+
+- **目标**：落实上一轮 /code-review 的 REQUEST CHANGES 结论，修复 H1 安全门控 + M1-M4 + L1 + 架构 Watch #1/#3/#6b。
+- **实现**：
+  - **H1（安全）**
+outes/device_ota_app.py::_ota_status_for_device：固件载荷（url/sha256/signature）仅对 selected and status == "available_selected" 的设备返回，堵住未选中渐进/金丝雀发布的设备通过 /check 泄露预发布固件工件位置/签名。
+  - **M1（性能）** pp_check_ota 改 sync def（FastAPI 线程池分发）；pp_start_ota 用 syncio.to_thread 卸载阻塞 SQLite 调用，避免事件循环阻塞。
+  - **M2（质量）** pp_start_ota 用项目标准 device_logic.http.read_body 替换脆弱的 wait request.body() + isinstance(body, bytes) 死代码 + 函数内 import json，正确返回 400 而非 500。
+  - **M3（性能·标注）** is_device_selected 每请求 O(N log N) 排序 + N 次 SHA256，加 ponytail: 注释说明上限（设备池 ~10^4）和升级路径（缓存当前阶段选定集合），记入 PONYTAIL-DEBT.md PD-001。
+  - **M4（质量）** 	ests/test_device_ota_app.py + 	ests/test_device_ota.py 改用 device_ota.runtime.reset_for_tests()，不再变异兄弟模块私有 _canary/_gate。
+  - **L1（风格）**
+outes/device_ota.py:3 单行多导入拆为多行。
+  - **架构 #1** 新建 device_ota/runtime.py 持有 _gate/_canary/_gradual/_monitor 单例 + get_*() 访问器 +
+eset_for_tests()；
+outes/device_ota.py 保留
+eset_ota_state_for_tests back-compat shim 委托到 runtime；路由模块退化为纯适配器，领域生命周期不再从属于 HTTP 适配器。
+  - **架构 #3**
+outes/route_registry.py 新建 _register_device_ota_routes，把 OTA 从 _register_optional_routes（_try_include + ImportError 回退）移入核心设备 cohort，对齐 2026-06-09 战略转型后 OTA 作为核心设备云能力的定位。
+  - **架构 #6b** 4 个法律 JSX 文件加 ponytail: 注释说明 i18n 上限（2 语言）和升级路径，记入 PONYTAIL-DEBT.md PD-002。
+- **验证**：
+  -
+uff check（6 个变更 Python 文件）全通过。
+  - pytest（6 个 OTA 相关测试文件）**70 passed**。
+  - check_code_size.py 变更文件 0 违规。
+  - 最终独立 code-review（code-reviewer + architect 双车道）：APPROVE + CLEAR。
+- **部署**：scripts/deploy_unified.py 同步 430 文件到 VPS，服务重启 health=OK；公网 /health 返回 device_ota:true, device_ota_app:true（确认移入核心 cohort 生效）；/device/v1/ota/check 与 /device/v1/ota/release/status 返回 401（路由已挂载，认证守卫生效，非 404）。

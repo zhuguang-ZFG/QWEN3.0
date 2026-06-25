@@ -1,3 +1,6 @@
+// ponytail: legal body text is hardcoded per-locale in JSX. Ceiling: 2 locales
+// (zh/en). Upgrade path: single JSON/MD source per locale rendered via a shared
+// component when a 3rd locale lands.
 import type { Metadata } from "next";
 import LegalPage from "../../components/LegalPage";
 

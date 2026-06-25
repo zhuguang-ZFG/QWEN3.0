@@ -3,7 +3,8 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from routes import device_ota
+from device_ota import runtime as ota_runtime
+from routes.device_ota import router as device_ota_router
 from routes.device_ota_app import router as app_ota_router
 
 
@@ -11,13 +12,9 @@ def _app_ota_client(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     monkeypatch.delenv("LIMA_DEVICE_OTA_STATE_PATH", raising=False)
 
-    # Reset shared state lives in the core OTA module.
-    device_ota._gate.criteria = {name: False for name in device_ota._gate.criteria}
-    device_ota._canary.canary_devices.clear()
-    device_ota._canary.deployed_version = ""
-    device_ota._canary.firmware = {}
-    device_ota._canary.success_count = 0
-    device_ota._canary.failure_count = 0
+    # Canonical reset lives in the OTA domain runtime; route modules are now
+    # pure adapters and no longer own the singletons.
+    ota_runtime.reset_for_tests()
 
     import routes.device_ota_app as app_ota_mod
 
@@ -43,7 +40,7 @@ def _app_ota_client(monkeypatch):
     )
 
     app = FastAPI()
-    app.include_router(device_ota.router)
+    app.include_router(device_ota_router)
     app.include_router(app_ota_router)
     return TestClient(app)
 
@@ -91,7 +88,9 @@ def test_app_ota_check_available_not_selected(monkeypatch):
     data = response.json()
     assert data["status"] == "available_not_selected"
     assert data["available_version"] == "v2.0.0"
-    assert data["firmware"]["version"] == "v2.0.0"
+    # H1 fix: unselected devices must NOT receive the firmware payload
+    # (url/sha256/signature) from an ongoing canary/gradual rollout.
+    assert data["firmware"] is None
 
 
 def test_app_ota_start_selects_device(monkeypatch):
