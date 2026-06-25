@@ -34,6 +34,8 @@ export default function Partners() {
                 alt={logo.replace(".svg", "")}
                 width={120}
                 height={36}
+                loading="lazy"
+                decoding="async"
                 className="h-8 w-auto object-contain"
               />
             </div>

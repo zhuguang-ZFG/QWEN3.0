@@ -88,6 +88,8 @@ export default function ProductPage({
               src={heroImage}
               alt={title}
               fill
+              priority
+              decoding="async"
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
             />

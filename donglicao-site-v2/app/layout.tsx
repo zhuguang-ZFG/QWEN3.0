@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://donglicao.com",
   },
+  other: {
+    "theme-color": "#07070f",
+  },
 };
 
 const structuredData = {
@@ -51,6 +54,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className="h-full antialiased">
+      <head>
+        <link rel="preconnect" href="https://donglicao.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://donglicao.com" />
+        <link rel="preload" as="image" href="/assets/hero.webp" type="image/webp" />
+      </head>
       <body className="min-h-full flex flex-col bg-[#07070f] text-slate-200">
         <SkipLink />
         {children}

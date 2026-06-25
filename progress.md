@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-25 完成 Phase C P1：Next.js 官网性能优化
+
+- **目标**：为 `donglicao-site-v2` 做性能优化，提升 Lighthouse 预期分数。
+- **关键结果**：
+  - `layout.tsx`：增加 `preconnect`、`dns-prefetch`、首页 hero.webp preload、`theme-color`。
+  - `Products`、`Scenarios`、`Partners` 组件图片增加 `loading="lazy"` 与 `decoding="async"`。
+  - `ProductPage` hero 增加 `priority` 与 `decoding="async"`。
+- **验证**：
+  - `npm run build` 成功。
+  - 聚焦后端 pytest **35 passed / 0 failed**。
+- **待完成**：Lighthouse 实测、动效与响应式精调。
+
 ## 2026-06-25 完成 Phase C P1：Next.js 官网自定义 404 页面
 
 - **目标**：为 `donglicao-site-v2` 添加自定义 404 页面，提升 UX。

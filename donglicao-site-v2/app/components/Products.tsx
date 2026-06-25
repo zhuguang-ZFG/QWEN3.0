@@ -58,6 +58,8 @@ export default function Products() {
                     src={p.image}
                     alt={p.title}
                     fill
+                    loading="lazy"
+                    decoding="async"
                     className="object-cover transition duration-500 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 50vw"
                   />
