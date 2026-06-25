@@ -27,6 +27,7 @@
   - **后端 App OTA 接口**：新增 `routes/device_ota_app.py`，提供 `GET /device/v1/ota/check` 与 `POST /device/v1/ota/start`；拆分自 `routes/device_ota.py` 以维持 ≤300 行约束；`routes/route_registry.py` 注册新路由。
   - **测试拆分**：`tests/test_device_ota.py` 保留发布门/金丝雀测试；新增 `tests/test_device_ota_app.py` 覆盖 App 端点 4 个场景。
   - **合并推送**：`improve/20260625-phase-a` 已 fast-forward 合并到 `main` 并推送到 `origin/main`；子模块 `esp32S_XYZ` 同步指向 `perf/phase1-quick-wins` 最新提交。
+  - **官网 FAQ 文案优化**：用户本地对 `donglicao-site/index.html` FAQ 的文案改进已单独提交为 `docs(site)` commit 并推送到 `origin/main`；已同步到 VPS `/www/wwwroot/donglicao-site/index.html`，公网可立即看到更新。
 - **验证**：
   - 全量 pytest `-m "not network"` → **3765 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
   - 聚焦 pytest `tests/test_device_ota.py` + `tests/test_device_ota_app.py` → **17 passed / 0 failed**。
@@ -36,6 +37,7 @@
   - `python scripts/deploy_unified.py --slice core` → **1591 uploaded / 0 failed**；远程备份 `/opt/lima-router/backups/unified-core-20260625_190718/runtime-before.tgz`。
   - 公网健康：`https://chat.donglicao.com/health` 200，`status=ok`，`device_ota_app` 模块 loaded，`startup.status=ready`。
   - `https://chat.donglicao.com/device/v1/health` 200，`production_ready=true`，`auth_configured=true`。
+  - 官网 FAQ：`donglicao-site/index.html` 已通过 scp 同步到 VPS `/www/wwwroot/donglicao-site/index.html`，公网 `https://donglicao.com/` 已返回更新后的文案。
 - **待确认/阻塞**：
   - Gitee 远程未配置（`git remote -v` 仅 `origin`），本次未推送到 Gitee；如需同步请提供 Gitee 仓库 URL 与 token/SSH key。
 

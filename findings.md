@@ -35,6 +35,7 @@
 - `python scripts/deploy_unified.py --slice core` → **1591 uploaded / 0 failed / 0 skipped**；远程备份 `/opt/lima-router/backups/unified-core-20260625_190718/runtime-before.tgz`。
 - 公网 `https://chat.donglicao.com/health` 200，`status=ok`，`device_ota_app` 已加载，`startup.status=ready`。
 - 公网 `https://chat.donglicao.com/device/v1/health` 200，`production_ready=true`，`auth_configured=true`。
+- 官网 FAQ 文案改进（`donglicao-site/index.html`）已提交并同步到 VPS `/www/wwwroot/donglicao-site/index.html`，公网可验证新文案。
 
 **遗留/阻塞**
 - Gitee 镜像：仓库无 `gitee` remote，且本地无 `GITEE_TOKEN` / SSH key；如需同步请提供 Gitee 仓库 URL 与凭证。
