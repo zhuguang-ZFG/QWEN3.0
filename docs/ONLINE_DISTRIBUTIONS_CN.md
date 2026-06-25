@@ -15,9 +15,9 @@
 | 服务面 | 公开 URL | 用途 |
 |---|---|---|
 | 官方网站 | `https://www.donglicao.com`、`https://donglicao.com` | 公共产品/品牌入口和演示 |
-| 聊天界面 | `https://chat.donglicao.com` | OpenAI/Anthropic 兼容 API 和设备边缘 |
+| 聊天界面 | `https://chat.donglicao.com` | OpenAI 兼容 API 和设备边缘 |
 | 设备网关 | `https://chat.donglicao.com/device/v1/*` | ESP32 设备通信 |
-| 开放平台 | `https://api.donglicao.com` | 兼容网关状态 |
+| 开放平台 | `https://api.donglicao.com` | 京东云 NewAPI 反代（非 LiMa Server 直接入口） |
 | FRP 端点 | `http://47.112.162.80:8088` | Windows 本地路由器验证路径 |
 | 京东云节点 | `117.72.118.95` | 辅助提供商探测/监控节点 |
 

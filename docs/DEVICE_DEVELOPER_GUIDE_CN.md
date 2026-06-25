@@ -12,7 +12,7 @@
 
 ## 最小闭环
 
-1. 先看 [设备协议](device_protocol_alignment.md)。
+1. 先看 [设备协议](archive/device_protocol_alignment.md)（已归档）。
 2. 再看 [模型路由指南](AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md)。
 3. 然后看 [发布证据模板](release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md)。
 4. 最后按 [路线图](PROJECT_OPTIMIZATION_ROADMAP_CN.md) 选择当前阶段任务。

@@ -1,12 +1,12 @@
 # AGENTS.md
 
-本文件为 AI Agent 提供本项目（qoder.com）的操作指南。
+本文件为 AI Agent 提供本项目（donglicao.com）的操作指南。
 
 ---
 
 ## 项目概述
 
-LiMa 是一个多后端 AI 路由服务器（Python 3.10 + FastAPI），提供兼容 OpenAI/Anthropic 的 API。它根据请求类型、健康状态、预算和质量评分，智能路由到 170+ 个 AI 后端（Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare 等）。同时作为 AI 绘画/写作设备（基于 ESP32 的智能硬件）的云平台。
+LiMa 是一个多后端 AI 路由服务器（Python 3.10 + FastAPI），提供兼容 OpenAI 的 API。它根据请求类型、健康状态、预算和质量评分，智能路由到 170+ 个 AI 后端（Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare 等）。同时作为 AI 绘画/写作/数字人设备（基于 ESP32 的智能硬件）的云平台。
 
 **公网入口：** `https://chat.donglicao.com`（VPS nginx → :8080）
 
@@ -47,8 +47,8 @@ docker compose up -d
 # 冒烟测试（本地）
 curl -sf http://127.0.0.1:8080/health
 
-# 部署到 VPS
-python scripts/deploy_unified.py
+# 部署到 VPS（core 切片包含后端运行时与静态资源）
+python scripts/deploy_unified.py --slice core
 
 # 部署 Chat Web 静态文件到 VPS
 python scripts/deploy_chat_web.py
@@ -69,16 +69,14 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
       → routes/chat_preflight.py (guardrails, budget, identity)
       → routing_engine.route()          ← 权威路由入口
          ├─ identity_guard              (身份短路)
-         ├─ routing_classifier.classify (request_type: ide/chat/code/image)
-         ├─ routing_classifier.classify_scenario (scenario: coding/chat/device/...)
+         ├─ routing_classifier.classify (request_type: ide/chat/vision)
+         ├─ routing_classifier.classify_scenario (scenario: coding/chat)
          ├─ skill_store recall          (技能记忆 → 召回后端)
-         ├─ context_pipeline.retrieval_injection (知识图谱/向量上下文)
-         ├─ code_context_injection      (仅编码：tree-sitter 扫描)
+         ├─ context_pipeline.retrieval_injection (知识图谱/向量上下文，按需)
          ├─ router_v3.select_backends → routing_selector.select (后端排序)
          ├─ skills_injector             (向消息注入技能)
          ├─ speculative                 (简单请求：并行推测调用)
          ├─ routing_executor.execute    (串行/并行 + 降级)
-         ├─ response_validator          (编码：质量验证 + 重试)
          └─ route_post_process          (关联/证据/反馈)
       → http_caller → backend pool (httpx sync/async/stream)
       → routes/chat_post_closeout.py (记忆、指标、蒸馏队列)
@@ -91,7 +89,7 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
 
 | 职责 | 模块 | 遗留/门面 |
 |------|------|-----------|
-| 后端注册 | `backends_registry.py` + `backends_constants.py` | `backends.py` 重新导出 |
+| 后端注册 | `backends_registry/` 包 + `backends_constants.py` | — |
 | 意图分析 | `routing_intent.py` | — |
 | 意图分类 | `routing_classifier.py` | — |
 | 后端池 | `router_v3/` 包 (`POOLS` 在 `pools.py`) | — |
@@ -103,7 +101,7 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
 | 粘性会话 | `sticky_session.py` | — |
 | 流桥接 | `streaming.py`, `routes/stream_handlers.py` | — |
 | 检索注入 | `context_pipeline/retrieval_injection.py` | — |
-| 代码上下文 | `context_pipeline/code_context_injection.py` | — |
+| 代码上下文 | `context_pipeline/code_context_injection.py` | 已标记 `DEPRECATED v3.0`（编码能力退役） |
 | 技能注入 | `skills_injector.py` | — |
 | 会话记忆 | `session_memory/store*.py` (拆分：db/crud/promote/admin) | — |
 | 运维指标 | `routes/ops_metrics.py` | — |
@@ -113,7 +111,7 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
 | 子系统 | 路径 | 用途 |
 |--------|------|------|
 | 设备网关 | `device_gateway/`, `routes/device_gateway*.py` | `/device/v1/*`；Redis 任务队列 + WSS；ESP32/硬件 |
-| 频道网关 | `channel_gateway/`, `routes/channel_gateway.py` | 斜杠命令、G3 会话 |
+
 | 会话记忆 | `session_memory/` | 持久记忆 + 学习循环 |
 | 上下文流水线 | `context_pipeline/` (43 模块) | 检索、代码上下文、验证、重排序 |
 | 可观测性 | `observability/` | Prometheus 指标、结构化日志 |
@@ -123,7 +121,7 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
 
 - `server.py` — 精简 FastAPI 入口；连接中间件、注入依赖、通过 `routes/route_registry.py` 注册路由
 - `server_bootstrap.py` — 模型常量 (`MODEL_ID = "lima-1.3"`)、运行时状态、Cloudflare 终极降级
-- `server_lifespan.py` — 异步生命周期：加载健康状态、后端画像、启动探测循环、编码评估、会话记忆守护进程、MQTT、Prometheus 导出器、自动索引器
+- `server_lifespan.py` — 异步生命周期：加载健康状态、后端画像、启动探测循环、会话记忆守护进程、MQTT、Prometheus 导出器、自动索引器
 
 ### 部署拓扑
 
@@ -190,7 +188,7 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 4. ruff check + pyright 针对修改的文件
 5. VPS 部署 + 健康/冒烟验证（scripts/deploy_unified.py）
 6. 更新 STATUS.md / progress.md / findings.md
-7. git commit（conventional，仅里程碑文件）→ push origin → push gitee
+7. git commit（conventional，仅里程碑文件）→ push origin（Gitee 镜像需单独配置 remote）
 ```
 
 ## Git 规则
@@ -206,7 +204,7 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 1. 用户实现里程碑切片
 2. Agent 审查代码，运行聚焦测试 → 完整测试 → `git diff --check`
 3. Agent 更新 `progress.md` / `findings.md` 并附上结项证据
-4. Agent 仅暂存相关文件，提交（conventional），推送到 GitHub（`origin`）+ Gitee（`gitee`）
+4. Agent 仅暂存相关文件，提交（conventional），推送到 GitHub（`origin`）
 5. 仅在推送后，Agent 才提议下一个里程碑
 
 **自动结项**（当用户未说"不要部署/提交"时）：本地 pytest → VPS 部署 + 重启 + 健康/冒烟 → 更新文档 → git add/commit/push。
@@ -251,7 +249,7 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 - `LIMA_ADMIN_TOKEN` — 管理面板认证
 - `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_TOKEN` — 核降级后端
 - `LIMA_DEPLOY_PASS` — VPS 部署密码
-- 功能标志默认关闭：`GITEE_WEBHOOK_ENABLED=0`、`GITHUB_WEBHOOK_ENABLED=0`、`SEARXNG_ENABLED=0`、`CODESEARCH_MCP_ENABLED=0` 等
+- 功能标志默认关闭：`SEARXNG_ENABLED=0`、`CODESEARCH_MCP_ENABLED=0` 等（已退役的 GitHub/Gitee webhook 变量已从 `.env.example` 移除）
 
 ## CodeGraph — 代码智能（优先于 GitNexus）
 

@@ -1,7 +1,7 @@
 # LiMa 子系统热度分层评估（Hot / Warm / Cold）
 
-> 版本：2026-06-16
-> 范围：代码质量治理计划 Q7 产出
+> 版本：2026-06-25
+> 范围：代码质量治理计划 Q7 产出，已同步编码能力退役（2026-06-24）与 P1-9 清理结果
 > 审计对象：`context_pipeline/`、`provider_probe/`、`provider_automation/`、`orchestrate*`（含 Q5-4 迁至 `scripts/eval_loop*`）
 
 ## 1. 目的
@@ -51,9 +51,7 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 | 模块 | 触及点 | 证据 |
 |------|--------|------|
 | `retrieval_injection.py` | 路由前上下文注入 | `routing_engine.py`、`request_context_preflight.py` |
-| `code_context_injection.py` | 编码场景 tree-sitter 扫描 | `routing_engine_context.py` |
 | `skill_store.py` | 技能召回 / 结晶 | `routing_engine_context.py`、`route_post_process.py` |
-| `response_validator.py` | 编码响应质量校验与重试 | `routing_engine_execute_strategy.py` |
 | `routing_weights.py` | 学习环路权重持久化 | `routes/ops_metrics` eval apply、selector 排序 |
 
 **风险**：Hot 子集外仍有 ~20 个 Warm 根目录文件 + `lab/` 冷工具；新人易误判「整个目录都在热路径」。见 `context_pipeline/README.md` 与 `docs/context_pipeline_lab_CN.md`。
@@ -66,7 +64,7 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 | `response_processors.py` / `response_pipeline.py` | `route_post_process` | 质量分、后处理链 |
 | `narrative.py` | `route_post_process` handoff | 低流量 narrative 重构 |
 | `routing_bridge.py` | selector / 权重桥接 | 与 ML 权重实验相关 |
-| `cache.py` / `semantic_code_retrieval.py` | 检索加速 | 受 env / 依赖可用性影响 |
+| `cache.py` | 检索加速 | 受 env / 依赖可用性影响 |
 | `event_log.py` | 结构化事件 | 可观测性辅链 |
 
 ### 5.3 Cold（实验、评估、测试台）
@@ -76,7 +74,8 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 | `lab/static_analysis.py` | **已删**（CP-4 迁入 lab，2026-06-17 删除；原仅测试引用） |
 | `retrieval_eval.py`、`retrieval_eval_runner.py` | **已删**（CP-2） |
 | `ensemble.py`、`evolution.py`、`reflection.py` | **已删**（CP-1/CP-2） |
-| `graph_retrieval.py`、`complexity.py` | Warm lazy；仍以测试为主，**保留根目录** |
+| `graph_retrieval.py` | 已标记 `DEPRECATED v3.0`，保留根目录供历史测试引用 |
+| `complexity.py` | Warm lazy；仍以测试为主，保留根目录 |
 
 ### 5.4 建议（`context_pipeline`）
 

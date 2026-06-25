@@ -9069,3 +9069,21 @@ Agent Worker path.
   - `ruff check .` 全量通过。
   - `pytest -m "not network"` **3765 passed / 17 skipped / 2 deselected / 0 errors**（新增 6 个测试）。
   - 小程序 `pnpm type-check` 通过；`pnpm build:h5` 成功。
+
+## 2026-06-25 文档全面刷新与过时引用清理
+
+- **目标**：按用户要求「更新项目所有文档，过时文档清理干净」，审计根文档与核心 `docs/`，修正退役模块引用、死链、域名/品牌、编码能力退役后的管线描述。
+- **已修改文件**：`AGENTS.md`、`CLAUDE.md`、`README.md`、`STATUS.md`、`docs/ARCHITECTURE.md`、`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`、`docs/OPTIMIZATION_ANALYSIS_2026-06-23.md`、`docs/REQUEST_PIPELINE_AUTHORITY_CN.md`、`docs/DEVICE_DEVELOPER_GUIDE_CN.md`、`docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`、`docs/LIMA_MEMORY_CN.md`、`docs/PROJECT_AUDIT_REPORT_CN.md`、`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`、`docs/ONLINE_DISTRIBUTIONS_CN.md`、`docs/README.md`。
+- **关键修正**：
+  - `qoder.com` → `donglicao.com`；公网入口统一为 `chat.donglicao.com`。
+  - 移除 Anthropic `/v1/messages` 兼容层描述，统一改为 OpenAI `/v1/chat/completions`。
+  - `router_v3.py` → `router_v3/`、`routing_selector.py` → `routing_selector/`、`backends.py` → `backends_registry/` + `backends_constants.py`。
+  - `device_protocol_alignment.md` → `docs/archive/device_protocol_alignment.md`；`task_plan.md` → `docs/archive/task_plan.md`；`ROUTING_ENGINE_DESIGN.md` → `docs/archive/ROUTING_ENGINE_DESIGN.md`。
+  - `channel_gateway` / Telegram / GitHub-Gitee webhook 退役状态在各文档中统一标注。
+  - `api.donglicao.com` 明确为京东云 NewAPI 反代，非 LiMa Server 直接入口。
+  - `esp32S_XYZ` 子模块指针更新为 `abecbb8`（含小程序 OTA 页面）。
+- **验证**：
+  - `ruff check .` 全量通过。
+  - `.venv310/Scripts/python -m pytest -m "not network" -q` → **3774 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**。
+  - `git status --short` 显示 18 个文档文件已修改，无意外二进制/密钥文件进入暂存区。
+- **后续**：提交（conventional commit `docs:`），推送到 `origin/main`；如未改动运行时，VPS 部署可仅做健康检查。

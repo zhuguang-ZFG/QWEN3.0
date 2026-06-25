@@ -1,8 +1,8 @@
 # LiMa Cold 子系统清理优先级表
 
-> 版本：2026-06-16
+> 版本：2026-06-25
 > 依据：[`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) + `python scripts/codegraph_orphans.py --fanin`
-> 目标：在**不伤害设备热路径**与**聊天 Hot 五模块**前提下，继续「去缝合」
+> 目标：在**不伤害设备热路径**与**聊天 Hot 模块**前提下，继续「去缝合」
 
 ## 使用方式
 
@@ -65,7 +65,7 @@
 | `artifact.py` | ✅ 已删；`http_sync` 句柄压缩退役 |
 | `hierarchical_memory.py` + `memory_persistence.py` | ✅ 已删；`routing_selector` / `route_post_process` / `routing_bridge` 清理 |
 
-**CP-1 保留（Warm/Hot lazy，勿删）**：`entity_extraction.py`（`retrieval_injection`）、`graph_retrieval.py`、`complexity.py`。
+**CP-1 保留（Warm/Hot lazy，勿删）**：`graph_retrieval.py`、`complexity.py`。
 
 下一批见 **P1**。
 
@@ -103,7 +103,7 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 | `evolution.py` + `signal_extraction.py` | ✅ 已删；`routing_selector` / `routing_bridge` 清理 |
 | `local_retrieval/eval_bridge.py` | ✅ 已删 |
 
-**CP-2 保留（Warm/Hot）**：`production_index.py` + `retrieval_corpus.py`（`retrieval_injection`）、`graph_retrieval.py`、`complexity.py`。
+**CP-2 保留（Warm/Hot）**：`graph_retrieval.py`、`complexity.py`。
 
 下一批见 **P2（CP-3）**。
 
@@ -118,7 +118,7 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 | `retrieval_eval_runner.py` | **CP-2 已删** | — |
 | `retrieval_eval.py` | **CP-2 已删** | — |
 | `evolution.py` + `signal_extraction.py` | **CP-2 已删** | — |
-| `production_index.py` + `retrieval_corpus.py` | **保留** | `retrieval_injection` lazy |
+
 
 **勿放入 P1**（看似冷、实则 Warm/Hot lazy）：
 
@@ -126,8 +126,7 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 |------|----------|
 | `complexity.py` | `routing_engine_context.py` |
 | `graph_retrieval.py` | `retrieval_injection.py`、`code_scanner.py`、`lima_mcp` |
-| `graph_context_expander.py` | `code_context_injection.py` lazy |
-| `retrieval_trace.py` | `retrieval_injection.py`、`ops_metrics`、`admin_api` |
+
 
 ---
 
@@ -151,11 +150,11 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 将 P0/P1 清理后仍残留的 Cold 文件迁入 `context_pipeline/lab/`，根目录只保留 Hot/Warm 生产面。设计说明：[`context_pipeline_lab_CN.md`](context_pipeline_lab_CN.md)。
 
-**Hot（禁止动）**：`retrieval_injection.py`、`code_context_injection.py`、`skill_store.py`、`response_validator.py`、`routing_weights.py`
+**Hot（禁止动）**：`retrieval_injection.py`、`skill_store.py`、`routing_weights.py`
 
 **CP-4 已迁 lab → 2026-06-17 已删**：`static_analysis.py`（原仅 `tests/test_static_analysis.py`）
 
-**Warm（慎动，仍留根目录）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`semantic_code_retrieval.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`、`complexity.py`、`graph_retrieval.py`、`retrieval_trace.py` 等
+**Warm（慎动，仍留根目录）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`、`complexity.py`、`graph_retrieval.py` 等
 
 **伴随清理（同批）**：删除 8 个 `agent_runtime` 遗留测试文件；移除 `tests/conftest.py` `collect_ignore_glob`；`run_pre_commit_check.py` 去掉不存在的 `test_semantic_code_retrieval.py` ignore。
 
@@ -167,9 +166,9 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 将 P0/P1 清理后仍残留的 Cold 文件迁入 `context_pipeline/lab/`，根目录只保留：
 
-**Hot（禁止动）**：`retrieval_injection.py`、`code_context_injection.py`、`skill_store.py`、`response_validator.py`、`routing_weights.py`
+**Hot（禁止动）**：`retrieval_injection.py`、`skill_store.py`、`routing_weights.py`
 
-**Warm（慎动）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`semantic_code_retrieval.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`
+**Warm（慎动）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`
 
 ---
 

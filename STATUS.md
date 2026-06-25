@@ -2,13 +2,13 @@
 
 > **项目定位**: AI 智能设备统一云端服务（2026-06-09 战略转型完成）
 > **技术栈**: Python 3.10 + FastAPI + SQLite + Redis
-> **公网端点**: chat.donglicao.com, api.donglicao.com
+> **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
 > Updated: 2026-06-25
 > Branch: `main`
 > Scale: 约 1356 个 Python 文件 / 179,647 行
-> Tests: 全量 **3765 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3774 passed / 17 skipped / 2 deselected / 0 failed / 0 errors**（使用 `.venv310/Scripts/python`）；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: 历史 >300 行文件 5 个、>50 行函数 26 个（均为历史脚本/测试/MCP/xiaozhi）；新增/修改模块均 ≤300 行/函数 ≤50 行（`routes/device_ota.py` 拆出 App 端点后 300 行）。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -17,6 +17,17 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-25）文档全面刷新与过时引用清理
+
+- **目标**：按用户要求「更新项目所有文档，过时文档清理干净」，审计根文档与核心 `docs/`，修正退役模块引用、死链、域名/品牌、编码能力退役后的管线描述。
+- **关键结果**：
+  - 更新 `AGENTS.md` / `CLAUDE.md` / `README.md` / `STATUS.md`：移除 Anthropic 兼容层描述，`qoder.com` → `donglicao.com`，公网入口统一为 `chat.donglicao.com`。
+  - 更新 `docs/ARCHITECTURE.md`、`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`、`docs/OPTIMIZATION_ANALYSIS_2026-06-23.md`：修正模块归属（`router_v3/`、`routing_selector/`、`backends_registry/`），移除 `api.donglicao.com` 作为 LiMa 入口的表述，标注 `routing_ml.py` 已移除。
+  - 更新 `docs/REQUEST_PIPELINE_AUTHORITY_CN.md`、`docs/DEVICE_DEVELOPER_GUIDE_CN.md`、`docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`、`docs/LIMA_MEMORY_CN.md`：`/v1/messages` → 已退役，`device_protocol_alignment.md` → 归档路径，`router_v3.py` → `router_v3/`，`routing_selector.py` → `routing_selector/`，`esp32S_XYZ` 子模块指针更新为 `abecbb8`。
+  - 更新 `docs/PROJECT_AUDIT_REPORT_CN.md`、`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`、`docs/ONLINE_DISTRIBUTIONS_CN.md`、`docs/README.md`：修复死链、历史模块名、Telegram/channel_gateway 退役说明。
+  - 已归档文档（`docs/archive/`）保留历史记录，未改动；清理后活跃文档不再指向已删除模块。
+- **待继续**：运行 ruff / pytest 回归；提交并推送文档修改；VPS 部署验证（如本次修改未涉及运行时，可省略部署或仅做健康检查）。
 
 ### 最近完成（2026-06-25）Phase A 收尾：英文法律页、小程序 OTA、后端 OTA App 接口与合并推送
 
@@ -675,15 +686,15 @@
 
 ### 核心功能
 - **设备网关**: ESP32 绘图机/写字机云端控制
-- **AI 路由**: 170+ 后端智能路由（设备任务 + 聊天/编码）
+- **AI 路由**: 170+ 后端智能路由（设备任务 + 通用聊天/IDE）
 - **任务管理**: 任务创建、派发、执行、监控、恢复
 - **设备策略**: 安全策略、固件兼容性、路径验证、route_policy/backend 字段贯通
 
-### 当前开发文档入口（2026-06-16）
+### 当前开发文档入口（2026-06-25）
 
 - **设备开发入口**：[`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) 汇总设备联调、常用测试、证据要求和最小闭环。
-- **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
-- **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
+- **下一阶段计划**：[`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md) 明确当前活跃路线图与后续优化方向。
+- **协议开发闭环**：[`docs/archive/device_protocol_alignment.md`](docs/archive/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约（已归档）。
 - **ECC 工程流程**：[`docs/ECC_WORKFLOW_CN.md`](docs/ECC_WORKFLOW_CN.md) 定义项目采用的 Plan First / TDD / Code Review / 提交规范，以及 `.kimi-code/rules/ecc-workflow.md` 本地 rule。
 - **Ponytail 精简顾问**：[`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md) 引入 lazy senior dev 决策阶梯，LiMa 硬规则优先。
 

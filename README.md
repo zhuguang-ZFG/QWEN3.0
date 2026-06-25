@@ -2,7 +2,7 @@
 
 > 深圳市动力巢科技有限公司（www.donglicao.com）
 
-LiMa 是一个多后端 AI 路由服务器，同时为 AI 绘图机、写字机等智能硬件提供云端控制平面。
+LiMa 是一个多后端 AI 路由服务器，同时为 AI 绘图机、写字机、2D 数字人等智能硬件提供云端控制平面。
 
 - **AI 路由**：根据请求类型、健康状态、预算与质量评分，智能路由到 170+ 个 AI 后端（Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare、阿里云等）。
 - **设备云端**：为 ESP32 绘图机/写字机提供任务派发、路径规划、状态监控与 OTA。
@@ -132,15 +132,20 @@ python scripts/deploy_unified.py --dry-run
 ├── backends_registry/         # 170+ 后端注册
 ├── routes/                    # FastAPI 路由
 │   ├── chat_endpoints.py
-│   ├── device_gateway.py
-│   ├── device_app_api.py
+│   ├── device_gateway*.py
+│   ├── device_app_*.py
+│   ├── device_ota_app.py
 │   ├── system_endpoints.py
-│   └── xiaozhi_v1_compat.py   # 小智 App 兼容层（默认关闭）
+│   └── xiaozhi_compat/        # 小智 App 兼容层（默认关闭）
 ├── device_gateway/            # 设备协议、任务、路径规划
+├── device_logic/              # 账号、鉴权、设备数据逻辑
 ├── session_memory/            # 持久记忆与学习循环
 ├── context_pipeline/          # 检索与上下文注入（编码模块已退役）
 ├── skills/                    # 可注入技能 Markdown
-├── chat-web/                  # Web 聊天前端
+├── chat-web/                  # Web 聊天控制台
+├── donglicao-site-v2/         # 官网 Next.js 站点
+├── docs-site/                 # VitePress 开发者文档站
+├── sdk/                       # Python/JS/Go 官方 SDK
 ├── scripts/                   # 工具、部署、冒烟脚本
 ├── tests/                     # 测试套件
 └── docs/                      # 文档索引与架构说明

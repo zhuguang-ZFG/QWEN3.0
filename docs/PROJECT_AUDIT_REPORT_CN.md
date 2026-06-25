@@ -82,9 +82,9 @@
 
 ### H11. Telegram 已退役但代码仍读 `LIMA_TELEGRAM_BOT_TOKEN`
 
-- **位置**：`channel_retirement.py`
+- **位置**：`channel_retirement.py`（历史版本）
 - **问题**：AGENTS.md 声明 Telegram 已退役，但代码仍引用
-- **修复**：移除残留引用
+- **状态**：已修复 — 当前 `channel_retirement.py` 不再读取 Telegram token 或处理 webhook
 
 ---
 
@@ -146,8 +146,8 @@
 - **修复**：加入 dev 依赖或在 CI 中安装
 
 ### M16. AGENTS.md 引用不存在的文件
-- **问题**：`docs/ROUTING_ENGINE_DESIGN.md`（已归档）、`task_plan.md`（已归档）
-- **修复**：更新引用
+- **问题**：`docs/ROUTING_ENGINE_DESIGN.md`（已归档为 `docs/archive/ROUTING_ENGINE_DESIGN.md`）、`task_plan.md`（已归档为 `docs/archive/task_plan.md`）
+- **修复**：已更新根文档与 `docs/README.md` 引用，并归档原文件
 
 ### M17. `.gitignore` 缺少敏感文件模式
 - **修复**：添加 `*.sqlite`、`*.sqlite3`、`*.pem`、`*.key`、`.env.local`
@@ -172,7 +172,7 @@
 | L8 | `import *`（1 文件） | 已有 `__all__` 缓解 |
 | L9 | 无 Dependabot 配置 | `.github/dependabot.yml` |
 | L10 | 过时文档（5+ 个） | `docs/superpowers/plans/` |
-| L11 | 重复协议文档 | `docs/xiaozhi_lima_protocol_alignment.md` vs `device_protocol_alignment.md` |
+| L11 | 重复协议文档 | `docs/archive/xiaozhi_lima_protocol_alignment.md` vs `docs/archive/device_protocol_alignment.md`（均已归档） |
 | L12 | SearXNG 无 profiles 分离 | `docker-compose.yml` |
 
 ---

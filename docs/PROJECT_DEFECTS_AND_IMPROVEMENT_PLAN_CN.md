@@ -85,7 +85,7 @@
 | P2-2 | 代码质量 | `routes/v3_adapters.py` 4 次重复 lazy import 同一函数 | `routes/v3_adapters.py` | 代码异味 |
 | P2-3 | 代码质量 | 多个 routes 直接 import 底层模块（跨层耦合） | `routes/` 多个文件 | 架构边界模糊 |
 | P2-4 | 代码质量 | pyright `search_gateway/` 幻影路径 | `pyrightconfig.json` | 类型检查配置无效 |
-| P2-5 | 代码质量 | ruff `backends.py` 幻影豁免 + 6 个不存在路径 | `ruff.toml` | 配置噪音 |
+| P2-5 | 代码质量 | ruff 历史 `backends.py` 幻影豁免 + 6 个不存在路径 | `ruff.toml` | 配置噪音 |
 | P2-6 | 代码质量 | 20 个文件在 250-300 行区间，多个测试文件 ≥250 行 | 多个文件 | 临近违规风险 | ✅ 已完成（>300 行文件已清零；250-300 行文件已处理）|
 | P2-7 | 测试 | `context_pipeline/` 17 模块零覆盖 | `context_pipeline/` | 流水线核心无测试 |
 | P2-8 | 测试 | `session_memory/` 22 模块零覆盖（含 `redact.py` 脱敏） | `session_memory/` | 持久化/安全无测试 |
@@ -380,7 +380,7 @@ def test_weather_provider_uses_cache():
   - 迁移 `code_context/embedding_client.py` / `session_memory/embeddings.py` 的 Jina 嵌入配置到 `config.settings.EMBEDDING`。
   - 迁移 `context_pipeline/auto_indexer.py` 的 `LIMA_PROJECT_ROOT` 到 `config.settings.PATHS.project_root`。
   - 迁移 `dashscope_image_client.py` 的 `ALIYUN_API_KEY` 到 `config.backend_config.ALIYUN_API_KEY`。
-  - 清理 `channel_retirement.py`：删除已退役 Telegram 的 `_telegram_bot_token()` / `retire_telegram_webhook_from_env()` 及对应 env 读取，仅保留 `mark_retired_modules` / `is_retired_route_path`。
+  - 清理 `channel_retirement.py`：已删除 Telegram 相关的 `_telegram_bot_token()` / `retire_telegram_webhook_from_env()` 及对应 env 读取，仅保留 `mark_retired_modules` / `is_retired_route_path`。
   - 重构 `config/env.py`：所有函数改从 `config.settings`（及 `config.backend_config.GOOGLE_AI_KEY`）读取，不再直接调用 `os.environ`；新增 `DigitalHumanConfig`、`VoiceConfig`、`GeminiConfig`、`OutcomeConfig`、`OtaConfig`、`UploadConfig` 到 `config.settings`，并扩展 `FeatureFlags`。
   - `device_voice` 配置集中化：新增 `config/voice_settings.py`，将 `VoiceConfig`、`VoiceprintConfig`、`VoiceProviderConfig` 及各 ASR/TTS Provider 配置类移出 `config/settings.py`；`device_voice/__init__.py`、`voiceprint.py`、`providers/vad_silero.py` 与全部 ASR/TTS provider 模块改从 `config.settings` 读取，不再直接调用 `os.environ`。
   - `tests/conftest.py` monkeypatch wrapper 增强并拆分：`_EnvSyncMonkeyPatch` 拆出到 `tests/_env_sync.py`，映射数据进一步拆到 `tests/_env_sync_maps.py` 与 `tests/_env_sync_voice_maps.py`，避免单文件/单函数过大；新增 voice / voiceprint / voice provider 环境变量同步。

@@ -2,11 +2,11 @@
 
 ## 1. 系统概述
 
-LiMa 是上海动力草科技（donglicao.com）面向 ESP32 绘图机/写字机的 AI 智能设备统一云端服务平台。
+LiMa 是深圳市动力巢科技有限公司（donglicao.com）面向 ESP32 绘图机/写字机/2D 数字人的 AI 智能设备统一云端服务平台。
 
 核心使命：让每个家庭拥有会画画、会写字的智能伙伴。
 
-当前版本：`lima-1.3`，Python 3.10 + FastAPI，生产入口为 `server.py`，公共服务域名规划为 `chat.donglicao.com` 与 `api.donglicao.com`。
+当前版本：`lima-1.3`，Python 3.10 + FastAPI，生产入口为 `server.py`，公共服务域名为 `chat.donglicao.com`。
 
 ## 2. 架构全景图
 
@@ -50,16 +50,14 @@ LiMa 是上海动力草科技（donglicao.com）面向 ESP32 绘图机/写字机
 ## 3. 核心模块说明
 
 ### routes/ — API 路由层
-`routes/` 是 FastAPI 路由注册层，由 `routes/route_registry.py` 统一挂载。当前已注册 `chat_endpoints`、`device_gateway`、`system_endpoints`、`ops_metrics`、`xiaozhi_compat` 等路由。
+`routes/` 是 FastAPI 路由注册层，由 `routes/route_registry.py` 统一挂载。当前已注册 `chat_endpoints`、`device_gateway`、`device_app_*`、`device_ota`、`device_ota_app`、`admin`、`admin_v1_auth`、`system_endpoints`、`ops_metrics`、`fleet`、`eval_internal`、`xiaozhi_compat`（默认关闭）等路由。
 
 ### xiaozhi-v1 兼容层
-`routes/xiaozhi_v1_compat.py` 是 XiaoZhi 设备 App 协议到 LiMa 的 OpenAPI 兼容 REST 层，统一挂载在 `/api/v1/*`，把账号、设备、任务和家庭资产管理请求映射到 LiMa 设备云模型。
+`routes/xiaozhi_compat/` 是 XiaoZhi 设备 App 协议到 LiMa 的 OpenAPI 兼容 REST 层，统一挂载在 `/api/v1/*`，把账号、设备、任务和家庭资产管理请求映射到 LiMa 设备云模型。
 
-兼容层当前覆盖 `xiaozhi_v1_compat.py` 的 28 个 REST 端点；OpenAPI 域面包括 Auth(5)、Device(7)、Task(6)、Member(2)、Voiceprint(2)、Transfer(4)、Supply(2)、SelfCheck(1)，整体为 28/29 OpenAPI 操作上线，剩余差异按兼容审计继续收敛。
+兼容层默认**关闭**，仅在 `LIMA_XIAOZHI_COMPAT_ENABLED=1` 时通过 `routes/route_registry.py` opt-in 注册。当前 LiMa 原生管理面为 `/device/v1/app/*`（`routes/device_app_*.py`），覆盖账号、设备、成员、任务、素材、通知、统计等能力，是推荐的新接入方式。
 
-路由通过 `routes/route_registry.py` 的 `try/except ImportError` 模式注册，启动时缺失依赖会记录 warning，不阻断主服务。数据层由 `migrations/xiaozhi_schema.sql` 提供 SQLite schema，核心 10 张表为 `v2_account`、`v2_device`、`v2_device_binding`、`v2_member`、`v2_voiceprint`、`v2_task`、`v2_device_transfer_request`、`v2_device_rma_event`、`v2_device_supply`、`v2_self_check_event`。
-
-生产状态：`chat.donglicao.com` 已暴露 28/29 个兼容端点，13 个集成测试通过。兼容层负责 App 管理面；设备实时热路径仍由 MQTT/WS 与 Device Gateway 承接。
+数据层由 `migrations/xiaozhi_schema.sql` 提供 SQLite schema。
 
 ### device_gateway/ — 设备网关
 `device_gateway/` 负责设备协议、任务投递、会话管理和 MQTT/WebSocket 通信。`routes/device_gateway.py` 暴露 `/device/v1` 前缀的设备健康、事件、任务和 WebSocket 入口。
@@ -67,11 +65,11 @@ LiMa 是上海动力草科技（donglicao.com）面向 ESP32 绘图机/写字机
 ### routing_engine.py — AI 路由
 AI 路由入口，负责身份短路由、请求分类、场景分类、检索上下文注入、后端选择、技能注入、推测调用、执行与结果封装。后端池来自 `backends_registry/` 与 `router_v3/` 包，支持 170+ 后端调度、健康检查和熔断。
 
-### xiaozhi_device/ — 设备管理
-目标业务域，对应能力已在数据层和网关层部分落地，包括 `v2_device`、`v2_device_binding`、`v2_device_transfer_request`、`v2_device_rma_event`、`v2_device_supply`、`v2_self_check_event` 等表。
+### device_logic/ — 设备与账号逻辑
+`device_logic/` 承载账号、鉴权、API Key、设备绑定/成员/转移/耗材/自检、任务统计等核心业务逻辑，被 `routes/device_app_*.py`、`routes/device_gateway*.py` 与 `routes/admin*.py` 复用。
 
-### xiaozhi_drawing/ — 绘图引擎
-AI 绘图执行链：`device_gateway/task_draw_params.py` → `device_draw_handler.py`（万相简笔画 + OpenCV 矢量化）→ `path_pipeline.py` / `path_validator.py` / `motion.py` / `safety.py`。自然语言 `draw_generated` 于 2026-06-18 接入主任务创建热路径。
+### device_gateway/ — 设备执行引擎
+AI 绘图执行链：`device_gateway/task_draw_params.py` → `device_draw_handler.py`（万相简笔画 + OpenCV 矢量化）→ `path_pipeline.py` / `path_validator.py` / `motion.py` / `safety.py`。自然语言 `draw_generated` 于 2026-06-18 接入主任务创建热路径。`xiaozhi_drawing/` 目录为遗留实验代码，不在当前热路径。
 
 ### session_memory/ — 会话记忆
 提供长期记忆、结果账本、学习循环、脱敏、压缩和提示召回能力。
@@ -84,16 +82,21 @@ AI 绘图执行链：`device_gateway/task_draw_params.py` → `device_draw_handl
 
 ## 4. 数据架构
 
-Phase 1-2 使用 SQLite（WAL + 外键），核心 10 张表：
+Phase 1-2 使用 SQLite（WAL + 外键），核心表已扩展至以下（按业务域分组）：
 
 | 表名 | 作用 |
 |---|---|
 | `v2_account` | 用户账号 |
+| `v2_api_key` | App 自助 API Key |
 | `v2_device` | 设备基础信息 |
 | `v2_device_binding` | 账号与设备绑定 |
 | `v2_member` | 家庭成员 |
 | `v2_voiceprint` | 声纹特征数据 |
 | `v2_task` | 设备运动任务 |
+| `v2_task_template` | 任务模板 |
+| `v2_asset` | 素材库 |
+| `v2_notification` | 通知订阅与记录 |
+| `v2_share` | 设备分享/访客 |
 | `v2_device_transfer_request` | 设备转移工单 |
 | `v2_device_rma_event` | 维修 RMA 事件 |
 | `v2_device_supply` | 耗材状态 |
@@ -121,7 +124,7 @@ Client → POST /device/v1/tasks → device_gateway → intent.resolve
 ## 6. 部署架构
 
 双 VPS 高可用：主节点 + JDCloud 备用节点。
-`chat.donglicao.com` / `api.donglicao.com` → Nginx → Docker Compose → lima-router:8080。
+`chat.donglicao.com` → Nginx → Docker Compose → lima-router:8080。
 部署脚本：`scripts/deploy_unified.py`。
 
 ## 7. 安全设计
@@ -138,6 +141,7 @@ Client → POST /device/v1/tasks → device_gateway → intent.resolve
 | Phase 0 | 战略转型 + 基础设施 | ✅ 完成 |
 | Phase 1 | 核心设备服务 + 路由契约 | ✅ 完成 |
 | Phase 2 | 按角色准入 AI 绘图/写字模型 | ✅ 完成 |
-| Phase 3 | 设备配置文件路由输入 | 待开始 |
-| Phase 4 | 通用 LLM 路由加固 | 待开始 |
-| Phase 5 | AI 到运动发布门 | 进行中 |
+| Phase 3 | 设备配置文件路由输入 | ✅ 完成 |
+| Phase 4 | 通用 LLM 路由加固 | ✅ 完成 |
+| Phase 5 | AI 到运动发布门 | ✅ 完成 |
+| Phase A/B/C | 官网、文档、SDK、控制台、CI/CD | ✅ 完成 |

@@ -32,7 +32,7 @@
 | provider_probe（Cold 离线） | [`../packages/provider-probe-offline/README.md`](../packages/provider-probe-offline/README.md) | ✅ 活跃（CP-5 归档） |
 | 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
 | 历史执行进展 | [`../progress.md`](../progress.md) | ✅ 活跃（近 3 个月） |
-| 旧任务计划 | [`../task_plan.md`](../task_plan.md) | ⚠️ 部分过时，仅作历史参考 |
+| 旧任务计划 | [`archive/task_plan.md`](archive/task_plan.md) | ⚠️ 已归档，仅作历史参考 |
 
 ## 架构与请求链路
 
