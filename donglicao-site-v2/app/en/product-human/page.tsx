@@ -6,7 +6,14 @@ export const metadata: Metadata = {
   title: "2D Digital Human - LiMa Quantum Nebula",
   description:
     "LiMa 2D Digital Human drives lip-sync, expression and motion from voice in real time for live streaming and customer service.",
-  alternates: { canonical: "https://donglicao.com/en/product-human/" },
+  alternates: {
+    canonical: "https://donglicao.com/en/product-human/",
+    languages: {
+      "en-US": "https://donglicao.com/en/product-human/",
+      "zh-CN": "https://donglicao.com/product-human/",
+      "x-default": "https://donglicao.com/product-human/",
+    },
+  },
 };
 
 export const dynamic = "force-static";

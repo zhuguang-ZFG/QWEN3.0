@@ -5,6 +5,14 @@ import Icon from "../components/Icon";
 export const metadata: Metadata = {
   title: "AI 绘图机 - LiMa 量子星云",
   description: "LiMa AI 绘图机：一句话将自然语言坍缩为真实笔触，支持 SVG 矢量化、多设备协同与 170+ AI 模型后端驱动。",
+  alternates: {
+    canonical: "https://donglicao.com/product-draw/",
+    languages: {
+      "zh-CN": "https://donglicao.com/product-draw/",
+      "en-US": "https://donglicao.com/en/product-draw/",
+      "x-default": "https://donglicao.com/product-draw/",
+    },
+  },
 };
 
 export default function ProductDraw() {

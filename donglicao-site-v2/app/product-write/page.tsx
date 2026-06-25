@@ -5,6 +5,14 @@ import Icon from "../components/Icon";
 export const metadata: Metadata = {
   title: "AI 写字机 - LiMa 量子星云",
   description: "LiMa AI 写字机：将电子文案、贺卡、签名或批量信函转换为真实手写笔迹，支持字体迁移、纸张模板与个性化字库。",
+  alternates: {
+    canonical: "https://donglicao.com/product-write/",
+    languages: {
+      "zh-CN": "https://donglicao.com/product-write/",
+      "en-US": "https://donglicao.com/en/product-write/",
+      "x-default": "https://donglicao.com/product-write/",
+    },
+  },
 };
 
 export default function ProductWrite() {

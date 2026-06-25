@@ -6,6 +6,14 @@ import Footer from "../components/Footer";
 export const metadata: Metadata = {
   title: "定价 - LiMa 量子星云系统",
   description: "LiMa 量子星云系统定价方案：从免费版到企业版，选择适合你的 AI 对话、设备接入与 API 配额。",
+  alternates: {
+    canonical: "https://donglicao.com/pricing/",
+    languages: {
+      "zh-CN": "https://donglicao.com/pricing/",
+      "en-US": "https://donglicao.com/en/pricing/",
+      "x-default": "https://donglicao.com/pricing/",
+    },
+  },
 };
 
 const plans = [

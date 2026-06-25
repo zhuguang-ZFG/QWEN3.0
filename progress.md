@@ -9040,3 +9040,32 @@ Agent Worker path.
   - `ruff check` / `pyright` 修改文件 clean（仅历史 jwt import warning）。
   - 公网冒烟：服务健康、`/login.html`、`/register.html`、注册接口均 200。
 - **部署**：后端文件同步到 VPS 并重启服务；chat-web 同步到 `/var/www/chat/` 与 `/opt/lima-router/chat-web/`。
+
+## 2026-06-25 Phase A P3：英文站法律页与 hreflang/canonical
+
+- **目标**：为 Next.js 官网英文站补齐隐私政策、用户协议页，并在中英文页面间添加正确的 canonical 与 hreflang alternate 声明。
+- **实现**：
+  - 新增 `donglicao-site-v2/app/en/privacy/page.tsx`：英文隐私政策，复用 `LegalPage` 组件。
+  - 新增 `donglicao-site-v2/app/en/terms/page.tsx`：英文用户协议，复用 `LegalPage` 组件。
+  - 更新 `donglicao-site-v2/app/privacy/page.tsx`、`app/terms/page.tsx`：添加 canonical 与 `languages` hreflang（zh-CN / en-US / x-default）。
+  - 更新 `donglicao-site-v2/app/page.tsx`、`app/pricing/page.tsx`、`app/product-*/page.tsx`：补充 canonical + hreflang。
+  - 更新 `donglicao-site-v2/app/en/page.tsx`、`app/en/pricing/page.tsx`、`app/en/product-*/page.tsx`：补充 canonical + hreflang。
+  - 更新 `donglicao-site-v2/app/sitemap.ts`：收录 `/en/privacy` 与 `/en/terms`。
+- **验证**：
+  - `npm run build` 成功，输出包含 `/en/privacy` 与 `/en/terms` 静态页。
+  - 生成 HTML `<head>` 中已确认包含正确的 `<link rel="canonical">` 与 `<link rel="alternate" hrefLang="...">`（含 x-default）。
+  - 全量 pytest（排除网络测试）**3759 passed / 17 skipped / 2 deselected / 0 errors**。
+
+## 2026-06-25 Phase C P2 C-5：小程序 OTA 升级页
+
+- **目标**：完成小程序 OTA 升级页（`pages/ota/index`），展示设备当前固件版本、可用升级、升级进度与回滚入口，并对接后端 `/device/v1/ota/check` 与 `/device/v1/ota/start`。
+- **实现**：
+  - 后端：`routes/device_ota.py` 新增 `/device/v1/ota/check`（GET）与 `/device/v1/ota/start`（POST）两个 App 端点；使用 `device_logic.auth.authorize` 做账户 JWT 认证，`device_logic.access.device_access` 校验设备归属；读取 `device_gateway.sessions.registry` 实时固件版本，回退到 `v2_device.firmware_ver`；基于 `device_ota.canary` 与 `device_ota.gradual` 状态返回 `status`、`available_version`、`selected`、`rollback_available`。
+  - 测试：`tests/test_device_ota.py` 新增 4 个 App 端点测试，覆盖无发布、可升级未选中、启动升级、回滚取消。
+  - 小程序：新增 `manager-mobile/src/pages/ota/index.vue`，使用 wot-design-uni 组件展示当前/可用版本、更新说明、升级按钮、进度条（indeterminate）、回滚按钮；每 5 秒轮询 `/check`。
+  - 小程序 API：`manager-mobile/src/api/v2/index.ts` 新增 `v2CheckOta` 与 `v2StartOta`。
+  - 导航：`pages.json` 注册 `pages/ota/index`；`pages/v2/device-detail/index.vue` 快捷功能入口增加「固件升级」。
+- **验证**：
+  - `ruff check .` 全量通过。
+  - `pytest -m "not network"` **3765 passed / 17 skipped / 2 deselected / 0 errors**（新增 6 个测试）。
+  - 小程序 `pnpm type-check` 通过；`pnpm build:h5` 成功。

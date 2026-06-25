@@ -9,7 +9,14 @@ export const metadata: Metadata = {
   title: "LiMa Quantum Nebula - AI Devices & Unified API",
   description:
     "LiMa routes 170+ AI backends into one OpenAI-compatible API and powers AI drawing, writing, and digital-human devices.",
-  alternates: { canonical: "https://donglicao.com/en/" },
+  alternates: {
+    canonical: "https://donglicao.com/en/",
+    languages: {
+      "en-US": "https://donglicao.com/en/",
+      "zh-CN": "https://donglicao.com/",
+      "x-default": "https://donglicao.com/",
+    },
+  },
   openGraph: {
     title: "LiMa Quantum Nebula",
     description: "One API for 170+ AI backends. Real devices. Real creation.",

@@ -4,6 +4,14 @@ import LegalPage from "../components/LegalPage";
 export const metadata: Metadata = {
   title: "隐私政策 - LiMa 量子星云系统",
   description: "LiMa 量子星云系统隐私政策：我们如何收集、使用、存储和保护你的信息。",
+  alternates: {
+    canonical: "https://donglicao.com/privacy/",
+    languages: {
+      "zh-CN": "https://donglicao.com/privacy/",
+      "en-US": "https://donglicao.com/en/privacy/",
+      "x-default": "https://donglicao.com/privacy/",
+    },
+  },
 };
 
 export default function PrivacyPage() {

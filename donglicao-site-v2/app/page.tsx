@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import Products from "./components/Products";
@@ -9,6 +10,20 @@ import Partners from "./components/Partners";
 import FAQ from "./components/FAQ";
 import Footer from "./components/Footer";
 import Reveal from "./components/Reveal";
+
+export const metadata: Metadata = {
+  title: "LiMa 量子星云系统",
+  description:
+    "LiMa 量子星云系统是 AI 量子化设备调度平台，以量子路由、多模态坍缩与设备纠缠协同，连接 170+ AI 后端，驱动 AI 绘图机、写字机与 2D 数字人完成真实创作。",
+  alternates: {
+    canonical: "https://donglicao.com/",
+    languages: {
+      "zh-CN": "https://donglicao.com/",
+      "en-US": "https://donglicao.com/en/",
+      "x-default": "https://donglicao.com/",
+    },
+  },
+};
 
 export default function Home() {
   return (

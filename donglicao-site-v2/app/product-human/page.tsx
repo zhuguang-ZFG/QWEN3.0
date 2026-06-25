@@ -5,6 +5,14 @@ import Icon from "../components/Icon";
 export const metadata: Metadata = {
   title: "2D 数字人 - LiMa 量子星云",
   description: "LiMa 2D 数字人：基于语音实时驱动口型、表情与动作，支持多音色、多语言与多平台推流。",
+  alternates: {
+    canonical: "https://donglicao.com/product-human/",
+    languages: {
+      "zh-CN": "https://donglicao.com/product-human/",
+      "en-US": "https://donglicao.com/en/product-human/",
+      "x-default": "https://donglicao.com/product-human/",
+    },
+  },
 };
 
 export default function ProductHuman() {

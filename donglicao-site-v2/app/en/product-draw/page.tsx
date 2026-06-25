@@ -6,7 +6,14 @@ export const metadata: Metadata = {
   title: "AI Drawing Machine - LiMa Quantum Nebula",
   description:
     "LiMa AI Drawing Machine turns prompts into vector line art and drives a physical plotter via a single API.",
-  alternates: { canonical: "https://donglicao.com/en/product-draw/" },
+  alternates: {
+    canonical: "https://donglicao.com/en/product-draw/",
+    languages: {
+      "en-US": "https://donglicao.com/en/product-draw/",
+      "zh-CN": "https://donglicao.com/product-draw/",
+      "x-default": "https://donglicao.com/product-draw/",
+    },
+  },
 };
 
 export const dynamic = "force-static";

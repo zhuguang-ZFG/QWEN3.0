@@ -7,7 +7,14 @@ export const metadata: Metadata = {
   title: "Pricing - LiMa Quantum Nebula",
   description:
     "LiMa pricing plans: from free tier to enterprise, choose the right AI chat, device access and API quota.",
-  alternates: { canonical: "https://donglicao.com/en/pricing/" },
+  alternates: {
+    canonical: "https://donglicao.com/en/pricing/",
+    languages: {
+      "en-US": "https://donglicao.com/en/pricing/",
+      "zh-CN": "https://donglicao.com/pricing/",
+      "x-default": "https://donglicao.com/pricing/",
+    },
+  },
 };
 
 export const dynamic = "force-static";

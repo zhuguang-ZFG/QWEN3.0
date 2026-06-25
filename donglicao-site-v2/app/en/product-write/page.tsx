@@ -6,7 +6,14 @@ export const metadata: Metadata = {
   title: "AI Writing Machine - LiMa Quantum Nebula",
   description:
     "LiMa AI Writing Machine converts digital text into real handwriting for letters, cards, signatures and bulk mail.",
-  alternates: { canonical: "https://donglicao.com/en/product-write/" },
+  alternates: {
+    canonical: "https://donglicao.com/en/product-write/",
+    languages: {
+      "en-US": "https://donglicao.com/en/product-write/",
+      "zh-CN": "https://donglicao.com/product-write/",
+      "x-default": "https://donglicao.com/product-write/",
+    },
+  },
 };
 
 export const dynamic = "force-static";
