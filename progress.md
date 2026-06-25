@@ -8367,3 +8367,17 @@ Agent Worker path.
   - `node --check donglicao-site/site.js` 通过。
   - 公网冒烟：3 个产品页与定价页均返回 200。
 - **部署**：官网静态文件已同步到 VPS。
+
+## 2026-06-25 Phase C P2：C-4 OpenAPI / Redoc 参考页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-4，在 VitePress 文档站嵌入 Redoc 自动渲染 API 参考。
+- **实现**：
+  - 新增 `docs-site/api/reference.md`，使用 `<redoc>` 自定义元素从 `/docs/openapi.yaml` 渲染交互式 API 文档。
+  - 在 `.vitepress/config.ts` 中已将 `redoc` 标记为自定义元素，避免 SSR 报错。
+  - 通过 frontmatter `head` 引入 Redoc 2.1.5 standalone 脚本并配置 SRI。
+  - 配置暗色主题：背景 `#07070f`、主色 `#06b6d4`、文字 `#f0f4f8`、代码块 `#0c0c16`。
+  - 更新 `docs-site/changelog/index.md`，加入 C-4 与 B-7 发布记录。
+- **验证**：
+  - `pnpm build` 成功生成 `api/reference.html` 与 `openapi.yaml`。
+  - 文档站已部署到 VPS `/www/wwwroot/docs-site/`，线上地址可访问。
+- **部署**：使用 tar 同步 `docs-site/.vitepress/dist` 到 VPS。

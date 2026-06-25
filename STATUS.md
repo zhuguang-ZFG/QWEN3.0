@@ -30,6 +30,19 @@
   - 修复 `tests/test_routes_auth_contract.py` 对 `/chat/{path:path}` 静态资源路由的误报 404。
 - **部署**：官网静态文件、文档站静态文件与 chat-web 已同步到 VPS；`https://chat.donglicao.com/chat/playground.html`、`https://www.donglicao.com/docs/changelog/` 可访问。
 
+### 最近完成（2026-06-25）Phase C P2：C-4 OpenAPI / Redoc 参考页
+
+- **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase C P2 C-4，在 VitePress 文档站中嵌入 Redoc 自动渲染 API 参考。
+- **关键结果**：
+  - 新增 `docs-site/api/reference.md`，通过 `<redoc>` 自定义元素加载 `/docs/openapi.yaml`。
+  - 使用 Redoc 2.1.5（SRI 校验），配置暗色主题色（背景 `#07070f`、主色 `#06b6d4`、文字 `#f0f4f8`）。
+  - 已通过 `vue.compilerOptions.isCustomElement` 将 `redoc` 标记为自定义元素，避免 SSR 报错。
+  - `docs-site/changelog/index.md` 新增 C-4 与 B-7 发布记录。
+- **验证**：
+  - `pnpm build` 通过，`docs-site/.vitepress/dist/api/reference.html` 与 `openapi.yaml` 已生成。
+  - 文档站已重新部署到 VPS `/www/wwwroot/docs-site/`。
+- **部署**：文档站静态文件已同步，Redoc 页面线上可访问。
+
 ### 最近完成（2026-06-25）Phase B P1：B-7 产品独立详情页
 
 - **目标**：按 `docs/LIMA_IMPROVEMENT_PLAN_20260625_V2.md` 完成 Phase B P1 B-7，为三款硬件产品创建独立详情页。

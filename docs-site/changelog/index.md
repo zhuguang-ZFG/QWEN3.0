@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-06-25 Phase C P2：OpenAPI / Redoc 参考页
+
+- 新增 `docs-site/api/reference.md`：从 `openapi.yaml` 自动渲染交互式 API 文档。
+- 使用 Redoc 2.1.5，三栏布局，含端点导航、请求/响应示例与代码片段。
+- 适配暗色主题与中文文档站风格，线上地址：`https://www.donglicao.com/docs/api/reference.html`。
+
+## 2026-06-25 Phase B P1：产品独立详情页
+
+- 新增 AI 绘图机、AI 写字机、2D 数字人三个产品详情页。
+- 每页包含 Hero、功能特性、技术规格、使用场景、FAQ 与 CTA。
+- 官网导航增加「产品」下拉菜单，页脚同步更新产品入口。
+
 ## 2026-06-25 Phase C P2：API Playground 上线
 
 - 新增 `chat-web/playground.html`：基于 Monaco Editor 与 ECharts 的在线 API 请求调试工具。
