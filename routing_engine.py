@@ -183,7 +183,7 @@ def _select_backends(
         sticky_key=sticky_key,
         scenario=scenario,
         needs_tools=needs_tools,
-        recalled_backend=recall_attempt or "",
+        recalled_backend=recall_attempt,
         preferred_backend=preferred_backend or "",
     )
     return sticky_key, backends

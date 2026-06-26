@@ -32,7 +32,7 @@ def _apply_pin(
     result: list[str],
     sticky_key: str | None,
     preferred_backend: str,
-    recalled_backend: str,
+    recalled_backend: str | None,
     health_map: dict,
     request_type: str,
 ) -> list[str]:

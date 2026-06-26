@@ -16,7 +16,7 @@ def select(
     sticky_key: str | None = None,
     scenario: str = "",
     needs_tools: bool = False,
-    recalled_backend: str = "",
+    recalled_backend: str | None = None,
     preferred_backend: str = "",
 ) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
