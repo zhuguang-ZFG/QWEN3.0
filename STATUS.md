@@ -5,10 +5,10 @@
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-26
+> Updated: 2026-06-27
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3819 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3820 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,18 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-27）P4-5 后续：语义缓存接入生产路径
+
+- **目标**：按 `docs/superpowers/plans/README.md` 推荐，将 `semantic_cache/` 接入 `routing_engine.py::route()` 生产请求路径，默认关闭。
+- **关键结果**：
+  - 拆分 `routing_engine.py`：新增 `routing_engine_helpers.py`（`identity_shortcut`、`build_route_result`）与 `routing_engine_cache.py`（缓存查询/写入封装），保持主入口 ≤300 行。
+  - `route()` 在身份短路之后、后端执行之前调用 `lookup_cached_response()`；命中直接返回缓存 answer，后端标记为原始选中后端。
+  - 未命中时后端返回后调用 `store_cached_response()` 写入缓存；仅对 `request_type == "chat"` 启用。
+  - 默认关闭（`LIMA_SEMANTIC_CACHE_ENABLED=0`），缓存失效/异常时记录 warning 并放行请求，符合无静默降级硬规则。
+  - 新增 `tests/test_route_pipeline.py::test_route_semantic_cache_hits_on_second_identical_query` 回归缓存命中路径。
+- **验证**：`ruff check .` clean；`ruff format --check .` clean；`python scripts/check_code_size.py` PASS；`pyright` 目标文件 0 errors / 0 warnings。
+- **全量 pytest**：**3820 passed / 3 skipped / 2 deselected / 0 failed**。
 
 ### 最近完成（2026-06-26）P4-6 编排管线状态可视化落地
 

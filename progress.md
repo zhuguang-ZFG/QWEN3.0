@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 完成 P4-5 后续：SemanticCache 接入 routing_engine.py 生产路径
+
+- **目标**：按 `docs/superpowers/plans/README.md` 推荐，将 `semantic_cache/` 接入 `routing_engine.py::route()` 生产请求路径，默认关闭。
+- **关键结果**：
+  - 拆分 `routing_engine.py`：
+    - 新增 `routing_engine_helpers.py`：`identity_shortcut()`、`build_route_result()`。
+    - 新增 `routing_engine_cache.py`：`lookup_cached_response()`、`store_cached_response()` 封装，缓存异常时记录 warning 并放行请求。
+  - `route()` 生产路径：身份短路后先查缓存，命中直接返回；未命中执行后端后写入缓存。仅对 `request_type == "chat"` 启用。
+  - 修复 `tests/test_route_pipeline.py` mock 目标为 `routing_engine_helpers.identity_guard`。
+  - 新增回归测试 `test_route_semantic_cache_hits_on_second_identical_query`：第二次相同查询命中缓存，无需 `call_fn`。
+  - 更新 `semantic_cache/README.md`：补充生产路径集成说明。
+- **验证**：
+  - 聚焦测试：`tests/test_route_pipeline.py` + `tests/test_semantic_cache.py` → 16 passed。
+  - 完整测试：**3820 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `ruff check .` clean；`ruff format --check .` clean；`scripts/check_code_size.py` PASS；`pyright` 目标文件 0 errors / 0 warnings。
+
 ## 2026-06-26 完成 P4-6：编排管线状态可视化（P4 全部完成）
 
 - **目标**：按 `docs/superpowers/plans/README.md` P4-6，完成请求流水线状态可视化，标志 P4 提示词系统强化全部完成。

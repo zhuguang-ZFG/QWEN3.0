@@ -10,7 +10,7 @@ def test_route_identity_detection_path():
 
     验证 route 函数正确处理身份检测的特殊路径
     """
-    with patch("routing_engine.identity_guard") as mock_identity_guard:
+    with patch("routing_engine_helpers.identity_guard") as mock_identity_guard:
         mock_identity_guard.detect_identity_question.return_value = "You are an assistant"
 
         result = route(
@@ -26,7 +26,7 @@ def test_route_identity_detection_path():
         assert result.request_type == "identity"
 
 
-@patch("routing_engine.identity_guard")
+@patch("routing_engine_helpers.identity_guard")
 @patch("routing_engine_execute_strategy.health_tracker")
 @patch("routing_engine_execute_strategy.budget_manager")
 @patch("routing_engine_execute_strategy.speculative")
@@ -157,7 +157,7 @@ def test_route_identity_question_with_empty_answer():
     mock_identity_guard = MagicMock()
     mock_identity_guard.detect_identity_question.return_value = "Test identity"
 
-    with patch("routing_engine.identity_guard", mock_identity_guard):
+    with patch("routing_engine_helpers.identity_guard", mock_identity_guard):
         result = route(
             query="Who are you?",
             messages=[{"role": "user", "content": "test"}],
@@ -166,3 +166,35 @@ def test_route_identity_question_with_empty_answer():
 
     assert result.backend == "identity_guard"
     assert result.answer == "Test identity"
+
+
+def test_route_semantic_cache_hits_on_second_identical_query(monkeypatch, tmp_path):
+    """测试 route() 在启用语义缓存时，第二次相同查询命中缓存。"""
+    import os
+    import tempfile
+
+    from semantic_cache.cache import SemanticCache
+
+    db_path = tmp_path / "semantic_cache.db"
+    monkeypatch.setenv("LIMA_SEMANTIC_CACHE_ENABLED", "1")
+    monkeypatch.setenv("LIMA_SEMANTIC_CACHE_DB", str(db_path))
+    monkeypatch.setenv("LIMA_SEMANTIC_CACHE_THRESHOLD", "0.95")
+
+    # Use a deterministic fake embedder so identical queries always hit.
+    cache = SemanticCache()
+    with patch("routing_engine_cache.get_cache", return_value=cache):
+        with patch("routing_engine_helpers.identity_guard") as mock_identity:
+            mock_identity.detect_identity_question.return_value = ""
+            first = route(
+                query="hello",
+                messages=[{"role": "user", "content": "hello"}],
+                call_fn=MagicMock(return_value="backend answer"),
+            )
+            assert first.answer == "backend answer"
+
+            # Second call without call_fn should still return cached answer.
+            second = route(
+                query="hello",
+                messages=[{"role": "user", "content": "hello"}],
+            )
+            assert second.answer == "backend answer"

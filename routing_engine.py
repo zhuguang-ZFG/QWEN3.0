@@ -21,6 +21,8 @@ import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
 from response_builder import build_anthropic_response, build_response, make_chat_id
 from routing_classifier import classify, classify_scenario
+from routing_engine_cache import lookup_cached_response, store_cached_response
+from routing_engine_helpers import build_route_result, identity_shortcut
 from routing_engine_intent import resolve_intent
 from routing_intent import intent_to_prompt_scenario
 from routing_engine_context import (
@@ -181,19 +183,10 @@ def _select_backends(
         sticky_key=sticky_key,
         scenario=scenario,
         needs_tools=needs_tools,
-        recalled_backend=recall_attempt,
+        recalled_backend=recall_attempt or "",
         preferred_backend=preferred_backend or "",
     )
     return sticky_key, backends
-
-
-def _identity_shortcut(query: str, channel_role: str, t0: float) -> RouteResult | None:
-    """检测身份类问题并返回提前结果；无命中返回 None。"""
-    identity_answer = identity_guard.detect_identity_question(query, channel_role=channel_role)
-    if identity_answer:
-        ms = int((time.time() - t0) * 1000)
-        return RouteResult(backend="identity_guard", answer=identity_answer, request_type="identity", ms=ms)
-    return None
 
 
 def _pick_for_route(
@@ -221,29 +214,28 @@ def _pick_for_route(
     )
 
 
-def _build_route_result(
-    t0: float,
+def _execute_route_call(
+    call_fn: Callable | None,
     picked: PickResult,
-    final_backend: str,
-    answer: str,
-    messages: list[dict],
-    injected_ids: list,
-    backends: list[str],
-    original_backend: str,
-    fallback_used: bool,
-) -> RouteResult:
-    """构造最终 RouteResult 并计算耗时；先执行 post_route 上报。"""
-    ms = int((time.time() - t0) * 1000)
-    post_route(answer, final_backend, backends, picked.messages, messages, picked.request_type, picked.scenario, ms)
-    return RouteResult(
-        backend=final_backend,
-        answer=answer,
-        request_type=picked.request_type,
-        scenario=picked.scenario,
-        ms=ms,
-        fallback_used=fallback_used,
-        skills_injected=injected_ids,
-        retrieval_context=picked.retrieval_context,
+    max_tokens: int,
+    query: str,
+    needs_tools: bool,
+    tools: list[dict] | None,
+) -> tuple[str, str]:
+    """Execute backend call or return empty placeholder when no call_fn."""
+    if not call_fn:
+        return picked.backends[0] if picked.backends else "none", ""
+    return execute_with_strategy(
+        call_fn,
+        picked.backends,
+        picked.messages,
+        max_tokens,
+        query,
+        picked.request_type,
+        picked.scenario,
+        needs_tools,
+        tools,
+        picked.sticky_key,
     )
 
 
@@ -266,30 +258,26 @@ def route(
 ) -> RouteResult:
     """统一路由入口。call_fn(backend, messages, max_tokens) -> str"""
     t0 = time.time()
-    shortcut = _identity_shortcut(query, channel_role, t0)
+    shortcut = identity_shortcut(query, channel_role, t0)
     if shortcut:
         return shortcut
     picked = _pick_for_route(
         query, messages, fmt, ide_source, model, system_prompt, headers, needs_tools, preferred_backend
     )
     backends = picked.backends
-    injected_ids = get_injected_ids(messages, picked.messages)
-    if call_fn:
-        final_backend, answer = execute_with_strategy(
-            call_fn,
-            backends,
-            picked.messages,
-            max_tokens,
-            query,
-            picked.request_type,
-            picked.scenario,
-            needs_tools,
-            tools,
-            picked.sticky_key,
-        )
-    else:
-        final_backend, answer = backends[0] if backends else "none", ""
     original_backend = backends[0] if backends else "none"
+    injected_ids = get_injected_ids(messages, picked.messages)
+
+    cached_answer = lookup_cached_response(query, picked.request_type)
+    if cached_answer is not None:
+        return build_route_result(
+            t0, picked, original_backend, cached_answer, messages, injected_ids, backends, original_backend, False
+        )
+
+    final_backend, answer = _execute_route_call(call_fn, picked, max_tokens, query, needs_tools, tools)
+    store_cached_response(query, answer, picked.request_type)
+
     fallback_used = bool(final_backend not in ("exhausted", "none") and backends and final_backend != original_backend)
-    args = (t0, picked, final_backend, answer, messages, injected_ids, backends, original_backend, fallback_used)
-    return _build_route_result(*args)
+    return build_route_result(
+        t0, picked, final_backend, answer, messages, injected_ids, backends, original_backend, fallback_used
+    )
