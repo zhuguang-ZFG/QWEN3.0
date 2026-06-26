@@ -61,13 +61,13 @@
 | P3-M9 | 设备发现配网 | `routes/device_app_misc.py::provision/confirm`、配对流程 | ✅ 已完成 | 与 L5 共享 `v2_pair_request` 表 |
 | P3-M10 | 统计分析 | `routes/device_app_misc.py` 统计端点 | ✅ 已完成 | — |
 | P3-F1-2 | 自动回滚监控 | `device_ota/rollback_monitor.py` | ✅ 已完成 | 与 F1-2 重复，已合并 |
-| **P4** | **提示词系统强化** | `prompts/` 模板注册表、`routing/semantic_router.py`、Instructor 结构化输出、promptfoo 回归测试、语义缓存、LangGraph 状态可视化 | **⏸️ 未开始** | 唯一未启动的增强维度，建议作为下一个独立切片 |
+| **P4** | **提示词系统强化** | `prompts/` 模板注册表（P4-1 ✅）、`routing/semantic_router.py`（P4-2 ⏸️）、Instructor 结构化输出（P4-3 ⏸️）、promptfoo 回归测试（P4-4 ⏸️）、语义缓存（P4-5 ⏸️）、LangGraph 状态可视化（P4-6 ⏸️） | **P4-1 已完成；P4-2~P4-6 未开始** | P4-1 已实现 `prompts/layers.yaml` + `prompt_engineering/registry.py` |
 
 ---
 
 ## 推荐下一步
 
-1. **（推荐）启动 P4-1 提示词模板注册表**：新建 `prompts/` 目录，将 `routing_classifier.py`、`routing_intent.py` 中的内联 system prompt 迁移到 YAML/JSON 模板，并添加运行时加载器。收益：提示词可热更新、可 A/B 测试、便于多语言维护。
+1. **P4-2 语义路由预筛层**：在 `routing_intent.py` 前增加基于 embedding/关键词的轻量语义路由器，用于提前分流 image/think/device 意图，减少 LLM 调用。
 2. **清理 `classify_scenario()` 的 `coding` 残留**：将 `routing_classifier.py::classify_scenario()` 永远返回 `"chat"`，并移除 `routes/v3_adapters.py`、`route_scorer.py`、`routing_selector/core.py` 等处的 `scenario == "coding"` 分支。
 
 ---

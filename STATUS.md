@@ -19,6 +19,19 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-26）P4-1 提示词模板注册表落地
+
+- **目标**：按 `docs/superpowers/plans/README.md` 推荐，启动 P4 提示词系统强化，先落地 P4-1 模板注册表。
+- **关键结果**：
+  - 新增 `prompts/layers.yaml`：6 个场景（`coding`、`chat`、`vision`、`device_draw`、`device_write`、`device_control`）的 role/skill 模板，使用 `{name}`、`{capability_bullets}` 等 brace 占位符。
+  - 新增 `prompt_engineering/registry.py`：按 `prompts/{group}.yaml` 加载模板，支持基于文件 mtime 的缓存自动失效，开发环境保存即生效。
+  - 重构 `prompt_engineering/layers.py`：`_build_role_text` 与 `build_skill_layer` 从 YAML 加载并 `.format()` 预计算值；`PROMPT_VERSION` 升级到 `lima-prompts-v2.0`；保留 IDE 后缀逻辑在代码中。
+  - 新增 `tests/test_prompt_registry.py`：覆盖全部场景加载、占位符格式化、缺失模板报错、缓存失效、组合 prompt 非空。
+  - 新增 `prompts/README.md`（中文）：说明 registry 目录、命名与热更新约定。
+  - 更新 `docs/superpowers/plans/README.md`：P4-1 标记为已完成，P4-2~P4-6 仍待启动。
+- **验证**：`ruff check .` clean；`ruff format --check .` clean；`python scripts/check_code_size.py` PASS。
+- **全量 pytest**：**3762 passed / 3 skipped / 2 deselected / 0 failed**。
+
 ### 最近完成（2026-06-26）代码体积全面达标
 
 - **目标**：消除 `scripts/check_code_size.py` 报告的所有体积违规。

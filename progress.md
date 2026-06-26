@@ -9265,3 +9265,15 @@ oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至
   - `ruff check .` clean（本次仅文档修改）。
   - 最新全量 pytest 仍为 **3735 passed / 3 skipped / 2 deselected / 0 failed**。
 - **提交**：`docs: add plan tracker and retire Gitee mirror`（`3525d4ff`），已推送 `origin/main`。
+
+## 2026-06-26 P4-1 Prompt Template Registry 落地
+
+- **目标**：将 `prompt_engineering/layers.py` 中的角色层与技能层 prompt 字符串迁移到外部 YAML 模板，并支持运行时热加载。
+- **已完成**：
+  - 新增 `prompts/layers.yaml`：包含 6 个场景（`coding`、`chat`、`vision`、`device_draw`、`device_write`、`device_control`）的 `role.*` 与 `skill.*` 模板，使用 `{name}`、`{capability_bullets}` 等 brace 占位符。
+  - 新增 `prompt_engineering/registry.py`：    - `load_prompt_template(group, name)` 按 `prompts/{group}.yaml` 加载模板。    - 基于文件 mtime 的内存缓存自动失效，开发环境保存即生效。    - 缺失文件或路径时抛出清晰的 `FileNotFoundError` / `KeyError`。
+  - 重构 `prompt_engineering/layers.py`：    - `_build_role_text` 从 YAML `role.{scenario}` 加载并 `.format()` 预计算值（模型名、能力摘要、能力 bullet、危险指令等）。    - `build_skill_layer` 从 YAML `skill.{scenario}` 加载，未知场景回退到 `skill.chat`。    - `PROMPT_VERSION` 从 `lima-prompts-v1.1` 升级到 `lima-prompts-v2.0`。    - 保留 `build_role_layer` 的 IDE 后缀逻辑在代码中。  - 新增 `tests/test_prompt_registry.py`：覆盖全部场景加载、格式化占位符、缺失模板报错、缓存失效、组合 prompt 非空。
+  - 新增 `prompts/README.md`（中文）：说明 registry 的目录、命名与热更新约定。
+- **验证**：
+  - `ruff check .` clean；`ruff format --check .` clean。
+  - `python -m pytest tests/test_prompt_registry.py tests/test_prompt_engineering.py -q` → **59 passed / 0 failed**。
