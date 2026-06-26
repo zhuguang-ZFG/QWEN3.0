@@ -1,5 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from config import env
+from models.structured_outputs.schemas import IntentResult
 
 
 @pytest.mark.parametrize(
@@ -63,33 +66,73 @@ def test_instructor_intent_parse_fallback(monkeypatch, env_var, getter, bad_valu
     assert getter() == default
 
 
-from unittest.mock import MagicMock, patch
-
-from models.structured_outputs.schemas import IntentResult
-
-
-def test_create_structured_completion_returns_result():
+def test_create_structured_completion_success_returns_model():
     from models.structured_outputs import instructor_client
 
-    fake = IntentResult(intent="chat", confidence=0.95, source="instructor")
-    with patch.object(
-        instructor_client,
-        "create_structured_completion",
-        return_value=fake,
+    fake_result = IntentResult(intent="chat", confidence=0.95, source="instructor")
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = fake_result
+
+    with patch.dict(
+        "sys.modules",
+        {"instructor": MagicMock(), "openai": MagicMock()},
     ):
-        result = instructor_client.create_structured_completion(
-            [{"role": "user", "content": "hello"}],
-            IntentResult,
-        )
-        assert result is fake
+        with patch.object(instructor_client, "key_pool") as mock_key_pool:
+            mock_key_pool.get_key.return_value = "gsk-test"
+            with patch("instructor.from_openai", return_value=mock_client):
+                with patch("openai.OpenAI"):
+                    result = instructor_client.create_structured_completion(
+                        [{"role": "user", "content": "hello"}],
+                        IntentResult,
+                        provider="groq",
+                        model="llama-3.1-8b-instant",
+                    )
+                    assert result is fake_result
 
 
-def test_create_structured_completion_missing_dependency_returns_none():
+def test_create_structured_completion_no_key_returns_none():
     from models.structured_outputs import instructor_client
 
-    with patch.object(instructor_client, "create_structured_completion", return_value=None):
+    with patch.object(instructor_client, "key_pool") as mock_key_pool:
+        mock_key_pool.get_key.return_value = None
         result = instructor_client.create_structured_completion(
             [{"role": "user", "content": "hello"}],
             IntentResult,
+            provider="groq",
         )
         assert result is None
+
+
+def test_create_structured_completion_unknown_provider_returns_none():
+    from models.structured_outputs import instructor_client
+
+    with patch.object(instructor_client, "key_pool") as mock_key_pool:
+        mock_key_pool.get_key.return_value = "some-key"
+        result = instructor_client.create_structured_completion(
+            [{"role": "user", "content": "hello"}],
+            IntentResult,
+            provider="unknown_provider",
+        )
+        assert result is None
+
+
+def test_create_structured_completion_api_error_returns_none():
+    from models.structured_outputs import instructor_client
+
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.side_effect = RuntimeError("api down")
+
+    with patch.dict(
+        "sys.modules",
+        {"instructor": MagicMock(), "openai": MagicMock()},
+    ):
+        with patch.object(instructor_client, "key_pool") as mock_key_pool:
+            mock_key_pool.get_key.return_value = "gsk-test"
+            with patch("instructor.from_openai", return_value=mock_client):
+                with patch("openai.OpenAI"):
+                    result = instructor_client.create_structured_completion(
+                        [{"role": "user", "content": "hello"}],
+                        IntentResult,
+                        provider="groq",
+                    )
+                    assert result is None

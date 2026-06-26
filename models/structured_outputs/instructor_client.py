@@ -53,6 +53,8 @@ def create_structured_completion(
     model: str = "llama-3.1-8b-instant",
     max_retries: int = 2,
     timeout: float = 10.0,
+    temperature: float = 0.0,
+    max_tokens: int | None = None,
 ) -> T | None:
     """Use Instructor to get a structured output from a small backend.
 
@@ -83,7 +85,9 @@ def create_structured_completion(
             messages=messages,
             response_model=response_model,
             max_retries=max_retries,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
     except Exception as exc:
-        logger.warning("instructor structured completion failed: %s", exc)
+        logger.warning("instructor structured completion failed for %s/%s: %s", provider, model, exc)
         return None
