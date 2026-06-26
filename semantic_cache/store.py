@@ -1,0 +1,125 @@
+"""SQLite-backed store for semantic cache entries."""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+import time
+from dataclasses import dataclass
+
+from semantic_cache.config import cache_db_path
+
+
+@dataclass(frozen=True)
+class CacheEntry:
+    id: int
+    query_text: str
+    embedding: list[float]
+    response: str
+    created_at: float
+
+
+class SemanticCacheStore:
+    """SQLite store for query/response pairs with embedding vectors."""
+
+    _SCHEMA = """
+    CREATE TABLE IF NOT EXISTS semantic_cache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        query_hash TEXT NOT NULL,
+        query_text TEXT NOT NULL,
+        embedding TEXT NOT NULL,
+        response TEXT NOT NULL,
+        created_at REAL NOT NULL,
+        hit_count INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_semantic_cache_created_at
+        ON semantic_cache(created_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_semantic_cache_query_hash
+        ON semantic_cache(query_hash);
+    """
+
+    def __init__(self, db_path: str = ""):
+        self.db_path = db_path or cache_db_path()
+        self._ensure_schema()
+
+    def _connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _ensure_schema(self) -> None:
+        with self._connection() as conn:
+            conn.executescript(self._SCHEMA)
+
+    def get_candidates(
+        self,
+        min_created_at: float,
+        limit: int = 100,
+    ) -> list[CacheEntry]:
+        """Return recent entries that may match the query."""
+        with self._connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, query_text, embedding, response, created_at
+                FROM semantic_cache
+                WHERE created_at >= ?
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (min_created_at, limit),
+            ).fetchall()
+        return [
+            CacheEntry(
+                id=row["id"],
+                query_text=row["query_text"],
+                embedding=json.loads(row["embedding"]),
+                response=row["response"],
+                created_at=row["created_at"],
+            )
+            for row in rows
+        ]
+
+    def upsert(
+        self,
+        query_hash: str,
+        query_text: str,
+        embedding: list[float],
+        response: str,
+    ) -> None:
+        """Insert or replace a cache entry keyed by query hash."""
+        now = time.time()
+        with self._connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO semantic_cache (query_hash, query_text, embedding, response, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(query_hash) DO UPDATE SET
+                    query_text=excluded.query_text,
+                    embedding=excluded.embedding,
+                    response=excluded.response,
+                    created_at=excluded.created_at,
+                    hit_count=0
+                """,
+                (
+                    query_hash,
+                    query_text,
+                    json.dumps(embedding),
+                    response,
+                    now,
+                ),
+            )
+
+    def bump_hit_count(self, entry_id: int) -> None:
+        """Increment hit count for a returned entry."""
+        with self._connection() as conn:
+            conn.execute(
+                "UPDATE semantic_cache SET hit_count = hit_count + 1 WHERE id = ?",
+                (entry_id,),
+            )
+
+    def prune(self, max_age_seconds: float) -> int:
+        """Delete entries older than ``max_age_seconds``. Returns deleted count."""
+        cutoff = time.time() - max_age_seconds
+        with self._connection() as conn:
+            cur = conn.execute("DELETE FROM semantic_cache WHERE created_at < ?", (cutoff,))
+            return cur.rowcount

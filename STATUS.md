@@ -8,7 +8,7 @@
 > Updated: 2026-06-26
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3805 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3815 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,21 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-26）P4-5 语义缓存层落地
+
+- **目标**：按 `docs/superpowers/plans/README.md` 推荐，实现语义缓存基座，用于降低高频问题的后端调用成本。
+- **关键结果**：
+  - 新增 `semantic_cache/` 包：
+    - `embedder.py`：`Embedder` 协议 + `JinaEmbedder` + 离线 `FakeEmbedder`。
+    - `store.py`：SQLite 持久化，支持 TTL 裁剪、命中计数、按 `query_hash` upsert。
+    - `cache.py`：`SemanticCache` 高阶 API，含余弦相似度计算与阈值命中逻辑。
+    - `config.py`：环境变量读取（默认全部关闭）。
+  - 新增 `tests/test_semantic_cache.py`（10 cases）：覆盖 store/cosine/ttl/prune/hit count。
+  - 新增 `semantic_cache/README.md` 使用说明。
+  - `.env.example` 增加 `LIMA_SEMANTIC_CACHE_*` 配置项。
+- **验证**：`ruff check .` clean；`ruff format --check .` clean；`python scripts/check_code_size.py` PASS。
+- **全量 pytest**：**3815 passed / 3 skipped / 2 deselected / 0 failed**。
 
 ### 最近完成（2026-06-26）P4-4 promptfoo 提示词回归测试落地
 

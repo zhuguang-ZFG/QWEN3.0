@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-26 完成 P4-5：语义缓存层
+
+- **目标**：按 `docs/superpowers/plans/README.md` P4-5，实现语义缓存基座。
+- **关键结果**：
+  - 新增 `semantic_cache/` 包：
+    - `embedder.py`：协议 + JinaEmbedder + FakeEmbedder。
+    - `store.py`：SQLite 持久化、TTL、命中计数、upsert。
+    - `cache.py`：`SemanticCache` 高阶 API + 余弦相似度。
+    - `config.py`：环境变量读取（默认关闭）。
+  - 新增 `tests/test_semantic_cache.py`（10 cases）。
+  - 新增 `semantic_cache/README.md`。
+  - `.env.example` 增加 `LIMA_SEMANTIC_CACHE_*`。
+- **验证**：
+  - 聚焦测试：`tests/test_semantic_cache.py` → 10 passed。
+  - 完整测试：**3815 passed / 3 skipped / 2 deselected**；`ruff check` clean；`ruff format --check` clean；`scripts/check_code_size.py` PASS。
+
 ## 2026-06-26 完成 P4-4：promptfoo 提示词回归测试
 
 - **目标**：按 `docs/superpowers/plans/README.md` P4-4，为 `prompts/layers.yaml` 增加快照回归测试。
