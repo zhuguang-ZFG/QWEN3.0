@@ -184,7 +184,7 @@ def semantic_router_threshold() -> float:
 
 def instructor_intent_enabled() -> bool:
     """Whether Instructor-based intent fallback is enabled."""
-    return os.environ.get("LIMA_INSTRUCTOR_INTENT_ENABLED", "0").lower() in {"1", "true", "on"}
+    return os.environ.get("LIMA_INSTRUCTOR_INTENT_ENABLED", "0").strip().lower() in {"1", "true", "on", "yes"}
 
 
 def instructor_intent_threshold() -> float:
