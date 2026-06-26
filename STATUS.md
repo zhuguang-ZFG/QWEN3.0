@@ -13,6 +13,7 @@
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml`、`.github/workflows/deploy.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-docs-site.yml` 已配置；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（ secrets 待配置）。
+> Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` 2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 

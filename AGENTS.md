@@ -188,7 +188,8 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 4. ruff check + pyright 针对修改的文件
 5. VPS 部署 + 健康/冒烟验证（scripts/deploy_unified.py）
 6. 更新 STATUS.md / progress.md / findings.md
-7. git commit（conventional，仅里程碑文件）→ push origin（Gitee 镜像需单独配置 remote）
+7. git commit（conventional，仅里程碑文件）→ push origin（GitHub）
+   - **Gitee 镜像已退役**：不再维护 `gitee` remote，不再双推。历史提交保留在 GitHub。
 ```
 
 ## Git 规则
