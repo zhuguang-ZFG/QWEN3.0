@@ -12,7 +12,7 @@ export default function NotFound() {
         <p className="mt-2 text-slate-400">你访问的页面可能已经迁移或不存在。</p>
         <Link
           href="/"
-          className="mt-6 rounded-full bg-cyan-500 px-6 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
+          className="mt-6 rounded-full bg-cyan-500 px-6 py-2.5 font-semibold text-white hover:bg-cyan-400"
         >
           返回首页
         </Link>

@@ -90,7 +90,7 @@ export default function Developer() {
               href="https://chat.donglicao.com"
               target="_blank"
               rel="noopener"
-              className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-6 py-3 font-semibold text-slate-950 hover:bg-cyan-400"
+              className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-6 py-3 font-semibold text-white hover:bg-cyan-400"
             >
               获取 API Key
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

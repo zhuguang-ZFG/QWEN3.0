@@ -79,7 +79,7 @@ export default function HomeEn() {
                 href="https://chat.donglicao.com"
                 target="_blank"
                 rel="noopener"
-                className="rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400"
+                className="rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-white transition hover:bg-cyan-400"
               >
                 Try Console
               </a>
@@ -182,7 +182,7 @@ export default function HomeEn() {
             <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 href="/pricing/"
-                className="rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400"
+                className="rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-white transition hover:bg-cyan-400"
               >
                 View Pricing
               </Link>

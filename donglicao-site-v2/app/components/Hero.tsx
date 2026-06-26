@@ -23,7 +23,7 @@ export default function Hero() {
               href="https://chat.donglicao.com"
               target="_blank"
               rel="noopener"
-              className="rounded-full bg-cyan-500 px-6 py-3 font-semibold text-slate-950 hover:bg-cyan-400"
+              className="rounded-full bg-cyan-500 px-6 py-3 font-semibold text-white hover:bg-cyan-400"
             >
               在线体验
             </a>

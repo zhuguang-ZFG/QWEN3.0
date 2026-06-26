@@ -204,7 +204,7 @@ export default function PlaygroundPage() {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-full bg-cyan-500 px-6 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+              className="rounded-full bg-cyan-500 px-6 py-2.5 font-semibold text-white hover:bg-cyan-400 disabled:opacity-60"
             >
               {loading ? "请求中..." : "发送请求"}
             </button>

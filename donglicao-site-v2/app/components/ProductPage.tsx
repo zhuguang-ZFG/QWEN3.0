@@ -69,6 +69,15 @@ export default function ProductPage({
   labels: labelsProp,
 }: ProductPageProps) {
   const labels = { ...defaultLabels, ...labelsProp };
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: `${title} ${highlight}`,
+    description,
+    brand: { "@type": "Brand", name: "LiMa" },
+    manufacturer: { "@type": "Organization", name: "深圳市动力巢科技有限公司" },
+    category: "AI 智能设备",
+  };
   return (
     <>
       <Navbar />
@@ -93,7 +102,7 @@ export default function ProductPage({
                 href="https://chat.donglicao.com"
                 target="_blank"
                 rel="noopener"
-                className="rounded-full px-6 py-3 font-semibold text-slate-950"
+                className="rounded-full px-6 py-3 font-semibold text-white"
                 style={{ backgroundColor: accent }}
               >
                 {labels.ctaTry}
@@ -201,6 +210,10 @@ export default function ProductPage({
         )}
       </main>
       <Footer />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
     </>
   );
 }

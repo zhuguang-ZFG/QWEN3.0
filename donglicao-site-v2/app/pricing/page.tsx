@@ -143,7 +143,7 @@ export default function PricingPage() {
                 }`}
               >
                 {plan.featured && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500 px-3 py-1 text-xs font-semibold text-slate-950">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500 px-3 py-1 text-xs font-semibold text-white">
                     最受欢迎
                   </div>
                 )}
@@ -169,7 +169,7 @@ export default function PricingPage() {
                   rel={plan.href.startsWith("http") ? "noopener" : undefined}
                   className={`block rounded-full py-2.5 text-center font-semibold ${
                     plan.primary
-                      ? "bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+                      ? "bg-cyan-500 text-white hover:bg-cyan-400"
                       : "border border-white/10 text-slate-200 hover:border-cyan-500/50 hover:text-cyan-400"
                   }`}
                 >
@@ -236,7 +236,7 @@ export default function PricingPage() {
                 href="https://chat.donglicao.com/register"
                 target="_blank"
                 rel="noopener"
-                className="rounded-full bg-cyan-500 px-6 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
+                className="rounded-full bg-cyan-500 px-6 py-2.5 font-semibold text-white hover:bg-cyan-400"
               >
                 免费注册
               </a>

@@ -52,7 +52,7 @@ export default function Navbar() {
               href="https://chat.donglicao.com"
               target="_blank"
               rel="noopener"
-              className="rounded-full bg-cyan-500 px-4 py-2 text-center font-medium text-slate-950 hover:bg-cyan-400"
+              className="rounded-full bg-cyan-500 px-4 py-2 text-center font-medium text-white hover:bg-cyan-400"
               onClick={() => setOpen(false)}
             >
               控制台
