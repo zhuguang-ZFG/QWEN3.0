@@ -3,6 +3,31 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-27 P4-3 后续：Instructor 意图回退结构化输出落地
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P4-3-INT-1 | routing | `routing_intent.py` 接入 Instructor 回退后可能超过 300 行 | Closed |
+| P4-3-INT-2 | config | 需要新增 `LIMA_INSTRUCTOR_INTENT_*` 环境变量读取 | Closed |
+| P4-3-INT-3 | client | `models/structured_outputs/instructor_client.py` 已预留但未提供结构化输出入口 | Closed |
+| P4-3-INT-4 | regression | 此前为消除 pyright warning 将 `recalled_backend` 改为 `str`，导致 `test_pick_backend.py` 断言失败 | Closed |
+
+**修复动作**
+- 新增 `routing_intent_instructor.py`：封装 `maybe_instructor_intent()`，保持 `routing_intent.py` ≤300 行。
+- 扩展 `models/structured_outputs/instructor_client.py`：新增 `create_structured_completion()`，复用 `key_pool`，支持 groq/openrouter/cerebras，失败返回 `None` 并记录 warning。
+- `routing_intent.py::analyze_intent()` 在规则 confidence < 阈值时调用 Instructor；命中采用，失败回退到规则结果。
+- 新增 `observability/events.py::instructor_intent_event()` 与指标事件。
+- `config/env.py` 新增 6 个读取函数；`.env.example` 补充配置示例。
+- 新增 `tests/test_instructor_intent_fallback.py`（21 cases）。
+- 将 `routing_selector/core.py` 与 `routing_selector/ranking.py` 的 `recalled_backend` 类型恢复为 `str | None = None`，`routing_engine.py` 恢复传 `None`。
+
+**验证**
+- 完整 pytest `-m "not network"` → **3844 passed / 3 skipped / 2 deselected / 0 failed**（重跑后全绿；首次全量出现 2 个 flaky 失败，单独运行均通过）。
+- `ruff check .` / `ruff format --check .` / `scripts/check_code_size.py` / `pyright` 目标文件全部通过。
+- `python scripts/deploy_unified.py --files ...` → **167 uploaded / 0 failed / 0 skipped**；Health OK。
+- 公网 `https://chat.donglicao.com/health` 200，`status=ok`。
+- 公网 `https://chat.donglicao.com/v1/chat/completions` 使用真实 token → HTTP 200。
+
 ## 2026-06-27 P4-5 后续：SemanticCache 接入 routing_engine.py 生产路径
 
 | ID | Area | Finding | Status |

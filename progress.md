@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 完成 P4-3 后续：Instructor 意图回退结构化输出落地
+
+- **目标**：按 `docs/superpowers/plans/README.md` 推荐，将 Instructor 结构化输出能力接入 `routing_intent.py`，作为规则分类置信度不足时的可选回退，默认关闭。
+- **关键结果**：
+  - 新增 `routing_intent_instructor.py`：封装 `maybe_instructor_intent()`，保持 `routing_intent.py` ≤300 行。
+  - 扩展 `models/structured_outputs/instructor_client.py`：新增 `create_structured_completion()`，复用 `key_pool` 获取 key，支持 groq/openrouter/cerebras。
+  - `routing_intent.py::analyze_intent()` 在规则 confidence < 0.70 时调用 Instructor；命中采用，失败回退。
+  - 新增 `observability/events.py::instructor_intent_event()`。
+  - `config/env.py` 新增 6 个读取函数；`.env.example` 补充配置示例。
+  - 新增 `tests/test_instructor_intent_fallback.py`（21 cases）。
+  - 修复 `routing_engine.py`/`routing_selector` `recalled_backend` 类型回归。
+- **验证**：
+  - 聚焦测试：`tests/test_instructor_intent_fallback.py` + `tests/test_routing_intent.py` + `tests/test_pick_backend.py` + `tests/test_route_pipeline.py` → 77 passed。
+  - 完整测试：**3844 passed / 3 skipped / 2 deselected / 0 failed**（重跑一次后全绿；首次全量出现 2 个 flaky 失败，单独运行均通过）。
+  - `ruff check .` clean；`ruff format --check .` clean；`scripts/check_code_size.py` PASS；`pyright` 目标文件 0 errors（可选依赖缺失 warning 除外）。
+- **部署**：`python scripts/deploy_unified.py --files ...` → 167 uploaded / 0 failed；Health OK；公网聊天冒烟 HTTP 200（耗时约 116s，主要受后端可用性影响）。
+
 ## 2026-06-27 完成 P4-5 后续：SemanticCache 接入 routing_engine.py 生产路径
 
 - **目标**：按 `docs/superpowers/plans/README.md` 推荐，将 `semantic_cache/` 接入 `routing_engine.py::route()` 生产请求路径，默认关闭。

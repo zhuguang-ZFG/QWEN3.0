@@ -8,7 +8,7 @@
 > Updated: 2026-06-27
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3820 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3844 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,20 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-27）P4-3 后续：Instructor 意图回退结构化输出落地
+
+- **目标**：按 `docs/superpowers/plans/README.md` 推荐，将 Instructor 结构化输出能力接入 `routing_intent.py`，作为规则分类置信度不足时的可选回退。
+- **关键结果**：
+  - 新增 `routing_intent_instructor.py`：封装 `maybe_instructor_intent()`，保持 `routing_intent.py` ≤300 行。
+  - 扩展 `models/structured_outputs/instructor_client.py`：新增 `create_structured_completion(provider, model, messages, response_model)`，复用 `key_pool` 获取 key，支持 groq/openrouter/cerebras，失败时记录 warning 并返回 `None`。
+  - `routing_intent.py::analyze_intent()` 在规则 confidence < `LIMA_INSTRUCTOR_INTENT_THRESHOLD`（默认 0.70）时调用 Instructor；命中且 confidence 达标则采用，否则保持规则结果。
+  - 新增 `observability/events.py::instructor_intent_event()` 与指标事件，用于观测调用成功/失败。
+  - `config/env.py` 新增 6 个环境变量读取函数；`.env.example` 补充配置示例。
+  - 新增 `tests/test_instructor_intent_fallback.py`（21 cases）覆盖配置、Instructor 客户端、事件、意图集成开关/成功/失败/阈值路径。
+  - 修复 `routing_engine.py`/`routing_selector` 中 `recalled_backend` 类型回归（恢复 `str | None`）。
+- **验证**：`ruff check .` clean；`ruff format --check .` clean；`python scripts/check_code_size.py` PASS；`pyright` 目标文件 0 errors（可选依赖 `openai`/`instructor` 缺失 warning 除外）；全量 pytest **3844 passed / 3 skipped / 2 deselected / 0 failed**。
+- **部署**：`python scripts/deploy_unified.py --files ...` → 167 uploaded / 0 failed；Health OK；公网聊天冒烟 HTTP 200。
 
 ### 最近完成（2026-06-27）P4-5 后续：语义缓存接入生产路径
 
