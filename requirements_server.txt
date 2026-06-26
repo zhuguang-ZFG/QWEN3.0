@@ -33,3 +33,6 @@ opencv-python-headless==4.10.0.84  # 轮廓检测（无 GUI，适合服务器）
 scikit-image>=0.22.0,<0.25         # 骨架化（Zhang-Suen，笔绘机单线路径）
 dashscope==1.20.11         # 通义千问 SDK（文生图）
 Pillow==10.4.0             # 图像处理
+
+# Optional: Instructor-based structured outputs (P4-3)
+# instructor>=1.0.0

@@ -8,7 +8,7 @@
 > Updated: 2026-06-26
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3780 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3795 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,21 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-26）P4-3 结构化输出基座落地（Pydantic schemas + validator）
+
+- **目标**：按 `docs/superpowers/plans/README.md` 推荐，继续推进 P4 提示词系统强化，落地 P4-3 结构化输出基座。
+- **关键结果**：
+  - 新增 `models/__init__.py` + `models/structured_outputs/`：
+    - `schemas.py`：`ClassifyResult`、`ScenarioResult`、`IntentResult`、`BackendScore`。
+    - `validator.py`：`parse_json` / `validate_value`，失败时回退并记录 warning（符合无静默降级硬规则）。
+    - `instructor_client.py`：可选 Instructor patch，默认关闭，预留 LLM-native 结构化输出接口。
+  - `routing_classifier.py`：`classify()` 与 `classify_scenario()` 输出通过 Pydantic 模型校验。
+  - `routing_intent.py`：`analyze_intent()` 返回结果通过 `IntentResult` 校验后再 dict 化，保留原有全部字段。
+  - 配置：`config/env.py` 无需新增（validator 不依赖环境开关），`.env.example` / `requirements_server.txt` 增加 Instructor 可选开关/依赖注释。
+  - 新增测试 `tests/test_structured_outputs.py`（12 cases）。
+- **验证**：`ruff check .` clean；`ruff format --check .` clean；`python scripts/check_code_size.py` PASS。
+- **全量 pytest**：**3795 passed / 3 skipped / 2 deselected / 0 failed**。
 
 ### 最近完成（2026-06-26）P4-2 语义路由预筛层落地（keyword/regex baseline）
 

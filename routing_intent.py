@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from models.structured_outputs import IntentResult
+from models.structured_outputs.validator import validate_value
 from routing_intent_modal import detect_image_intent, detect_thinking_intent
 
 __all__ = [
@@ -266,7 +268,7 @@ def analyze_intent(
     cnc_subdomain, source, confidence.
     """
     if detect_thinking_intent(query):
-        return {
+        result = {
             "intent": "thinking",
             "complexity": 0.9,
             "needs_code": False,
@@ -275,17 +277,18 @@ def analyze_intent(
             "source": "thinking_detect",
             "confidence": 0.95,
         }
+    else:
+        result = _enhanced_classify(query, system_prompt, ide)
+        if result is None:
+            result = {
+                "intent": "chat",
+                "complexity": 0.5,
+                "needs_code": False,
+                "domain_keywords": [],
+                "cnc_subdomain": "general",
+                "source": "default_fallback",
+                "confidence": 0.5,
+            }
 
-    result = _enhanced_classify(query, system_prompt, ide)
-    if result:
-        return result
-
-    return {
-        "intent": "chat",
-        "complexity": 0.5,
-        "needs_code": False,
-        "domain_keywords": [],
-        "cnc_subdomain": "general",
-        "source": "default_fallback",
-        "confidence": 0.5,
-    }
+    validated = validate_value(result, IntentResult)
+    return validated.model_dump()

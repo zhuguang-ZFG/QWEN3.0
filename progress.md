@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-26 完成 P4-3：结构化输出基座（Pydantic schemas + validator）
+
+- **目标**：按 `docs/superpowers/plans/README.md` P4-3，落地结构化输出基座，先统一 Pydantic 模型与校验，再按需接入 Instructor。
+- **关键结果**：
+  - 新增 `models/__init__.py` + `models/structured_outputs/`：
+    - `schemas.py`：`ClassifyResult`、`ScenarioResult`、`IntentResult`、`BackendScore`。
+    - `validator.py`：`parse_json` / `validate_value`，失败时回退并记录 warning。
+    - `instructor_client.py`：可选 Instructor patch，默认关闭。
+  - `routing_classifier.py`：`classify()` 与 `classify_scenario()` 输出通过 Pydantic 模型校验。
+  - `routing_intent.py`：`analyze_intent()` 返回结果通过 `IntentResult` 校验后再 dict 化。
+  - `.env.example` / `requirements_server.txt` 增加 Instructor 可选开关/依赖注释。
+  - 新增测试 `tests/test_structured_outputs.py`（12 cases）。
+- **验证**：
+  - 聚焦测试：63 passed（structured + routing_intent + routing_classifier_scenario + route_pipeline + chat_endpoints）。
+  - 完整测试：**3795 passed / 3 skipped / 2 deselected**；`ruff check` clean；`ruff format --check` clean；`scripts/check_code_size.py` PASS。
+
 ## 2026-06-26 完成 P4-2：语义路由预筛层（keyword/regex baseline）
 
 - **目标**：按 `docs/superpowers/plans/README.md` P4-2，实现一个轻量语义路由预筛层，避免引入本地 embedding 模型依赖，同时预留 embedding backend 接口。

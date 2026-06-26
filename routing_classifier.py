@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import router_v3
+from models.structured_outputs import ClassifyResult, ScenarioResult
+from models.structured_outputs.validator import validate_value
 
 
 def classify(
@@ -18,13 +20,28 @@ def classify(
     headers = headers or {}
 
     if fmt == "anthropic":
-        return "ide"
+        request_type = "ide"
+    elif ide_source and ide_source.lower() in _IDE_SOURCES:
+        request_type = "ide"
+    elif _user_agent_is_ide(headers.get("user-agent", "")):
+        request_type = "ide"
+    elif system_prompt and router_v3.detect_ide_by_fingerprints(system_prompt):
+        request_type = "ide"
+    elif _has_image_blocks(messages):
+        request_type = "vision"
+    else:
+        request_type = "chat"
 
-    if ide_source and ide_source.lower() in _IDE_SOURCES:
-        return "ide"
+    validated = validate_value(
+        {"request_type": request_type, "confidence": 1.0},
+        ClassifyResult,
+    )
+    return validated.request_type
 
-    ua = headers.get("user-agent", "").lower()
-    if any(
+
+def _user_agent_is_ide(user_agent: str) -> bool:
+    ua = user_agent.lower()
+    return any(
         x in ua
         for x in [
             "claude-code",
@@ -40,16 +57,7 @@ def classify(
             "windsurf",
             "copilot",
         ]
-    ):
-        return "ide"
-
-    if system_prompt and router_v3.detect_ide_by_fingerprints(system_prompt):
-        return "ide"
-
-    if _has_image_blocks(messages):
-        return "vision"
-
-    return "chat"
+    )
 
 
 _IDE_SOURCES = frozenset(
@@ -74,7 +82,9 @@ def classify_scenario(
     request_type: str | None = None,
 ) -> str:
     """判断场景: chat。v3.0 起编码能力退役，永远返回 chat。"""
-    return "chat"
+    del messages, query, ide_source, request_type
+    validated = validate_value({"scenario": "chat", "confidence": 1.0}, ScenarioResult)
+    return validated.scenario
 
 
 def _has_image_blocks(messages: list[dict]) -> bool:
