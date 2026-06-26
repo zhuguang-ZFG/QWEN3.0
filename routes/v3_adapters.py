@@ -8,7 +8,6 @@ from collections.abc import AsyncIterator
 
 import routing_engine
 from lima_context import build_context_digest
-from routing_engine import classify_scenario
 from routes.facade import http_caller
 from think_plan_context import enhance_coding_prompt, needs_plan
 
@@ -114,13 +113,7 @@ def v3_call_stream(backend, messages, max_tokens, ide):
                 break
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
-            scenario = classify_scenario(
-                messages,
-                query=query,
-                ide_source=ide if is_ide else "",
-                request_type="ide" if is_ide else "chat",
-            )
-            if scenario == "coding":
+            if is_ide:
                 digest = build_context_digest(query, messages, ide_source=ide)
                 if digest:
                     sys_prompt = digest
@@ -157,13 +150,7 @@ def v3_call_api(backend, messages, max_tokens, ide):
         )
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
-            scenario = classify_scenario(
-                messages,
-                query=query,
-                ide_source=ide if is_ide else "",
-                request_type="ide" if is_ide else "chat",
-            )
-            if scenario == "coding":
+            if is_ide:
                 digest = build_context_digest(query, messages, ide_source=ide)
                 if digest:
                     sys_prompt = digest
@@ -200,7 +187,7 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncItera
 
 
 def _build_async_stream_prompt(messages: list, ide: str) -> str:
-    """Build system prompt for async stream: coding context or plain-text constraint."""
+    """Build system prompt for async stream: IDE context digest or plain-text constraint."""
     sys_prompt = ""
     try:
         query = next(
@@ -209,13 +196,7 @@ def _build_async_stream_prompt(messages: list, ide: str) -> str:
         )
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
-            scenario = classify_scenario(
-                messages,
-                query=query,
-                ide_source=ide if is_ide else "",
-                request_type="ide" if is_ide else "chat",
-            )
-            if scenario == "coding":
+            if is_ide:
                 digest = build_context_digest(query, messages, ide_source=ide)
                 if digest:
                     sys_prompt = digest
@@ -247,13 +228,7 @@ async def v3_call_api_async(backend, messages, max_tokens, ide):
         )
         if query:
             is_ide = bool(ide and ide not in ("unknown", ""))
-            scenario = classify_scenario(
-                messages,
-                query=query,
-                ide_source=ide if is_ide else "",
-                request_type="ide" if is_ide else "chat",
-            )
-            if scenario == "coding":
+            if is_ide:
                 digest = build_context_digest(query, messages, ide_source=ide)
                 if digest:
                     sys_prompt = digest

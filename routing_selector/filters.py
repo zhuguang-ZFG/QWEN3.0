@@ -7,7 +7,7 @@ import health_tracker
 import router_v3
 
 from routing_selector.constants import _NATIVE_TOOL_PREFER
-from routing_selector.helpers import _is_retired, _is_strong_coding_tool_backend
+from routing_selector.helpers import _is_retired
 
 
 def _filter_tool_backends(result: list[str], scenario: str) -> list[str]:
@@ -29,7 +29,6 @@ def _filter_tool_backends(result: list[str], scenario: str) -> list[str]:
                 result.append(b)
     result.sort(
         key=lambda b: (
-            0 if scenario == "coding" and _is_strong_coding_tool_backend(b, reg.BACKENDS.get(b, {})) else 1,
             0 if any(p in b for p in _NATIVE_TOOL_PREFER) else 1,
             reg.BACKENDS.get(b, {}).get("timeout", 30),
         )

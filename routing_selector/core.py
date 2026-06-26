@@ -21,9 +21,7 @@ def select(
 ) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
     pool_key = request_type
-    if request_type == "chat" and scenario == "coding":
-        pool_key = "code"
-    elif request_type == "chat" and scenario == "chat":
+    if request_type == "chat" and scenario == "chat":
         pool_key = "chat_fast"
     result = _build_initial_pool(pool_key, health_map, needs_tools, scenario)
     result, routing_guard_decisions = _apply_guard_decisions(result)

@@ -63,7 +63,7 @@ def apply_token_budget(
     budget_status = check_budget(
         request_messages,
         system_prompt or "",
-        "coding" if ide_source else "chat",
+        "chat",
     )
     if not budget_status["within_budget"] and budget_status["action"] == "truncate_context":
         if len(req.messages) > 10:

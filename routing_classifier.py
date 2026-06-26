@@ -73,11 +73,7 @@ def classify_scenario(
     ide_source: str | None = None,
     request_type: str | None = None,
 ) -> str:
-    """判断场景: coding / chat。v3.0 起仅 IDE 请求保留 coding 标记。"""
-    if request_type == "ide":
-        return "coding"
-    if ide_source and ide_source.lower() in _IDE_SOURCES:
-        return "coding"
+    """判断场景: chat。v3.0 起编码能力退役，永远返回 chat。"""
     return "chat"
 
 

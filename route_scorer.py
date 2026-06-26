@@ -96,8 +96,6 @@ def task_fit_score(backend: str, request_type: str, scenario: str = "") -> float
         if backend in UNPROVEN_WEB_ADAPTERS:
             return 0.0
         return 1.0 if backend in CODING_BACKENDS else 0.7
-    if scenario == "coding" or request_type == "code":
-        return 1.0 if backend in CODING_BACKENDS else 0.45
     if request_type in ("chat", "chat_fast"):
         return 1.0 if backend in FAST_CHAT_BACKENDS else 0.7
     return 0.6

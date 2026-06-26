@@ -7,7 +7,7 @@ import routing_selector.core as selector_core
 from routing_selector import select
 
 
-def test_select_maps_chat_coding_to_code_pool(monkeypatch):
+def test_select_no_longer_maps_coding_to_code_pool(monkeypatch):
     captured: dict[str, str] = {}
 
     def fake_build(pool_key, health_map, needs_tools, scenario):
@@ -26,7 +26,7 @@ def test_select_maps_chat_coding_to_code_pool(monkeypatch):
     monkeypatch.setattr(selector_core, "_apply_pin", lambda pool, *args, **kwargs: pool)
 
     result = select("chat", {}, scenario="coding")
-    assert captured["pool_key"] == "code"
+    assert captured["pool_key"] == "chat"
     assert result == ["backend-a"]
 
 

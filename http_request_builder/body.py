@@ -41,10 +41,10 @@ def _enrich_system_prompt(
 
     from prompt_engineering.layers import compose_system_prompt
 
-    base_scenario = "coding" if fmt != "anthropic" or ide else "chat"
+    # v3.0 编码能力退役：所有请求统一使用 chat 场景模板
     return compose_system_prompt(
         ide=ide,
-        scenario=base_scenario,
+        scenario="chat",
         code_context=system_prompt if system_prompt else "",
     )
 

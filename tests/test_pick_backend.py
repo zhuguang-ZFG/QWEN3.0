@@ -105,13 +105,13 @@ def test_ide_source_forwarded_to_classify(mocks):
 # ---------------------------------------------------------------------------
 
 
-def test_classify_scenario_coding_forwarded_to_select(mocks):
-    """scenario="coding" 应作为关键字参数传递给 select()。"""
-    mocks["classify_scenario"].return_value = "coding"
+def test_classify_scenario_chat_forwarded_to_select(mocks):
+    """scenario="chat" 应作为关键字参数传递给 select()。"""
+    mocks["classify_scenario"].return_value = "chat"
     pick_backend("write a function", _DEFAULT_MSGS)
 
     _, kwargs = mocks["select"].call_args
-    assert kwargs["scenario"] == "coding"
+    assert kwargs["scenario"] == "chat"
 
 
 # ---------------------------------------------------------------------------

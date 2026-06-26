@@ -10,12 +10,6 @@ import pytest
 import routes.v3_adapters as v3
 
 
-@pytest.fixture(autouse=True)
-def _patch_classify_scenario():
-    with patch.object(v3, "classify_scenario", return_value="chat"):
-        yield
-
-
 def make_route_result(answer="ok", backend="test", ms=12.0, fallback_used=False):
     return SimpleNamespace(answer=answer, backend=backend, ms=ms, fallback_used=fallback_used)
 

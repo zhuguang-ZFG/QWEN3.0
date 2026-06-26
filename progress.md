@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-26 完成 P0：编码能力退役 — classify_scenario() 永远返回 chat
+
+- **目标**：按 `docs/superpowers/plans/README.md` P0-编码退役残留清理，完成 `routing_classifier.py::classify_scenario()` 永远返回 `"chat"`，并移除所有生产代码中对 `scenario == "coding"` 的行为依赖。
+- **关键结果**：
+  - `routing_classifier.py`：`classify_scenario()` 简化为永远返回 `"chat"`。
+  - `routes/v3_adapters.py`：移除 `classify_scenario` 调用与导入；按 `ide` 是否存在决定是否走 `build_context_digest` / `enhance_coding_prompt` IDE 辅助路径；非 IDE 请求施加纯文本约束。
+  - `route_scorer.py`：移除 `scenario == "coding"` / `request_type == "code"` 的 coding 后端加分分支。
+  - `routing_selector/core.py`：移除 `chat + coding → code` 池映射。
+  - `routing_selector/filters.py`：从 tool backend 排序中移除 strong-coding-tool 优先逻辑（helper 保留但生产路径不再使用）。
+  - `http_request_builder/body.py`：IDE 请求的系统 prompt 场景统一为 `"chat"`。
+  - `routes/chat_preflight.py`：`apply_token_budget` 的 scenario 始终传 `"chat"`。
+  - 更新相关测试：`test_routing_classifier_scenario.py`、`test_pick_backend.py`、`test_routes_v3_adapters.py`、`test_routing_selector_core.py`。
+- **验证**：
+  - 聚焦测试：65 passed。
+  - 完整测试：3762 passed / 3 skipped / 2 deselected；`ruff check` clean；`ruff format --check` clean。
+
 ## 2026-06-26 完成极致瘦身 + impeccable 设计系统 + 退役 shim 清理
 
 - **目标**：全局安装 ponytail + impeccable skills；基于 donglicao-site-v2 用 impeccable 重设计官网；全量 web 审查；项目级极致瘦身降低代码规模。

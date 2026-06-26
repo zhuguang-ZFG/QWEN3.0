@@ -3,6 +3,29 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-26 P0-编码能力退役：classify_scenario() 永远返回 chat
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P0-RETIRE-1 | routing | `routing_classifier.classify_scenario()` 仍对 IDE 请求返回 `"coding"`，驱动 route_scorer、routing_selector、v3_adapters 等多处分支 | Closed |
+| P0-RETIRE-2 | scoring | `route_scorer.task_fit_score()` 中 `scenario == "coding"` 分支使普通 chat 请求偏好 coding 后端 | Closed |
+| P0-RETIRE-3 | selector | `routing_selector.core.select()` 将 `chat + coding` 映射到已退役的 `code` 池 | Closed |
+| P0-RETIRE-4 | adapter | `routes/v3_adapters.py` 通过 `classify_scenario()` 判断 IDE 上下文注入，逻辑可简化为直接检查 `ide` | Closed |
+
+**修复动作**
+- `routing_classifier.py`：`classify_scenario()` 永远返回 `"chat"`。
+- `routes/v3_adapters.py`：移除 `classify_scenario` 调用与导入；IDE 请求继续走 `build_context_digest` + `enhance_coding_prompt`，非 IDE 请求施加纯文本约束。
+- `route_scorer.py`：删除 `scenario == "coding"` / `request_type == "code"` 分支；保留 IDE 专用逻辑。
+- `routing_selector/core.py`：删除 `chat + coding → code` 池映射。
+- `routing_selector/filters.py`：`_filter_tool_backends` 排序中移除 strong-coding-tool 优先；`_is_strong_coding_tool_backend` helper 保留但生产路径不再使用。
+- `http_request_builder/body.py`：`_enrich_system_prompt` 统一使用 `scenario="chat"`。
+- `routes/chat_preflight.py`：`apply_token_budget` 的 scenario 固定为 `"chat"`。
+- 更新测试：`test_routing_classifier_scenario.py`、`test_pick_backend.py`、`test_routes_v3_adapters.py`、`test_routing_selector_core.py`。
+
+**验证**
+- 完整 pytest `-m "not network"` → **3762 passed / 3 skipped / 2 deselected / 0 failed / 0 errors**。
+- `ruff check` 与 `ruff format --check` 均通过。
+
 ## 2026-06-25 Phase A 收尾：英文法律页、小程序 OTA、后端 OTA App 接口与合并推送
 
 | ID | Area | Finding | Status |

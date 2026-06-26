@@ -8,7 +8,7 @@
 > Updated: 2026-06-26
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3735 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3762 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -29,6 +29,21 @@
   - 新增 `tests/test_prompt_registry.py`：覆盖全部场景加载、占位符格式化、缺失模板报错、缓存失效、组合 prompt 非空。
   - 新增 `prompts/README.md`（中文）：说明 registry 目录、命名与热更新约定。
   - 更新 `docs/superpowers/plans/README.md`：P4-1 标记为已完成，P4-2~P4-6 仍待启动。
+- **验证**：`ruff check .` clean；`ruff format --check .` clean；`python scripts/check_code_size.py` PASS。
+- **全量 pytest**：**3762 passed / 3 skipped / 2 deselected / 0 failed**。
+
+### 最近完成（2026-06-26）P0：编码能力退役残留清理
+
+- **目标**：完成 `docs/superpowers/plans/README.md` P0-编码退役残留清理，`classify_scenario()` 永远返回 `"chat"`，并移除所有生产代码中对 `scenario == "coding"` 的行为依赖。
+- **关键结果**：
+  - `routing_classifier.py`：`classify_scenario()` 简化为永远返回 `"chat"`。
+  - `routes/v3_adapters.py`：移除 `classify_scenario` 调用与导入；按 `ide` 是否存在决定是否走 `build_context_digest` / `enhance_coding_prompt` IDE 辅助路径；非 IDE 请求施加纯文本约束。
+  - `route_scorer.py`：移除 `scenario == "coding"` / `request_type == "code"` 的 coding 后端加分分支。
+  - `routing_selector/core.py`：移除 `chat + coding → code` 池映射。
+  - `routing_selector/filters.py`：从 tool backend 排序中移除 strong-coding-tool 优先逻辑。
+  - `http_request_builder/body.py`：IDE 请求的系统 prompt 场景统一为 `"chat"`。
+  - `routes/chat_preflight.py`：`apply_token_budget` 的 scenario 始终传 `"chat"`。
+  - 更新相关测试：`test_routing_classifier_scenario.py`、`test_pick_backend.py`、`test_routes_v3_adapters.py`、`test_routing_selector_core.py`。
 - **验证**：`ruff check .` clean；`ruff format --check .` clean；`python scripts/check_code_size.py` PASS。
 - **全量 pytest**：**3762 passed / 3 skipped / 2 deselected / 0 failed**。
 
@@ -409,7 +424,7 @@
 
 - **目标**：按 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 第一部分，退役非 IDE 的编码能力，简化路由管线。
 - **关键结果**：
-  - `routing_classifier.classify_scenario()` 仅 IDE 场景返回 `"coding"`，其余返回 `"chat"`。
+  - `routing_classifier.classify_scenario()` 已简化为永远返回 `"chat"`；2026-06-26 残留清理完成。
   - `speculative_policy` 移除 `"code"` 分支、`_CODE_SIGNALS`、`_CODE_INDICATORS`、`_FILE_EXTENSIONS` 与 `AFFINITY["code"]`。
   - `routing_engine_execute_strategy` 删除 `_execute_code_priority()`、`_maybe_quality_retry()`，简化 sticky pin。
   - `context_pipeline/code_context_injection.py`、`semantic_code_retrieval.py`、`code_scanner.py`、`graph_retrieval.py` 标记为 `DEPRECATED v3.0`。

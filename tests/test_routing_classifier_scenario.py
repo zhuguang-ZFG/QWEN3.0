@@ -3,14 +3,14 @@
 from routing_classifier import classify_scenario
 
 
-def test_classify_scenario_coding_for_ide_request_type():
+def test_classify_scenario_chat_for_ide_request_type():
     messages = [{"role": "user", "content": "写一个 Python 函数实现快排"}]
-    assert classify_scenario(messages, query="sort algorithm in Python", request_type="ide") == "coding"
+    assert classify_scenario(messages, query="sort algorithm in Python", request_type="ide") == "chat"
 
 
-def test_classify_scenario_coding_for_ide_source():
+def test_classify_scenario_chat_for_ide_source():
     messages = [{"role": "user", "content": "hello"}]
-    assert classify_scenario(messages, query="hello", ide_source="vscode") == "coding"
+    assert classify_scenario(messages, query="hello", ide_source="vscode") == "chat"
 
 
 def test_classify_scenario_chat_for_plain_greeting():
