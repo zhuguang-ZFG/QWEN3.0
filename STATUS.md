@@ -8,7 +8,7 @@
 > Updated: 2026-06-26
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3736 passed / 3 skipped / 10 deselected**（排除 8 个 esp32S_XYZ 退役预存在失败）；ruff check clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3735 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: 历史 >300 行文件 5 个、>50 行函数 26 个（均为历史脚本/测试/MCP/xiaozhi）；新增/修改模块均 ≤300 行/函数 ≤50 行（`routes/device_ota.py` 拆出 App 端点后 300 行）。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -17,6 +17,19 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-26）工作区清理、CI 去忽略、瘦身文档同步
+
+- **目标**：消除 `.omk/CODE_REVIEW_ISSUES.md` 中的可执行债务。
+- **关键结果**：
+  - `ruff format --check .` 全量通过；`scripts/verify_production_deploy.py` 完成格式化。
+  - 删除并忽略 `.omo/`、`.playwright-mcp/`、`chat-*.png` 等临时文件；将两个 `LiMa_QWEN3_系统增强细化方案` 计划文档移入 `docs/superpowers/plans/`。
+  - 删除 `tests/test_manager_mobile_lima_native.py`（`esp32S_XYZ` 子模块路径漂移，维护成本高于价值）。
+  - 从 `scripts/run_pre_commit_check.py` 的 `CI_PYTEST_IGNORES` 中移除 `test_manager_mobile_lima_native.py` 与 `test_backends_registry_utils.py`；后者已正常通过。
+  - 更新 `tests/README.md`：移除已删除的 eval/mcp 测试条目。
+  - 同步 `docs/CODEBASE_SUBSYSTEM_TIER_CN.md`、`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`、`docs/OPTIMIZATION_ANALYSIS_2026-06-23.md`、`docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`、`docs/superpowers/specs/2026-06-15-edge-c-route-policy-hard-contract-design.md`，标注 2026-06-26 P9 删除的 `orchestrate*`、`eval_*`、`periodic_coding_eval`、`coding_backend_scorer`、`backends_constants_code_tools`、`context_pipeline` 编码上下文模块、`routes/xiaozhi_compat/`。
+- **验证**：`.venv310/Scripts/python -m pytest -m "not network" -q` → **3735 passed / 3 skipped / 2 deselected / 0 failed**；`scripts/run_pre_commit_check.py --ci` 通过（size 为 baseline 警告，不阻塞）。
+- **遗留**：代码体积退化（6 文件 >300 行、26 函数 >50 行）未在本次处理，留作下一个切片。
 
 ### 最近完成（2026-06-26）极致瘦身 + impeccable 设计系统 + 退役 shim 清理
 

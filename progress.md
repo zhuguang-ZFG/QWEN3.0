@@ -9204,3 +9204,25 @@ oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至
 - **实现**：新建 device_gateway/task_ledger_events.py（85 行），提取 6 个纯 ledger 记录函数（ecord_task_acknowledged / ecord_task_progress / ecord_task_paused / ecord_task_resumed / ecord_device_connected / ecord_device_disconnected）。	ask_events.py 重新导出保持调用方导入不变，降至 236 行。
 - **测试**：device_task_service + device_app_tasks + routes_device_app_tasks + tasks_http = 29 passed，无回归。
 - **验证**：uff check 2 文件 clean；导入无循环依赖。
+
+## 2026-06-26 工作区清理、CI 去忽略、瘦身文档同步
+
+- **目标**：消除 `.omk/CODE_REVIEW_ISSUES.md` 中的可执行债务。
+- **已完成**：
+  - `ruff format scripts/verify_production_deploy.py`；`ruff format --check .` 全量通过。
+  - 删除 `.omo/`、`.playwright-mcp/`、`chat-*.png` 临时文件；在 `.gitignore` 增加 `.playwright-mcp/`、`.omo/`、`chat-*.png`。
+  - 将根目录两个 `LiMa_QWEN3_系统增强细化方案` 计划文档移入 `docs/superpowers/plans/`。
+  - 删除 `tests/test_manager_mobile_lima_native.py`；从 `scripts/run_pre_commit_check.py` 的 `CI_PYTEST_IGNORES` 移除该文件与 `tests/test_backends_registry_utils.py`。
+  - 更新 `tests/README.md`，移除已删除的 eval/mcp 测试条目。
+  - 同步瘦身/分层/优化/缺陷文档，标注 2026-06-26 P9 删除模块：
+    - `docs/CODEBASE_SUBSYSTEM_TIER_CN.md`
+    - `docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`
+    - `docs/OPTIMIZATION_ANALYSIS_2026-06-23.md`
+    - `docs/PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN.md`
+    - `docs/superpowers/specs/2026-06-15-edge-c-route-policy-hard-contract-design.md`
+- **验证**：
+  - `.venv310/Scripts/python -m pytest -m "not network" -q` → **3735 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `scripts/run_pre_commit_check.py --ci` 通过（size 为 baseline 警告）。
+  - `ruff check .` clean。
+- **提交**：`chore: clean workspace, un-ignore tests, and sync cleanup docs`（`17cb0db9`），已推送 `origin/main`。
+- **遗留**：代码体积退化（6 文件 >300 行、26 函数 >50 行）待下一个切片处理。
