@@ -15,6 +15,10 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      VPS_SSH_KEY_SET: ${{ secrets.VPS_SSH_KEY != '' }}
+      VPS_HOST_SET: ${{ secrets.VPS_HOST != '' }}
+      SITE_V2_DIR_SET: ${{ secrets.SITE_V2_DIR != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +38,7 @@ jobs:
           npm run build
 
       - name: Deploy to VPS
-        if: ${{ secrets.VPS_HOST != '' && secrets.SITE_V2_DIR != '' }}
+        if: env.VPS_HOST_SET == 'true' && env.SITE_V2_DIR_SET == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -46,7 +50,7 @@ jobs:
           rm: true
 
       - name: Reload nginx
-        if: ${{ secrets.VPS_HOST != '' }}
+        if: env.VPS_HOST_SET == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
