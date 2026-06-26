@@ -48,7 +48,7 @@
 - `tests/test_retrieval_trace.py`
 - `tests/test_entity_extraction.py`
 - `tests/test_production_retrieval.py`
-- `tests/test_lightrag.py`（其中 graph retrieval / reranking 已有 `tests/test_graph_retrieval.py`、`tests/test_reranking.py` 覆盖）
+- `tests/test_lightrag.py`
 
 `scripts/codegraph_orphans.py` 的 `COLD_MODULES` 列表已同步移除上述模块。
 
@@ -65,7 +65,7 @@
 | `artifact.py` | ✅ 已删；`http_sync` 句柄压缩退役 |
 | `hierarchical_memory.py` + `memory_persistence.py` | ✅ 已删；`routing_selector` / `route_post_process` / `routing_bridge` 清理 |
 
-**CP-1 保留（Warm/Hot lazy，勿删）**：`graph_retrieval.py`、`complexity.py`。
+**CP-1 保留（Warm/Hot lazy，勿删）**：`complexity.py`。`graph_retrieval.py` 已于 2026-06-26 删除。
 
 下一批见 **P1**。
 
@@ -103,7 +103,7 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 | `evolution.py` + `signal_extraction.py` | ✅ 已删；`routing_selector` / `routing_bridge` 清理 |
 | `local_retrieval/eval_bridge.py` | ✅ 已删 |
 
-**CP-2 保留（Warm/Hot）**：`graph_retrieval.py`、`complexity.py`。
+**CP-2 保留（Warm/Hot）**：`complexity.py`。`graph_retrieval.py` 已于 2026-06-26 删除。
 
 下一批见 **P2（CP-3）**。
 
@@ -125,7 +125,7 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 | 模块 | 生产触及 |
 |------|----------|
 | `complexity.py` | `routing_engine_context.py` |
-| `graph_retrieval.py` | `retrieval_injection.py`、`code_scanner.py`、`lima_mcp` |
+| ~~`graph_retrieval.py`~~ | **已删除**（2026-06-26）；原触及点 `code_scanner.py`、`lima_mcp` 同步退役 |
 
 
 ---
@@ -154,7 +154,9 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 **CP-4 已迁 lab → 2026-06-17 已删**：`static_analysis.py`（原仅 `tests/test_static_analysis.py`）
 
-**Warm（慎动，仍留根目录）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`、`complexity.py`、`graph_retrieval.py` 等
+**Warm（慎动，仍留根目录）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`guardrails.py`、`tracing.py`、`token_budget.py`、`complexity.py` 等
+
+**已删除（2026-06-26）**：`reranking.py`、`code_scanner.py`、`graph_retrieval.py`、`semantic_code_retrieval.py`、`code_context_injection.py`
 
 **伴随清理（同批）**：删除 8 个 `agent_runtime` 遗留测试文件；移除 `tests/conftest.py` `collect_ignore_glob`；`run_pre_commit_check.py` 去掉不存在的 `test_semantic_code_retrieval.py` ignore。
 
@@ -168,7 +170,9 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 **Hot（禁止动）**：`retrieval_injection.py`、`skill_store.py`、`routing_weights.py`
 
-**Warm（慎动）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`
+**Warm（慎动）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`guardrails.py`、`tracing.py`、`token_budget.py`
+
+**已删除（2026-06-26）**：`reranking.py`、`code_scanner.py`
 
 ---
 
@@ -221,7 +225,7 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 - 更新 `pyrightconfig.json`：移除 `"lima_mcp/"` 条目。
 - 保留 `lima_mcp_stdio/`：它是独立的 stdio MCP 入口（`lima-mimo-mcp` CLI），与 HTTP `lima_mcp` 路由解耦。
 
-**不建议**：为「少缝合」而删 `orchestrate*`（Warm 复杂聊天）；设备战略不依赖，但公共 API 仍可能触发。
+**状态更新（2026-06-26）**：`orchestrate*` 已按 `DEPRECATED v3.0` 物理删除。`routes/chat_handler_dispatch.py` 中 `needs_orchestration()` 永远返回 `False`，公共 API 不再触发编排路径。
 
 ---
 
@@ -256,7 +260,9 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 |------|------|------|
 | 孤儿 eval 仪表盘 | 删除 `eval_status.py` | ~115 |
 
-**关键发现**：`eval_status.py` 在 CodeGraph 中为 ORPHAN，ripgrep 确认无路由/ops/热路径调用；其余 eval 模块（`eval_pinned_call.py`、`eval_preflight.py`、`eval_quiet.py` 等）仍有 `routes/eval_internal.py` 或 `periodic_coding_eval.py` 依赖，保留。
+**关键发现**：`eval_status.py` 在 CodeGraph 中为 ORPHAN，ripgrep 确认无路由/ops/热路径调用，已删除。
+
+**2026-06-26 更新**：`eval_pinned_call.py`、`eval_preflight.py`、`eval_quiet.py`、`eval_pool_gate.py`、`eval_notify.py`、`eval_slice_summary.py`、`eval_topology.py` 以及 `periodic_coding_eval.py` 已按 `DEPRECATED v3.0` 一并物理删除；`routes/eval_internal.py` 同步移除。
 
 **验证**：`ruff check .` clean；eval 聚焦套件 23 passed。
 
@@ -271,6 +277,24 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 **关键发现**：`scripts/deploy_unified.py` 重构后已移除 `_should_run_eval_smoke` 和 `run_eval_smoke`；对应测试导致全量门 3 个失败。保留与当前 API 对齐的 6 个用例。
 
 **验证**：`pytest tests/test_deploy_unified.py tests/test_repo_hygiene.py -v` → **10 passed**；全量 pytest（本地缺 `cv2` 环境除外）→ **1645 passed, 24 skipped, 0 failed**。
+
+## P9 — 编码能力退役 shim 删除（2026-06-26）
+
+> 主题：按 `DEPRECATED v3.0` 物理删除编码能力退役后的残留模块，断开 `routes/chat_stream.py` 与 `routes/chat_handler_dispatch.py` 的 orchestrate 引用链。
+
+| 批次 | 动作 | 减行 |
+|------|------|------|
+| 编排器删除 | 删除 `orchestrate.py`、`orchestrate_detect.py`、`orchestrate_pipeline.py`、`orchestrate_constants.py` | ~440 |
+| 编码评测删除 | 删除 `eval_*.py`（8 文件）、`periodic_coding_eval.py`、`coding_backend_scorer.py` | ~1,500 |
+| 编码常量 facade 删除 | 删除 `backends_constants_code_tools.py` | ~60 |
+| 编码上下文模块删除 | 删除 `context_pipeline/code_context_injection.py`、`code_scanner.py`、`semantic_code_retrieval.py`、`graph_retrieval.py`、`reranking.py` | ~800 |
+| 小智兼容层删除 | 删除 `routes/xiaozhi_compat/` 包、`xiaozhi_v1_compat.py` 及对应测试 | ~2,400 |
+| 引用链清理 | `routes/chat_handler_dispatch.py` 中 `needs_orchestration()` 永远返回 `False`；`routes/chat_stream.py` 移除 orchestrate 分支 | ~30 |
+| 对应测试删除 | `tests/test_orchestrate_route_context.py` 等 4 个测试文件 | ~400 |
+
+**关键发现**：ripgrep + CodeGraph 确认上述模块无生产热路径 fan-in；`docs/CODEBASE_SUBSYSTEM_TIER_CN.md` 同步更新。
+
+**验证**：`ruff check .` clean；全量 pytest（排除网络测试）→ **3741 passed, 3 skipped**；`scripts/run_pre_commit_check.py --ci` 通过。
 
 ## 与活跃路线图对齐
 
@@ -295,7 +319,7 @@ for x in ['context_pipeline','provider_probe','provider_automation']:
 python scripts/codegraph_orphans.py --fanin
 
 # Hot 回归
-python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py tests/test_orchestrate_route_context.py -q
+python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py -q
 python -m pytest tests/test_provider_automation_admission.py -q
 python -m pytest tests/test_device_gateway_model_routing.py -q
 ```

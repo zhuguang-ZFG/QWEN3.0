@@ -75,6 +75,8 @@ LIMA-external/
 .test-tmp/
 .pnpm-store/
 .venv310/
+.playwright-mcp/
+.omo/
 
 # === 本地运行时（不进 Git）===
 # Runtime backups and ad-hoc local copies created during debugging/deploy.
@@ -87,6 +89,7 @@ LIMA-external/
 *_cache_patch.py
 data/*.db
 *.sqlite
+chat-*.png
 *.sqlite3
 data/uploads/
 data/*.db-shm

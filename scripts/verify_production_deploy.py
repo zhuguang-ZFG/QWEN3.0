@@ -4,16 +4,23 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-from config import deploy_config, settings
+try:
+    from config import deploy_config, settings
+
+    HOST = deploy_config.VERIFY_HOST
+except ImportError:
+    print("WARN config module not found; using env defaults (CI mode)")
+    HOST = os.environ.get("LIMA_VERIFY_HOST", "chat.donglicao.com")
+    settings = None  # type: ignore[assignment]
 
 ROOT = Path(__file__).resolve().parent.parent
-HOST = deploy_config.VERIFY_HOST
 UA = {"User-Agent": "LiMaDeployVerify/1.0", "Content-Type": "application/json"}
 
 
@@ -23,7 +30,9 @@ def _load_key() -> str:
         for line in env_path.read_text(encoding="utf-8").splitlines():
             if line.startswith("LIMA_API_KEY="):
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
-    return settings.SECURITY.api_key.strip()
+    if settings is not None:
+        return settings.SECURITY.api_key.strip()
+    return os.environ.get("LIMA_API_KEY", "").strip()
 
 
 def _get(path: str, *, bearer: str = "", timeout: float = 90) -> tuple[int, str]:
@@ -102,7 +111,10 @@ def _check_metrics(bearer: str) -> str | None:
 
 def _check_l2_rate_limit() -> str | None:
     """Public L2 login probe; returns failure key when strict mode demands a 429."""
-    limit = settings.DEVICE.auth_login_per_min
+    if settings is not None:
+        limit = settings.DEVICE.auth_login_per_min
+    else:
+        limit = int(os.environ.get("LIMA_DEVICE_AUTH_LOGIN_PER_MIN", "5"))
     probe = limit + 1
     got_429 = False
     last_status = 0
@@ -128,8 +140,12 @@ def _check_l2_rate_limit() -> str | None:
     if got_429:
         return None
 
-    flag = settings.SECURITY.device_auth_rate_redis
-    redis_url = settings.SECURITY.device_auth_rate_redis_url or settings.REDIS.device_redis_url
+    if settings is not None:
+        flag = settings.SECURITY.device_auth_rate_redis
+        redis_url = settings.SECURITY.device_auth_rate_redis_url or settings.REDIS.device_redis_url
+    else:
+        flag = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS", "auto")
+        redis_url = os.environ.get("LIMA_DEVICE_REDIS_URL", "")
     strict = flag in {"1", "true", "redis", "on", "yes"} or (flag == "auto" and bool(redis_url))
     if network_failures and not strict:
         print(f"WARN L2 public probe: skipped due to {network_failures} network failures (last={last_status})")

@@ -2,7 +2,7 @@
 
 > 版本：2026-06-25
 > 范围：代码质量治理计划 Q7 产出，已同步编码能力退役（2026-06-24）与 P1-9 清理结果
-> 审计对象：`context_pipeline/`、`provider_probe/`、`provider_automation/`、`orchestrate*`（含 Q5-4 迁至 `scripts/eval_loop*`）
+> 审计对象：`context_pipeline/`、`provider_probe/`、`provider_automation/`。`orchestrate*` 与 `scripts/eval_loop*` 已按 `DEPRECATED v3.0` 于 2026-06-26 物理删除。
 
 ## 1. 目的
 
@@ -25,7 +25,7 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 | `context_pipeline/` | 27（含 `lab/` 2） | ~3,000 | 宽（路由、后处理、会话学习） |
 | `provider_probe/` | 21 | ~2,253 | 极窄（几乎仅自引用 + 1 个测试） |
 | `provider_automation/` | 13 | ~2,193 | 窄（启动准入叠加 + adapter） |
-| `orchestrate*` + `scripts/eval_loop*` | 5 | ~500 | 窄（复杂聊天可选分支） |
+| `orchestrate*` + `scripts/eval_loop*` | **已删除** | — | — |
 
 > 行数由仓库内 `*.py` 逐文件统计；与 `scripts/repo_stats.py` 全库统计口径不同。CP-1/CP-2/CP-4 后 `context_pipeline` 已从 ~40 文件瘦身。
 
@@ -37,8 +37,7 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 | `context_pipeline`（实验/评估） | **Cold** | 否 | 否 | 禁止默认启动；迁出或 gate |
 | `provider_probe` | **Cold** | 否 | 否 | 与 `probe_loop.py` 区分；保持离线 |
 | `provider_automation` | **Warm → Cold** | 否 | 否（仅准入叠加） | 启动只读 overlay；流水线 offline |
-| `orchestrate` | **Warm** | 否 | 条件（复杂多域） | 已拆分 facade；保持可选 |
-| `scripts/eval_loop*` | **Cold** | 否 | 否 | Q5-4 已迁出根目录 |
+| `orchestrate*` + `scripts/eval_loop*` | **已删除** | 否 | 否 | 2026-06-26 物理删除；不再参与任何路径 |
 
 **重要区分**：`probe_loop.py`（`server_lifespan` 启动的后端探活线程）**不属于** `provider_probe/` 包；后者是「新提供商发现 / 浏览器逆向 / 后端生成」实验流水线。
 
@@ -74,7 +73,7 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 | `lab/static_analysis.py` | **已删**（CP-4 迁入 lab，2026-06-17 删除；原仅测试引用） |
 | `retrieval_eval.py`、`retrieval_eval_runner.py` | **已删**（CP-2） |
 | `ensemble.py`、`evolution.py`、`reflection.py` | **已删**（CP-1/CP-2） |
-| `graph_retrieval.py` | 已标记 `DEPRECATED v3.0`，保留根目录供历史测试引用 |
+| `graph_retrieval.py`、`code_scanner.py`、`semantic_code_retrieval.py`、`reranking.py` | **已删除**（2026-06-26）；原 Warm/Cold 评估模块退役 |
 | `complexity.py` | Warm lazy；仍以测试为主，保留根目录 |
 
 ### 5.4 建议（`context_pipeline`）
@@ -139,28 +138,15 @@ packages/provider-probe-offline/provider_probe/
 
 ---
 
-## 8. `orchestrate*`（**Warm**，复杂聊天可选）
+## 8. `orchestrate*`（**已删除**，2026-06-26）
 
-### 8.1 行为
+`orchestrate.py`、`orchestrate_detect.py`、`orchestrate_pipeline.py`、`orchestrate_constants.py` 以及 `scripts/eval_loop*` 已按 `DEPRECATED v3.0` 物理删除。
 
-- 入口：`routes/chat_handler_dispatch.py` 在 `needs_orchestration()` 为真时调用 `orchestrate()`。
-- 条件：高复杂度 + 跨领域 / 多步骤指示（见 `orchestrate_detect.py`）。
-- **设备路径不使用**；与 `device_gateway/model_routing.py` 无关。
+- 原入口 `routes/chat_handler_dispatch.py` 中的 `needs_orchestration()` 已永远返回 `False`，实际路径不再调用编排逻辑。
+- `routes/chat_stream.py` 与 `routes/chat_handler_dispatch.py` 的 orchestrate 引用链已断开。
+- 设备路径本来就不使用 orchestrate；删除后与 `device_gateway/model_routing.py` 的边界更清晰。
 
-### 8.2 Q5-2 拆分后结构
-
-| 文件 | 行数 | 职责 |
-|------|------|------|
-| `orchestrate.py` | ~121 | facade |
-| `orchestrate_detect.py` | ~35 | 触发启发式 |
-| `orchestrate_pipeline.py` | ~242 | 拆解 / 并发 / 合并 |
-| `orchestrate_constants.py` | ~41 | 常量 |
-
-### 8.3 建议
-
-1. **保留 Warm**：对多域技术问题有价值，但应监控调用率与延迟。
-2. **P1**：增加 env 总开关（如 `LIMA_ORCHESTRATE_ENABLED`）便于生产对比 A/B——**需单独 spec，不在 Q7 实现**。
-3. **Cold 关联**：`scripts/eval_loop*` + `model_registry.py` 为本地训练评估，与 orchestrate 无热路径耦合。
+如需复杂多域聊天编排，应在独立 spec 中重新设计，而不是恢复旧模块。
 
 ---
 
@@ -186,11 +172,11 @@ python -c "from pathlib import Path
 def stat(p):
  p=Path(p); fs=list(p.rglob('*.py')) if p.is_dir() else [p]
  print(p, len(fs), sum(len(f.read_text(encoding='utf-8').splitlines()) for f in fs))
-for x in ['context_pipeline','provider_probe','provider_automation','orchestrate.py']:
+for x in ['context_pipeline','provider_probe','provider_automation']:
  stat(x)"
 
-# Hot 路径回归（context + orchestrate）
-python -m pytest tests/test_retrieval_injection.py tests/test_routing_intent.py tests/test_orchestrate_route_context.py -q
+# Hot 路径回归（context）
+python -m pytest tests/test_retrieval_injection.py tests/test_routing_intent.py -q
 
 # provider_automation 准入不变量
 python -m pytest tests/test_provider_automation_admission.py -q
@@ -233,6 +219,18 @@ python -m pytest tests/test_provider_automation_admission.py -q
 | `eval_loop.py` | 1 | ~51 | 删除 | 死 shim，全仓 0 import |
 | 空目录（evals/、fragments/ 等） | — | 0 | 删除 | 无 .py 文件 |
 
+### 13.1.2 2026-06-26 第二批：编码能力退役 shim 删除
+
+| 模块 | 文件数 | 约行数 | 处置 | 理由 |
+|------|--------|--------|------|------|
+| `orchestrate*.py`（4 文件） | 4 | ~440 | **物理删除** | 复杂聊天编排；设备战略不依赖；`needs_orchestration()` 永远返回 `False` |
+| `eval_*.py`（8 文件） | 8 | ~1,200 | **物理删除** | 编码评测冷工具；无热路径调用 |
+| `periodic_coding_eval.py` | 1 | ~180 | **物理删除** | 周期编码评估后台线程；随编码能力退役 |
+| `coding_backend_scorer.py` | 1 | ~120 | **物理删除** | 编码后端打分器；无热路径调用 |
+| `backends_constants_code_tools.py` | 1 | ~60 | **物理删除** | 编码工具常量 facade；已合并 |
+| `context_pipeline/{code_scanner,semantic_code_retrieval,code_context_injection,graph_retrieval,reranking}.py` | 5 | ~800 | **物理删除** | 编码上下文与检索实验模块；设备路径不使用 |
+| `routes/xiaozhi_compat/` + `xiaozhi_v1_compat.py` | 6 + 13 测试 | ~2,400 | **物理删除** | 已由 `/device/v1/app/*` 原生管理面替代 |
+
 ### 13.2 search_gateway 保留清单（lazy import 保护）
 
 以下适配器看似无直接 import，但被 `dev_adapter.py` 函数内 **lazy import** 引用，**禁止删除**：
@@ -251,7 +249,7 @@ channel_gateway 退役后，其作为 search_gateway 主要消费者的引用消
 - **`context_pipeline`**：核心价值在 **Hot 五模块**；其余大量文件为 Warm/Cold，是仓库行数膨胀主因之一，应用分层治理而非「整包删除」。
 - **`provider_probe`**：整体 **Cold**，与运行时 `probe_loop` 无关；适合离线运维，不适合接入设备/聊天热路径。
 - **`provider_automation`**：生产仅 **Warm overlay 读路径**；完整探测/准入流水线为 **Cold**，须维持人工审批边界。
-- **`orchestrate`**：**Warm 可选增强**；Q5 已完成 facade 拆分，设备战略不依赖此模块。
+- **`orchestrate*` + `scripts/eval_loop*`**：**已删除**（2026-06-26 按 `DEPRECATED v3.0` 清理）；不再属于任何分层。
 
 **Q7 关闭标准**：本文档已落盘并被 `docs/README.md` 索引；不要求本阶段代码删除或搬迁。
 

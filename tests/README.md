@@ -158,20 +158,20 @@ python -m pytest tests -q --ignore=tests/test_memory_daemon_ctl.py --ignore=test
 - `test_image_endpoint_guard.py` / `test_zerokey_endpoints.py`
 
 ### Backend Evaluation & Registry
-- `test_coding_eval.py` / `test_free_web_ai_probe.py`
-- `test_free_web_ai_admission.py` / `test_backend_registry.py`
-- `test_backend_admission_overlay.py` / `test_backend_reputation.py`
+- `test_free_web_ai_probe.py` / `test_free_web_ai_admission.py`
+- `test_backend_registry.py` / `test_backend_admission_overlay.py` / `test_backend_reputation.py`
 - `test_budget_manager.py` / `test_budget_cf_google.py` / `test_key_pool.py`
-- `test_eval_internal.py` / `test_eval_registry.py` / `test_eval_pool_gate.py`
-- `test_eval_notify.py` / `test_eval_quiet.py` / `test_eval_topology.py`
-- `test_eval_slice_summary.py` / `test_eval_status_digest.py`
-- `test_periodic_coding_eval.py` / `test_web_reverse_eval.py`
+- `test_backends_registry_utils.py`
+
+> 注：`test_coding_eval.py`、`test_eval_*.py`、`test_periodic_coding_eval.py`、`test_web_reverse_eval.py` 等编码评测测试已随编码能力退役（2026-06-26）物理删除。
 
 ### MCP & External Tools
-- `test_mcp_access_plane.py` / `test_mcp_registries.py` / `test_mcp_tools.py`
+- `test_mcp_registries.py` / `test_mcp_tools.py`
 - `test_cloudflare_adapter.py` / `test_codesearch_adapter.py`
 - `test_gitee_ai_adapter.py` / `test_search_gateway.py`
 - `test_lima_code_dev_search_tools.py`
+
+> 注：`test_mcp_access_plane.py` 已随 `lima_mcp/` HTTP 路由退役删除。
 
 ### Observability & Ops
 - `test_ops_metrics_core.py` / `test_ops_metrics_eval.py` / `test_ops_metrics_payload.py` / `test_ops_metrics_backends.py`（原 `test_ops_metrics.py` 拆分）

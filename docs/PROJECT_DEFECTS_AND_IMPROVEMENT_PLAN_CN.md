@@ -395,13 +395,13 @@ def test_weather_provider_uses_cache():
     - `http_request_builder/headers.py`：动态 `key_env_var` / `{BACKEND}_API_KEY` env 读取 → `settings.get_env()`
     - `integrations/cloud_services.py`：`SUPABASE_URL` / `SUPABASE_SECRET` / `LANGSMITH_API_KEY` → `settings.INTEGRATIONS`
     - `local_retrieval/leann_adapter.py`：`LIMA_ENABLE_LEANN` → `settings.FLAGS.enable_leann`
-    - `runtime_env.py` / `runtime_topology.py` / `healthcheck_ping.py` / `context_pipeline/_project_root.py` / `device_mode.py` / `orchestrate_constants.py`：运行时开关/拓扑/健康检查/项目根目录/设备模式相关 env → `settings.FLAGS` / `settings.PATHS`
+    - `runtime_env.py` / `runtime_topology.py` / `healthcheck_ping.py` / `context_pipeline/_project_root.py` / `device_mode.py`：运行时开关/拓扑/健康检查/项目根目录/设备模式相关 env → `settings.FLAGS` / `settings.PATHS`（`orchestrate_constants.py` 已随 orchestrate 模块删除）
     - `config/settings.py` 拆分为 facade（`config/settings.py`）与核心 dataclass（`config/settings_core.py`），避免单文件超过 300 行；新增 `FleetConfig`、`EmbeddingConfig.google_inventory_proxy` / `mcp_inventory_proxy`、`DatabaseConfig.tool_audit_db` / `worker_db`、`PathsConfig.code_dir` / `routing_model_path`、`DeviceConfig.redis_memory_index_ttl` / `redis_ledger_ttl`、`IntegrationsConfig.gitee_token`
-    - `config/eval_config.py`：新增 eval 专用配置模块，集中 `LIMA_EVAL_BASE_URL`、`LIMA_EVAL_QUICK_BACKENDS`、`LIMA_EVAL_FULL_BACKENDS`、`LIMA_PERIODIC_CODING_EVAL`、`LIMA_CODING_EVAL_INTERVAL_HOURS`、`LIMA_PERIODIC_EVAL_NOTIFY`、`LIMA_PERIODIC_CODING_EVAL_FULL`、`LIMA_EVAL_POOL_GATE`、`LIMA_EVAL_POOL_MIN_SCORE`
-    - `eval_preflight.py` / `eval_notify.py` / `periodic_coding_eval.py` / `eval_pool_gate.py`：改从 `config.eval_config` 读取
+    - ~~`config/eval_config.py`~~：eval 配置模块已随编码评测模块整体删除（2026-06-26 P9 清理）
+    - ~~`eval_preflight.py` / `eval_notify.py` / `periodic_coding_eval.py` / `eval_pool_gate.py`~~：已物理删除；不再维护 eval 配置迁移
     - `device_memory/redis_store.py` / `device_ledger/redis_store.py`：`LIMA_REDIS_MEMORY_INDEX_TTL` / `LIMA_REDIS_LEDGER_TTL` → `settings.DEVICE`
     - `tool_gateway/audit.py` / `tool_gateway/governance.py`：`LIMA_AUDIT_DB` / `LIMA_WORKER_DB` → `settings.DB`
-    - `context_pipeline/code_scanner.py`：`LIMA_CODE_DIR` → `settings.PATHS.code_dir`
+    - ~~`context_pipeline/code_scanner.py`~~：已删除；`LIMA_CODE_DIR` 不再被代码扫描器使用
     - `think_plan_context.py`：`LIMA_PROJECT_ROOT` → `settings.PATHS.project_root`
     - `routing_ml/routing_trainer.py`：`LIMA_ROUTING_MODEL_PATH` → `settings.PATHS.routing_model_path`
     - `fleet/agent.py`：`LIMA_FLEET_ALLOWED_COMMANDS` → `settings.FLEET`

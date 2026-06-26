@@ -5,6 +5,8 @@
 > 关联路线图: `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 1
 > 策略: 仅云端严格化（edge_c 硬约束，edge_b 保留软约束）
 
+> **2026-06-26 更新**：`routes/xiaozhi_compat/` 与 `xiaozhi_v1_compat.py` 已按 `DEPRECATED v3.0` 物理删除。本 spec 中涉及的 `xiaozhi_compat` 云端补 route_policy 逻辑已由原生设备管理面 `device_gateway/model_routing.py` 承担；Edge-C 硬契约本身继续有效。
+
 ## 背景与动机
 
 `route_policy` 是设备任务下行的路由证据对象，包含 4 个字段：
@@ -28,7 +30,7 @@
 
 **排查结论**：把 route_policy 加入 required 会暴露三处违约：
 1. 2 个 edge_c/edge_b example 夹具缺 route_policy（home 控制类）
-2. 云端 `routes/xiaozhi_compat/gateway.py:build_gateway_task` 不生成 route_policy
+2. 云端 `routes/xiaozhi_compat/gateway.py:build_gateway_task` 不生成 route_policy（2026-06-26 该模块已删除，功能由 `device_gateway/model_routing.py` 承担）
 3. 整条 Java BusinessServer + Python DeviceServer 生产链路从头不生成 route_policy
 
 **选择**：仅对 edge_c（DeviceServer→U8 WSS 下行帧）严格化，edge_b（BusinessServer→DeviceServer HTTP）保留软约束。

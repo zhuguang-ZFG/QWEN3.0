@@ -22,10 +22,6 @@ CI_PYTEST_IGNORES = [
     "tests/test_healthcheck_ping.py",
     "tests/test_lima_smoke_task_script.py",
     "tests/test_gitee_mirror.py",
-    # esp32S_XYZ server retirement: manager-mobile submodule path drift (pre-existing)
-    "tests/test_manager_mobile_lima_native.py",
-    # pre-existing assertion failures (backend registry env mismatch in CI)
-    "tests/test_backends_registry_utils.py",
 ]
 
 
