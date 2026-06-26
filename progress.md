@@ -9247,3 +9247,21 @@ oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至
   - `.venv310/Scripts/python -m pytest -m "not network" -q` → **3735 passed / 3 skipped / 2 deselected / 0 failed**。
   - `scripts/run_pre_commit_check.py --ci` 通过。
 - **提交**：`refactor: satisfy code-size constraints across scripts, mcp, routes and tests`（`d675ab14`），已推送 `origin/main`。
+
+## 2026-06-26 系统增强方案追踪器 + Gitee 退役记录
+
+- **目标**：
+  1. 记录 Gitee 镜像不再维护的决策。
+  2. 处理 `docs/superpowers/plans/` 中的系统增强方案，对齐计划与实际代码状态。
+- **已完成**：
+  - 更新 `AGENTS.md`：里程碑协议仅推送到 GitHub `origin`，Gitee 镜像已退役。
+  - 更新 `STATUS.md`：在 CI/CD 行追加 "Gitee 镜像已退役，仅维护 GitHub origin"。
+  - 新增 `docs/superpowers/plans/README.md`：
+    - 以 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 为权威版本。
+    - 按 P0/P1/P2/P3 梳理所有增强项状态：P0~P3 中除 **P4 提示词系统强化** 外均已落地。
+    - 推荐下一步：P4-1 提示词模板注册表，或清理 `classify_scenario()` 的 `coding` 残留。
+  - 审计确认关键产物已存在：`device_ota/gradual.py`、`rollback_monitor.py`、`signature.py`、`device_gateway/protocol_negotiator.py`、`device_logic/captcha.py`、`routes/device_app_chat.py`、`routes/device_app_misc.py::provision/confirm` 等。
+- **验证**：
+  - `ruff check .` clean（本次仅文档修改）。
+  - 最新全量 pytest 仍为 **3735 passed / 3 skipped / 2 deselected / 0 failed**。
+- **提交**：`docs: add plan tracker and retire Gitee mirror`（`3525d4ff`），已推送 `origin/main`。
