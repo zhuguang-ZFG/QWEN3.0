@@ -1,5 +1,18 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-26 完成 P4-4：promptfoo 提示词回归测试
+
+- **目标**：按 `docs/superpowers/plans/README.md` P4-4，为 `prompts/layers.yaml` 增加快照回归测试。
+- **关键结果**：
+  - 新增 `promptfooconfig.yaml`：7 个测试用例覆盖所有 role/skill 场景 + IDE 后缀。
+  - 新增 `tests/promptfoo/prompt_provider.py`：自定义 provider，本地渲染系统 prompt，零 LLM API 调用。
+  - 新增 `tests/test_promptfoo_provider.py`：10 个 pytest 用例，回归可被标准测试套件捕获。
+  - 更新 `prompts/README.md`：说明 `npx promptfoo eval -c promptfooconfig.yaml` 用法。
+- **验证**：
+  - promptfoo：`npx promptfoo eval -c promptfooconfig.yaml` → **7 passed (100%)**。
+  - 聚焦测试：`tests/test_promptfoo_provider.py` → 10 passed。
+  - 完整测试：**3805 passed / 3 skipped / 2 deselected**；`ruff check` clean；`ruff format --check` clean；`scripts/check_code_size.py` PASS。
+
 ## 2026-06-26 完成 P4-3：结构化输出基座（Pydantic schemas + validator）
 
 - **目标**：按 `docs/superpowers/plans/README.md` P4-3，落地结构化输出基座，先统一 Pydantic 模型与校验，再按需接入 Instructor。

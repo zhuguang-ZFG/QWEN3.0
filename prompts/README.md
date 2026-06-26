@@ -27,3 +27,15 @@
 - `{capability_summary}`：一句话能力摘要
 - `{capability_bullets}`：能力 bullet 列表，逗号分隔
 - `{dangerous_capabilities}`：危险设备指令列表，逗号分隔
+
+## 回归测试
+
+`promptfooconfig.yaml` + `tests/promptfoo/prompt_provider.py` 提供本地 prompt 快照回归：
+
+```bash
+npx promptfoo eval -c promptfooconfig.yaml
+```
+
+- 不调用任何 LLM API，仅渲染系统 prompt 并做文本断言。
+- 覆盖 `chat`、`coding`、`vision`、`device_draw`、`device_write`、`device_control` 及 IDE 后缀场景。
+- 修改 `layers.yaml` 后请先跑该回归，避免关键约束/占位符意外丢失。

@@ -8,7 +8,7 @@
 > Updated: 2026-06-26
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3795 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3805 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,19 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-26）P4-4 promptfoo 提示词回归测试落地
+
+- **目标**：按 `docs/superpowers/plans/README.md` 推荐，为 `prompts/layers.yaml` 增加快照回归能力。
+- **关键结果**：
+  - 新增 `promptfooconfig.yaml`：7 个测试用例覆盖 `chat`、`coding`、`vision`、`device_draw`、`device_write`、`device_control` 及 IDE 后缀场景。
+  - 新增 `tests/promptfoo/prompt_provider.py`：自定义 promptfoo provider，本地调用 `prompt_engineering.layers.compose_system_prompt()` 渲染系统 prompt，不调用 LLM API。
+  - 新增 `tests/test_promptfoo_provider.py`：10 个 pytest 用例覆盖 provider，确保回归可被标准测试套件捕获。
+  - 更新 `prompts/README.md`：说明 promptfoo 回归命令与使用约定。
+- **验证**：
+  - `npx promptfoo eval -c promptfooconfig.yaml` → **7 passed (100%)**。
+  - `ruff check .` clean；`ruff format --check .` clean；`python scripts/check_code_size.py` PASS。
+- **全量 pytest**：**3805 passed / 3 skipped / 2 deselected / 0 failed**。
 
 ### 最近完成（2026-06-26）P4-3 结构化输出基座落地（Pydantic schemas + validator）
 

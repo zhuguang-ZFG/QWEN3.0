@@ -1,0 +1,89 @@
+# LiMa prompt layer regression tests (P4-4)
+# Run: npx promptfoo eval -c promptfooconfig.yaml
+# Provider renders the system prompt locally; no LLM API calls are made.
+
+description: LiMa system prompt layer regression
+
+targets:
+  - id: python:tests/promptfoo/prompt_provider.py
+
+prompts:
+  - |
+    scenario={{scenario}}
+    ide={{ide}}
+
+tests:
+  - vars:
+      scenario: chat
+      ide: ""
+    assert:
+      - type: contains
+        value: 技术问答
+      - type: contains
+        value: 你是
+      - type: contains
+        value: 安全基线
+      - type: contains
+        value: <!-- lima-prompts-v2.0.chat -->
+
+  - vars:
+      scenario: coding
+      ide: ""
+    assert:
+      - type: contains
+        value: 编码实现
+      - type: contains
+        value: 工作流
+      - type: contains
+        value: 质量门控
+      - type: contains
+        value: <!-- lima-prompts-v2.0.coding -->
+
+  - vars:
+      scenario: device_draw
+      ide: ""
+    assert:
+      - type: contains
+        value: 笔绘机
+      - type: contains
+        value: 设备绘图
+      - type: contains
+        value: SVG 矢量化
+
+  - vars:
+      scenario: device_write
+      ide: ""
+    assert:
+      - type: contains
+        value: 书写轨迹
+      - type: contains
+        value: 设备写字
+
+  - vars:
+      scenario: device_control
+      ide: ""
+    assert:
+      - type: contains
+        value: 设备控制
+      - type: contains
+        value: 白名单
+      - type: contains
+        value: 急停
+
+  - vars:
+      scenario: vision
+      ide: ""
+    assert:
+      - type: contains
+        value: 图像分析
+      - type: contains
+        value: 多模态
+
+  - vars:
+      scenario: chat
+      ide: vscode
+    assert:
+      - type: contains
+        value: 用户正在 vscode 中使用你
+      - type: contains
+        value: 文件读写
