@@ -158,7 +158,7 @@ def test_analyze_intent_disabled_does_not_call_instructor(monkeypatch):
     from routing_intent import analyze_intent
 
     monkeypatch.delenv("LIMA_INSTRUCTOR_INTENT_ENABLED", raising=False)
-    with patch("routing_intent.instructor_client.create_structured_completion") as mock_create:
+    with patch("routing_intent_instructor.instructor_client.create_structured_completion") as mock_create:
         result = analyze_intent("hello")
         assert result["intent"] == "trivial"
         mock_create.assert_not_called()
@@ -176,7 +176,7 @@ def test_analyze_intent_low_confidence_uses_instructor(monkeypatch):
         complexity=0.7,
         needs_code=False,
     )
-    with patch("routing_intent.instructor_client.create_structured_completion", return_value=fake):
+    with patch("routing_intent_instructor.instructor_client.create_structured_completion", return_value=fake):
         result = analyze_intent("explain quantum mechanics to me")
         assert result["intent"] == "architecture"
         assert result["source"] == "instructor"
@@ -187,7 +187,7 @@ def test_analyze_intent_instructor_failure_keeps_rule_result(monkeypatch):
 
     monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_ENABLED", "1")
     monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_THRESHOLD", "0.70")
-    with patch("routing_intent.instructor_client.create_structured_completion", return_value=None):
+    with patch("routing_intent_instructor.instructor_client.create_structured_completion", return_value=None):
         result = analyze_intent("explain quantum mechanics to me")
         # Should keep the rule/default result rather than crash.
         assert "confidence" in result
