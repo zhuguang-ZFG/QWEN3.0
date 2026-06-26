@@ -61,3 +61,35 @@ def test_instructor_intent_custom_values(monkeypatch):
 def test_instructor_intent_parse_fallback(monkeypatch, env_var, getter, bad_value, default):
     monkeypatch.setenv(env_var, bad_value)
     assert getter() == default
+
+
+from unittest.mock import MagicMock, patch
+
+from models.structured_outputs.schemas import IntentResult
+
+
+def test_create_structured_completion_returns_result():
+    from models.structured_outputs import instructor_client
+
+    fake = IntentResult(intent="chat", confidence=0.95, source="instructor")
+    with patch.object(
+        instructor_client,
+        "create_structured_completion",
+        return_value=fake,
+    ):
+        result = instructor_client.create_structured_completion(
+            [{"role": "user", "content": "hello"}],
+            IntentResult,
+        )
+        assert result is fake
+
+
+def test_create_structured_completion_missing_dependency_returns_none():
+    from models.structured_outputs import instructor_client
+
+    with patch.object(instructor_client, "create_structured_completion", return_value=None):
+        result = instructor_client.create_structured_completion(
+            [{"role": "user", "content": "hello"}],
+            IntentResult,
+        )
+        assert result is None
