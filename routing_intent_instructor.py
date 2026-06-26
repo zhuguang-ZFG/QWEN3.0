@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+import time
+
 from config import env as _env
 from models.structured_outputs import IntentResult, instructor_client
-from observability.events import instructor_intent_event
+from observability.events import instructor_intent_event, instructor_intent_latency_event
 from observability.metrics import record as _record_metric
 
 _INSTRUCTOR_INTENT_PROMPT = (
@@ -41,6 +43,7 @@ def maybe_instructor_intent(
 
     provider = _env.instructor_intent_provider()
     model = _env.instructor_intent_model()
+    start = time.perf_counter()
     result = instructor_client.create_structured_completion(
         messages=[
             {"role": "system", "content": _INSTRUCTOR_INTENT_PROMPT},
@@ -52,9 +55,11 @@ def maybe_instructor_intent(
         max_retries=_env.instructor_intent_max_retries(),
         timeout=_env.instructor_intent_timeout(),
     )
+    latency_ms = (time.perf_counter() - start) * 1000.0
     if result is None:
         _record_metric(instructor_intent_event(provider, model, False, reason="no_result"))
         return None
 
     _record_metric(instructor_intent_event(provider, model, True))
+    _record_metric(instructor_intent_latency_event(provider, model, latency_ms))
     return result.model_dump()

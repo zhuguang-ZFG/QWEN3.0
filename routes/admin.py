@@ -14,6 +14,7 @@ from routes.admin_auth import (
     get_admin_token,
     is_valid_admin_session,
 )
+from routes.admin_metrics import router as admin_metrics_router
 from routes.admin_state import inject_state
 from routes.admin_traces import router as admin_traces_router
 from access_guard import constant_time_equals
@@ -24,6 +25,7 @@ router = APIRouter(prefix="/admin")
 router.include_router(admin_api_router)
 router.include_router(admin_api_extra_router)
 router.include_router(admin_traces_router)
+router.include_router(admin_metrics_router)
 
 __all__ = ["router", "inject_state"]
 

@@ -261,11 +261,7 @@ def analyze_intent(
     system_prompt: str = "",
     ide: str = "unknown",
 ) -> dict[str, Any]:
-    """Backward-compatible intent analysis (replaces router_classifier.analyze).
-
-    Returns a dict with keys: intent, complexity, needs_code, domain_keywords,
-    cnc_subdomain, source, confidence.
-    """
+    """Backward-compatible intent analysis (replaces router_classifier.analyze)."""
     if detect_thinking_intent(query):
         result = {
             "intent": "thinking",
@@ -293,7 +289,11 @@ def analyze_intent(
     if result.get("confidence", 1.0) < threshold:
         instructor_result = maybe_instructor_intent(query, system_prompt, ide)
         if instructor_result and instructor_result.get("confidence", 0.0) >= threshold:
-            result = instructor_result
+            validated = validate_value(instructor_result, IntentResult)
+            validated.source = "instructor"
+            dumped = validated.model_dump()
+            dumped["instructor_used"] = True
+            return dumped
 
     validated = validate_value(result, IntentResult)
     return validated.model_dump()

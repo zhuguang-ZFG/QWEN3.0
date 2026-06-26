@@ -12,7 +12,7 @@ import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
 from response_builder import build_anthropic_response, build_response, make_chat_id
 from routing_classifier import classify, classify_scenario
-from routing_engine_cache import lookup_cached_response, store_cached_response
+from routing_engine_cache import store_cached_response, traced_lookup_cached_response
 from routing_engine_helpers import build_route_result, identity_shortcut
 from routing_engine_intent import resolve_intent
 from routing_intent import intent_to_prompt_scenario
@@ -285,7 +285,7 @@ def route(
     original_backend = backends[0] if backends else "none"
     injected_ids = get_injected_ids(messages, picked.messages)
 
-    cached_answer = lookup_cached_response(query, picked.request_type)
+    cached_answer, _, _ = traced_lookup_cached_response(query, picked.request_type, cache_enabled)
     if cached_answer is not None:
         return build_route_result(
             t0, picked, original_backend, cached_answer, messages, injected_ids, backends, original_backend, False

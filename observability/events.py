@@ -232,3 +232,35 @@ def instructor_intent_event(
         backend=f"{provider}/{model}",
         route_reason=reason,
     )
+
+
+def semantic_cache_event(
+    kind: str,
+    latency_ms: float = 0.0,
+    similarity: float = -1.0,
+) -> LiMaEvent:
+    """Record a semantic cache lifecycle event.
+
+    kind: hit | miss | skip | error | store
+    """
+    metadata: dict[str, Any] = {}
+    if similarity >= 0:
+        metadata["similarity"] = similarity
+    return LiMaEvent(
+        event_type=f"semantic_cache_{kind}",
+        latency_ms=latency_ms,
+        metadata=metadata,
+    )
+
+
+def instructor_intent_latency_event(
+    provider: str,
+    model: str,
+    latency_ms: float,
+) -> LiMaEvent:
+    """Record Instructor intent invocation latency for a provider/model pair."""
+    return LiMaEvent(
+        event_type="instructor_intent_latency",
+        backend=f"{provider}/{model}",
+        latency_ms=latency_ms,
+    )

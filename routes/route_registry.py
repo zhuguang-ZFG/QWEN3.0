@@ -120,6 +120,7 @@ def _register_admin_and_static_routes(app: FastAPI, deps: RouteRegistryDeps) -> 
 
     admin_mod.inject_state(deps.stats, deps.stats_lock, deps.backend_enabled)
     app.include_router(admin_router)
+    deps.loaded_modules["admin_metrics"] = True
 
     from routes.admin_v1_auth import router as admin_v1_auth_router
 

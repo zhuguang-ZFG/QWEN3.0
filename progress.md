@@ -1,5 +1,57 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 完成 Phase 4：VPS 灰度部署与验证
+
+- **目标**：完成 P4-后续-灰度观测 Phase 4，把代码部署到 VPS，开启 `LIMA_INSTRUCTOR_INTENT_ENABLED=1` 与 `LIMA_SEMANTIC_CACHE_ENABLED=1`，验证 Admin 指标与 Trace enrichment 生效。
+- **关键结果**：
+  - `python scripts/deploy_unified.py --slice core` → **1401 uploaded / 0 failed / 0 skipped**；Health OK。
+  - VPS `.env` 已备份到 `/opt/lima-router/.env.bak.gray.20260626_215327`，并追加三个开关；服务重启成功。
+  - 本地 loopback 聊天 `POST /v1/chat/completions` → HTTP 200，响应头 `X-LiMa-Trace-Id` 存在。
+  - `/admin/api/metrics/gray` 返回：
+    - `semantic_cache`: hit_rate=0.6667, avg_lookup_ms=58.5, hit=2, miss=1, store=1
+    - `instructor_intent`: success=0, failure=0, skip=0（当前规则置信度足够，尚未触发 Instructor）
+  - `/admin/api/traces/recent` 中 trace 包含 `cache_status=hit/miss` 与 `intent_source=rules`。
+- **验证**：
+  - 完整回归测试 `-m "not network"` → **3866 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `ruff check` / `pyright` 目标文件 0 errors；新增文件均 ≤300 行。
+- **下一步**：运行 24–48h 真实流量观测，记录语义缓存命中率稳定性、Instructor 触发比例与延迟，再决定是否默认开启并关闭本切片。
+
+## 2026-06-28 完成 Phase 3：灰度开关、安全默认与文档同步
+
+- **目标**：完成 P4-后续-灰度观测 Phase 3，确认 Instructor 意图回退与语义缓存默认关闭、失败安全，并同步 `.env.example`、`STATUS.md`、`progress.md`、`docs/superpowers/plans/README.md`。
+- **Phase 1、Phase 2 完成证据**：
+  - 测试通过：聚焦测试 `tests/test_tracing.py` + `tests/test_routing_engine_trace.py` + `tests/test_routing_engine_trace_spans.py` + `tests/test_routing_intent.py` + `tests/test_route_pipeline.py` + `tests/test_semantic_cache.py` + `tests/test_instructor_intent_fallback.py` → **80+ passed / 0 failed**。
+  - 完整测试 `-m "not network"` → **3856 passed / 3 skipped / 2 deselected / 0 failed**。
+  - 关键文件清单：
+    - `observability/metrics.py`：新增 gray 计数器与 `/admin/api/metrics/gray` 响应 helper。
+    - `routing_engine_cache.py`：`traced_lookup_cached_response()` 写入 `cache_status` 等 span 字段。
+    - `routing_engine_intent.py`：`resolve_intent()` 写入 `intent_source` / `intent_confidence` 等 span 字段。
+    - `routes/admin_metrics.py`（或等效管理端点）：新增 `/admin/api/metrics/gray`。
+- **安全默认确认**：
+  - `config/env.py::instructor_intent_enabled()` 默认返回 `False`。
+  - `semantic_cache/config.py::cache_enabled()` 默认返回 `False`。
+  - `routing_engine_cache.py` 与 `routing_intent_instructor.py` 异常路径均记录 `logger.warning`，无静默吞异常。
+- **文档同步**：
+  - `.env.example`：在 `LIMA_INSTRUCTOR_INTENT_ENABLED` 与 `LIMA_SEMANTIC_CACHE_ENABLED` 注释块末尾新增灰度观测 tracing 提示。
+  - `docs/superpowers/plans/README.md`：追踪日期保持 2026-06-28；P4-后续-灰度观测维持 `🚧 进行中`（待部署验证后改为 ✅）。
+  - `STATUS.md`：新增 Phase 1/2 完成与 Phase 3/4 进入记录。
+- **下一步**：VPS 灰度部署与 24–48h 观测（开启 `LIMA_INSTRUCTOR_INTENT_ENABLED=1` 与 `LIMA_SEMANTIC_CACHE_ENABLED=1`，观察命中率、意图准确率与延迟）。
+
+## 2026-06-26 完成 Phase 2：Trace 语义 enrichment
+
+- **目标**：在已落地的全链路 trace 中补充 cache/intent 字段，使单条请求链路可观测语义缓存命中状态与意图来源。
+- **关键结果**：
+  - `routing_engine_cache.py`：新增 `traced_lookup_cached_response()`，在 `semantic_cache` span 中写入 `cache_enabled`/`cache_status`/`cache_lookup_ms`。
+  - `routing_engine.py::route()`：调用 `traced_lookup_cached_response()` 替代直接查询，不破坏 `lookup_cached_response()` 返回语义。
+  - `routing_engine_intent.py::resolve_intent()`：内部创建 `intent` span，写入 `intent`/`intent_source`/`intent_confidence`/`instructor_used`；函数签名保持向后兼容。
+  - `routing_intent.py::analyze_intent()`：采纳 Instructor 结果时设置 `source="instructor"` 并返回 `instructor_used=True`。
+  - `tests/test_tracing.py`：新增 cache hit/miss 与 intent span 断言测试。
+  - 修复 `tests/test_routing_engine_trace_spans.py` mock 目标为 `routing_engine_cache.lookup_cached_response`。
+- **验证**：
+  - `tests/test_tracing.py` + `tests/test_routing_engine_trace.py` + `tests/test_routing_engine_trace_spans.py` + `tests/test_routing_intent.py` → **51 passed / 0 failed**。
+  - `ruff check` / `ruff format --check` / `pyright` 目标文件全部通过。
+  - `scripts/check_code_size.py`：本次修改文件均 ≤300 行；遗留 `tmp/agent_build_runner.py::main` 与 `diagnose_grbl_build2.py::main` 超长函数与本任务无关。
+
 ## 2026-06-27 完成 P4-8：全链路追踪接入生产路径
 
 - **目标**：按 `docs/superpowers/specs/2026-06-27-full-link-tracing-design.md`，把 `context_pipeline/tracing.py` 接入 `/v1/chat/completions` 生产路径，使每次请求生成可查询的完整 trace。

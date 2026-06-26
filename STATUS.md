@@ -19,6 +19,21 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-28）P4-后续-灰度观测 Phase 1–4 已完成，进入 24–48h 观测
+
+- **目标**：按 `docs/superpowers/specs/2026-06-28-gray-observation-plan.md`，为已落地的 Instructor 意图回退与语义缓存建立灰度观测能力，确保开关默认关闭、失败安全，并在 VPS 开启真实流量观测。
+- **关键结果**：
+  - Phase 1（指标暴露）：新增 `/admin/api/metrics/gray` 端点，统一暴露语义缓存与 Instructor 意图回退的灰度计数器（`observability/metrics.py` gray counters）。
+  - Phase 2（Trace enrichment）：生产 trace 中新增 `cache_status`、`intent_source`、`intent_confidence` 字段，可在 `/admin/api/traces/recent` 按单条请求查看缓存命中状态与意图来源。
+  - Phase 3（开关/文档）：`.env.example` 增加灰度观测 tracing 提示；`STATUS.md`、`progress.md`、`docs/superpowers/plans/README.md` 已同步。
+  - Phase 4（部署验证）：
+    - `python scripts/deploy_unified.py --slice core` → **1401 uploaded / 0 failed / 0 skipped**；Health OK。
+    - VPS `.env` 已备份并追加 `LIMA_INSTRUCTOR_INTENT_ENABLED=1`、`LIMA_SEMANTIC_CACHE_ENABLED=1`、`LIMA_TRACING_ENABLED=1`，服务已重启。
+    - 本地 loopback 聊天返回 HTTP 200，响应头包含 `X-LiMa-Trace-Id`。
+    - `/admin/api/metrics/gray` 返回语义缓存命中率 66.67%（hit=2, miss=1, store=1），`intent_source` 为 rules；`/admin/api/traces/recent` 中可见 `cache_status=hit/miss` 与 `intent_source=rules`。
+    - 完整回归测试 `-m "not network"` → **3866 passed / 3 skipped / 2 deselected / 0 failed**。
+- **当前阶段**：24–48h 灰度观测，根据命中率/延迟/成功率决定是否默认开启。
+
 ### 最近完成（2026-06-27）P4-8：全链路追踪接入生产路径
 
 - **目标**：按 `docs/superpowers/specs/2026-06-27-full-link-tracing-design.md`，把 `context_pipeline/tracing.py` 接入 `/v1/chat/completions` 生产路径，使每次请求生成可查询的完整 trace。

@@ -1,7 +1,7 @@
 # LiMa 系统增强方案追踪器
 
 > 本目录收录系统级增强方案。最新权威版本为 `LiMa_QWEN3_系统增强细化方案_v3_20260624.md`，`v2` 版本已归档为历史参考。
-> 追踪状态截至 **2026-06-27**。
+> 追踪状态截至 **2026-06-28**。
 
 ## 总览
 
@@ -63,6 +63,14 @@
 | P3-F1-2 | 自动回滚监控 | `device_ota/rollback_monitor.py` | ✅ 已完成 | 与 F1-2 重复，已合并 |
 | **P4** | **提示词系统强化** | `prompts/` 模板注册表（P4-1 ✅）、`routing/semantic_router.py` 规则预筛基线（P4-2 ✅）、`models/structured_outputs/` Pydantic 校验基线（P4-3 ✅）、`promptfooconfig.yaml` + `tests/promptfoo/` 回归测试（P4-4 ✅）、`semantic_cache/` 语义缓存层（P4-5 ✅）、`pipeline_graph.py` + `docs/assets/routing_pipeline.mmd` 状态可视化（P4-6 ✅）、P4-5 后续：语义缓存接入 `routing_engine.py` 生产路径（✅）、P4-3 后续：Instructor 意图回退结构化输出接入 `routing_intent.py`（✅） | **P4 全部完成** | P4-6 当前为 Mermaid 状态图基座，LangGraph 迁移待恢复多模型编排后评估 |
 | P4-8 | 全链路追踪 | `routing_engine_trace.py`、`context_pipeline/tracing.py` 生产接入、`X-LiMa-Trace-Id` 响应头、`/admin/api/traces/recent` | ✅ 已完成 | 设计文档：`docs/superpowers/specs/2026-06-27-full-link-tracing-design.md` |
+
+---
+
+## P4 后续 — 灰度观测
+
+| 编号 | 标题 | 关键产物 | 状态 | 备注 |
+|------|------|----------|------|------|
+| P4-后续-灰度观测 | Instructor 意图回退 + 语义缓存灰度观测 | `/admin/api/metrics/gray`、Trace `cache_status` / `intent_source`、`observability/metrics.py` gray 计数器 | ✅ 已部署灰度 | 设计文档：`docs/superpowers/specs/2026-06-28-gray-observation-plan.md`；VPS 已开启两个开关，进入 24–48h 观测 |
 
 ---
 

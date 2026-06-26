@@ -11,6 +11,11 @@ from importlib.util import find_spec
 
 from config import settings
 from observability.events import LiMaEvent
+from observability.gray_metrics import (
+    get_gray_observation,
+    record_gray_event,
+    reset_gray_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +96,9 @@ def record(event: LiMaEvent) -> None:
             _token_completion[event.backend] += event.completion_tokens
             _token_requests[event.backend] += 1
 
+        if event.event_type.startswith("semantic_cache_") or event.event_type.startswith("instructor_intent_"):
+            record_gray_event(event)
+
     if _openobserve_enabled():
         _export_openobserve(event)
 
@@ -156,6 +164,7 @@ def get_metrics_snapshot() -> dict:
             }
 
         top_failures = sorted(_failure_class_counts.items(), key=lambda item: -item[1])[:10]
+
         return {
             "uptime_seconds": round(time.time() - _start_time, 1),
             "total_requests": _total_requests,
@@ -164,6 +173,7 @@ def get_metrics_snapshot() -> dict:
             "failure_class_counts": dict(top_failures),
             "event_type_counts": dict(_event_type_counts),
             "openobserve": _openobserve_status(),
+            "gray_observation": get_gray_observation(),
         }
 
 
@@ -215,4 +225,5 @@ def reset_metrics() -> None:
         _token_completion.clear()
         _token_requests.clear()
         _session_backends.clear()
+    reset_gray_metrics()
     reset_traces()
