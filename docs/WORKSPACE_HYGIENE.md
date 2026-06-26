@@ -22,7 +22,7 @@ D:\LIMA-external\
 - Git 子模块：`esp32S_XYZ`
 - `requirements_server.txt` and deliberate test fixtures stay tracked; mutable
   runtime JSON under `data/` stays ignored and must not be re-added
-- `donglicao-site/`（官网 demo，tracked）
+- `donglicao-site-v2/`（Next.js 官网，tracked）；旧 `donglicao-site/` 归档后可移除
 - Agent Worker 本地运行状态使用 `.lima-worker/dev/`，不得重新引入 `.lima-code/`
   或 `deepcode-cli` 作为当前验证路径。
 
@@ -43,3 +43,12 @@ cmd /c mklink /J D:\QWEN3.0\frp D:\LIMA-external\ops-tools\frp
 - `.codex/config.toml` 可以提交，用来放项目级 Codex 默认配置。
 - `.codex/agents/*.toml` 可以提交，用来定义项目级 custom agents。
 - 其他 `.codex/` 本地缓存、技能、会话状态继续忽略，不要把整目录放开。
+
+## 文档归档卫生
+
+归档 `docs/` 下的文档时遵循以下规则，避免索引死链和协作者困惑：
+
+1. **移到 `docs/archive/`**：归档文件统一放 `docs/archive/`，不散落到子目录。
+2. **同步更新 `docs/README.md`**：归档后立即从活跃表格移除或改为 `archive/` 路径，更新索引日期。
+3. **标注归档原因**：在文件头部或 commit message 说明归档原因（被取代、过时、已完成等）。
+4. **检查 VitePress 侧边栏**：`docs-site/.vitepress/config.ts` 仅引用 `docs-site/` 内文件，与 `docs/` 独立，一般无需同步；但若 docs-site 内有对应内容则一并清理。

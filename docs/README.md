@@ -1,6 +1,6 @@
 # LiMa 文档索引
 
-> 更新日期：2026-06-22
+> 更新日期：2026-06-26
 > 项目定位：多后端 AI 路由 + AI 智能硬件云端服务
 >
 > **权威规则**：本索引列出当前有效的文档。若某文档被标注为“历史/归档”，则以当前有效文档为准；若存在冲突，以本索引中“当前状态”与“路线图”两类文档为最新依据。
@@ -52,7 +52,7 @@
 | 绘图/写字模型路由 | [`AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`](AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md) |
 | draw_generated 任务创建 TDD | [`testing/draw_generated_task_creation.tdd.md`](testing/draw_generated_task_creation.tdd.md) | ✅ 2026-06-18 |
 | ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT_CN.md`](ESP32S_XYZ_MANAGEMENT_CN.md) |
-| 设备协议对齐 | [`device_protocol_alignment.md`](device_protocol_alignment.md) |
+| 设备协议对齐 | [`archive/device_protocol_alignment.md`](archive/device_protocol_alignment.md)（历史归档） |
 | 模型目录 | [`archive/MODEL_CATALOG.md`](archive/MODEL_CATALOG.md)（历史归档） |
 | 免费模型路由状态 | [`archive/FREE_MODEL_ROUTING_STATUS_CN.md`](archive/FREE_MODEL_ROUTING_STATUS_CN.md)（历史归档） |
 
@@ -65,7 +65,7 @@
 | 部署与发布约定 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
 | 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
 | AI→Motion 发布证据模板 | [`release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`](release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md) |
-| draw_generated 主链路接入 | [`release_evidence/2026-06-18-draw-generated-handler-integration.md`](release_evidence/2026-06-18-draw-generated-handler-integration.md) |
+| draw_generated 异步管线 | [`release_evidence/2026-06-18-M14-draw-generated-async-pipeline.md`](release_evidence/2026-06-18-M14-draw-generated-async-pipeline.md) |
 | Prometheus 部署 | [`ALIYUN_PROMETHEUS_DEPLOYMENT.md`](ALIYUN_PROMETHEUS_DEPLOYMENT.md) |
 
 > 注：`OPS_ENTRYPOINTS_CN.md` 已被 `ONLINE_DISTRIBUTIONS_CN.md` 取代为主要在线分发入口；旧运维入口仅作历史参考。
@@ -77,9 +77,11 @@
 | route_policy backend 字段贯通 | [`archive/superpowers-2026-06/2026-06-15-route-policy-backend-field.md`](archive/superpowers-2026-06/2026-06-15-route-policy-backend-field.md)（已关闭归档） |
 | Edge-C route_policy 硬契约 | [`archive/superpowers-2026-06/2026-06-15-edge-c-route-policy-hard-contract.md`](archive/superpowers-2026-06/2026-06-15-edge-c-route-policy-hard-contract.md)（已关闭归档） |
 | 代码质量治理 Q0–Q7 | [`archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md`](archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md)（已关闭归档） |
-| 作者意图理解与下一阶段计划 | [`superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md)（当前计划） |
-| 智能设备战略转型 | [`superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)（历史参考） |
-| Phase 2 代码瘦身 | [`superpowers/plans/2026-06-12-phase2-code-simplification-plan.md`](superpowers/plans/2026-06-12-phase2-code-simplification-plan.md)（Slice 1–2 已关闭） |
+| 作者意图理解与下一阶段计划 | [`archive/superpowers-plans/2026-06-16-lima-author-intent-and-next-plan.md`](archive/superpowers-plans/2026-06-16-lima-author-intent-and-next-plan.md)（已关闭归档） |
+| 智能设备战略转型 | [`archive/superpowers-plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](archive/superpowers-plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)（已关闭归档） |
+| Phase 2 代码瘦身 | [`archive/superpowers-plans/2026-06-12-phase2-code-simplification-plan.md`](archive/superpowers-plans/2026-06-12-phase2-code-simplification-plan.md)（已关闭归档） |
+| 小程序 Phase 1 快赢 | [`superpowers/plans/2026-06-21-miniprogram-phase1-quick-wins.md`](superpowers/plans/2026-06-21-miniprogram-phase1-quick-wins.md)（当前计划） |
+| 单线速绘管线 | [`superpowers/plans/2026-06-22-sketch-single-line-pipeline.md`](superpowers/plans/2026-06-22-sketch-single-line-pipeline.md)（当前计划） |
 
 ## 历史、归档与已过时
 
