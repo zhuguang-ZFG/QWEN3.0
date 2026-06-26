@@ -218,3 +218,17 @@ def _fallback_redact(text: str) -> str:
     if "bearer " in lowered or "sk-" in lowered or "cookie" in lowered:
         return "[REDACTED]"
     return text
+
+
+def instructor_intent_event(
+    provider: str,
+    model: str,
+    success: bool,
+    reason: str = "",
+) -> LiMaEvent:
+    """Record an Instructor intent fallback attempt."""
+    return LiMaEvent(
+        event_type="instructor_intent_success" if success else "instructor_intent_failure",
+        backend=f"{provider}/{model}",
+        route_reason=reason,
+    )

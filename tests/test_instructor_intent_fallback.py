@@ -136,3 +136,19 @@ def test_create_structured_completion_api_error_returns_none():
                         provider="groq",
                     )
                     assert result is None
+
+
+def test_instructor_intent_event_success():
+    from observability.events import instructor_intent_event
+
+    event = instructor_intent_event("groq", "llama-3.1-8b-instant", True)
+    assert event.event_type == "instructor_intent_success"
+    assert event.backend == "groq/llama-3.1-8b-instant"
+
+
+def test_instructor_intent_event_failure():
+    from observability.events import instructor_intent_event
+
+    event = instructor_intent_event("groq", "llama-3.1-8b-instant", False, reason="timeout")
+    assert event.event_type == "instructor_intent_failure"
+    assert event.route_reason == "timeout"
