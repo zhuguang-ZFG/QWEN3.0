@@ -21,7 +21,8 @@ import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
 from response_builder import build_anthropic_response, build_response, make_chat_id
 from routing_classifier import classify, classify_scenario
-from routing_intent import analyze_intent, intent_to_prompt_scenario
+from routing_engine_intent import resolve_intent
+from routing_intent import intent_to_prompt_scenario
 from routing_engine_context import (
     auto_compress,
     try_recall_backend,
@@ -83,9 +84,8 @@ def _enrich_with_intent_and_skills(
     ide_source: str,
     backends: list[str],
 ) -> tuple[list[dict], str]:
-    """Analyze intent, inject skills, compress. Returns (messages, prompt_scenario)."""
-    intent_result = analyze_intent(query, system_prompt=system_prompt, ide=ide_source)
-    intent = str(intent_result.get("intent", "chat"))
+    """Analyze intent (with optional semantic-router shortcut), inject skills, compress."""
+    intent = resolve_intent(query, system_prompt, ide_source)
     route_role = intent if intent.startswith("device_") else ""
     prompt_scenario = intent_to_prompt_scenario(intent) or ""
 

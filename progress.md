@@ -1,5 +1,26 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-26 完成 P4-2：语义路由预筛层（keyword/regex baseline）
+
+- **目标**：按 `docs/superpowers/plans/README.md` P4-2，实现一个轻量语义路由预筛层，避免引入本地 embedding 模型依赖，同时预留 embedding backend 接口。
+- **关键结果**：
+  - 新增 `routing/__init__.py` + `routing/semantic_router.py`：
+    - 6 条路由：`image_gen`、`device_draw`、`device_write`、`device_control`、`thinking`、`code_generation`。
+    - 每条路由包含高置信度 regex pattern + weighted keyword signal。
+    - 信号得分上限 0.80，只有明确 pattern 才能触发默认 0.85 短路阈值。
+    - `_encode_query` / `_classify_by_embedding` 为 embedding backend 预留接口。
+  - 新增 `routing_engine_intent.py`：
+    - `resolve_intent()` 在 `LIMA_SEMANTIC_ROUTER_ENABLED=1` 且置信度达标时跳过 `analyze_intent`。
+    - 默认关闭，不改变既有行为。
+  - `routing_engine.py`：`analyze_intent` 解析改为通过 `resolve_intent()` 间接调用。
+  - 新增配置读取：`config/env.py` 增加 `semantic_router_enabled()` 和 `semantic_router_threshold()`；`.env.example` 增加对应环境变量。
+  - 新增测试 `tests/test_semantic_router.py`（18 cases）。
+  - 修复 `tests/test_route_pipeline.py` mock 目标从 `routing_engine.analyze_intent` 改为 `routing_engine_intent.analyze_intent`。
+  - 更新 `docs/superpowers/plans/README.md`：P4-2 标记完成，并调整下一步推荐。
+- **验证**：
+  - 聚焦测试：`tests/test_semantic_router.py` + `tests/test_routing_intent.py` + `tests/test_routes_chat_endpoints.py` = 57 passed。
+  - 完整测试：**3780 passed / 3 skipped / 2 deselected**；`ruff check` clean；`ruff format --check` clean；`scripts/check_code_size.py` PASS。
+
 ## 2026-06-26 完成 P0：编码能力退役 — classify_scenario() 永远返回 chat
 
 - **目标**：按 `docs/superpowers/plans/README.md` P0-编码退役残留清理，完成 `routing_classifier.py::classify_scenario()` 永远返回 `"chat"`，并移除所有生产代码中对 `scenario == "coding"` 的行为依赖。

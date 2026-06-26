@@ -161,3 +161,16 @@ def upload_public_get_enabled() -> bool:
 def upload_token_ttl() -> int:
     """Default TTL for upload access tokens, in seconds."""
     return UPLOAD.token_ttl
+
+
+def semantic_router_enabled() -> bool:
+    """Whether the rule-based semantic router pre-filter is enabled."""
+    return os.environ.get("LIMA_SEMANTIC_ROUTER_ENABLED", "0").lower() in {"1", "true", "on"}
+
+
+def semantic_router_threshold() -> float:
+    """Confidence threshold for the semantic router to short-circuit intent analysis."""
+    try:
+        return float(os.environ.get("LIMA_SEMANTIC_ROUTER_THRESHOLD", "0.85"))
+    except ValueError:
+        return 0.85

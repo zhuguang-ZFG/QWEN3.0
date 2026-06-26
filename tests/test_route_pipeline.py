@@ -59,7 +59,7 @@ def test_route_full_pipeline_with_call_fn_mock(
 
     mock_call_fn = MagicMock(return_value="backend1 response")
 
-    with patch("routing_engine.analyze_intent") as mock_analyze_intent:
+    with patch("routing_engine_intent.analyze_intent") as mock_analyze_intent:
         mock_analyze_intent.return_value = {"intent": "device_stop"}
         result = route(
             query="test query",
