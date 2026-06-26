@@ -32,6 +32,12 @@ __all__ = [
     "gemini_live_model",
     "google_ai_key",
     "health_show_errors",
+    "instructor_intent_enabled",
+    "instructor_intent_max_retries",
+    "instructor_intent_model",
+    "instructor_intent_provider",
+    "instructor_intent_threshold",
+    "instructor_intent_timeout",
     "jina_api_key",
     "lima_api_key",
     "ota_signing_public_key",
@@ -174,3 +180,42 @@ def semantic_router_threshold() -> float:
         return float(os.environ.get("LIMA_SEMANTIC_ROUTER_THRESHOLD", "0.85"))
     except ValueError:
         return 0.85
+
+
+def instructor_intent_enabled() -> bool:
+    """Whether Instructor-based intent fallback is enabled."""
+    return os.environ.get("LIMA_INSTRUCTOR_INTENT_ENABLED", "0").lower() in {"1", "true", "on"}
+
+
+def instructor_intent_threshold() -> float:
+    """Confidence threshold below which Instructor fallback is triggered."""
+    try:
+        return float(os.environ.get("LIMA_INSTRUCTOR_INTENT_THRESHOLD", "0.70"))
+    except ValueError:
+        return 0.70
+
+
+def instructor_intent_provider() -> str:
+    """Backend provider used for Instructor intent fallback."""
+    return os.environ.get("LIMA_INSTRUCTOR_INTENT_PROVIDER", "groq")
+
+
+def instructor_intent_model() -> str:
+    """Model name used for Instructor intent fallback."""
+    return os.environ.get("LIMA_INSTRUCTOR_INTENT_MODEL", "llama-3.1-8b-instant")
+
+
+def instructor_intent_timeout() -> float:
+    """Timeout in seconds for Instructor intent fallback calls."""
+    try:
+        return float(os.environ.get("LIMA_INSTRUCTOR_INTENT_TIMEOUT", "10"))
+    except ValueError:
+        return 10.0
+
+
+def instructor_intent_max_retries() -> int:
+    """Max retries for Instructor structured output calls."""
+    try:
+        return int(os.environ.get("LIMA_INSTRUCTOR_INTENT_MAX_RETRIES", "2"))
+    except ValueError:
+        return 2
