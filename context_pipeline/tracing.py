@@ -71,6 +71,12 @@ class RequestTrace:
     def total_duration_ms(self) -> int:
         return int((time.time() - self.start_time) * 1000)
 
+    def finish(self) -> dict:
+        """End all active spans and export the trace."""
+        while self._active_span is not None:
+            self.end_span()
+        return self.export()
+
     def export(self) -> dict:
         """Export trace as structured dict for analysis."""
         return {
@@ -105,3 +111,8 @@ def new_trace() -> RequestTrace:
 
 def get_current_trace() -> RequestTrace | None:
     return _current_trace.get(None)
+
+
+def reset_current_trace() -> None:
+    """Reset the current trace context var (test isolation only)."""
+    _current_trace.set(None)

@@ -1,5 +1,27 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 完成 P4-8：全链路追踪接入生产路径
+
+- **目标**：按 `docs/superpowers/specs/2026-06-27-full-link-tracing-design.md`，把 `context_pipeline/tracing.py` 接入 `/v1/chat/completions` 生产路径，使每次请求生成可查询的完整 trace。
+- **关键结果**：
+  - 新增 `routing_engine_trace.py`：`trace_span()` 上下文管理器，按 `LIMA_TRACING_ENABLED`（默认开启）自动 start/end span，异常时记录 `error`/`error_msg`。
+  - `context_pipeline/tracing.py`：新增 `RequestTrace.finish()` 与 `reset_current_trace()`。
+  - `observability/metrics.py`：新增 trace ring buffer（`maxlen=1000`）及 `record_trace()` / `get_recent_traces()` / `reset_traces()`。
+  - `routing_engine.py` / `routing_engine_helpers.py` / `routing_engine_execute_strategy.py` 插桩 8+ span：identity/classify/scenario/recall/retrieval/select/skills/execute/speculative/post_process。
+  - `routes/chat_endpoints.py` 请求入口创建 trace；非流/流响应注入 `X-LiMa-Trace-Id`；请求结束后写入 ring buffer。
+  - 新增 `routes/admin_traces.py`：`GET /admin/api/traces/recent`（admin token 保护）。
+  - 新增 5 个测试文件；补充 `tests/test_tracing.py`。
+  - `.env.example` 增加 `LIMA_TRACING_ENABLED`。
+- **验证**：
+  - 聚焦测试：新增测试全部通过。
+  - 完整测试 `-m "not network"` → **3856 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `ruff check .` / `ruff format --check .` / `scripts/check_code_size.py` / `pyright` 目标文件全部通过。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core` → **1386 uploaded / 0 failed / 0 skipped**；Health OK。
+  - 公网 `https://chat.donglicao.com/health` 200，`status=ok`。
+  - 公网 `POST /v1/chat/completions`（匿名，`model=fast`）→ HTTP 200，响应头包含 `X-LiMa-Trace-Id: 30bf615c0867`。
+  - 公网 `GET /admin/api/traces/recent`（无效 token）→ HTTP 401，端点已注册。
+
 ## 2026-06-27 完成 P4-3 后续：Instructor 意图回退结构化输出落地
 
 - **目标**：按 `docs/superpowers/plans/README.md` 推荐，将 Instructor 结构化输出能力接入 `routing_intent.py`，作为规则分类置信度不足时的可选回退，默认关闭。
@@ -9281,7 +9303,8 @@ uff check（6 个变更 Python 文件）全通过。
 - **目标**：用户问「小智服务器是不是可以完全退役了？」——确认能力已被 LiMa 集成后，物理删除 esp32S_XYZ 子模块内的 4 个服务端组件，仅保留固件与小程序。
 - **证据**：
   - manager-api(:8002) VPS 探活 HTTP 000（连接拒绝），已停服。
-  - /digital-human 公网返回 301（LiMa outes/digital_human.py 提供路由）。
+  - /digital-human 公网返回 301（LiMa
+outes/digital_human.py 提供路由）。
   - 小程序 getEnvBaseUrl() 默认 https://chat.donglicao.com（连 LiMa，非本地服务端）。
 - **删除**（esp32S_XYZ 仓库内，commit `f01991f`，基于 main `5c0dfc6` cherry-pick）：
   - server/.../xiaozhi-server/（Python AI 引擎，213 文件）
@@ -9307,31 +9330,44 @@ uff check（6 个变更 Python 文件）全通过。
   - device_logic/db.py：_run_migrations 改为 1 行委托 _apply_migrations(conn)；文件从 286 行降至 56 行。
   - 行为不变：相同的 DDL 顺序、相同的列守卫（PRAGMA table_info 检查）、相同的 commit 时机。
 - **测试**：新建 	ests/test_device_logic_db_migrations.py（3 例）：幂等性（apply 两次不报错）、11 表齐全、email 唯一索引存在。device_app 测试族 58 passed 无回归。
-- **验证**：uff check 2 文件 clean；check_code_size.py 主代码 _run_migrations 违规消除（仅 .worktrees 旧副本仍违规）。
+- **验证**：
+uff check 2 文件 clean；check_code_size.py 主代码 _run_migrations 违规消除（仅 .worktrees 旧副本仍违规）。
 
 ## 2026-06-26 draw_prompt_enhancer.py 拆分：记忆门面提取
 
 - **目标**：消除 device_gateway/draw_prompt_enhancer.py 358 行文件违规（check_code_size.py 第 2 大文件违规）。
 - **实现**：
-  - 新建 device_gateway/draw_prompt_memory.py（89 行）：提取 5 个 session_memory.device_draw_memory 薄包装函数（eset_draw_prompt_history_for_tests / get_draw_conversation_context / ecord_device_draw_turn / ecord_failed_draw_prompt / get_failed_draw_prompts）+ _MAX_FAILED 常量。
+  - 新建 device_gateway/draw_prompt_memory.py（89 行）：提取 5 个 session_memory.device_draw_memory 薄包装函数（
+eset_draw_prompt_history_for_tests / get_draw_conversation_context /
+ecord_device_draw_turn /
+ecord_failed_draw_prompt / get_failed_draw_prompts）+ _MAX_FAILED 常量。
   - draw_prompt_enhancer.py：用模块级 rom ... import 重新导出 5 函数（
 oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至 290 行。
 - **测试**：draw_prompt_enhancer + draw_prompt_context + device_draw_handler（part1+2）= 32 passed，无回归。
-- **验证**：uff check 2 文件 clean；导入无循环依赖。
+- **验证**：
+uff check 2 文件 clean；导入无循环依赖。
 
 ## 2026-06-26 device_draw_handler.py 拆分：响应构建器提取
 
 - **目标**：消除 device_gateway/device_draw_handler.py 311 行文件违规。
 - **实现**：新建 device_gateway/draw_responses.py（60 行），提取 3 个响应构建函数（uild_failed_response / uild_partial_response / uild_success_response）。device_draw_handler.py 导入并别名 _build_* 保持内部调用不变，降至 259 行。
 - **测试**：device_draw_handler（part1+2）= 14 passed，无回归。
-- **验证**：uff check 2 文件 clean。
+- **验证**：
+uff check 2 文件 clean。
 
 ## 2026-06-26 task_events.py 拆分：ledger 事件记录器提取
 
 - **目标**：消除 device_gateway/task_events.py 301 行文件违规。
-- **实现**：新建 device_gateway/task_ledger_events.py（85 行），提取 6 个纯 ledger 记录函数（ecord_task_acknowledged / ecord_task_progress / ecord_task_paused / ecord_task_resumed / ecord_device_connected / ecord_device_disconnected）。	ask_events.py 重新导出保持调用方导入不变，降至 236 行。
+- **实现**：新建 device_gateway/task_ledger_events.py（85 行），提取 6 个纯 ledger 记录函数（
+ecord_task_acknowledged /
+ecord_task_progress /
+ecord_task_paused /
+ecord_task_resumed /
+ecord_device_connected /
+ecord_device_disconnected）。	ask_events.py 重新导出保持调用方导入不变，降至 236 行。
 - **测试**：device_task_service + device_app_tasks + routes_device_app_tasks + tasks_http = 29 passed，无回归。
-- **验证**：uff check 2 文件 clean；导入无循环依赖。
+- **验证**：
+uff check 2 文件 clean；导入无循环依赖。
 
 ## 2026-06-26 工作区清理、CI 去忽略、瘦身文档同步
 
@@ -9399,8 +9435,16 @@ oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至
 - **目标**：将 `prompt_engineering/layers.py` 中的角色层与技能层 prompt 字符串迁移到外部 YAML 模板，并支持运行时热加载。
 - **已完成**：
   - 新增 `prompts/layers.yaml`：包含 6 个场景（`coding`、`chat`、`vision`、`device_draw`、`device_write`、`device_control`）的 `role.*` 与 `skill.*` 模板，使用 `{name}`、`{capability_bullets}` 等 brace 占位符。
-  - 新增 `prompt_engineering/registry.py`：    - `load_prompt_template(group, name)` 按 `prompts/{group}.yaml` 加载模板。    - 基于文件 mtime 的内存缓存自动失效，开发环境保存即生效。    - 缺失文件或路径时抛出清晰的 `FileNotFoundError` / `KeyError`。
-  - 重构 `prompt_engineering/layers.py`：    - `_build_role_text` 从 YAML `role.{scenario}` 加载并 `.format()` 预计算值（模型名、能力摘要、能力 bullet、危险指令等）。    - `build_skill_layer` 从 YAML `skill.{scenario}` 加载，未知场景回退到 `skill.chat`。    - `PROMPT_VERSION` 从 `lima-prompts-v1.1` 升级到 `lima-prompts-v2.0`。    - 保留 `build_role_layer` 的 IDE 后缀逻辑在代码中。  - 新增 `tests/test_prompt_registry.py`：覆盖全部场景加载、格式化占位符、缺失模板报错、缓存失效、组合 prompt 非空。
+  - 新增 `prompt_engineering/registry.py`：
+    - `load_prompt_template(group, name)` 按 `prompts/{group}.yaml` 加载模板。
+    - 基于文件 mtime 的内存缓存自动失效，开发环境保存即生效。
+    - 缺失文件或路径时抛出清晰的 `FileNotFoundError` / `KeyError`。
+  - 重构 `prompt_engineering/layers.py`：
+    - `_build_role_text` 从 YAML `role.{scenario}` 加载并 `.format()` 预计算值（模型名、能力摘要、能力 bullet、危险指令等）。
+    - `build_skill_layer` 从 YAML `skill.{scenario}` 加载，未知场景回退到 `skill.chat`。
+    - `PROMPT_VERSION` 从 `lima-prompts-v1.1` 升级到 `lima-prompts-v2.0`。
+    - 保留 `build_role_layer` 的 IDE 后缀逻辑在代码中。
+  - 新增 `tests/test_prompt_registry.py`：覆盖全部场景加载、格式化占位符、缺失模板报错、缓存失效、组合 prompt 非空。
   - 新增 `prompts/README.md`（中文）：说明 registry 的目录、命名与热更新约定。
 - **验证**：
   - `ruff check .` clean；`ruff format --check .` clean。

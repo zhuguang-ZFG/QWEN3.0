@@ -16,6 +16,7 @@ import rate_limiter
 from access_guard import require_public_or_private_api_key
 from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
+from context_pipeline.tracing import get_current_trace, new_trace
 from response_builder import build_response, make_chat_id
 from routes.async_compat import maybe_await
 from routes.json_body import read_json_object
@@ -153,6 +154,8 @@ async def chat_completions(request: Request):
         return rate_limit_response
 
     sys_prompt_preview = extract_system_preview(raw_messages)
+    # Create the request-level trace once per successful request.
+    new_trace()
 
     vision_resp = await _handle_vision_shortcut(
         raw_messages,
@@ -162,6 +165,7 @@ async def chat_completions(request: Request):
         sys_prompt_preview,
     )
     if vision_resp is not None:
+        _attach_trace_header_and_record(vision_resp)
         return vision_resp
 
     # Tool calls: use standard routing (native tool forwarding removed in Phase 0)
@@ -174,7 +178,7 @@ async def chat_completions(request: Request):
     if isinstance(chat_req, JSONResponse):
         return chat_req
 
-    return await maybe_await(
+    response = await maybe_await(
         _dep("handle_chat")(
             chat_req,
             fmt="openai",
@@ -184,3 +188,19 @@ async def chat_completions(request: Request):
             request_headers=dict(request.headers),
         )
     )
+    _attach_trace_header_and_record(response)
+    return response
+
+
+def _attach_trace_header_and_record(response) -> None:
+    trace = get_current_trace()
+    if trace is None:
+        return
+    if hasattr(response, "headers") and not response.headers.get("X-LiMa-Trace-Id"):
+        response.headers["X-LiMa-Trace-Id"] = trace.trace_id
+    try:
+        from observability.metrics import record_trace
+
+        record_trace(trace.finish())
+    except Exception as exc:
+        _log.warning("record_trace failed: %s", exc, exc_info=True)

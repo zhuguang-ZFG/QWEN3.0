@@ -73,3 +73,12 @@ class TestRequestTrace:
         d = trace.export()
         assert d["trace_id"] == trace.trace_id
         assert len(d["spans"]) == 1
+
+    def test_finish_ends_all_spans_and_exports(self):
+        trace = RequestTrace()
+        trace.start_span("s1")
+        trace.start_span("s2")
+        result = trace.finish()
+        assert all(s.is_complete for s in trace.spans)
+        assert result["trace_id"] == trace.trace_id
+        assert result["span_count"] == 2

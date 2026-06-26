@@ -9,6 +9,7 @@ import budget_manager
 import health_tracker
 import speculative
 import sticky_session
+from routing_engine_trace import trace_span
 from routing_executor import execute
 
 _log = logging.getLogger(__name__)
@@ -29,19 +30,25 @@ def execute_with_strategy(
     """根据复杂度选择执行策略（投机/标准），返回 (backend, answer)。"""
     complexity = speculative.classify_complexity(query, messages)
 
-    if needs_tools:
-        final_backend, answer = _run_standard_execute(
-            backends, call_fn, messages, max_tokens, scenario, req_type, tools=tools
-        )
-    elif complexity == "simple" and req_type in ("ide", "chat"):
-        final_backend, answer = _try_speculative(backends, call_fn, messages, max_tokens, scenario, req_type)
-    else:
-        final_backend, answer = _run_standard_execute(backends, call_fn, messages, max_tokens, scenario, req_type)
+    with trace_span("execute", strategy="unknown") as span:
+        if needs_tools:
+            final_backend, answer = _run_standard_execute(
+                backends, call_fn, messages, max_tokens, scenario, req_type, tools=tools
+            )
+        elif complexity == "simple" and req_type in ("ide", "chat"):
+            final_backend, answer = _try_speculative(backends, call_fn, messages, max_tokens, scenario, req_type)
+        else:
+            final_backend, answer = _run_standard_execute(backends, call_fn, messages, max_tokens, scenario, req_type)
 
-    if final_backend != "exhausted":
-        sticky_session.pin_backend(sticky_key, final_backend)
+        if final_backend != "exhausted":
+            sticky_session.pin_backend(sticky_key, final_backend)
 
-    return final_backend, answer
+        if span is not None:
+            span.metadata["strategy"] = (
+                "speculative" if complexity == "simple" and req_type in ("ide", "chat") else "standard"
+            )
+            span.metadata["final_backend"] = final_backend
+        return final_backend, answer
 
 
 def _run_standard_execute(
@@ -84,25 +91,21 @@ def _try_speculative(
         and speculative.is_historically_fast(b)
     ]
     if len(spec_candidates) >= 2:
-        try:
-            return speculative.speculative_call(
-                spec_candidates,
-                call_fn,
-                messages,
-                max_tokens,
-                max_parallel=5,
-                timeout_sec=5.0,
-                scenario=scenario,
-                request_type=req_type,
-            )[:2]
-        except RuntimeError:
-            pass
-    final_backend, answer, _ = execute(
-        backends,
-        call_fn,
-        messages,
-        max_tokens,
-        scenario=scenario,
-        request_type=req_type,
-    )
-    return final_backend, answer
+        with trace_span("speculative", strategy="speculative") as span:
+            try:
+                final_backend, answer = speculative.speculative_call(
+                    spec_candidates,
+                    call_fn,
+                    messages,
+                    max_tokens,
+                    max_parallel=5,
+                    timeout_sec=5.0,
+                    scenario=scenario,
+                    request_type=req_type,
+                )[:2]
+                if span is not None:
+                    span.metadata["final_backend"] = final_backend
+                return final_backend, answer
+            except RuntimeError as exc:
+                _log.warning("speculative execution failed, falling back to standard: %s", exc)
+    return _run_standard_execute(backends, call_fn, messages, max_tokens, scenario, req_type)

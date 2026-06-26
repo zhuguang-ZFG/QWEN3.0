@@ -62,6 +62,7 @@
 | P3-M10 | 统计分析 | `routes/device_app_misc.py` 统计端点 | ✅ 已完成 | — |
 | P3-F1-2 | 自动回滚监控 | `device_ota/rollback_monitor.py` | ✅ 已完成 | 与 F1-2 重复，已合并 |
 | **P4** | **提示词系统强化** | `prompts/` 模板注册表（P4-1 ✅）、`routing/semantic_router.py` 规则预筛基线（P4-2 ✅）、`models/structured_outputs/` Pydantic 校验基线（P4-3 ✅）、`promptfooconfig.yaml` + `tests/promptfoo/` 回归测试（P4-4 ✅）、`semantic_cache/` 语义缓存层（P4-5 ✅）、`pipeline_graph.py` + `docs/assets/routing_pipeline.mmd` 状态可视化（P4-6 ✅）、P4-5 后续：语义缓存接入 `routing_engine.py` 生产路径（✅）、P4-3 后续：Instructor 意图回退结构化输出接入 `routing_intent.py`（✅） | **P4 全部完成** | P4-6 当前为 Mermaid 状态图基座，LangGraph 迁移待恢复多模型编排后评估 |
+| P4-8 | 全链路追踪 | `routing_engine_trace.py`、`context_pipeline/tracing.py` 生产接入、`X-LiMa-Trace-Id` 响应头、`/admin/api/traces/recent` | ✅ 已完成 | 设计文档：`docs/superpowers/specs/2026-06-27-full-link-tracing-design.md` |
 
 ---
 

@@ -13,6 +13,7 @@ from chat_models import ChatRequest, extract_system_prompt
 from response_builder import build_anthropic_response, build_response
 from response_cleaner import clean_response
 from routes.chat_handler_dispatch import ChatRunContext
+from context_pipeline.tracing import get_current_trace
 from routes.chat_post_closeout import (
     maybe_log_distill_queue,
     persist_session_memory,
@@ -134,13 +135,19 @@ async def finalize_success_response(
     _fire_side_effects(ctx, req, content, backend, intent_name, duration_ms, record_request, result)
 
     if ctx.fmt == "anthropic":
-        return JSONResponse(build_anthropic_response(ctx.chat_id, content, backend, ctx.request_model or model_id))
-    return JSONResponse(
-        attach_memory_recall_meta(
-            build_response(ctx.chat_id, content, backend, total_ms),
-            ctx.memory_recall_meta,
+        response = JSONResponse(build_anthropic_response(ctx.chat_id, content, backend, ctx.request_model or model_id))
+    else:
+        response = JSONResponse(
+            attach_memory_recall_meta(
+                build_response(ctx.chat_id, content, backend, total_ms),
+                ctx.memory_recall_meta,
+            )
         )
-    )
+
+    trace = get_current_trace()
+    if trace is not None:
+        response.headers["X-LiMa-Trace-Id"] = trace.trace_id
+    return response
 
 
 def _log_system_prompt(req: ChatRequest) -> None:

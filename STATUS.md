@@ -8,7 +8,7 @@
 > Updated: 2026-06-27
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3844 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3856 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,28 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-27）P4-8：全链路追踪接入生产路径
+
+- **目标**：按 `docs/superpowers/specs/2026-06-27-full-link-tracing-design.md`，把 `context_pipeline/tracing.py` 接入 `/v1/chat/completions` 生产路径，使每次请求生成可查询的完整 trace。
+- **关键结果**：
+  - 新增 `routing_engine_trace.py`：`trace_span()` 上下文管理器，按 `LIMA_TRACING_ENABLED`（默认开启）自动 start/end span，异常时记录 `error`/`error_msg`。
+  - `context_pipeline/tracing.py`：新增 `RequestTrace.finish()` 关闭所有 active span 并导出；新增 `reset_current_trace()` 用于测试隔离。
+  - `observability/metrics.py`：新增 `_recent_traces` ring buffer（`maxlen=1000`）及 `record_trace()` / `get_recent_traces()` / `reset_traces()`；`reset_metrics()` 同步清空 trace buffer。
+  - `routing_engine.py` / `routing_engine_helpers.py` / `routing_engine_execute_strategy.py` 生产路径插桩 8+ span：`identity`、`classify`、`scenario`、`recall`、`retrieval`、`select`、`skills`、`execute`、`speculative`、`post_process`。
+  - `routes/chat_endpoints.py` 请求入口创建 trace；`routes/chat_response_finalize.py` 与 `routes/chat_handler_dispatch.py` 在 JSON/SSE 响应注入 `X-LiMa-Trace-Id`；请求结束后将 trace 写入 ring buffer。
+  - 新增 `routes/admin_traces.py`：`GET /admin/api/traces/recent?limit=50`（`verify_admin` 保护）。
+  - 新增测试：`tests/test_routing_engine_trace.py`、`tests/test_observability_trace_buffer.py`、`tests/test_routing_engine_trace_spans.py`、`tests/test_chat_endpoints_trace_header.py`、`tests/test_admin_traces.py`；补充 `tests/test_tracing.py`。
+  - `.env.example` 增加 `LIMA_TRACING_ENABLED` 配置项。
+- **验证**：
+  - 聚焦测试：新增 5 个测试文件 → 全部通过。
+  - 完整测试 `-m "not network"` → **3856 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `ruff check .` clean；`ruff format --check .` clean；`scripts/check_code_size.py` PASS；`pyright` 目标文件 0 errors。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core` → **1386 uploaded / 0 failed / 0 skipped**；Health OK。
+  - 公网 `https://chat.donglicao.com/health` 200，`status=ok`。
+  - 公网 `POST /v1/chat/completions`（匿名，`model=fast`）→ HTTP 200，响应头包含 `X-LiMa-Trace-Id: 30bf615c0867`。
+  - 公网 `GET /admin/api/traces/recent`（无效 token）→ HTTP 401，端点已注册。
 
 ### 最近完成（2026-06-27）P4-3 后续：Instructor 意图回退结构化输出落地
 

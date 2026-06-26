@@ -51,6 +51,7 @@ __all__ = [
     "voice_max_audio_bytes",
     "wechat_dev_login_enabled",
     "xiaozhi_dev_static_login_code_enabled",
+    "tracing_enabled",
     "DigitalHumanConfig",
 ]
 
@@ -219,3 +220,10 @@ def instructor_intent_max_retries() -> int:
         return int(os.environ.get("LIMA_INSTRUCTOR_INTENT_MAX_RETRIES", "2"))
     except ValueError:
         return 2
+
+
+def tracing_enabled() -> bool:
+    """Whether request-level full-link tracing is enabled."""
+    from config.settings import OBSERVABILITY
+
+    return OBSERVABILITY.tracing_enabled

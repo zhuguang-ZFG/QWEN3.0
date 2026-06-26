@@ -3,6 +3,33 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-27 P4-8：全链路追踪接入生产路径
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| P4-8-TRACE-1 | tracing | 生产路径缺少可查询的 per-request trace | Closed |
+| P4-8-TRACE-2 | routing | `routing_engine.route()` 关键步骤未记录 span | Closed |
+| P4-8-TRACE-3 | observability | 缺少 trace ring buffer 与 admin 查询端点 | Closed |
+| P4-8-TRACE-4 | http | 响应未暴露 `X-LiMa-Trace-Id` 便于排障关联 | Closed |
+
+**修复动作**
+- 新增 `routing_engine_trace.py`：`trace_span()` 上下文管理器，默认开启，无当前 trace 或禁用时 yield `None`。
+- `context_pipeline/tracing.py`：新增 `RequestTrace.finish()`、`reset_current_trace()`。
+- `observability/metrics.py`：新增 `_recent_traces` ring buffer（`maxlen=1000`）及 `record_trace()` / `get_recent_traces()` / `reset_traces()`。
+- `routing_engine.py` / `routing_engine_helpers.py` / `routing_engine_execute_strategy.py` 插桩 8+ span。
+- `routes/chat_endpoints.py` 入口创建 trace，非流/流响应注入 `X-LiMa-Trace-Id`，请求结束后写入 ring buffer。
+- 新增 `routes/admin_traces.py`：`GET /admin/api/traces/recent`（`verify_admin` 保护）。
+- 新增 5 个测试文件，补充 `tests/test_tracing.py`。
+
+**验证**
+- 完整 pytest `-m "not network"` → **3856 passed / 3 skipped / 2 deselected / 0 failed**。
+- `ruff check .` / `ruff format --check .` / `scripts/check_code_size.py` / `pyright` 目标文件全部通过。
+- 部署：
+  - `python scripts/deploy_unified.py --slice core` → **1386 uploaded / 0 failed / 0 skipped**；Health OK。
+  - 公网 `https://chat.donglicao.com/health` 200，`status=ok`。
+  - 公网 `POST /v1/chat/completions`（匿名，`model=fast`）→ HTTP 200，响应头包含 `X-LiMa-Trace-Id: 30bf615c0867`。
+  - 公网 `GET /admin/api/traces/recent`（无效 token）→ HTTP 401，端点已注册。
+
 ## 2026-06-27 P4-3 后续：Instructor 意图回退结构化输出落地
 
 | ID | Area | Finding | Status |

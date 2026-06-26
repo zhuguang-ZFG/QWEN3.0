@@ -15,6 +15,7 @@ from routes.admin_auth import (
     is_valid_admin_session,
 )
 from routes.admin_state import inject_state
+from routes.admin_traces import router as admin_traces_router
 from access_guard import constant_time_equals
 from routes.admin_ui import render_admin_dashboard
 from routes.rate_limit_helper import check_ip_limit
@@ -22,6 +23,7 @@ from routes.rate_limit_helper import check_ip_limit
 router = APIRouter(prefix="/admin")
 router.include_router(admin_api_router)
 router.include_router(admin_api_extra_router)
+router.include_router(admin_traces_router)
 
 __all__ = ["router", "inject_state"]
 

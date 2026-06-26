@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from importlib import import_module
 from importlib.util import find_spec
 
@@ -37,6 +37,9 @@ MAX_SESSIONS = 1000
 
 _start_time: float = time.time()
 _openobserve_unavailable_warned = False
+
+MAX_RECENT_TRACES = 1000
+_recent_traces: deque[dict] = deque(maxlen=MAX_RECENT_TRACES)
 
 
 def _openobserve_enabled() -> bool:
@@ -90,6 +93,24 @@ def record(event: LiMaEvent) -> None:
 
     if _openobserve_enabled():
         _export_openobserve(event)
+
+
+def record_trace(trace_dict: dict) -> None:
+    """Append a structured trace to the in-memory ring buffer."""
+    with _lock:
+        _recent_traces.append(trace_dict)
+
+
+def get_recent_traces(limit: int = 100) -> list[dict]:
+    """Return the most recent traces (oldest first)."""
+    with _lock:
+        return list(_recent_traces)[-limit:]
+
+
+def reset_traces() -> None:
+    """Clear trace ring buffer. For test isolation only."""
+    with _lock:
+        _recent_traces.clear()
 
 
 def _export_openobserve(event: LiMaEvent) -> None:
@@ -194,3 +215,4 @@ def reset_metrics() -> None:
         _token_completion.clear()
         _token_requests.clear()
         _session_backends.clear()
+    reset_traces()

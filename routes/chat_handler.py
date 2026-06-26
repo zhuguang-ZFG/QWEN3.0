@@ -23,6 +23,7 @@ from routes.chat_response_finalize import finalize_success_response
 if TYPE_CHECKING:
     from context_pipeline.tracing import RequestTrace as Trace
 
+from context_pipeline.tracing import get_current_trace, new_trace
 from lima_constants import MODEL_ID
 
 _log = logging.getLogger(__name__)
@@ -71,8 +72,10 @@ def inject_deps(
 
 def _start_trace(ide_source: str) -> Trace | None:
     try:
-        from context_pipeline.tracing import new_trace
-
+        existing = get_current_trace()
+        if existing is not None:
+            existing.start_span("handle_chat", ide=ide_source)
+            return existing
         trace = new_trace()
         trace.start_span("handle_chat", ide=ide_source)
         return trace

@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 import routing_intent
 from chat_models import ChatRequest
+from context_pipeline.tracing import get_current_trace
 from routes.v3_adapters import v3_route
 from response_builder import (
     build_anthropic_response,
@@ -193,6 +194,10 @@ async def maybe_thinking_response(
 def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> StreamingResponse:
     routing_intent.analyze_intent(ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source)
     _chat_handler()  # ensures chat_handler deps are imported/injected
+    headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    trace = get_current_trace()
+    if trace is not None:
+        headers["X-LiMa-Trace-Id"] = trace.trace_id
     return StreamingResponse(
         stream_response(
             ctx.chat_id,
@@ -205,7 +210,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
             prefer=ctx.prefs.prefer,
         ),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers=headers,
     )
 
 

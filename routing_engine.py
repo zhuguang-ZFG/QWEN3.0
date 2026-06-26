@@ -1,13 +1,4 @@
-"""
-LiMa Routing Engine — 统一路由入口
-合并 smart_router + v3_integration + router_v3 为单一引擎。
-
-架构: classify → select → inject → execute → respond
-依赖注入: call_fn 由调用者提供，不耦合任何后端实现
-
-子模块: routing_engine_types / _context / _execute_strategy / _post
-公开 API: route, pick_backend, respond（select/execute 见 routing_selector / routing_executor）
-"""
+"""LiMa Routing Engine — 统一路由入口（classify → select → inject → execute → respond）。"""
 
 from __future__ import annotations
 
@@ -31,6 +22,7 @@ from routing_engine_context import (
 )
 from routing_engine_execute_strategy import execute_with_strategy
 from routing_engine_post import get_injected_ids, post_route
+from routing_engine_trace import trace_span
 from lima_constants import MODEL_ID
 from routing_engine_types import PickResult, RouteResult
 from routing_selector import select
@@ -87,21 +79,25 @@ def _enrich_with_intent_and_skills(
     backends: list[str],
 ) -> tuple[list[dict], str]:
     """Analyze intent (with optional semantic-router shortcut), inject skills, compress."""
-    intent = resolve_intent(query, system_prompt, ide_source)
-    route_role = intent if intent.startswith("device_") else ""
-    prompt_scenario = intent_to_prompt_scenario(intent) or ""
+    with trace_span("skills") as span:
+        intent = resolve_intent(query, system_prompt, ide_source)
+        route_role = intent if intent.startswith("device_") else ""
+        prompt_scenario = intent_to_prompt_scenario(intent) or ""
 
-    messages_out = inject_skills(
-        messages,
-        backend=backends[0] if backends else "",
-        ide_source=ide_source,
-        system_prompt=system_prompt,
-        intent=intent,
-        route_role=route_role,
-        scenario=prompt_scenario,
-    )
-    messages_out = auto_compress(messages_out, backends, system_prompt)
-    return messages_out, prompt_scenario
+        messages_out = inject_skills(
+            messages,
+            backend=backends[0] if backends else "",
+            ide_source=ide_source,
+            system_prompt=system_prompt,
+            intent=intent,
+            route_role=route_role,
+            scenario=prompt_scenario,
+        )
+        messages_out = auto_compress(messages_out, backends, system_prompt)
+        if span is not None:
+            span.metadata["intent"] = intent
+            span.metadata["scenario"] = prompt_scenario
+        return messages_out, prompt_scenario
 
 
 def pick_backend(
@@ -158,10 +154,28 @@ def _classify_and_recall(
     headers: dict,
 ) -> tuple[str, str, str | None, str]:
     """Classify request type/scenario and recall backend + retrieval context."""
-    req_type = classify(query, messages, fmt=fmt, ide_source=ide_source, system_prompt=system_prompt, headers=headers)
-    scenario = classify_scenario(messages, query=query, ide_source=ide_source, request_type=req_type)
-    recall_attempt = try_recall_backend(messages, scenario)
-    messages, retrieval_text = inject_retrieval_context(messages)
+    with trace_span("classify") as span:
+        req_type = classify(
+            query, messages, fmt=fmt, ide_source=ide_source, system_prompt=system_prompt, headers=headers
+        )
+        if span is not None:
+            span.metadata["request_type"] = req_type
+
+    with trace_span("scenario") as span:
+        scenario = classify_scenario(messages, query=query, ide_source=ide_source, request_type=req_type)
+        if span is not None:
+            span.metadata["scenario"] = scenario
+
+    with trace_span("recall") as span:
+        recall_attempt = try_recall_backend(messages, scenario)
+        if span is not None:
+            span.metadata["recalled_backend"] = recall_attempt
+
+    with trace_span("retrieval") as span:
+        messages, retrieval_text = inject_retrieval_context(messages)
+        if span is not None:
+            span.metadata["has_context"] = bool(retrieval_text)
+
     return req_type, scenario, recall_attempt, retrieval_text
 
 
@@ -175,18 +189,21 @@ def _select_backends(
     model: str,
 ) -> tuple[str, list[str]]:
     """Select backends based on health, sticky session, and recall."""
-    sticky_key = sticky_session.compute_key(model or "default", messages)
-    hmap = health_tracker.get_health_map()
-    backends = select(
-        req_type,
-        hmap,
-        sticky_key=sticky_key,
-        scenario=scenario,
-        needs_tools=needs_tools,
-        recalled_backend=recall_attempt,
-        preferred_backend=preferred_backend or "",
-    )
-    return sticky_key, backends
+    with trace_span("select") as span:
+        sticky_key = sticky_session.compute_key(model or "default", messages)
+        hmap = health_tracker.get_health_map()
+        backends = select(
+            req_type,
+            hmap,
+            sticky_key=sticky_key,
+            scenario=scenario,
+            needs_tools=needs_tools,
+            recalled_backend=recall_attempt,
+            preferred_backend=preferred_backend or "",
+        )
+        if span is not None:
+            span.metadata["backends"] = backends
+        return sticky_key, backends
 
 
 def _pick_for_route(
