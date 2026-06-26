@@ -1,0 +1,25 @@
+flowchart LR
+    identity["身份短路"]
+    classify["请求分类"]
+    scenario["场景分类"]
+    recall["后端召回"]
+    retrieval["检索注入"]
+    code_context["代码上下文"]
+    select["后端排序"]
+    skills["技能注入"]
+    speculative["推测调用"]
+    execute["后端执行"]
+    validate["响应验证"]
+    post_process["后处理"]
+    identity -->|"非身份问题"| classify
+    classify --> scenario
+    scenario --> recall
+    recall --> retrieval
+    retrieval --> code_context
+    code_context --> select
+    select --> skills
+    skills --> speculative
+    speculative -->|"复杂/未命中"| execute
+    execute --> validate
+    validate -->|"验证失败重试"| execute
+    validate --> post_process

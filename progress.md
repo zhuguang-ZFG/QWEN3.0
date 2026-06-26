@@ -1,5 +1,18 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-26 完成 P4-6：编排管线状态可视化（P4 全部完成）
+
+- **目标**：按 `docs/superpowers/plans/README.md` P4-6，完成请求流水线状态可视化，标志 P4 提示词系统强化全部完成。
+- **关键结果**：
+  - 新增 `pipeline_graph.py`：流水线节点/边数据模型 + `to_mermaid()`。
+  - 新增 `scripts/generate_pipeline_graph.py`：生成 `docs/assets/routing_pipeline.mmd`。
+  - 新增 `tests/test_pipeline_graph.py`（4 cases）。
+  - 已生成 `docs/assets/routing_pipeline.mmd`。
+- **验证**：
+  - 聚焦测试：4 passed。
+  - 完整测试：**3819 passed / 3 skipped / 2 deselected**；`ruff check` clean；`ruff format --check` clean；`scripts/check_code_size.py` PASS。
+- **P4 结项**：P4-1~P4-6 全部落地，P4 标记完成。
+
 ## 2026-06-26 完成 P4-5：语义缓存层
 
 - **目标**：按 `docs/superpowers/plans/README.md` P4-5，实现语义缓存基座。

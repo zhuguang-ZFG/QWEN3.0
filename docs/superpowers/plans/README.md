@@ -61,15 +61,15 @@
 | P3-M9 | 设备发现配网 | `routes/device_app_misc.py::provision/confirm`、配对流程 | ✅ 已完成 | 与 L5 共享 `v2_pair_request` 表 |
 | P3-M10 | 统计分析 | `routes/device_app_misc.py` 统计端点 | ✅ 已完成 | — |
 | P3-F1-2 | 自动回滚监控 | `device_ota/rollback_monitor.py` | ✅ 已完成 | 与 F1-2 重复，已合并 |
-| **P4** | **提示词系统强化** | `prompts/` 模板注册表（P4-1 ✅）、`routing/semantic_router.py` 规则预筛基线（P4-2 ✅）、`models/structured_outputs/` Pydantic 校验基线（P4-3 ✅）、`promptfooconfig.yaml` + `tests/promptfoo/` 回归测试（P4-4 ✅）、`semantic_cache/` 语义缓存层（P4-5 ✅）、LangGraph 状态可视化（P4-6 ⏸️） | **P4-1~P4-5 已完成；P4-6 未开始** | P4-5 默认关闭，集成进主路由路径为后续步骤 |
+| **P4** | **提示词系统强化** | `prompts/` 模板注册表（P4-1 ✅）、`routing/semantic_router.py` 规则预筛基线（P4-2 ✅）、`models/structured_outputs/` Pydantic 校验基线（P4-3 ✅）、`promptfooconfig.yaml` + `tests/promptfoo/` 回归测试（P4-4 ✅）、`semantic_cache/` 语义缓存层（P4-5 ✅）、`pipeline_graph.py` + `docs/assets/routing_pipeline.mmd` 状态可视化（P4-6 ✅） | **P4 全部完成** | P4-6 当前为 Mermaid 状态图基座，LangGraph 迁移待恢复多模型编排后评估 |
 
 ---
 
 ## 推荐下一步
 
-1. **P4-6 编排管线状态可视化**：如后续恢复多模型编排，可用 LangGraph 状态机替代原 `orchestrate*.py`。
-2. **P4-5 后续**：将 `SemanticCache` 集成进 `routing_engine.py` 或 `routes/chat_endpoints.py` 的生产路径，默认关闭（`LIMA_SEMANTIC_CACHE_ENABLED=0`）。
-3. **P4-3 后续**：如需要 LLM-native 结构化输出，再安装 `instructor` 并接入 `models/structured_outputs/instructor_client.py`。
+1. **P4-5 后续**：将 `SemanticCache` 集成进 `routing_engine.py` 或 `routes/chat_endpoints.py` 的生产路径，默认关闭（`LIMA_SEMANTIC_CACHE_ENABLED=0`）。
+2. **P4-3 后续**：如需要 LLM-native 结构化输出，再安装 `instructor` 并接入 `models/structured_outputs/instructor_client.py`。
+3. **P4-6 后续**：如恢复多模型编排，可将 `pipeline_graph.py` 的节点/边映射到 LangGraph 状态机。
 
 ---
 
