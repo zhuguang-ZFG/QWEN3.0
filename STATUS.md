@@ -10,13 +10,30 @@
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
 > Tests: 全量 **3735 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
-> Code Size: 历史 >300 行文件 5 个、>50 行函数 26 个（均为历史脚本/测试/MCP/xiaozhi）；新增/修改模块均 ≤300 行/函数 ≤50 行（`routes/device_ota.py` 拆出 App 端点后 300 行）。
+> Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml`、`.github/workflows/deploy.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-docs-site.yml` 已配置；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（ secrets 待配置）。
 > 安全审计：`findings.md` 2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-26）代码体积全面达标
+
+- **目标**：消除 `scripts/check_code_size.py` 报告的所有体积违规。
+- **关键结果**：
+  - 24 个 >50 行函数通过提取 helper 降至 ≤50 行（涉及 `scripts/*`、`lima_mcp_stdio/*`、`tests/*`、`xiaozhi_drawing/svg_validator.py`、`routes/route_registry.py` 等）。
+  - 6 个 >300 行文件拆分/瘦身至 ≤300 行：
+    - `device_gateway/draw_prompt_enhancer.py` → 拆出 `device_gateway/draw_prompt_complexity.py`
+    - `routes/device_ota.py` → 拆出 `routes/device_ota_helpers.py`
+    - `routes/device_gateway_ws_handlers.py` → 拆出 `routes/device_gateway_ws_motion.py`
+    - `scripts/guardian_scanner.py` → 拆出 `scripts/guardian_full_scan.py`
+    - `tests/test_device_app_sharing.py` → 拆出 helper/permissions 测试文件
+    - `tests/test_device_app_task_templates.py` → 拆出 helper/rejections 测试文件
+  - 更新相关测试补丁目标（`routes.device_ota_helpers`、`routes.device_gateway_ws_motion`）。
+  - 修复 `tests/test_device_attestation.py` 因 `_FIRMWARE_HASHES_PATH` 迁移导致的 monkeypatch 失败。
+- **验证**：`ruff check .` clean、`ruff format --check .` clean、`scripts/check_code_size.py` PASS。
+- **全量 pytest**：**3735 passed / 3 skipped / 2 deselected / 0 failed**。
 
 ### 最近完成（2026-06-26）工作区清理、CI 去忽略、瘦身文档同步
 

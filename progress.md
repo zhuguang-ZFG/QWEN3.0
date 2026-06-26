@@ -9226,3 +9226,24 @@ oqa: F401），保持所有调用方导入路径不变。文件从 358 行降至
   - `ruff check .` clean。
 - **提交**：`chore: clean workspace, un-ignore tests, and sync cleanup docs`（`17cb0db9`），已推送 `origin/main`。
 - **遗留**：代码体积退化（6 文件 >300 行、26 函数 >50 行）待下一个切片处理。
+
+## 2026-06-26 代码体积全面达标
+
+- **目标**：消除 `scripts/check_code_size.py` 报告的所有体积违规（6 文件 >300 行、26 函数 >50 行）。
+- **已完成**：
+  - 24 个 >50 行函数通过提取 helper 降至 ≤50 行。
+  - 6 个 >300 行文件拆分：
+    - `device_gateway/draw_prompt_enhancer.py` → `device_gateway/draw_prompt_complexity.py`
+    - `routes/device_ota.py` → `routes/device_ota_helpers.py`
+    - `routes/device_gateway_ws_handlers.py` → `routes/device_gateway_ws_motion.py`
+    - `scripts/guardian_scanner.py` → `scripts/guardian_full_scan.py`
+    - `tests/test_device_app_sharing.py` → `tests/device_app_sharing_helpers.py` + `tests/test_device_app_sharing_permissions.py`
+    - `tests/test_device_app_task_templates.py` → `tests/device_app_task_templates_helpers.py` + `tests/test_device_app_task_templates_rejections.py`
+  - 更新测试补丁目标：`tests/test_device_ota_enhancements.py`、`tests/test_routes_device_gateway_ws_handlers.py`。
+  - 修复 `tests/test_device_attestation.py::test_admin_register_and_list_firmware_hash` 的 monkeypatch 目标（`_FIRMWARE_HASHES_PATH` 已迁至 `routes.device_ota_helpers`）。
+- **验证**：
+  - `ruff check .` clean；`ruff format --check .` clean。
+  - `python scripts/check_code_size.py` → PASS（0 文件 >300 行，0 函数 >50 行）。
+  - `.venv310/Scripts/python -m pytest -m "not network" -q` → **3735 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `scripts/run_pre_commit_check.py --ci` 通过。
+- **提交**：`refactor: satisfy code-size constraints across scripts, mcp, routes and tests`（`d675ab14`），已推送 `origin/main`。
