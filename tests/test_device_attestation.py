@@ -186,7 +186,9 @@ def admin_client(monkeypatch):
 
 def test_admin_register_and_list_firmware_hash(admin_client, tmp_path, monkeypatch):
     fresh_path = tmp_path / "firmware_hashes.json"
-    monkeypatch.setattr(device_ota, "_FIRMWARE_HASHES_PATH", str(fresh_path))
+    import routes.device_ota_helpers as device_ota_helpers
+
+    monkeypatch.setattr(device_ota_helpers, "_FIRMWARE_HASHES_PATH", str(fresh_path))
     fresh_verifier = AttestationVerifier(str(fresh_path))
     monkeypatch.setattr(device_ota, "attestation_verifier", fresh_verifier)
     new_hash = "sha256:" + "c" * 64

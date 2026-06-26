@@ -36,10 +36,6 @@ _FETCH_HEADERS = {
 }
 
 
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
 def _fetch_text(url: str, *, timeout: float = 25.0, accept_json: bool = True) -> str:
     headers = dict(_FETCH_HEADERS)
     if not accept_json:
@@ -274,7 +270,7 @@ def build_mcp_registry_snapshot(
     safemcp = fetch_safemcp_index()
     merged = merge_registry_entries(official, glama, safemcp)
     return {
-        "generated_at": _utc_now(),
+        "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "counts": {
             "merged": len(merged),
             "official": len(official.get("entries") or []),

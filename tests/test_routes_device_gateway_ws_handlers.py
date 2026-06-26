@@ -11,6 +11,7 @@ from device_gateway.attestation import AttestationVerifier
 from device_gateway.protocol import ProtocolError
 from device_gateway.sessions import DeviceSession
 from routes import device_gateway_ws_handlers as handlers
+from routes import device_gateway_ws_motion as motion_handlers
 
 
 @pytest.fixture
@@ -155,9 +156,9 @@ async def test_handle_motion_event(websocket):
     handlers.registry.register(session)
     message = {"type": "motion_event", "device_id": "dev-1", "task_id": "t1", "phase": "done"}
     with (
-        patch.object(handlers, "process_motion_event_core", return_value={"phase": "done"}),
-        patch.object(handlers, "execute_recovery", return_value=None),
-        patch.object(handlers, "record_outcome_ledger") as mock_ledger,
+        patch.object(motion_handlers, "process_motion_event_core", return_value={"phase": "done"}),
+        patch.object(motion_handlers, "execute_recovery", return_value=None),
+        patch.object(motion_handlers, "record_outcome_ledger") as mock_ledger,
     ):
         await handlers.handle_motion_event("dev-1", message, request_id="r1")
     websocket.send_json.assert_awaited_once()
@@ -172,10 +173,10 @@ async def test_handle_motion_event_recovery(websocket):
     message = {"type": "motion_event", "device_id": "dev-1", "task_id": "t1", "phase": "failed"}
     recovery = {"action": "retry", "attempt": 1}
     with (
-        patch.object(handlers, "process_motion_event_core", return_value={"phase": "failed"}),
-        patch.object(handlers, "execute_recovery", return_value=recovery),
-        patch.object(handlers, "send_recovery_ack", new_callable=AsyncMock) as mock_recovery_ack,
-        patch.object(handlers, "record_outcome_ledger") as mock_ledger,
+        patch.object(motion_handlers, "process_motion_event_core", return_value={"phase": "failed"}),
+        patch.object(motion_handlers, "execute_recovery", return_value=recovery),
+        patch.object(motion_handlers, "send_recovery_ack", new_callable=AsyncMock) as mock_recovery_ack,
+        patch.object(motion_handlers, "record_outcome_ledger") as mock_ledger,
     ):
         await handlers.handle_motion_event("dev-1", message, request_id="r1")
     mock_recovery_ack.assert_awaited_once()

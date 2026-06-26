@@ -151,57 +151,32 @@ def _register_system_routes(app: FastAPI, deps: RouteRegistryDeps):
     return system_endpoints_mod
 
 
+_DEVICE_APP_ROUTERS = [
+    ("routes.device_admin", "device_admin"),
+    ("routes.device_gateway", "device_gateway"),
+    ("routes.device_app_api", "device_app_api"),
+    ("routes.device_app_assets", "device_app_assets"),
+    ("routes.device_app_chat", "device_app_chat"),
+    ("routes.device_app_discovery", "device_app_discovery"),
+    ("routes.device_app_members", "device_app_members"),
+    ("routes.device_app_misc", "device_app_misc"),
+    ("routes.device_app_notifications", "device_app_notifications"),
+    ("routes.device_app_auth", "device_app_auth"),
+    ("routes.device_app_stats", "device_app_stats"),
+    ("routes.device_app_status_ws", "device_app_status_ws"),
+    ("routes.device_app_task_extras", "device_app_task_extras"),
+    ("routes.device_app_task_templates", "device_app_templates"),
+    ("routes.device_app_tasks", "device_app_tasks"),
+    ("routes.device_app_activity", "device_app_activity"),
+]
+
+
 def _register_device_app_routes(app: FastAPI, loaded_modules: dict) -> None:
     """Mount device gateway and device app routers."""
-    from routes.device_admin import router as device_admin_router
-    from routes.device_gateway import router as device_gateway_router
-    from routes.device_app_api import router as device_app_router
-    from routes.device_app_assets import router as device_app_assets_router
-    from routes.device_app_chat import router as device_app_chat_router
-    from routes.device_app_discovery import router as device_app_discovery_router
-    from routes.device_app_members import router as device_app_members_router
-    from routes.device_app_misc import router as device_app_misc_router
-    from routes.device_app_notifications import router as device_app_notifications_router
-    from routes.device_app_auth import router as device_app_auth_router
-    from routes.device_app_stats import router as device_app_stats_router
-    from routes.device_app_status_ws import router as device_app_status_ws_router
-    from routes.device_app_task_extras import router as device_app_task_extras_router
-    from routes.device_app_task_templates import router as device_app_templates_router
-    from routes.device_app_tasks import router as device_app_tasks_router
-    from routes.device_app_activity import router as device_app_activity_router
-
-    app.include_router(device_admin_router)
-    app.include_router(device_gateway_router)
-    app.include_router(device_app_router)
-    app.include_router(device_app_assets_router)
-    app.include_router(device_app_chat_router)
-    app.include_router(device_app_discovery_router)
-    app.include_router(device_app_members_router)
-    app.include_router(device_app_misc_router)
-    app.include_router(device_app_notifications_router)
-    app.include_router(device_app_auth_router)
-    app.include_router(device_app_stats_router)
-    app.include_router(device_app_status_ws_router)
-    app.include_router(device_app_task_extras_router)
-    app.include_router(device_app_templates_router)
-    app.include_router(device_app_tasks_router)
-    app.include_router(device_app_activity_router)
-    loaded_modules["device_admin"] = True
-    loaded_modules["device_gateway"] = True
-    loaded_modules["device_app_api"] = True
-    loaded_modules["device_app_assets"] = True
-    loaded_modules["device_app_chat"] = True
-    loaded_modules["device_app_discovery"] = True
-    loaded_modules["device_app_members"] = True
-    loaded_modules["device_app_misc"] = True
-    loaded_modules["device_app_notifications"] = True
-    loaded_modules["device_app_auth"] = True
-    loaded_modules["device_app_stats"] = True
-    loaded_modules["device_app_status_ws"] = True
-    loaded_modules["device_app_task_extras"] = True
-    loaded_modules["device_app_templates"] = True
-    loaded_modules["device_app_tasks"] = True
-    loaded_modules["device_app_activity"] = True
+    for import_path, module_key in _DEVICE_APP_ROUTERS:
+        mod = __import__(import_path, fromlist=["router"])
+        app.include_router(mod.router)
+        loaded_modules[module_key] = True
     _register_device_ota_routes(app, loaded_modules)
 
 

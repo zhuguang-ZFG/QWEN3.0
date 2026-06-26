@@ -116,6 +116,29 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
     assert data["x_lima_meta"]["memory_recall"]["applied"] is True
 
 
+def _make_fake_handlers(captured_prompts, answers):
+    def fake_analyze(query, system_prompt="", ide=""):
+        captured_prompts.append(system_prompt)
+        return {"intent": "chat", "complexity": 0.1}
+
+    def fake_v3_route(query, messages, system_prompt="", ide="", max_tokens=4096, **kwargs):
+        return {"answer": next(answers), "backend": "fake_backend", "total_ms": 1}
+
+    return fake_analyze, fake_v3_route
+
+
+def _run_chat_round(server, request, headers):
+    asyncio.run(
+        server._handle_chat(
+            request,
+            fmt="openai",
+            client_ip="10.9.0.3",
+            ide_source="cursor",
+            request_headers=headers,
+        )
+    )
+
+
 def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     import routes.chat_handler as chat_handler
     import routes.chat_handler_dispatch as dispatch
@@ -126,17 +149,7 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     headers = {"x-forwarded-for": "10.9.0.3", "user-agent": "cursor"}
     captured_prompts = []
     answers = iter(["we fixed banana cache", "ok"])
-
-    def fake_analyze(query, system_prompt="", ide=""):
-        captured_prompts.append(system_prompt)
-        return {"intent": "chat", "complexity": 0.1}
-
-    def fake_v3_route(query, messages, system_prompt="", ide="", max_tokens=4096, **kwargs):
-        return {
-            "answer": next(answers),
-            "backend": "fake_backend",
-            "total_ms": 1,
-        }
+    fake_analyze, fake_v3_route = _make_fake_handlers(captured_prompts, answers)
 
     monkeypatch.setenv("LIMA_SESSION_MEMORY", "1")
     monkeypatch.setattr(routing_intent, "detect_image_intent", lambda query: (False, ""))
@@ -154,23 +167,7 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
         max_tokens=128,
     )
 
-    asyncio.run(
-        server._handle_chat(
-            first,
-            fmt="openai",
-            client_ip="10.9.0.3",
-            ide_source="cursor",
-            request_headers=headers,
-        )
-    )
-    asyncio.run(
-        server._handle_chat(
-            second,
-            fmt="openai",
-            client_ip="10.9.0.3",
-            ide_source="cursor",
-            request_headers=headers,
-        )
-    )
+    _run_chat_round(server, first, headers)
+    _run_chat_round(server, second, headers)
 
     assert "banana cache" in captured_prompts[-1]

@@ -6,7 +6,6 @@ import ast
 import hashlib
 import logging
 import os
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -19,31 +18,56 @@ CODEGRAPH_DB = str(PROJECT / ".codegraph" / "codegraph.db")
 
 log = logging.getLogger(__name__)
 
-CORE_SCAN_DIRS = (
-    "routes",
-    "device_gateway",
-    "context_pipeline",
-    "routing_selector",
-    "backends_registry",
-    "device_intelligence",
-    "device_ota",
-    "device_voice",
-    "device_memory",
-    "device_ledger",
-    "device_logic",
-    "device_support",
-    "device_policy",
-    "device_workflow",
-    "session_memory",
-    "observability",
-    "fleet",
-    "provider_automation",
-    "provider_inventory",
-    "response_cleaner",
-    "local_retrieval",
-    "lima_mcp_stdio",
-    "tool_gateway",
-)
+
+def _check_imports(tree: ast.AST, rel: str, file_path: Path, findings: list) -> None:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            if node.module:
+                _check_import(node.module, rel, findings, file_path)
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                _check_import(alias.name, rel, findings, file_path)
+
+
+def _check_routes(tree: ast.AST, rel_norm: str, file_path: Path, findings: list) -> None:
+    if not rel_norm.startswith("routes/") or rel_norm == "routes/route_registry.py":
+        return
+    routes = _extract_routes(tree)
+    if not routes or _check_route_registration(rel_norm):
+        return
+    for method, path, line in routes:
+        findings.append(_finding("route_unregistered", file_path, f"未注册路由: @router.{method}('{path}')", line=line))
+
+
+def _check_test_coverage(rel: str, rel_norm: str, functions: list, file_path: Path, findings: list) -> None:
+    if rel.startswith("tests") or rel_norm.endswith("__init__.py"):
+        return
+    if find_test_file(rel):
+        return
+    public_funcs = [f for f in functions if not f.name.startswith("_")]
+    if public_funcs and not rel.startswith("scripts"):
+        findings.append(
+            _finding(
+                "no_test_file",
+                file_path,
+                f"无测试文件 ({len(public_funcs)} 个公开函数未覆盖)",
+                severity="warning",
+            )
+        )
+
+
+def _check_long_functions(functions: list, file_path: Path, findings: list) -> None:
+    for fn in functions:
+        if fn.end_lineno and (fn.end_lineno - fn.lineno) > 60:
+            findings.append(
+                _finding(
+                    "long_function",
+                    file_path,
+                    f"函数 {fn.name} 过长 ({fn.end_lineno - fn.lineno} 行)",
+                    line=fn.lineno,
+                    severity="info",
+                )
+            )
 
 
 class CodeScanner:
@@ -60,49 +84,13 @@ class CodeScanner:
             return findings
 
         rel = _project_rel(file_path)
+        rel_norm = _normalize_rel_path(rel)
         functions = _extract_functions(tree)
 
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                if node.module:
-                    _check_import(node.module, rel, findings, file_path)
-            elif isinstance(node, ast.Import):
-                for alias in node.names:
-                    _check_import(alias.name, rel, findings, file_path)
-
-        rel_norm = _normalize_rel_path(rel)
-        if rel_norm.startswith("routes/") and rel_norm != "routes/route_registry.py":
-            routes = _extract_routes(tree)
-            if routes and not _check_route_registration(rel_norm):
-                for method, path, line in routes:
-                    findings.append(
-                        _finding("route_unregistered", file_path, f"未注册路由: @router.{method}('{path}')", line=line)
-                    )
-
-        if not rel.startswith("tests") and not rel_norm.endswith("__init__.py"):
-            if not find_test_file(rel):
-                public_funcs = [f for f in functions if not f.name.startswith("_")]
-                if public_funcs and not rel.startswith("scripts"):
-                    findings.append(
-                        _finding(
-                            "no_test_file",
-                            file_path,
-                            f"无测试文件 ({len(public_funcs)} 个公开函数未覆盖)",
-                            severity="warning",
-                        )
-                    )
-
-        for fn in functions:
-            if fn.end_lineno and (fn.end_lineno - fn.lineno) > 60:
-                findings.append(
-                    _finding(
-                        "long_function",
-                        file_path,
-                        f"函数 {fn.name} 过长 ({fn.end_lineno - fn.lineno} 行)",
-                        line=fn.lineno,
-                        severity="info",
-                    )
-                )
+        _check_imports(tree, rel, file_path, findings)
+        _check_routes(tree, rel_norm, file_path, findings)
+        _check_test_coverage(rel, rel_norm, functions, file_path, findings)
+        _check_long_functions(functions, file_path, findings)
 
         if os.path.exists(CODEGRAPH_DB):
             _check_dangling_refs(rel, findings)
@@ -244,48 +232,3 @@ def _check_route_registration(file_rel: str) -> bool | str:
 
 def _check_dangling_refs(file_rel: str, findings: list):
     pass
-
-
-class FullScanner:
-    @staticmethod
-    def scan(modules: list[str] | None = None) -> dict:
-        all_findings: dict[str, list] = defaultdict(list)
-        paths = [PROJECT / m for m in modules] if modules else [PROJECT / d for d in CORE_SCAN_DIRS]
-
-        scanned = 0
-        for path in paths:
-            if path.is_dir():
-                for py_file in sorted(path.rglob("*.py")):
-                    if py_file.name == "__init__.py":
-                        continue
-                    if "site-packages" in str(py_file) or ".venv" in str(py_file):
-                        continue
-                    if "esp32" in str(py_file).lower():
-                        continue
-                    for f in CodeScanner.scan_file(py_file):
-                        all_findings[f["type"]].append(f)
-                    scanned += 1
-            elif path.is_file() and path.suffix == ".py":
-                for f in CodeScanner.scan_file(path):
-                    all_findings[f["type"]].append(f)
-                scanned += 1
-
-        errors, warnings, infos = [], [], []
-        for flist in all_findings.values():
-            for f in flist:
-                if f["severity"] == "error":
-                    errors.append(f)
-                elif f["severity"] == "warning":
-                    warnings.append(f)
-                else:
-                    infos.append(f)
-
-        return {
-            "scanned": scanned,
-            "total_findings": len(errors) + len(warnings) + len(infos),
-            "errors": errors,
-            "warnings": warnings,
-            "infos": infos,
-            "by_type": {k: len(v) for k, v in all_findings.items()},
-            "timestamp": datetime.now().isoformat(),
-        }

@@ -122,58 +122,66 @@ TOOLS = {
 }
 
 
+def _handle_initialize(req_id):
+    return {
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "result": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": "limaguard", "version": "1.0.0"},
+        },
+    }
+
+
+def _handle_tools_list(req_id):
+    return {
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "result": {
+            "tools": [
+                {"name": k, "description": v["description"], "inputSchema": v["inputSchema"]} for k, v in TOOLS.items()
+            ]
+        },
+    }
+
+
+def _dispatch_tool(tool: str, args: dict) -> str:
+    if tool == "get_findings":
+        return json.dumps(get_findings(args.get("severity"), args.get("limit", 20)), ensure_ascii=False, indent=2)
+    if tool == "get_file_findings":
+        return json.dumps(get_file_findings(args["file_path"]), ensure_ascii=False, indent=2)
+    if tool == "auto_fix":
+        findings = load_findings()
+        all_items = findings.get("errors", []) + findings.get("warnings", []) + findings.get("infos", [])
+        target = next((f for f in all_items if f.get("id") == args["finding_id"]), None)
+        if target:
+            return auto_fix_suggestion(target)
+        return f"未找到发现: {args['finding_id']}"
+    raise ValueError(f"Unknown tool: {tool}")
+
+
+def _handle_tool_call(req: dict) -> dict:
+    req_id = req.get("id")
+    tool = req["params"]["name"]
+    args = req["params"].get("arguments", {})
+    try:
+        text = _dispatch_tool(tool, args)
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text}]}}
+    except Exception as e:
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(e)}}
+
+
 def handle_request(req: dict) -> dict:
     method = req.get("method")
     req_id = req.get("id")
 
     if method == "initialize":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {"tools": {}},
-                "serverInfo": {"name": "limaguard", "version": "1.0.0"},
-            },
-        }
-
+        return _handle_initialize(req_id)
     if method == "tools/list":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "tools": [
-                    {"name": k, "description": v["description"], "inputSchema": v["inputSchema"]}
-                    for k, v in TOOLS.items()
-                ]
-            },
-        }
-
+        return _handle_tools_list(req_id)
     if method == "tools/call":
-        tool = req["params"]["name"]
-        args = req["params"].get("arguments", {})
-
-        try:
-            if tool == "get_findings":
-                text = json.dumps(
-                    get_findings(args.get("severity"), args.get("limit", 20)), ensure_ascii=False, indent=2
-                )
-            elif tool == "get_file_findings":
-                text = json.dumps(get_file_findings(args["file_path"]), ensure_ascii=False, indent=2)
-            elif tool == "auto_fix":
-                findings = load_findings()
-                all_items = findings.get("errors", []) + findings.get("warnings", []) + findings.get("infos", [])
-                target = next((f for f in all_items if f.get("id") == args["finding_id"]), None)
-                if target:
-                    text = auto_fix_suggestion(target)
-                else:
-                    text = f"未找到发现: {args['finding_id']}"
-            else:
-                raise ValueError(f"Unknown tool: {tool}")
-
-            return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text}]}}
-        except Exception as e:
-            return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(e)}}
+        return _handle_tool_call(req)
 
     return {"jsonrpc": "2.0", "id": req_id, "result": {}}
 

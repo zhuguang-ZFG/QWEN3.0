@@ -24,7 +24,8 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from scripts.guardian_scanner import CORE_SCAN_DIRS, CodeScanner, FullScanner, PROJECT
+from scripts.guardian_full_scan import CORE_SCAN_DIRS, FullScanner
+from scripts.guardian_scanner import CodeScanner, PROJECT
 
 # Re-export for tests and MCP adapters
 from scripts.guardian_scanner import _check_route_registration  # noqa: F401

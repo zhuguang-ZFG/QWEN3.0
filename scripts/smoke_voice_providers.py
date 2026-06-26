@@ -223,48 +223,57 @@ async def _transcribe_with_whisper_or_funasr(audio: bytes, *, sample_rate: int) 
     return "FunASR", recognized
 
 
+async def _run_provider(name: str, test_coro, has_credentials: bool, missing_msg: str) -> tuple[bool, bool]:
+    """Run one provider smoke test if credentials are present.
+
+    Returns (attempted, succeeded_at_runtime).
+    """
+    if not has_credentials:
+        print(missing_msg)
+        return False, False
+    print(f"Testing {name}...")
+    try:
+        await test_coro
+        return True, True
+    except Exception as exc:
+        print(f"  {name} test failed: {exc}")
+        return True, False
+
+
 async def main() -> None:
     tested = False
 
-    if _has_dashscope_credentials():
-        print("Testing DashScope ASR/TTS...")
-        try:
-            await _test_dashscope()
-        except Exception as exc:
-            print(f"  DashScope test failed: {exc}")
-        tested = True
-    else:
-        print("Skipping DashScope: credentials not configured.")
+    attempted, _ = await _run_provider(
+        "DashScope ASR/TTS",
+        _test_dashscope(),
+        _has_dashscope_credentials(),
+        "Skipping DashScope: credentials not configured.",
+    )
+    tested = tested or attempted
 
-    if _has_aliyun_credentials():
-        print("Testing Alibaba NLS ASR/TTS...")
-        try:
-            await _test_aliyun()
-        except Exception as exc:
-            print(f"  Alibaba test failed: {exc}")
-        tested = True
-    else:
-        print("Skipping Alibaba NLS: credentials not configured.")
+    attempted, _ = await _run_provider(
+        "Alibaba NLS ASR/TTS",
+        _test_aliyun(),
+        _has_aliyun_credentials(),
+        "Skipping Alibaba NLS: credentials not configured.",
+    )
+    tested = tested or attempted
 
-    if _has_doubao_credentials():
-        print("Testing Doubao ASR/TTS...")
-        try:
-            await _test_doubao()
-        except Exception as exc:
-            print(f"  Doubao test failed: {exc}")
-        tested = True
-    else:
-        print("Skipping Doubao: credentials not configured.")
+    attempted, _ = await _run_provider(
+        "Doubao ASR/TTS",
+        _test_doubao(),
+        _has_doubao_credentials(),
+        "Skipping Doubao: credentials not configured.",
+    )
+    tested = tested or attempted
 
-    if _has_mimo_credentials():
-        print("Testing MiMo TTS -> FunASR ASR...")
-        try:
-            await _test_mimo()
-        except Exception as exc:
-            print(f"  MiMo test failed: {exc}")
-        tested = True
-    else:
-        print("Skipping MiMo: MIMO_API_KEY not configured.")
+    attempted, _ = await _run_provider(
+        "MiMo TTS -> FunASR ASR",
+        _test_mimo(),
+        _has_mimo_credentials(),
+        "Skipping MiMo: MIMO_API_KEY not configured.",
+    )
+    tested = tested or attempted
 
     if _has_mimo_credentials() and _has_aliyun_credentials():
         print("Testing MiMo TTS -> AliyunFallback ASR...")

@@ -17,17 +17,12 @@ from device_gateway.protocol import (
 )
 from device_gateway.protocol_negotiator import ProtocolNegotiator
 from device_gateway.sessions import DeviceSession, registry
-from device_gateway.task_events import (
-    process_motion_event_core,
-    record_device_connected,
-    record_motion_event_side_effects,
-)
+from device_gateway.task_events import record_device_connected
 from device_gateway.tasks import (
     ack_processing_task,
     active_tasks_for_device,
     create_task_from_transcript_async,
     enqueue_pending_task,
-    execute_recovery,
     mark_task_dispatched,
     remove_pending_task,
 )
@@ -44,13 +39,13 @@ from routes.device_gateway_dispatch import (
     send_ws_error,
     ticket_device_id,
 )
+from routes.device_gateway_ws_motion import handle_motion_event
 from routes.device_voice_ws_helpers import (
     _cleanup_audio_registry,
     _feed_audio_to_pipeline,
     handle_audio_chunk,
 )
 from routes.ws_lifecycle_helpers import reattach_tasks
-from routes.ws_task_helpers import record_outcome_ledger, send_recovery_ack
 from routes.ws_voice_transcript_helpers import handle_voice_transcript
 from routes.ws_voiceprint_helpers import handle_voiceprint_sample
 from device_gateway.attestation import ACTION_READ_ONLY, AttestationResult, verifier as attestation_verifier
@@ -246,45 +241,6 @@ async def handle_transcript(
         return await dispatch_task_to_session(session, task)
     enqueue_pending_task(device_id, task)
     return False
-
-
-async def handle_motion_event(device_id: str, message: dict[str, Any], request_id: str | None) -> None:
-    summary = process_motion_event_core(device_id, message)
-
-    # M5: execute recovery action on failure
-    recovery_result = execute_recovery(message.get("task_id", ""), device_id, message)
-    if recovery_result:
-        _log.info(
-            "device recovery action=%s attempt=%s device_id=%s task_id=%s",
-            recovery_result["action"],
-            recovery_result.get("attempt", 0),
-            device_id,
-            message.get("task_id", ""),
-        )
-        session = registry.get(device_id)
-        if session is not None:
-            await send_recovery_ack(session, device_id, message, request_id, recovery_result)
-
-    session = registry.get(device_id)
-    if session is not None:
-        session.mark_task_acknowledged(message["task_id"])
-        await session.send_json(ack_frame("motion_event_ack", device_id, **summary, request_id=request_id))
-
-    record_motion_event_side_effects(device_id, message)
-
-    phase = message.get("phase", "")
-    task_id = str(message.get("task_id", ""))
-    if phase in ("accepted", "running", "done", "failed"):
-        _log.info(
-            "device task phase device_id=%s task_id=%s phase=%s",
-            device_id,
-            task_id,
-            phase,
-        )
-
-    # Record to Outcome Ledger (terminal phases only)
-    if phase in ("done", "failed", "cancelled"):
-        record_outcome_ledger(device_id, message, phase)
 
 
 async def handle_device_info(device_id: str, message: dict[str, Any], request_id: str | None) -> None:

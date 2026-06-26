@@ -25,8 +25,8 @@ def _ssh_exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
     return code, out, err
 
 
-def restart_server() -> bool:
-    """Clear pycache, restart the systemd service, and wait for health."""
+def _connect_ssh() -> paramiko.SSHClient:
+    """Open an SSH connection to the deploy server using key or password fallback."""
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
@@ -37,43 +37,67 @@ def restart_server() -> bool:
         if not password:
             raise
         ssh.connect(SERVER, username="root", password=password, timeout=15)
+    return ssh
 
-    try:
-        code, _out, err = _ssh_exec(ssh, "systemctl restart lima-router")
-        if code != 0:
-            print(f"restart command failed: {err}")
-            return False
 
-        if HEALTH_GRACE_AFTER_RESTART_S > 0:
-            time.sleep(HEALTH_GRACE_AFTER_RESTART_S)
+def _restart_service(ssh: paramiko.SSHClient) -> bool:
+    code, _out, err = _ssh_exec(ssh, "systemctl restart lima-router")
+    if code != 0:
+        print(f"restart command failed: {err}")
+        return False
+    if HEALTH_GRACE_AFTER_RESTART_S > 0:
+        time.sleep(HEALTH_GRACE_AFTER_RESTART_S)
+    return True
 
-        deadline = time.time() + HEALTH_WAIT_SECONDS
-        last_detail = ""
-        while time.time() < deadline:
-            # Fast-path: if the service already failed, stop polling immediately.
-            active_code, _active_out, _active_err = _ssh_exec(ssh, "systemctl is-active lima-router")
-            if active_code != 0:
-                print(f"  service not active (is-active exit {active_code}); fetching logs...")
-                _code, logs, _err = _ssh_exec(ssh, "journalctl -u lima-router -n 25 --no-pager")
-                if logs:
-                    print(logs)
-                return False
 
-            code, out, err = _ssh_exec(ssh, "curl -sS -m 30 http://127.0.0.1:8080/health")
-            last_detail = out or err or f"curl exit {code}"
-            if code == 0:
-                try:
-                    payload = json.loads(out)
-                    if payload.get("status") in ("ok", "warming"):
-                        return True
-                except json.JSONDecodeError:
-                    pass
-            time.sleep(HEALTH_POLL_SECONDS)
-
-        print(f"  health never became ready; last: {last_detail[:240]}")
+def _service_is_active(ssh: paramiko.SSHClient) -> bool:
+    active_code, _active_out, _active_err = _ssh_exec(ssh, "systemctl is-active lima-router")
+    if active_code != 0:
+        print(f"  service not active (is-active exit {active_code}); fetching logs...")
         _code, logs, _err = _ssh_exec(ssh, "journalctl -u lima-router -n 25 --no-pager")
         if logs:
             print(logs)
         return False
+    return True
+
+
+def _health_ready(ssh: paramiko.SSHClient) -> tuple[bool, str]:
+    code, out, err = _ssh_exec(ssh, "curl -sS -m 30 http://127.0.0.1:8080/health")
+    last_detail = out or err or f"curl exit {code}"
+    if code == 0:
+        try:
+            payload = json.loads(out)
+            if payload.get("status") in ("ok", "warming"):
+                return True, last_detail
+        except json.JSONDecodeError:
+            pass
+    return False, last_detail
+
+
+def _poll_health(ssh: paramiko.SSHClient) -> bool:
+    deadline = time.time() + HEALTH_WAIT_SECONDS
+    last_detail = ""
+    while time.time() < deadline:
+        if not _service_is_active(ssh):
+            return False
+        ready, last_detail = _health_ready(ssh)
+        if ready:
+            return True
+        time.sleep(HEALTH_POLL_SECONDS)
+
+    print(f"  health never became ready; last: {last_detail[:240]}")
+    _code, logs, _err = _ssh_exec(ssh, "journalctl -u lima-router -n 25 --no-pager")
+    if logs:
+        print(logs)
+    return False
+
+
+def restart_server() -> bool:
+    """Clear pycache, restart the systemd service, and wait for health."""
+    ssh = _connect_ssh()
+    try:
+        if not _restart_service(ssh):
+            return False
+        return _poll_health(ssh)
     finally:
         ssh.close()

@@ -17,6 +17,23 @@ class ValidationResult:
     complexity: dict  # {point_count, stroke_count, bbox}
 
 
+def _validate_complexity(point_count: int, max_points: int, errors: list, warnings: list) -> None:
+    if point_count > max_points:
+        errors.append(f"路径点数 {point_count} 超过限制 {max_points}")
+    elif point_count > max_points * 0.8:
+        warnings.append(f"路径点数 {point_count} 接近限制")
+
+
+def _validate_bbox(bbox: dict, workspace: tuple[float, float], errors: list, warnings: list) -> None:
+    if not bbox:
+        return
+    w, h = workspace
+    if bbox["min_x"] < 0 or bbox["min_y"] < 0 or bbox["max_x"] > w or bbox["max_y"] > h:
+        errors.append(f"路径超出工作区 ({w}x{h})")
+    elif bbox["max_x"] > w * 0.95 or bbox["max_y"] > h * 0.95:
+        warnings.append("路径接近工作区边界")
+
+
 def validate_svg_path(
     path_data: str, workspace: tuple[float, float] = (200.0, 200.0), max_points: int = 5000
 ) -> ValidationResult:
@@ -32,43 +49,25 @@ def validate_svg_path(
     """
     errors = []
     warnings = []
-    complexity = {}
 
-    # 检查空路径
     if not path_data or not path_data.strip():
         errors.append("路径为空")
-        return ValidationResult(False, errors, warnings, complexity)
+        return ValidationResult(False, errors, warnings, {})
 
-    # 解析指令和坐标
     try:
         commands, points = _parse_path(path_data)
     except ValueError as e:
         errors.append(f"路径解析失败: {e}")
-        return ValidationResult(False, errors, warnings, complexity)
+        return ValidationResult(False, errors, warnings, {})
 
-    # 计算复杂度
     point_count = len(points)
-    stroke_count = commands.count("M")
     bbox = _calculate_bbox(points)
+    complexity = {"point_count": point_count, "stroke_count": commands.count("M"), "bbox": bbox}
 
-    complexity = {"point_count": point_count, "stroke_count": stroke_count, "bbox": bbox}
+    _validate_complexity(point_count, max_points, errors, warnings)
+    _validate_bbox(bbox, workspace, errors, warnings)
 
-    # 检查点数限制
-    if point_count > max_points:
-        errors.append(f"路径点数 {point_count} 超过限制 {max_points}")
-    elif point_count > max_points * 0.8:
-        warnings.append(f"路径点数 {point_count} 接近限制")
-
-    # 检查工作区范围
-    if bbox:
-        w, h = workspace
-        if bbox["min_x"] < 0 or bbox["min_y"] < 0 or bbox["max_x"] > w or bbox["max_y"] > h:
-            errors.append(f"路径超出工作区 ({w}x{h})")
-        elif bbox["max_x"] > w * 0.95 or bbox["max_y"] > h * 0.95:
-            warnings.append("路径接近工作区边界")
-
-    valid = len(errors) == 0
-    return ValidationResult(valid, errors, warnings, complexity)
+    return ValidationResult(len(errors) == 0, errors, warnings, complexity)
 
 
 def _parse_path(path_data: str) -> tuple[list[str], list[tuple[float, float]]]:

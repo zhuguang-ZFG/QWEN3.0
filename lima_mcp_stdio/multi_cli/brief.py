@@ -67,19 +67,19 @@ def _project_redflags(project_root: Path) -> str:
     return GENERIC_REDFLAGS
 
 
-def generate_brief(project_root: Path, task: str, scope: str | None = None) -> str:
+def _scope_files(task: str, scope: str | None, project_root: Path) -> list[str]:
     files = _changed_files(project_root)
     effective_scope = resolve_scope(task, scope, project_root)
     if effective_scope:
-        scope_files = [effective_scope]
-    elif files:
-        scope_files = files
-    else:
-        scope_files = ["(mention a file path in task or pass scope)"]
+        return [effective_scope]
+    if files:
+        return files
+    return ["(mention a file path in task or pass scope)"]
 
+
+def _header_section(task: str, project_root: Path, scope_files: list[str]) -> list[str]:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     head = _run_git(["rev-parse", "--short", "HEAD"], project_root) or "unknown"
-
     lines = [
         "# MiMo MCP Review Brief",
         "",
@@ -90,42 +90,60 @@ def generate_brief(project_root: Path, task: str, scope: str | None = None) -> s
         "## Scope",
         "",
     ]
-    for item in scope_files:
-        lines.append(f"- `{item}`")
+    lines.extend(f"- `{item}`" for item in scope_files)
+    return lines
 
-    lines.extend(["", "## Changed files", ""])
+
+def _changed_files_section(files: list[str]) -> list[str]:
+    lines = ["", "## Changed files", ""]
     if files:
-        for item in files:
-            lines.append(f"- `{item}`")
+        lines.extend(f"- `{item}`" for item in files)
     else:
         lines.append("- (none)")
+    return lines
 
-    lines.extend(
-        [
-            "",
-            "## diff --stat",
-            "",
-            "```",
-            _diff_stat(project_root),
-            "```",
-            "",
-            "## diff excerpt",
-            "",
-            "```diff",
-            _diff_unified(project_root),
-            "```",
-            "",
-            "## Review red flags",
-            "",
-            _project_redflags(project_root),
-            "",
-            "## JSON output contract",
-            "",
-            "Append JSON array of findings with evidence (P0-P3).",
-            "",
-        ]
-    )
-    return "\n".join(lines)
+
+def _diff_section(project_root: Path) -> list[str]:
+    return [
+        "",
+        "## diff --stat",
+        "",
+        "```",
+        _diff_stat(project_root),
+        "```",
+        "",
+        "## diff excerpt",
+        "",
+        "```diff",
+        _diff_unified(project_root),
+        "```",
+        "",
+    ]
+
+
+def _footer_section(project_root: Path) -> list[str]:
+    return [
+        "## Review red flags",
+        "",
+        _project_redflags(project_root),
+        "",
+        "## JSON output contract",
+        "",
+        "Append JSON array of findings with evidence (P0-P3).",
+        "",
+    ]
+
+
+def generate_brief(project_root: Path, task: str, scope: str | None = None) -> str:
+    files = _changed_files(project_root)
+    scope_files = _scope_files(task, scope, project_root)
+    sections = [
+        *_header_section(task, project_root, scope_files),
+        *_changed_files_section(files),
+        *_diff_section(project_root),
+        *_footer_section(project_root),
+    ]
+    return "\n".join(sections)
 
 
 def write_brief(project_root: Path, artifact_dir: Path, task: str, scope: str | None = None) -> Path:

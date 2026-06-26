@@ -2,25 +2,24 @@
 
 from __future__ import annotations
 
-import json
-import os
-import re
-import tempfile
-
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 
 from access_guard import extract_bearer_token, require_private_api_key
-from config.env import ota_signing_public_key
 from device_gateway.attestation import verifier as attestation_verifier
 from device_gateway.auth import validate_device_token
 from device_ota import runtime as ota_runtime
 from device_ota.runtime import get_canary, get_gradual, get_release_gate
-from device_ota.signature import FirmwareSignatureError, FirmwareVerifier
+from routes.device_ota_helpers import (
+    _LOWER_HEX_SHA256,
+    device_list,
+    firmware_metadata,
+    gradual_json,
+    persist_firmware_hashes,
+    verify_firmware_or_raise,
+)
 
 router = APIRouter(prefix="/device/v1/ota", tags=["device-ota"])
-_LOWER_HEX_SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_FIRMWARE_HASHES_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "firmware_hashes.json")
 
 
 # Back-compat shim: callers (e.g. tests/test_device_ota_device_contract.py) still
@@ -62,7 +61,7 @@ async def deploy_version(version: str, body: dict | None = Body(default=None)):
     """
     if not get_release_gate().is_ready():
         raise HTTPException(status_code=412, detail="release gate not ready; all criteria must pass before deploy")
-    firmware = _firmware_metadata(version, body or {})
+    firmware = firmware_metadata(version, body or {})
     canary = get_canary()
     canary.deploy_version(version, firmware)
     return JSONResponse({"ok": True, "version": version, "canary_devices": canary.canary_devices, "firmware": firmware})
@@ -179,12 +178,12 @@ async def device_install_result(body: dict, authorization: str = Header(default=
 async def start_gradual_release(version: str, body: dict | None = Body(default=None)):
     """Start a new gradual rollout; signature is verified before any state changes."""
     payload = body or {}
-    firmware = _firmware_metadata(version, payload)
-    devices = _device_list(payload.get("devices"))
+    firmware = firmware_metadata(version, payload)
+    devices = device_list(payload.get("devices"))
     if not devices:
         raise HTTPException(status_code=400, detail="devices list is required")
 
-    if not _verify_firmware_or_raise(firmware):
+    if not verify_firmware_or_raise(firmware):
         raise HTTPException(status_code=400, detail="firmware signature verification failed")
 
     gradual = get_gradual()
@@ -205,13 +204,13 @@ async def start_gradual_release(version: str, body: dict | None = Body(default=N
 @router.post("/gradual/promote", dependencies=[Depends(require_private_api_key)])
 async def promote_gradual_stage():
     """Manually advance to the next rollout stage."""
-    return _gradual_json({"promoted": get_gradual().promote()})
+    return gradual_json({"promoted": get_gradual().promote()})
 
 
 @router.post("/gradual/rollback", dependencies=[Depends(require_private_api_key)])
 async def rollback_gradual_stage():
     """Manually move one rollout stage back."""
-    return _gradual_json({"rolled_back": get_gradual().rollback()})
+    return gradual_json({"rolled_back": get_gradual().rollback()})
 
 
 @router.get("/gradual/status", dependencies=[Depends(require_private_api_key)])
@@ -224,14 +223,14 @@ async def gradual_status():
 async def record_gradual_success(device_id: str):
     """Record a successful deployment for the current stage."""
     get_gradual().record_success(device_id)
-    return _gradual_json()
+    return gradual_json()
 
 
 @router.post("/gradual/record-failure/{device_id}", dependencies=[Depends(require_private_api_key)])
 async def record_gradual_failure(device_id: str):
     """Record a failed deployment for the current stage."""
     get_gradual().record_failure(device_id)
-    return _gradual_json()
+    return gradual_json()
 
 
 @router.post("/verify-signature", dependencies=[Depends(require_private_api_key)])
@@ -244,7 +243,7 @@ async def verify_firmware_signature(body: dict | None = Body(default=None)):
     if not url or not sha256 or not signature:
         raise HTTPException(status_code=400, detail="url, sha256, and signature are required")
     firmware = {"url": url, "sha256": sha256, "signature": signature}
-    return JSONResponse({"valid": _verify_firmware_or_raise(firmware)})
+    return JSONResponse({"valid": verify_firmware_or_raise(firmware)})
 
 
 @router.get("/firmware-hashes", dependencies=[Depends(require_private_api_key)])
@@ -264,63 +263,5 @@ async def register_firmware_hash(body: dict = Body(...)):
         raise HTTPException(status_code=400, detail="hash must be 64 lowercase hex chars")
     hash_value = f"sha256:{hash_value}"
     attestation_verifier.register(version, hash_value)
-    _persist_firmware_hashes()
+    persist_firmware_hashes()
     return JSONResponse({"ok": True, "version": version, "hash": hash_value})
-
-
-def _persist_firmware_hashes() -> None:
-    """Atomically persist the in-memory firmware hash whitelist to disk."""
-    try:
-        directory = os.path.dirname(_FIRMWARE_HASHES_PATH)
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=directory, delete=False, suffix=".tmp") as fh:
-            json.dump(attestation_verifier.list_hashes(), fh, indent=2, sort_keys=True)
-            fh.write("\n")
-            tmp_path = fh.name
-        os.replace(tmp_path, _FIRMWARE_HASHES_PATH)
-    except OSError as exc:
-        raise HTTPException(status_code=500, detail=f"failed to persist firmware hashes: {exc}") from exc
-
-
-def _gradual_json(extra: dict | None = None) -> JSONResponse:
-    body = {"ok": True, **(extra or {}), "status": get_gradual().status_dict()}
-    return JSONResponse(body)
-
-
-def _verify_firmware_or_raise(firmware: dict[str, str]) -> bool:
-    public_key_pem = ota_signing_public_key()
-    if not public_key_pem:
-        raise HTTPException(status_code=503, detail="OTA signing public key is not configured")
-    try:
-        verifier = FirmwareVerifier(public_key_pem)
-    except FirmwareSignatureError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return verifier.verify(firmware["url"], firmware["sha256"], firmware["signature"])
-
-
-def _device_list(value: object) -> list[str]:
-    """Extract a list of non-empty device ids from a request payload."""
-    if isinstance(value, list):
-        return [str(item) for item in value if str(item).strip()]
-    return []
-
-
-def _firmware_metadata(version: str, body: dict) -> dict[str, str]:
-    url = str(body.get("url") or "").strip()
-    sha256 = str(body.get("sha256") or "").strip()
-    signature = str(body.get("signature") or "").strip()
-    if not url and not sha256 and not signature:
-        return {}
-    if not url.startswith("https://"):
-        raise HTTPException(status_code=400, detail="firmware url must use https")
-    if not _LOWER_HEX_SHA256.match(sha256):
-        raise HTTPException(status_code=400, detail="firmware sha256 must be 64 lowercase hex chars")
-    if not signature:
-        raise HTTPException(status_code=400, detail="firmware signature is required")
-    return {
-        "release_id": str(body.get("release_id") or version),
-        "version": version,
-        "url": url,
-        "sha256": sha256,
-        "signature": signature,
-        "force": str(body.get("force") or "0"),
-    }

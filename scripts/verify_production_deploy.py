@@ -109,22 +109,19 @@ def _check_metrics(bearer: str) -> str | None:
         return "metrics"
 
 
-def _check_l2_rate_limit() -> str | None:
-    """Public L2 login probe; returns failure key when strict mode demands a 429."""
+def _login_rate_limit() -> tuple[int, int]:
+    """Return (probe_count, network_failures) after hammering public L2 login."""
     if settings is not None:
         limit = settings.DEVICE.auth_login_per_min
     else:
         limit = int(os.environ.get("LIMA_DEVICE_AUTH_LOGIN_PER_MIN", "5"))
     probe = limit + 1
-    got_429 = False
-    last_status = 0
     network_failures = 0
     for i in range(probe):
         status = 0
-        body = ""
         for attempt in range(3):
             try:
-                status, body = _post("/device/v1/app/auth/login", {"phone": "10000000000", "code": "000000"})
+                status, _ = _post("/device/v1/app/auth/login", {"phone": "10000000000", "code": "000000"})
                 break
             except Exception as exc:
                 print(f"WARN L2 login attempt {i + 1}/{probe} retry {attempt + 1}/3 -> {type(exc).__name__}: {exc}")
@@ -132,21 +129,30 @@ def _check_l2_rate_limit() -> str | None:
                     network_failures += 1
                 else:
                     time.sleep(2)
-        last_status = status
         if status == 429:
-            got_429 = True
             print(f"OK  L2 login rate limit (public) -> 429 on attempt {i + 1}/{probe}")
-            break
-    if got_429:
-        return None
+            return probe, network_failures, status, True
+    return probe, network_failures, status, False
 
+
+def _strict_rate_limit() -> bool:
+    """True when Redis-backed cross-worker rate limiting is expected."""
     if settings is not None:
         flag = settings.SECURITY.device_auth_rate_redis
         redis_url = settings.SECURITY.device_auth_rate_redis_url or settings.REDIS.device_redis_url
     else:
         flag = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS", "auto")
         redis_url = os.environ.get("LIMA_DEVICE_REDIS_URL", "")
-    strict = flag in {"1", "true", "redis", "on", "yes"} or (flag == "auto" and bool(redis_url))
+    return flag in {"1", "true", "redis", "on", "yes"} or (flag == "auto" and bool(redis_url))
+
+
+def _check_l2_rate_limit() -> str | None:
+    """Public L2 login probe; returns failure key when strict mode demands a 429."""
+    probe, network_failures, last_status, got_429 = _login_rate_limit()
+    if got_429:
+        return None
+
+    strict = _strict_rate_limit()
     if network_failures and not strict:
         print(f"WARN L2 public probe: skipped due to {network_failures} network failures (last={last_status})")
         return None

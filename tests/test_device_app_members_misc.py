@@ -91,23 +91,22 @@ def test_device_app_member_and_voiceprint_flow(tmp_path, monkeypatch):
     assert deleted.json() == {"voiceprintId": vp["voiceprintId"], "status": "disabled"}
 
 
-def test_device_app_transfer_self_check_and_supplies_flow(tmp_path, monkeypatch):
-    client, _store = make_client(tmp_path, monkeypatch)
-    seed_account_and_device(device_id="d-1", device_sn="SN-MISC-01")
-    seed_binding(device_id="d-1", account_id="a-owner")
-
+def _seed_self_check_event(device_id: str) -> None:
     with connect() as conn:
         conn.execute(
             """
             INSERT INTO v2_self_check_event
             (id, device_id, check_type, result, details, duration_ms, triggered_by, created_at)
-            VALUES ('sc-new', 'd-1', 'manual', 'warning', '{"motor":"warm"}', 25, 'api', '2026-01-02T00:00:00Z')
-            """
+            VALUES (?, ?, 'manual', 'warning', '{"motor":"warm"}', 25, 'api', '2026-01-02T00:00:00Z')
+            """,
+            ("sc-new", device_id),
         )
         conn.commit()
 
+
+def _create_transfer(client, device_id: str) -> dict:
     transfer = client.post(
-        "/device/v1/app/devices/d-1/transfer",
+        f"/device/v1/app/devices/{device_id}/transfer",
         headers=headers("a-owner"),
         json={"toPhone": "13002", "reason": "family handoff"},
     )
@@ -115,17 +114,22 @@ def test_device_app_transfer_self_check_and_supplies_flow(tmp_path, monkeypatch)
     transfer_data = transfer.json()
     assert transfer_data["toAccountId"] == "a-other"
     assert transfer_data["status"] == "pending"
+    return transfer_data
 
+
+def _accept_transfer(client, transfer_id: str) -> None:
     pending = client.get("/device/v1/app/transfers/pending", headers=headers("a-other"))
     assert pending.status_code == 200, pending.text
-    assert pending.json()["transfers"][0]["id"] == transfer_data["id"]
+    assert pending.json()["transfers"][0]["id"] == transfer_id
 
-    accepted = client.post(f"/device/v1/app/transfers/{transfer_data['id']}/accept", headers=headers("a-other"))
+    accepted = client.post(f"/device/v1/app/transfers/{transfer_id}/accept", headers=headers("a-other"))
     assert accepted.status_code == 200, accepted.text
     assert accepted.json()["status"] == "accepted"
 
+
+def _update_and_verify_supplies(client, device_id: str) -> None:
     updated = client.put(
-        "/device/v1/app/devices/d-1/supplies",
+        f"/device/v1/app/devices/{device_id}/supplies",
         headers=headers("a-other"),
         json={
             "pen": {"level": 0.2, "status": "low"},
@@ -138,9 +142,20 @@ def test_device_app_transfer_self_check_and_supplies_flow(tmp_path, monkeypatch)
         ("paper", 0.9, "normal"),
     }
 
-    supplies = client.get("/device/v1/app/devices/d-1/supplies", headers=headers("a-other"))
+    supplies = client.get(f"/device/v1/app/devices/{device_id}/supplies", headers=headers("a-other"))
     assert supplies.status_code == 200, supplies.text
     assert [row["supplyType"] for row in supplies.json()["supplies"]] == ["paper", "pen"]
+
+
+def test_device_app_transfer_self_check_and_supplies_flow(tmp_path, monkeypatch):
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device(device_id="d-1", device_sn="SN-MISC-01")
+    seed_binding(device_id="d-1", account_id="a-owner")
+
+    _seed_self_check_event("d-1")
+    transfer_data = _create_transfer(client, "d-1")
+    _accept_transfer(client, transfer_data["id"])
+    _update_and_verify_supplies(client, "d-1")
 
     checks = client.get("/device/v1/app/devices/d-1/self-checks?limit=1", headers=headers("a-other"))
     assert checks.status_code == 200, checks.text

@@ -42,9 +42,10 @@ def _ota_client(monkeypatch, public_key_pem: str):
     from fastapi.testclient import TestClient
     import access_guard
     from routes import device_ota
+    from routes import device_ota_helpers
 
     monkeypatch.setattr(access_guard, "_API_KEYS", {"test-private-token"})
-    monkeypatch.setattr(device_ota, "ota_signing_public_key", lambda: public_key_pem)
+    monkeypatch.setattr(device_ota_helpers, "ota_signing_public_key", lambda: public_key_pem)
     device_ota.reset_ota_state_for_tests()
     app = FastAPI()
     app.include_router(device_ota.router)

@@ -46,7 +46,7 @@ def test_eval_approve_marks_candidate_manual_approved(monkeypatch, tmp_path):
     assert any(c["pattern_key"] == "backend-a:coding" for c in data["promotable"])
 
 
-def test_eval_apply_is_idempotent_after_recent_memory_noise(monkeypatch, tmp_path):
+def _setup_eval_test_env(monkeypatch, tmp_path):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     import session_memory.store as memory_store
     import context_pipeline.routing_weights as routing_weights
@@ -55,8 +55,9 @@ def test_eval_apply_is_idempotent_after_recent_memory_noise(monkeypatch, tmp_pat
     monkeypatch.setattr(routing_weights, "WEIGHTS_PATH", tmp_path / "weights.json")
     monkeypatch.setattr(routing_weights, "_instance", None)
 
+
+def _seed_candidate_pattern() -> None:
     from session_memory.store import save_typed_memory
-    from context_pipeline.routing_weights import get_routing_weights
 
     save_typed_memory(
         "reference_pattern",
@@ -64,9 +65,8 @@ def test_eval_apply_is_idempotent_after_recent_memory_noise(monkeypatch, tmp_pat
         detail='{"pattern_key":"backend-a:coding","backend":"backend-a","scenario":"coding","evidence_count":3}',
     )
 
-    app = FastAPI()
-    app.include_router(router)
-    client = TestClient(app)
+
+def _approve_pattern(client) -> None:
     approve = client.post(
         "/v1/ops/eval/approve",
         json={"pattern_key": "backend-a:coding", "rollback_notes": "rollback"},
@@ -74,28 +74,43 @@ def test_eval_apply_is_idempotent_after_recent_memory_noise(monkeypatch, tmp_pat
     )
     assert approve.status_code == 200
 
-    first = client.post(
+
+def _apply_pattern(client):
+    return client.post(
         "/v1/ops/eval/apply",
         json={"pattern_key": "backend-a:coding"},
         headers={"Authorization": "Bearer test-private-token"},
     )
+
+
+def test_eval_apply_is_idempotent_after_recent_memory_noise(monkeypatch, tmp_path):
+    _setup_eval_test_env(monkeypatch, tmp_path)
+    _seed_candidate_pattern()
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+    _approve_pattern(client)
+
+    first = _apply_pattern(client)
     assert first.status_code == 200
     assert first.json()["applied"] is True
+
+    from session_memory.store import save_typed_memory
 
     for index in range(35):
         save_typed_memory("reference_pattern", f"noise:{index}", detail="{}")
 
-    second = client.post(
-        "/v1/ops/eval/apply",
-        json={"pattern_key": "backend-a:coding"},
-        headers={"Authorization": "Bearer test-private-token"},
-    )
+    second = _apply_pattern(client)
     assert second.status_code == 200
     assert second.json() == {
         "applied": False,
         "error": "pattern already promoted",
         "pattern_key": "backend-a:coding",
     }
+
+    from context_pipeline.routing_weights import get_routing_weights
+
     assert get_routing_weights().get_stats("backend-a", "coding")["successes"] == 3
 
 

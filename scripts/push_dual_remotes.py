@@ -107,6 +107,50 @@ def _push_gitee_https(repo: Path, base_url: str, token: str, refspec: str) -> tu
     return proc.returncode == 0, out[-500:], safe_url
 
 
+def _resolve_push_names(args: argparse.Namespace, entries: list) -> list[str]:
+    if args.remotes.strip():
+        return [n.strip() for n in args.remotes.split(",") if n.strip()]
+    return default_push_remotes(entries)
+
+
+def _push_gitee_with_fallback(repo: Path, entries: list, refspec: str) -> tuple[list[str], list[str]]:
+    """Try Gitee SSH; on failure fall back to HTTPS token push.
+
+    Returns (remaining_remote_names, failures).
+    """
+    ssh_ok, ssh_detail = _check_gitee_ssh(repo, entries)
+    if ssh_ok:
+        return ["gitee"], []
+
+    failures: list[str] = []
+    token = gitee_env_token()
+    gitee_entry = next((e for e in entries if e.name == "gitee"), None)
+    base_url = (gitee_entry.push_url if gitee_entry else "").strip()
+    if token and base_url:
+        ok, detail, safe_url = _push_gitee_https(repo, base_url, token, refspec)
+        if ok:
+            print(f"OK: gitee (HTTPS fallback via {safe_url})")
+        else:
+            print(f"FAIL: gitee (HTTPS fallback via {safe_url})\n{detail}", file=sys.stderr)
+            failures.append(f"gitee: {detail[:200]}")
+    else:
+        print(f"FAIL: gitee\n{ssh_detail}", file=sys.stderr)
+        failures.append(f"gitee: {ssh_detail[:200]}")
+    return [], failures
+
+
+def _push_remaining(repo: Path, names: list[str], refspec: str) -> list[str]:
+    failures: list[str] = []
+    for name in names:
+        ok, detail = _push_remote(repo, name, refspec)
+        if ok:
+            print(f"OK: {name}")
+        else:
+            print(f"FAIL: {name}\n{detail}", file=sys.stderr)
+            failures.append(f"{name}: {detail[:200]}")
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=str(ROOT))
@@ -127,10 +171,7 @@ def main() -> int:
         return 1
 
     entries = build_remote_entries(parse_git_remotes(output))
-    if args.remotes.strip():
-        names = [n.strip() for n in args.remotes.split(",") if n.strip()]
-    else:
-        names = default_push_remotes(entries)
+    names = _resolve_push_names(args, entries)
 
     if args.dry_run:
         print(f"would push {args.ref} to: {', '.join(names)}")
@@ -138,33 +179,11 @@ def main() -> int:
 
     failures: list[str] = []
     if "gitee" in names:
-        ssh_ok, ssh_detail = _check_gitee_ssh(repo, entries)
-        if not ssh_ok:
-            token = gitee_env_token()
-            gitee_entry = next((e for e in entries if e.name == "gitee"), None)
-            base_url = (gitee_entry.push_url if gitee_entry else "").strip()
-            if token and base_url:
-                ok, detail, safe_url = _push_gitee_https(repo, base_url, token, args.ref)
-                if ok:
-                    print(f"OK: gitee (HTTPS fallback via {safe_url})")
-                else:
-                    print(
-                        f"FAIL: gitee (HTTPS fallback via {safe_url})\n{detail}",
-                        file=sys.stderr,
-                    )
-                    failures.append(f"gitee: {detail[:200]}")
-            else:
-                print(f"FAIL: gitee\n{ssh_detail}", file=sys.stderr)
-                failures.append(f"gitee: {ssh_detail[:200]}")
-            names = [n for n in names if n != "gitee"]
+        gitee_names, gitee_failures = _push_gitee_with_fallback(repo, entries, args.ref)
+        failures.extend(gitee_failures)
+        names = [n for n in names if n != "gitee"] + gitee_names
 
-    for name in names:
-        ok, detail = _push_remote(repo, name, args.ref)
-        if ok:
-            print(f"OK: {name}")
-        else:
-            print(f"FAIL: {name}\n{detail}", file=sys.stderr)
-            failures.append(f"{name}: {detail[:200]}")
+    failures.extend(_push_remaining(repo, names, args.ref))
 
     if failures and args.notify:
         print("Git dual-remote push failed\n" + "\n".join(failures), file=sys.stderr)

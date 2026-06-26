@@ -117,29 +117,14 @@ def _prepare_run(
     return ws, artifact_dir, brief_path, attach, resolved_scope, lane_timeout, out_path
 
 
-def _finalize_run(
-    artifact_dir: Path,
-    invoke,
-    findings: list,
-    lane_row: dict,
-    task: str,
-    mode: str,
-    brief_path: Path,
-    out_path: Path,
-) -> dict[str, Any]:
-    """Write execution log, done marker, and build return payload."""
-    mode_tag = f"mimo-mcp-{mode}"
-    findings_path, synthesis_path, fixpack_path = merge_findings.write_findings_bundle(
-        artifact_dir,
-        findings,
-        [lane_row],
-        task,
-        mode_tag,
-    )
+def _write_execution_log(artifact_dir: Path, mode_tag: str, invoke) -> None:
     (artifact_dir / "execution.log").write_text(
         f"{mode_tag} {datetime.now(timezone.utc).isoformat()} ok={invoke.ok} exit={invoke.exit_code}\n",
         encoding="utf-8",
     )
+
+
+def _write_done_marker(artifact_dir: Path, findings: list, invoke, task: str, mode: str, findings_path: Path) -> None:
     (artifact_dir / "last_done.json").write_text(
         json.dumps(
             {
@@ -156,6 +141,19 @@ def _finalize_run(
         + "\n",
         encoding="utf-8",
     )
+
+
+def _build_result_payload(
+    invoke,
+    findings: list,
+    lane_row: dict,
+    task: str,
+    mode: str,
+    brief_path: Path,
+    out_path: Path,
+    artifact_paths: tuple[Path, Path, Path],
+) -> dict[str, Any]:
+    findings_path, synthesis_path, fixpack_path = artifact_paths
     return {
         "ok": invoke.ok,
         "task": task,
@@ -171,6 +169,30 @@ def _finalize_run(
             "fix_pack": str(fixpack_path),
         },
     }
+
+
+def _finalize_run(
+    artifact_dir: Path,
+    invoke,
+    findings: list,
+    lane_row: dict,
+    task: str,
+    mode: str,
+    brief_path: Path,
+    out_path: Path,
+) -> dict[str, Any]:
+    """Write execution log, done marker, and build return payload."""
+    mode_tag = f"mimo-mcp-{mode}"
+    artifact_paths = merge_findings.write_findings_bundle(
+        artifact_dir,
+        findings,
+        [lane_row],
+        task,
+        mode_tag,
+    )
+    _write_execution_log(artifact_dir, mode_tag, invoke)
+    _write_done_marker(artifact_dir, findings, invoke, task, mode, artifact_paths[0])
+    return _build_result_payload(invoke, findings, lane_row, task, mode, brief_path, out_path, artifact_paths)
 
 
 def run(

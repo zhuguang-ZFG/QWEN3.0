@@ -138,66 +138,72 @@ TOOLS = {
 }
 
 
+def _handle_initialize(req_id):
+    return {
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "result": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": "lima-ops", "version": "1.0.0"},
+        },
+    }
+
+
+def _handle_tools_list(req_id):
+    return {
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "result": {
+            "tools": [
+                {"name": k, "description": v["description"], "inputSchema": v["inputSchema"]} for k, v in TOOLS.items()
+            ]
+        },
+    }
+
+
+def _dispatch_tool(tool: str, args: dict, servers: dict) -> str:
+    if tool == "server_status":
+        return tool_server_status(args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
+    if tool == "device_connections":
+        return tool_device_connections(args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
+    if tool == "tail_log":
+        return tool_tail_log(
+            args["module"],
+            args.get("lines", 30),
+            args.get("host"),
+            args.get("summary", True),
+            run_ssh=run_ssh,
+            servers=servers,
+        )
+    if tool == "health_check":
+        return tool_health_check(args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
+    if tool == "restart_service":
+        return tool_restart_service(args.get("service", "lima"), args.get("host"), run_ssh=run_ssh, servers=servers)
+    raise ValueError(f"Unknown tool: {tool}")
+
+
+def _handle_tool_call(req: dict) -> dict:
+    req_id = req.get("id")
+    tool = req["params"]["name"]
+    args = req["params"].get("arguments", {})
+    try:
+        text = _dispatch_tool(tool, args, get_servers())
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text}]}}
+    except Exception as e:
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(e)}}
+
+
 def handle_request(req: dict) -> dict:
     method = req.get("method")
     req_id = req.get("id")
 
     if method == "initialize":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {"tools": {}},
-                "serverInfo": {"name": "lima-ops", "version": "1.0.0"},
-            },
-        }
-
+        return _handle_initialize(req_id)
     if method == "tools/list":
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "tools": [
-                    {"name": k, "description": v["description"], "inputSchema": v["inputSchema"]}
-                    for k, v in TOOLS.items()
-                ]
-            },
-        }
-
+        return _handle_tools_list(req_id)
     if method == "tools/call":
-        tool = req["params"]["name"]
-        args = req["params"].get("arguments", {})
-
-        try:
-            servers = get_servers()
-            if tool == "server_status":
-                text = tool_server_status(args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
-            elif tool == "device_connections":
-                text = tool_device_connections(
-                    args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers
-                )
-            elif tool == "tail_log":
-                text = tool_tail_log(
-                    args["module"],
-                    args.get("lines", 30),
-                    args.get("host"),
-                    args.get("summary", True),
-                    run_ssh=run_ssh,
-                    servers=servers,
-                )
-            elif tool == "health_check":
-                text = tool_health_check(args.get("host"), args.get("summary", True), run_ssh=run_ssh, servers=servers)
-            elif tool == "restart_service":
-                text = tool_restart_service(
-                    args.get("service", "lima"), args.get("host"), run_ssh=run_ssh, servers=servers
-                )
-            else:
-                raise ValueError(f"Unknown tool: {tool}")
-
-            return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text}]}}
-        except Exception as e:
-            return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32603, "message": str(e)}}
+        return _handle_tool_call(req)
 
     return {"jsonrpc": "2.0", "id": req_id, "result": {}}
 

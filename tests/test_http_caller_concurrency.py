@@ -179,18 +179,7 @@ def test_call_api_stream_async_parallel_collects_chunks(mock_build_async_client,
     assert results == [["x"]] * 5
 
 
-@patch("http_caller.key_pool.is_exhausted")
-@patch("http_caller.key_pool.ensure_env_pool")
-@patch("http_caller.key_pool.get_key")
-@patch("http_caller.health_tracker")
-@patch("http_caller._build_client")
-def test_call_api_thread_burst_all_succeed(
-    mock_build_client,
-    mock_ht,
-    mock_get_key,
-    mock_ensure_env_pool,
-    mock_is_exhausted,
-):
+def _setup_burst_mocks(mock_build_client, mock_ht, mock_get_key, mock_ensure_env_pool, mock_is_exhausted) -> tuple:
     mock_ht.is_cooled_down.return_value = False
     mock_ensure_env_pool.return_value = True
     mock_is_exhausted.return_value = False
@@ -209,6 +198,10 @@ def test_call_api_thread_burst_all_succeed(
 
     cfg = dict(BACKEND_CFG)
     cfg["key_pool"] = "burst-provider"
+    return cfg
+
+
+def _run_burst_workers(cfg: dict) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     results: list[str] = []
     lock = threading.Lock()
@@ -231,6 +224,23 @@ def test_call_api_thread_burst_all_succeed(
         thread.start()
     for thread in threads:
         thread.join(timeout=5)
+    return errors, results
+
+
+@patch("http_caller.key_pool.is_exhausted")
+@patch("http_caller.key_pool.ensure_env_pool")
+@patch("http_caller.key_pool.get_key")
+@patch("http_caller.health_tracker")
+@patch("http_caller._build_client")
+def test_call_api_thread_burst_all_succeed(
+    mock_build_client,
+    mock_ht,
+    mock_get_key,
+    mock_ensure_env_pool,
+    mock_is_exhausted,
+):
+    cfg = _setup_burst_mocks(mock_build_client, mock_ht, mock_get_key, mock_ensure_env_pool, mock_is_exhausted)
+    errors, results = _run_burst_workers(cfg)
 
     assert not errors
     assert len(results) == 4

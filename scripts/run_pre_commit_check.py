@@ -53,13 +53,8 @@ def staged_python_files(root: Path = ROOT) -> list[str]:
     ]
 
 
-def changed_python_files_ci(root: Path = ROOT) -> list[str]:
-    """Return changed Python paths for a CI run (HEAD~1..HEAD).
-
-    Works for both ``push`` (HEAD~1 is the previous commit) and GitHub PR merge
-    commits (HEAD~1 is the base branch).
-    """
-    has_parent = (
+def _git_has_parent(root: Path) -> bool:
+    return (
         subprocess.run(
             ["git", "rev-parse", "--verify", "HEAD~1"],
             cwd=root,
@@ -69,8 +64,10 @@ def changed_python_files_ci(root: Path = ROOT) -> list[str]:
         == 0
     )
 
-    if has_parent:
-        result = subprocess.run(
+
+def _git_changed_files_cmd(root: Path) -> subprocess.CompletedProcess:
+    if _git_has_parent(root):
+        return subprocess.run(
             [
                 "git",
                 "diff",
@@ -87,15 +84,22 @@ def changed_python_files_ci(root: Path = ROOT) -> list[str]:
             capture_output=True,
             check=False,
         )
-    else:
-        # Shallow clone with a single commit: fall back to all tracked Python files.
-        result = subprocess.run(
-            ["git", "ls-files", "-z", "*.py", "*.pyi"],
-            cwd=root,
-            capture_output=True,
-            check=False,
-        )
+    # Shallow clone with a single commit: fall back to all tracked Python files.
+    return subprocess.run(
+        ["git", "ls-files", "-z", "*.py", "*.pyi"],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
 
+
+def changed_python_files_ci(root: Path = ROOT) -> list[str]:
+    """Return changed Python paths for a CI run (HEAD~1..HEAD).
+
+    Works for both ``push`` (HEAD~1 is the previous commit) and GitHub PR merge
+    commits (HEAD~1 is the base branch).
+    """
+    result = _git_changed_files_cmd(root)
     if result.returncode != 0:
         stderr = result.stderr.decode("utf-8", errors="replace").strip()
         raise RuntimeError(f"git diff HEAD~1..HEAD failed: {stderr}")

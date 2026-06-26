@@ -107,20 +107,14 @@ class TestPresetShape:
 
 
 class TestHandleDeviceDraw:
-    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt")
-    @patch("device_gateway.device_draw_handler.DashScopeImageClient")
-    @patch("device_gateway.device_draw_handler.SVGConverter")
-    @patch("device_gateway.device_draw_handler.validate_svg_path")
-    @patch("device_gateway.device_draw_handler.optimize_svg_path")
-    @patch("device_gateway.device_draw_handler.precheck_draw_motion_path")
-    async def test_full_success_path(
+    def _setup_full_success_mocks(
         self,
-        mock_precheck,
-        mock_optimize,
-        mock_validate,
-        mock_converter_cls,
-        mock_client_cls,
         mock_enhance,
+        mock_client_cls,
+        mock_converter_cls,
+        mock_validate,
+        mock_optimize,
+        mock_precheck,
     ):
         mock_enhance.return_value = "enhanced prompt"
         mock_client = MagicMock()
@@ -151,6 +145,26 @@ class TestHandleDeviceDraw:
             reduction_ratio=0.5,
         )
         mock_precheck.return_value = None
+        return mock_client, mock_converter
+
+    @patch("device_gateway.device_draw_handler.enhance_drawing_prompt")
+    @patch("device_gateway.device_draw_handler.DashScopeImageClient")
+    @patch("device_gateway.device_draw_handler.SVGConverter")
+    @patch("device_gateway.device_draw_handler.validate_svg_path")
+    @patch("device_gateway.device_draw_handler.optimize_svg_path")
+    @patch("device_gateway.device_draw_handler.precheck_draw_motion_path")
+    async def test_full_success_path(
+        self,
+        mock_precheck,
+        mock_optimize,
+        mock_validate,
+        mock_converter_cls,
+        mock_client_cls,
+        mock_enhance,
+    ):
+        mock_client, mock_converter = self._setup_full_success_mocks(
+            mock_enhance, mock_client_cls, mock_converter_cls, mock_validate, mock_optimize, mock_precheck
+        )
 
         resp = await handle_device_draw(
             "a cat", device_id="dev-1", user_preferences={"style": "可爱", "complexity": "低"}
