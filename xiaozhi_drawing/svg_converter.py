@@ -17,6 +17,7 @@ except ImportError:  # pragma: no cover - local environments may omit OpenCV
     cv2 = None
 
 from xiaozhi_drawing.binarize import binarize as _binarize
+from xiaozhi_drawing.skeleton_prune import prune_skeleton_spurs
 from xiaozhi_drawing.skeleton_tracer import polylines_to_svg_paths, trace_skeleton_polylines
 
 logger = logging.getLogger(__name__)
@@ -128,11 +129,13 @@ def _extract_svg_paths(
     min_contour_area: int,
     *,
     skeletonize: bool = False,
+    spur_length_threshold: int = 10,
+    min_stroke_length: float = 5.0,
 ) -> tuple[list[str], str | None]:
     """Find contours, filter, simplify, and convert to SVG paths.
 
-    skeletonize=True (pen-plotter mode): thin binary to single-pixel skeleton first
-    so each stroke becomes one open path without Z — prevents the drawing machine
+    skeletonize=True (pen-plotter mode): thin binary to single-pixel skeleton,
+    prune short spurs, then trace open paths — prevents the drawing machine
     from retracing the same line as a double-edge closed outline.
 
     skeletonize=False (legacy mode): original RETR_EXTERNAL + closed-path behavior,
@@ -144,11 +147,12 @@ def _extract_svg_paths(
     thinning_method: str | None = None
     if skeletonize:
         src, thinning_method = _thin_binary(binary)
+        src = prune_skeleton_spurs(src, spur_length_threshold=spur_length_threshold)
         polylines = trace_skeleton_polylines(src)
         svg_paths = polylines_to_svg_paths(
             polylines,
             simplify_epsilon=simplify_epsilon,
-            min_arc_length=simplify_epsilon * 2,
+            min_arc_length=max(min_stroke_length, simplify_epsilon * 2),
         )
     else:
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -198,6 +202,55 @@ def _svg_payload(
 class SVGConverter:
     """图像 → SVG 路径转换器"""
 
+
+async def _convert_image_bytes(
+    image_data: BytesIO,
+    *,
+    simplify_epsilon: float,
+    min_contour_area: int,
+    skeletonize: bool,
+    threshold_mode: str,
+    spur_length_threshold: int,
+    min_stroke_length: float,
+) -> dict[str, Any]:
+    """Convert already-downloaded image bytes to an SVG result dict."""
+    try:
+        gray, binary, threshold_method = _preprocess_image(image_data, threshold_mode)
+        svg_paths, thinning_method = _extract_svg_paths(
+            binary,
+            simplify_epsilon,
+            min_contour_area,
+            skeletonize=skeletonize,
+            spur_length_threshold=spur_length_threshold,
+            min_stroke_length=min_stroke_length,
+        )
+        h, w = gray.shape
+        if not svg_paths:
+            if skeletonize:
+                return _svg_payload(
+                    "failed",
+                    skeletonize=True,
+                    threshold_method=threshold_method,
+                    error="No stroke paths after skeletonization",
+                )
+            svg_paths = [_legacy_fallback_path(w, h)]
+        return _svg_payload(
+            "success",
+            svg_paths=svg_paths,
+            width=w,
+            height=h,
+            skeletonize=skeletonize,
+            thinning_method=thinning_method,
+            threshold_method=threshold_method,
+        )
+    except Exception as e:
+        logger.error(f"转换失败: {e}")
+        return _svg_payload("failed", error=str(e))
+
+
+class SVGConverter:
+    """图像 → SVG 路径转换器"""
+
     async def convert_url_to_svg(
         self,
         image_url: str,
@@ -206,47 +259,31 @@ class SVGConverter:
         *,
         skeletonize: bool = False,
         threshold_mode: str = "auto",
+        spur_length_threshold: int = 10,
+        min_stroke_length: float = 5.0,
     ) -> dict[str, Any]:
         """下载图片并转换为 SVG 路径（OpenCV 处理）。
 
         Args:
             image_url: 图片 URL。
-            simplify_epsilon: Douglas-Peucker 简化容差（像素）。
-            min_contour_area: 非骨架模式下最小轮廓面积过滤阈值。
-            skeletonize: True 先细化为单像素骨架再提取路径，适合笔绘机
-                         单线绘图，避免双线轮廓；False 保留原有轮廓面模式（库默认）。
-            threshold_mode: 二值化策略。"auto"（默认）对明暗均匀的线稿用 Otsu，
-                            对渐变背景/光照不均的 AI 出图自动切自适应阈值；
-                            "otsu" 强制全局 Otsu（旧行为）；"adaptive" 强制自适应。
+            simplify_epsilon: DP 简化容差（像素）。
+            min_contour_area: 非骨架模式最小轮廓面积。
+            skeletonize: True 用骨架化单线路径。
+            threshold_mode: 二值化策略：auto/otsu/adaptive。
+            spur_length_threshold: 骨架模式毛刺剪枝阈值（像素）。
+            min_stroke_length: 骨架模式最小笔画长度（像素）。
         """
         try:
             image_data = await _download_image(image_url)
-            gray, binary, threshold_method = _preprocess_image(image_data, threshold_mode)
-            svg_paths, thinning_method = _extract_svg_paths(
-                binary, simplify_epsilon, min_contour_area, skeletonize=skeletonize
-            )
-            h, w = gray.shape
-            if not svg_paths:
-                if skeletonize:
-                    return _svg_payload(
-                        "failed",
-                        skeletonize=True,
-                        threshold_method=threshold_method,
-                        error="No stroke paths after skeletonization",
-                    )
-                svg_paths = [_legacy_fallback_path(w, h)]
-            return _svg_payload(
-                "success",
-                svg_paths=svg_paths,
-                width=w,
-                height=h,
-                skeletonize=skeletonize,
-                thinning_method=thinning_method,
-                threshold_method=threshold_method,
-            )
-        except httpx.HTTPError as e:
+        except Exception as e:
             logger.error(f"下载图片失败: {e}")
             return _svg_payload("failed", error=f"Download failed: {e}")
-        except Exception as e:
-            logger.error(f"转换失败: {e}")
-            return _svg_payload("failed", error=str(e))
+        return await _convert_image_bytes(
+            image_data,
+            simplify_epsilon=simplify_epsilon,
+            min_contour_area=min_contour_area,
+            skeletonize=skeletonize,
+            threshold_mode=threshold_mode,
+            spur_length_threshold=spur_length_threshold,
+            min_stroke_length=min_stroke_length,
+        )

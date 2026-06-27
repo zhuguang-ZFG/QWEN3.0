@@ -1,5 +1,29 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 完成笔绘机矢量化 P1：骨架毛刺剪枝 + 碎线过滤
+
+- **目标**：在 P0 自适应二值化基础上，进一步清理骨架化后的单像素骨架，减少 AI 出图经细化后产生的无意义短毛刺和碎线，提升笔绘机输出质量。
+- **关键结果**：
+  - 新增 `xiaozhi_drawing/skeleton_prune.py`（99 行）：实现迭代毛刺剪枝 `prune_skeleton_spurs`。
+    - 构建 active-pixel 图，计算每个像素的 8-邻居 degree。
+    - endpoint（degree=1）出发沿唯一路径行走；若先遇到 junction（degree≥3）且路径长度 `< spur_length_threshold`，则移除该段 spur 像素（不含 junction）。
+    - 迭代执行，因为剪掉一根毛刺可能让原 junction 变成新 endpoint，从而暴露更短的新毛刺。
+  - 接入 `xiaozhi_drawing/svg_converter.py`：
+    - `_extract_svg_paths` 新增 `spur_length_threshold=10` 与 `min_stroke_length=5.0`。
+    - 骨架模式下先 `_thin_binary`、再 `prune_skeleton_spurs`、再 `trace_skeleton_polylines`，`min_arc_length` 取 `max(min_stroke_length, simplify_epsilon * 2)`。
+    - `SVGConverter.convert_url_to_svg` 暴露这两个参数；默认行为对现有调用向后兼容。
+    - 将核心转换逻辑抽为 `_convert_image_bytes`，使 `convert_url_to_svg` 保持 ≤50 行。
+  - 测试拆分：原 `tests/test_svg_converter_sketch.py` 增至 419 行超 300 行硬规则，拆出：
+    - `tests/test_skeleton_prune.py`：`TestSkeletonPrune`。
+    - `tests/test_svg_binarize.py`：`TestBinarization`。
+    - 原文件保留 skeleton tracer、thin、contour、extract、converter params 相关测试，降至 250 行内。
+- **验证**：
+  - 聚焦测试：`tests/test_svg_converter.py` + `tests/test_svg_converter_sketch.py` + `tests/test_skeleton_prune.py` + `tests/test_svg_binarize.py` → **37 passed / 0 failed**。
+  - `ruff check` / `ruff format --check` clean；`pyright` 仅保留既有 `cv2.ximgproc` 警告。
+  - `scripts/check_code_size.py` 针对修改文件 **PASS**：单文件 ≤300 行、单函数 ≤50 行。
+  - 本地 pre-commit（staged 文件）通过，无历史文件 size 警告。
+- **下一步（可选）**：P2 跨路径笔程最近邻重排，减少笔绘机抬落笔空走。
+
 ## 2026-06-27 优化 pre-commit hook：ruff 与 code_size 仅检查 staged Python 文件
 
 - **问题**：`.git/hooks/pre-commit.ps1` → `scripts/run_pre_commit_check.py` 原流程中，`run_ruff_check.py` 与 `check_code_size.py` 默认扫描全部 Python 文件。仓库文件数众多，导致 PowerShell hook 频繁超过 60s 超时，且历史文件/函数的 size 警告淹没真正需要关注的提交。
