@@ -104,6 +104,7 @@ _DEPLOY_EXCLUDES = {
     "docs-site",
     "chat-web",
     "esp32S_XYZ",
+    "htmlcov",
     "infra",
     "lima_mcp_stdio",
     "packages",
