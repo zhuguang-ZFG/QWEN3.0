@@ -25,6 +25,11 @@ ALERTMANAGER_VERSION="${ALERTMANAGER_VERSION:-0.25.0}"
 ALERTMANAGER_TARBALL="alertmanager-${ALERTMANAGER_VERSION}.linux-amd64.tar.gz"
 ALERTMANAGER_URL="https://mirrors.huaweicloud.com/prometheus/alertmanager/${ALERTMANAGER_VERSION}/${ALERTMANAGER_TARBALL}"
 
+if [ ! -d "${INSTALL_DIR}" ]; then
+    echo "ERROR: ${INSTALL_DIR} not found. Deploy Prometheus first."
+    exit 1
+fi
+
 cd "${INSTALL_DIR}"
 
 # 1. 确保目录存在
@@ -70,21 +75,30 @@ else
 fi
 cp "${SOURCE_CONFIG}" "${CONFIG_FILE}"
 
-if [ -n "${DINGTALK_WEBHOOK_URL:-}" ]; then
-    sed -i "s|__DINGTALK_WEBHOOK_URL__|${DINGTALK_WEBHOOK_URL}|g" "${CONFIG_FILE}"
-    echo "OK: configured DingTalk webhook"
-else
-    sed -i 's|__DINGTALK_WEBHOOK_URL__|http://127.0.0.1:9/dingtalk-placeholder|g' "${CONFIG_FILE}"
-    echo "WARN: DINGTALK_WEBHOOK_URL not set; critical alerts will go to placeholder URL"
-fi
+# Replace placeholders safely (handles '&' and other sed-special characters in URLs).
+python3 - <<'PY'
+import os
 
-if [ -n "${WECHAT_WEBHOOK_URL:-}" ]; then
-    sed -i "s|__WECHAT_WEBHOOK_URL__|${WECHAT_WEBHOOK_URL}|g" "${CONFIG_FILE}"
-    echo "OK: configured WeChat webhook"
-else
-    sed -i 's|__WECHAT_WEBHOOK_URL__|http://127.0.0.1:9/wechat-placeholder|g' "${CONFIG_FILE}"
-    echo "WARN: WECHAT_WEBHOOK_URL not set; lima-router alerts will go to placeholder URL"
-fi
+config_path = "/opt/lima-monitoring/alertmanager/alertmanager.yml"
+replacements = [
+    ("__DINGTALK_WEBHOOK_URL__", "DINGTALK_WEBHOOK_URL", "http://127.0.0.1:9/dingtalk-placeholder"),
+    ("__WECHAT_WEBHOOK_URL__", "WECHAT_WEBHOOK_URL", "http://127.0.0.1:9/wechat-placeholder"),
+]
+
+with open(config_path, "r", encoding="utf-8") as f:
+    text = f.read()
+
+for placeholder, env_var, default in replacements:
+    value = os.environ.get(env_var, default)
+    text = text.replace(placeholder, value)
+    if value == default:
+        print(f"WARN: {env_var} not set; alerts will go to placeholder URL")
+    else:
+        print(f"OK: configured {env_var}")
+
+with open(config_path, "w", encoding="utf-8") as f:
+    f.write(text)
+PY
 
 # 4. 创建/更新 systemd service
 cat > "${SERVICE_FILE}" << EOF
@@ -179,6 +193,7 @@ except Exception as exc:
     print(f"WARN: could not query Prometheus alertmanagers: {exc}")
 PY
 
+PUBLIC_IP="${PUBLIC_IP:-117.72.118.95}"
 echo ""
-echo "=== Alertmanager deployed at http://117.72.118.95:9093 ==="
+echo "=== Alertmanager deployed at http://${PUBLIC_IP}:9093 ==="
 echo "Remember to set real DINGTALK_WEBHOOK_URL / WECHAT_WEBHOOK_URL and re-run this script."

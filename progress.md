@@ -51,13 +51,19 @@
   - 修复 `tests/test_jdcloud_monitoring_stack.py`：匹配 update_startup_alerts.sh 从 reload 改为 restart 的新逻辑；移除未使用的 `pytest` 导入。
 - **验证**：
   - 聚焦测试：`tests/test_jdcloud_alertmanager.py` + `tests/test_jdcloud_monitoring_stack.py` + `tests/test_prometheus_startup_alerts.py` → **26 passed / 0 failed**。
-  - `ruff check` 改动文件 clean；`bash -n` 脚本语法 OK。
+  - `ruff check` / `pyright` / `check_code_size.py` 改动文件 clean；`bash -n` 脚本语法 OK。
+- **代码审查修复（lima-review）**：
+  - `update_alertmanager.sh` 改用 Python 内联脚本替换 webhook 占位符，避免 `sed` 对 `&` 等特殊字符的误解析。
+  - 增加 `INSTALL_DIR` 存在性检查，未部署 Prometheus 时给出清晰错误。
+  - 移除 `alertmanager.yml` 中未使用的 `global` SMTP 配置。
+  - 将脚本末尾硬编码公网 IP 改为 `PUBLIC_IP` 环境变量（默认 `117.72.118.95`）。
+  - 同步 `deploy/prometheus/README.md` 中"验证 alertmanager 配置"文案为实际行为。
 - **真实环境验证（京东云 `117.72.118.95`）**：
-  - 上传并执行 `/opt/lima-monitoring/update_alertmanager.sh`：
-    - 使用本地 tarball 安装 alertmanager 0.25.0 到 `/opt/lima-monitoring/alertmanager-bin`。
-    - 创建 `/opt/lima-monitoring/alertmanager/alertmanager.yml`（当前为占位符 URL）。
+  - 上传并执行修复后的 `/opt/lima-monitoring/update_alertmanager.sh`：
+    - 复用已安装的 alertmanager 0.25.0 二进制。
+    - Python 占位符替换成功（未设置环境变量时使用 placeholder URL）。
     - 创建并启动 systemd `alertmanager.service`。
-    - 在 `/opt/lima-monitoring/prometheus/prometheus.yml` 顶部写入 `alerting` 块指向 `127.0.0.1:9093`。
+    - `prometheus.yml` 中 `alerting` 目标已指向 `127.0.0.1:9093`。
     - 重启 `prometheus.service`。
   - 验证：
     - `systemctl is-active alertmanager` → `active`。
@@ -68,7 +74,6 @@
   - 提供真实 webhook URL 后重跑 `update_alertmanager.sh`。
   - 触发一次慢启动（如临时调高启动阈值或手动压测）验证告警通知可达。
   - 7 天后根据真实启动数据调整 `startup_alerts.yml` 阈值。
-
 ## 2026-06-28 完成 G6：基于 Prometheus 启动指标配置启动慢与未就绪告警
 
 - **目标**：让 G5 导出的启动阶段指标真正产生告警价值，在启动慢、长时间未就绪或启动错误时及时通知。

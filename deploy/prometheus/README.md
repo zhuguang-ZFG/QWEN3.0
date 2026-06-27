@@ -78,8 +78,8 @@ LiMa 主监控栈部署在京东云节点（`117.72.118.95`）。当前生产环
   2. 复制 `deploy/jdcloud/alertmanager/alertmanager.yml` 并用环境变量替换占位符
   3. 创建/更新 systemd `alertmanager.service`
   4. 在 `prometheus/prometheus.yml` 中写入/更新 `alerting` 块指向 `127.0.0.1:9093`
-  5. 验证 alertmanager 配置并重启 Prometheus
-  6. 访问 `http://localhost:9093/-/healthy` 与 `http://localhost:9090/api/v1/alertmanagers` 验证链路
+  5. 验证 alertmanager health 与 Prometheus alertmanager 链路
+  6. 重启 Prometheus 以加载 alerting 配置更新
 
 - **路由说明**（`deploy/jdcloud/alertmanager/alertmanager.yml`）：
   - `critical` → 钉钉（`LiMaStartupPhaseVerySlow`、`LiMaStartupNotReady`、`LiMaStartupError`）

@@ -2,10 +2,6 @@
 # Placeholders __DINGTALK_WEBHOOK_URL__ / __WECHAT_WEBHOOK_URL__ are replaced
 # by deploy/jdcloud/update_alertmanager.sh using environment variables.
 
-global:
-  smtp_smarthost: 'localhost:25'
-  smtp_from: 'alertmanager@donglicao.com'
-
 route:
   group_by: ['alertname', 'service']
   group_wait: 10s
