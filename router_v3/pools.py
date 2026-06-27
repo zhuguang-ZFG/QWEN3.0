@@ -135,6 +135,7 @@ POOLS = {
             "ddg_gpt5_mini",
             "ddg_claude_haiku_45",
             "ddg_tinfoil_gptoss_120b",
+            "jdcloud_pollinations_deepseek",
         ],
     },
     "vision": {
@@ -246,6 +247,7 @@ POOLS = {
             "local_chat",
             "ddg_gpt4o_mini",
             "ddg_gpt5_mini",
+            "jdcloud_pollinations_openai",
         ],
     },
 }

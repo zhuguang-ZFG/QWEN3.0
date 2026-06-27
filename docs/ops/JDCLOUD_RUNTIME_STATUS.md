@@ -61,6 +61,10 @@ Non-goals:
 - `deploy/jdcloud/push_probe_results_utils.py`
 - `deploy/jdcloud/lima-probe-push.service`
 - `deploy/jdcloud/lima-probe-push.timer`
+- `deploy/jdcloud/jdcloud_worker.py`（Phase 2 轻量代理 Worker）
+- `deploy/jdcloud/deploy_jdcloud_worker.sh`（一键部署脚本）
+- `deploy/jdcloud/jdcloud-worker.service`（systemd 单元，内存上限 200M）
+- `deploy/jdcloud/jdcloud-worker-requirements.txt`
 - `scripts/check_jdcloud_node.py` for read-only capacity/service smoke
 - supporting optional setup templates under `deploy/jdcloud/`
 
@@ -163,6 +167,50 @@ probe 结果回写与异地观测：
 **结论**：京东云当前负载轻，可作为低价/免费后代的出站代理；但内存余量仅约 500MB，
 Phase 2 设计应采用轻量反向代理/Worker 模式，不常驻重负载服务，且需要严格的内存与
 连接数上限。
+
+## Phase 2 Worker 部署与端到端证据（2026-06-27）
+
+为分担主 VPS 上的免费后端流量，在京东云节点部署了轻量 FastAPI 代理 Worker，
+试点接入**无 key 免费上游 Pollinations**。
+
+- **Worker 部署**：
+  - `deploy/jdcloud/deploy_jdcloud_worker.sh` 一键脚本完成 `lima-worker`
+    系统用户、`/opt/lima-worker` venv、systemd 单元安装与启动。
+  - 服务 `jdcloud-worker.service` 状态 `active (running)`，监听 Tailscale
+    内网 `100.85.114.65:8700`，内存峰值约 35M（上限 200M）。
+  - 启动日志确认 keyless 加载：
+    `Provider POLLINATIONS loaded without API key (keyless upstream)`。
+- **无 key provider 机制**：
+  - Worker `_load_providers` 按 `{NAME}_URL`/可选 `{NAME}_KEY` 约定加载；
+    缺失 key 时 `_build_upstream_headers` 不注入 `Authorization` 头。
+  - `.env` 模板新增 `POLLINATIONS_URL=https://text.pollinations.ai/openai/chat/completions`
+    （无 `POLLINATIONS_KEY`）。
+- **主 VPS 路由侧**：
+  - `backends_registry/jdcloud_proxy.py` 新增 `jdcloud_pollinations_openai`、
+    `jdcloud_pollinations_deepseek`，URL 指向 `/proxy/pollinations`，
+    以 `JDCLOUD_WORKER_TOKEN` 作为 Worker 鉴权。
+  - `router_v3/pools.py` 将 `jdcloud_pollinations_deepseek` 放入 `chat.floor`、
+    `jdcloud_pollinations_openai` 放入 `chat_fast.floor`（floor 兜底，低风险试点）。
+- **端到端验证（京东云节点本机）**：
+  - `GET /health` → `{"status":"ok"}`。
+  - 缺鉴权 → `401`；未知 provider → `404`。
+  - 经 Worker 转发 keyless Pollinations 真实 chat 请求 → `200`，返回真实补全
+    内容（`content:"pong"`）；上游请求未携带 `Authorization` 头。
+  - 个别请求曾返回上游 `502`（Pollinations/Cloudflare 瞬时抖动），重试即恢复
+    `200`；直连上游同样 `200`，确认非 Worker 问题。
+- **本地测试**：`tests/test_jdcloud_worker.py` + `tests/test_jdcloud_proxy_backend.py`
+  共 61 passed（含新增 keyless 加载/转发用例与 Pollinations 后端注册/池子用例）。
+
+- **主 VPS 端配置（2026-06-27，已授权完成）**：
+  - 经 paramiko 密码登录主 VPS（`47.112.162.80`），按硬规则先备份
+    `/opt/lima-router/.env` → `.env.bak.worker.20260627_100410`，再**追加**
+    与京东云 Worker 一致的 `JDCLOUD_WORKER_TOKEN`（64 字符，不覆盖原文件）。
+  - 重启 `lima-router.service` → `active`；节点 loopback `GET /health` → `200`，
+    监听 `0.0.0.0:8080`，启动 phases 全部 `ok`。
+  - 主 VPS → 京东云 Worker 全链路验证：`/health` → `200`；
+    `/proxy/pollinations` 真实 chat → `200`，返回 `content:"pong"`。
+  - 试点流量分担已在 `chat.floor` / `chat_fast.floor` 兜底层正式生效。
+  - 凭证全程未进入对话或 Git；临时脚本已删除。
 
 ## Latest Hygiene Evidence
 

@@ -15,6 +15,7 @@ from .free_web import BACKENDS as _free_web
 from .github import BACKENDS as _gh
 from .google import BACKENDS as _google
 from .groq import BACKENDS as _groq
+from .jdcloud_proxy import BACKENDS as _jdcloud
 from .kilo import BACKENDS as _kilo
 from .misc import BACKENDS as _misc
 from .mistral import BACKENDS as _mistral
@@ -46,6 +47,7 @@ BACKENDS.update(_kilo)
 BACKENDS.update(_free_web)
 BACKENDS.update(_vps)
 BACKENDS.update(_commercial)
+BACKENDS.update(_jdcloud)
 BACKENDS.update(_community)
 BACKENDS.update(_coding)
 BACKENDS.update(_misc)
