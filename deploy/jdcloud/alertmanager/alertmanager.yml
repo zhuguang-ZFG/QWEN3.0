@@ -1,6 +1,6 @@
-# Example Alertmanager configuration for LiMa JDCloud monitoring stack.
-# Receivers are stubbed with placeholder webhooks; replace with real
-# DingTalk / WeChat / email / PagerDuty integrations.
+# Alertmanager configuration for LiMa JDCloud monitoring stack.
+# Placeholders __DINGTALK_WEBHOOK_URL__ / __WECHAT_WEBHOOK_URL__ are replaced
+# by deploy/jdcloud/update_alertmanager.sh using environment variables.
 
 global:
   smtp_smarthost: 'localhost:25'
@@ -20,6 +20,7 @@ route:
     - match:
         service: lima-router
       receiver: 'lima-router'
+      continue: true
 
 receivers:
   - name: 'default'
@@ -29,12 +30,12 @@ receivers:
 
   - name: 'critical'
     webhook_configs:
-      - url: '${DINGTALK_WEBHOOK_URL:-http://127.0.0.1:9/dingtalk-placeholder}'
+      - url: '__DINGTALK_WEBHOOK_URL__'
         send_resolved: true
 
   - name: 'lima-router'
     webhook_configs:
-      - url: '${WECHAT_WEBHOOK_URL:-http://127.0.0.1:9/wechat-placeholder}'
+      - url: '__WECHAT_WEBHOOK_URL__'
         send_resolved: true
 
 inhibit_rules:

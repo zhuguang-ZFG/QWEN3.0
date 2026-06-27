@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 
 SCRIPT_PATH = Path("deploy/jdcloud/deploy_monitoring_stack.sh")
 UPDATE_SCRIPT_PATH = Path("deploy/jdcloud/update_startup_alerts.sh")
@@ -57,4 +55,5 @@ def test_update_script_writes_rules_and_reloads():
     text = UPDATE_SCRIPT_PATH.read_text(encoding="utf-8")
     assert "LiMaStartupNotReady" in text
     assert "startup_alerts.yml" in text
-    assert "http://localhost:9090/-/reload" in text
+    assert "systemctl restart prometheus" in text
+    assert "docker compose restart prometheus" in text

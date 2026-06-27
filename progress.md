@@ -33,6 +33,42 @@
   - 按需替换 `deploy/jdcloud/alertmanager/alertmanager.yml` 中的 webhook URL 并部署 Alertmanager。
   - 积累 7 天真实启动数据后，根据 P99 启动耗时调整 5s/10s 阈值。
 
+## 2026-06-28 完成 G7.1：京东云 Alertmanager 部署与 Prometheus 告警链路打通
+
+- **目标**：让 G7 挂载的启动告警规则能够通知到真实渠道（钉钉/企业微信），完成监控闭环。
+- **关键结果**：
+  - 更新 `deploy/jdcloud/alertmanager/alertmanager.yml`：使用 `__DINGTALK_WEBHOOK_URL__` / `__WECHAT_WEBHOOK_URL__` 占位符，由部署脚本从环境变量替换。
+  - 新增 `deploy/jdcloud/update_alertmanager.sh`：
+    - 自动下载/复用 alertmanager 二进制（默认 0.25.0）。
+    - 创建 systemd `alertmanager.service`，监听 `0.0.0.0:9093`。
+    - 在 `prometheus/prometheus.yml` 中写入/更新 `alerting` 块指向 `127.0.0.1:9093`。
+    - 重启 Prometheus 加载 alerting 配置。
+    - 支持本地 tarball 回退，避免海外下载失败。
+    - 验证 `/-/healthy` 与 `/api/v1/alertmanagers`。
+  - 更新 `.env.example`：新增 `DINGTALK_WEBHOOK_URL` / `WECHAT_WEBHOOK_URL` 配置项。
+  - 更新 `deploy/prometheus/README.md`：补充 Alertmanager 部署步骤、路由说明与验证命令。
+  - 新增 `tests/test_jdcloud_alertmanager.py`：验证 alertmanager 配置结构、占位符、脚本行为。
+  - 修复 `tests/test_jdcloud_monitoring_stack.py`：匹配 update_startup_alerts.sh 从 reload 改为 restart 的新逻辑；移除未使用的 `pytest` 导入。
+- **验证**：
+  - 聚焦测试：`tests/test_jdcloud_alertmanager.py` + `tests/test_jdcloud_monitoring_stack.py` + `tests/test_prometheus_startup_alerts.py` → **26 passed / 0 failed**。
+  - `ruff check` 改动文件 clean；`bash -n` 脚本语法 OK。
+- **真实环境验证（京东云 `117.72.118.95`）**：
+  - 上传并执行 `/opt/lima-monitoring/update_alertmanager.sh`：
+    - 使用本地 tarball 安装 alertmanager 0.25.0 到 `/opt/lima-monitoring/alertmanager-bin`。
+    - 创建 `/opt/lima-monitoring/alertmanager/alertmanager.yml`（当前为占位符 URL）。
+    - 创建并启动 systemd `alertmanager.service`。
+    - 在 `/opt/lima-monitoring/prometheus/prometheus.yml` 顶部写入 `alerting` 块指向 `127.0.0.1:9093`。
+    - 重启 `prometheus.service`。
+  - 验证：
+    - `systemctl is-active alertmanager` → `active`。
+    - `curl http://localhost:9093/-/healthy` → `OK`。
+    - `curl http://localhost:9090/api/v1/alertmanagers` → `{"activeAlertmanagers":[{"url":"http://127.0.0.1:9093/api/v2/alerts"}]}`。
+- **待完成**：配置真实 `DINGTALK_WEBHOOK_URL` / `WECHAT_WEBHOOK_URL` 后重新执行脚本，告警通知即可真正送达。当前占位符 URL 会导致通知发送到 `127.0.0.1:9`，不会实际触达任何渠道。
+- **后续**：
+  - 提供真实 webhook URL 后重跑 `update_alertmanager.sh`。
+  - 触发一次慢启动（如临时调高启动阈值或手动压测）验证告警通知可达。
+  - 7 天后根据真实启动数据调整 `startup_alerts.yml` 阈值。
+
 ## 2026-06-28 完成 G6：基于 Prometheus 启动指标配置启动慢与未就绪告警
 
 - **目标**：让 G5 导出的启动阶段指标真正产生告警价值，在启动慢、长时间未就绪或启动错误时及时通知。
