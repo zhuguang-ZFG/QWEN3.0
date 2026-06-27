@@ -1,6 +1,6 @@
 # Personal Coding Assistant Progress
 
-## 2026-06-28 推进 G7：在京东云监控栈挂载启动告警规则并完善 Alertmanager 示例
+## 2026-06-28 完成 G7：在京东云监控栈真实挂载启动告警规则并验证
 
 - **目标**：让 G6 的启动告警规则真正接入 LiMa 生产监控栈（京东云 `117.72.118.95`），并提供 Alertmanager 路由示例。
 - **关键结果**：
@@ -8,20 +8,30 @@
     - `prometheus/prometheus.yml` 新增 `rule_files` 与正确的 LiMa scrape 配置（`metrics_path: /v1/ops/metrics/prometheus`、`authorization: Bearer ${LIMA_METRICS_API_KEY}`、`chat.donglicao.com`）。
     - `docker-compose.yml` 挂载 `prometheus/rules` 目录并传入 `LIMA_METRICS_API_KEY`。
     - 部署时自动生成 `prometheus/rules/startup_alerts.yml`。
-  - 新增 `deploy/jdcloud/update_startup_alerts.sh`：用于已有京东云监控栈的增量更新，自动创建/更新规则、修补配置、reload Prometheus。
+  - 新增 `deploy/jdcloud/update_startup_alerts.sh`：用于已有京东云监控栈的增量更新，自动创建/更新规则、修补配置、自动检测 systemd 或 docker-compose 并重启 Prometheus。
   - 新增 `deploy/jdcloud/alertmanager/alertmanager.yml`：Alertmanager 路由示例，按 `severity=critical` 和 `service=lima-router` 分组，webhook 占位符需替换为真实钉钉/企业微信/邮件集成。
-  - 更新 `deploy/prometheus/README.md`：补充京东云监控栈部署与增量更新说明。
+  - 更新 `deploy/prometheus/README.md`：区分 systemd 原生部署（当前生产）与 docker-compose 部署，补充增量更新说明。
   - 新增 `tests/test_jdcloud_monitoring_stack.py`：验证部署脚本包含规则创建、rule_files、metrics_path、rules 挂载和 reload 逻辑。
 - **验证**：
   - 聚焦测试：`tests/test_jdcloud_monitoring_stack.py` + `tests/test_prometheus_startup_alerts.py` → **15 passed / 0 failed**。
   - `ruff check` / `ruff format --check` clean；`pyright` 0 errors / 0 warnings。
   - `scripts/check_code_size.py` PASS。
-- **待完成的真实环境验证**：当前环境无法 SSH 到京东云节点（`117.72.118.95` 需要独立凭证）。需在京东云节点上执行以下操作完成最终生效：
-  1. 设置 `LIMA_METRICS_API_KEY` 环境变量（LiMa private API key）。
-  2. 已有监控栈：运行 `bash /opt/lima-router/deploy/jdcloud/update_startup_alerts.sh`（或从仓库复制脚本后执行）。
-  3. 全新监控栈：运行 `bash deploy/jdcloud/deploy_monitoring_stack.sh`。
-  4. 访问 `http://117.72.118.95:9090/rules` 确认 `lima_startup` 规则组已加载。
-  5. 按需替换 `deploy/jdcloud/alertmanager/alertmanager.yml` 中的 webhook URL，并在 docker-compose 中加入 alertmanager 服务。
+- **真实环境验证（京东云 `117.72.118.95`）**：
+  - 生产 Prometheus 以 systemd `prometheus.service` 原生运行（配置位于 `/opt/lima-monitoring/prometheus/prometheus.yml`，规则目录 `/opt/lima-monitoring/prometheus/rules/`）。
+  - 将 `deploy/jdcloud/update_startup_alerts.sh` 复制到 `/opt/lima-monitoring/update_startup_alerts.sh` 并执行：
+    - 自动创建 `/opt/lima-monitoring/prometheus/rules/startup_alerts.yml`（4 条规则）。
+    - 自动在 `prometheus.yml` 中追加 `rule_files: rules/*.yml`（相对 prometheus.yml 目录解析）。
+    - 检测到 `systemctl is-active prometheus` 为 active，执行 `systemctl restart prometheus`（因服务类型为 simple 且未启用 `--web.enable-lifecycle`，无法热重载）。
+  - 通过 `http://117.72.118.95:9090/api/v1/rules` 验证：
+    ```json
+    {"lima_startup": 4}
+    ```
+    规则组 `lima_startup` 已加载，包含 `LiMaStartupPhaseSlow`、`LiMaStartupPhaseVerySlow`、`LiMaStartupNotReady`、`LiMaStartupError` 共 4 条规则。
+  - 抓取端点 `https://chat.donglicao.com/v1/ops/metrics/prometheus` 返回 200，指标 `lima_startup_status=1`、`lima_startup_phase_duration_ms_count` 各 phase 数据正常。
+  - 触发一次主 VPS `lima-router.service` 重启后，Prometheus 中成功观测到新的 startup phase 样本，告警规则状态为 `state: inactive`（当前启动正常，未触发阈值）。
+- **后续**：
+  - 按需替换 `deploy/jdcloud/alertmanager/alertmanager.yml` 中的 webhook URL 并部署 Alertmanager。
+  - 积累 7 天真实启动数据后，根据 P99 启动耗时调整 5s/10s 阈值。
 
 ## 2026-06-28 完成 G6：基于 Prometheus 启动指标配置启动慢与未就绪告警
 

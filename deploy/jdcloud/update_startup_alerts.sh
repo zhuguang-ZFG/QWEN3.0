@@ -1,17 +1,16 @@
 #!/bin/bash
 # 增量更新 LiMa 启动告警规则到京东云监控栈。
-# 适用于已运行 deploy_monitoring_stack.sh 的节点。
-# 需要环境变量 LIMA_METRICS_API_KEY（用于 Prometheus 抓取认证）。
+# 适用于已运行 deploy_monitoring_stack.sh / auto_deploy.sh / native_prometheus.txt 的节点。
+# Prometheus 可能以 systemd 服务或 docker-compose 方式运行，脚本会自动检测。
 
 set -e
 
 INSTALL_DIR="/opt/lima-monitoring"
 RULES_DIR="${INSTALL_DIR}/prometheus/rules"
 PROM_YML="${INSTALL_DIR}/prometheus/prometheus.yml"
-COMPOSE_FILE="${INSTALL_DIR}/docker-compose.yml"
 
 if [ ! -d "${INSTALL_DIR}" ]; then
-    echo "ERROR: ${INSTALL_DIR} not found. Run deploy_monitoring_stack.sh first."
+    echo "ERROR: ${INSTALL_DIR} not found. Deploy Prometheus first."
     exit 1
 fi
 
@@ -88,42 +87,60 @@ groups:
             journalctl -u lima-router and /health startup.errors.
 EOF
 
-# 3. 修补 prometheus.yml：添加 rule_files（如果不存在）
-if ! grep -q '^rule_files:' "${PROM_YML}"; then
-    # 在 global 块后插入 rule_files
-    awk '1; /^global:/ { found=1 } found && /^$/ && !done { print ""; print "rule_files:"; print "  - /etc/prometheus/rules/*.yml"; done=1 }' "${PROM_YML}" > "${PROM_YML}.tmp" && mv "${PROM_YML}.tmp" "${PROM_YML}"
-    echo "OK: added rule_files to prometheus.yml"
-else
-    echo "OK: rule_files already present"
-fi
+# 3. 修补 prometheus.yml：添加/更新 rule_files（相对于 config file 目录）
+python3 - <<'PY'
+import re
+path = "/opt/lima-monitoring/prometheus/prometheus.yml"
+with open(path, "r", encoding="utf-8") as f:
+    text = f.read()
+if "rule_files:" in text:
+    text = re.sub(r"rule_files:\n\s+-\s+.*", "rule_files:\n  - rules/*.yml", text)
+else:
+    text = text.replace("scrape_configs:", "rule_files:\n  - rules/*.yml\n\nscrape_configs:")
+with open(path, "w", encoding="utf-8") as f:
+    f.write(text)
+PY
+echo "OK: rule_files set to rules/*.yml"
 
-# 4. 修补 docker-compose.yml：挂载 rules 目录并传入 API key
-if ! grep -q './prometheus/rules:/etc/prometheus/rules:ro' "${COMPOSE_FILE}"; then
-    sed -i 's|./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro|&\n      - ./prometheus/rules:/etc/prometheus/rules:ro|' "${COMPOSE_FILE}"
-    echo "OK: added rules volume to docker-compose.yml"
-else
-    echo "OK: rules volume already present"
-fi
-
-if ! grep -q 'LIMA_METRICS_API_KEY' "${COMPOSE_FILE}"; then
-    sed -i '/image: prom\/prometheus:latest/a\    environment:\n      - LIMA_METRICS_API_KEY=${LIMA_METRICS_API_KEY}' "${COMPOSE_FILE}"
-    echo "OK: added LIMA_METRICS_API_KEY env to docker-compose.yml"
-else
-    echo "OK: LIMA_METRICS_API_KEY env already present"
-fi
-
-# 5. 重新加载 Prometheus 配置
-echo "Reloading Prometheus..."
-docker compose up -d
-if curl -sf -X POST "http://localhost:9090/-/reload" > /dev/null 2>&1; then
-    echo "OK: Prometheus config reloaded"
-else
-    echo "WARN: Prometheus reload API failed; restarting container..."
+# 4. 检测运行方式并重载配置
+if systemctl is-active --quiet prometheus 2>/dev/null; then
+    echo "Detected systemd prometheus.service"
+    systemctl restart prometheus
+    echo "OK: prometheus.service restarted"
+elif [ -f "docker-compose.yml" ] && docker compose ps prometheus >/dev/null 2>&1; then
+    echo "Detected docker compose prometheus"
+    # Ensure rules volume is mounted for docker-compose deployments
+    if ! grep -q './prometheus/rules:/etc/prometheus/rules:ro' docker-compose.yml; then
+        python3 - <<'PY'
+path = "docker-compose.yml"
+with open(path, "r", encoding="utf-8") as f:
+    text = f.read()
+old = "      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+new = old + "\n      - ./prometheus/rules:/etc/prometheus/rules:ro"
+if old in text and new not in text:
+    text = text.replace(old, new)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+PY
+        echo "OK: added rules volume to docker-compose.yml"
+    fi
+    docker compose up -d
     docker compose restart prometheus
+    echo "OK: prometheus container restarted"
+else
+    echo "WARN: cannot detect prometheus runtime; please restart manually"
 fi
 
-# 6. 验证
+# 5. 验证
 sleep 3
 echo ""
 echo "Verification:"
-curl -sS "http://localhost:9090/api/v1/rules" | grep -o '"name":"lima_startup"' && echo "OK: lima_startup rule group loaded" || echo "WARN: lima_startup rule group not found"
+curl -sS "http://localhost:9090/-/healthy" && echo " prometheus healthy" || echo " prometheus health check failed"
+curl -sS 'http://localhost:9090/api/v1/rules' | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+groups = {g['name']: len(g['rules']) for g in d.get('data', {}).get('groups', [])}
+print(f'rule groups: {groups}')
+assert 'lima_startup' in groups, 'lima_startup group not loaded'
+print('OK: lima_startup rule group loaded')
+"

@@ -127,6 +127,9 @@ def quick_commands(changed_paths: Sequence[str], *, python: str = sys.executable
 
 def run_code_size_check(paths: Sequence[str], *, python: str = sys.executable) -> None:
     """Run code-size check as a non-blocking warning and print the report."""
+    if not paths:
+        print("No staged Python files; skipping code-size check.", flush=True)
+        return
     command = [python, "scripts/check_code_size.py", *paths]
     print("+ " + " ".join(command), flush=True)
     result = subprocess.run(command, cwd=ROOT, check=False)
