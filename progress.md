@@ -1,5 +1,32 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 完成京东云利用率提升 Phase 1：probe 结果回写与异地观测
+
+- **目标**：让京东云 probe 的结构化结果安全回流到 LiMa 主节点，并在 Admin 端点查询。
+- **关键结果**：
+  - LiMa 接收端点：
+    - `config/env.py`：新增 `probe_ingress_enabled()` / `probe_ingress_token()` 并加入 `__all__`。
+    - `observability/probe_state.py`：线程安全内存存储，`record_probe_event` / `get_probe_snapshot` / `reset_probe_state`，metadata 经 `_sanitize_metadata` 脱敏。
+    - `routes/admin_probe_ingress.py`：`POST /admin/api/probe/ingress`（独立 Bearer token）与 `GET /admin/api/probe/jdcloud`（admin 认证）。
+    - `routes/route_registry.py`：在 `_register_optional_routes` 中注册。
+    - `.env.example`：新增 `LIMA_PROBE_INGRESS_ENABLED` / `LIMA_PROBE_INGRESS_TOKEN`。
+    - `tests/test_admin_probe_ingress.py`：14 个用例覆盖 503/401/有效上传/聚合/脱敏/空列表/无效 source/非 list/跳过非法项/GET 认证/来源过滤。
+  - 京东云推送：
+    - `deploy/jdcloud/push_probe_results.py` + `push_probe_results_utils.py`：读取 `known_providers.json` / `discoveries.jsonl` / `stability.json`，生成脱敏 payload。
+    - `deploy/jdcloud/lima-probe-push.service` / `lima-probe-push.timer`：每 5 分钟推送，以 `lima-probe` 用户运行。
+    - `deploy/jdcloud/deploy_probe_platform.sh`：安装脚本创建 `lima-probe` 用户并设置权限。
+    - `tests/test_jdcloud_push_probe.py`：11 个用例覆盖 payload 构建、状态推导、metadata 脱敏、known_providers 回退、缺失 token、超时校验、POST 成功/失败。
+  - 运维：京东云 `/etc/hosts` 将 `chat.donglicao.com` 指向主 VPS 源站，绕过 Cloudflare 1010 拦截。
+- **验证**：
+  - 聚焦测试 `tests/test_admin_probe_ingress.py` + `tests/test_jdcloud_push_probe.py` → **25 passed / 0 failed**。
+  - 完整测试 → **3893 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `ruff check .` / `ruff format --check .` clean；`pyright` 目标文件 0 errors；`scripts/check_code_size.py --git-tracked` PASS。
+  - 主 VPS 部署：`python scripts/deploy_unified.py --files routes/admin_probe_ingress.py observability/probe_state.py config/env.py routes/route_registry.py` → 421 uploaded / 0 failed；Health OK。
+  - 主 VPS `.env` 已追加 `LIMA_PROBE_INGRESS_ENABLED=1` 与 `LIMA_PROBE_INGRESS_TOKEN`，服务已重启。
+  - 京东云部署推送脚本并启动 timer；手动运行服务日志显示 `probe push: status=200 recorded=39`。
+  - 主 VPS `GET /admin/api/probe/jdcloud` 返回 39 条京东云 probe 记录，端到端回流验证成功。
+- **下一步**：观测 24–48h 推送稳定性与数据新鲜度，再决定 Phase 2（分担低价/免费后端流量）是否可行。
+
 ## 2026-06-28 完成 Phase 4：VPS 灰度部署与验证
 
 - **目标**：完成 P4-后续-灰度观测 Phase 4，把代码部署到 VPS，开启 `LIMA_INSTRUCTOR_INTENT_ENABLED=1` 与 `LIMA_SEMANTIC_CACHE_ENABLED=1`，验证 Admin 指标与 Trace enrichment 生效。

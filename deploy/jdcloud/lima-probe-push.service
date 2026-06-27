@@ -1,0 +1,17 @@
+[Unit]
+Description=LiMa Probe Result Push to Main VPS
+After=network.target network-online.target
+
+[Service]
+Type=oneshot
+User=lima-probe
+WorkingDirectory=/opt/lima-probe
+ExecStart=/usr/bin/python3 /opt/lima-probe/scripts/push_probe_results.py
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONPATH=/opt/lima-probe
+EnvironmentFile=/opt/lima-probe/.probe-ingress.env
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes

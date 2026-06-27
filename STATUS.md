@@ -8,7 +8,7 @@
 > Updated: 2026-06-27
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3856 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **3893 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,24 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-27）京东云利用率提升 Phase 1：probe 结果回写与异地观测
+
+- **目标**：按 `docs/superpowers/specs/2026-06-28-jdcloud-utilization-plan.md`，让京东云 probe 的结构化结果安全回流到 LiMa 主节点，并在 Admin 端点展示。
+- **关键结果**：
+  - LiMa 侧新增 `routes/admin_probe_ingress.py`：`POST /admin/api/probe/ingress`（独立 `LIMA_PROBE_INGRESS_TOKEN`）与 `GET /admin/api/probe/jdcloud`（admin 认证）。
+  - 新增 `observability/probe_state.py`：线程安全内存存储 + metadata 脱敏。
+  - `config/env.py` / `routes/route_registry.py` / `.env.example` 接入开关与 token 配置。
+  - 京东云侧新增 `deploy/jdcloud/push_probe_results.py` + `push_probe_results_utils.py`，读取 `known_providers.json` / `discoveries.jsonl` / `stability.json`，生成脱敏 payload。
+  - 新增 `lima-probe-push.service` / `lima-probe-push.timer`，每 5 分钟以 `lima-probe` 用户运行推送。
+  - 京东云节点 `/etc/hosts` 将 `chat.donglicao.com` 指向主 VPS 源站 IP，绕过 Cloudflare 1010 拦截。
+- **验证**：
+  - 聚焦测试 `tests/test_admin_probe_ingress.py` + `tests/test_jdcloud_push_probe.py` → **25 passed / 0 failed**。
+  - 完整测试 → **3893 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check .` / `ruff format --check .` / `pyright` 目标文件 0 errors；`scripts/check_code_size.py --git-tracked` PASS。
+  - 主 VPS `python scripts/deploy_unified.py --files routes/admin_probe_ingress.py observability/probe_state.py config/env.py routes/route_registry.py` → 421 uploaded / 0 failed；Health OK。
+  - 京东云 `systemctl start lima-probe-push.service` 日志：`probe push: status=200 recorded=39`。
+  - 主 VPS `GET /admin/api/probe/jdcloud` 返回 39 条京东云 probe 记录。
+- **下一步**：观测推送稳定性与数据新鲜度，决定是否进入 Phase 2（分担低价/免费后端流量）。
 
 ### 最近完成（2026-06-28）P4-后续-灰度观测 Phase 1–4 已完成，进入 24–48h 观测
 

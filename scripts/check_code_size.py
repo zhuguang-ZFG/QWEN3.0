@@ -11,8 +11,11 @@ Exit codes:
 
 from __future__ import annotations
 
+import argparse
 import ast
+import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 FILE_LIMIT = 300
@@ -49,6 +52,7 @@ EXCLUDE_DIRS = {
     ".windsurf",
     "provider-probe-offline",
     "data",
+    "tmp",
 }
 
 
@@ -60,6 +64,25 @@ def _iter_python_files(root: Path) -> list[Path]:
     return [p for p in root.rglob("*.py") if not _should_skip(p)]
 
 
+def _iter_git_python_files(root: Path) -> list[Path]:
+    """List Python files known to git (tracked or staged)."""
+    try:
+        output = subprocess.check_output(
+            ["git", "-C", str(root), "ls-files", "*.py"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return _iter_python_files(root)
+
+    files: list[Path] = []
+    for line in output.splitlines():
+        path = root / line
+        if path.exists() and not _should_skip(path):
+            files.append(path)
+    return files
+
+
 def _count_function_lines(node: ast.FunctionDef | ast.AsyncFunctionDef, source_lines: list[str]) -> int:
     """Return the number of source lines spanning a function definition."""
     start = node.lineno
@@ -67,9 +90,13 @@ def _count_function_lines(node: ast.FunctionDef | ast.AsyncFunctionDef, source_l
     return end - start + 1
 
 
-def check_files(root: Path, file_limit: int = FILE_LIMIT) -> list[tuple[Path, int]]:
+def check_files(
+    root: Path,
+    file_iterator: Callable[[Path], list[Path]] = _iter_python_files,
+    file_limit: int = FILE_LIMIT,
+) -> list[tuple[Path, int]]:
     violations = []
-    for path in _iter_python_files(root):
+    for path in file_iterator(root):
         line_count = len(path.read_text(encoding="utf-8", errors="ignore").splitlines())
         if line_count > file_limit:
             violations.append((path, line_count))
@@ -77,9 +104,13 @@ def check_files(root: Path, file_limit: int = FILE_LIMIT) -> list[tuple[Path, in
     return violations
 
 
-def check_functions(root: Path, func_limit: int = FUNC_LIMIT) -> list[tuple[Path, str, int]]:
+def check_functions(
+    root: Path,
+    file_iterator: Callable[[Path], list[Path]] = _iter_python_files,
+    func_limit: int = FUNC_LIMIT,
+) -> list[tuple[Path, str, int]]:
     violations = []
-    for path in _iter_python_files(root):
+    for path in file_iterator(root):
         try:
             source = path.read_text(encoding="utf-8", errors="ignore")
             tree = ast.parse(source)
@@ -98,10 +129,22 @@ def check_functions(root: Path, func_limit: int = FUNC_LIMIT) -> list[tuple[Path
     return violations
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Check Python file/function size constraints.")
+    parser.add_argument(
+        "--git-tracked",
+        action="store_true",
+        help="Only check Python files known to git (tracked or staged).",
+    )
+    return parser
+
+
 def main() -> int:
+    args = _build_parser().parse_args()
     root = Path(__file__).resolve().parent.parent
-    file_violations = check_files(root)
-    func_violations = check_functions(root)
+    file_iterator = _iter_git_python_files if args.git_tracked else _iter_python_files
+    file_violations = check_files(root, file_iterator)
+    func_violations = check_functions(root, file_iterator)
 
     print(f"Checking Python files under {root}")
     print(f"File limit: {FILE_LIMIT} lines, Function limit: {FUNC_LIMIT} lines")

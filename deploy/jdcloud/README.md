@@ -14,11 +14,14 @@ node used by LiMa ops experiments.
 
 | File | Purpose |
 |---|---|
-| `deploy_probe_platform.sh` | Installs the provider-probe package, browser service, and discovery timer under `/opt/lima-probe`. |
+| `deploy_probe_platform.sh` | Installs the provider-probe package, browser service, discovery timer, and result-push timer under `/opt/lima-probe`. |
 | `install_playwright.sh` | Installs Playwright/Chromium dependencies and the browser service. |
 | `lima-probe-browser.service` | systemd unit for the browser helper on port `8092` loopback. |
 | `lima-probe.service` | oneshot systemd unit for provider discovery. |
 | `lima-probe.timer` | timer for scheduled provider discovery. |
+| `push_probe_results.py` | Standalone script that pushes probe results to the LiMa main VPS ingress endpoint. |
+| `lima-probe-push.service` | oneshot systemd unit that runs `push_probe_results.py`. |
+| `lima-probe-push.timer` | timer that triggers the push service every 5 minutes. |
 | `configure_*.sh`, `install_*.sh`, `nginx_hermes.conf` | Optional JDCloud service setup templates. Review before use. |
 | `install_newapi.sh` | New API 一键安装脚本（复用宿主机 MySQL 8.0 + Redis 7.0，host 网络模式）。 |
 | `configure_newapi_firewall.sh` | New API 专用 ufw 防火墙（保护 3000/3306/6379）。 |

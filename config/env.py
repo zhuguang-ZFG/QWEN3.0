@@ -40,6 +40,8 @@ __all__ = [
     "instructor_intent_timeout",
     "jina_api_key",
     "lima_api_key",
+    "probe_ingress_enabled",
+    "probe_ingress_token",
     "ota_signing_public_key",
     "outcome_ingest_per_min",
     "public_demo_enabled",
@@ -227,3 +229,13 @@ def tracing_enabled() -> bool:
     from config.settings import OBSERVABILITY
 
     return OBSERVABILITY.tracing_enabled
+
+
+def probe_ingress_enabled() -> bool:
+    """Whether the probe ingress endpoint accepts results from external probes."""
+    return os.environ.get("LIMA_PROBE_INGRESS_ENABLED", "0").strip().lower() in {"1", "true", "on", "yes"}
+
+
+def probe_ingress_token() -> str:
+    """Bearer token used to authenticate probe ingress submissions."""
+    return os.environ.get("LIMA_PROBE_INGRESS_TOKEN", "").strip()

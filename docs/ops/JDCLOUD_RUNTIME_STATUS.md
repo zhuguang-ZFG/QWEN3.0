@@ -1,6 +1,6 @@
 # JDCloud Runtime Status
 
-> Updated: 2026-06-09
+> Updated: 2026-06-27
 > Scope: secondary JDCloud node used by LiMa ops/probe work.
 
 ## Summary
@@ -23,12 +23,13 @@ design, security review, and smoke plan.
 | Item | Status |
 |---|---|
 | Public IP | `117.72.118.95` |
-| Role | Secondary provider-probe / monitoring node |
+| Role | Secondary provider-probe / monitoring node + probe result ingress source |
 | Primary API replacement | No |
 | Credential storage | Outside Git only |
 | Tracked deploy assets | `deploy/jdcloud/` shell and systemd templates |
 | Local scratch policy | Ignored by exact `.gitignore` rules |
 | Latest read-only smoke | `ok=true`, `chat_health_http_code=200`, `lima_probe_timer=active` |
+| Probe push timer | `lima-probe-push.timer` active, last push `recorded=39` |
 
 ## First Production Use
 
@@ -56,6 +57,10 @@ Non-goals:
 - `deploy/jdcloud/lima-probe-browser.service`
 - `deploy/jdcloud/lima-probe.service`
 - `deploy/jdcloud/lima-probe.timer`
+- `deploy/jdcloud/push_probe_results.py`
+- `deploy/jdcloud/push_probe_results_utils.py`
+- `deploy/jdcloud/lima-probe-push.service`
+- `deploy/jdcloud/lima-probe-push.timer`
 - `scripts/check_jdcloud_node.py` for read-only capacity/service smoke
 - supporting optional setup templates under `deploy/jdcloud/`
 
@@ -116,6 +121,31 @@ Residual risk:
   several browser-backed discovery URLs. The non-browser discovery path still
   completed successfully, so the next improvement should debug the browser
   helper without exposing port `8092`.
+
+## Phase 1 实施证据（2026-06-27）
+
+按 `docs/superpowers/specs/2026-06-28-jdcloud-utilization-plan.md` 完成
+probe 结果回写与异地观测：
+
+- **LiMa 接收端点**：
+  - `POST /admin/api/probe/ingress` 已部署到主 VPS，使用独立
+    `LIMA_PROBE_INGRESS_TOKEN`，默认关闭。
+  - `GET /admin/api/probe/jdcloud` 已可通过 admin 认证查询京东云 probe 快照。
+- **京东云推送**：
+  - 新增 `deploy/jdcloud/push_probe_results.py` + `push_probe_results_utils.py`
+    读取 `/opt/lima-probe/data/known_providers.json`、`discoveries.jsonl` 与
+    `stability.json`，生成脱敏 payload。
+  - 新增 `lima-probe-push.service` / `lima-probe-push.timer`，每 5 分钟推送一次。
+  - 推送脚本以专用 `lima-probe` 用户运行，token 通过
+    `/opt/lima-probe/.probe-ingress.env` 注入，不进入 Git。
+- **网络 bypass**：由于 `chat.donglicao.com` 经 Cloudflare 代理时返回 1010，
+  京东云节点 `/etc/hosts` 将 `chat.donglicao.com` 指向主 VPS 源站
+  `47.112.162.80`，使 HTTPS 请求绕过 Cloudflare 直接到达 nginx。
+- **验证**：
+  - 主 VPS `POST /admin/api/probe/ingress` 返回 `{"recorded":1}`。
+  - 京东云 `systemctl start lima-probe-push.service` 日志显示
+    `probe push: status=200 recorded=39`。
+  - 主 VPS `GET /admin/api/probe/jdcloud` 返回 39 条京东云 probe 记录。
 
 ## Latest Hygiene Evidence
 

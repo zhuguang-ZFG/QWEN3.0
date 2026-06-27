@@ -235,6 +235,7 @@ def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     _try_include(app, loaded, "routes.fleet_api", "fleet", inject=_fleet_inject)
     _try_include(app, loaded, "routes.eval_internal", "eval_internal")
     _try_include(app, loaded, "routes.outcome_ingest", "outcome_ingest")
+    _try_include(app, loaded, "routes.admin_probe_ingress", "admin_probe_ingress")
     _try_include(app, loaded, "routes.token_sync", "token_sync")
     _try_include(app, loaded, "routes.device_memory", "device_memory")
     _try_include(app, loaded, "routes.device_support", "device_support")
