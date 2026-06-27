@@ -129,8 +129,23 @@ def check_functions(
     return violations
 
 
+def _iter_explicit_paths(root: Path, paths: list[str]) -> list[Path]:
+    """Resolve explicit relative paths to existing Python files under root."""
+    result: list[Path] = []
+    for raw in paths:
+        path = root / raw
+        if path.exists() and path.suffix == ".py" and not _should_skip(path):
+            result.append(path)
+    return result
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Check Python file/function size constraints.")
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        help="Python files to check; defaults to all Python files under root",
+    )
     parser.add_argument(
         "--git-tracked",
         action="store_true",
@@ -142,7 +157,12 @@ def _build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _build_parser().parse_args()
     root = Path(__file__).resolve().parent.parent
-    file_iterator = _iter_git_python_files if args.git_tracked else _iter_python_files
+    if args.paths:
+        file_iterator = lambda r: _iter_explicit_paths(r, args.paths)  # noqa: E731
+    elif args.git_tracked:
+        file_iterator = _iter_git_python_files
+    else:
+        file_iterator = _iter_python_files
     file_violations = check_files(root, file_iterator)
     func_violations = check_functions(root, file_iterator)
 

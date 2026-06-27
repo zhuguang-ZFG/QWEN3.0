@@ -125,10 +125,11 @@ def quick_commands(changed_paths: Sequence[str], *, python: str = sys.executable
     return commands
 
 
-def run_code_size_check(*, python: str = sys.executable) -> None:
+def run_code_size_check(paths: Sequence[str], *, python: str = sys.executable) -> None:
     """Run code-size check as a non-blocking warning and print the report."""
-    print("+ " + " ".join([python, "scripts/check_code_size.py"]), flush=True)
-    result = subprocess.run([python, "scripts/check_code_size.py"], cwd=ROOT, check=False)
+    command = [python, "scripts/check_code_size.py", *paths]
+    print("+ " + " ".join(command), flush=True)
+    result = subprocess.run(command, cwd=ROOT, check=False)
     if result.returncode != 0:
         print(
             "WARNING: code-size constraints violated (see above). This is a baseline check and does not block commits.",
@@ -178,7 +179,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         basetemp = str(Path(tempfile.gettempdir()) / f"pytest-run-precommit-full-{uuid.uuid4().hex}")
         commands.append(full_pytest_command(basetemp=basetemp))
 
-    run_code_size_check()
+    run_code_size_check(changed_paths)
 
     for command in commands:
         returncode = run_command(command)

@@ -1,16 +1,16 @@
 # Personal Coding Assistant Progress
 
-## 2026-06-27 优化 pre-commit hook：ruff 仅检查 staged Python 文件
+## 2026-06-27 优化 pre-commit hook：ruff 与 code_size 仅检查 staged Python 文件
 
-- **问题**：`.git/hooks/pre-commit.ps1` → `scripts/run_pre_commit_check.py` → `scripts/run_ruff_check.py` 原流程中，`run_ruff_check.py` 默认扫描全部 tracked Python 文件（`git ls-files *.py *.pyi`）。仓库文件数众多，导致 PowerShell hook 频繁超过 60s 超时，只能加 `--no-verify` 绕过。
+- **问题**：`.git/hooks/pre-commit.ps1` → `scripts/run_pre_commit_check.py` 原流程中，`run_ruff_check.py` 与 `check_code_size.py` 默认扫描全部 Python 文件。仓库文件数众多，导致 PowerShell hook 频繁超过 60s 超时，且历史文件/函数的 size 警告淹没真正需要关注的提交。
 - **关键改动**：
   - `scripts/run_ruff_check.py`：新增命令行参数 `paths`，无参数时回退到 tracked files；有参数时仅检查指定文件。保留 argfile 方式避免 Windows 命令行长度过长。
-  - `scripts/run_pre_commit_check.py`：`quick_commands` 将已计算的 `changed_paths`（staged 文件）直接传给 `run_ruff_check.py`，使本地提交只检查待提交改动。
+  - `scripts/check_code_size.py`：新增命令行参数 `paths`，无参数时仍可全量或 `--git-tracked` 检查；有参数时仅检查指定文件。
+  - `scripts/run_pre_commit_check.py`：`quick_commands` 与 `run_code_size_check` 均将已计算的 `changed_paths`（staged 文件）传给对应脚本，使本地提交只检查待提交改动。
 - **验证**：
-  - 全量模式：`python scripts/run_ruff_check.py` → 仍检查全部 tracked 文件，**All checks passed!**
-  - Staged 模式：`git add scripts/run_ruff_check.py scripts/run_pre_commit_check.py` 后运行 `python scripts/run_pre_commit_check.py` → ruff 仅检查上述两个 staged 文件，耗时秒级；`git diff --cached --check` 与 `py_compile` 均通过。
-  - `code_size.py` 仍有历史文件超标警告（不阻塞提交）。
-- **影响**：CI/无参数调用行为不变；本地 pre-commit 大幅提速，不再因 ruff 全量扫描超时。
+  - 全量模式：`python scripts/run_ruff_check.py` / `python scripts/check_code_size.py --git-tracked` → 仍检查全部 tracked 文件，均通过。
+  - Staged 模式：`git add` 相关脚本后运行 `python scripts/run_pre_commit_check.py` → ruff 与 code_size 均仅检查 staged 文件，耗时秒级；`git diff --cached --check` 与 `py_compile` 均通过，无历史文件警告。
+- **影响**：CI/无参数调用行为不变；本地 pre-commit 大幅提速，输出干净，不再因全量扫描超时或被历史警告干扰。
 
 ## 2026-06-27 完成笔绘机矢量化 P0：二值化策略升级（自适应阈值）
 
