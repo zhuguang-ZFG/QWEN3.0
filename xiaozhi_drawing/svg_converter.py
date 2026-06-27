@@ -17,6 +17,7 @@ except ImportError:  # pragma: no cover - local environments may omit OpenCV
     cv2 = None
 
 from xiaozhi_drawing.binarize import binarize as _binarize
+from xiaozhi_drawing.path_ordering import reorder_polylines_nearest_neighbor
 from xiaozhi_drawing.skeleton_prune import prune_skeleton_spurs
 from xiaozhi_drawing.skeleton_tracer import polylines_to_svg_paths, trace_skeleton_polylines
 
@@ -131,6 +132,7 @@ def _extract_svg_paths(
     skeletonize: bool = False,
     spur_length_threshold: int = 10,
     min_stroke_length: float = 5.0,
+    reorder_strokes: bool = False,
 ) -> tuple[list[str], str | None]:
     """Find contours, filter, simplify, and convert to SVG paths.
 
@@ -149,6 +151,8 @@ def _extract_svg_paths(
         src, thinning_method = _thin_binary(binary)
         src = prune_skeleton_spurs(src, spur_length_threshold=spur_length_threshold)
         polylines = trace_skeleton_polylines(src)
+        if reorder_strokes:
+            polylines = reorder_polylines_nearest_neighbor(polylines)
         svg_paths = polylines_to_svg_paths(
             polylines,
             simplify_epsilon=simplify_epsilon,
@@ -199,10 +203,6 @@ def _svg_payload(
 # ── 转换器主类 ─────────────────────────────────────────────────────────────────
 
 
-class SVGConverter:
-    """图像 → SVG 路径转换器"""
-
-
 async def _convert_image_bytes(
     image_data: BytesIO,
     *,
@@ -212,6 +212,7 @@ async def _convert_image_bytes(
     threshold_mode: str,
     spur_length_threshold: int,
     min_stroke_length: float,
+    reorder_strokes: bool,
 ) -> dict[str, Any]:
     """Convert already-downloaded image bytes to an SVG result dict."""
     try:
@@ -223,6 +224,7 @@ async def _convert_image_bytes(
             skeletonize=skeletonize,
             spur_length_threshold=spur_length_threshold,
             min_stroke_length=min_stroke_length,
+            reorder_strokes=reorder_strokes,
         )
         h, w = gray.shape
         if not svg_paths:
@@ -261,6 +263,7 @@ class SVGConverter:
         threshold_mode: str = "auto",
         spur_length_threshold: int = 10,
         min_stroke_length: float = 5.0,
+        reorder_strokes: bool = False,
     ) -> dict[str, Any]:
         """下载图片并转换为 SVG 路径（OpenCV 处理）。
 
@@ -272,6 +275,7 @@ class SVGConverter:
             threshold_mode: 二值化策略：auto/otsu/adaptive。
             spur_length_threshold: 骨架模式毛刺剪枝阈值（像素）。
             min_stroke_length: 骨架模式最小笔画长度（像素）。
+            reorder_strokes: 骨架模式下按最近邻重排笔画，减少空走。
         """
         try:
             image_data = await _download_image(image_url)
@@ -286,4 +290,5 @@ class SVGConverter:
             threshold_mode=threshold_mode,
             spur_length_threshold=spur_length_threshold,
             min_stroke_length=min_stroke_length,
+            reorder_strokes=reorder_strokes,
         )
