@@ -19,11 +19,15 @@
     - 新增 `tests/test_server_lifespan_state_metrics.py`：验证 `record_phase()` 和 `set_startup_status()` 会调用 Prometheus 记录函数并吞掉异常。
   - 文档：
     - 更新 `docs/DEPLOY_AND_RELEASE_CONVENTION.md`：补充 `--sync-nginx` 用法、readiness 轮询流程、`/health/ready` 验证命令与 503 场景说明。
+  - 部署优化：
+    - `scripts/deploy_unified_common.py` 将 `htmlcov/` 加入 `_DEPLOY_EXCLUDES`，避免覆盖率报告被上传到 VPS。
 - **验证**：
   - 聚焦测试：`tests/test_prometheus_metrics.py` + `tests/test_nginx_ready_config.py` + `tests/test_server_lifespan_state_metrics.py` + `tests/test_system_endpoints.py` → **29 passed / 0 failed**。
   - `ruff check` / `ruff format --check` clean；`pyright` 0 errors（1 个既有 warning：`prometheus_client` import 无法解析）。
   - `scripts/check_code_size.py` PASS（所有修改文件 ≤300 行，函数 ≤50 行）。
-- **后续**：VPS 部署时可使用 `python scripts/deploy_unified.py --slice core --sync-nginx` 自动同步 nginx； Prometheus 侧可基于 `lima_startup_phase_duration_ms` 与 `lima_startup_status` 配置启动慢告警。
+  - VPS 部署：`python scripts/deploy_unified.py --slice core --sync-nginx` 成功（832 files uploaded, nginx config synced and /health/ready reachable）。
+  - 生产 smoke：`https://chat.donglicao.com/health` → 200 OK；`https://chat.donglicao.com/health/ready` → 200 `{"status":"ready"}`。
+- **后续**：Prometheus 侧可基于 `lima_startup_phase_duration_ms` 与 `lima_startup_status` 配置启动慢告警；`/v1/ops/metrics/prometheus` 需要认证，管理员可配置对应抓取 token。
 
 ## 2026-06-27 推进 G4+：部署 readiness 成功后打印启动阶段耗时摘要
 
