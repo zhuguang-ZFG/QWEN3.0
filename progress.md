@@ -4,9 +4,9 @@
 
 - **目标**：在 G4 readiness probe 就绪后，让部署脚本直观报告 lifespan 各阶段耗时，便于排查启动慢或服务未就绪的根因。
 - **关键结果**：
-  - `scripts/deploy_unified_restart.py` 的 readiness 成功后，读取 `/health/ready` 返回的 `phase_times` 字段，打印启动阶段耗时摘要。
-  - 若 `phase_times` 缺失或格式异常，回退到打印 `startup_status` 并提示无法获取阶段耗时，避免部署失败。
-  - 不改动服务器 `/health/ready` 接口语义；仅消费已有 `phase_times` 字段。
+  - `scripts/deploy_unified_restart.py` 的 readiness 成功后，重新请求 `/health` 读取 `startup.phases`，打印启动阶段耗时摘要。
+  - 若 `phases` 缺失或格式异常，回退到打印 `startup_status` 并提示无法获取阶段耗时，避免部署失败。
+  - 不改动服务器 `/health/ready` 接口语义；`/health/ready` 本身不返回阶段耗时。
 - **验证**：
   - `ruff check` / `ruff format --check` clean；`pyright` 0 errors / 0 warnings。
   - `scripts/check_code_size.py` PASS（文件 ≤300 行，函数 ≤50 行）。
