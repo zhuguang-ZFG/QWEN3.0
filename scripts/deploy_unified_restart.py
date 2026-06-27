@@ -125,6 +125,25 @@ def _poll_ready(ssh: paramiko.SSHClient) -> bool:
     return False
 
 
+def _print_startup_phases(ssh: paramiko.SSHClient) -> None:
+    """Fetch and print /health startup phase timings after readiness succeeds."""
+    code, out, _err = _ssh_exec(ssh, "curl -sS -m 10 http://127.0.0.1:8080/health")
+    if code != 0:
+        return
+    try:
+        payload = json.loads(out)
+        phases = payload.get("startup", {}).get("phases", [])
+        if not phases:
+            return
+        print("  startup phases:")
+        for phase in phases:
+            status = phase.get("status", "ok")
+            detail = f" ({phase.get('detail')})" if phase.get("detail") else ""
+            print(f"    - {phase['name']}: {phase['elapsed_ms']:.1f} ms [{status}]{detail}")
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return
+
+
 def restart_server() -> bool:
     """Clear pycache, restart the systemd service, and wait for health + readiness."""
     ssh = _connect_ssh()
@@ -133,6 +152,9 @@ def restart_server() -> bool:
             return False
         if not _poll_health(ssh):
             return False
-        return _poll_ready(ssh)
+        if not _poll_ready(ssh):
+            return False
+        _print_startup_phases(ssh)
+        return True
     finally:
         ssh.close()

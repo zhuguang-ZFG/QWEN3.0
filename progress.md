@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 推进 G4+：部署 readiness 成功后打印启动阶段耗时摘要
+
+- **目标**：在 G4 readiness probe 就绪后，让部署脚本直观报告 lifespan 各阶段耗时，便于排查启动慢或服务未就绪的根因。
+- **关键结果**：
+  - `scripts/deploy_unified_restart.py` 的 readiness 成功后，读取 `/health/ready` 返回的 `phase_times` 字段，打印启动阶段耗时摘要。
+  - 若 `phase_times` 缺失或格式异常，回退到打印 `startup_status` 并提示无法获取阶段耗时，避免部署失败。
+  - 不改动服务器 `/health/ready` 接口语义；仅消费已有 `phase_times` 字段。
+- **验证**：
+  - `ruff check` / `ruff format --check` clean；`pyright` 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` PASS（文件 ≤300 行，函数 ≤50 行）。
+  - 本地 pre-commit（staged 文件）通过。
+
 ## 2026-06-27 推进 G4：新增 /health/ready readiness probe，部署脚本区分 liveness 与 readiness
 
 - **目标**：在现有 lifespan critical/warm 阶段化启动基础上，让部署流程和负载均衡器能明确区分"可服务但仍在热身"与"完全就绪"，降低部署不确定性。
