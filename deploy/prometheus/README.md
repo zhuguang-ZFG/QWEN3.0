@@ -39,7 +39,20 @@ rule_files:
   - /etc/prometheus/rules/*.yml
 ```
 
-示例 Docker Compose 见 `esp32S_XYZ/ops/monitoring/docker-compose.yml`（监控栈共享模式）。
+### 京东云监控栈（推荐用于 LiMa 生产）
+
+LiMa 主监控栈部署在京东云节点（`117.72.118.95`），由 `deploy/jdcloud/deploy_monitoring_stack.sh` 管理。
+
+- **全新部署**：运行 `deploy/jdcloud/deploy_monitoring_stack.sh`，脚本会自动写入 `prometheus/rules/startup_alerts.yml`、挂载 rules 目录并配置抓取。
+- **已有部署增量更新**：在京东云节点上运行：
+  ```bash
+  export LIMA_METRICS_API_KEY=<your_private_api_key>
+  bash /opt/lima-router/deploy/jdcloud/update_startup_alerts.sh
+  # 或从仓库复制后执行
+  ```
+- **Alertmanager 路由示例**：见 `deploy/jdcloud/alertmanager/alertmanager.yml`，按需替换 webhook URL。
+
+> 注意：Prometheus 抓取 `https://chat.donglicao.com/v1/ops/metrics/prometheus` 需要 `LIMA_METRICS_API_KEY`。
 
 ## 本地验证
 

@@ -1,5 +1,28 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 推进 G7：在京东云监控栈挂载启动告警规则并完善 Alertmanager 示例
+
+- **目标**：让 G6 的启动告警规则真正接入 LiMa 生产监控栈（京东云 `117.72.118.95`），并提供 Alertmanager 路由示例。
+- **关键结果**：
+  - 修改 `deploy/jdcloud/deploy_monitoring_stack.sh`：
+    - `prometheus/prometheus.yml` 新增 `rule_files` 与正确的 LiMa scrape 配置（`metrics_path: /v1/ops/metrics/prometheus`、`authorization: Bearer ${LIMA_METRICS_API_KEY}`、`chat.donglicao.com`）。
+    - `docker-compose.yml` 挂载 `prometheus/rules` 目录并传入 `LIMA_METRICS_API_KEY`。
+    - 部署时自动生成 `prometheus/rules/startup_alerts.yml`。
+  - 新增 `deploy/jdcloud/update_startup_alerts.sh`：用于已有京东云监控栈的增量更新，自动创建/更新规则、修补配置、reload Prometheus。
+  - 新增 `deploy/jdcloud/alertmanager/alertmanager.yml`：Alertmanager 路由示例，按 `severity=critical` 和 `service=lima-router` 分组，webhook 占位符需替换为真实钉钉/企业微信/邮件集成。
+  - 更新 `deploy/prometheus/README.md`：补充京东云监控栈部署与增量更新说明。
+  - 新增 `tests/test_jdcloud_monitoring_stack.py`：验证部署脚本包含规则创建、rule_files、metrics_path、rules 挂载和 reload 逻辑。
+- **验证**：
+  - 聚焦测试：`tests/test_jdcloud_monitoring_stack.py` + `tests/test_prometheus_startup_alerts.py` → **15 passed / 0 failed**。
+  - `ruff check` / `ruff format --check` clean；`pyright` 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` PASS。
+- **待完成的真实环境验证**：当前环境无法 SSH 到京东云节点（`117.72.118.95` 需要独立凭证）。需在京东云节点上执行以下操作完成最终生效：
+  1. 设置 `LIMA_METRICS_API_KEY` 环境变量（LiMa private API key）。
+  2. 已有监控栈：运行 `bash /opt/lima-router/deploy/jdcloud/update_startup_alerts.sh`（或从仓库复制脚本后执行）。
+  3. 全新监控栈：运行 `bash deploy/jdcloud/deploy_monitoring_stack.sh`。
+  4. 访问 `http://117.72.118.95:9090/rules` 确认 `lima_startup` 规则组已加载。
+  5. 按需替换 `deploy/jdcloud/alertmanager/alertmanager.yml` 中的 webhook URL，并在 docker-compose 中加入 alertmanager 服务。
+
 ## 2026-06-28 完成 G6：基于 Prometheus 启动指标配置启动慢与未就绪告警
 
 - **目标**：让 G5 导出的启动阶段指标真正产生告警价值，在启动慢、长时间未就绪或启动错误时及时通知。

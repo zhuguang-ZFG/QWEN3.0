@@ -1,0 +1,45 @@
+# Example Alertmanager configuration for LiMa JDCloud monitoring stack.
+# Receivers are stubbed with placeholder webhooks; replace with real
+# DingTalk / WeChat / email / PagerDuty integrations.
+
+global:
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'alertmanager@donglicao.com'
+
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'default'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical'
+      continue: true
+    - match:
+        service: lima-router
+      receiver: 'lima-router'
+
+receivers:
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://127.0.0.1:9/default-placeholder'
+        send_resolved: false
+
+  - name: 'critical'
+    webhook_configs:
+      - url: '${DINGTALK_WEBHOOK_URL:-http://127.0.0.1:9/dingtalk-placeholder}'
+        send_resolved: true
+
+  - name: 'lima-router'
+    webhook_configs:
+      - url: '${WECHAT_WEBHOOK_URL:-http://127.0.0.1:9/wechat-placeholder}'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']
