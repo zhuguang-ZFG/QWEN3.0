@@ -1,0 +1,29 @@
+# Example Prometheus configuration for scraping LiMa metrics.
+# Adjust authentication and TLS settings for your environment.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  - job_name: lima-router
+    static_configs:
+      - targets:
+          - chat.donglicao.com:443
+    scheme: https
+    metrics_path: /v1/ops/metrics/prometheus
+    # LiMa requires a valid private API key for the metrics endpoint.
+    authorization:
+      type: Bearer
+      credentials: "${LIMA_METRICS_API_KEY}"
+    tls_config:
+      insecure_skip_verify: false

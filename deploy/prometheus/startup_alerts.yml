@@ -1,0 +1,70 @@
+# LiMa startup alerting rules (G6).
+# Event-driven: startup phases are sparse, so alerts compare cumulative buckets
+# against the total count to detect slow individual phases.
+# Mount: rule_files: [rules/startup_alerts.yml]
+# Scrape: https://chat.donglicao.com/v1/ops/metrics/prometheus
+
+groups:
+  - name: lima_startup
+    rules:
+      - alert: LiMaStartupPhaseSlow
+        expr: |
+          (
+            lima_startup_phase_duration_ms_count
+            -
+            lima_startup_phase_duration_ms_bucket{le="5000.0"}
+          ) > 0
+        for: 0m
+        labels:
+          severity: warning
+          service: lima-router
+        annotations:
+          summary: "Startup phase {{ $labels.phase }} took longer than 5s"
+          description: >-
+            At least one observation of startup phase {{ $labels.phase }}
+            exceeded 5 seconds. Check /health startup.phases on the instance
+            for the exact timing.
+
+      - alert: LiMaStartupPhaseVerySlow
+        expr: |
+          (
+            lima_startup_phase_duration_ms_count
+            -
+            lima_startup_phase_duration_ms_bucket{le="10000.0"}
+          ) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: lima-router
+        annotations:
+          summary: "Startup phase {{ $labels.phase }} took longer than 10s"
+          description: >-
+            At least one observation of startup phase {{ $labels.phase }}
+            exceeded 10 seconds. This is likely blocking readiness or
+            warm-up; review /health startup.phases and instance logs.
+
+      - alert: LiMaStartupNotReady
+        expr: lima_startup_status != 1
+        for: 2m
+        labels:
+          severity: critical
+          service: lima-router
+        annotations:
+          summary: "LiMa is not ready"
+          description: >-
+            lima_startup_status has not been ready for more than 2 minutes.
+            Current status: {{ $value }} (0=starting/error, 0.5=warming).
+            Check /health/ready and /health on the instance.
+
+      - alert: LiMaStartupError
+        expr: lima_startup_status == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: lima-router
+        annotations:
+          summary: "LiMa startup is in error or still starting"
+          description: >-
+            lima_startup_status is 0, indicating a critical startup phase
+            failed or the service is still starting after 1 minute. Inspect
+            journalctl -u lima-router and /health startup.errors.

@@ -1,5 +1,24 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 完成 G6：基于 Prometheus 启动指标配置启动慢与未就绪告警
+
+- **目标**：让 G5 导出的启动阶段指标真正产生告警价值，在启动慢、长时间未就绪或启动错误时及时通知。
+- **关键结果**：
+  - 新增 `deploy/prometheus/startup_alerts.yml`：
+    - `LiMaStartupPhaseSlow`：任一启动阶段耗时超过 5 秒（warning）。
+    - `LiMaStartupPhaseVerySlow`：任一启动阶段耗时超过 10 秒（critical）。
+    - `LiMaStartupNotReady`：`lima_startup_status != 1` 持续 2 分钟以上（critical）。
+    - `LiMaStartupError`：`lima_startup_status == 0` 持续 1 分钟以上（critical）。
+    - 针对启动阶段这种稀疏事件，使用 histogram 的 `count - le bucket` 比较方式检测单次慢启动，避免依赖 `rate()`。
+  - 新增 `deploy/prometheus/prometheus.yml`：自托管 Prometheus 示例配置，包含 scrape、alertmanager、rule_files 与 `LIMA_METRICS_API_KEY` 认证占位。
+  - 新增 `deploy/prometheus/README.md`：说明规则用途、前置条件、告警含义、部署方式与本地验证命令。
+  - 新增 `tests/test_prometheus_startup_alerts.py`：结构验证测试，确保 YAML 解析正确、每个告警包含必要字段、使用了正确的指标名称。
+- **验证**：
+  - 聚焦测试：`tests/test_prometheus_startup_alerts.py` → **7 passed / 0 failed**。
+  - `ruff check` / `ruff format --check` clean；`pyright` 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` PASS。
+- **后续**：在 VPS 上挂载 `startup_alerts.yml` 到 Prometheus 并配置 Alertmanager 路由；积累真实启动数据后可调整阈值（当前 5s/10s 为初始保守值）。
+
 ## 2026-06-28 完成 G5：生产 nginx 暴露 /health/ready + Prometheus 启动阶段指标
 
 - **目标**：让 G4 应用层 readiness probe 能被生产基础设施消费，并把启动阶段耗时纳入 Prometheus 可观测体系。
