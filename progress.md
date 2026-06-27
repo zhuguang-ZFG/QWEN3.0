@@ -1,5 +1,16 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 整理工作区：归档 Grbl_Esp32 临时脚本
+
+- **目标**：清理 LiMa 工作区根目录堆积的 20+ 个 Grbl_Esp32 修复相关未跟踪文件，保持仓库根目录整洁。
+- **关键结果**：
+  - 创建 `reference/grbl_fix/` 目录，移动所有 Grbl_Esp32 脚本、补丁、batch 文件和变更说明文档。
+  - 新增 `reference/grbl_fix/README.md`（中文），说明目录用途、文件清单和使用注意事项。
+  - 更新 `.gitignore`：将 `reference/` 改为仅排除根目录文件，允许 `reference/grbl_fix/` 及其内容被跟踪。
+- **验证**：
+  - `git status` 确认根目录 clutter 已清理，只剩 `esp32S_XYZ` 子模块变更和 `scripts/lima_guardian_hidden.vbs`。
+  - 所有归档文件可在 `reference/grbl_fix/` 下访问。
+
 ## 2026-06-27 完成笔绘机矢量化 P2+：device_draw_handler 默认启用最近邻重排
 
 - **目标**：把 P2 的 `reorder_strokes` 能力接入真实设备绘图链路，让笔绘机云端绘制任务默认按最近邻顺序输出笔画，减少空走。

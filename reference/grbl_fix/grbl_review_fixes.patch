@@ -1,0 +1,31 @@
+diff --git a/Grbl_Esp32/src/Settings.cpp b/Grbl_Esp32/src/Settings.cpp
+--- a/Grbl_Esp32/src/Settings.cpp
++++ b/Grbl_Esp32/src/Settings.cpp
+@@ -12,7 +12,7 @@ bool idleOrAlarm() {
+     return sys.state != State::Idle && sys.state != State::Alarm;
+ }
+ bool notCycleOrHold() {
+-    return sys.state == State::Cycle && sys.state == State::Hold;
++    return sys.state == State::Cycle || sys.state == State::Hold;
+ }
+
+ Word::Word(type_t type, permissions_t permissions, const char* description, const char* grblName, const char* fullName) :
+diff --git a/Grbl_Esp32/src/MotionControl.cpp b/Grbl_Esp32/src/MotionControl.cpp
+--- a/Grbl_Esp32/src/MotionControl.cpp
++++ b/Grbl_Esp32/src/MotionControl.cpp
+@@ -313,7 +313,6 @@ GCUpdatePos mc_probe_cycle(float* target, plan_line_data_t* pl_data, uint8_t par
+         return GCUpdatePos::None;       // Nothing else to do but bail.
+     }
+     // Setup and queue probing motion. Auto cycle-start should not start the cycle.
+-    grbl_msg_sendf(CLIENT_SERIAL, MsgLevel::Info, "Found");
+     limitsCheckSoft(target);
+     cartesian_to_motors(target, pl_data, gc_state.position);
+     // Activate the probing state monitor in the stepper module.
+@@ -340,6 +339,7 @@ GCUpdatePos mc_probe_cycle(float* target, plan_line_data_t* pl_data, uint8_t par
+         }
+     } else {
+         sys.probe_succeeded = true;  // Indicate to system the probing cycle completed successfully.
++        grbl_msg_sendf(CLIENT_SERIAL, MsgLevel::Info, "Found");
+     }
+     sys_probe_state = Probe::Off;  // Ensure probe state monitor is disabled.
+     protocol_execute_realtime();   // Check and execute run-time commands

@@ -1,0 +1,35 @@
+diff --git a/Grbl_Esp32/src/WebUI/TelnetServer.cpp b/Grbl_Esp32/src/WebUI/TelnetServer.cpp
+--- a/Grbl_Esp32/src/WebUI/TelnetServer.cpp
++++ b/Grbl_Esp32/src/WebUI/TelnetServer.cpp
+@@ -178,7 +178,6 @@ namespace WebUI {
+     int Telnet_Server::get_rx_buffer_available() { return TELNETRXBUFFERSIZE - _RXbufferSize; }
+
+     bool Telnet_Server::push(uint8_t data) {
+-        log_i("[TELNET]push %c", data);
+         if ((1 + _RXbufferSize) <= TELNETRXBUFFERSIZE) {
+             int current = _RXbufferpos + _RXbufferSize;
+             if (current > TELNETRXBUFFERSIZE) {
+@@ -189,7 +188,6 @@ namespace WebUI {
+             }
+             _RXbuffer[current] = data;
+             _RXbufferSize++;
+-            log_i("[TELNET]buffer size %d", _RXbufferSize);
+             return true;
+         }
+         return false;
+diff --git a/Grbl_Esp32/src/WebUI/WebSettings.cpp b/Grbl_Esp32/src/WebUI/WebSettings.cpp
+--- a/Grbl_Esp32/src/WebUI/WebSettings.cpp
++++ b/Grbl_Esp32/src/WebUI/WebSettings.cpp
++++ b/Grbl_Esp32/src/WebUI/WebSettings.cpp
+@@ -277,8 +277,8 @@ namespace WebUI {
+         while (file.available()) {
+             if (sys.abort) {
+                 break;
+             }
+-            byte line[256];
+-            int  len = file.getBytes(line, 255);
++            byte line[LINE_BUFFER_SIZE];
++            int  len = file.getBytes(line, LINE_BUFFER_SIZE - 1);
+             if (len > 0) {
+                 line[len] = 0;
+                 char* line_char = (char*)line;

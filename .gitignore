@@ -20,7 +20,9 @@ tmp/
 *.pytest_temp/
 .coverage
 .kimi-code/
-reference/
+reference/*
+!reference/grbl_fix/
+!reference/grbl_fix/**
 
 # === 第三方项目 ===
 llama.cpp/
