@@ -48,6 +48,7 @@ from scripts.deploy_unified_common import (
 from scripts.deploy_unified_preflight import prepare_remote_deploy, restore_remote_backup
 from scripts.deploy_unified_deploy import deploy_files
 from scripts.deploy_unified_restart import restart_server
+from scripts.deploy_unified_nginx import sync_nginx_config
 
 
 def _collect_files(args, project_root: Path) -> list[str]:
@@ -76,6 +77,10 @@ def _execute_deploy(files: list[str], args, backup_path: str) -> int:
         for f in results["failed"]:
             print(f"  FAIL: {f}")
         return 1
+
+    if args.sync_nginx and not args.dry_run:
+        if not sync_nginx_config(dry_run=args.dry_run):
+            return 1
 
     if args.dry_run or args.no_restart:
         return 0
@@ -114,6 +119,11 @@ def main() -> int:
     parser.add_argument("--files", nargs="+", help="Specific files to deploy")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be deployed")
     parser.add_argument("--no-restart", action="store_true", help="Skip server restart")
+    parser.add_argument(
+        "--sync-nginx",
+        action="store_true",
+        help="Sync _nginx_chat_temp.conf to VPS and reload nginx (default: off)",
+    )
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parent.parent

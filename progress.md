@@ -1,5 +1,30 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 完成 G5：生产 nginx 暴露 /health/ready + Prometheus 启动阶段指标
+
+- **目标**：让 G4 应用层 readiness probe 能被生产基础设施消费，并把启动阶段耗时纳入 Prometheus 可观测体系。
+- **关键结果**：
+  - nginx 配置：
+    - `_nginx_chat_temp.conf`（权威源）新增 `location = /health/ready`，使用短超时（connect 5s / read 10s / send 10s）便于负载均衡快速失败。
+    - `infra/vps/nginx/chat.donglicao.com.conf`（VPS 副本）同步同一变更，并更新同步日期。
+  - Prometheus 启动指标：
+    - `observability/prometheus_metrics.py` 新增 `lima_startup_phase_duration_ms` histogram（按 `phase` 标签）与 `lima_startup_status` gauge（ready=1, warming=0.5, starting/error=0）。
+    - `server_lifespan_state.py` 的 `record_phase()` 与 `set_startup_status()` 在启用指标时自动上报，并对 Prometheus client 缺失/失败做防御，避免启动失败。
+  - 部署脚本：
+    - 新增 `scripts/deploy_unified_nginx.py`，实现 nginx 配置备份、上传、`nginx -t` 验证、reload、`/health/ready` 可达性验证，失败自动回滚备份。
+    - `scripts/deploy_unified.py` 新增 `--sync-nginx` 参数（默认关闭），显式开启时才触碰 `/etc/nginx/conf.d/chat.donglicao.com.conf`。
+  - 测试：
+    - 新增 `tests/test_nginx_ready_config.py`：验证权威源与 VPS 副本均包含 `/health/ready` location、代理到 `:8080`、短超时、关闭 buffering。
+    - 新增 `tests/test_prometheus_metrics.py`：验证 startup phase histogram 与 status gauge 输出、禁用状态、client 缺失时不抛异常。
+    - 新增 `tests/test_server_lifespan_state_metrics.py`：验证 `record_phase()` 和 `set_startup_status()` 会调用 Prometheus 记录函数并吞掉异常。
+  - 文档：
+    - 更新 `docs/DEPLOY_AND_RELEASE_CONVENTION.md`：补充 `--sync-nginx` 用法、readiness 轮询流程、`/health/ready` 验证命令与 503 场景说明。
+- **验证**：
+  - 聚焦测试：`tests/test_prometheus_metrics.py` + `tests/test_nginx_ready_config.py` + `tests/test_server_lifespan_state_metrics.py` + `tests/test_system_endpoints.py` → **29 passed / 0 failed**。
+  - `ruff check` / `ruff format --check` clean；`pyright` 0 errors（1 个既有 warning：`prometheus_client` import 无法解析）。
+  - `scripts/check_code_size.py` PASS（所有修改文件 ≤300 行，函数 ≤50 行）。
+- **后续**：VPS 部署时可使用 `python scripts/deploy_unified.py --slice core --sync-nginx` 自动同步 nginx； Prometheus 侧可基于 `lima_startup_phase_duration_ms` 与 `lima_startup_status` 配置启动慢告警。
+
 ## 2026-06-27 推进 G4+：部署 readiness 成功后打印启动阶段耗时摘要
 
 - **目标**：在 G4 readiness probe 就绪后，让部署脚本直观报告 lifespan 各阶段耗时，便于排查启动慢或服务未就绪的根因。

@@ -28,6 +28,8 @@ _log = logging.getLogger(__name__)
 _HEALTH_STATUSES = ("healthy", "degraded", "dead", "unknown")
 _HEALTH_VALUES = {"healthy": 1.0, "degraded": 0.5, "dead": 0.0, "unknown": 0.0}
 
+_STARTUP_STATUS_VALUES = {"ready": 1.0, "warming": 0.5, "starting": 0.0, "error": 0.0}
+
 _registry: Any | None = None
 _counters: dict[str, Any] = {}
 _histograms: dict[str, Any] = {}
@@ -107,6 +109,13 @@ def _register_histograms(histogram, registry) -> None:
         buckets=[100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000],
         registry=registry,
     )
+    _histograms["startup_phase_duration"] = histogram(
+        "lima_startup_phase_duration_ms",
+        "Startup phase duration in milliseconds",
+        ["phase"],
+        buckets=[10, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000],
+        registry=registry,
+    )
 
 
 def _register_gauges(gauge, registry) -> None:
@@ -131,6 +140,11 @@ def _register_gauges(gauge, registry) -> None:
     _gauges["backend_retired_count"] = gauge(
         "lima_backend_retired_count",
         "Count of backends currently retired",
+        registry=registry,
+    )
+    _gauges["startup_status"] = gauge(
+        "lima_startup_status",
+        "Startup status: 1=ready, 0.5=warming, 0=starting/error",
         registry=registry,
     )
 
@@ -204,6 +218,34 @@ def record_backend_retirement_event(backend: str) -> None:
     counter = _counters.get("backend_retirement_events")
     if counter:
         counter.labels(backend=backend).inc()
+
+
+def record_startup_phase(phase: str, elapsed_ms: float) -> None:
+    """Record the duration of a single lifespan startup phase."""
+    if not is_enabled():
+        return
+    try:
+        _ensure_instruments()
+    except Exception as exc:  # noqa: BLE001
+        _log.warning("failed to ensure Prometheus instruments for startup phase: %s", exc)
+        return
+    h = _histograms.get("startup_phase_duration")
+    if h:
+        h.labels(phase=phase).observe(float(elapsed_ms))
+
+
+def record_startup_status(status: str) -> None:
+    """Record the current startup status as a gauge value."""
+    if not is_enabled():
+        return
+    try:
+        _ensure_instruments()
+    except Exception as exc:  # noqa: BLE001
+        _log.warning("failed to ensure Prometheus instruments for startup status: %s", exc)
+        return
+    g = _gauges.get("startup_status")
+    if g:
+        g.set(_STARTUP_STATUS_VALUES.get(status, 0.0))
 
 
 def sync_retired_backends(retired: set[str]) -> None:

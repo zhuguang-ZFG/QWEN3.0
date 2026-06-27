@@ -57,6 +57,9 @@ git diff --stat
 # 标准部署（推荐）：读取 .env 中的 LIMA_DEPLOY_KEY_PATH / LIMA_DEPLOY_USE_TAR
 python scripts/deploy_unified.py --slice core
 
+# 同步 nginx 配置并部署 core（谨慎：会触碰 /etc/nginx）
+python scripts/deploy_unified.py --slice core --sync-nginx
+
 # 仅上传指定文件（不重启）
 python scripts/deploy_unified.py --files <file1> <file2> --no-restart
 
@@ -75,13 +78,17 @@ python scripts/deploy_unified.py --dry-run
 2. 在 VPS 上创建 tar 备份
 3. 默认使用 tar/scp 批量上传（环境 `LIMA_DEPLOY_USE_TAR=1`），失败时回退到 SFTP
 4. `systemctl restart lima-router`
-5. 轮询 `/health` 等待服务就绪（最长 120s，可通过 `LIMA_DEPLOY_HEALTH_WAIT_S` 调整）
+5. 轮询 `/health`（liveness，最长 120s）与 `/health/ready`（readiness，最长 60s）等待服务完全就绪
+6. readiness 成功后打印启动阶段耗时摘要
 
 ### Step 4: VPS 验证
 
 ```bash
 # 健康检查（deploy_unified.py 自动执行）
 curl -sf https://chat.donglicao.com/health
+
+# 严格就绪探针（503 表示仍在启动或热身）
+curl -sf https://chat.donglicao.com/health/ready
 
 # 设备网关健康
 curl -sf https://chat.donglicao.com/device/v1/health
@@ -94,6 +101,7 @@ python scripts/smoke_<feature>_vps.py
 
 - `/health` 与 `/device/v1/health` 正常返回 200；在以下情况可能返回 503：
   - **启动错误**：`/health` 在 `startup.status=error`（关键启动阶段失败）时返回 503。
+  - **严格未就绪**：`/health/ready` 在 `startup.status` 为 `starting`/`warming`/`error` 时返回 503，供负载均衡作为 readiness probe。
   - **生产未就绪**：`/device/v1/health` 在 `LIMA_RUNTIME_ENV=production` 且 `task_store` / `session_bus` 未跨进程共享时返回 503（`production_ready=false`）。
 - 验证失败时应先检查响应体，区分「服务未就绪」与「启动错误」。
 
@@ -164,7 +172,8 @@ python scripts/push_dual_remotes.py
 
 | 切片 | 部署脚本 | 说明 |
 |------|----------|------|
-| 标准部署 | `scripts/deploy_unified.py --slice core` | 容量检查 + 备份 + tar/scp 上传 + 重启 + health 等待 |
+| 标准部署 | `scripts/deploy_unified.py --slice core` | 容量检查 + 备份 + tar/scp 上传 + 重启 + health/ready 等待 |
+| 同步 nginx | `scripts/deploy_unified.py --slice core --sync-nginx` | 额外同步 `_nginx_chat_temp.conf` 并 reload nginx |
 | 指定切片 | `scripts/deploy_unified.py --slice phase_a/phase_b/all` | 按切片部署 |
 | 指定文件 | `scripts/deploy_unified.py --files a.py b.py` | 仅上传指定文件 |
 | JDCloud 探测 | `scripts/check_jdcloud_node.py` | 只读烟雾，不部署 |

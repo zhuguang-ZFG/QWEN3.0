@@ -33,6 +33,12 @@ def get_startup_state() -> dict[str, Any]:
 def set_startup_status(status: str) -> None:
     _startup_state["status"] = status
     _log.warning("[LIFESPAN] startup_status=%s", status)
+    try:
+        from observability.prometheus_metrics import record_startup_status
+
+        record_startup_status(status)
+    except ImportError:
+        pass
 
 
 def reset_startup_state() -> None:
@@ -77,6 +83,12 @@ def record_phase(name: str, elapsed_ms: float, status: str = "ok", detail: str =
     }
     STARTUP_PHASES.append(phase)
     _log.warning("[LIFESPAN] phase=%s elapsed_ms=%.1f status=%s %s", name, elapsed_ms, status, detail)
+    try:
+        from observability.prometheus_metrics import record_startup_phase
+
+        record_startup_phase(name, elapsed_ms)
+    except ImportError:
+        pass
     return phase
 
 
