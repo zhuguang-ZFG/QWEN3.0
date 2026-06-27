@@ -91,7 +91,7 @@ async def _generate_image(
 async def _convert_image_to_svg(image_url: str) -> Dict[str, Any]:
     """Convert an image URL to an SVG result dict."""
     converter = SVGConverter()
-    return await converter.convert_url_to_svg(image_url, skeletonize=True)
+    return await converter.convert_url_to_svg(image_url, skeletonize=True, reorder_strokes=True)
 
 
 def _validate_svg(svg_result: Dict[str, Any]) -> tuple[Any, str]:

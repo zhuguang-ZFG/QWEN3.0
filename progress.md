@@ -1,25 +1,19 @@
 # Personal Coding Assistant Progress
 
-## 2026-06-27 完成笔绘机矢量化 P2：跨路径笔程最近邻重排
+## 2026-06-27 完成笔绘机矢量化 P2+：device_draw_handler 默认启用最近邻重排
 
-- **目标**：在 P1 清理毛刺/碎线的基础上，减少笔绘机绘制多笔画图像时的抬笔空走距离，降低绘制时间和机械磨损。
+- **目标**：把 P2 的 `reorder_strokes` 能力接入真实设备绘图链路，让笔绘机云端绘制任务默认按最近邻顺序输出笔画，减少空走。
 - **关键结果**：
-  - 新增 `xiaozhi_drawing/path_ordering.py`（66 行）：实现贪心最近邻笔画重排 `reorder_polylines_nearest_neighbor`。
-    - 每条 polyline 可正反向绘制，从当前位置选择未访问笔画中最近端点，需要时反转笔画方向。
-    - 保持第一条笔画固定，确保输出确定性。
-    - 空列表/单条笔画安全返回。
-  - 接入 `xiaozhi_drawing/svg_converter.py`：
-    - `_extract_svg_paths` 与 `SVGConverter.convert_url_to_svg` 新增 `reorder_strokes: bool = False`（默认关闭，保持向后兼容）。
-    - 骨架模式下：`trace_skeleton_polylines` 之后、转 SVG 之前，若 `reorder_strokes=True` 则调用重排。
-  - 新增 `tests/test_path_ordering.py`：
-    - 单元测试：空/单条、两条线反转、多条线最近邻选择。
-    - 端到端测试：`_extract_svg_paths(..., reorder_strokes=True)` 的总 travel distance 不高于原始顺序。
+  - `device_gateway/device_draw_handler.py` 的 `_convert_image_to_svg` 现在调用 `converter.convert_url_to_svg(image_url, skeletonize=True, reorder_strokes=True)`。
+  - `tests/test_device_draw_handler.py` 同步更新断言，验证调用参数包含 `reorder_strokes=True`。
 - **验证**：
-  - 聚焦测试：`tests/test_svg_converter.py` + `tests/test_svg_converter_sketch.py` + `tests/test_skeleton_prune.py` + `tests/test_svg_binarize.py` + `tests/test_path_ordering.py` → **43 passed / 0 failed**。
-  - `ruff check` / `ruff format --check` clean；`pyright` 仅保留既有 `cv2.ximgproc` 警告。
-  - `scripts/check_code_size.py` 针对修改文件 **PASS**：`svg_converter.py` 294 行，`path_ordering.py` 66 行，函数均 ≤50 行。
+  - 设备绘图相关测试：`tests/test_device_draw_handler.py` + `tests/test_device_draw_handler_part2.py` + `tests/test_device_draw_integration.py` + 矢量化测试套件 → **61 passed / 0 failed**。
+  - `ruff check` / `ruff format --check` clean；`pyright` 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` **PASS**。
   - 本地 pre-commit（staged 文件）通过。
-- **后续可选**：在 `device_draw_handler.py` 中根据假/真机证据决定是否默认开启 `reorder_strokes=True`。
+- **注意事项**：当前为云端调用层默认开启；真实物理设备效果仍需假 U8 / 物理 U1 冒烟证据验证。若发现某些图案因重排导致视觉异常（如叠笔顺序影响深浅），可回退为在 `device_draw_handler` 中按设备 profile 动态开关。
+
+## 2026-06-27 完成笔绘机矢量化 P2：跨路径笔程最近邻重排
 
 ## 2026-06-27 完成笔绘机矢量化 P1：骨架毛刺剪枝 + 碎线过滤
 

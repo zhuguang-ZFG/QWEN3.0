@@ -182,7 +182,9 @@ class TestHandleDeviceDraw:
         assert resp["image_url"] == "http://img/1"
         assert resp["svg_path"] == "M0,0"
         mock_client.generate.assert_called_once()
-        mock_converter.convert_url_to_svg.assert_awaited_once_with("http://img/1", skeletonize=True)
+        mock_converter.convert_url_to_svg.assert_awaited_once_with(
+            "http://img/1", skeletonize=True, reorder_strokes=True
+        )
         mock_optimize.assert_called_once()
         assert mock_optimize.call_args.kwargs.get("close") is False
 
