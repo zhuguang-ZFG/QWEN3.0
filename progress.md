@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 完成京东云 Phase D：资源盘点
+
+- **目标**：为 Phase 2（分担低价/免费后端流量）评估京东云节点剩余容量。
+- **关键结果**：
+  - CPU：2 vCPU，loadavg ~0.02，算力充足。
+  - 内存：3.9 GB 总量，558 MB 可用；已运行 new-api、MySQL、Redis、Prometheus、browser helper。
+  - 磁盘：59 GB 总量，26 GB 可用，充足。
+  - 网络：公网 IP `117.72.118.95` + Tailscale；443/80 已由 nginx 占用。
+  - 主要监听端口：new-api `3000`、qwen2api `7862`、MySQL `3306`、Redis `6379`、Prometheus、browser `8092`。
+- **评估**：适合部署轻量反向代理/Worker 分担低价后端出站流量，但需严格限制内存与并发连接数。
+- **文档**：更新 `docs/ops/JDCLOUD_RUNTIME_STATUS.md` Phase D 章节。
+
 ## 2026-06-27 完成京东云利用率提升 Phase 1：probe 结果回写与异地观测
 
 - **目标**：让京东云 probe 的结构化结果安全回流到 LiMa 主节点，并在 Admin 端点查询。

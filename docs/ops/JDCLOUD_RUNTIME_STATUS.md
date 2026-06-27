@@ -147,6 +147,23 @@ probe 结果回写与异地观测：
     `probe push: status=200 recorded=39`。
   - 主 VPS `GET /admin/api/probe/jdcloud` 返回 39 条京东云 probe 记录。
 
+## Phase D 资源盘点（2026-06-27）
+
+为评估 Phase 2（分担低价/免费后端流量）可行性，对京东云节点进行资源审计：
+
+| 资源 | 值 | 评估 |
+|---|---|---|
+| CPU | 2 vCPU（Intel Xeon E5-2683 v4 @ 2.10GHz）| 负载极低（loadavg ~0.02），有充足算力 |
+| 内存 | 总计 3.9 GB / 可用 558 MB | 已运行 new-api、MySQL、Redis、Prometheus、browser helper；可用内存偏紧，新增 worker 需谨慎 |
+| 磁盘 | 59 GB 总量 / 26 GB 可用 | 充足 |
+| 网络 | 公网 IP `117.72.118.95`、Tailscale `100.85.114.65` | 具备出站能力；443/80 由 nginx 占用 |
+| 主要服务 | new-api:3000、qwen2api:7862、MySQL:3306、Redis:6379、Prometheus、browser:8092 | 端口占用较多，新增公开入口需避免冲突 |
+| Probe 推送 | `lima-probe-push.timer` active | Phase 1 运行正常 |
+
+**结论**：京东云当前负载轻，可作为低价/免费后代的出站代理；但内存余量仅约 500MB，
+Phase 2 设计应采用轻量反向代理/Worker 模式，不常驻重负载服务，且需要严格的内存与
+连接数上限。
+
 ## Latest Hygiene Evidence
 
 - Local JDCloud password helpers were not staged.
