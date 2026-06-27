@@ -1,5 +1,26 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 推进 G4：新增 /health/ready readiness probe，部署脚本区分 liveness 与 readiness
+
+- **目标**：在现有 lifespan critical/warm 阶段化启动基础上，让部署流程和负载均衡器能明确区分"可服务但仍在热身"与"完全就绪"，降低部署不确定性。
+- **关键结果**：
+  - `routes/system_endpoints.py` 新增 `GET /health/ready`：
+    - 仅当 `startup_status == "ready"` 时返回 HTTP 200 + `{"status": "ready"}`。
+    - `starting`/`warming`/`error` 返回 HTTP 503 + `{"status": "not_ready", "startup_status": ..., "pending_warm": [...], "error_count": N}`。
+    - 不影响现有 `/health` 行为（`/health` 仍认为 `warming` 是 OK）。
+  - `scripts/deploy_unified_restart.py`：
+    - 保持 `/health` 轮询作为 liveness 检查。
+    - `/health` 成功后新增 `/health/ready` 轮询，直到 fully ready 或超时。
+    -  readiness 超时时打印 `pending_warm`/`errors` 并拉取 journalctl 日志。
+  - `scripts/deploy_unified_common.py` 新增 `READY_WAIT_SECONDS=60`、`READY_POLL_SECONDS=3`。
+  - `tests/test_system_endpoints.py` 新增 3 个测试覆盖 ready/warming/error 状态。
+- **验证**：
+  - 聚焦测试：`tests/test_system_endpoints.py` → **11 passed / 0 failed**。
+  - `ruff check` / `ruff format --check` clean；`pyright` 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` **PASS**。
+  - 本地 pre-commit（staged 文件）通过。
+- **后续可选**：在 VPS nginx 或负载均衡配置中把 `/health/ready` 作为 readiness probe；在云原生部署中作为 Kubernetes readiness probe。
+
 ## 2026-06-27 整理工作区：归档 Grbl_Esp32 临时脚本
 
 - **目标**：清理 LiMa 工作区根目录堆积的 20+ 个 Grbl_Esp32 修复相关未跟踪文件，保持仓库根目录整洁。

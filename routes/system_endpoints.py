@@ -125,6 +125,21 @@ async def health():
     return payload
 
 
+@router.get("/health/ready")
+async def health_ready() -> JSONResponse:
+    """Strict readiness probe: return 200 only when all warm phases are done."""
+    state = server_lifespan.get_startup_state()
+    startup_status = state["status"]
+    payload: dict[str, Any] = {
+        "status": "ready" if startup_status == "ready" else "not_ready",
+        "startup_status": startup_status,
+        "pending_warm": list(state.get("pending_warm", [])),
+        "error_count": len(state.get("errors", [])),
+    }
+    status_code = 200 if startup_status == "ready" else 503
+    return JSONResponse(status_code=status_code, content=payload)
+
+
 @router.get("/api/live-key", dependencies=[Depends(require_private_api_key)])
 async def live_key():
     """Capability metadata only; raw provider keys stay server-side."""

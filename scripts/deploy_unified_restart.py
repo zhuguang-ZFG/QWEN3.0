@@ -13,6 +13,8 @@ from scripts.deploy_unified_common import (
     HEALTH_GRACE_AFTER_RESTART_S,
     HEALTH_POLL_SECONDS,
     HEALTH_WAIT_SECONDS,
+    READY_POLL_SECONDS,
+    READY_WAIT_SECONDS,
 )
 import paramiko
 
@@ -74,6 +76,19 @@ def _health_ready(ssh: paramiko.SSHClient) -> tuple[bool, str]:
     return False, last_detail
 
 
+def _ready_ready(ssh: paramiko.SSHClient) -> tuple[bool, str]:
+    code, out, err = _ssh_exec(ssh, "curl -sS -m 10 http://127.0.0.1:8080/health/ready")
+    last_detail = out or err or f"curl exit {code}"
+    if code == 0:
+        try:
+            payload = json.loads(out)
+            if payload.get("status") == "ready":
+                return True, last_detail
+        except json.JSONDecodeError:
+            pass
+    return False, last_detail
+
+
 def _poll_health(ssh: paramiko.SSHClient) -> bool:
     deadline = time.time() + HEALTH_WAIT_SECONDS
     last_detail = ""
@@ -92,12 +107,32 @@ def _poll_health(ssh: paramiko.SSHClient) -> bool:
     return False
 
 
+def _poll_ready(ssh: paramiko.SSHClient) -> bool:
+    deadline = time.time() + READY_WAIT_SECONDS
+    last_detail = ""
+    while time.time() < deadline:
+        if not _service_is_active(ssh):
+            return False
+        ready, last_detail = _ready_ready(ssh)
+        if ready:
+            return True
+        time.sleep(READY_POLL_SECONDS)
+
+    print(f"  readiness never became ready; last: {last_detail[:240]}")
+    _code, logs, _err = _ssh_exec(ssh, "journalctl -u lima-router -n 25 --no-pager")
+    if logs:
+        print(logs)
+    return False
+
+
 def restart_server() -> bool:
-    """Clear pycache, restart the systemd service, and wait for health."""
+    """Clear pycache, restart the systemd service, and wait for health + readiness."""
     ssh = _connect_ssh()
     try:
         if not _restart_service(ssh):
             return False
-        return _poll_health(ssh)
+        if not _poll_health(ssh):
+            return False
+        return _poll_ready(ssh)
     finally:
         ssh.close()

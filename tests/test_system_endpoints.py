@@ -104,3 +104,47 @@ def test_health_includes_anonymous_access_security(monkeypatch):
     assert security["env_enabled"] is True
     assert security["production_blocked"] is False
     assert security["allowed"] is True
+
+
+def _mock_startup_state(monkeypatch, status: str, pending_warm: list | None = None, errors: list | None = None):
+    monkeypatch.setattr(
+        system_endpoints.server_lifespan,
+        "get_startup_state",
+        lambda: {
+            "status": status,
+            "pending_warm": pending_warm or [],
+            "errors": errors or [],
+        },
+    )
+
+
+def test_health_ready_returns_200_when_ready(monkeypatch):
+    _mock_startup_state(monkeypatch, "ready")
+    client = TestClient(server.app)
+    response = client.get("/health/ready")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ready"
+    assert payload["startup_status"] == "ready"
+
+
+def test_health_ready_returns_503_when_warming(monkeypatch):
+    _mock_startup_state(monkeypatch, "warming", pending_warm=["backend_profile.load"])
+    client = TestClient(server.app)
+    response = client.get("/health/ready")
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["status"] == "not_ready"
+    assert payload["startup_status"] == "warming"
+    assert payload["pending_warm"] == ["backend_profile.load"]
+
+
+def test_health_ready_returns_503_when_error(monkeypatch):
+    _mock_startup_state(monkeypatch, "error", errors=["boom"])
+    client = TestClient(server.app)
+    response = client.get("/health/ready")
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["status"] == "not_ready"
+    assert payload["startup_status"] == "error"
+    assert payload["error_count"] == 1

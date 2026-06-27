@@ -65,6 +65,8 @@ from config import deploy_config
 HEALTH_WAIT_SECONDS = deploy_config.deploy_health_wait_s()
 HEALTH_POLL_SECONDS = 3
 HEALTH_GRACE_AFTER_RESTART_S = deploy_config.deploy_health_grace_s()
+READY_WAIT_SECONDS = 60
+READY_POLL_SECONDS = 3
 DEFAULT_MIN_FREE_MB = 512
 DEFAULT_MIN_MEM_MB = 128
 
