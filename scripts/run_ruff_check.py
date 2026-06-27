@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Run ruff check against tracked Python files only."""
+"""Run ruff check against tracked or explicitly provided Python files."""
 
 from __future__ import annotations
 
+import argparse
 import subprocess
 import sys
 from pathlib import Path
+from typing import Sequence
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -50,9 +52,21 @@ def run_ruff(paths: list[str], root: Path = ROOT) -> subprocess.CompletedProcess
     return result
 
 
-def main() -> int:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        help="Python files to check; defaults to all tracked Python files",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_args(argv)
     try:
-        result = run_ruff(tracked_python_files())
+        paths = args.paths if args.paths else tracked_python_files()
+        result = run_ruff(paths)
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 1

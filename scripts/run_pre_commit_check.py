@@ -113,7 +113,7 @@ def changed_python_files_ci(root: Path = ROOT) -> list[str]:
 def quick_commands(changed_paths: Sequence[str], *, python: str = sys.executable, ci: bool = False) -> list[list[str]]:
     """Build quick pre-commit / CI commands."""
     commands = [
-        [python, "scripts/run_ruff_check.py"],
+        [python, "scripts/run_ruff_check.py", *changed_paths],
     ]
     if ci:
         commands.append(["git", "diff", "--check", "HEAD~1", "HEAD"])
