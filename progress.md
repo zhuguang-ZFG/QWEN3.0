@@ -1,5 +1,44 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 完成笔绘机矢量化 P0：二值化策略升级（自适应阈值）
+
+- **目标**：评估并改进 `xiaozhi_drawing/svg_converter.py` 的位图→SVG 矢量化质量。原 Otsu 全局二值化在 AI 出图（渐变背景、明暗不均）上会丢线或糊块，这是最大瓶颈。
+- **关键结果**：
+  - 新增 `xiaozhi_drawing/binarize.py`（78 行）：三种二值化策略 `otsu`/`adaptive`/`auto`。
+    - `otsu_binary`：全局 Otsu，适合均匀背景线稿（旧行为）。
+    - `adaptive_binary`：自适应局部阈值（blockSize=31, C=7），对渐变/光照不均的 AI 图鲁棒。
+    - `is_uneven`：四象限均值差 >40 启发式，判断是否光照不均。
+    - `binarize`：按 `threshold_mode` 选择策略，`auto` 自动切换。
+  - 重构 `svg_converter.py`：`_preprocess_image` 改为调用 `_binarize`，返回三元组 `(gray, binary, threshold_method)`；`_svg_payload` 与 `convert_url_to_svg` 透传 `threshold_method`，新增 `threshold_mode` 参数（默认 `auto`，向后兼容）。
+  - 拆分动机：原文件增至 314 行超 300 行硬规则，拆出 `binarize.py` 后 svg_converter 降至 252 行。
+  - `device_draw_handler.py` 调用处无需改动（默认 `auto` 即为旧行为升级）。
+- **验证**：
+  - 聚焦测试：`tests/test_svg_converter.py` + `tests/test_svg_converter_sketch.py` + `test_device_draw_handler*.py` + `test_device_draw_integration.py` → **49 passed / 0 failed**。
+  - 新增 `TestBinarization` 类（8 用例）：otsu/adaptive 强制模式、auto 对均匀线稿选 otsu/对渐变图选 adaptive、非法模式抛 ValueError、`_preprocess_image` 返回 method、`convert_url_to_svg` 上报 method、auto 在渐变图上不丢笔画。
+  - `ruff check` / `ruff format --check` clean；`pyright` binarize.py **0 errors / 0 warnings**（W1：加 `cv2 is None` 守卫后消除全部 Optional member warning）；文件规模 svg_converter=252 / binarize=78，函数均 ≤50 行。
+- **代码审查**：经 lima-review skill 审查，1 Blocker=0、2 Warning(W1 已修/W2 低优先)、3 Suggestion(S1/S2 可选/S3 本条目)。无遗留阻塞项。
+- **下一步（可选）**：P1 骨架毛刺剪枝 + 提高碎线过滤；P2 跨路径笔程最近邻重排。当前 P0 已解决最大瓶颈（二值化），其余为渐进优化。
+
+## 2026-06-27 完成京东云 Phase 2：Worker 无 key 免费 provider（Pollinations）分担试点
+
+- **目标**：让京东云 Worker 代理无 key 免费 provider（Pollinations），主 VPS 通过 Worker 分担部分聊天流量，并端到端验证。
+- **关键结果**：
+  - Worker 无 key 支持：`deploy/jdcloud/jdcloud_worker.py` 的 `_load_providers()` 与 `_build_upstream_headers()` 已天然支持无 key upstream（缺 `{NAME}_KEY` 时不注入 Authorization）。本次在 `deploy/jdcloud/deploy_jdcloud_worker.sh` 的 `.env` 模板新增 `POLLINATIONS_URL=https://text.pollinations.ai/openai/chat/completions`（无 key），并补充无 key provider 注释。
+  - 主 VPS 后端注册：`backends_registry/jdcloud_proxy.py` 新增两个指向 `/proxy/pollinations` 的后端 `jdcloud_pollinations_openai`（model=openai, timeout=45）、`jdcloud_pollinations_deepseek`（model=deepseek, timeout=45），仅以 `JDCLOUD_WORKER_TOKEN` 鉴权。
+  - 路由池：`router_v3/pools.py` 将 `jdcloud_pollinations_deepseek` 放入 `chat.floor`，`jdcloud_pollinations_openai` 放入 `chat_fast.floor`，作为试点流量分担（floor 兜底层）。
+  - 测试：`tests/test_jdcloud_worker.py` 新增 `TestKeylessProvider`（无 key 加载、转发不带 Authorization、`_build_upstream_headers` 空 key 省略授权头）；`tests/test_jdcloud_proxy_backend.py` 新增 Pollinations 后端注册/配置/池子断言。
+- **部署证据（京东云 `100.85.114.65`）**：
+  - 经 `~/.ssh/jdcloud_ed25519` 通过 Tailscale 内网部署，`deploy_jdcloud_worker.sh` 一键创建 `lima-worker` 用户 + venv + systemd unit。
+  - `jdcloud-worker.service` active；启动日志 `Provider POLLINATIONS loaded without API key (keyless upstream)`。
+  - `.env` 含 64 位随机 `JDCLOUD_WORKER_TOKEN`（mode 600，未进 Git），本地副本保存在 `~/.ssh/jdcloud_worker_token`。
+- **端到端验证（节点本机）**：
+  - `GET /health` → `{"status":"ok"}`；缺鉴权 → 401；未知 provider → 404。
+  - 经 Worker 的 keyless `POST /proxy/pollinations`（真实上游）→ HTTP 200，返回真实补全 `content: "pong"`；抓包确认转发未带 Authorization 头。
+  - 直连上游对照 → 200；之前偶发 502 为 Pollinations 上游（Cloudflare）瞬时抖动，重试即恢复。
+- **本地测试**：`tests/test_jdcloud_worker.py` + `tests/test_jdcloud_proxy_backend.py` → **61 passed / 0 failed**；`ruff check` / `ruff format --check` clean（改动文件）。
+- **主 VPS token 配置（2026-06-27 补完）**：经授权后，将与京东云 Worker 一致的 64 位 `JDCLOUD_WORKER_TOKEN` 合并写入主 VPS（`47.112.162.80`）`.env`（先备份至 `/opt/lima-router/.env.bak.worker.20260627_100410` 后追加，未覆盖），重启 `lima-router.service` 为 active。主 VPS loopback `/health` 返回 200，监听 `0.0.0.0:8080`。
+- **端到端流量分担验证（主 VPS 实跑）**：主 VPS → 京东云 Worker `/health` 返回 200；主 VPS → Worker `/proxy/pollinations` 真实 chat 请求返回 200 与真实补全内容（`content:"pong"`）。试点流量分担链路全程打通，floor 兜底层已可分担。文档见 `docs/ops/JDCLOUD_RUNTIME_STATUS.md` Phase 2 章节。
+
 ## 2026-06-27 完成京东云 Phase D：资源盘点
 
 - **目标**：为 Phase 2（分担低价/免费后端流量）评估京东云节点剩余容量。

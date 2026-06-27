@@ -16,6 +16,7 @@ try:
 except ImportError:  # pragma: no cover - local environments may omit OpenCV
     cv2 = None
 
+from xiaozhi_drawing.binarize import binarize as _binarize
 from xiaozhi_drawing.skeleton_tracer import polylines_to_svg_paths, trace_skeleton_polylines
 
 logger = logging.getLogger(__name__)
@@ -35,16 +36,19 @@ async def _download_image(image_url: str) -> BytesIO:
 # ── 图像预处理 ─────────────────────────────────────────────────────────────────
 
 
-def _preprocess_image(image_data: BytesIO) -> tuple:
-    """Load, resize, gray, blur, and Otsu-threshold the image."""
+def _preprocess_image(image_data: BytesIO, threshold_mode: str = "auto") -> tuple:
+    """Load, resize, gray, blur, and threshold the image.
+
+    Returns (gray, binary, threshold_method).
+    """
     if cv2 is None:
         raise RuntimeError("OpenCV is not installed")
     img = Image.open(image_data).convert("RGB")
     img.thumbnail((512, 512), Image.Resampling.LANCZOS)
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, binary = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    return gray, binary
+    binary, threshold_method = _binarize(gray, blurred, threshold_mode)
+    return gray, binary, threshold_method
 
 
 # ── 骨架化 ─────────────────────────────────────────────────────────────────────
@@ -171,6 +175,7 @@ def _svg_payload(
     height: int = 0,
     skeletonize: bool = False,
     thinning_method: str | None = None,
+    threshold_method: str | None = None,
     error: str | None = None,
 ) -> dict[str, Any]:
     paths = svg_paths or []
@@ -182,6 +187,7 @@ def _svg_payload(
         "contour_count": len(paths),
         "skeleton_applied": skeletonize,
         "thinning_method": thinning_method,
+        "threshold_method": threshold_method,
         "error": error,
     }
 
@@ -199,6 +205,7 @@ class SVGConverter:
         min_contour_area: int = 100,
         *,
         skeletonize: bool = False,
+        threshold_mode: str = "auto",
     ) -> dict[str, Any]:
         """下载图片并转换为 SVG 路径（OpenCV 处理）。
 
@@ -208,10 +215,13 @@ class SVGConverter:
             min_contour_area: 非骨架模式下最小轮廓面积过滤阈值。
             skeletonize: True 先细化为单像素骨架再提取路径，适合笔绘机
                          单线绘图，避免双线轮廓；False 保留原有轮廓面模式（库默认）。
+            threshold_mode: 二值化策略。"auto"（默认）对明暗均匀的线稿用 Otsu，
+                            对渐变背景/光照不均的 AI 出图自动切自适应阈值；
+                            "otsu" 强制全局 Otsu（旧行为）；"adaptive" 强制自适应。
         """
         try:
             image_data = await _download_image(image_url)
-            gray, binary = _preprocess_image(image_data)
+            gray, binary, threshold_method = _preprocess_image(image_data, threshold_mode)
             svg_paths, thinning_method = _extract_svg_paths(
                 binary, simplify_epsilon, min_contour_area, skeletonize=skeletonize
             )
@@ -221,6 +231,7 @@ class SVGConverter:
                     return _svg_payload(
                         "failed",
                         skeletonize=True,
+                        threshold_method=threshold_method,
                         error="No stroke paths after skeletonization",
                     )
                 svg_paths = [_legacy_fallback_path(w, h)]
@@ -231,6 +242,7 @@ class SVGConverter:
                 height=h,
                 skeletonize=skeletonize,
                 thinning_method=thinning_method,
+                threshold_method=threshold_method,
             )
         except httpx.HTTPError as e:
             logger.error(f"下载图片失败: {e}")
