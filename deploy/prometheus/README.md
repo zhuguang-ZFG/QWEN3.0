@@ -86,10 +86,20 @@ LiMa 主监控栈部署在京东云节点（`117.72.118.95`）。当前生产环
   - `lima-router` → 企业微信（所有 `service: lima-router` 告警）
   - `warning` 被同名的 `critical` 告警抑制（`inhibit_rules`）
 
+### 启动阈值校准（G7.2）
+
+积累真实启动样本后，可用 `scripts/startup_threshold_advisor.py` 根据 Prometheus histogram bucket 给出保守阈值建议：
+
+```bash
+python scripts/startup_threshold_advisor.py --prometheus-url http://117.72.118.95:9090
+```
+
+脚本读取 `lima_startup_phase_duration_ms_bucket`，按 phase 输出样本数、最大观测 bucket、建议 warning/critical 阈值。建议 7 天后结合业务经验再调整 `deploy/prometheus/startup_alerts.yml`。
+
 > 注意：Prometheus 抓取 `https://chat.donglicao.com/v1/ops/metrics/prometheus` 需要 `LIMA_METRICS_API_KEY`。当前生产 `prometheus/prometheus.yml` 中已硬编码该 key，增量更新脚本不需要额外设置。
 
 ## 本地验证
 
 ```bash
-python -m pytest tests/test_prometheus_startup_alerts.py tests/test_jdcloud_alertmanager.py -v
+python -m pytest tests/test_prometheus_startup_alerts.py tests/test_jdcloud_alertmanager.py tests/test_startup_threshold_advisor.py -v
 ```

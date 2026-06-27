@@ -74,6 +74,29 @@
   - 提供真实 webhook URL 后重跑 `update_alertmanager.sh`。
   - 触发一次慢启动（如临时调高启动阈值或手动压测）验证告警通知可达。
   - 7 天后根据真实启动数据调整 `startup_alerts.yml` 阈值。
+
+## 2026-06-28 完成 G7.2：启动告警阈值校准工具
+
+- **目标**：为 G7 的启动告警提供基于真实 Prometheus histogram 数据的阈值建议，避免 5s/10s 初始阈值长期拍脑袋。
+- **关键结果**：
+  - 新增 `scripts/startup_threshold_advisor.py`：
+    - 解析 Prometheus `/api/v1/query` 返回的 instant-vector JSON。
+    - 按 `phase` 计算样本总数、最大观测 bucket、保守 warning/critical 阈值建议。
+    - 输出中文 Markdown 表格，便于贴入 `progress.md` 或 `docs/`。
+    - 支持 `--input` 本地 JSON 和 `--prometheus-url` 远程查询。
+  - 新增 `tests/test_startup_threshold_advisor.py`：覆盖解析、汇总、空输入、Markdown 渲染。
+  - 更新 `deploy/prometheus/README.md`：增加 G7.2 用法说明。
+- **验证**：
+  - 聚焦测试：`tests/test_startup_threshold_advisor.py` → **4 passed / 0 failed**。
+  - `py_compile` / `ruff check` / `pyright` / `check_code_size.py` 改动文件 clean。
+  - 本地示例：先用 curl 保存 Prometheus JSON，再执行脚本：
+    ```bash
+    curl -sS 'http://117.72.118.95:9090/api/v1/query?query=lima_startup_phase_duration_ms_bucket' > /tmp/startup_buckets.json
+    python scripts/startup_threshold_advisor.py --input /tmp/startup_buckets.json
+    ```
+- **后续**：
+  - 7 天后在京东云节点运行上述命令，根据输出调整 `deploy/prometheus/startup_alerts.yml` 中的阈值。
+
 ## 2026-06-28 完成 G6：基于 Prometheus 启动指标配置启动慢与未就绪告警
 
 - **目标**：让 G5 导出的启动阶段指标真正产生告警价值，在启动慢、长时间未就绪或启动错误时及时通知。
