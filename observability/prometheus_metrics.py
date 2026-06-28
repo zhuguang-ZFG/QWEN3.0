@@ -92,6 +92,18 @@ def _register_counters(counter, registry) -> None:
         ["backend"],
         registry=registry,
     )
+    _counters["image_cache_lookups"] = counter(
+        "lima_image_cache_lookups_total",
+        "Image cache lookups by result",
+        ["result"],
+        registry=registry,
+    )
+    _counters["image_requests"] = counter(
+        "lima_image_requests_total",
+        "Image generation requests by backend",
+        ["backend"],
+        registry=registry,
+    )
 
 
 def _register_histograms(histogram, registry) -> None:
@@ -145,6 +157,11 @@ def _register_gauges(gauge, registry) -> None:
     _gauges["startup_status"] = gauge(
         "lima_startup_status",
         "Startup status: 1=ready, 0.5=warming, 0=starting/error",
+        registry=registry,
+    )
+    _gauges["image_cache_entries"] = gauge(
+        "lima_image_cache_entries",
+        "Current number of cached image generation entries",
         registry=registry,
     )
 
@@ -210,62 +227,35 @@ def record_backend_score(backend: str, score: float) -> None:
         gauge.labels(backend=backend).set(max(0.0, min(1.0, float(score))))
 
 
-def record_backend_retirement_event(backend: str) -> None:
-    """Increment retirement counter when a backend is newly retired."""
+def record_image_cache_lookup(result: str) -> None:
+    """Record an image cache lookup as hit or miss."""
     if not is_enabled():
         return
     _ensure_instruments()
-    counter = _counters.get("backend_retirement_events")
+    counter = _counters.get("image_cache_lookups")
     if counter:
-        counter.labels(backend=backend).inc()
+        normalized = "hit" if result == "hit" else "miss"
+        counter.labels(result=normalized).inc()
 
 
-def record_startup_phase(phase: str, elapsed_ms: float) -> None:
-    """Record the duration of a single lifespan startup phase."""
-    if not is_enabled():
-        return
-    try:
-        _ensure_instruments()
-    except Exception as exc:  # noqa: BLE001
-        _log.warning("failed to ensure Prometheus instruments for startup phase: %s", exc)
-        return
-    h = _histograms.get("startup_phase_duration")
-    if h:
-        h.labels(phase=phase).observe(float(elapsed_ms))
-
-
-def record_startup_status(status: str) -> None:
-    """Record the current startup status as a gauge value."""
-    if not is_enabled():
-        return
-    try:
-        _ensure_instruments()
-    except Exception as exc:  # noqa: BLE001
-        _log.warning("failed to ensure Prometheus instruments for startup status: %s", exc)
-        return
-    g = _gauges.get("startup_status")
-    if g:
-        g.set(_STARTUP_STATUS_VALUES.get(status, 0.0))
-
-
-def sync_retired_backends(retired: set[str]) -> None:
-    """Sync per-backend retired gauges and aggregate count from backend_retirement."""
+def record_image_request(backend: str) -> None:
+    """Record an image generation request by the backend that served it."""
     if not is_enabled():
         return
     _ensure_instruments()
-    retired_gauge = _gauges.get("backend_retired")
-    count_gauge = _gauges.get("backend_retired_count")
-    if not retired_gauge or not count_gauge:
-        return
+    counter = _counters.get("image_requests")
+    if counter:
+        counter.labels(backend=backend or "unknown").inc()
 
-    normalized = {name for name in retired if name}
-    for backend in normalized - _retired_backend_labels:
-        retired_gauge.labels(backend=backend).set(1.0)
-    for backend in _retired_backend_labels - normalized:
-        retired_gauge.labels(backend=backend).set(0.0)
-    _retired_backend_labels.clear()
-    _retired_backend_labels.update(normalized)
-    count_gauge.set(float(len(normalized)))
+
+def record_image_cache_entries(count: int) -> None:
+    """Update the gauge of current image cache entries."""
+    if not is_enabled():
+        return
+    _ensure_instruments()
+    gauge = _gauges.get("image_cache_entries")
+    if gauge:
+        gauge.set(float(count))
 
 
 def generate_metrics() -> bytes:
@@ -275,3 +265,13 @@ def generate_metrics() -> bytes:
     _ensure_instruments()
     client = _load_client()
     return client["generate_latest"](_registry)
+
+
+# Re-export startup/retirement helpers from a focused submodule so this file
+# stays under the project size limit while keeping the public API unchanged.
+from observability.prometheus_startup_metrics import (  # noqa: E402
+    record_backend_retirement_event,
+    record_startup_phase,
+    record_startup_status,
+    sync_retired_backends,
+)

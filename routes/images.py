@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from access_guard import require_private_api_key
+from observability import prometheus_metrics as _prom_metrics
 from routes.json_body import read_json_object
 
 router = APIRouter()
@@ -44,6 +45,7 @@ def _get_cached_image(prompt: str, size: str) -> tuple[list[dict], str] | None:
         _image_cache.pop(key, None)
         return None
     _log.info("image cache hit for prompt=%s size=%s backend=%s", prompt[:40], size, backend)
+    _prom_metrics.record_image_cache_lookup("hit")
     return data_items, backend
 
 
@@ -56,6 +58,7 @@ def _set_cached_image(prompt: str, size: str, data_items: list[dict], backend: s
         _image_cache.pop(oldest, None)
     _image_cache[key] = (data_items, backend, time.time())
     _log.info("image cache set for prompt=%s size=%s backend=%s entries=%d", prompt[:40], size, backend, len(_image_cache))
+    _prom_metrics.record_image_cache_entries(len(_image_cache))
 
 
 def _should_skip_cache(request: Request) -> bool:
@@ -188,6 +191,7 @@ async def _generate_image_urls(
         if cached is not None:
             data_items, backend = cached
             return data_items, backend, 0
+        _prom_metrics.record_image_cache_lookup("miss")
 
     data_items = await _generate_via_xmiaom(enhanced_prompt, size)
     backend = IMAGE_BACKEND
@@ -200,6 +204,7 @@ async def _generate_image_urls(
     if data_items:
         _set_cached_image(enhanced_prompt, size, data_items, backend)
 
+    _prom_metrics.record_image_request(backend)
     return data_items, backend, duration_ms
 
 

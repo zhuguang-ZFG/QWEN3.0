@@ -67,3 +67,25 @@ def test_record_startup_status_does_not_raise_when_instruments_unavailable(monke
         prometheus_metrics, "_ensure_instruments", lambda: (_ for _ in ()).throw(RuntimeError("no client"))
     )
     prometheus_metrics.record_startup_status("ready")
+
+
+def test_record_image_cache_lookup_emits_counter():
+    prometheus_metrics.record_image_cache_lookup("hit")
+    prometheus_metrics.record_image_cache_lookup("miss")
+    output = _metric_output()
+    assert 'lima_image_cache_lookups_total{result="hit"} 1.0' in output
+    assert 'lima_image_cache_lookups_total{result="miss"} 1.0' in output
+
+
+def test_record_image_request_emits_counter():
+    prometheus_metrics.record_image_request("xmiaom_gpt_image_2")
+    prometheus_metrics.record_image_request("pollinations")
+    output = _metric_output()
+    assert 'lima_image_requests_total{backend="xmiaom_gpt_image_2"} 1.0' in output
+    assert 'lima_image_requests_total{backend="pollinations"} 1.0' in output
+
+
+def test_record_image_cache_entries_sets_gauge():
+    prometheus_metrics.record_image_cache_entries(42)
+    output = _metric_output()
+    assert "lima_image_cache_entries 42.0" in output
