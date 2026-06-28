@@ -212,6 +212,6 @@ BACKENDS = {
         "key": XMIAOM_API_KEY,
         "model": "gpt-image-2",
         "fmt": "openai",
-        "timeout": 120,
+        "timeout": 180,
     },
 }
