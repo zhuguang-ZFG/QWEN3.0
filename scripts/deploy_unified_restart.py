@@ -64,12 +64,13 @@ def _service_is_active(ssh: paramiko.SSHClient) -> bool:
 
 
 def _health_ready(ssh: paramiko.SSHClient) -> tuple[bool, str]:
-    code, out, err = _ssh_exec(ssh, "curl -sS -m 30 http://127.0.0.1:8080/health")
+    """Use /health/ready instead of /health to avoid the slow circuit-breaker scan."""
+    code, out, err = _ssh_exec(ssh, "curl -sS -m 30 http://127.0.0.1:8080/health/ready")
     last_detail = out or err or f"curl exit {code}"
     if code == 0:
         try:
             payload = json.loads(out)
-            if payload.get("status") in ("ok", "warming"):
+            if payload.get("startup_status") in ("ready", "warming"):
                 return True, last_detail
         except json.JSONDecodeError:
             pass
@@ -77,7 +78,7 @@ def _health_ready(ssh: paramiko.SSHClient) -> tuple[bool, str]:
 
 
 def _ready_ready(ssh: paramiko.SSHClient) -> tuple[bool, str]:
-    code, out, err = _ssh_exec(ssh, "curl -sS -m 10 http://127.0.0.1:8080/health/ready")
+    code, out, err = _ssh_exec(ssh, "curl -sS -m 30 http://127.0.0.1:8080/health/ready")
     last_detail = out or err or f"curl exit {code}"
     if code == 0:
         try:

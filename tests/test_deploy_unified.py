@@ -95,7 +95,7 @@ class _RestartSsh:
         self.commands.append(command)
         if command.startswith("curl "):
             if "/health/ready" in command:
-                return None, _Stream('{"status":"ready"}'), _Stream()
+                return None, _Stream('{"status":"ready","startup_status":"ready"}'), _Stream()
             return None, _Stream('{"status":"ok"}'), _Stream()
         return None, _Stream(), _Stream()
 
