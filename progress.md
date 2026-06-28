@@ -1,5 +1,27 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 图片生成接口接入 FreeTheAi 优质降级后端
+
+- **目标**：为 `/v1/images/generations` 增加除 Pollinations.ai 之外的高质量 OpenAI-compatible 图像生成后端，提升生图成功率与画质。
+- **关键结果**：
+  - LiMa `routes/images.py`：
+    - 新增 `_generate_via_openai_image_endpoint()` 通用调用器，支持 `url` 与 `b64_json` 两种响应格式，b64 自动转为 `data:image/png;base64,` 数据 URI。
+    - 新增 `_generate_via_freetheai()` 降级后端，调用 `https://api.freetheai.xyz/v1/images/generations`，模型 `img/gpt-image-2`。
+    - 回退链路改为：xmiaom → FreeTheAi → Pollinations.ai。
+    - 尺寸映射函数 `_map_to_openai_image_size()` 将任意 `widthxheight` 映射为 OpenAI 支持的 `1024x1024`/`1024x1792`/`1792x1024`。
+    - 新增 `LIMA_OPENAI_IMAGE_TIMEOUT_SECONDS` 环境变量（默认 120s）控制 OpenAI 兼容后端超时。
+  - `config/backend_config.py` 已读取 `FREETHEAI_API_KEY`；`.env.example` 补充 `LIMA_OPENAI_IMAGE_TIMEOUT_SECONDS` 说明。
+  - 测试 `tests/test_routes_images.py` 新增：
+    - xmiaom 失败时回退 FreeTheAi；
+    - FreeTheAi 返回 `b64_json` 时转换为 data URI；
+    - 无 `FREETHEAI_API_KEY` 时继续回退 Pollinations.ai。
+- **验证**：
+  - 聚焦测试 `tests/test_routes_images.py` → **16 passed / 0 failed**。
+  - 完整回归测试 → **4005 passed / 3 skipped / 0 failed**。
+  - `ruff check` / `ruff format` / `pyright` 目标文件 clean。
+- **待跟进**：
+  - 拿到真实 `FREETHEAI_API_KEY` 后在 VPS 做端到端调用，确认 `img/gpt-image-2` 返回可用 URL 并进入缓存。
+
 ## 2026-06-28 云生图端到端闭环：复用图片 URL + U8 路径 cmd 容错
 
 - **目标**：让小程序「云生图」结果发送到设备绘制时不再重复生成图片，并修复 U8 解析无 `cmd` 字段路径段的问题。

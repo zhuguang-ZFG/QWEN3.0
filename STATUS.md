@@ -5,10 +5,10 @@
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-27
+> Updated: 2026-06-28
 > Branch: `main`
 > Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **3893 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **4005 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,21 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-28）图片生成接口接入 FreeTheAi 优质降级后端
+
+- **目标**：为 `/v1/images/generations` 增加 xmiaom 失败后的高质量 OpenAI-compatible 降级后端，提升生图成功率与画质。
+- **关键结果**：
+  - `routes/images.py` 新增 `_generate_via_freetheai()`，调用 `https://api.freetheai.xyz/v1/images/generations`（模型 `img/gpt-image-2`）。
+  - 通用 OpenAI 图像调用器 `_generate_via_openai_image_endpoint()` 兼容 `url` 与 `b64_json` 响应；b64 自动转为 `data:image/png;base64,` 数据 URI。
+  - 回退链路改为：xmiaom → FreeTheAi → Pollinations.ai。
+  - 新增 `LIMA_OPENAI_IMAGE_TIMEOUT_SECONDS` 环境变量（默认 120s）。
+  - `tests/test_routes_images.py` 新增 3 个 FreeTheAi 相关测试。
+- **验证**：
+  - 聚焦测试 `tests/test_routes_images.py` → **16 passed / 0 failed**。
+  - 完整回归测试 → **4005 passed / 3 skipped / 0 failed**。
+  - `ruff check` / `ruff format --check` / `pyright` 目标文件 clean。
+- **下一步**：拿到真实 `FREETHEAI_API_KEY` 后在 VPS 做端到端验证。
 
 ### 最近完成（2026-06-27）京东云利用率提升 Phase 1：probe 结果回写与异地观测
 

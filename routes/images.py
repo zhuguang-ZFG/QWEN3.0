@@ -4,6 +4,7 @@ Primary: xmiaom gpt-image-2 (OpenAI-compatible chat completion returning markdow
 Fallback: Pollinations.ai URL builder (kept for zero-config environments and chat UI).
 """
 
+import base64
 import json
 import logging
 import os
@@ -11,58 +12,22 @@ import re
 import time
 import urllib.parse
 
+import httpx
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from access_guard import require_private_api_key
+from config import backend_config
 from observability import prometheus_metrics as _prom_metrics
+from routes.images_cache import get_cached_image, set_cached_image, should_skip_cache
 from routes.json_body import read_json_object
 
 router = APIRouter()
 _log = logging.getLogger(__name__)
 
 IMAGE_BACKEND = "xmiaom_gpt_image_2"
-
-_IMAGE_CACHE_TTL_SECONDS = int(os.environ.get("LIMA_IMAGE_CACHE_TTL_SECONDS", "3600"))
-_IMAGE_CACHE_MAX_ENTRIES = int(os.environ.get("LIMA_IMAGE_CACHE_MAX_ENTRIES", "100"))
-_image_cache: dict[tuple[str, str], tuple[list[dict], str, float]] = {}
-
-
-def _image_cache_key(prompt: str, size: str) -> tuple[str, str]:
-    return (prompt.strip().lower(), size)
-
-
-def _get_cached_image(prompt: str, size: str) -> tuple[list[dict], str] | None:
-    if _IMAGE_CACHE_TTL_SECONDS <= 0:
-        return None
-    key = _image_cache_key(prompt, size)
-    entry = _image_cache.get(key)
-    if not entry:
-        return None
-    data_items, backend, cached_at = entry
-    if time.time() - cached_at > _IMAGE_CACHE_TTL_SECONDS:
-        _image_cache.pop(key, None)
-        return None
-    _log.info("image cache hit for prompt=%s size=%s backend=%s", prompt[:40], size, backend)
-    _prom_metrics.record_image_cache_lookup("hit")
-    return data_items, backend
-
-
-def _set_cached_image(prompt: str, size: str, data_items: list[dict], backend: str) -> None:
-    if _IMAGE_CACHE_TTL_SECONDS <= 0:
-        return
-    key = _image_cache_key(prompt, size)
-    if len(_image_cache) >= _IMAGE_CACHE_MAX_ENTRIES:
-        oldest = min(_image_cache, key=lambda k: _image_cache[k][2])
-        _image_cache.pop(oldest, None)
-    _image_cache[key] = (data_items, backend, time.time())
-    _log.info("image cache set for prompt=%s size=%s backend=%s entries=%d", prompt[:40], size, backend, len(_image_cache))
-    _prom_metrics.record_image_cache_entries(len(_image_cache))
-
-
-def _should_skip_cache(request: Request) -> bool:
-    return request.headers.get("x-skip-cache", "").strip().lower() in ("1", "true", "yes")
 
 
 class ImageRequest(BaseModel):
@@ -115,6 +80,94 @@ def _build_xmiaom_payload(prompt: str, size: str = "1024x1024") -> bytes:
         },
         ensure_ascii=False,
     ).encode()
+
+
+_OPENAI_IMAGE_TIMEOUT = int(os.environ.get("LIMA_OPENAI_IMAGE_TIMEOUT_SECONDS", "120"))
+
+
+def _map_to_openai_image_size(size: str) -> str:
+    """Map free-form widthxheight to an OpenAI-compatible image size."""
+    parts = size.lower().split("x")
+    if len(parts) != 2:
+        return "1024x1024"
+    try:
+        width = int(parts[0])
+        height = int(parts[1])
+    except ValueError:
+        return "1024x1024"
+    if width > height:
+        return "1792x1024"
+    if height > width:
+        return "1024x1792"
+    return "1024x1024"
+
+
+def _extract_openai_image_url(item: dict) -> str:
+    """Return a usable URL from an OpenAI images/generations result item."""
+    url = item.get("url")
+    if url:
+        return url
+    b64 = item.get("b64_json")
+    if b64:
+        return f"data:image/png;base64,{b64}"
+    return ""
+
+
+async def _generate_via_openai_image_endpoint(
+    endpoint: str,
+    api_key: str,
+    model: str,
+    prompt: str,
+    size: str,
+    n: int,
+) -> list[dict]:
+    """Call an OpenAI-compatible /v1/images/generations endpoint."""
+    if not api_key:
+        return []
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "n": min(max(n, 1), 10),
+        "size": _map_to_openai_image_size(size),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=_OPENAI_IMAGE_TIMEOUT) as client:
+            response = await client.post(endpoint, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        status = getattr(exc, "response_status_code", None) or getattr(
+            getattr(exc, "response", None), "status_code", None
+        )
+        _log.warning(
+            "openai image generation failed: endpoint=%s status=%s error=%s",
+            endpoint,
+            status,
+            str(exc)[:200],
+        )
+        return []
+
+    items: list[dict] = []
+    for entry in data.get("data", []):
+        url = _extract_openai_image_url(entry)
+        if url:
+            items.append({"url": url})
+    if not items:
+        _log.warning("openai image generation returned no usable url/b64_json")
+    return items
+
+
+async def _generate_via_freetheai(prompt: str, size: str, n: int) -> list[dict]:
+    """FreeTheAi image generation fallback (OpenAI-compatible)."""
+    return await _generate_via_openai_image_endpoint(
+        "https://api.freetheai.xyz/v1/images/generations",
+        backend_config.FREETHEAI_API_KEY,
+        "img/gpt-image-2",
+        prompt,
+        size,
+        n,
+    )
 
 
 def _record_image_request(prompt: str, backend: str, duration_ms: int, client_ip: str) -> None:
@@ -187,22 +240,25 @@ async def _generate_image_urls(
         enhanced_prompt = f"high quality, detailed, {enhanced_prompt}"
 
     if not skip_cache:
-        cached = _get_cached_image(enhanced_prompt, size)
+        cached = get_cached_image(enhanced_prompt, size)
         if cached is not None:
             data_items, backend = cached
             return data_items, backend, 0
         _prom_metrics.record_image_cache_lookup("miss")
 
+    started = time.time()
     data_items = await _generate_via_xmiaom(enhanced_prompt, size)
     backend = IMAGE_BACKEND
-    duration_ms = data_items[0].get("latency_ms", 0) if data_items else 0
+    if not data_items:
+        data_items = await _generate_via_freetheai(enhanced_prompt, size, n)
+        backend = "freetheai"
     if not data_items:
         data_items = await _generate_via_pollinations(enhanced_prompt, size, n)
         backend = "pollinations"
-        duration_ms = 0
+    duration_ms = int((time.time() - started) * 1000)
 
     if data_items:
-        _set_cached_image(enhanced_prompt, size, data_items, backend)
+        set_cached_image(enhanced_prompt, size, data_items, backend)
 
     _prom_metrics.record_image_request(backend)
     return data_items, backend, duration_ms
@@ -227,7 +283,7 @@ async def image_generations(request: Request):
     )
 
     data_items, backend, duration_ms = await _generate_image_urls(
-        prompt, img_req.size, img_req.n, skip_cache=_should_skip_cache(request)
+        prompt, img_req.size, img_req.n, skip_cache=should_skip_cache(request)
     )
     urls = [{"url": item["url"]} for item in data_items]
     _record_image_request(img_req.prompt[:80], backend, duration_ms, client_ip)

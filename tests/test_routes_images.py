@@ -9,12 +9,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routes import images as img
+from routes import images_cache as image_cache
 
 
 @pytest.fixture(autouse=True)
 def _reset_env(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-key")
     img._record_request_fn = None
+    image_cache.clear_cache()
 
 
 @pytest.fixture
@@ -104,7 +106,7 @@ def test_build_pollinations_url():
 
 
 def test_cache_returns_same_result_without_second_backend_call(client, monkeypatch):
-    img._image_cache.clear()
+    image_cache.clear_cache()
     call_count = {"n": 0}
 
     async def fake_xmiaom(prompt: str, size: str):
@@ -134,7 +136,7 @@ def test_cache_returns_same_result_without_second_backend_call(client, monkeypat
 
 
 def test_skip_cache_header_bypasses_cache(client, monkeypatch):
-    img._image_cache.clear()
+    image_cache.clear_cache()
     call_count = {"n": 0}
 
     async def fake_xmiaom(prompt: str, size: str):
@@ -161,3 +163,105 @@ def test_skip_cache_header_bypasses_cache(client, monkeypatch):
 
     assert url1 != url2
     assert call_count["n"] == 2
+
+
+def test_freetheai_fallback_when_xmiaom_fails(client, monkeypatch):
+    image_cache.clear_cache()
+
+    async def fake_xmiaom(prompt: str, size: str):
+        return []
+
+    monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
+    monkeypatch.setattr(img.backend_config, "FREETHEAI_API_KEY", "fta-test-key")
+
+    class _FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"url": "https://example.com/freetheai.png"}]}
+
+        def raise_for_status(self):
+            pass
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return _FakeResponse()
+
+    monkeypatch.setattr(img.httpx, "AsyncClient", _FakeClient)
+
+    response = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "a cat", "size": "1024x1024", "n": 1},
+    )
+    assert response.status_code == 200
+    assert response.json()["data"][0]["url"] == "https://example.com/freetheai.png"
+
+
+def test_freetheai_b64_json_becomes_data_uri(client, monkeypatch):
+    image_cache.clear_cache()
+
+    async def fake_xmiaom(prompt: str, size: str):
+        return []
+
+    monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
+    monkeypatch.setattr(img.backend_config, "FREETHEAI_API_KEY", "fta-test-key")
+
+    class _FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"b64_json": "aGVsbG8="}]}
+
+        def raise_for_status(self):
+            pass
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return _FakeResponse()
+
+    monkeypatch.setattr(img.httpx, "AsyncClient", _FakeClient)
+
+    response = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "a cat", "size": "1024x1024", "n": 1},
+    )
+    assert response.status_code == 200
+    assert response.json()["data"][0]["url"].startswith("data:image/png;base64,")
+
+
+def test_no_freetheai_key_falls_back_to_pollinations(client, monkeypatch):
+    image_cache.clear_cache()
+
+    async def fake_xmiaom(prompt: str, size: str):
+        return []
+
+    monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
+    monkeypatch.setattr(img.backend_config, "FREETHEAI_API_KEY", "")
+
+    response = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "a cat", "size": "1024x1024", "n": 1},
+    )
+    assert response.status_code == 200
+    assert "image.pollinations.ai" in response.json()["data"][0]["url"]
