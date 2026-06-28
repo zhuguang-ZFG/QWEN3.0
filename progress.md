@@ -1,5 +1,32 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 接入 xmiaom gpt-image-2 图像生成后端并部署生产
+
+- **目标**：将 `ai.xmiaom.com` 的 `gpt-image-2` 接入 LiMa 作为 `/v1/images/generations` 主后端，完成代码提交、VPS 部署与真实走 xmiaom 的端到端验证。
+- **关键结果**：
+  - `backends_registry/commercial/platforms.py` 新增 `xmiaom_gpt_image_2` 后端（`gpt-image-2`，`timeout: 180s`）。
+  - `config/backend_config.py` 读取 `XMIAOM_API_KEY`；`.env.example` 补充占位。
+  - `routes/admin_backends.py` 识别 `ai.xmiaom.com` 为「小喵 AI」，image/gpt-image 后端标记「图像生成」能力。
+  - `routes/images.py` 优先调用 `xmiaom_gpt_image_2`，失败降级 Pollinations.ai。
+  - 修复 `SemanticCache.clear()` 误用 `prune(0)` 的问题，`SemanticCacheStore.clear()` 真正清空缓存。
+  - VPS `/opt/lima-router/.env` 已备份并追加 `XMIAOM_API_KEY`（systemd `EnvironmentFile` 正确加载，服务进程环境变量已确认）。
+  - 提交并推送：
+    - `ce0e2cbf` 接入 xmiaom gpt-image-2 图像生成后端
+    - `ca08aefd` 延长 xmiaom_gpt_image_2 超时至 120s
+    - `5e47fda1` 延长 xmiaom_gpt_image_2 超时至 180s
+- **验证**：
+  - 本地完整 pytest 回归：`3991 passed / 3 skipped / 0 failed`。
+  - `ruff check` / `scripts/check_code_size.py` 对修改文件 clean。
+  - VPS 本地 `curl http://127.0.0.1:8080/health/ready` → `{"status":"ready"}`。
+  - VPS 本地真实调用 `POST /v1/images/generations`：
+    - 首次返回 xmiaom 图片 URL（耗时约 102s）。
+    - 第二次 xmiaom 返回 `BackendError`，正确降级 Pollinations.ai。
+    - 第三次返回 xmiaom 图片 URL（耗时约 128s）。
+- **运维注意**：
+  - xmiaom gpt-image-2 生成耗时波动大（45s–130s），后端超时设为 180s。
+  - `scripts/deploy_unified.py --slice core` 的 readiness 检查对本次重启偏激进（`/health` 响应一度达 26s），触发自动回滚；后改为手动 scp + systemctl restart 完成部署。
+  - `XMIAOM_API_KEY` 曾在诊断命令中暴露，建议尽快轮换。
+
 ## 2026-06-27 固件侧 U1 GRBL 回归测试与状态守卫审计
 
 - **目标**：为最近修复的 U1 GRBL 固件缺陷增加 CI 静态回归测试，并审计同类状态守卫逻辑，防止未来回退。
