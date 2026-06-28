@@ -1,15 +1,17 @@
-"""Tests for routes/images.py."""
+"""Tests for routes/images.py and helpers."""
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routes import images as img
+from routes import images_backends as backends
 from routes import images_cache as image_cache
+from routes import images_pollinations as pollinations
 
 
 @pytest.fixture(autouse=True)
@@ -17,6 +19,7 @@ def _reset_env(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-key")
     img._record_request_fn = None
     image_cache.clear_cache()
+    pollinations._PROMPT_TRANSLATE_ENABLED = False
 
 
 @pytest.fixture
@@ -47,6 +50,7 @@ def test_invalid_body_returns_400(client):
         {"prompt": "hi", "size": "3000x3000"},
         {"prompt": "hi", "n": 0},
         {"prompt": "hi", "n": 20},
+        {"prompt": "hi", "seed": -2},
     ],
 )
 def test_validation_errors(client, body):
@@ -97,14 +101,6 @@ def test_record_request_callback(client):
     assert recorder.call_args.args[2] == "image_generation"
 
 
-def test_build_pollinations_url():
-    url = img.build_pollinations_url("hello world", "512x256")
-    assert url.startswith("https://image.pollinations.ai/prompt/")
-    assert "width=512" in url
-    assert "height=256" in url
-    assert "nologo=true" in url
-
-
 def test_cache_returns_same_result_without_second_backend_call(client, monkeypatch):
     image_cache.clear_cache()
     call_count = {"n": 0}
@@ -133,6 +129,40 @@ def test_cache_returns_same_result_without_second_backend_call(client, monkeypat
 
     assert url1 == url2
     assert call_count["n"] == 1
+
+
+def test_cache_key_includes_n_and_options(client, monkeypatch):
+    image_cache.clear_cache()
+    call_count = {"n": 0}
+
+    async def fake_xmiaom(prompt: str, size: str):
+        call_count["n"] += 1
+        return [{"url": f"https://example.com/img{call_count['n']}.png", "backend": "xmiaom"}]
+
+    monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
+
+    response1 = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "key test", "size": "1024x1024", "n": 1},
+    )
+    assert response1.status_code == 200
+
+    response2 = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "key test", "size": "1024x1024", "n": 2},
+    )
+    assert response2.status_code == 200
+
+    response3 = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "key test", "size": "1024x1024", "n": 2, "seed": 123},
+    )
+    assert response3.status_code == 200
+
+    assert call_count["n"] == 3
 
 
 def test_skip_cache_header_bypasses_cache(client, monkeypatch):
@@ -172,7 +202,7 @@ def test_freetheai_fallback_when_xmiaom_fails(client, monkeypatch):
         return []
 
     monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
-    monkeypatch.setattr(img.backend_config, "FREETHEAI_API_KEY", "fta-test-key")
+    monkeypatch.setattr(backends.backend_config, "FREETHEAI_API_KEY", "fta-test-key")
 
     class _FakeResponse:
         status_code = 200
@@ -196,7 +226,7 @@ def test_freetheai_fallback_when_xmiaom_fails(client, monkeypatch):
         async def post(self, *args, **kwargs):
             return _FakeResponse()
 
-    monkeypatch.setattr(img.httpx, "AsyncClient", _FakeClient)
+    monkeypatch.setattr(backends.httpx, "AsyncClient", _FakeClient)
 
     response = client.post(
         "/v1/images/generations",
@@ -214,7 +244,7 @@ def test_freetheai_b64_json_becomes_data_uri(client, monkeypatch):
         return []
 
     monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
-    monkeypatch.setattr(img.backend_config, "FREETHEAI_API_KEY", "fta-test-key")
+    monkeypatch.setattr(backends.backend_config, "FREETHEAI_API_KEY", "fta-test-key")
 
     class _FakeResponse:
         status_code = 200
@@ -238,7 +268,7 @@ def test_freetheai_b64_json_becomes_data_uri(client, monkeypatch):
         async def post(self, *args, **kwargs):
             return _FakeResponse()
 
-    monkeypatch.setattr(img.httpx, "AsyncClient", _FakeClient)
+    monkeypatch.setattr(backends.httpx, "AsyncClient", _FakeClient)
 
     response = client.post(
         "/v1/images/generations",
@@ -256,7 +286,7 @@ def test_no_freetheai_key_falls_back_to_pollinations(client, monkeypatch):
         return []
 
     monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
-    monkeypatch.setattr(img.backend_config, "FREETHEAI_API_KEY", "")
+    monkeypatch.setattr(backends.backend_config, "FREETHEAI_API_KEY", "")
 
     response = client.post(
         "/v1/images/generations",

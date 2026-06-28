@@ -76,7 +76,7 @@ _detect_ide = _rt_mod.detect_ide
 _elapsed_ms = _rt_mod.elapsed_ms
 FALLBACK_LOG = _rt_mod.FALLBACK_LOG
 
-from routes.images import build_pollinations_url as _build_pollinations_url
+from routes.images_pollinations import build_pollinations_url as _build_pollinations_url
 
 from routes.chat_handler import handle_chat as _handle_chat, inject_deps as _inject_chat_handler_deps
 from routes.chat_stream import inject_deps as _inject_chat_stream_deps

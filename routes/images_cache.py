@@ -1,6 +1,6 @@
 """Process-local image generation cache.
 
-Keyed by (prompt, size) with TTL and max-entry eviction.
+Keyed by (prompt, size, n, variant) with TTL and max-entry eviction.
 """
 
 from __future__ import annotations
@@ -17,18 +17,18 @@ _log = logging.getLogger(__name__)
 
 _IMAGE_CACHE_TTL_SECONDS = int(os.environ.get("LIMA_IMAGE_CACHE_TTL_SECONDS", "3600"))
 _IMAGE_CACHE_MAX_ENTRIES = int(os.environ.get("LIMA_IMAGE_CACHE_MAX_ENTRIES", "100"))
-_image_cache: dict[tuple[str, str], tuple[list[dict], str, float]] = {}
+_image_cache: dict[tuple[str, str, int, str], tuple[list[dict], str, float]] = {}
 
 
-def _image_cache_key(prompt: str, size: str) -> tuple[str, str]:
-    return (prompt.strip().lower(), size)
+def _image_cache_key(prompt: str, size: str, n: int, variant: str) -> tuple[str, str, int, str]:
+    return (prompt.strip().lower(), size, n, variant)
 
 
-def get_cached_image(prompt: str, size: str) -> tuple[list[dict], str] | None:
+def get_cached_image(prompt: str, size: str, n: int, variant: str = "") -> tuple[list[dict], str] | None:
     """Return cached (items, backend) or None if absent/expired."""
     if _IMAGE_CACHE_TTL_SECONDS <= 0:
         return None
-    key = _image_cache_key(prompt, size)
+    key = _image_cache_key(prompt, size, n, variant)
     entry = _image_cache.get(key)
     if not entry:
         return None
@@ -41,11 +41,11 @@ def get_cached_image(prompt: str, size: str) -> tuple[list[dict], str] | None:
     return data_items, backend
 
 
-def set_cached_image(prompt: str, size: str, data_items: list[dict], backend: str) -> None:
+def set_cached_image(prompt: str, size: str, n: int, variant: str, data_items: list[dict], backend: str) -> None:
     """Store a successful image generation result in the cache."""
     if _IMAGE_CACHE_TTL_SECONDS <= 0:
         return
-    key = _image_cache_key(prompt, size)
+    key = _image_cache_key(prompt, size, n, variant)
     if len(_image_cache) >= _IMAGE_CACHE_MAX_ENTRIES:
         oldest = min(_image_cache, key=lambda k: _image_cache[k][2])
         _image_cache.pop(oldest, None)

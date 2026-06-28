@@ -30,6 +30,7 @@ def test_image_request_rejects_oversized_dimensions():
 
 def test_chinese_image_prompt_gets_quality_prefix(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr("routes.images_pollinations._PROMPT_TRANSLATE_ENABLED", False)
     client = TestClient(server.app)
 
     response = client.post(

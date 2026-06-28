@@ -1,5 +1,30 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 Pollinations.ai 增强：更多参数 + 中文 prompt 翻译 + 模块拆分
+
+- **目标**：让零配置的 Pollinations.ai 后端更稳、更可控，并把图片生成代码拆成可维护的小模块。
+- **关键结果**：
+  - 新增 `routes/images_pollinations.py`：
+    - `build_pollinations_url()` 支持 `seed`、`model`、`negative_prompt`、`nologo`、`private`、`enhance`、`safe` 等 Pollinations 官方参数。
+    - 默认 `nologo=true`；默认 `model=lima-image` 时不传递，避免污染 URL。
+  - 新增中文 prompt 自动翻译：
+    - 当 prompt 含中文且 `LIMA_IMAGE_PROMPT_TRANSLATE_ZH=1`（默认开启）时，调用 Pollinations 免费文本接口翻译成英文后再生图。
+    - 新增 `LIMA_IMAGE_PROMPT_TRANSLATE_TIMEOUT_SECONDS`（默认 10s）；翻译失败自动回退原 prompt。
+  - 缓存 key 升级为 `(prompt, size, n, variant)`，variant 由 Pollinations 选项决定，避免不同 seed/n/参数互相命中错误缓存。
+  - 代码结构拆分：
+    - `routes/images_backends.py`：xmiaom / FreeTheAi / OpenAI-compatible 通用调用器。
+    - `routes/images_pollinations.py`：Pollinations URL 构造与中文翻译。
+    - `routes/images_cache.py`：进程内缓存。
+    - `routes/images.py`：路由入口与编排，保持 ≤300 行。
+  - `routes/device_app_images.py` 同步传入 Pollinations options。
+  - `.env.example` 补充 `LIMA_IMAGE_PROMPT_TRANSLATE_ZH` / `LIMA_IMAGE_PROMPT_TRANSLATE_TIMEOUT_SECONDS`。
+- **验证**：
+  - 聚焦测试 `tests/test_routes_images.py` + `tests/test_images_pollinations.py` + `tests/test_images_backends.py` + `tests/test_device_app_images.py` → **29 passed / 0 failed**。
+  - `ruff check` / `ruff format` / `pyright` 目标文件 clean。
+  - `scripts/check_code_size.py` PASS（无 >300 行文件）。
+- **待跟进**：
+  - VPS 部署后验证带 `seed`/`enhance` 等参数的 Pollinations 调用返回预期 URL。
+
 ## 2026-06-28 图片生成接口接入 FreeTheAi 优质降级后端
 
 - **目标**：为 `/v1/images/generations` 增加除 Pollinations.ai 之外的高质量 OpenAI-compatible 图像生成后端，提升生图成功率与画质。

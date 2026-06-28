@@ -7,8 +7,8 @@
 
 > Updated: 2026-06-28
 > Branch: `main`
-> Scale: 约 1177 个 Python 文件 / 130,913 行（2026-06-26 极致瘦身后）
-> Tests: 全量 **4005 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
+> Tests: 全量 **4005+ passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,21 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-28）Pollinations.ai 增强、中文 prompt 翻译与图片模块拆分
+
+- **目标**：让零配置的 Pollinations.ai 后端支持更多参数，并自动翻译中文 prompt；同时把图片生成代码拆成可维护的小模块。
+- **关键结果**：
+  - 新增 `routes/images_pollinations.py`：支持 `seed`、`model`、`negative_prompt`、`nologo`、`private`、`enhance`、`safe` 等 Pollinations 参数。
+  - 新增中文 prompt 自动翻译：含中文时调用 Pollinations 免费文本接口翻译成英文，失败自动回退；可通过 `LIMA_IMAGE_PROMPT_TRANSLATE_ZH` 开关。
+  - 缓存 key 升级为 `(prompt, size, n, variant)`，避免不同 seed/参数互相污染。
+  - 代码结构拆分：`images_backends.py`（xmiaom/FreeTheAi/OpenAI）、`images_pollinations.py`（Pollinations/翻译）、`images_cache.py`（缓存）、`images.py`（路由入口）。
+  - `routes/device_app_images.py` 同步支持 Pollinations options。
+  - `.env.example` 补充 `LIMA_IMAGE_PROMPT_TRANSLATE_ZH`、`LIMA_IMAGE_PROMPT_TRANSLATE_TIMEOUT_SECONDS`。
+- **验证**：
+  - 聚焦测试 `tests/test_routes_images.py` + `tests/test_images_pollinations.py` + `tests/test_images_backends.py` + `tests/test_device_app_images.py` → **29 passed / 0 failed**。
+  - `ruff check` / `ruff format --check` / `pyright` / `scripts/check_code_size.py` clean。
+- **下一步**：VPS 部署后验证带参数的 Pollinations 调用。
 
 ### 最近完成（2026-06-28）图片生成接口接入 FreeTheAi 优质降级后端
 

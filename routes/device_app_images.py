@@ -35,8 +35,17 @@ async def device_app_image_generations(request: Request, authorization: str = He
     if not prompt:
         return err(400, "empty prompt", 400)
 
+    options = {
+        "model": img_req.model,
+        "seed": img_req.seed,
+        "negative_prompt": img_req.negative_prompt,
+        "nologo": img_req.nologo,
+        "private": img_req.private,
+        "enhance": img_req.enhance,
+        "safe": img_req.safe,
+    }
     data_items, backend, _duration_ms = await _generate_image_urls(
-        prompt, img_req.size, img_req.n, skip_cache=should_skip_cache(request)
+        prompt, img_req.size, img_req.n, options, skip_cache=should_skip_cache(request)
     )
     urls = [{"url": item["url"]} for item in data_items]
 

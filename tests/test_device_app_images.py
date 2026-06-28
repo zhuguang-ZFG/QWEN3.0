@@ -41,7 +41,7 @@ def test_image_generation_rejects_invalid_size(image_client):
 def test_image_generation_returns_urls(image_client, monkeypatch):
     from routes import device_app_images as app_images_mod
 
-    async def _fake_generate(prompt: str, size: str, n: int, *, skip_cache: bool = False):
+    async def _fake_generate(prompt: str, size: str, n: int, options: dict, *, skip_cache: bool = False):
         return [{"url": "https://example.com/img.png", "backend": "xmiaom"}], "xmiaom", 100
 
     monkeypatch.setattr(app_images_mod, "_generate_image_urls", _fake_generate)

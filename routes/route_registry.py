@@ -79,8 +79,9 @@ def _try_include(
 
 def _register_chat_and_media_routes(app: FastAPI, deps: RouteRegistryDeps):
     """Mount chat, media, embeddings and public demo routers."""
-    from routes.images import router as images_router, build_pollinations_url
+    from routes.images import router as images_router
     import routes.images as images_mod
+    from routes.images_pollinations import build_pollinations_url
 
     images_mod.inject_record_request(deps.record_request)
     app.include_router(images_router)
