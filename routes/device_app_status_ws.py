@@ -8,8 +8,10 @@ from typing import Any
 
 from access_guard import extract_bearer_token
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from starlette.websockets import WebSocketState
 
+import app_status_ws_ticket
 from device_gateway.sessions import registry
 from device_gateway.tasks import active_tasks_for_device
 from device_logic.access import require_device_access
@@ -27,8 +29,28 @@ _POLL_INTERVAL = 5.0
 
 
 async def _authorize_ws(websocket: WebSocket, device_id: str) -> bool:
-    """Validate the query-token and device access. Returns True on success."""
-    token = extract_bearer_token(websocket.query_params.get("authorization", ""))
+    """Validate ticket or query-token and device access. Returns True on success."""
+    ticket = websocket.query_params.get("ticket", "").strip()
+    if ticket:
+        redeemed = app_status_ws_ticket.consume(ticket)
+        if redeemed:
+            redeemed_device_id, token = redeemed
+            if redeemed_device_id == device_id:
+                account = authorize(f"Bearer {token}")
+                if isinstance(account, dict):
+                    with connect() as conn:
+                        denied = require_device_access(conn, account, device_id)
+                    if denied is None:
+                        return True
+            return False
+
+    auth_query = websocket.query_params.get("authorization", "").strip()
+    if auth_query:
+        _log.warning(
+            "device app status WS token exposed in query string for device=%s; prefer /ws/ticket",
+            device_id,
+        )
+    token = extract_bearer_token(auth_query)
     if not token:
         return False
     account = authorize(f"Bearer {token}")
@@ -87,6 +109,34 @@ async def _push_transition_events(
     await _send_task_transition(websocket, device_id, previous, current)
     # TODO(M2): push task_progress events from task store / session.
     # TODO(M2): push firmware_update events when device reports new fw_rev.
+
+
+@router.post("/devices/{device_id}/ws/ticket")
+async def issue_device_status_ws_ticket(
+    request,  # type: ignore  # noqa: ANN001
+    device_id: str,
+) -> JSONResponse:
+    """Exchange a user token for a one-time device status WebSocket ticket."""
+    from routes.json_body import read_json_object
+
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
+    header_token = request.headers.get("authorization", "")
+    token = extract_bearer_token(header_token) or str(body.get("token", "")).strip()
+    account = authorize(f"Bearer {token}") if token else None
+    if not isinstance(account, dict):
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    with connect() as conn:
+        denied = require_device_access(conn, account, device_id)
+    if denied is not None:
+        return JSONResponse(status_code=403, content={"detail": "Access denied"})
+    return JSONResponse(
+        {
+            "ticket": app_status_ws_ticket.issue(device_id, token),
+            "expires_in": app_status_ws_ticket.TTL_SECONDS,
+        }
+    )
 
 
 @router.websocket("/devices/{device_id}/ws")

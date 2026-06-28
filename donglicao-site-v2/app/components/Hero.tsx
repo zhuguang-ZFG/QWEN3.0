@@ -28,7 +28,7 @@ export default function Hero() {
               在线体验
             </a>
             <Link
-              href="/developer/"
+              href="/developer/playground/"
               className="rounded-full border border-white/10 px-6 py-3 font-semibold text-slate-200 hover:border-cyan-500/50 hover:text-cyan-400"
             >
               查看 API

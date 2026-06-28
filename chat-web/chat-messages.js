@@ -203,6 +203,8 @@ function highlightAndRender(root) {
           { left: '$', right: '$', display: false },
         ],
         throwOnError: false,
+        strict: true,
+        trust: false,
       });
     } catch (e) {
       console.warn('math render failed:', e);

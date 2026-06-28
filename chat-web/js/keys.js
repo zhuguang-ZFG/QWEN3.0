@@ -110,7 +110,7 @@
     if (!id) return;
     if (!confirm("确定删除该 API Key？删除后无法恢复。")) return;
     try {
-      await LiMaAPI.del(API_PATH + "/" + id, token);
+      await LiMaAPI.del(API_PATH + "/" + encodeURIComponent(id), token);
       tr.remove();
       if (keysBody.children.length === 0) {
         keysTable.classList.add("hidden");
@@ -123,7 +123,7 @@
   });
 
   logoutBtn.addEventListener("click", function () {
-    LiMaAuth.removeToken();
+    LiMaAuth.logout();
     window.location.href = "login.html";
   });
 

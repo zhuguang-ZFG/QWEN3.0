@@ -1,5 +1,39 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 LiMa Web 端修复：AUDIT-2 W1/W2/W3/W5/W6/W7 + S1/S2/S4
+
+- **目标**：按 findings.md 顺序修复 AUDIT-2 Web 端 HIGH/MEDIUM 发现项。
+- **W1 手写板存储型 XSS**：
+  - `chat-web/js/handwriting.js`：`item.width/height` 用 `parseInt(..., 10)` 转整数后再拼入 SVG `viewBox`。
+- **W2 WebSocket token 不再暴露 URL**：
+  - 新增 `app_status_ws_ticket.py`：设备状态 WS 一次性 ticket（TTL 30s）。
+  - `routes/device_app_status_ws.py`：新增 `POST /device/v1/app/devices/{device_id}/ws/ticket`；WS 消费 `?ticket=`。
+  - `routes/voice_pipeline_ws.py`：新增 `POST /v1/voice/ticket`；复用 `access_guard.authenticate_websocket` 的 ticket 消费。
+  - `chat-web/js/devices.js`：先 POST 取 ticket，再用 `?ticket=` 连接状态 WS。
+  - `chat-web/voice-call.html`：移除 `wsUrlWithAuth`；`startCall()` 先取 ticket 再连接 `/v1/voice` 与 `/v1/live`。
+- **W3 token 迁移到 sessionStorage**：
+  - `chat-web/js/auth.js`、`chat-web/chat-ui.js`、`chat-web/js/model-selector.js`、`chat-web/voice-call.html`、`chat-web/js/playground-utils.js`：`lima_token`/`lima-api-key` 改用 `sessionStorage`（playground 保留 localStorage 只读迁移）。
+- **W5 三页面补 CSP**：
+  - `chat-web/login.html`、`chat-web/register.html`、`chat-web/voice-call.html` 新增 CSP meta（`default-src 'self'`、`frame-ancestors 'none'`、`upgrade-insecure-requests` 等）。
+- **W6 登出彻底清理**：
+  - `chat-web/js/auth.js`：新增 `clearSensitiveStorage()` 与 `logout()`，清理 `lima_token`、`lima-api-key`、`lima_api_key`、`lima_sessions`、`lima_playground_history` 的 sessionStorage 与 localStorage。
+  - `chat-web/js/keys.js`：登出按钮调用 `LiMaAuth.logout()`。
+- **W7 KaTeX 严格模式**：
+  - `chat-web/chat-messages.js`：`renderMathInElement` 增加 `strict: true`、`trust: false`。
+- **S1 ICP 占位符环境变量化**：
+  - `donglicao-site-v2/app/components/Footer.tsx`：ICP 号改为 `process.env.NEXT_PUBLIC_ICP_NUMBER || "京ICP备XXXXXXXX号-1"`。
+- **S2 官网 nginx 安全响应头示例**：
+  - 新增 `donglicao-site-v2/nginx-headers.conf.example`：含 X-Frame-Options、HSTS、CSP 等。
+- **S4 Hero 死链修复**：
+  - `donglicao-site-v2/app/components/Hero.tsx`：`/developer/` → `/developer/playground/`。
+- **测试/质量修复**：
+  - `tests/test_routes_device_app_auth.py`：autouse fixture 增加 `rate_limiter.reset()`，修复累积 rate limit 导致 email 注册测试偶发 429。
+- **验证**：
+  - `ruff check` 目标文件 clean；`pyright` 0 errors；`scripts/check_code_size.py` PASS。
+  - 全量 pytest：**4102 passed, 3 skipped, 2 deselected, 0 failed**。
+  - VPS 部署 `scripts/deploy_unified.py --slice core` 成功；`https://chat.donglicao.com/health` 200。
+- **提交**：待提交。
+
 ## 2026-06-29 LiMa MEDIUM 批次修复：AUDIT-1 M1~M6
 
 - **目标**：修复 LiMa 后端系统深度审查（AUDIT-1）剩余的 6 个 MEDIUM 问题。

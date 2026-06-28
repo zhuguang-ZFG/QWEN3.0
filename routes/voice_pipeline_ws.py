@@ -15,6 +15,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from fastapi.responses import JSONResponse
 
 from routes.ws_common import _client_ip_from_websocket
 
@@ -22,7 +23,10 @@ from access_guard import (
     WS_QUERY_PARAM_TOKEN_WARNING,
     authenticate_websocket,
     configured_api_keys,
+    extract_bearer_token,
+    is_token_valid,
 )
+import ws_ticket
 from device_voice.dialogue import process_text_utterance, process_voice_utterance
 from device_voice.exceptions import VoiceProviderError
 from device_voice.vad import VADState, create_vad_provider
@@ -32,6 +36,26 @@ _log = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1")
 
 FRAME_BYTES = 1024  # 512 samples @ 16-bit mono 16kHz
+
+
+@router.post("/voice/ticket")
+async def issue_voice_ws_ticket(request) -> JSONResponse:  # type: ignore  # noqa: ANN001
+    """Exchange a configured private API key for a one-time voice WS ticket."""
+    from routes.json_body import read_json_object
+
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
+    header_token = extract_bearer_token(request.headers.get("authorization", ""))
+    token = header_token or str(body.get("token", "")).strip()
+    if not is_token_valid(token):
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    return JSONResponse(
+        {
+            "ticket": ws_ticket.issue(),
+            "expires_in": ws_ticket.TTL_SECONDS,
+        }
+    )
 
 
 @router.websocket("/voice")

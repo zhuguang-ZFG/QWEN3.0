@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from device_logic import auth as auth_core
+import rate_limiter
 from routes import device_app_auth as auth
 from routes import device_app_auth_email as email_auth
 from routes import device_app_auth_keys as key_routes
@@ -55,6 +56,7 @@ def _make_conn(rows=None):
 def _patch_deps(account):
     from device_logic import db as db_module
 
+    rate_limiter.reset()
     with (
         patch.object(auth, "authorize", return_value=account),
         patch.object(key_routes, "authorize", return_value=account),

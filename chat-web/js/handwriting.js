@@ -142,12 +142,14 @@
   }
 
   function renderSvgPreview(item) {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${item.width || 100} ${item.height || 100}" style="max-width:100%;height:auto;background:#fff">
+    const width = parseInt(item.width, 10) || 100;
+    const height = parseInt(item.height, 10) || 100;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" style="max-width:100%;height:auto;background:#fff">
       <rect width="100%" height="100%" fill="#fff"/>
       <path d="${escapeHtml(item.svg_path || "")}" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
     els.result.innerHTML = `
-      <div class="result-title">SVG 预览 · ${item.width || 0}×${item.height || 0}</div>
+      <div class="result-title">SVG 预览 · ${width}×${height}</div>
       <div class="svg-preview">${svg}</div>
       <div class="result-meta">后端：${escapeHtml(item.backend || "autohanding")}</div>
     `;

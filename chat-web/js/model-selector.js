@@ -26,7 +26,7 @@
 
   function getApiKey() {
     try {
-      return localStorage.getItem("lima-api-key") || "";
+      return sessionStorage.getItem("lima-api-key") || "";
     } catch {
       return "";
     }

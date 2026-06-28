@@ -6,10 +6,17 @@
   const TOKEN_KEY = "lima_token";
   const LOGIN_PATH = "/device/v1/app/auth/login-email";
   const REGISTER_PATH = "/device/v1/app/auth/register-email";
+  const SENSITIVE_KEYS = [
+    TOKEN_KEY,
+    "lima-api-key",
+    "lima_api_key",
+    "lima_sessions",
+    "lima_playground_history",
+  ];
 
   function getToken() {
     try {
-      return localStorage.getItem(TOKEN_KEY) || "";
+      return sessionStorage.getItem(TOKEN_KEY) || "";
     } catch {
       return "";
     }
@@ -17,14 +24,27 @@
 
   function setToken(token) {
     try {
-      localStorage.setItem(TOKEN_KEY, token);
+      sessionStorage.setItem(TOKEN_KEY, token);
     } catch {}
   }
 
   function removeToken() {
     try {
-      localStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
     } catch {}
+  }
+
+  function clearSensitiveStorage() {
+    for (const key of SENSITIVE_KEYS) {
+      try {
+        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
+      } catch {}
+    }
+  }
+
+  function logout() {
+    clearSensitiveStorage();
   }
 
   function isLoggedIn() {
@@ -55,6 +75,8 @@
     getToken,
     setToken,
     removeToken,
+    clearSensitiveStorage,
+    logout,
     isLoggedIn,
     redirectIfLoggedIn,
     showError,

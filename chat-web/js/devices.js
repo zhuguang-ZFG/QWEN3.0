@@ -141,7 +141,7 @@
     drawerOverlay.classList.add("open");
     drawer.classList.add("open");
 
-    connectStatusWs(deviceId);
+    await connectStatusWs(deviceId);
     await renderDrawer(device);
   }
 
@@ -157,12 +157,25 @@
     activeTaskPollers = [];
   }
 
-  function connectStatusWs(deviceId) {
+  async function fetchStatusTicket(deviceId) {
+    const resp = await fetch(`${DEVICES_API}/${encodeURIComponent(deviceId)}/ws/ticket`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+    });
+    if (!resp.ok) {
+      throw new Error("无法获取 WebSocket 连接票据");
+    }
+    const data = await resp.json();
+    return data.ticket;
+  }
+
+  async function connectStatusWs(deviceId) {
     if (ws) {
       try { ws.close(); } catch {}
     }
     try {
-      ws = new WebSocket(`${WS_BASE}/device/v1/app/devices/${encodeURIComponent(deviceId)}/ws?authorization=Bearer ${encodeURIComponent(token)}`);
+      const ticket = await fetchStatusTicket(deviceId);
+      ws = new WebSocket(`${WS_BASE}/device/v1/app/devices/${encodeURIComponent(deviceId)}/ws?ticket=${encodeURIComponent(ticket)}`);
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);

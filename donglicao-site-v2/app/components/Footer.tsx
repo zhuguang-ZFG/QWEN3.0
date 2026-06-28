@@ -161,7 +161,7 @@ export default function Footer() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-2 border-t border-white/5 pt-8 text-xs text-slate-600 md:flex-row">
           <span>深圳市动力巢科技有限公司 - Copyright 2024-2026 DongLiCao Technology. All rights reserved.</span>
-          <span>京ICP备XXXXXXXX号-1</span>
+          <span>{process.env.NEXT_PUBLIC_ICP_NUMBER || "京ICP备XXXXXXXX号-1"}</span>
         </div>
       </div>
     </footer>

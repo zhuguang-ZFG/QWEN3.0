@@ -27,13 +27,21 @@
   const HISTORY_LIMIT = 20;
 
   function loadAuth() {
-    return localStorage.getItem(LS_KEY_AUTH) || localStorage.getItem(LS_KEY_AUTH_LEGACY) || "";
+    return (
+      sessionStorage.getItem(LS_KEY_AUTH) ||
+      sessionStorage.getItem(LS_KEY_AUTH_LEGACY) ||
+      localStorage.getItem(LS_KEY_AUTH) ||
+      localStorage.getItem(LS_KEY_AUTH_LEGACY) ||
+      ""
+    );
   }
 
   function saveAuth(value) {
     if (value) {
-      localStorage.setItem(LS_KEY_AUTH, value);
+      sessionStorage.setItem(LS_KEY_AUTH, value);
     } else {
+      sessionStorage.removeItem(LS_KEY_AUTH);
+      sessionStorage.removeItem(LS_KEY_AUTH_LEGACY);
       localStorage.removeItem(LS_KEY_AUTH);
       localStorage.removeItem(LS_KEY_AUTH_LEGACY);
     }

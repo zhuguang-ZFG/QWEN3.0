@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ws: wss: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; upgrade-insecure-requests; base-uri 'self'; form-action 'self';">
 <meta name="theme-color" content="#000000">
 <title>LiMa 星云 AI 语音/视频通话</title>
 <style>
@@ -212,7 +213,7 @@ const SAMPLE_RATE_IN=16000;
 let SAMPLE_RATE_OUT=24000;
 
 function getLimaApiKey(){
-  return (localStorage.getItem('lima-api-key')||'').trim();
+  return (sessionStorage.getItem('lima-api-key')||'').trim();
 }
 
 async function getApiConfig(){
@@ -225,17 +226,23 @@ async function getApiConfig(){
   return r.json();
 }
 
-function wsUrlWithAuth(baseUrl,key){
-  if(!key)return baseUrl;
-  const sep=baseUrl.includes('?')?'&':'?';
-  return baseUrl+sep+'authorization=Bearer '+encodeURIComponent(key);
+async function fetchVoiceTicket(){
+  const key=getLimaApiKey();
+  const headers={'Content-Type':'application/json'};
+  if(key)headers['Authorization']='Bearer '+key;
+  const r=await fetch('/v1/voice/ticket',{method:'POST',headers});
+  if(r.status===401)throw new Error('当前未授权，语音通话可能暂时不可用');
+  if(!r.ok)throw new Error('无法获取语音通话凭证：'+r.status);
+  const data=await r.json();
+  if(!data.ticket)throw new Error('服务端未返回语音通话凭证');
+  return data.ticket;
 }
 
 async function startCall(){
   statusEl.textContent='正在连接...';
   const mode=$('modeSelect').value;
   try{
-    let key=getLimaApiKey();
+    let ticket=await fetchVoiceTicket();
 
     if(mode==='gemini'){
       const cfg=await getApiConfig();
@@ -245,10 +252,10 @@ async function startCall(){
       SAMPLE_RATE_OUT=24000;
       const proto=window.location.protocol==='https:'?'wss:':'ws:';
       const base=cfg.url.startsWith('/')?window.location.host+cfg.url:cfg.url;
-      const wsUrl=wsUrlWithAuth(proto+'//'+base,key);
+      const wsUrl=proto+'//'+base+'?ticket='+encodeURIComponent(ticket);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
-        ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));
+        ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}});
         statusEl.textContent='已连接 · Gemini Live 通话中';
         btnCall.classList.add('active');
         startAudioCapture('gemini');
@@ -259,7 +266,7 @@ async function startCall(){
       videoEl.style.display='none';placeholder.style.display='flex';
       SAMPLE_RATE_OUT=16000;
       const proto=window.location.protocol==='https:'?'wss:':'ws:';
-      const wsUrl=wsUrlWithAuth(proto+'//'+window.location.host+'/v1/voice',key);
+      const wsUrl=proto+'//'+window.location.host+'/v1/voice'+'?ticket='+encodeURIComponent(ticket);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
         statusEl.textContent='已连接 · 本地语音对话';

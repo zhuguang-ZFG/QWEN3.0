@@ -3,7 +3,7 @@ let messages = [];
 let isStreaming = false;
 let abortController = null;
 function getApiKey() {
-  return localStorage.getItem('lima-api-key') || '';
+  return sessionStorage.getItem('lima-api-key') || '';
 }
 
 const chatArea = document.getElementById('chatArea');
@@ -244,7 +244,7 @@ let pendingApiKeyCallback = null;
 function openApiKeyModal(callback) {
   pendingApiKeyCallback = callback;
   document.getElementById('apiKeyModal').classList.add('open');
-  document.getElementById('apiKeyInput').value = localStorage.getItem('lima-api-key') || '';
+  document.getElementById('apiKeyInput').value = sessionStorage.getItem('lima-api-key') || '';
   setTimeout(() => document.getElementById('apiKeyInput').focus(), 50);
 }
 
@@ -256,9 +256,9 @@ function closeApiKeyModal() {
 function confirmApiKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
   if (key) {
-    localStorage.setItem('lima-api-key', key);
+    sessionStorage.setItem('lima-api-key', key);
   } else {
-    localStorage.removeItem('lima-api-key');
+    sessionStorage.removeItem('lima-api-key');
   }
   closeApiKeyModal();
   if (pendingApiKeyCallback) pendingApiKeyCallback(key);
