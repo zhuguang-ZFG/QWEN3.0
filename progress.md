@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 小程序生产化清理与登录国际化补全
+
+- **目标**：优化 `esp32S_XYZ` 子模块的 manager-mobile 小程序，移除运行期调试日志、补齐登录页国际化键，并同步父仓库子模块指针。
+- **关键结果**：
+  - 清理 `src/` 下运行期 `console.log`：路由拦截器、alova 请求、tabbar、设备配置各组件（BluFi/WiFi 选择器/WiFi 配置/超声波配网）、上传工具。
+  - 为 `v2/login` 新增 i18n 键 `v2.login.openInWechat`、`v2.login.loginFailed`、`v2.login.wxLoginFailed`，并在 `zh_CN`、`en`、`zh_TW`、`de`、`vi`、`pt_BR` 中补充翻译。
+  - 更新 `esp32S_XYZ/STATUS.md` 测试状态为 `111 passed / 0 failed`。
+  - 推送 `esp32S_XYZ` 提交 `054c581`。
+  - 在 `QWEN3.0` 父仓库同步子模块指针：`fcc7215 → 054c581`。
+- **验证**：
+  - `pnpm type-check` 与 `pnpm lint` 无报错。
+  - `esp32S_XYZ` 子模块 CI 测试：`python -m pytest tests/ci -q` → **111 passed / 0 failed**。
+  - `QWEN3.0` 完整 pytest 回归：`3991 passed / 0 failed`。
+
 ## 2026-06-27 修复 manager-mobile CI 测试漂移并同步 esp32S_XYZ 子模块
 
 - **目标**：让 `esp32S_XYZ` 子模块的 manager-mobile CI 测试与 v2 设备详情/设备列表实现保持一致，并同步父仓库子模块指针。
