@@ -1,5 +1,26 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 M15 Handwriting 韧性增强：autohanding 重试 + 本地 ASCII 降级
+
+- **目标**：消除写字机/绘图机手写服务对 autohanding.com 的单点依赖；外部服务抖动时 ASCII 文本仍能输出确定性路径，中文字符则清晰报错而非静默降级。
+- **改动（6 文件改 + 2 新建文件）**：
+  - **`integrations/autohanding/client.py`**：新增指数退避重试（默认 2 次，间隔 1s/2s）；429 rate-limit 立即透传不加重；`max_retries` 参数便于测试控制。
+  - **`device_gateway/path_pipeline.py`**：新增 `text_to_svg_path()`、`_motion_path_to_svg_d()`、`_path_bounds_with_margin()`，把内置 stroke font 路径转成 SVG `d` 字符串与预览，供降级复用。
+  - **`routes/handwriting.py`**：`mode=svg` 在 autohanding 失败且文本为 ASCII 时自动降级到本地字体，响应 `backend: "lima-local"`；中文无本地字体时返回 502 并记录。
+  - **`device_gateway/task_draw_params.py`**：`mode=task` 路径同步支持本地降级；重构 `build_handwriting_params` 为多个小函数，满足 ≤50 行约束。
+  - **`observability/prometheus_metrics.py`** + 新建 **`observability/prometheus_handwriting_metrics.py`**：新增 `lima_handwriting_requests_total{status,fallback}` 与 `lima_handwriting_duration_ms{status}`。
+  - **测试**：更新 `tests/test_autohanding_client.py`（重试测试）；更新 `tests/test_handwriting_route.py`（ASCII 降级 / 中文不降级）；新建 `tests/test_handwriting_fallback.py`（task 模式降级、path 转换）。
+- **门禁验证（`.venv310` Python 3.10.20，工作树 `.worktrees/feat-handwriting-resilience`）**：
+  - 聚焦测试（3 文件）：**24 passed**
+  - 相关回归测试（`test_device_gateway_*.py` + image 路由）：**209 passed**
+  - ruff check + format：All checks passed
+  - `scripts/check_code_size.py`：PASS（无文件 >300 行、无函数 >50 行）
+  - pyright：0 errors（仅 prometheus_client 可选依赖 warning，为既有行为）
+- **降级全景**：
+  - 手写/写字：`autohanding` → 失败 → `lima-local` stroke font（仅限 ASCII）
+  - 中文：`autohanding` 失败 → 502 + 明确错误（不输出乱码）
+- **真实手写效果未验证**：autohanding 的真实重试与降级效果需部署后用真实域名/token 冒烟。
+
 ## 2026-06-28 生图降级链路再扩容：接入百度/腾讯/字节（6 → 9 后端）
 
 - **目标**：覆盖所有已配 key 的中国厂商生图能力，降级链路从 6 后端扩到 9 后端。

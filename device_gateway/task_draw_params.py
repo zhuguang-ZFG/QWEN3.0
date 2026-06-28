@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from typing import Any
 
+from integrations.autohanding.client import AutohandingRateLimitError
+from observability import prometheus_metrics
+
 from .device_draw_handler import handle_device_draw
+
+_log = logging.getLogger(__name__)
 from .model_routing import CONTROL_CAPABILITIES, looks_like_svg_path
-from .path_pipeline import render_svg_task, render_text_task
+from .path_pipeline import render_svg_task, render_text_task, text_to_svg_path
 from .safety import DEFAULT_FEED, safe_point
 
 
@@ -22,33 +29,35 @@ def _handwriting_options(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> tuple[dict[str, Any], str | None]:
-    """Build device run params from autohanding.com handwriting preview."""
-    text = str(params.get("text", "")).strip()
-    if not text:
-        return {}, "empty handwriting text"
+def _is_ascii(text: str) -> bool:
+    return all(ord(ch) < 128 for ch in text)
 
+
+def _record_handwriting(status: str, start_ms: float, *, fallback: bool = False) -> None:
+    duration_ms = (time.time() * 1000) - start_ms
+    prometheus_metrics.record_handwriting_request(status, fallback=fallback)
+    prometheus_metrics.record_handwriting_duration(duration_ms, status=status)
+
+
+async def _call_autohanding(text: str, options: dict[str, Any]) -> bytes:
     from integrations.autohanding import client as autohanding_client
     from integrations.autohanding import constants
+
+    return await autohanding_client.convert_text(
+        text[: constants.MAX_TEXT_LENGTH],
+        font_type=options["font_type"],
+        paper_bg_type=options["paper_bg_type"],
+        mistake_rate=options["mistake_rate"],
+        messy_ratio=options["messy_ratio"],
+        char_random=options["char_random"],
+    )
+
+
+async def _vectorize_handwriting_png(png_bytes: bytes) -> dict[str, Any]:
     from xiaozhi_drawing.svg_converter import SVGConverter
 
-    options = _handwriting_options(params)
-    try:
-        png_bytes = await autohanding_client.convert_text(
-            text[: constants.MAX_TEXT_LENGTH],
-            font_type=options["font_type"],
-            paper_bg_type=options["paper_bg_type"],
-            mistake_rate=options["mistake_rate"],
-            messy_ratio=options["messy_ratio"],
-            char_random=options["char_random"],
-        )
-    except autohanding_client.AutohandingRateLimitError as exc:
-        return {}, f"autohanding rate limit: {exc}"
-    except autohanding_client.AutohandingClientError as exc:
-        return {}, f"autohanding error: {exc}"
-
     converter = SVGConverter()
-    svg_result = await converter.convert_bytes_to_svg(
+    return await converter.convert_bytes_to_svg(
         png_bytes,
         skeletonize=True,
         reorder_strokes=True,
@@ -56,17 +65,59 @@ async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> t
         spur_length_threshold=10,
         min_stroke_length=5.0,
     )
-    if svg_result.get("status") != "success" or not svg_result.get("svg_path"):
-        return {}, svg_result.get("error") or "handwriting vectorization failed"
 
-    rendered = render_svg_task(str(svg_result["svg_path"]))
+
+def _build_local_fallback_params(text: str) -> dict[str, Any]:
+    rendered = text_to_svg_path(text)
     return {
         "feed": DEFAULT_FEED,
         "path": rendered["path"],
         "source_capability": "handwriting",
         "text": text[:80],
         "preview_svg": rendered.get("preview_svg", ""),
-    }, None
+        "backend": "lima-local",
+    }
+
+
+def _build_handwriting_run_params(svg_path: str, text: str) -> dict[str, Any]:
+    rendered = render_svg_task(svg_path)
+    return {
+        "feed": DEFAULT_FEED,
+        "path": rendered["path"],
+        "source_capability": "handwriting",
+        "text": text[:80],
+        "preview_svg": rendered.get("preview_svg", ""),
+    }
+
+
+async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> tuple[dict[str, Any], str | None]:
+    """Build device run params from autohanding.com handwriting preview."""
+    text = str(params.get("text", "")).strip()
+    if not text:
+        return {}, "empty handwriting text"
+
+    start_ms = time.time() * 1000
+    options = _handwriting_options(params)
+    try:
+        png_bytes = await _call_autohanding(text, options)
+    except Exception as exc:
+        if isinstance(exc, AutohandingRateLimitError):
+            _record_handwriting("rate_limit", start_ms)
+            return {}, f"autohanding rate limit: {exc}"
+        _log.warning("autohanding failed for task mode, trying local fallback: %s", exc)
+        if _is_ascii(text):
+            _record_handwriting("fallback", start_ms, fallback=True)
+            return _build_local_fallback_params(text), None
+        _record_handwriting("failed", start_ms)
+        return {}, f"autohanding error: {exc}"
+
+    svg_result = await _vectorize_handwriting_png(png_bytes)
+    if svg_result.get("status") != "success" or not svg_result.get("svg_path"):
+        _record_handwriting("vectorization_failed", start_ms)
+        return {}, svg_result.get("error") or "handwriting vectorization failed"
+
+    _record_handwriting("success", start_ms)
+    return _build_handwriting_run_params(str(svg_result["svg_path"]), text), None
 
 
 def _looks_like_svg_path(text: str) -> bool:

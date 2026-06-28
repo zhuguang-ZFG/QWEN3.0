@@ -104,6 +104,12 @@ def _register_counters(counter, registry) -> None:
         ["backend"],
         registry=registry,
     )
+    _counters["handwriting_requests"] = counter(
+        "lima_handwriting_requests_total",
+        "Handwriting requests by final status",
+        ["status", "fallback"],
+        registry=registry,
+    )
 
 
 def _register_histograms(histogram, registry) -> None:
@@ -126,6 +132,13 @@ def _register_histograms(histogram, registry) -> None:
         "Startup phase duration in milliseconds",
         ["phase"],
         buckets=[10, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000],
+        registry=registry,
+    )
+    _histograms["handwriting_duration"] = histogram(
+        "lima_handwriting_duration_ms",
+        "Handwriting request duration in milliseconds",
+        ["status"],
+        buckets=[50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000],
         registry=registry,
     )
 
@@ -269,6 +282,10 @@ def generate_metrics() -> bytes:
 
 # Re-export startup/retirement helpers from a focused submodule so this file
 # stays under the project size limit while keeping the public API unchanged.
+from observability.prometheus_handwriting_metrics import (  # noqa: E402
+    record_handwriting_duration,
+    record_handwriting_request,
+)
 from observability.prometheus_startup_metrics import (  # noqa: E402
     record_backend_retirement_event,
     record_startup_phase,

@@ -142,7 +142,26 @@ def test_handwriting_task_mode(client, auth_header):
     assert data["source_capability"] == "handwriting"
 
 
-def test_handwriting_autohanding_error(client, auth_header):
+def test_handwriting_task_mode_autohanding_fallback(client, auth_header):
+    with patch.object(
+        hw.autohanding_client,
+        "convert_text",
+        AsyncMock(side_effect=AutohandingClientError("boom")),
+    ):
+        response = client.post(
+            "/device/v1/app/handwriting",
+            json={"text": "hello fallback", "mode": "task"},
+            headers=auth_header,
+        )
+
+    assert response.status_code == 200
+    data = response.json()["data"][0]
+    assert data["source_capability"] == "handwriting"
+    assert data["backend"] == "lima-local"
+    assert data["path"]
+
+
+def test_handwriting_autohanding_error_ascii_fallback(client, auth_header):
     with patch.object(
         hw.autohanding_client,
         "convert_text",
@@ -151,6 +170,24 @@ def test_handwriting_autohanding_error(client, auth_header):
         response = client.post(
             "/device/v1/app/handwriting",
             json={"text": "hello"},
+            headers=auth_header,
+        )
+
+    assert response.status_code == 200
+    data = response.json()["data"][0]
+    assert data["backend"] == "lima-local"
+    assert data["svg_path"].startswith("M")
+
+
+def test_handwriting_autohanding_error_no_fallback_for_chinese(client, auth_header):
+    with patch.object(
+        hw.autohanding_client,
+        "convert_text",
+        AsyncMock(side_effect=AutohandingClientError("boom")),
+    ):
+        response = client.post(
+            "/device/v1/app/handwriting",
+            json={"text": "你好"},
             headers=auth_header,
         )
 
