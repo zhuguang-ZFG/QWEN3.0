@@ -1885,3 +1885,21 @@
 - `tests/test_device_ledger_projection.py` 8 passed。
 - 相关回归测试共 110 passed。
 - `ruff check` / `pyright` clean。
+
+## autohanding.com 仿手写集成 Phase 1
+
+**状态**：已完成并部署。
+
+**关键发现**
+- autohanding.com 免费 preview 接口返回 ZIP 包内的 PNG 位图，LiMa 需要走 `PNG → SVG path → 设备 motion path` 才能驱动写字机/绘图机。
+- `xiaozhi_drawing/svg_converter.py` 的 skeletonize + reorder_strokes 模式可将手写体位图转为单笔开放路径，避免双线轮廓导致描边重复。
+- 新增 `device_gateway/task_draw_params.py::build_handwriting_params()` 后，`capability=handwriting` 的设备任务可直接复用现有 `render_svg_task()` 渲染链路。
+- `routes/handwriting.py` 支持 `mode=svg`（预览）与 `mode=task`（下发设备）两种输出，减少前端调用链。
+
+**部署验证**
+- `scripts/deploy_unified.py --slice core` 成功；VPS health 显示 `handwriting: true`。
+- 公网 `/device/v1/app/handwriting` 无 token / 非法 token 均返回 401，路由与鉴权已生效；真实账号的端到端 SVG 返回待后续补充验证。
+
+**风险/待办**
+- autohanding.com 为第三方免费接口，存在速率限制与可用性风险；生产高并发场景应加缓存或接入付费/私有仿手写服务。
+- Phase 2 需要小程序/Chat Web 的手写输入 UI。

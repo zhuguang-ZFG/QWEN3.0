@@ -10,6 +10,65 @@ from .path_pipeline import render_svg_task, render_text_task
 from .safety import DEFAULT_FEED, safe_point
 
 
+def _handwriting_options(params: dict[str, Any]) -> dict[str, Any]:
+    from integrations.autohanding import constants
+
+    return {
+        "font_type": str(params.get("font_type", constants.DEFAULT_FONT_TYPE)),
+        "paper_bg_type": str(params.get("paper_bg_type", constants.DEFAULT_PAPER_BG_TYPE)),
+        "mistake_rate": int(params.get("mistake_rate", constants.DEFAULT_MISTAKE_RATE)),
+        "messy_ratio": int(params.get("messy_ratio", constants.DEFAULT_MESSY_RATIO)),
+        "char_random": int(params.get("char_random", constants.DEFAULT_CHAR_RANDOM)),
+    }
+
+
+async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> tuple[dict[str, Any], str | None]:
+    """Build device run params from autohanding.com handwriting preview."""
+    text = str(params.get("text", "")).strip()
+    if not text:
+        return {}, "empty handwriting text"
+
+    from integrations.autohanding import client as autohanding_client
+    from integrations.autohanding import constants
+    from xiaozhi_drawing.svg_converter import SVGConverter
+
+    options = _handwriting_options(params)
+    try:
+        png_bytes = await autohanding_client.convert_text(
+            text[: constants.MAX_TEXT_LENGTH],
+            font_type=options["font_type"],
+            paper_bg_type=options["paper_bg_type"],
+            mistake_rate=options["mistake_rate"],
+            messy_ratio=options["messy_ratio"],
+            char_random=options["char_random"],
+        )
+    except autohanding_client.AutohandingRateLimitError as exc:
+        return {}, f"autohanding rate limit: {exc}"
+    except autohanding_client.AutohandingClientError as exc:
+        return {}, f"autohanding error: {exc}"
+
+    converter = SVGConverter()
+    svg_result = await converter.convert_bytes_to_svg(
+        png_bytes,
+        skeletonize=True,
+        reorder_strokes=True,
+        threshold_mode="auto",
+        spur_length_threshold=10,
+        min_stroke_length=5.0,
+    )
+    if svg_result.get("status") != "success" or not svg_result.get("svg_path"):
+        return {}, svg_result.get("error") or "handwriting vectorization failed"
+
+    rendered = render_svg_task(str(svg_result["svg_path"]))
+    return {
+        "feed": DEFAULT_FEED,
+        "path": rendered["path"],
+        "source_capability": "handwriting",
+        "text": text[:80],
+        "preview_svg": rendered.get("preview_svg", ""),
+    }, None
+
+
 def _looks_like_svg_path(text: str) -> bool:
     return looks_like_svg_path(text)
 
@@ -81,6 +140,8 @@ async def build_run_params_async(
     if capability == "draw_generated":
         prompt = str(params.get("prompt", ""))[:120]
         return await build_draw_generated_params(prompt, device_id, params)
+    if capability == "handwriting":
+        return await build_handwriting_params(params, device_id)
     if capability in CONTROL_CAPABILITIES:
         return {"source_capability": capability}, None
     return {"feed": DEFAULT_FEED, "path": [safe_point(0, 0, 0)], "source_capability": capability}, None

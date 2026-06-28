@@ -24,18 +24,12 @@ from xiaozhi_drawing.skeleton_tracer import polylines_to_svg_paths, trace_skelet
 logger = logging.getLogger(__name__)
 
 
-# ── 图像下载 ───────────────────────────────────────────────────────────────────
-
-
 async def _download_image(image_url: str) -> BytesIO:
     """Download image from URL."""
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(image_url)
         resp.raise_for_status()
         return BytesIO(resp.content)
-
-
-# ── 图像预处理 ─────────────────────────────────────────────────────────────────
 
 
 def _preprocess_image(image_data: BytesIO, threshold_mode: str = "auto") -> tuple:
@@ -51,9 +45,6 @@ def _preprocess_image(image_data: BytesIO, threshold_mode: str = "auto") -> tupl
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     binary, threshold_method = _binarize(gray, blurred, threshold_mode)
     return gray, binary, threshold_method
-
-
-# ── 骨架化 ─────────────────────────────────────────────────────────────────────
 
 
 def _thin_morphological(binary: np.ndarray) -> np.ndarray:
@@ -100,9 +91,6 @@ def _thin_binary(binary: np.ndarray) -> tuple[np.ndarray, str]:
             logger.warning("cv2.ximgproc.thinning unavailable (%s); using morphological fallback", exc)
     logger.info("Using morphological thinning fallback for skeletonization")
     return _thin_morphological(binary), "morphological"
-
-
-# ── 路径提取 ───────────────────────────────────────────────────────────────────
 
 
 def _contour_to_svg_path(contour: np.ndarray, *, closed: bool = True) -> str:
@@ -200,9 +188,6 @@ def _svg_payload(
     }
 
 
-# ── 转换器主类 ─────────────────────────────────────────────────────────────────
-
-
 async def _convert_image_bytes(
     image_data: BytesIO,
     *,
@@ -265,18 +250,7 @@ class SVGConverter:
         min_stroke_length: float = 5.0,
         reorder_strokes: bool = False,
     ) -> dict[str, Any]:
-        """下载图片并转换为 SVG 路径（OpenCV 处理）。
-
-        Args:
-            image_url: 图片 URL。
-            simplify_epsilon: DP 简化容差（像素）。
-            min_contour_area: 非骨架模式最小轮廓面积。
-            skeletonize: True 用骨架化单线路径。
-            threshold_mode: 二值化策略：auto/otsu/adaptive。
-            spur_length_threshold: 骨架模式毛刺剪枝阈值（像素）。
-            min_stroke_length: 骨架模式最小笔画长度（像素）。
-            reorder_strokes: 骨架模式下按最近邻重排笔画，减少空走。
-        """
+        """Download image URL and convert to SVG paths."""
         try:
             image_data = await _download_image(image_url)
         except Exception as e:
@@ -284,6 +258,30 @@ class SVGConverter:
             return _svg_payload("failed", error=f"Download failed: {e}")
         return await _convert_image_bytes(
             image_data,
+            simplify_epsilon=simplify_epsilon,
+            min_contour_area=min_contour_area,
+            skeletonize=skeletonize,
+            threshold_mode=threshold_mode,
+            spur_length_threshold=spur_length_threshold,
+            min_stroke_length=min_stroke_length,
+            reorder_strokes=reorder_strokes,
+        )
+
+    async def convert_bytes_to_svg(
+        self,
+        image_bytes: bytes,
+        simplify_epsilon: float = 2.0,
+        min_contour_area: int = 100,
+        *,
+        skeletonize: bool = False,
+        threshold_mode: str = "auto",
+        spur_length_threshold: int = 10,
+        min_stroke_length: float = 5.0,
+        reorder_strokes: bool = False,
+    ) -> dict[str, Any]:
+        """Convert already-loaded image bytes to SVG paths."""
+        return await _convert_image_bytes(
+            BytesIO(image_bytes),
             simplify_epsilon=simplify_epsilon,
             min_contour_area=min_contour_area,
             skeletonize=skeletonize,

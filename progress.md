@@ -1,5 +1,27 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 全栈深度质量审计（四子系统）
+
+- **目标**：学习项目并深度质量检查 LiMa 后端、Web 前端、微信小程序、ESP32 固件四子系统。
+- **审计方式**：静态扫描 + 质量门禁实跑 + 关键路径人工复核（只读，未改代码）。
+- **门禁实跑结果**（关键：必须用 `.venv310`，系统 python 3.14 会假阳性）：
+  - LiMa pytest：**4015 passed, 3 skipped, 0 failed**（225s）
+  - LiMa ruff：All checks passed
+  - LiMa `check_code_size.py`：PASS（无文件 >300 行，无函数 >50 行）
+  - LiMa pyright（server.py/routing_engine.py/identity_guard.py/access_guard.py）：0 errors, 2 warnings（sentry_sdk 可选依赖）
+  - 固件 esp32S_XYZ `tests/`：**115 passed, 169 subtests passed**
+- **总体评级**：LiMa A−、Web B+、小程序 B、固件 A。无 CRITICAL 阻断性缺陷。
+- **关键发现**：
+  - **[HIGH]** `server_lifespan_state.py:40,90` `except ImportError: pass` 吞 prometheus 导入，违反硬规则 #1（需加 `logger.warning`）。
+  - **[HIGH]** Web 6 处 CDN `<script>`（`chat-web/index.html:356-358`、`playground.html:16,19`、`usage.html:99`）缺 SRI integrity 哈希，供应链风险。
+  - **[MEDIUM]** 已退役 `gitee_mirror*.py` + `push_dual_remotes.py` 仍入库（死代码，对照 AGENTS.md Gitee 退役声明）。
+  - **[MEDIUM]** 小程序约 25+ 处 `any`（blufi-config.vue、useUpload.ts、http/request/types.ts 等），STATUS.md「类型检查通过」实靠 any 绕过。
+  - **[EXCELLENT]** 固件 OTA 链路：强制 HTTPS + mbedtls RSA 签名验证 + SHA256 元数据三重校验（`ota.cc:30,86-113,384-397`），A 级实践。
+  - **[EXCELLENT]** Web 聊天渲染 `formatContent()` 先 escapeHtml 再注入，图片走域名白名单，XSS 防护扎实。
+  - **[GOOD]** U1 JSON 解析器 P0 修复已验证（`json_utils.cpp` 用 snprintf），U8 cJSON 无泄漏（每个 Print 配对 free）。
+- **未覆盖**：固件 HIL 实机、小程序/Next.js 构建产物校验、真实 VPS 端到端冒烟、依赖 CVE 扫描（pip-audit/pnpm audit）—— 见审计报告「未覆盖项」。
+- **产出**：[`docs/DEEP_QUALITY_AUDIT_CN.md`](docs/DEEP_QUALITY_AUDIT_CN.md)（含分级、文件:行证据、改进优先级 P1/P2/P3 清单）。
+
 ## 2026-06-28 Pollinations.ai 增强：更多参数 + 中文 prompt 翻译 + 模块拆分
 
 - **目标**：让零配置的 Pollinations.ai 后端更稳、更可控，并把图片生成代码拆成可维护的小模块。
@@ -9996,3 +10018,32 @@ uff check 2 文件 clean；导入无循环依赖。
 - **验证**：
   - `ruff check .` clean；`ruff format --check .` clean。
   - `python -m pytest tests/test_prompt_registry.py tests/test_prompt_engineering.py -q` → **59 passed / 0 failed**。
+
+## 2026-06-28 autohanding.com 仿手写 Phase 1 落地
+
+- **目标**：将 autohanding.com 免费仿手写预览能力接入 LiMa 后端，供写字机/绘图机使用；完成代码体积达标、测试、部署与冒烟验证。
+- **关键结果**：
+  - 后端路由：
+    - 新增/完善 `routes/handwriting.py`：`POST /device/v1/app/handwriting` 支持 `mode=svg`（默认返回 SVG path）与 `mode=task`（返回可下发设备的 draw task）。
+    - 路由已在 `routes/route_registry.py` 注册；VPS health 模块列表显示 `handwriting: true`。
+  - 设备渲染链路：
+    - `device_gateway/task_draw_params.py` 新增 `build_handwriting_params()` 与 `capability == "handwriting"` 分支，复用 `render_svg_task()` 生成 `path` / `preview_svg`。
+  - 代码体积修复：
+    - 拆分 `integrations/autohanding/client.py::convert_text` 为 `_validate_text` / `_build_form` / `_build_headers` / `_post_preview` / `_parse_preview_response`。
+    - 拆分 `routes/handwriting.py::device_app_handwriting` 为 `_load_request` / `_generate_svg` / `_build_response` / `_build_task_response`。
+    - 精简 `xiaozhi_drawing/svg_converter.py` 分隔注释/空行，回到 300 行以内。
+  - 测试：
+    - 新增 `tests/test_autohanding_client.py`（7 用例）：覆盖 ZIP 提取、空文本、超长文本、429、中文限流提示、超时、ZIP 内无 PNG。
+    - 新增 `tests/test_handwriting_route.py`（8 用例）：覆盖 200/svg、503 禁用、400 非法请求、429 限流、502 向量化失败、task 模式、通用客户端错误。
+- **验证**：
+  - `python scripts/check_code_size.py` → PASS（0 文件 >300 行，0 函数 >50 行）。
+  - `ruff check .` / `ruff format --check .` clean。
+  - `pyright` 目标文件仅 1 个既有 cv2.ximgproc 警告。
+  - `python -m pytest -m "not network" -q` → **4029 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `scripts/run_pre_commit_check.py --ci` 通过。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core` 成功上传 850 个文件并重启。
+  - VPS health `https://chat.donglicao.com/health` 返回 OK，模块列表含 `handwriting: true`。
+  - 公网 `/device/v1/app/handwriting` 无 token 返回 401、非法 token 返回 401，确认路由已上线且鉴权生效；真实 token 端到端调用待有测试账号后补充。
+- **待跟进**：
+  - Phase 2：小程序/Chat Web 手写输入 UI（文本框、字体/纸张选择、参数滑块、预览/生成）。
