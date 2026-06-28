@@ -15,11 +15,13 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from device_gateway import path_pipeline
 from device_gateway.task_draw_params import build_handwriting_params
 from device_logic.auth import authorize
 from device_logic.http import err, read_body
 from integrations.autohanding import client as autohanding_client
 from integrations.autohanding import constants
+from observability import prometheus_metrics
 from xiaozhi_drawing.svg_converter import SVGConverter
 
 router = APIRouter(prefix="/device/v1/app", tags=["handwriting"])
@@ -56,7 +58,25 @@ async def _load_request(request: Request, authorization: str) -> tuple[Handwriti
         return None, err(400, "invalid handwriting request", 400)
 
 
+def _is_local_fallback_supported(text: str) -> bool:
+    """The built-in stroke font only covers ASCII; Chinese needs autohanding."""
+    return all(ord(ch) < 128 for ch in text)
+
+
+def _fallback_svg_result(text: str) -> dict[str, Any] | JSONResponse:
+    """Use the deterministic stroke font when autohanding is unavailable."""
+    if not _is_local_fallback_supported(text):
+        return err(502, "autohanding unavailable and local font does not cover this text", 502)
+    try:
+        return path_pipeline.text_to_svg_path(text)
+    except Exception as exc:
+        _log.warning("local handwriting fallback failed: %s", exc)
+        return err(502, "handwriting fallback failed", 502)
+
+
 async def _generate_svg(req: HandwritingRequest) -> dict[str, Any] | JSONResponse:
+    start_ms = time.time() * 1000
+    fallback = False
     try:
         png_bytes = await autohanding_client.convert_text(
             req.text,
@@ -67,10 +87,19 @@ async def _generate_svg(req: HandwritingRequest) -> dict[str, Any] | JSONRespons
             char_random=req.char_random,
         )
     except autohanding_client.AutohandingRateLimitError:
+        prometheus_metrics.record_handwriting_request("rate_limit")
+        prometheus_metrics.record_handwriting_duration((time.time() * 1000) - start_ms, status="rate_limit")
         return err(429, "autohanding rate limit, please retry later", 429)
     except autohanding_client.AutohandingClientError as exc:
-        _log.warning("autohanding request failed: %s", exc)
-        return err(502, "autohanding service unavailable", 502)
+        _log.warning("autohanding request failed after retries: %s", exc)
+        svg_result = _fallback_svg_result(req.text)
+        fallback = isinstance(svg_result, dict) and svg_result.get("backend") == "lima-local"
+        status = "fallback" if fallback else "failed"
+        prometheus_metrics.record_handwriting_request(status, fallback=fallback)
+        prometheus_metrics.record_handwriting_duration((time.time() * 1000) - start_ms, status=status)
+        if isinstance(svg_result, JSONResponse):
+            return svg_result
+        return svg_result
 
     converter = SVGConverter()
     svg_result = await converter.convert_bytes_to_svg(
@@ -82,7 +111,12 @@ async def _generate_svg(req: HandwritingRequest) -> dict[str, Any] | JSONRespons
         min_stroke_length=5.0,
     )
     if svg_result["status"] != "success" or not svg_result.get("svg_path"):
+        prometheus_metrics.record_handwriting_request("vectorization_failed")
+        prometheus_metrics.record_handwriting_duration((time.time() * 1000) - start_ms, status="vectorization_failed")
         return err(502, f"handwriting vectorization failed: {svg_result.get('error')}", 502)
+
+    prometheus_metrics.record_handwriting_request("success")
+    prometheus_metrics.record_handwriting_duration((time.time() * 1000) - start_ms, status="success")
     return svg_result
 
 
@@ -95,7 +129,7 @@ def _build_response(svg_result: dict[str, Any]) -> JSONResponse:
                     "svg_path": svg_result["svg_path"],
                     "width": svg_result["width"],
                     "height": svg_result["height"],
-                    "backend": "autohanding",
+                    "backend": svg_result.get("backend", "autohanding"),
                 }
             ],
         }

@@ -104,7 +104,38 @@ async def test_convert_text_timeout():
     with patch("httpx.AsyncClient") as AsyncClientMock:
         AsyncClientMock.return_value = cm
         with pytest.raises(client.AutohandingClientError, match="request timeout"):
-            await client.convert_text("hello")
+            await client.convert_text("hello", max_retries=0)
+
+
+@pytest.mark.asyncio
+async def test_convert_text_retries_then_succeeds():
+    zip_bytes = _zip_with_png(b"png-data")
+    success_response = _mock_response(content=zip_bytes, headers={"content-type": "application/zip"})
+    client_mock = MagicMock()
+    client_mock.post = AsyncMock(side_effect=[httpx.TimeoutException("timeout"), success_response])
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=client_mock)
+    cm.__aexit__ = AsyncMock(return_value=False)
+
+    with patch("httpx.AsyncClient") as AsyncClientMock, patch("asyncio.sleep"):
+        AsyncClientMock.return_value = cm
+        result = await client.convert_text("hello", max_retries=1)
+
+    assert result == b"png-data"
+    assert client_mock.post.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_convert_text_rate_limit_not_retried():
+    response = _mock_response(status_code=429)
+    cm = _make_async_client(response)
+
+    with patch("httpx.AsyncClient") as AsyncClientMock, patch("asyncio.sleep"):
+        AsyncClientMock.return_value = cm
+        with pytest.raises(client.AutohandingRateLimitError):
+            await client.convert_text("hello", max_retries=2)
+
+    assert cm.__aenter__.return_value.post.await_count == 1
 
 
 @pytest.mark.asyncio
@@ -118,4 +149,4 @@ async def test_convert_text_missing_png_in_zip():
     with patch("httpx.AsyncClient") as AsyncClientMock:
         AsyncClientMock.return_value = cm
         with pytest.raises(client.AutohandingClientError, match="no PNG found"):
-            await client.convert_text("hello")
+            await client.convert_text("hello", max_retries=0)

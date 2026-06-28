@@ -6,6 +6,7 @@ Output is a raster PNG packaged in a ZIP file.
 
 from __future__ import annotations
 
+import asyncio
 import io
 import logging
 import random
@@ -19,6 +20,8 @@ from integrations.autohanding import constants
 _log = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 30
+DEFAULT_MAX_RETRIES = 2
+DEFAULT_BACKOFF_BASE_SECONDS = 1.0
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
@@ -87,6 +90,30 @@ async def _post_preview(
         raise AutohandingClientError(f"request failed: {exc}") from exc
 
 
+async def _post_preview_with_retry(
+    client: httpx.AsyncClient,
+    url: str,
+    form: dict[str, tuple[None, str]],
+    headers: dict[str, str],
+    timeout: float,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+) -> httpx.Response:
+    """Post with exponential backoff. Rate-limit errors are not retried."""
+    last_exc: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            return await _post_preview(client, url, form, headers, timeout)
+        except AutohandingRateLimitError:
+            raise
+        except AutohandingClientError as exc:
+            last_exc = exc
+            if attempt < max_retries:
+                delay = DEFAULT_BACKOFF_BASE_SECONDS * (2**attempt)
+                _log.warning("autohanding attempt %d failed, retrying in %.1fs: %s", attempt + 1, delay, exc)
+                await asyncio.sleep(delay)
+    raise last_exc or AutohandingClientError("all autohanding retry attempts failed")
+
+
 def _extract_first_png(zip_bytes: bytes) -> bytes:
     """Extract the first PNG found in a ZIP archive."""
     try:
@@ -130,6 +157,7 @@ async def convert_text(
     char_random: int = constants.DEFAULT_CHAR_RANDOM,
     client_id: str | None = None,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
+    max_retries: int = DEFAULT_MAX_RETRIES,
 ) -> bytes:
     """Call autohanding preview text endpoint and return the first PNG bytes."""
     _validate_text(text)
@@ -139,6 +167,6 @@ async def convert_text(
     url = constants.PREVIEW_BASE_URL + constants.PREVIEW_TEXT_ENDPOINT
 
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        response = await _post_preview(client, url, form, headers, timeout)
+        response = await _post_preview_with_retry(client, url, form, headers, timeout, max_retries=max_retries)
 
     return _parse_preview_response(response)

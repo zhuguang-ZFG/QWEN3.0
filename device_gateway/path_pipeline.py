@@ -75,6 +75,57 @@ def text_to_path(
     return clamp_path(path)
 
 
+def _motion_path_to_svg_d(path: list[dict[str, float]]) -> str:
+    """Convert a polyline motion path into an SVG path `d` string.
+
+    Consecutive identical points are treated as pen-up moves (rapid moves),
+    so the next distinct point starts a new stroke with `M`.
+    """
+    if not path:
+        return ""
+    parts: list[str] = []
+    prev_pt: dict[str, float] | None = None
+    pending_move = True
+    for pt in path:
+        if prev_pt is not None and pt["x"] == prev_pt["x"] and pt["y"] == prev_pt["y"]:
+            pending_move = True
+            continue
+        cmd = "M" if pending_move else "L"
+        parts.append(f"{cmd} {pt['x']} {pt['y']}")
+        pending_move = False
+        prev_pt = pt
+    return " ".join(parts)
+
+
+def _path_bounds_with_margin(path: list[dict[str, float]], margin: float = 2.0) -> tuple[int, int]:
+    """Return a (width, height) bounding box that contains every point."""
+    if not path:
+        return int(margin * 2), int(margin * 2)
+    xs = [pt["x"] for pt in path]
+    ys = [pt["y"] for pt in path]
+    width = int(max(xs) + margin)
+    height = int(max(ys) + margin)
+    return max(width, 1), max(height, 1)
+
+
+def text_to_svg_path(text: str) -> dict[str, Any]:
+    """Render ASCII text to an SVG path suitable for plotter preview."""
+    rendered = render_text_task(text[:80])
+    path = rendered["path"]
+    d_string = _motion_path_to_svg_d(path)
+    width, height = _path_bounds_with_margin(path)
+    return {
+        "status": "success",
+        "svg_path": d_string,
+        "width": width,
+        "height": height,
+        "point_count": len(path),
+        "path": path,
+        "preview_svg": rendered["preview_svg"],
+        "backend": "lima-local",
+    }
+
+
 def render_text_task(
     text: str,
     passes: int = 1,
