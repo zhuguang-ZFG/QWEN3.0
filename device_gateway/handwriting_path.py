@@ -37,31 +37,37 @@ def _is_draw_intent(prompt: str) -> bool:
     return any(kw in low for kw in _DRAW_KEYWORDS)
 
 
+def _resolve_writing_text(prompt: str, device_id: str | None, device_type: str | None) -> str | None:
+    """根据前缀或设备类型解析要写的文字；不匹配返回 None。"""
+    text = _extract_text_from_prompt(prompt)
+    if text is None:
+        dtype = device_type or (resolve_device_type(device_id, {}) if device_id else None)
+        if dtype == "esp32_writing_machine" and not _is_draw_intent(prompt):
+            text = prompt.strip()
+    return text
+
+
 def try_text_to_handwriting(
-    prompt: str, device_id: str | None, device_type: str | None = None
+    prompt: str,
+    device_id: str | None,
+    device_type: str | None = None,
+    font_name: str | None = None,
 ) -> dict[str, Any] | None:
     """检测写字意图：匹配则用 fonttools 转手写体路径返回；不匹配返回 None。
 
     返回结构与 _try_preset_shape 一致（status/image_url/svg_path/width/height/model/error）。
     """
-    # 1. 显式前缀优先
-    text = _extract_text_from_prompt(prompt)
-    # 2. 否则按设备类型（writing_machine 默认写字，除非含画图关键词）
-    if text is None:
-        dtype = device_type or (resolve_device_type(device_id, {}) if device_id else None)
-        if dtype == "esp32_writing_machine" and not _is_draw_intent(prompt):
-            text = prompt.strip()
+    text = _resolve_writing_text(prompt, device_id, device_type)
     if not text:
         return None
 
     logger.info("检测到写字意图，使用字体转路径: %s", text[:50])
-    result = text_to_svg_path(text)
+    result = text_to_svg_path(text, font_name=font_name)
     if result["status"] != "success":
         # 字体缺失/渲染失败：记录但不阻断（返回 None 让链路继续走生图）
         logger.warning("字体转路径失败，回退到生图: %s", result.get("error"))
         return None
 
-    # 转成与 _try_preset_shape 一致的结构（draw_responses builder 消费）
     motion_err = _check_motion_bounds(result["svg_path"])
     if motion_err:
         logger.warning("手写体路径越界: %s", motion_err)

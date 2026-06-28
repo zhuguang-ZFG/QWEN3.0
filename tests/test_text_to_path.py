@@ -157,3 +157,45 @@ def test_try_text_to_handwriting_xy_plotter_no_prefix_returns_none():
     """xy_plotter 设备 + 无前缀 + 无画图关键词 → 不触发（走生图）。"""
     result = try_text_to_handwriting("一只猫", device_id=None, device_type="esp32_xy_plotter")
     assert result is None
+
+
+# ─── 多字体支持测试 ───
+
+
+def test_list_handwriting_fonts_scans_directory(tmp_path, monkeypatch):
+    """list_handwriting_fonts 按名称扫描字体目录。"""
+    (tmp_path / "a.ttf").write_text("")
+    (tmp_path / "b.otf").write_text("")
+    (tmp_path / "ignore.txt").write_text("")
+    monkeypatch.setenv("LIMA_HANDWRITING_FONTS_DIR", str(tmp_path))
+    assert text_to_path.list_handwriting_fonts() == ["a", "b"]
+
+
+def test_resolve_font_path_by_name(tmp_path, monkeypatch):
+    """通过 font_name 匹配字体目录中的文件（忽略大小写、支持补扩展名）。"""
+    font = _build_minimal_font(tmp_path)
+    font2 = tmp_path / "Another.ttf"
+    font2.write_bytes(font.read_bytes())
+    monkeypatch.setenv("LIMA_HANDWRITING_FONTS_DIR", str(tmp_path))
+    resolved = text_to_path.resolve_font_path(font_name="another")
+    assert resolved.name == "Another.ttf"
+
+
+def test_resolve_font_path_unknown_name_fallback_to_default(tmp_path, monkeypatch):
+    """font_name 未匹配时回退默认字体。"""
+    font = _build_minimal_font(tmp_path)
+    monkeypatch.setenv("LIMA_HANDWRITING_FONT", str(font))
+    resolved = text_to_path.resolve_font_path(font_name="notexist")
+    assert resolved == font
+
+
+def test_try_text_to_handwriting_with_font_name(tmp_path, monkeypatch):
+    """通过 font_name 参数指定字体。"""
+    font = _build_minimal_font(tmp_path)
+    font2 = tmp_path / "Other.ttf"
+    font2.write_bytes(font.read_bytes())
+    monkeypatch.setenv("LIMA_HANDWRITING_FONTS_DIR", str(tmp_path))
+    result = try_text_to_handwriting("write: A", device_id=None, font_name="other")
+    assert result is not None
+    assert result["status"] == "success"
+    assert result["model"] == "handwriting:font"

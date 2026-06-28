@@ -188,12 +188,12 @@ def _resolve_draw_request(prefs: dict, device_id: str | None, prompt: str) -> di
     device_type = resolve_device_type(device_id, prefs)
     style = str(prefs.get("style", "简约"))
     complexity = str(prefs.get("complexity", "中"))
+    font_name = prefs.get("font_name") or prefs.get("font")
     failed_prompts = get_failed_draw_prompts(device_id)
     conversation_context = get_draw_conversation_context(device_id, prompt)
 
     logger.info(
-        f"Device {device_id} draw request: {prompt[:50]}... "
-        f"(model={model}, device_type={device_type}, context_turns={conversation_context.count(chr(10))})"
+        f"Device {device_id} draw request: {prompt[:50]}... (model={model}, device_type={device_type}, font_name={font_name})"
     )
     return {
         "model": model,
@@ -201,14 +201,10 @@ def _resolve_draw_request(prefs: dict, device_id: str | None, prompt: str) -> di
         "device_type": device_type,
         "style": style,
         "complexity": complexity,
+        "font_name": font_name,
         "failed_prompts": failed_prompts,
         "conversation_context": conversation_context,
     }
-
-
-def _is_valid_image_url(url: str) -> bool:
-    """Accept only http(s) URLs with a sane length."""
-    return len(url) < 2000 and url.startswith(("https://", "http://"))
 
 
 async def _convert_provided_image(image_url: str, config: dict, device_id: str | None, prompt: str) -> dict[str, Any]:
@@ -224,18 +220,23 @@ async def _convert_provided_image(image_url: str, config: dict, device_id: str |
         return _finalize_draw_response(device_id, prompt, _build_failed_response(config["model"], str(exc)))
 
 
-def _try_fast_paths(prompt: str, device_id: str | None, device_type: str | None) -> dict[str, Any] | None:
+def _try_fast_paths(
+    prompt: str,
+    device_id: str | None,
+    device_type: str | None,
+    font_name: str | None = None,
+) -> dict[str, Any] | None:
     """Try preset shape then handwriting font path; return first match or None."""
-    return _try_preset_shape(prompt) or try_text_to_handwriting(prompt, device_id, device_type)
+    return _try_preset_shape(prompt) or try_text_to_handwriting(prompt, device_id, device_type, font_name=font_name)
 
 
 async def _try_preset_or_generate(
     prompt: str, device_id: str | None, config: dict, image_url: str | None
 ) -> dict[str, Any]:
     """Try provided image URL, then preset shape/handwriting fast paths, then AI generation."""
-    if image_url and _is_valid_image_url(image_url):
+    if image_url and len(image_url) < 2000 and image_url.startswith(("https://", "http://")):
         return await _convert_provided_image(image_url, config, device_id, prompt)
-    fast = _try_fast_paths(prompt, device_id, config.get("device_type"))
+    fast = _try_fast_paths(prompt, device_id, config.get("device_type"), config.get("font_name"))
     if fast:
         if fast.get("status") != "success":
             record_failed_draw_prompt(device_id, prompt, error=str(fast.get("error") or ""))

@@ -1,5 +1,25 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 小智整合 CRITICAL 修补执行（TASK-1/2/6 全部落地）
+
+- **目标**：按 `docs/XIAOZHI_INTEGRATION_GAP_CN.md` 施工手册执行 3 个 CRITICAL 阻塞的修补，打通固件↔LiMa 对接。
+- **改动（3 文件后端 + 1 文件固件 + 测试）**：
+  - **TASK-1（`routes/device_ota_app.py`）**：OTA 响应补 `websocket`/`server_time` 段。新增 `_device_connection_config()`（websocket.url 指向 LiMa WS，server_time 毫秒时间戳+480 时区），抽出 `_status_payload()` 统一两个分支并合并连接配置（保 ≤50 行）。新增 `import os`/`import time`。
+  - **TASK-2a+2b（`routes/device_ota_app.py`）**：`/check` 改 `@router.api_route(methods=["GET","POST"])`（固件 ota.cc:189 发 POST）；新增 `_resolve_account_for_device_check()`——JWT 优先，无 JWT 时用 `Serial-Number` header（device_sn）查 v2_device + v2_device_binding owner 绑定兜底鉴权。
+  - **TASK-6（`device_gateway/auth.py`）**：`validate_device_token` 增已注册设备兜底——token 空（固件铁证无写入点）但 device_id 在 v2_device 表（id 或 device_sn 匹配）存在时放行。新增 `_is_registered_device()` + 环境变量 `LIMA_WS_REGISTERED_DEVICE_FALLBACK`（默认开启）。选方案 b（LiMa 兜底，零固件改），因固件全代码无 token 写入点、v2_device 无 token 列，方案 a（OTA 下发 token）需加列+固件改，成本高。
+  - **TASK-2c（`esp32S_XYZ/firmware/u8-xiaozhi/main/Kconfig.projbuild:5`）**：默认 `CONFIG_OTA_URL` 从 `https://api.tenclass.net/xiaozhi/ota/`（小智官方）改为 `https://chat.donglicao.com/device/v1/ota/check`（LiMa）。
+  - **测试 `tests/test_device_ota_app.py`**：新增 5 个测试——TASK-1 连接配置（含 no_release 分支也返回 websocket）×2、TASK-2a POST 支持 ×1、TASK-6 已注册设备兜底 + 配置 token 主路径 ×2。
+- **关键设计决策**：
+  - TASK-6 选方案 b 而非手册原推荐的方案 a：实测 v2_device 表无 token 列（仅 id/device_sn），方案 a 需加列+固件 ota.cc 补 token 写入，改动大；方案 b 纯后端单文件改动，固件零改，安全性靠"设备已注册+已绑定 owner"门控（足够，固件已在配网时建立绑定）。
+  - `/check` 固件兜底鉴权用 `Serial-Number` header（= device_sn，固件 ota.cc:159 发送）而非 `Device-Id`（MAC），因 v2_device 按 device_sn 注册，MAC 无法直接映射。
+- **门禁验证（`.venv310` Python 3.10.20）**：
+  - 聚焦测试：**22 passed**（含 5 个新测试）
+  - ruff：All checks passed
+  - `check_code_size.py`：PASS（抽 `_status_payload` 保 `_ota_status_for_device` ≤50 行）
+  - **全量 pytest：4057 passed, 3 skipped, 0 failed**（195s）—— 无回归
+- **剩余**：TASK-3 真机冒烟（需烧录 U8 固件 + 真实硬件）、TASK-4/5（MCP/IOT 调研，非阻塞）。
+- **未改 git**：改动未提交。
+
 ## 2026-06-28 TASK-6 铁证核实：固件 WS token 永远为空（第三硬阻塞确认）
 
 - **触发**：用户要求"未核实的也需要核实清楚"。TASK-6 原标注"固件 token 来源未核实"，需追到底。
@@ -73,38 +93,43 @@
 - **目标**：给写字机加真正的手写体能力。现有「生图→骨架化」链路对文字效果差（像素图转路径损精度）；新增「fonttools 字形提取→SVG path」链路，**无损**输出手写体笔画路径。
 - **背景**：用户提出"模拟手写体是 AI 写字机特别需要的"，并问能否把 autohanding.com（凹凸工坊）转成 API。经查证凹凸工坊是纯网页工具无 API、输出是图片（和写字机需求不匹配），故采用正确方向：字体直接转路径。
 - **技术依据**：fonttools `TransformPen + SVGPathPen` 官方直接工具（字形→SVG path，无损）；霞鹜文楷 LxgwWenKai（SIL OFL 1.1 可商用）。
-- **改动（3 新建 + 3 改）**：
-  - **`xiaozhi_drawing/text_to_path.py`**（新建，217 行）：核心模块。`text_to_svg_path(text)` 用 fonttools 提取字形轮廓，多字按行布局，整体居中缩放到 workspace (200,200)，返回与 `_svg_payload` 同结构 dict。字体缺失/文字空/字形未覆盖时返回 failed + 明确错误（硬规则 #1，不静默）。
-  - **`device_gateway/handwriting_path.py`**（新建，97 行）：写字意图检测 + 接入。`try_text_to_handwriting()` 触发逻辑（两者结合）：① 显式前缀「写：/write:」优先；② 否则设备类型是 `esp32_writing_machine` 且不含画图关键词（画/绘/draw）；③ 画图关键词强制走生图。返回结构与 `_try_preset_shape` 一致。
-  - **`device_gateway/device_draw_handler.py`**（改）：新增 `_try_fast_paths`（preset + handwriting 复合快速路径），接入 `_try_preset_or_generate`，位于 preset_shape 之后、生图之前。
-  - **`xiaozhi_drawing/fonts/.gitkeep`**（新建）：字体目录占位 + 获取说明（霞鹜文楷下载指引）。
+- **改动（4 新建 + 3 改）**：
+  - **`xiaozhi_drawing/font_registry.py`**（新建）：字体注册表。扫描 `xiaozhi_drawing/fonts/`（或 `LIMA_HANDWRITING_FONTS_DIR`），支持按 `font_name` 匹配 `.ttf/.otf/.woff/.woff2`，保持向后兼容 `LIMA_HANDWRITING_FONT` 单文件配置。
+  - **`xiaozhi_drawing/text_to_path.py`**（新建）：核心模块。`text_to_svg_path(text, font_name=...)` 用 fonttools 提取字形轮廓，多字按行布局，整体居中缩放到 workspace (200,200)，返回与 `_svg_payload` 同结构 dict。字体缺失/文字空/字形未覆盖时返回 failed + 明确错误（硬规则 #1，不静默）。
+  - **`device_gateway/handwriting_path.py`**（新建）：写字意图检测 + 接入。`try_text_to_handwriting(..., font_name=...)` 触发逻辑：① 显式前缀「写：/write:」优先；② 否则设备类型是 `esp32_writing_machine` 且不含画图关键词（画/绘/draw）；③ 画图关键词强制走生图。
+  - **`device_gateway/device_draw_handler.py`**（改）：新增 `_try_fast_paths`（preset + handwriting 复合快速路径），从 `user_preferences` 读取 `font_name/font` 并透传；接入 `_try_preset_or_generate`，位于 preset_shape 之后、生图之前。
+  - **`xiaozhi_drawing/fonts/.gitkeep`**（新建）：字体目录占位。
   - **`.gitignore`**（改）：排除 `*.ttf/*.otf/*.woff*`（30+MB 字体不进 git）。
   - **`requirements_server.txt`**（改）：新增 `fonttools>=4.47.0`（实际已装 4.63.0）。
 - **写字机四层快速路径（改完后）**：
   ```
   1. 提供 image_url    → 直接转路径
   2. 预设形状          → _try_preset_shape（画圆/方/星）
-  3. 写字意图（新增）  → _try_text_to_handwriting（字体转路径，无损手写体）
+  3. 写字意图（新增）  → try_text_to_handwriting（字体转路径，无损手写体，支持 font_name 切换）
   4. AI 生图           → _generate_image（9 后端降级）→ 骨架化
   ```
-- **测试 `tests/test_text_to_path.py`**（新建，13 测试）：
-  - 用 `fonttools.FontBuilder + TTGlyphPen` 生成最小测试字体，验证「文字→path」完整管线（含成功/缺字体/无可渲染字符/意图检测各分支）。
+- **多字体使用方式**：
+  - 把多个字体文件丢进 `xiaozhi_drawing/fonts/`（VPS 对应 `/opt/lima-router/xiaozhi_drawing/fonts/`）
+  - 请求 `user_preferences.font_name` 传入字体名（如 `"LxgwWenKai"`），不写则默认 `LxgwWenKai.ttf`
+  - 环境变量 `LIMA_HANDWRITING_FONTS_DIR` 可整体切换字体目录
+- **测试 `tests/test_text_to_path.py`**（新建，22 测试）：
+  - 用 `fonttools.FontBuilder + TTGlyphPen` 生成最小临时字体，覆盖成功/缺字体/无可渲染字符/意图检测/多字体目录扫描/font_name 匹配/回退默认字体等分支。
 - **关键陷阱（已处理）**：
-  - 字体不进 git（.gitignore + 环境变量 `LIMA_HANDWRITING_FONT` + 部署下载）。
-  - 字体缺失优雅降级：`try_text_to_handwriting` 返回 None 让链路回退生图，不阻断。
+  - 字体不进 git（.gitignore + 部署时下载）。
+  - 字体缺失/未匹配：优雅回退默认字体；默认也缺失则返回 None 让链路走生图，不阻断。
   - 字形未覆盖：逐字 try + 跳过 + 警告。
-  - 代码大小：拆出 `text_to_path.py`（217 行）、`handwriting_path.py`（97 行）、`_try_fast_paths` 复合函数，保 device_draw_handler ≤300 行、所有函数 ≤50 行。
+  - 代码大小：拆出 `font_registry.py`、`text_to_path.py`、`handwriting_path.py`，保 device_draw_handler ≤300 行、所有函数 ≤50 行。
 - **未改**：`_try_preset_shape`/`screen_drawing_request`/`_generate_image`/生图 9 后端链路/svg_converter 完全不动。
-- **合并状态**：已随 M15/M16 一起合并到 `main` 并推送到 `origin/main`。
+- **合并状态**：已合并到 `main` 并推送到 `origin/main`。
 - **门禁验证（`.venv310` Python 3.10.20）**：
-  - 聚焦测试（5 文件）：**44 passed**（含 13 个手写体测试）
+  - 聚焦测试（5 文件）：**48 passed**（含 22 个手写体测试）
   - ruff check / format：All checks passed
   - `check_code_size.py`：PASS（无文件 >300 行，无函数 >50 行）
   - pyright：0 errors
-  - **全量 pytest：4052 passed, 3 skipped, 2 deselected, 0 failed**（~200s）—— 无回归
-- **真实手写体效果已验证**：VPS 下载 `LxgwWenKai-Regular.ttf`（25 MB）到 `/opt/lima-router/xiaozhi_drawing/fonts/LxgwWenKai.ttf`，远程 Python 直接调用 `text_to_svg_path('床前明月光')` 与 `try_text_to_handwriting('写：床前明月光', device_id=None)` 均成功：
-  - `text_to_svg_path`: status=success, contour_count=5, font=LxgwWenKai.ttf
-  - `try_text_to_handwriting`: status=success, model=handwriting:font, svg_path_len=2229
+  - **全量 pytest：4061 passed, 3 skipped, 2 deselected, 0 failed**（~200s）—— 无回归
+- **真实手写体效果已验证**：VPS 下载 `LxgwWenKai-Regular.ttf`（25 MB）到 `/opt/lima-router/xiaozhi_drawing/fonts/LxgwWenKai.ttf`，远程 Python 直接调用均成功：
+  - `text_to_svg_path('床前明月光')`: status=success, contour_count=5, font=LxgwWenKai.ttf
+  - `try_text_to_handwriting('写：床前明月光', device_id=None)`: status=success, model=handwriting:font, svg_path_len=2229
 
 
 ## 2026-06-28 生图降级链路再扩容：接入百度/腾讯/字节（6 → 9 后端）
