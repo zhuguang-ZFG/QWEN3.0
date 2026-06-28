@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+# 对外统一品牌名，隐藏真实生图模型（wanx2.1-t2i-turbo 等）。
+# 真实模型名仅用于内部日志（device_draw_handler），响应体对外统一返回品牌标签。
+PUBLIC_DRAW_MODEL_LABEL = "LiMa 生图"
+
 
 def build_failed_response(model: str, error: str) -> Dict[str, Any]:
     """Build a failed draw response payload."""
@@ -13,7 +17,7 @@ def build_failed_response(model: str, error: str) -> Dict[str, Any]:
         "svg_path": None,
         "width": 0,
         "height": 0,
-        "model": model,
+        "model": PUBLIC_DRAW_MODEL_LABEL,
         "error": error,
     }
 
@@ -32,7 +36,7 @@ def build_partial_response(
         "svg_path": None,
         "width": width,
         "height": height,
-        "model": model,
+        "model": PUBLIC_DRAW_MODEL_LABEL,
         "error": error,
     }
 
@@ -50,7 +54,7 @@ def build_success_response(
         "svg_path": optimization.optimized_path,
         "width": svg_result["width"],
         "height": svg_result["height"],
-        "model": model,
+        "model": PUBLIC_DRAW_MODEL_LABEL,
         "error": None,
         "optimization": {
             "original_points": optimization.original_points,

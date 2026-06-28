@@ -34,7 +34,8 @@ class TestBuildResponses:
     def test_build_failed_response(self):
         resp = _build_failed_response("wanx2.1-t2i-turbo", "bad request")
         assert resp["status"] == "failed"
-        assert resp["model"] == "wanx2.1-t2i-turbo"
+        # 对外统一返回品牌标签「LiMa 生图」，真实模型名（wanx2.1-t2i-turbo）不外泄。
+        assert resp["model"] == "LiMa 生图"
         assert resp["error"] == "bad request"
         assert resp["svg_path"] is None
 
@@ -235,12 +236,17 @@ class TestHandleDeviceDraw:
         assert resp["svg_path"] is None
 
     @patch("device_gateway.device_draw_handler.enhance_drawing_prompt")
+    @patch("device_gateway.image_fallback._generate_image_urls")
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
-    async def test_image_generation_failure_records_retry_hint(self, mock_client_cls, mock_enhance):
+    async def test_image_generation_failure_records_retry_hint(
+        self, mock_client_cls, mock_gen_urls, mock_enhance
+    ):
         mock_enhance.side_effect = lambda prompt, **kwargs: prompt
         mock_client = MagicMock()
         mock_client.generate.return_value = {"status": "failed", "error": "rate limited"}
         mock_client_cls.return_value = mock_client
+        # 降级链路也返回空，使整体回到 failed（本测试关注 retry hint 记录，非降级）
+        mock_gen_urls.return_value = ([], "none", 0)
 
         resp = await handle_device_draw("a cat", device_id="dev-retry")
         assert resp["status"] == "failed"
@@ -249,5 +255,7 @@ class TestHandleDeviceDraw:
         assert mock_enhance.call_count == 2
         assert mock_enhance.call_args_list[1].kwargs.get("previous_failed_prompts") == ["a cat"]
 
+
 # NOTE: Additional TestHandleDeviceDraw tests moved to
 # test_device_draw_handler_part2.py
+# NOTE: DashScope 降级链路测试见 test_device_draw_handler_fallback.py

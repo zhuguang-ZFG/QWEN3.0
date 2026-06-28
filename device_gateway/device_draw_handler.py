@@ -3,6 +3,7 @@
 import logging
 from typing import Dict, Any, Optional
 from dashscope_image_client import DashScopeImageClient
+from device_gateway.image_fallback import generate_via_image_fallback
 from xiaozhi_drawing.svg_converter import SVGConverter
 from xiaozhi_drawing.svg_validator import validate_svg_path
 from xiaozhi_drawing.path_optimizer import optimize_svg_path
@@ -72,7 +73,7 @@ async def _generate_image(
     conversation_context: str = "",
     device_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Enhance prompt and generate an image via DashScope."""
+    """Enhance prompt and generate an image via DashScope, with multi-backend fallback."""
     device_profile = get_device_profile(device_id) if device_id else None
     enhanced_prompt = enhance_drawing_prompt(
         prompt,
@@ -85,7 +86,14 @@ async def _generate_image(
     )
     logger.info(f"Enhanced prompt: {enhanced_prompt[:100]}...")
     client = DashScopeImageClient()
-    return client.generate(prompt=enhanced_prompt, model=model, size=size, n=1)
+    result = client.generate(prompt=enhanced_prompt, model=model, size=size, n=1)
+    # DashScope 失败时降级到 /v1/images 多后端链路，消除单点风险
+    if result.get("status") != "success" or not result.get("images"):
+        logger.info(f"DashScope failed for device {device_id}, trying image fallback")
+        fallback = await generate_via_image_fallback(enhanced_prompt, size, device_id)
+        if fallback.get("status") == "success":
+            return fallback
+    return result
 
 
 async def _convert_image_to_svg(image_url: str) -> Dict[str, Any]:

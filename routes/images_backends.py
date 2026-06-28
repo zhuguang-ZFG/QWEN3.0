@@ -1,4 +1,4 @@
-"""Backend-specific image generators (xmiaom, FreeTheAi)."""
+"""Backend-specific image generators (xmiaom, FreeTheAi, Agnes, SiliconFlow, Zhipu, Baidu, Tencent, Volcengine)."""
 
 from __future__ import annotations
 
@@ -121,6 +121,82 @@ async def _generate_via_freetheai(prompt: str, size: str, n: int) -> list[dict]:
         "https://api.freetheai.xyz/v1/images/generations",
         backend_config.FREETHEAI_API_KEY,
         "img/gpt-image-2",
+        prompt,
+        size,
+        n,
+    )
+
+
+async def _generate_via_agnes(prompt: str, size: str, n: int) -> list[dict]:
+    """Agnes AI image generation (OpenAI-compatible, free, agnes-image-2.0-flash)."""
+    return await _generate_via_openai_image_endpoint(
+        "https://apihub.agnes-ai.com/v1/images/generations",
+        backend_config.AGNES_AI_API_KEY,
+        "agnes-image-2.0-flash",
+        prompt,
+        size,
+        n,
+    )
+
+
+async def _generate_via_siliconflow(prompt: str, size: str, n: int) -> list[dict]:
+    """SiliconFlow image generation (FLUX.1-schnell, OpenAI-compatible)."""
+    return await _generate_via_openai_image_endpoint(
+        "https://api.siliconflow.cn/v1/images/generations",
+        backend_config.SILICONFLOW_API_KEY,
+        "black-forest-labs/FLUX.1-schnell",
+        prompt,
+        size,
+        n,
+    )
+
+
+async def _generate_via_zhipu(prompt: str, size: str, n: int) -> list[dict]:
+    """Zhipu CogView image generation (OpenAI-compatible at /paas/v4, cogview-4-flash)."""
+    return await _generate_via_openai_image_endpoint(
+        "https://open.bigmodel.cn/api/paas/v4/images/generations",
+        backend_config.ZHIPU_API_KEY,
+        "cogview-4-flash",
+        prompt,
+        size,
+        n,
+    )
+
+
+async def _generate_via_baidu(prompt: str, size: str, n: int) -> list[dict]:
+    """Baidu Qianfan image generation (OpenAI-compatible at /v2, stable-diffusion-xl)."""
+    return await _generate_via_openai_image_endpoint(
+        "https://qianfan.baidubce.com/v2/images/generations",
+        backend_config.BAIDU_API_KEY,
+        "stable-diffusion-xl",
+        prompt,
+        size,
+        n,
+    )
+
+
+async def _generate_via_tencent(prompt: str, size: str, n: int) -> list[dict]:
+    """Tencent Hunyuan image generation (OpenAI-compatible at api.cloudai.tencent.com)."""
+    return await _generate_via_openai_image_endpoint(
+        "https://api.cloudai.tencent.com/v1/images/generations",
+        backend_config.TENCENT_API_KEY,
+        "hunyuan-image",
+        prompt,
+        size,
+        n,
+    )
+
+
+async def _generate_via_volcengine(prompt: str, size: str, n: int) -> list[dict]:
+    """Volcengine Doubao Seedream image generation (OpenAI-compatible at ark /api/v3).
+
+    Note: Volcengine Ark 生图 model 参数实际需用接入点 ID (ep-xxx) 或特定模型 ID；
+    此处用模型名占位，部署时若需 ep-xxx 可通过环境变量覆盖 model。
+    """
+    return await _generate_via_openai_image_endpoint(
+        "https://ark.cn-beijing.volces.com/api/v3/images/generations",
+        backend_config.VOLCENGINE_API_KEY,
+        "doubao-seedream-3-0-t2i-250928",
         prompt,
         size,
         n,

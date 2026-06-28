@@ -1,7 +1,7 @@
 """Image generation endpoint.
 
 Primary: xmiaom gpt-image-2 (OpenAI-compatible chat completion returning markdown image link).
-Fallback: FreeTheAi (OpenAI-compatible /v1/images/generations).
+Fallbacks (OpenAI-compatible /v1/images/generations): Agnes (free) → SiliconFlow (FLUX) → Zhipu CogView → Baidu Qianfan → Tencent Hunyuan → Volcengine Doubao → FreeTheAi.
 Final fallback: Pollinations.ai URL builder (zero-config).
 """
 
@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import time
+from collections.abc import Awaitable, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -18,13 +19,36 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from access_guard import require_private_api_key
 from observability import prometheus_metrics as _prom_metrics
-from routes.images_backends import IMAGE_BACKEND, _generate_via_freetheai, _generate_via_xmiaom
+from routes.images_backends import (
+    IMAGE_BACKEND,
+    _generate_via_agnes,
+    _generate_via_baidu,
+    _generate_via_freetheai,
+    _generate_via_siliconflow,
+    _generate_via_tencent,
+    _generate_via_volcengine,
+    _generate_via_xmiaom,
+    _generate_via_zhipu,
+)
 from routes.images_cache import get_cached_image, set_cached_image, should_skip_cache
 from routes.images_pollinations import build_variant, generate_pollinations_urls
 from routes.json_body import read_json_object
 
 router = APIRouter()
 _log = logging.getLogger(__name__)
+
+# Backend chain for _generate_image_urls. Each entry is (backend_name, coroutine).
+# The lambdas unify signatures so the main loop can call each with (prompt, size, n).
+_IMAGE_BACKENDS: list[tuple[str, Callable[..., Awaitable[list[dict]]]]] = [
+    (IMAGE_BACKEND, lambda prompt, size, n: _generate_via_xmiaom(prompt, size)),
+    ("agnes", _generate_via_agnes),
+    ("siliconflow", _generate_via_siliconflow),
+    ("zhipu_cogview", _generate_via_zhipu),
+    ("baidu_qianfan", _generate_via_baidu),
+    ("tencent_hunyuan", _generate_via_tencent),
+    ("volcengine_doubao", _generate_via_volcengine),
+    ("freetheai", _generate_via_freetheai),
+]
 
 
 class ImageRequest(BaseModel):
@@ -106,11 +130,13 @@ async def _generate_image_urls(
         _prom_metrics.record_image_cache_lookup("miss")
 
     started = time.time()
-    data_items = await _generate_via_xmiaom(enhanced_prompt, size)
-    backend = IMAGE_BACKEND
-    if not data_items:
-        data_items = await _generate_via_freetheai(enhanced_prompt, size, n)
-        backend = "freetheai"
+    data_items: list[dict] = []
+    backend = ""
+    for backend_name, generator in _IMAGE_BACKENDS:
+        data_items = await generator(enhanced_prompt, size, n)
+        backend = backend_name
+        if data_items:
+            break
     if not data_items:
         data_items = await generate_pollinations_urls(enhanced_prompt, size, n, options)
         backend = "pollinations"

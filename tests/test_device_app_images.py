@@ -54,5 +54,6 @@ def test_image_generation_returns_urls(image_client, monkeypatch):
     assert response.status_code == 200
     data = response.json()
     assert data["data"] == [{"url": "https://example.com/img.png"}]
-    assert data["backend"] == "xmiaom"
+    # 对外统一返回品牌标签「LiMa 生图」，真实后端名（xmiaom 等）不外泄。
+    assert data["backend"] == "LiMa 生图"
     assert "created" in data

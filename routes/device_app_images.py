@@ -14,6 +14,10 @@ from routes.images_cache import should_skip_cache
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-images"])
 
+# 对外统一品牌名，隐藏真实生图后端（xmiaom/FreeTheAi/Pollinations 等）。
+# 真实后端名仅用于内部监控（_record_image_request / Prometheus），不外泄给客户端。
+PUBLIC_IMAGE_BACKEND_LABEL = "LiMa 生图"
+
 
 @router.post("/images/generations")
 async def device_app_image_generations(request: Request, authorization: str = Header(default="")) -> JSONResponse:
@@ -49,10 +53,13 @@ async def device_app_image_generations(request: Request, authorization: str = He
     )
     urls = [{"url": item["url"]} for item in data_items]
 
+    # 真实 backend 仅保留在函数局部（可用于内部监控），对外响应统一返回品牌标签。
+    _ = backend
+
     return JSONResponse(
         {
             "created": int(time.time()),
             "data": urls,
-            "backend": backend,
+            "backend": PUBLIC_IMAGE_BACKEND_LABEL,
         }
     )
