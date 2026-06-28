@@ -18,10 +18,10 @@
     - `esp32S_XYZ@17b8e57` fix(u8): default missing path segment cmd to M/L
     - `QWEN3.0@c564497f` feat(draw): use provided cloud image URL in draw_generated; sync u8 path cmd fix
 - **验证**：
-  - LiMa 本地 pytest：`tests/test_device_draw_handler.py`、`tests/test_device_draw_handler_part2.py`、`tests/test_device_draw_integration.py`、`tests/test_device_app_tasks.py` → **27 passed / 0 failed**。
+  - LiMa 本地完整 pytest 回归：**4002 passed / 3 skipped / 0 failed**。
   - LiMa `ruff check` / `check_code_size.py` / `pyright` 对修改文件 clean。
   - 固件 CI：`python -m pytest tests/ci -q` → **115 passed / 0 failed**。
-  - `python scripts/deploy_unified.py --slice core` 重新部署成功，VPS Health OK。
+  - `python scripts/deploy_unified.py --slice core` 重新部署成功，VPS Health OK（后续复测 `/health/ready` 返回 200）。
 - **待跟进**：
   - U8 端 LCD 预览云生图需要该板子初始化真实 display 并下载 `image_url`，当前 zhuguang 板未启用 display，硬件就绪后可按 `mcp_server.cc:244` 的 `preview_image` 模式接入。
 
