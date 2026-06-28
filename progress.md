@@ -1,5 +1,20 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 固件侧 U1 GRBL 回归测试与状态守卫审计
+
+- **目标**：为最近修复的 U1 GRBL 固件缺陷增加 CI 静态回归测试，并审计同类状态守卫逻辑，防止未来回退。
+- **关键结果**：
+  - 在 `tests/ci/test_edge_d_firmware_static.py` 新增 4 个 U1 静态测试：
+    - `notCycleOrHold()` 使用 `||` 而非不可能的 `&&`。
+    - `idleOrAlarm()` / `idleOrJog()` 使用正确的 `&&` 语义。
+    - 探测成功日志 `"Found"` 出现在 `sys.probe_succeeded = true;` 之后。
+  - 全仓库扫描 `firmware/u1-grbl/Grbl_Esp32/src`，未发现其他 `sys.state == A && sys.state == B` 不可能表达式。
+  - 推送 `esp32S_XYZ` 提交 `c950370`。
+  - 在 `QWEN3.0` 父仓库同步子模块指针：`054c581 → c950370`。
+- **验证**：
+  - `esp32S_XYZ` 子模块 CI 测试：`python -m pytest tests/ci -q` → **115 passed / 0 failed**。
+  - `QWEN3.0` 完整 pytest 回归：`3991 passed / 0 failed`。
+
 ## 2026-06-27 小程序生产化清理与登录国际化补全
 
 - **目标**：优化 `esp32S_XYZ` 子模块的 manager-mobile 小程序，移除运行期调试日志、补齐登录页国际化键，并同步父仓库子模块指针。
