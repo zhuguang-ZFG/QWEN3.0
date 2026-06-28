@@ -1,5 +1,24 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 U8 固件 board 瘦身：删除 100 个冗余 board（减 70%）
+
+- **目标**：U8 固件代码瘦身，只适配唯一编译目标 `zhuguang/dlc-motor-control-p1-ai`（你的产品 board），删除 xiaozhi-esp32 上游的 100 个冗余 board 适配。
+- **背景发现**：U8 全代码 120,438 行，其中 100 个冗余 board 占 90,011 行（75%）。唯一编译目标确认 `sdkconfig.defaults:15 CONFIG_BOARD_TYPE_ZHUGUANG_DLC_MOTOR_CONTROL_P1_AI=y`。U8↔U1 核心代码（u1_protocol_client/motion_executor/motion_event_emitter）在你的 board 里，必须保留。
+- **关键依赖处理**：你的 board 真用到 `WebSocketControlServer`（board.cc:126 实例化），原在 `otto-robot/`。先迁移到 `boards/common/`（git mv 保留历史），再删 otto-robot，避免悬空依赖。
+- **改动（esp32S_XYZ 子模块）**：
+  - 删除 99 个冗余 board 目录（637 文件），仅保留 `boards/common/` + `boards/zhuguang/`。
+  - CMakeLists board 选择块：148 个 `if/elseif` 分支 → 1 个（直接 set zhuguang），1228→509 行。
+  - Kconfig `choice BOARD_TYPE`：146 个 config → 1 个 + 清理 10 个死 choice 块（depends on 已删 board），982→399 行。
+- **瘦身效果**：
+  - U8 main 总行数：**120,438 → 35,623（-70.4%，删 84,815 行）**
+  - boards：91,827 → 8,315 行
+- **验证**：
+  - esp32S_XYZ CI 静态测试：**115 passed, 169 subtests passed**（瘦身前后一致）
+  - 悬空引用检查：你的 board 的 11 个 include 全部解析到 common/ 或 zhuguang/
+  - U8↔U1 核心代码完整保留
+- **需用户验证**：本仓库无 ESP-IDF 工具链，需本地 `idf.py build` 编译验证 + 真机烧录。瘦身是纯删除，风险集中在共享依赖完整性——已通过 include 追溯确认。
+- **产出**：esp32S_XYZ/STATUS.md 已更新瘦身条目（含指标表）；改动未 git commit。
+
 ## 2026-06-28 小智整合 CRITICAL 修补执行（TASK-1/2/6 全部落地）
 
 - **目标**：按 `docs/XIAOZHI_INTEGRATION_GAP_CN.md` 施工手册执行 3 个 CRITICAL 阻塞的修补，打通固件↔LiMa 对接。
@@ -16,9 +35,15 @@
   - 聚焦测试：**22 passed**（含 5 个新测试）
   - ruff：All checks passed
   - `check_code_size.py`：PASS（抽 `_status_payload` 保 `_ota_status_for_device` ≤50 行）
-  - **全量 pytest：4057 passed, 3 skipped, 0 failed**（195s）—— 无回归
+  - pyright：目标文件 clean
+  - **全量 pytest：4061 passed, 3 skipped, 2 deselected, 0 failed**（~200s）—— 无回归
+- **提交/部署**：
+  - Commit `8540e07a`：`feat(device): U8 firmware OTA/WS fallback integration (TASK-1/2/6)`
+  - Push：origin main `3e9e903b..8540e07a`
+  - VPS 部署：`scripts/deploy_unified.py --slice core` 成功（850 files uploaded，health OK）
+  - 线上冒烟：`https://chat.donglicao.com/health` 返回 `{"status":"ok",...}`；`/device/v1/ota/check` 未授权返回 401（路由存活）
 - **剩余**：TASK-3 真机冒烟（需烧录 U8 固件 + 真实硬件）、TASK-4/5（MCP/IOT 调研，非阻塞）。
-- **未改 git**：改动未提交。
+- **注意**：`esp32S_XYZ` 子模块工作区仍 dirty（含大量非 U8 相关的 boards 删除），本次未提交子模块指针，避免把无关清理打包进本次里程碑。
 
 ## 2026-06-28 TASK-6 铁证核实：固件 WS token 永远为空（第三硬阻塞确认）
 
