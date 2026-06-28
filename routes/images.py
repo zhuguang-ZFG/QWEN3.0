@@ -43,7 +43,7 @@ def _get_cached_image(prompt: str, size: str) -> tuple[list[dict], str] | None:
     if time.time() - cached_at > _IMAGE_CACHE_TTL_SECONDS:
         _image_cache.pop(key, None)
         return None
-    _log.debug("image cache hit for key=%s", key)
+    _log.info("image cache hit for prompt=%s size=%s backend=%s", prompt[:40], size, backend)
     return data_items, backend
 
 
@@ -55,6 +55,7 @@ def _set_cached_image(prompt: str, size: str, data_items: list[dict], backend: s
         oldest = min(_image_cache, key=lambda k: _image_cache[k][2])
         _image_cache.pop(oldest, None)
     _image_cache[key] = (data_items, backend, time.time())
+    _log.info("image cache set for prompt=%s size=%s backend=%s entries=%d", prompt[:40], size, backend, len(_image_cache))
 
 
 def _should_skip_cache(request: Request) -> bool:
