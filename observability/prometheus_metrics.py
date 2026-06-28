@@ -110,40 +110,6 @@ def _register_counters(counter, registry) -> None:
         ["status", "fallback"],
         registry=registry,
     )
-    _register_device_task_counters(counter, registry)
-
-
-def _register_device_task_counters(counter, registry) -> None:
-    _counters["device_tasks_issued"] = counter(
-        "lima_device_tasks_issued_total",
-        "Device tasks issued",
-        ["capability", "source"],
-        registry=registry,
-    )
-    _counters["device_tasks_dispatched"] = counter(
-        "lima_device_tasks_dispatched_total",
-        "Device tasks dispatched",
-        ["capability", "status"],
-        registry=registry,
-    )
-    _counters["device_task_dispatch_failures"] = counter(
-        "lima_device_task_dispatch_failures_total",
-        "Device task dispatch failures",
-        ["reason"],
-        registry=registry,
-    )
-    _counters["device_task_retries"] = counter(
-        "lima_device_task_retries_total",
-        "Device task retries",
-        ["capability"],
-        registry=registry,
-    )
-    _counters["device_tasks_dead_letter"] = counter(
-        "lima_device_tasks_dead_letter_total",
-        "Device tasks abandoned after max retries",
-        ["capability"],
-        registry=registry,
-    )
 
 
 def _register_histograms(histogram, registry) -> None:
