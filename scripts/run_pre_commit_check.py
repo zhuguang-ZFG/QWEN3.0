@@ -168,7 +168,19 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _check_python_version() -> None:
+    """Abort if not running under the supported Python 3.10 interpreter."""
+    if sys.version_info[:2] != (3, 10):
+        print(
+            f"ERROR: run_pre_commit_check.py requires Python 3.10 (got {sys.version_info.major}.{sys.version_info.minor}). "
+            "Activate .venv310 and retry.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    _check_python_version()
     args = parse_args(argv)
     try:
         changed_paths = changed_python_files_ci() if args.ci else staged_python_files()

@@ -1,3 +1,18 @@
+## Canonical role
+
+`donglicao-site-v2/` is the **Next.js-based iteration of the LiMa public site**. It is built as a static site (`next build`) and deployed by `.github/workflows/deploy-site-v2.yml` to the VPS path configured in `secrets.SITE_V2_DIR`.
+
+It currently hosts:
+
+- The new homepage and brand experience (`app/page.tsx`)
+- English locale pages under `/en/`
+- Blog (`app/blog/`)
+- Pricing and product pages being iterated in Next.js
+
+It does **not** yet replace `donglicao-site/` (v1 static site), which still serves the canonical product-detail pages (`product-draw.html`, `product-write.html`, `product-human.html`) and the `/` fallback `chat.html` via `routes/static_files.py`. Migrate those pages to v2 and update the fallback before archiving v1.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

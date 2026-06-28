@@ -1,5 +1,43 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 生图后端大扩容：接入 Agnes/SiliconFlow/智谱 + 写字机五后端降级
+
+- **目标**：(1) 接入已配 key 却闲置的生图供应商，扩展降级链路；(2) 消除写字机生图单点风险（DashScope 挂了全停）。
+- **触发**：用户两次关键纠正——「Agnes AI 也有生图 api」「后台中有很多供应商，应该有很多生图 api」。盘点确认：**至少 6 家已配 key 的供应商有生图能力却完全没接**。
+- **供应商盘点**（已配 key 且有生图能力）：
+
+| 供应商 | 已配 key | 生图模型 | 端点兼容性 | 处理 |
+|--------|---------|---------|-----------|------|
+| **Agnes** | ✅ | agnes-image-2.0-flash（免费） | ✅ OpenAI 兼容 | ✅ 本轮接入 |
+| **SiliconFlow** | ✅ | FLUX.1-schnell/Kolors/SD3 | ✅ OpenAI 兼容 | ✅ 本轮接入 |
+| **智谱 ZHIPU** | ✅ | cogview-4-flash | ✅ OpenAI 兼容(/paas/v4) | ✅ 本轮接入 |
+| 百度/腾讯/字节 | ✅ | 各有生图 | ⚠️ 自有格式 | ❌ 后续（需独立 client） |
+| 阿里 ALIYUN | ✅ | wanx2.1-t2i-turbo | ⚠️ DashScope | ✅ 已用（写字机） |
+| xmiaom/FreeTheAi/Pollinations | ✅ | gpt-image-2/免费 | ✅ | ✅ 已用 |
+
+- **改动（4 文件改 + 3 新建文件）**：
+  - **`routes/images_backends.py`**：新增 `_generate_via_agnes`/`_generate_via_siliconflow`/`_generate_via_zhipu`，全部复用现成的 `_generate_via_openai_image_endpoint`（和 FreeTheAi 同构，零成本接入）。
+  - **`routes/images.py`**：降级链路从 3 后端扩展为 **6 后端**：xmiaom → agnes → siliconflow → zhipu → freetheai → pollinations。
+  - **`device_gateway/device_draw_handler.py`**：`_generate_image` 加降级——DashScope 失败时调用 image_fallback，消除写字机单点。
+  - **`device_gateway/image_fallback.py`**（新建）：拆出降级函数，保持 device_draw_handler ≤300 行；size 格式 `*`→`x` 适配（DashScope 用 `1024*1024`，images.py 用 `1024x1024`）。
+  - **测试**：`test_routes_images_fallback.py`（新建，3 个降级测试）、`test_device_draw_handler_fallback.py`（新建，3 个降级测试）；`test_device_draw_handler.py` 同步 mock 路径（`device_gateway.image_fallback._generate_image_urls`）。
+- **关键陷阱（已处理）**：
+  - size 格式 `*`→`x` 适配（否则 ImageRequest 正则校验拒绝）。
+  - 智谱路径前缀 `/api/paas/v4`（非标准 `/v1`）。
+  - 循环导入：确认 `routes.images` 不 import `device_gateway`，无环。
+  - 测试文件超 300 行：拆出 fallback 专用测试文件，符合代码大小约束。
+- **未改**：`_try_preset_or_generate`/SVG 转换链路/chat 用途的 agnes20/agnes15/xmiaom 主路径（成功时零开销）；模型名脱敏不变（新后端真实名只在内部监控，对外仍是「LiMa 生图」）。
+- **门禁验证（`.venv310` Python 3.10.20）**：
+  - 聚焦测试（5 文件）：**37 passed**（含 6 个新降级测试）
+  - ruff（7 文件）：All checks passed
+  - `check_code_size.py`：PASS（无文件 >300 行）
+  - **全量 pytest：4022 passed, 3 skipped, 0 failed**（188s）—— 无回归
+- **后续里程碑**：百度/腾讯/字节（自有格式生图）需独立 client，留作独立工作。
+- **真实生图未验证**：本轮只保证代码接入+降级逻辑+测试，3 个新后端的真实生图效果需部署后用真实 key 冒烟（建议 `curl /v1/images/generations` 验证）。
+- **降级全景**：
+  - 纯生图/小程序（images.py，6 后端）：`xmiaom → agnes → siliconflow → zhipu → freetheai → pollinations`
+  - 写字机生图（device_draw_handler）：`DashScope wanx（主）→ 失败 → images.py 六后端兜底`
+
 ## 2026-06-28 生图后端模型名脱敏：对外统一品牌「LiMa 生图」
 
 - **目标**：消除生图结果对客户端/用户的真实后端名泄漏（`xmiaom_gpt_image_2`/`freetheai`/`pollinations`/`wanx2.1-t2i-turbo`），对外统一显示品牌「LiMa 生图」。内部后端多样性（Pollinations model 参数、降级链路）保留，但对用户透明。

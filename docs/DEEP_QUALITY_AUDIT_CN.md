@@ -94,10 +94,13 @@
 
 #### 质量与一致性
 
-**[MEDIUM] donglicao-site v1 与 v2 共存，规范源不明**
+**[MEDIUM] donglicao-site v1 与 v2 共存，规范源已澄清 ✅**
 - `donglicao-site/`（原生 HTML/JS）与 `donglicao-site-v2/`（Next.js，含完整 node_modules）并存
-- 需确认：生产部署哪个？`scripts/deploy_chat_web.py` 部署的是哪个？v1 是否已废弃？
-- 建议：明确单一规范源，归档另一方
+- 结论：两者当前均承担生产职责，并非互斥替代
+  - v1 负责已上线的产品详情页、定价页、法律页与 `chat.html` 兜底，手动同步到 `/www/wwwroot/donglicao-site/`
+  - v2 负责 Next.js 新首页、英文站、博客，通过 `.github/workflows/deploy-site-v2.yml` 部署到 `SITE_V2_DIR`
+- 已在 `donglicao-site/README.md` 与 `donglicao-site-v2/README.md` 明确规范源与迁移条件
+- 归档 v1 的前提：把产品页/定价页/法律页重建到 v2 并更新 `routes/static_files.py` 的 `/` 兜底逻辑
 
 ---
 
@@ -176,10 +179,10 @@
 3. **LiMa** 归档已退役 `gitee_mirror*.py` + `push_dual_remotes.py`
 
 ### P2（建议下轮）
-4. **小程序** 消除 `any`，为 BLE/上传/SSE 定义接口（尤其 `blufi-config.vue`、`useUpload.ts`）
-5. **小程序** 拆分 >600 行的大组件
-6. **Web** 明确 `donglicao-site` v1/v2 单一规范源，归档另一方
-7. **LiMa** CI 增加 `python` 版本守卫，防止误用 3.14
+4. **小程序** 消除 `any`，为 BLE/上传/SSE 定义接口（尤其 `blufi-config.vue`、`useUpload.ts`）—— 代码位于 `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile` 子模块，不在 LiMa 本仓库直接维护
+5. **小程序** 拆分 >600 行的大组件 —— 同第 4 点，属于子模块范围
+6. **Web** 明确 `donglicao-site` v1/v2 规范源 ✅ —— 已在各自 `README.md` 说明；两者均承担生产职责，暂不归档
+7. **LiMa** CI 增加 `python` 版本守卫，防止误用 3.14 ✅ —— 已在 `tests/conftest.py` 与 `scripts/run_pre_commit_check.py` 添加强制检查
 
 ### P3（信息项）
 8. **固件** 生产 sdkconfig 确认 `BOOTLOADER_SKIP_VALIDATE` 的依据
