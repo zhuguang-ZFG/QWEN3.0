@@ -28,8 +28,10 @@ def test_pool_snapshot_redacts_key_material():
     assert snapshot["active"] == 2
     assert snapshot["cooled"] == 0
     assert snapshot["blocked"] == 0
-    assert snapshot["entries"][0]["key_id"].endswith(":lpha")
-    assert snapshot["entries"][1]["key_id"].endswith(":beta")
+    for entry in snapshot["entries"]:
+        key_id = entry["key_id"]
+        assert len(key_id) == 10
+        assert key_id.isalnum() and all(c in "0123456789abcdef" for c in key_id)
     assert "sk-secret-alpha" not in str(snapshot)
     assert "sk-secret-beta" not in str(snapshot)
 
@@ -204,8 +206,9 @@ def test_snapshot_never_exposes_raw_keys():
 def test_error_report_does_not_log_raw_key():
     key_pool.register_pool("unit", [{"key": "sk-very-long-secret-key-12345"}])
     key_pool.report_key_result("unit", "sk-very-long-secret-key-12345", False, error_code=429)
-    # The fingerprint should only have last 4 chars
     entry = key_pool.pool_snapshot("unit")["entries"][0]
     key_id = entry["key_id"]
     assert "very-long-secret" not in key_id
-    assert key_id.endswith(":2345")
+    assert len(key_id) == 10
+    assert ":" not in key_id
+    assert key_id.isalnum() and all(c in "0123456789abcdef" for c in key_id)

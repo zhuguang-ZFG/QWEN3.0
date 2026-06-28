@@ -25,6 +25,7 @@ _log = logging.getLogger(__name__)
 from routes.chat_preflight import ChatPreflightResult, prepare_chat_preflight
 from routes.chat_stream import build_stream_chunk, stream_response
 from routes.chat_support import attach_memory_recall_meta, thinking_route
+from routes.request_tracking import resolve_ip_country
 
 
 def _chat_handler():
@@ -128,6 +129,7 @@ async def maybe_image_response(
     image_url = build_pollinations_url(image_prompt, "1024x1024")
     content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
     duration_ms = int((time.time() - ctx.t0) * 1000)
+    country = await resolve_ip_country(ctx.client_ip)
     record_request(
         ctx.query,
         "pollinations",
@@ -137,6 +139,7 @@ async def maybe_image_response(
         client_ip=ctx.client_ip,
         ide_source=ctx.ide_source,
         sys_prompt_preview=ctx.sys_prompt_preview,
+        country=country,
     )
     # Streaming: return SSE-formatted response so stream-parsing clients work
     if req.stream:
@@ -173,6 +176,7 @@ async def maybe_thinking_response(
     content = thinking_result["answer"]
     backend = thinking_result["backend"]
     duration_ms = int((time.time() - ctx.t0) * 1000)
+    country = await resolve_ip_country(ctx.client_ip)
     record_request(
         ctx.query,
         backend,
@@ -182,6 +186,7 @@ async def maybe_thinking_response(
         client_ip=ctx.client_ip,
         ide_source=ctx.ide_source,
         sys_prompt_preview=ctx.sys_prompt_preview,
+        country=country,
     )
     if ctx.fmt == "anthropic":
         return JSONResponse(build_anthropic_response(ctx.chat_id, content, backend, ctx.request_model or model_id))

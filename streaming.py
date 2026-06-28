@@ -79,6 +79,13 @@ async def _async_fallback_to_api(
     call_api_async_fn: CallApiAsyncFn,
 ) -> AsyncIterator[str]:
     """Fallback: non-streaming call when stream returned empty."""
+    try:
+        text = await call_api_async_fn(backend, messages, max_tokens, ide)
+    except Exception as exc:
+        _log.warning("async fallback api failed backend=%s: %s", backend, exc)
+        return
+    if text and not text.startswith("[ERR"):
+        yield text
 
 
 def _make_streamer(

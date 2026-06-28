@@ -21,6 +21,7 @@ from routes.chat_post_closeout import (
     record_chat_observability,
 )
 from routes.chat_support import attach_memory_recall_meta, log_sys_prompt
+from routes.request_tracking import resolve_ip_country
 
 _log = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class RecordRequestFunc(Protocol):
         client_ip: str = "",
         ide_source: str = "",
         sys_prompt_preview: str = "",
+        country: str = "",
     ) -> None: ...
 
 
@@ -53,6 +55,7 @@ def _safe_record_request(
     backend: str,
     intent_name: str,
     duration_ms: int,
+    country: str = "",
 ) -> None:
     _safe_side_effect(
         "record_request",
@@ -65,6 +68,7 @@ def _safe_record_request(
         client_ip=ctx.client_ip,
         ide_source=ctx.ide_source,
         sys_prompt_preview=ctx.sys_prompt_preview,
+        country=country,
     )
 
 
@@ -77,6 +81,7 @@ def _fire_side_effects(
     duration_ms: int,
     record_request: RecordRequestFunc,
     result: dict,
+    country: str = "",
 ) -> None:
     """Fire all post-response side effects (memory, observability, evidence, logging)."""
     _safe_side_effect(
@@ -87,7 +92,7 @@ def _fire_side_effects(
         query=ctx.query,
         content=content,
     )
-    _safe_record_request(record_request, ctx, backend, intent_name, duration_ms)
+    _safe_record_request(record_request, ctx, backend, intent_name, duration_ms, country=country)
     _safe_side_effect(
         "record_chat_observability",
         record_chat_observability,
@@ -131,8 +136,9 @@ async def finalize_success_response(
     duration_ms = int((time.time() - ctx.t0) * 1000)
     raw_total_ms = result.get("total_ms")
     total_ms = duration_ms if raw_total_ms is None else raw_total_ms
+    country = await resolve_ip_country(ctx.client_ip)
 
-    _fire_side_effects(ctx, req, content, backend, intent_name, duration_ms, record_request, result)
+    _fire_side_effects(ctx, req, content, backend, intent_name, duration_ms, record_request, result, country=country)
 
     if ctx.fmt == "anthropic":
         response = JSONResponse(build_anthropic_response(ctx.chat_id, content, backend, ctx.request_model or model_id))

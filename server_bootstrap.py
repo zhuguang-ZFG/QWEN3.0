@@ -14,11 +14,13 @@ from lima_constants import MODEL_ID
 MODEL_CREATED = int(time.time())
 MAX_BODY_SIZE = 32 * 1024 * 1024  # 32MB — Claude Code sends large contexts
 
+LAST_RESORT_FALLBACK_MESSAGE = "抱歉，LiMa 当前繁忙，请稍后重试。"
+
 
 def last_resort_call(messages: list) -> str:
     """Nuclear fallback: direct Cloudflare call, bypasses all routing/health logic."""
     if not CLOUDFLARE.configured:
-        return ""
+        return LAST_RESORT_FALLBACK_MESSAGE
     url = CLOUDFLARE.chat_url()
     body = json.dumps(
         {
@@ -40,8 +42,12 @@ def last_resort_call(messages: list) -> str:
         data = json.loads(resp.read().decode())
         return data.get("choices", [{}])[0].get("message", {}).get("content", "")
     except Exception as exc:
-        logging.warning("[LAST_RESORT] Cloudflare fallback failed: %s", type(exc).__name__)
-        return ""
+        logging.warning(
+            "[LAST_RESORT] Cloudflare fallback failed: %s",
+            exc,
+            exc_info=True,
+        )
+        return LAST_RESORT_FALLBACK_MESSAGE
 
 
 def create_runtime_state() -> tuple[dict, threading.Lock, dict, dict]:

@@ -83,6 +83,22 @@
 - 部署：`scripts/deploy_unified.py --slice core` 成功，`https://chat.donglicao.com/health` 返回 200。
 - 状态：**AUDIT-1 HIGH 批次已关闭**。
 
+### AUDIT-1 MEDIUM 批次修复完成（2026-06-29）
+
+| ID | 修复文件 | 措施 | 验证 |
+|----|----------|------|------|
+| M1 | `server.py`, `.env.example` | 添加 `CORSMiddleware`；默认 `*` 且 `allow_credentials=False`；新增 `LIMA_CORS_ORIGINS` 配置项 | `tests/test_server_cors.py` pass；线上 `OPTIONS /health` 返回 `Access-Control-Allow-Origin: *` |
+| M2 | `streaming.py`, 新增 `tests/test_streaming_async_fallback.py` | 实现 `_async_fallback_to_api`：流空/异常时调用异步非流 API 并整块 yield；过滤 `[ERR` 前缀 | 6 个 fallback 场景测试 pass |
+| M3 | `key_pool.py`, `tests/test_key_pool.py` | `_fingerprint_key` 不再拼接 key 后缀，仅返回 SHA256 前 10 位 | 14 个 key_pool 测试 pass |
+| M4 | `server_bootstrap.py`, 新增 `tests/test_server_bootstrap.py` | 异常分支记录完整堆栈（`exc_info=True`）并返回统一兜底文案；未配置 Cloudflare 时也返回兜底文案 | 3 个 last_resort 测试 pass |
+| M5 | `.env.example` | 新增 `MIMO_TTS_KEY=` 与 `MIMO_V2_PRO_KEY=`，保留 `MIMO_API_KEY` 给设备语音 TTS | `.env.example` 解析无异常 |
+| M6 | `routes/request_tracking.py`, `routes/chat_handler_dispatch.py`, `routes/chat_fallback.py`, `routes/chat_response_finalize.py`, 新增 `tests/test_request_tracking_async_geo.py` | IP 定位查询提取为 `_fetch_ip_location`；新增 `resolve_ip_country` 在 executor 中异步执行；`record_request` 接受 `country` 参数；异步调用方提前解析后传入 | 5 个 async geo 测试 + 相关路由测试 pass |
+
+- 质量门禁：`ruff check` clean；`ruff format` clean；`pyright` 0 errors（仅历史 warning）；`scripts/check_code_size.py` PASS。
+- 测试：全量 pytest **4100 passed, 3 skipped**（新增 17 个测试）。
+- 部署：`scripts/deploy_unified.py --slice core` 成功，`https://chat.donglicao.com/health` 返回 200；CORS 预检头正确。
+- 状态：**AUDIT-1 MEDIUM 批次已关闭**。
+
 ## 2026-06-28 AUDIT-2：Web 端深度审查（chat-web 管理面板 + donglicao-site-v2 官网）
 
 > 两个 Web 前端项目的安全与质量审查。chat-web 为原生 HTML/JS 管理控制台（公网），donglicao-site-v2 为 Next.js 16 静态导出官网。关键发现均经亲自核验源码确认。

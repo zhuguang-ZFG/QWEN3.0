@@ -3,12 +3,15 @@
 从 server.py 提取。通过 inject_state() 注入共享状态。
 """
 
+import asyncio
+import functools
+import json
 import logging
 import os as _os
-import json
-import time
-import functools
+import re
 import threading
+import time
+import urllib.request
 
 from fastapi import Request
 
@@ -54,24 +57,40 @@ def record_fallback(query, original_backend, fallback_backend, intent, ide):
         log.warning(f"[FALLBACK_LOG] write failed: {e}")
 
 
+def _fetch_ip_location(ip: str) -> str:
+    """同步查询 IP 地理位置（内部函数，外部应通过缓存封装调用）。"""
+    try:
+        resp = urllib.request.urlopen(
+            f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN",
+            timeout=0.5,
+        )
+        data = json.loads(resp.read().decode())
+        return f"{data.get('country', '')} {data.get('city', '')}".strip() or "未知"
+    except Exception as exc:
+        log.warning("ip location lookup failed ip=%s: %s", ip, exc, exc_info=True)
+        return "未知"
+
+
 @functools.lru_cache(maxsize=256)
 def get_ip_location(ip: str) -> str:
     """查询 IP 地理位置（缓存结果）。"""
     if ip in ("127.0.0.1", "localhost", "::1", ""):
         return "本地"
-    import re
 
     if not re.match(r"^[\d.:a-fA-F]+$", ip):
         return "未知"
-    try:
-        import urllib.request
+    return _fetch_ip_location(ip)
 
-        resp = urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN", timeout=0.5)
-        data = json.loads(resp.read().decode())
-        return f"{data.get('country', '')} {data.get('city', '')}"
-    except Exception as exc:
-        log.warning("ip location lookup failed ip=%s: %s", ip, exc, exc_info=True)
-        return "未知"
+
+async def resolve_ip_country(ip: str) -> str:
+    """异步解析 IP 地理位置，避免在事件循环线程内发起同步 HTTP 调用。"""
+    if not ip:
+        return ""
+    try:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, get_ip_location, ip)
+    except RuntimeError:
+        return get_ip_location(ip)
 
 
 def client_ip(request: Request) -> str:
@@ -134,9 +153,11 @@ def record_request(
     client_ip: str = "",
     ide_source: str = "",
     sys_prompt_preview: str = "",
+    country: str = "",
 ):
     """记录一次请求到统计数据。"""
-    country = get_ip_location(client_ip) if client_ip else ""
+    if not country and client_ip:
+        country = get_ip_location(client_ip)
 
     with _stats_lock:
         _stats["total_requests"] += 1

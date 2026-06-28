@@ -148,9 +148,7 @@ _pools: dict[str, KeyPool] = {}
 
 
 def _fingerprint_key(key: str) -> str:
-    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:10]
-    suffix = key[-4:] if len(key) >= 4 else key
-    return f"{digest}:{suffix}"
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:10]
 
 
 def _parse_env_keys(raw: str) -> list[dict]:

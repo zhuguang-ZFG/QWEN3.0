@@ -1,5 +1,33 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 LiMa MEDIUM 批次修复：AUDIT-1 M1~M6
+
+- **目标**：修复 LiMa 后端系统深度审查（AUDIT-1）剩余的 6 个 MEDIUM 问题。
+- **M1 CORS 中间件**：
+  - `server.py`：添加 `CORSMiddleware`，默认 `allow_origins=["*"]`、`allow_credentials=False`、暴露 `X-LiMa-Trace-Id`；支持 `LIMA_CORS_ORIGINS` 环境变量。
+  - `.env.example`：新增 `LIMA_CORS_ORIGINS` 注释示例。
+  - 新增 `tests/test_server_cors.py`：验证 `GET` 与 `OPTIONS` 预检头。
+- **M2 异步流空响应兜底**：
+  - `streaming.py`：实现 `_async_fallback_to_api`，流无输出时调用异步非流 API 并整块 yield；异常与 `[ERR` 前缀内容被隔离。
+  - 新增 `tests/test_streaming_async_fallback.py`。
+- **M3 key fingerprint 部分泄漏**：
+  - `key_pool.py`：`_fingerprint_key` 仅返回 SHA256 前 10 位，不再暴露 key 后缀。
+  - 更新 `tests/test_key_pool.py`：用长度/十六进制字符集断言替换旧的 `:suffix` 断言。
+- **M4 last_resort 兜底信息不足**：
+  - `server_bootstrap.py`：异常分支使用 `exc_info=True` 记录完整堆栈；未配置 Cloudflare 或调用失败时返回统一兜底文案 `LAST_RESORT_FALLBACK_MESSAGE`。
+  - 新增 `tests/test_server_bootstrap.py`。
+- **M5 MiMo key 环境变量不一致**：
+  - `.env.example`：在 `MIMO_API_KEY` 下方新增 `MIMO_TTS_KEY` 与 `MIMO_V2_PRO_KEY`，分别对应 backends_registry 的 mimo-tts / mimo-v2-pro 后端。
+- **M6 IP 定位阻塞事件循环**：
+  - `routes/request_tracking.py`：提取 `_fetch_ip_location`；新增 `resolve_ip_country` 在 executor 中异步执行；`record_request` 增加 `country` 参数。
+  - `routes/chat_handler_dispatch.py`、`routes/chat_fallback.py`、`routes/chat_response_finalize.py`：异步调用方提前解析 country 后传入，避免在事件循环线程内发起同步 HTTP。
+  - 新增 `tests/test_request_tracking_async_geo.py`。
+- **验证**：
+  - `ruff check` clean；`ruff format` clean；`pyright` 目标文件 0 errors（仅历史 warning）；`scripts/check_code_size.py` PASS。
+  - 全量 pytest：**4100 passed, 3 skipped, 2 deselected, 0 failed**（新增 17 个测试）。
+  - VPS 部署 `scripts/deploy_unified.py --slice core` 成功；`https://chat.donglicao.com/health` 200；`OPTIONS /health` 返回 `Access-Control-Allow-Origin: *`。
+- **提交**：待提交。
+
 ## 2026-06-28 LiMa HIGH 批次修复：AUDIT-1 H1~H6
 
 - **目标**：修复 LiMa 后端系统深度审查（AUDIT-1）标记的 6 个 HIGH 问题。

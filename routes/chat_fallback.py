@@ -9,6 +9,7 @@ from typing import Callable
 from fastapi.responses import JSONResponse
 
 from response_builder import build_anthropic_response, build_response
+from routes.request_tracking import resolve_ip_country
 
 _log = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ def _build_fallback_success_response(
     content: str,
     backend: str,
     intent_label: str,
+    country: str = "",
 ) -> JSONResponse:
     """Record metrics and build JSON response for a successful fallback."""
     _record_fallback(
@@ -88,6 +90,7 @@ def _build_fallback_success_response(
         client_ip=req.client_ip,
         ide_source=req.ide_source,
         sys_prompt_preview=req.sys_prompt_preview,
+        country=country,
     )
     _record_chat_evidence(
         request_id=req.chat_id,
@@ -112,6 +115,7 @@ async def _try_fallback_candidates(
     intent_label: str,
 ) -> JSONResponse | None:
     """Try each candidate; return success JSONResponse or None."""
+    country = await resolve_ip_country(req.client_ip)
     for alt in candidates:
         alt_result = await try_backend(
             alt,
@@ -125,6 +129,7 @@ async def _try_fallback_candidates(
                 alt_result["answer"],
                 alt,
                 intent_label,
+                country=country,
             )
     return None
 

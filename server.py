@@ -18,6 +18,7 @@ except ImportError:
     _boot_log.warning("python-dotenv not installed; .env file will not be loaded")
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from config.settings import MONITORING
@@ -61,6 +62,16 @@ if MONITORING.sentry_dsn:
 
 app.add_middleware(BodySizeLimitMiddleware, max_body_size=MAX_BODY_SIZE)
 app.add_middleware(SecurityHeadersMiddleware)
+
+_cors_origins = [o.strip() for o in os.environ.get("LIMA_CORS_ORIGINS", "*").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-LiMa-Trace-Id"],
+)
 
 _stats, _stats_lock, _backend_enabled, _loaded_modules = create_runtime_state()
 app.state.stats = _stats
