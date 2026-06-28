@@ -10155,3 +10155,23 @@ uff check 2 文件 clean；导入无循环依赖。
 - **部署**：
   - 后端 `python scripts/deploy_unified.py --slice core`（VPS 重启 + health/ready 等待）成功。
   - 静态页 `python scripts/deploy_chat_web.py` 成功，SRI 版本 CDN 资源生效。
+
+## 2026-06-29 深度质量审计 P2 修复
+
+- **目标**：处理 `docs/DEEP_QUALITY_AUDIT_CN.md` 中 P2 项。
+- **关键结果**：
+  - **P2-7 Python 版本守卫**：
+    - `tests/conftest.py` 在会话初始化时强制检查 `sys.version_info[:2] == (3, 10)`，否则抛出清晰 `RuntimeError`。
+    - `scripts/run_pre_commit_check.py` 在 `main()` 入口同样检查，错误提示激活 `.venv310`。
+    - 避免 Python 3.14 误跑导致的 `freezegun` 收集错误与 `check_code_size.py` 行数误判。
+  - **P2-6 官网 v1/v2 规范源**：
+    - 新增 `donglicao-site/README.md`，明确 v1 是当前生产静态官网，负责产品页/定价页/法律页/`chat.html` 兜底。
+    - 更新 `donglicao-site-v2/README.md`，明确 v2 是 Next.js 迭代版本，负责新首页/英文站/博客，由 GitHub Actions 部署。
+    - 结论：两者当前均承担生产职责，互非替代；归档 v1 需先把产品页/定价页/法律页重建到 v2 并更新 `routes/static_files.py` 兜底逻辑。
+  - **P2-4/P2-5 小程序说明**：
+    - `manager-mobile` 位于 `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile` 子模块，不在 LiMa 本仓库直接维护；已在审计报告中标注。
+- **验证**：
+  - `ruff check .` / `ruff format --check .` → clean。
+  - `pyright tests/conftest.py scripts/run_pre_commit_check.py` → 0 errors。
+  - 全量 `pytest -m "not network"`（跳过长期外部测试）→ **4012 passed / 3 skipped / 2 deselected / 0 failed**。
+- **提交**：`590bf9ff` 已推送至 `origin/main`。
