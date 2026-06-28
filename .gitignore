@@ -7,6 +7,12 @@ active_model/
 *.pt
 *.pth
 
+# === 字体文件（手写体，不进 git，部署时下载到 xiaozhi_drawing/fonts/）===
+*.ttf
+*.otf
+*.woff
+*.woff2
+
 # === Python ===
 venv/
 __pycache__/

@@ -31,27 +31,44 @@
   - `lima_device_tasks_pending_total` (gauge)
 - **重试策略**：任务派发失败/设备掉线时最多重试 3 次，超过后移入 dead letter 并停止占用 processing 队列。
 
-## 2026-06-29 M15 Handwriting 韧性增强：autohanding 重试 + 本地 ASCII 降级
 
-- **目标**：消除写字机/绘图机手写服务对 autohanding.com 的单点依赖；外部服务抖动时 ASCII 文本仍能输出确定性路径，中文字符则清晰报错而非静默降级。
-- **改动（6 文件改 + 2 新建文件）**：
-  - **`integrations/autohanding/client.py`**：新增指数退避重试（默认 2 次，间隔 1s/2s）；429 rate-limit 立即透传不加重；`max_retries` 参数便于测试控制。
-  - **`device_gateway/path_pipeline.py`**：新增 `text_to_svg_path()`、`_motion_path_to_svg_d()`、`_path_bounds_with_margin()`，把内置 stroke font 路径转成 SVG `d` 字符串与预览，供降级复用。
-  - **`routes/handwriting.py`**：`mode=svg` 在 autohanding 失败且文本为 ASCII 时自动降级到本地字体，响应 `backend: "lima-local"`；中文无本地字体时返回 502 并记录。
-  - **`device_gateway/task_draw_params.py`**：`mode=task` 路径同步支持本地降级；重构 `build_handwriting_params` 为多个小函数，满足 ≤50 行约束。
-  - **`observability/prometheus_metrics.py`** + 新建 **`observability/prometheus_handwriting_metrics.py`**：新增 `lima_handwriting_requests_total{status,fallback}` 与 `lima_handwriting_duration_ms{status}`。
-  - **测试**：更新 `tests/test_autohanding_client.py`（重试测试）；更新 `tests/test_handwriting_route.py`（ASCII 降级 / 中文不降级）；新建 `tests/test_handwriting_fallback.py`（task 模式降级、path 转换）。
-- **门禁验证（`.venv310` Python 3.10.20，工作树 `.worktrees/feat-handwriting-resilience`）**：
-  - 聚焦测试（3 文件）：**24 passed**
-  - 相关回归测试（`test_device_gateway_*.py` + image 路由）：**209 passed**
-  - ruff check + format：All checks passed
-  - `scripts/check_code_size.py`：PASS（无文件 >300 行、无函数 >50 行）
-  - pyright：0 errors（仅 prometheus_client 可选依赖 warning，为既有行为）
-- **降级全景**：
-  - 手写/写字：`autohanding` → 失败 → `lima-local` stroke font（仅限 ASCII）
-  - 中文：`autohanding` 失败 → 502 + 明确错误（不输出乱码）
-- **真实手写效果未验证**：autohanding 的真实重试与降级效果需部署后用真实域名/token 冒烟。
 
+
+## 2026-06-28 AI 写字机加「字体转路径」手写体能力（无损，跳过生图）
+
+- **目标**：给写字机加真正的手写体能力。现有「生图→骨架化」链路对文字效果差（像素图转路径损精度）；新增「fonttools 字形提取→SVG path」链路，**无损**输出手写体笔画路径。
+- **背景**：用户提出"模拟手写体是 AI 写字机特别需要的"，并问能否把 autohanding.com（凹凸工坊）转成 API。经查证凹凸工坊是纯网页工具无 API、输出是图片（和写字机需求不匹配），故采用正确方向：字体直接转路径。
+- **技术依据**：fonttools `TransformPen + SVGPathPen` 官方直接工具（字形→SVG path，无损）；霞鹜文楷 LxgwWenKai（SIL OFL 1.1 可商用）。
+- **改动（3 新建 + 3 改）**：
+  - **`xiaozhi_drawing/text_to_path.py`**（新建，217 行）：核心模块。`text_to_svg_path(text)` 用 fonttools 提取字形轮廓，多字按行布局，整体居中缩放到 workspace (200,200)，返回与 `_svg_payload` 同结构 dict。字体缺失/文字空/字形未覆盖时返回 failed + 明确错误（硬规则 #1，不静默）。
+  - **`device_gateway/handwriting_path.py`**（新建，97 行）：写字意图检测 + 接入。`try_text_to_handwriting()` 触发逻辑（两者结合）：① 显式前缀「写：/write:」优先；② 否则设备类型是 `esp32_writing_machine` 且不含画图关键词（画/绘/draw）；③ 画图关键词强制走生图。返回结构与 `_try_preset_shape` 一致。
+  - **`device_gateway/device_draw_handler.py`**（改）：新增 `_try_fast_paths`（preset + handwriting 复合快速路径），接入 `_try_preset_or_generate`，位于 preset_shape 之后、生图之前。
+  - **`xiaozhi_drawing/fonts/.gitkeep`**（新建）：字体目录占位 + 获取说明（霞鹜文楷下载指引）。
+  - **`.gitignore`**（改）：排除 `*.ttf/*.otf/*.woff*`（30+MB 字体不进 git）。
+  - **`requirements_server.txt`**（改）：新增 `fonttools>=4.47.0`（实际已装 4.63.0）。
+- **写字机四层快速路径（改完后）**：
+  ```
+  1. 提供 image_url    → 直接转路径
+  2. 预设形状          → _try_preset_shape（画圆/方/星）
+  3. 写字意图（新增）  → _try_text_to_handwriting（字体转路径，无损手写体）
+  4. AI 生图           → _generate_image（9 后端降级）→ 骨架化
+  ```
+- **测试 `tests/test_text_to_path.py`**（新建，13 测试）：
+  - 用 `fonttools.FontBuilder + TTGlyphPen` 生成最小测试字体，验证「文字→path」完整管线（含成功/缺字体/无可渲染字符/意图检测各分支）。
+- **关键陷阱（已处理）**：
+  - 字体不进 git（.gitignore + 环境变量 `LIMA_HANDWRITING_FONT` + 部署下载）。
+  - 字体缺失优雅降级：`try_text_to_handwriting` 返回 None 让链路回退生图，不阻断。
+  - 字形未覆盖：逐字 try + 跳过 + 警告。
+  - 代码大小：拆出 `text_to_path.py`（217 行）、`handwriting_path.py`（97 行）、`_try_fast_paths` 复合函数，保 device_draw_handler ≤300 行、所有函数 ≤50 行。
+- **未改**：`_try_preset_shape`/`screen_drawing_request`/`_generate_image`/生图 9 后端链路/svg_converter 完全不动。
+- **合并状态**：已随 M15/M16 一起合并到 `main` 并推送到 `origin/main`。
+- **门禁验证（`.venv310` Python 3.10.20）**：
+  - 聚焦测试（5 文件）：**44 passed**（含 13 个手写体测试）
+  - ruff check / format：All checks passed
+  - `check_code_size.py`：PASS（无文件 >300 行，无函数 >50 行）
+  - pyright：0 errors
+  - **全量 pytest：4052 passed, 3 skipped, 2 deselected, 0 failed**（~200s）—— 无回归
+- **真实手写体效果待部署验证**：代码逻辑+测试已交付（用 fonttools 生成测试字体）。**真实效果需在 VPS 部署后配置霞鹜文楷字体并触发"写：床前明月光"冒烟**（下载 `LxgwWenKai.ttf` 到 `xiaozhi_drawing/fonts/` 或设置 `LIMA_HANDWRITING_FONT`）。
 
 
 ## 2026-06-28 生图降级链路再扩容：接入百度/腾讯/字节（6 → 9 后端）

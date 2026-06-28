@@ -3,6 +3,7 @@
 import logging
 from typing import Dict, Any, Optional
 from dashscope_image_client import DashScopeImageClient
+from device_gateway.handwriting_path import try_text_to_handwriting
 from device_gateway.image_fallback import generate_via_image_fallback
 from xiaozhi_drawing.svg_converter import SVGConverter
 from xiaozhi_drawing.svg_validator import validate_svg_path
@@ -26,7 +27,6 @@ from device_gateway.draw_responses import build_success_response as _build_succe
 
 logger = logging.getLogger(__name__)
 
-# 预设图形关键词
 PRESET_KEYWORDS = {
     "circle": ["圆", "圆形", "circle"],
     "square": ["方", "方形", "正方形", "square"],
@@ -211,9 +211,7 @@ def _is_valid_image_url(url: str) -> bool:
     return len(url) < 2000 and url.startswith(("https://", "http://"))
 
 
-async def _convert_provided_image(
-    image_url: str, config: dict, device_id: str | None, prompt: str
-) -> dict[str, Any]:
+async def _convert_provided_image(image_url: str, config: dict, device_id: str | None, prompt: str) -> dict[str, Any]:
     """Convert a caller-provided image URL to an optimized draw path."""
     try:
         response = await _convert_and_optimize(image_url, config["model"])
@@ -226,17 +224,22 @@ async def _convert_provided_image(
         return _finalize_draw_response(device_id, prompt, _build_failed_response(config["model"], str(exc)))
 
 
+def _try_fast_paths(prompt: str, device_id: str | None, device_type: str | None) -> dict[str, Any] | None:
+    """Try preset shape then handwriting font path; return first match or None."""
+    return _try_preset_shape(prompt) or try_text_to_handwriting(prompt, device_id, device_type)
+
+
 async def _try_preset_or_generate(
     prompt: str, device_id: str | None, config: dict, image_url: str | None
 ) -> dict[str, Any]:
-    """Try provided image URL, then preset shape, then AI image generation."""
+    """Try provided image URL, then preset shape/handwriting fast paths, then AI generation."""
     if image_url and _is_valid_image_url(image_url):
         return await _convert_provided_image(image_url, config, device_id, prompt)
-    preset = _try_preset_shape(prompt)
-    if preset:
-        if preset.get("status") != "success":
-            record_failed_draw_prompt(device_id, prompt, error=str(preset.get("error") or ""))
-        return _finalize_draw_response(device_id, prompt, preset)
+    fast = _try_fast_paths(prompt, device_id, config.get("device_type"))
+    if fast:
+        if fast.get("status") != "success":
+            record_failed_draw_prompt(device_id, prompt, error=str(fast.get("error") or ""))
+        return _finalize_draw_response(device_id, prompt, fast)
 
     screen = screen_drawing_request(prompt, device_id)
     if not screen["feasible"]:

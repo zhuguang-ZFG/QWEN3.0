@@ -1,0 +1,4 @@
+# 手写体字体文件存放处。
+# 字体文件（.ttf/.otf）不进 git（30+MB），需部署时下载到此目录。
+# 推荐：霞鹜文楷 LxgwWenKai（SIL OFL 1.1 可商用）—— https://github.com/lxgw/LxgwWenKai/releases
+#   下载 LxgwWenKai-Regular.ttf 放到本目录，或通过环境变量 LIMA_HANDWRITING_FONT 指定其他路径。
