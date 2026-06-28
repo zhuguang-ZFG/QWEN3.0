@@ -1,5 +1,35 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 图片生成接口增加进程内 LRU 缓存与 Prometheus 指标
+
+- **目标**：降低图片生成成本与延迟，并为缓存效果提供可观测性。
+- **关键结果**：
+  - `routes/images.py` 新增按 `(prompt, size)` 维度的进程内 LRU 缓存：
+    - 默认 TTL `3600s`、最大条目 `100`，可通过 `LIMA_IMAGE_CACHE_TTL_SECONDS` / `LIMA_IMAGE_CACHE_MAX_ENTRIES` 调整。
+    - 命中缓存时直接返回结果，第二次请求从 ~23s 降至 ~20ms。
+    - 请求头 `X-Skip-Cache: 1/true/yes` 可强制跳过后端缓存。
+  - `observability/prometheus_metrics.py` 新增图片相关 Prometheus 指标：
+    - `lima_image_cache_lookups_total{result="hit|miss"}`
+    - `lima_image_requests_total{backend="..."}`
+    - `lima_image_cache_entries`
+  - 将 startup/retirement 相关记录函数拆分到 `observability/prometheus_startup_metrics.py`，保持主文件 ≤300 行。
+  - 提交并推送：
+    - `e0480cd9` 增加缓存命中/设置 info 日志
+    - `f3a890c8` 增加图片缓存 Prometheus 指标
+- **验证**：
+  - 本地 pytest：`tests/test_routes_images.py` / `tests/test_prometheus_metrics.py` 全部通过。
+  - `ruff check` / `check_code_size.py` / `pyright` 对修改文件 clean。
+  - VPS 真实调用 `POST /v1/images/generations`（同一 prompt）：
+    - 首次 ~23s（xmiaom 403 降级 Pollinations.ai）。
+    - 第二次 ~20ms，返回相同 `created` 与 URL，确认缓存命中。
+  - VPS `/v1/ops/metrics/prometheus` 已显示：
+    - `lima_image_cache_lookups_total{result="hit"} 1.0`
+    - `lima_image_cache_lookups_total{result="miss"} 1.0`
+    - `lima_image_requests_total{backend="pollinations"} 1.0`
+- **待跟进**：
+  - xmiaom gpt-image-2 仍返回 403，需检查 key/配额/风控；当前已稳定降级 Pollinations.ai。
+  - 固件侧待补齐：U8 LCD 预览云生图结果并转发 U1 绘制。
+
 ## 2026-06-28 接入 xmiaom gpt-image-2 图像生成后端并部署生产
 
 - **目标**：将 `ai.xmiaom.com` 的 `gpt-image-2` 接入 LiMa 作为 `/v1/images/generations` 主后端，完成代码提交、VPS 部署与真实走 xmiaom 的端到端验证。
