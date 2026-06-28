@@ -198,8 +198,32 @@ def _resolve_draw_request(prefs: dict, device_id: str | None, prompt: str) -> di
     }
 
 
-async def _try_preset_or_generate(prompt: str, device_id: str | None, config: dict) -> dict[str, Any]:
-    """Try preset shape first; fall back to AI image generation."""
+def _is_valid_image_url(url: str) -> bool:
+    """Accept only http(s) URLs with a sane length."""
+    return len(url) < 2000 and url.startswith(("https://", "http://"))
+
+
+async def _convert_provided_image(
+    image_url: str, config: dict, device_id: str | None, prompt: str
+) -> dict[str, Any]:
+    """Convert a caller-provided image URL to an optimized draw path."""
+    try:
+        response = await _convert_and_optimize(image_url, config["model"])
+        if response.get("status") != "success":
+            record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
+        return _finalize_draw_response(device_id, prompt, response)
+    except Exception as exc:
+        logger.error("Device draw failed for provided image: %s", exc)
+        record_failed_draw_prompt(device_id, prompt, error=str(exc))
+        return _finalize_draw_response(device_id, prompt, _build_failed_response(config["model"], str(exc)))
+
+
+async def _try_preset_or_generate(
+    prompt: str, device_id: str | None, config: dict, image_url: str | None
+) -> dict[str, Any]:
+    """Try provided image URL, then preset shape, then AI image generation."""
+    if image_url and _is_valid_image_url(image_url):
+        return await _convert_provided_image(image_url, config, device_id, prompt)
     preset = _try_preset_shape(prompt)
     if preset:
         if preset.get("status") != "success":
@@ -235,8 +259,8 @@ async def _try_preset_or_generate(prompt: str, device_id: str | None, config: di
                 _build_failed_response(config["model"], result.get("error", "Unknown error")),
             )
 
-        image_url = result["images"][0]["url"]
-        response = await _convert_and_optimize(image_url, config["model"])
+        generated_image_url = result["images"][0]["url"]
+        response = await _convert_and_optimize(generated_image_url, config["model"])
         if response.get("status") != "success":
             record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, response)
@@ -247,13 +271,17 @@ async def _try_preset_or_generate(prompt: str, device_id: str | None, config: di
 
 
 async def handle_device_draw(
-    prompt: str, device_id: Optional[str] = None, user_preferences: Optional[Dict[str, Any]] = None
+    prompt: str,
+    device_id: Optional[str] = None,
+    user_preferences: Optional[Dict[str, Any]] = None,
+    image_url: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Handle a device drawing request.
 
-    Tries preset shape matching first; falls back to AI image generation
-    via DashScope then SVG conversion and optimization.
+    Uses a caller-provided image URL when available; otherwise tries preset
+    shape matching and falls back to AI image generation via DashScope, then
+    SVG conversion and optimization.
     """
     prefs = user_preferences or {}
     config = _resolve_draw_request(prefs, device_id, prompt)
-    return await _try_preset_or_generate(prompt, device_id, config)
+    return await _try_preset_or_generate(prompt, device_id, config, image_url)

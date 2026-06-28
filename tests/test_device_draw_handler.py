@@ -249,6 +249,5 @@ class TestHandleDeviceDraw:
         assert mock_enhance.call_count == 2
         assert mock_enhance.call_args_list[1].kwargs.get("previous_failed_prompts") == ["a cat"]
 
-
 # NOTE: Additional TestHandleDeviceDraw tests moved to
 # test_device_draw_handler_part2.py

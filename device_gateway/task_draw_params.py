@@ -38,7 +38,13 @@ async def build_draw_generated_params(
             "preview_svg": rendered.get("preview_svg", ""),
         }, None
 
-    result = await handle_device_draw(prompt, device_id=device_id, user_preferences=_draw_user_preferences(params))
+    provided_image_url = params.get("imageUrl") or params.get("image_url")
+    result = await handle_device_draw(
+        prompt,
+        device_id=device_id,
+        user_preferences=_draw_user_preferences(params),
+        image_url=str(provided_image_url) if provided_image_url else None,
+    )
     if result.get("status") != "success" or not result.get("svg_path"):
         error = str(result.get("error") or "draw generation failed")
         return {}, error
@@ -51,9 +57,9 @@ async def build_draw_generated_params(
         "prompt": prompt,
         "preview_svg": rendered.get("preview_svg", ""),
     }
-    image_url = result.get("image_url")
-    if isinstance(image_url, str) and image_url:
-        run_params["image_url"] = image_url[:512]
+    returned_image_url = result.get("image_url") or provided_image_url
+    if isinstance(returned_image_url, str) and returned_image_url:
+        run_params["image_url"] = returned_image_url[:512]
     model = result.get("model")
     if isinstance(model, str) and model:
         run_params["draw_model"] = model[:80]

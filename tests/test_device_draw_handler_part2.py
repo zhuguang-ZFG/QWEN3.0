@@ -121,3 +121,50 @@ class TestHandleDeviceDraw:
         resp = await handle_device_draw("a cat")
         assert resp["status"] == "failed"
         assert "boom" in resp["error"]
+
+    @patch("device_gateway.device_draw_handler.DashScopeImageClient")
+    @patch("device_gateway.device_draw_handler.SVGConverter")
+    @patch("device_gateway.device_draw_handler.validate_svg_path")
+    @patch("device_gateway.device_draw_handler.optimize_svg_path")
+    @patch("device_gateway.device_draw_handler.precheck_draw_motion_path")
+    async def test_provided_image_url_skips_generation(
+        self,
+        mock_precheck,
+        mock_optimize,
+        mock_validate,
+        mock_converter_cls,
+        mock_client_cls,
+    ):
+        mock_client = MagicMock()
+        mock_client_cls.return_value = mock_client
+
+        mock_converter = MagicMock()
+        mock_converter.convert_url_to_svg = AsyncMock(
+            return_value={
+                "status": "success",
+                "svg_path": "M10,10",
+                "width": 100,
+                "height": 100,
+                "skeleton_applied": False,
+            }
+        )
+        mock_converter_cls.return_value = mock_converter
+
+        mock_validate.return_value = SimpleNamespace(valid=True, errors=[])
+        mock_optimize.return_value = SimpleNamespace(
+            optimized_path="M10,10",
+            original_points=10,
+            optimized_points=5,
+            reduction_ratio=0.5,
+        )
+        mock_precheck.return_value = None
+
+        resp = await handle_device_draw(
+            "a cat", device_id="dev-img", image_url="https://example.com/cat.png"
+        )
+        assert resp["status"] == "success"
+        assert resp["image_url"] == "https://example.com/cat.png"
+        mock_client.generate.assert_not_called()
+        mock_converter.convert_url_to_svg.assert_awaited_once_with(
+            "https://example.com/cat.png", skeletonize=True, reorder_strokes=True
+        )
