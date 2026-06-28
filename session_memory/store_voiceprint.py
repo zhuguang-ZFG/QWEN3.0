@@ -205,8 +205,8 @@ def _row_to_entry(row: sqlite3.Row) -> dict:
     if embedding_vec:
         try:
             entry["embedding"] = json.loads(embedding_vec)
-        except (json.JSONDecodeError, TypeError):
-            pass
+        except (json.JSONDecodeError, TypeError) as exc:
+            _log.warning("voiceprint embedding parse failed: %s", exc)
 
     return entry
 

@@ -1,5 +1,33 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 LiMa HIGH 批次修复：AUDIT-1 H1~H6
+
+- **目标**：修复 LiMa 后端系统深度审查（AUDIT-1）标记的 6 个 HIGH 问题。
+- **H1 SQLite 连接泄漏**：
+  - `semantic_cache/store.py`：改用 `config.sqlite_pool.pooled_sqlite_conn()`；删除每次新建连接的 `_connection()`。
+  - `semantic_cache/cache.py`：增加模块级单例，避免每次请求重建 store。
+  - `tests/test_semantic_cache.py`：fixture teardown 调用 `pool_clear()`。
+- **H2 响应解析防御性 + 子串状态码误判**：
+  - `http_response.py`：`_extract_answer` / `_parse_sse_chunk` 对 `choices` 用 `.get()` 防御访问。
+  - `http_errors.py`：`_extract_code` 删除 `"401"/"403"/"429" in text` 子串匹配，避免配额消息误拉黑健康 key。
+  - 新增 `tests/test_http_response.py` 回归测试。
+- **H3/H4 流式质量指标 + 客户端断连不误罚后端**：
+  - `http_stream.py` / 新增 `http_stream_core.py`：`_stream_parse_lines` 返回累计文本，`call_api_stream` 传真实长度给 `record_response_quality`。
+  - 同步路径显式 `except GeneratorExit: raise`；异步路径 `except (asyncio.CancelledError, GeneratorExit): raise`。
+  - `_record_stream_error` 改用 `_log.warning`。
+  - 新增 `tests/test_http_stream_quality.py`。
+- **H5 route_scorer 静默异常**：
+  - `route_scorer.py`：三处 `except (ImportError, Exception): pass` 改为 `except Exception as exc:` 并记录 warning；拆分出 `_reputation_score` / `_learned_score` / `_profile_bonus` 保持函数 ≤50 行。
+  - 新增 `tests/test_route_scorer.py` 回归测试。
+- **H6 生产路径静默 `except: pass`**：
+  - `route_post_process.py`、`routes/admin_extra_insights.py`、`device_memory/recall.py`、`device_memory/consolidation.py`、`user_identity/profile.py`、`session_memory/daemon.py`、`session_memory/store_promote.py`、`session_memory/store_voiceprint.py`、`context_pipeline/routing_weights.py`：数据解析/文件/子系统失败全部加 `logger.warning`。
+  - `tests/test_ci_gates.py`：`_SILENT_EXCEPTION_PASS_SNIPPETS` 增加 `ImportError` 相关模式。
+- **验证**：
+  - `ruff check` clean；`ruff format` clean；`pyright` 目标文件 0 errors（仅历史 warning）；`scripts/check_code_size.py` PASS。
+  - 全量 pytest：**4083 passed, 3 skipped, 2 deselected, 0 failed**。
+  - VPS 部署 `scripts/deploy_unified.py --slice core` 成功；`https://chat.donglicao.com/health` 200。
+- **提交**：待提交。
+
 ## 2026-06-28 LiMa CRITICAL 批次修复：AUDIT-1 C1/C2/C3
 
 - **目标**：修复 LiMa 后端系统深度审查（AUDIT-1）标记的 3 个 CRITICAL 问题。

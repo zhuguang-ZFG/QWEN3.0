@@ -21,6 +21,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Module-level singleton so we don't recreate the cache store on every request.
+_cache_instance: SemanticCache | None = None
+
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
     if len(a) != len(b) or not a:
@@ -115,6 +118,9 @@ class SemanticCache:
 
 def get_cache() -> SemanticCache | None:
     """Return a configured cache if enabled, otherwise None."""
+    global _cache_instance
     if not cache_enabled():
         return None
-    return SemanticCache()
+    if _cache_instance is None:
+        _cache_instance = SemanticCache()
+    return _cache_instance

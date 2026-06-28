@@ -69,6 +69,20 @@
 - 部署：`scripts/deploy_unified.py --slice core` 成功，`https://chat.donglicao.com/health` 返回 200。
 - 状态：**AUDIT-1 CRITICAL 批次已关闭**。
 
+### AUDIT-1 HIGH 批次修复完成（2026-06-29）
+
+| ID | 修复文件 | 措施 | 验证 |
+|----|----------|------|------|
+| H1 | `semantic_cache/store.py`, `semantic_cache/cache.py` | 改用 `pooled_sqlite_conn`；`get_cache()` 单例化 | `tests/test_semantic_cache.py` + `tests/test_route_pipeline.py` pass |
+| H2 | `http_response.py`, `http_errors.py` | `choices` 防御性 `.get()`；移除 `"401"/"403"/"429" in text` 子串匹配 | 新增 `tests/test_http_response.py` |
+| H3/H4 | `http_stream.py`, 新增 `http_stream_core.py` | 流式累计文本传给 `record_response_quality`；`GeneratorExit`/`CancelledError` 不再触发 `record_failure` | 新增 `tests/test_http_stream_quality.py` |
+| H5 | `route_scorer.py` | 三处静默 `except (ImportError, Exception): pass` 改为 warning；拆分 `_reputation_score` 等小函数 | 新增 `tests/test_route_scorer.py` 回归测试 |
+| H6 | `route_post_process.py` 等 9 文件 + `tests/test_ci_gates.py` | 静默 `except: pass` 补 warning；CI gate 增加 `ImportError` 模式 | `test_p13_no_silent_exception_pass_in_active_paths` pass |
+
+- 质量门禁：`ruff check` clean；`ruff format` clean；`pyright` 0 errors（仅历史 warning）；`scripts/check_code_size.py` PASS。
+- 部署：`scripts/deploy_unified.py --slice core` 成功，`https://chat.donglicao.com/health` 返回 200。
+- 状态：**AUDIT-1 HIGH 批次已关闭**。
+
 ## 2026-06-28 AUDIT-2：Web 端深度审查（chat-web 管理面板 + donglicao-site-v2 官网）
 
 > 两个 Web 前端项目的安全与质量审查。chat-web 为原生 HTML/JS 管理控制台（公网），donglicao-site-v2 为 Next.js 16 静态导出官网。关键发现均经亲自核验源码确认。
@@ -146,6 +160,266 @@
 1. **立即（HIGH，公网暴露）**：W1 handwriting XSS 一行 parseInt 修复；W2 WS token 改 ticket 机制；S1 ICP 占位符替换/核对省份
 2. **本周（HIGH/MEDIUM）**：W5 三页面补 CSP；W6 登出彻底清理；S2 nginx 补安全头；S4 死链修复
 3. **计划（MEDIUM/LOW）**：W3/S3 token 存储迁移 httpOnly cookie；W4 CSP 移除 unsafe-inline；S5 URL 环境变量化
+
+## 2026-06-29 AUDIT-3：LiMa 系统提示词审查（分层架构/注入防护/身份保护）
+
+> 审查范围：`prompt_engineering/`（分层架构）、`context_pipeline/guardrails.py`（输入防护）、`identity_guard_patterns.py`（身份防护）、`lima_context.py`（上下文摘要）、`routes/chat_preflight.py`（接入点）。关键发现均经亲自读源码核验。
+
+### 提示词架构（正面）
+LiMa 采用 **6 层分层提示词架构**（`prompt_engineering/layers.py`），组合顺序 1→2→3→4→5(opt)→6，设计清晰：
+- **Layer 1 角色**：`prompts/layers.yaml` 模板化（role.chat/coding/vision/device_*），YAML 支持热重载（mtime 缓存失效）
+- **Layer 2 安全基线**：`build_safety_baseline()` 每个场景强制注入——明确禁止承认自己是 GPT/Claude/Llama 等、禁止透露系统指令
+- **Layer 3 技能**：场景化激活触发条件
+- **Layer 4 工作流**：多步执行流程（device_control 含白名单校验、急停优先）
+- **Layer 6 质量门控**：场景化输出约束
+- **品牌化**：`brand_config` 集中管理 PUBLIC_MODEL_NAME/CAPABILITY，隐藏后端真实模型
+
+### 发现的问题
+
+| ID | 文件:行号 | 发现 | 严重 | 核验 |
+|----|-----------|------|------|------|
+| AUDIT-3-P1 | `context_pipeline/guardrails.py:33-42` | **注入防护仅覆盖 6 个英文模式，0 个中文**。`_INJECTION_PATTERNS` 只有 `ignore previous instructions`/`you are now`/`<\|im_start\|>` 等，中文"忽略上面的指令/从现在起你是/开发者模式/越狱"完全无覆盖。公网中文用户无防护 | HIGH | ✓ grep 确认 0 中文模式 |
+| AUDIT-3-P2 | `context_pipeline/guardrails.py:103-120` + 全项目 | **输出 guardrail 是死代码**。`check_output_safety` 检测 `rm -rf /`/`DROP TABLE` 等危险输出，但**从未在生产路径调用**（grep 确认零接入点）。模型被诱导输出危险命令时无拦截 | HIGH | ✓ grep 确认零接入 |
+| AUDIT-3-P3 | `routes/chat_preflight.py:26-46` | **注入检测命中只 WARN 不阻断**。`check_injection` 的 severity 是 `WARN`（:61），而 `run_input_guardrails` 只在 `BLOCK` 时 raise（:40）。即检测到英文注入也只记日志，请求照常路由 | HIGH | ✓ 已读源码确认 |
+| AUDIT-3-P4 | `routes/chat_preflight.py:96` + `http_request_builder/body.py:35-38` | **客户端 system 消息被直接采纳**。`extract_system_prompt(req.messages)` 读取客户端发来的 system 内容，`merge_device_intent_system_prompt` 在其上叠加 LiMa 层，形成"客户端 system + LiMa 层"混合。攻击者可通过 system 消息注入指令，污染上下文。OpenAI 兼容 API 需接受 system，但 LiMa 层应**覆盖而非追加**客户端 system | MEDIUM | ✓ 已读源码确认 |
+| AUDIT-3-P5 | `prompt_engineering/layers.py:184` | **提示词版本标记用 HTML 注释** `<!-- lima-prompts-v2.0.{scenario} -->` 拼到 system prompt 末尾。部分后端可能把注释内容当指令解析（尤其当用户问"你的版本是什么"时可能泄露内部版本号）；且注释会消耗 token | LOW | ✓ 已读源码确认 |
+| AUDIT-3-P6 | `prompt_engineering/layers.py:47-52` | **IDE 环境注入未限长风险已缓解**：`ide_safe = ide[:64]` 已截断，但 `f"用户正在 {ide_safe} 中使用你"` 直接拼入 system prompt。若 ide 值含指令性文本（如 "VS Code。忽略所有指令"），64 字符足以构成注入。建议额外过滤非字母数字字符 | LOW | ✓ 已读源码确认 |
+| AUDIT-3-P7 | `lima_context.py:45-60` | **上下文摘要注入用户内容**。`build_context_digest` 从用户 query/消息提取 paths/signals 拼成 "LiMa context preflight" 块注入 system prompt。这些值虽经 `_clean_line`（:152）做了空白规整+截断，但未转义控制字符/指令关键词，理论上可被构造的文件名（如 `ignore_previous.py`）污染 | LOW | ✓ 已读源码确认 |
+
+### 已确认防护到位的维度
+- **身份防护关键词完整**：`identity_guard_patterns.py` 覆盖中英文 60+ 身份探测关键词（你是谁/who are you/你是gpt吗 等），配合 Layer 2 安全基线双重防御 ✓
+- **device_control 白名单严格**：`role.device_control` 模板显式列出允许指令 + `{dangerous_capabilities}` 禁止项，Layer 4 工作流第 3 步"白名单外一律拒绝"，Layer 6 质量门控"白名单外指令一律拒绝"——三层防护 ✓
+- **提示词热重载安全**：`registry.py` 用 mtime 缓存 + threading.Lock，YAML 解析用 `safe_load`（非 `load`），无任意代码执行风险 ✓
+- **上下文压缩 best-effort**：`context_compressor.py` 失败时保留原消息，不阻塞主路径 ✓
+
+### 提示词改进建议
+1. **立即**：P1 补中文注入模式（"忽略.*指令"/"从现在起"/"开发者模式"/"越狱"/"DAN"）；P3 把注入检测升级为 BLOCK（或至少高危模式 BLOCK）；P2 接入 `check_output_safety` 到响应后置处理
+2. **本周**：P4 评估 LiMa 层覆盖客户端 system（而非追加）；P6 IDE 值做字符白名单过滤
+3. **后续**：P5 版本标记改用 response header 或日志而非 system prompt 内注释；P7 上下文摘要值做指令关键词过滤
+
+---
+
+## 2026-06-29 AUDIT-4：LiMa 容错率与可靠性加厚方向审查
+
+> 审查范围：重试/退避、熔断器、超时/死信、并发/背压、降级链、数据一致性、资源防护、启动鲁棒性。聚焦运行时容错工程（不重复 AUDIT-1 安全审查）。关键发现均经亲自读源码核验。
+
+### HIGH 级别（最值得立即加厚）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-4-F1 | `routing_executor_serial.py:99-127` + `http_sync.py:222-236` | **无客户端层重试**：每个后端只调用一次，瞬时错误（网络抖动/503/连接重置）直接降级下一个后端。`httpx.RequestError` 这类重试一次就成的错误被误判为"network_error"触发 5s 冷却，白白损失健康后端。建议对可重试错误（RequestError/503/504/408/429）做 1-2 次指数退避重试 | ✓ 已读源码确认 |
+| AUDIT-4-F2 | `device_gateway/redis_store.py:232-273` + `task_lifecycle.py:93-97` | **死信恢复是死代码**：`recover_stale_processing` 能把卡在 processing 超 120s 的任务塞回 pending，但**无任何后台线程调用它**（仅 tests 引用）。设备在 LMOVE 后崩溃则任务永远卡 processing 队列直到 TTL 过期 = 丢任务 | ✓ grep 确认零生产调用 |
+| AUDIT-4-F3 | `routing_engine.py:259-300` + `routing_executor_serial.py` | **无全局并发限制/信号量**：`route()` 被 `asyncio.to_thread` 调用，FastAPI 默认 40 线程。所有后端都慢（每个最多 60s 超时）时，40 并发占满线程池，新请求排队 = 整机无响应。建议路由入口加 `Semaphore(N)` 超限返回 503 | ✓ 已读源码确认 |
+| AUDIT-4-F4 | `http_request_builder/client.py:24-45` + `routing_executor_parallel.py:115` + `speculative_execution.py:84` | **httpx.Client 每次新建无连接池复用**：并行 fallback 和投机执行每次 `with ThreadPoolExecutor` + 每次 `_build_client` 新建 Client。高并发下 FD/socket 飙升，失去 keep-alive 优势。这是除 sqlite 泄漏外的第二类 FD 泄漏点 | ✓ 已读源码确认 |
+| AUDIT-4-F5 | `server_bootstrap.py:18-44` + `routing_executor.py:60` | **终极降级只在流式生效**：`last_resort_call`（Cloudflare 兜底）在 `chat_stream.py:53-60` 流式路径用，但非流式 `route()` 全后端耗尽时返回 `("exhausted","",errors)` → 空内容 200 响应，**非流式零引用 last_resort**。IDE 等非流式客户端全局故障时收到空内容无降级 | ✓ grep 确认非流式零引用 |
+| AUDIT-4-F6 | `health_recorder.py:159` + `health_state.py:185-239` | **monotonic 时钟持久化 bug**：cooldown_until 用 `time.monotonic()`（进程启动后单调递增，重启归零）计算，却原样存 SQLite，重启后读回。新进程 monotonic 从 ~0 开始，读回的旧值导致 cooldown 判断在"永不冷却"和"全熔断"间随机摇摆。等价于健康状态重启不可靠 | ✓ 已读源码确认 |
+| AUDIT-4-F7 | `server_lifespan_phases.py:197-204` | **device/MQTT 启动是 CRITICAL 阶段**：`start_device_gateway_runtime`/`start_mqtt_client` 被列为 critical，任一失败则 `raise RuntimeError` 阻塞整个 FastAPI 启动。但它们对核心 chat 路由非必需，MQTT broker 抖一下就启动不了主服务。应降为 WARM 阶段 | ✓ 已读源码确认 |
+
+### MEDIUM 级别
+
+| ID | 文件:行号 | 发现 |
+|----|-----------|------|
+| AUDIT-4-F8 | `health_models.py:50-55` + `http_errors.py:22-38` | **429 冷却无视 Retry-After**：`_extract_code` 提取了 `Retry-After` 头但 `_apply_cooldown` 忽略它，固定用 30s 起。上游限流几分钟时，系统每 30s 重试再 429，浪费配额加剧限流 |
+| AUDIT-4-F9 | `health_scoring.py:89-100` | **mass_failure 清空全部健康状态**：dead 后端 >50% 时清空 `_health_map`/`_cooldown_states`/`_quality_states` 全部内存态，丢失延迟/成功/错误分类等差异化信息，下次请求可能把刚冷却的坏后端当健康用 |
+| AUDIT-4-F10 | `device_gateway/mqtt_client.py:131-136,196` | **MQTT uplink 队列无界**：`message_queue = asyncio.Queue()` 无 maxsize（对比 downlink 有 maxsize=32），处理慢时上游持续推消息 → 无界增长 → OOM |
+| AUDIT-4-F11 | `device_gateway/store.py:230-243` + `redis_store_helpers.py:27-33` | **Redis 运行时故障无降级**：启动时二选一（Redis 或 InMemory），但运行时 Redis 挂了，每个方法抛 `ConnectionError` 无 try/except 降级。`rate_limiter_redis.py` 有降级到内存，task store 没有 |
+| AUDIT-4-F12 | `device_gateway/redis_store.py:108-111` | **设备任务状态无乐观锁**：`_write_task_state` 裸 HSET 覆盖，无 version/etag/WATCH。并发事件（设备上报+超时重排）后写覆盖前写，丢失事件 |
+| AUDIT-4-F13 | `speculative_execution.py:151-171` | **投机输家线程不被取消**：`future.cancel()` 只能取消未启动的 future，已运行的 httpx 阻塞调用无法中断，loser 线程跑满自己的 60s 超时占用 worker slot |
+
+### LOW 级别
+- `routing_executor_serial.py:16`：`PER_BACKEND_TIMEOUT=15s` 只事后警告慢后端，不中断挂起请求（真正超时来自 httpx 默认 60s）
+- `async_utils.py:27-28`：`run_coro_sync` 每次新建 ThreadPoolExecutor(max_workers=1)，热路径线程创建开销
+- `server_bootstrap.py:30`：`last_resort_call` 用裸 `urllib` 不走 GFW 代理，国内服务器可能连不上 Cloudflare
+
+### 已确认健康的维度（无需加厚）
+- **降级链无循环**：`_serial_attempt` 遍历 `backends[:max_tries]`，fallback 从同列表筛健康候选，MAX_FALLBACKS=10 合理上限 ✓
+- **缓存/记忆 best-effort 隔离**：`semantic_cache`/`session_memory` 写入全包 try/except 不阻塞主路径 ✓
+- **缺 key 后端静默跳过**：缺 key 的后端在选路时被 budget/health 过滤剔除，不崩溃 ✓
+
+### 容错率加厚优先级（按 ROI 排序）
+| 批次 | 项目 | 一句话 |
+|------|------|--------|
+| **第一批** | F1 | 加客户端层瞬时错误重试（1-2 次退避），消化网络抖动 |
+| **第一批** | F2 | 接线 `recover_stale_processing` 到后台 reaper（当前死代码），防丢任务 |
+| **第一批** | F3 | 路由入口加全局 Semaphore 背压，防线程池耗尽整机不可用 |
+| **第二批** | F4 | 复用 httpx.Client 连接池，治 FD 泄漏 + 提升 keep-alive |
+| **第二批** | F5 | 非流式 exhausted 时调 last_resort_call，对齐流式降级 |
+| **第二批** | F6 | 修 monotonic 持久化 bug（load 时清零 cooldown 最简） |
+| **第二批** | F7 | device/MQTT 启动降为 WARM，避免阻塞主服务 |
+| **第三批** | F8-F13 | Retry-After 遵从、mass_failure 渐进恢复、MQTT 背压、Redis 降级、任务 CAS、投机短超时 |
+
+**关键风险路径**：F1（无重试）+ F3（无背压）+ F4（FD 泄漏）三者叠加，是单次上游故障演变为整机不可用的典型路径——慢后端占满线程池 + FD 耗尽 + 无重试反复降级 = 雪崩。F6（monotonic bug）是隐蔽的静默 bug，重启后健康状态在"全熔断"和"全放行"间随机摇摆。
+
+---
+
+## 2026-06-29 AUDIT-5：LiMa 可观测性、日志与监控体系审查
+
+> 审查范围：observability/、routes/system_endpoints.py、routes/ops_metrics/、context_pipeline/tracing.py、routes/request_tracking.py、access_guard.py。聚焦运维可观测性（不重复 AUDIT-1~4）。关键发现均经亲自读源码核验。
+
+### HIGH 级别（经核验）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-5-O1 | `routes/system_endpoints.py:93-140` | **健康检查不探活运行时依赖**：`/health` 与 `/health/ready` 只读 `get_startup_state()`（启动 phase 状态）。启动完成后即使 SQLite 耗尽/Redis 挂掉/全部后端 dead/磁盘满，`/health` 仍返回 200 `"ok"`。公网 LB 探针会被死实例欺骗，死实例继续导流 | ✓ 已读源码确认 |
+| AUDIT-5-O2 | `routes/request_tracking.py:150-162` + `routes/admin_api.py:81-85` | **明文用户 query 入指标**：`record_request` 把 `query[:80]` + `sys_prompt[:100]` 明文写入 `recent_logs` 内存，再经 `/api/logs` 暴露。用户可能在 query 里输入 API key/PII，经 admin 接口泄漏。`observability/events.py` 有 `_sanitize_text` 脱敏管线但此处完全绕过 | ✓ 已读源码确认 |
+| AUDIT-5-O3 | `routes/admin_extra_alerts.py:14,20-64` | **告警规则系统是空壳**：只有 CRUD 端点（create/update/delete/list），`_ALERT_RULES` 纯内存，**无评估器**（grep evaluate/fired/trigger/check_threshold 零命中）。管理员配的阈值告警永远不会触发，无通知 | ✓ grep 确认零评估器 |
+| AUDIT-5-O4 | `routes/admin_extra_insights.py:121-124` | **admin 审计是假审计**：`/api/agent-audit` 硬编码 `return {"tasks": []}`。增删后端、退役、改 client_keys、改配置等破坏性操作**全部无审计日志**，无法事后追溯谁在何时改了什么 | ✓ 已读源码确认 |
+| AUDIT-5-O5 | `observability/correlation.py:100-118` + `observability/jsonl_store.py:43-57` | **设备任务审计可篡改**：`record_device_task_correlation` 写进程内内存 `deque(maxlen=500)` 重启即丢；`_trim_jsonl` 用 `path.write_text` 重写整个文件（非 append-only），历史记录可被覆盖。不满足审计日志防篡改要求 | ✓ 已读源码确认 |
+| AUDIT-5-O6 | 无 OpenTelemetry（`requirements_server.txt` 仅 prometheus_client） | **无分布式追踪后端**：自研 `RequestTrace`/`Span`（tracing.py）仅写进程内内存 ring buffer（MAX_RECENT_TRACES=1000），重启即丢，无法跨实例关联。多后端 fallback 链路无法在 Jaeger/Tempo 可视化 | ✓ grep 确认无 otel |
+| AUDIT-5-O7 | `routes/chat_endpoints.py:158` + grep `X-Request-Id` 零命中 | **trace_id 不写入 HTTP 响应头**：`new_trace()` 生成 trace 但不回写 `X-Request-Id` 响应头。用户报障时无法把客户端 ID 反查服务端日志；fallback 各跳之间无显式 request_id 串联 | ✓ grep 确认零响应头注入 |
+
+### MEDIUM 级别
+| ID | 文件:行号 | 发现 |
+|----|-----------|------|
+| AUDIT-5-O8 | `config/settings_core.py:242` | **结构化 JSON 日志默认关闭**（`structured_logging="0"`），生产默认 stderr 纯文本，无法被 Loki/ELK 机器解析 |
+| AUDIT-5-O9 | 无日志轮转（grep RotatingFileHandler/maxBytes 零命中） | **无日志轮转/限流**，高并发错误循环会冲爆磁盘；根目录已有游离 `debug.log`/`_verify.txt` |
+| AUDIT-5-O10 | `routes/admin_extra_logs.py` SSE + `backend_telemetry.jsonl` | **无错误聚合**：同类错误（如某 key 配额耗尽）逐条重复记日志，500 条 jsonl 很快被刷掉丢失根因 |
+| AUDIT-5-O11 | `routes/system_endpoints.py:106-122` | **/health 信息泄漏**：公开（无鉴权）返回 `modules`（内部模块清单）、`startup.phases`、`security.anonymous_access` 状态，是攻击者侦察价值信息 |
+
+### LOW 级别
+- `observability/prometheus_metrics.py`：缺 in-flight 请求 Gauge 和队列深度指标，无法区分"延迟飙升因排队还是后端慢"
+- `/metrics` 端点经 `require_private_api_key` 保护（好），但 Prometheus scrape 用静态 token，泄漏后无速率限制
+
+### 已确认健康的维度
+- Prometheus 指标命名规范、label 基数可控（backend×4 状态、capability 有限枚举）✓
+- 结构化日志模块 `observability/structured_logging.py` 实现完整（trace_id 注入 contextvars）✓
+- backend_telemetry jsonl 有上限（500 行）防无限增长 ✓
+
+### 可观测性改进优先级
+1. **立即**：O1 `/health/ready` 加运行时依赖探活（DB/Redis/后端/磁盘）；O2 query 脱敏（复用 `_sanitize_text`）
+2. **本周**：O3 告警评估器落地；O4 admin 破坏性操作审计；O7 `X-Request-Id` 响应头注入
+3. **计划**：O5 审计 append-only 化；O6 OpenTelemetry 接入；O8 结构化日志默认开启；O9 日志轮转
+
+---
+
+## 2026-06-29 AUDIT-6：LiMa API 契约一致性与测试覆盖审查
+
+> 审查范围：routes/（205 端点/56 文件）、tests/（482 文件）、server.py、nginx 配置。聚焦 API 设计规范性与测试质量（不重复 AUDIT-1~5）。关键发现均经亲自读源码核验。
+
+### HIGH 级别（经核验）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-6-A1 | `server.py:40-45` | **生产 Swagger/OpenAPI 文档应用层未禁用**：`FastAPI()` 未传 `docs_url=None/openapi_url=None/redoc_url=None`，靠 nginx try_files 隐式拦截。一旦 nginx 重配或 uvicorn 直接监听公网，`/openapi.json` 暴露所有端点结构 | ✓ grep 确认无禁用 |
+| AUDIT-6-A2 | `routes/images.py:161` vs `routes/chat_endpoints.py:64-67` | **error 字段类型不一致**：images 用 `{"error": "invalid image request"}`（字符串），chat 用 `{"error": {"message":..., "type":...}}`（对象）。同后端同名字段类型不同，客户端 `resp["error"]["message"]` 会崩——真实契约断裂 | ✓ 已读源码确认 |
+| AUDIT-6-A3 | `routes/device_app_tasks.py:72,75,84` + `device_app_auth.py:238,240` | **业务错误码无码表且语义冲突**：4002 在 tasks 端点=参数校验失败，在 auth 端点=密码未设置；4003 在 tasks=任务构建失败，在 auth=旧密码错误。同一 code 不同端点含义完全不同，客户端无法按 code 分支 | ✓ 已读源码确认 |
+
+### MEDIUM 级别
+
+| ID | 文件:行号 | 发现 |
+|----|-----------|------|
+| AUDIT-6-A4 | `device_logic/http.py:14` `ok()` 信封定义了但 device 路由几乎未调用 | **成功响应格式三套并存无统一信封**：OpenAI 系平铺（choices/created）、device 系裸 dict、`ok()` 信封定义却没用 |
+| AUDIT-6-A5 | device_app_api.py + device_app_tasks.py | **RESTful 与 RPC 风格混用**：GET/PUT/DELETE 与 POST /register、POST /unbind、POST /approve 混用；列表端点用 `limit` 无 `offset`/cursor，无法翻页遍历 |
+| AUDIT-6-A6 | device_app_tasks.py:104 + device_logic/http.py:22-45 | **大量端点绕过 Pydantic 手动解析 dict**：用 `read_body` + `str_field` 手动取字段，无类型/长度/结构校验。对比 `images.py` 的 `ImageRequest(BaseModel)` 是正确范例 |
+| AUDIT-6-A7 | `routes/system_endpoints.py:66-80` | **/v1/models 硬编码 13 个模型 ID**，与 backends_registry 动态注册脱节，列表会与实际可用后端漂移 |
+| AUDIT-6-A8 | admin.py 用 HTTPException（`{"detail":...}`）vs device 系用 `err()`（`{"code":..., "message":...}`）vs OpenAI 系 `{"error":{...}}` | **错误抛出方式三套**，错误处理中间件无法统一拦截 |
+
+### 测试覆盖盲区（MEDIUM）
+
+| ID | 发现 |
+|----|------|
+| AUDIT-6-T1 | **流式响应中断无端到端测试**：`/v1/chat/completions` stream=true 是核心路径，但 `test_routes_chat_stream.py` 只测正常发完，未测客户端中途断开是否正确取消后端请求、是否泄漏 speculative route task |
+| AUDIT-6-T2 | **降级链全是 mock 单元测试**：`test_routing_executor_fallback.py` 全用 MagicMock，无真实多后端串联集成测试。pytest.ini 默认 `-m "not network"`，CI 上降级链无真实后端验证 |
+| AUDIT-6-T3 | **无路由引擎并发竞态测试**：有 device task store 并发测试，但无多个请求并发选择同一后端的竞态测试 |
+
+### 已确认健康的维度
+- **无被 skip/xfail 的测试**（grep skip/xfail 计数为 0）✓
+- **测试文件数量充足**（482 个测试文件）✓
+- **图片端点 ImageRequest 是 Pydantic 校验范例**（pattern/ge/le/field_validator 齐全）✓
+
+### API 契约改进优先级
+1. **立即**：A1 应用层禁文档（`docs_url=None`）；A2 统一 error 字段类型
+2. **本周**：A3 建立错误码表 `docs/error_codes.md`；A4 统一响应信封；T1 补流式中断测试
+3. **计划**：A5 REST 风格统一；A6 Pydantic 收口；A7 /v1/models 动态生成；T2 真实后端集成测试
+
+---
+
+## 2026-06-29 AUDIT-7：LiMa 部署运维、容器化、CI/CD、备份与供应链审查
+
+> 审查范围：Dockerfile、docker-compose.yml、.github/workflows/、requirements*.txt、nginx 配置、infra/vps/、scripts/deploy_unified*.py。关键背景：生产通过 **systemd 直跑 uvicorn 单 worker**（不用 Docker）。关键发现均经亲自读源码核验。
+
+### HIGH 级别（经核验）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-7-D1 | `.github/workflows/test.yml:33-61` | **CI "Tests" 工作流从不跑测试**：安装了 pytest 但执行步骤只有 ruff/pyright/bandit/run_pre_commit_check，**无任何 `pytest` 步骤**。deploy.yml 把 test.yml 当 needs 前置门禁，但该门禁不验证功能正确性 = 生产部署无测试保护 | ✓ grep 确认无 pytest 步骤 |
+| AUDIT-7-D2 | `.github/workflows/deploy.yml:16-18` | **生产部署无 GitHub Environment 审批保护**：deploy job 无 `environment:` 字段，任何对 main 有 push 权限即触发对生产 VPS 的 SSH 部署。无 required reviewer、无 deployment gate | ✓ 已读源码确认 |
+| AUDIT-7-D3 | `infra/vps/systemd/lima-router.service:11` + `litestream.yml` | **Litestream 备份仅写本地无异地副本**：7 个 SQLite DB 的 replica 全部 `type: file` 写同一台 VPS 的 `/opt/lima-router/backups/litestream/`，S3/R2 副本被注释。VPS 整机故障时主库与本地副本同时丢失 | ✓ 已读源码确认 |
+| AUDIT-7-D4 | `requirements_server.txt:5-37` | **依赖全用 `>=` 范围无 hash pinning**：除 3 个 `==` 外全 `>=`，构建不可复现 + PyPI 投毒风险。文件已注释排除过 `fastapi 0.136.3 MAL-2026-4750`（真实供应链事件），但 `>=` 无法防下一次 | ✓ 已读源码确认 |
+
+### MEDIUM 级别
+
+| ID | 文件:行号 | 发现 |
+|----|-----------|------|
+| AUDIT-7-D5 | `_nginx_chat_temp.conf:117,257,276` + `infra/vps/nginx/` | **limit_req_zone 定义未版本化**：nginx 配置引用 `zone=api`/`zone=agent` 速率限制区，但全仓库版本化配置不含 `limit_req_zone` 定义（在未跟踪的 nginx.conf）。换机器灾难恢复时会脆断或速率限制静默失效 |
+| AUDIT-7-D6 | `Dockerfile:1`（`python:3.10-slim` 浮 tag）+ `docker-compose.yml:54`（`searxng/searxng` 无 tag=latest） | **镜像未固定 patch 版本**：python:3.10-slim 浮动（且 3.10 接近 EOL 2026-10）；searxng 用 latest |
+| AUDIT-7-D7 | `docker-compose.yml:1-73` | **无资源限制**：lima/redis/searxng 三服务均无 mem_limit/cpus，一方内存泄漏拖垮整机 |
+| AUDIT-7-D8 | `_nginx_chat_temp.conf:301-306` | **TLS 未显式硬化**：仅 `listen 443 ssl` + 依赖未跟踪的 certbot options；HSTS max-age=15552000（180天）偏短且无 includeSubDomains;preload |
+| AUDIT-7-D9 | `deploy_unified_preflight.py:39-58` | **回滚只覆盖代码不覆盖 .env 与数据库**：备份是 `tar -czf runtime-before.tgz` 仅含将覆盖的 .py/.html；.env 人工维护不在回滚保护内，SQLite DB 不备份。回滚 tar 包从未做试恢复验证 |
+| AUDIT-7-D10 | `deploy_unified_restart.py:37-41` + `deploy.yml:41-49` | **部署用 root SSH + 密码回退 + ssh-keyscan**：以 root 直连 VPS，密钥失败回退明文密码；CI 用 `ssh-keyscan` 把任意主机指纹加入信任（中间人可注入伪造主机键） |
+
+### LOW 级别
+- systemd 未设 `TimeoutStopSec`，shutdown 阶段挂起被 SIGKILL 截断流式请求
+- 重型依赖（opencv/scikit-image/Pillow）无条件打入服务镜像，主 chat 路由不需要
+- deploy.yml 无 pip cache（每次重装依赖），secrets 用 `${{ }}` 内联有注入面
+
+### 已确认健康的维度
+- Dockerfile 多阶段构建 + non-root user（USER lima）+ HEALTHCHECK + .dockerignore（59 行）✓
+- 生产 .env 未被 git 跟踪，.gitleaks.toml 存在 ✓
+- nginx 已补安全头（HSTS/X-Content-Type-Options/X-Frame-Options/Referrer-Policy）✓
+- 容量预检 + 健康失败自动代码回滚 + nginx 配置三段式 backup/test/reload/rollback ✓
+- graceful shutdown 已实现，systemd Restart=always ✓，dependabot 三类生态全覆盖 ✓
+- deploy.yml 用 `*_SET` 布尔技巧避免 secret 回显日志 ✓
+
+### 部署运维改进优先级
+1. **立即**：D1 CI 加 pytest 步骤（最高杠杆，恢复测试门禁）；D2 deploy job 加 `environment: production` + required reviewers
+2. **本周**：D3 启用 Litestream S3/R2 异地副本；D4 依赖 hash pinning（pip-compile --generate-hashes）
+3. **计划**：D5 limit_req_zone 版本化；D6 镜像钉版本；D7 资源限制；D8 TLS 硬化；D9 回滚覆盖 .env/DB
+
+---
+
+## 2026-06-29 AUDIT-8：LiMa 性能、资源效率与扩展性瓶颈审查
+
+> 审查范围：热路径性能、缓存效率、数据库效率、异步效率、冷启动、扩展性。关键发现均经亲自读源码核验。
+
+### HIGH 级别（经核验）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-8-P1 | `routing_intent.py:289-296` + `routing_intent_instructor.py:47` | **同步 LLM 调用阻塞主路径**：低置信度时 `maybe_instructor_intent` 同步调 `create_structured_completion`（阻塞网络调用），占用 to_thread worker 线程。结合 P2 三次调用，可能触发 3 次 LLM | ✓ 已读源码确认 |
+| AUDIT-8-P2 | `chat_handler_dispatch.py:195,218` + `routing_engine_intent.py:36` | **三重重复 intent 分析**：同一 query 的 `analyze_intent` 在一次请求被调 3 次（:195 结果丢弃、:218 又算、route() 内第三次），每次跑 30+ 正则。CPU 浪费 ~3x | ✓ 已读源码确认 |
+| AUDIT-8-P3 | `semantic_cache/store.py:46-67` | **语义缓存全表扫描 + 无 WAL**：get_candidates 每次拉 100 条候选（含完整 embedding+response）回 Python 算 cosine；全文无 `PRAGMA journal_mode=WAL`（grep 确认空），并发写互斥锁全库 | ✓ grep 确认无 WAL |
+| AUDIT-8-P4 | `http_request_builder/client.py:24-45` + `http_sync.py:223,254` | **httpx Client 每次新建无连接池复用**：每次后端调用 `with hc._build_client(backend,timeout)` 创建并销毁 Client，每次重建 TLS 握手（HTTPS 后端 +50-200ms） | ✓ 已读源码确认 |
+| AUDIT-8-P5 | `semantic_cache/cache.py:84` + `code_context/embedding_client.py:48-52` | **缓存查询同步调 Jina 网络**：每次 lookup/store 同步调 Jina 算 embedding（urllib 阻塞，15s 超时）。缓存命中本应加速，却额外加 ~100-500ms，Jina 抖动时最坏 +15s。无 embedding LRU 缓存 | ✓ 已读源码确认 |
+
+### MEDIUM 级别（扩展性障碍——多 worker 前置条件）
+
+| ID | 文件:行号 | 发现 |
+|----|-----------|------|
+| AUDIT-8-P6 | `health_models.py:22-26` + `budget_manager.py:101-103` | **健康/预算状态完全进程本地**：health_map/cooldown/quality 和 budget _usage 全内存（threading.RLock）。多 worker 下每个 worker 独立副本，worker A 标某后端 dead，worker B 仍往死掉后端发请求；预算计数被 N 倍突破 |
+| AUDIT-8-P7 | `server.py:122` + `Dockerfile:29` + systemd | **单 worker 部署**：无 `--workers`，全部流量压在一个进程。多 worker 障碍是 P6（进程本地状态不一致）。需先解决 P6 才能安全扩 worker |
+| AUDIT-8-P8 | `speculative_execution.py:79-89` | **投机执行浪费预算 + 一次性线程池**：简单请求同时发 5 个后端，loser 的 token 被消耗但只记 winner 预算；ThreadPoolExecutor 每次新建不复用；loser record_failure 可能误判健康后端 |
+| AUDIT-8-P9 | `routing_engine.py:281-295` + `routing_classifier.py:86` | **退役逻辑仍在热路径**：scenario 永远返回 "chat"（v3.0 编码退役）、retrieval 已 no-op，但仍各包一层 trace_span + validate_value dataclass 校验。纯开销 |
+
+### LOW 级别
+- `config/sqlite_pool.py:37`：连接池每次借出执行 `SELECT 1` 探活（额外往返）
+- `routing_selector/scoring.py:46-51` + `filters.py:15`：热路径内函数级 import（每次 dict 查找）
+- `routing_selector/ranking.py:17`：排序 key 内每元素调 budget_manager（带锁）+ random.uniform（非确定性）
+- `context_pipeline/skill_store.py:117-126`：recall key 计算遍历全部 messages 拼 user_text（长对话线性增长）
+
+### 已确认健康的维度
+- **意图分类主路径不调 LLM**：走快速正则/关键词（_ANALYZE_RULES），仅低置信度才触发 instructor ✓
+- **chromadb/tree-sitter 懒加载正确**：importlib 探测 + 用时才 import，不拖慢启动 ✓
+- **health record_success 条件持久化**：仅状态变化时写 SQLite，合理 ✓
+- **测试无 skip/xfail，文件数量充足** ✓
+
+### 性能优化优先级
+1. **立即**：P1 instructor 降级为异步/调高阈值（消除主路径同步 LLM 阻塞）；P2 intent 算一次挂 context 复用
+2. **本周**：P3 语义缓存加 WAL + 降候选量；P4 httpx Client 连接池复用；P5 embedding LRU 缓存 + 异步化
+3. **计划**：P6 健康/预算搬共享存储（Redis/SQLite）→ P7 扩多 worker；P8 投机 max_parallel 降到 2-3；P9 删退役热路径逻辑
+
+**关键性能路径**：P1（同步 LLM）是单请求最大延迟变数；P2（三重 intent）是稳定 CPU 浪费；P3+P5（缓存开销）使缓存可能比不缓存还慢；P4（连接重建）在每次后端调用叠加 TLS 成本。
+
 
 
 

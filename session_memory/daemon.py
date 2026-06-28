@@ -171,8 +171,8 @@ def _extract_facts(fname: str, content: str) -> list[tuple[str, str]]:
                 sanitized = _sanitize_text(text)
                 if sanitized is not None:
                     facts.append((mt, sanitized))
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as exc:
+            logger.warning("memory daemon json parse failed file=%s: %s", fname, exc)
         return facts
 
     # Markdown/text: extract lines starting with "- " as facts

@@ -1,14 +1,16 @@
 """User profile storage and management."""
 
 import json
+import logging
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
-from config.db_config import PROFILES_DIR
+from config.db_config import PROFILES_DIR as _PROFILES_DIR_STR
 
+_log = logging.getLogger(__name__)
 
-PROFILES_DIR = Path(PROFILES_DIR)
+_PROFILES_DIR = Path(_PROFILES_DIR_STR)
 
 
 @dataclass
@@ -33,8 +35,8 @@ class UserProfile:
 
 
 def _profile_path(session_id: str) -> Path:
-    PROFILES_DIR.mkdir(parents=True, exist_ok=True)
-    return PROFILES_DIR / f"{session_id}.json"
+    _PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+    return _PROFILES_DIR / f"{session_id}.json"
 
 
 def load_profile(session_id: str) -> UserProfile:
@@ -44,8 +46,8 @@ def load_profile(session_id: str) -> UserProfile:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             return UserProfile.from_dict(data)
-        except (json.JSONDecodeError, KeyError):
-            pass
+        except (json.JSONDecodeError, KeyError) as exc:
+            _log.warning("profile load failed session_id=%s: %s", session_id, exc)
     return UserProfile(session_id=session_id)
 
 

@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
+
+_log = logging.getLogger(__name__)
 
 
 def _extract_answer(data: dict, fmt: str) -> str:
@@ -18,7 +21,10 @@ def _extract_answer(data: dict, fmt: str) -> str:
             if block.get("type") == "thinking":
                 return block.get("thinking", "")
         return ""
-    message = data["choices"][0]["message"]
+    choices = data.get("choices")
+    if not choices or not isinstance(choices, list):
+        return ""
+    message = choices[0].get("message", {}) if isinstance(choices[0], dict) else {}
     return message.get("content") or message.get("reasoning_content") or message.get("reasoning") or ""
 
 
@@ -33,12 +39,15 @@ def _parse_sse_chunk(data_str: str, fmt: str) -> str:
     try:
         data = json.loads(data_str)
         if fmt == "openai":
-            delta = data["choices"][0]["delta"]
+            choices = data.get("choices")
+            if not choices or not isinstance(choices, list):
+                return ""
+            delta = choices[0].get("delta", {}) if isinstance(choices[0], dict) else {}
             return delta.get("content") or delta.get("reasoning_content") or ""
         if data.get("type") == "content_block_delta":
             delta = data.get("delta", {})
             if delta.get("type") == "text_delta":
                 return delta.get("text", "")
-    except (json.JSONDecodeError, KeyError, IndexError):
-        pass
+    except (json.JSONDecodeError, KeyError, IndexError) as exc:
+        _log.warning("sse chunk parse failed: %s", exc)
     return ""

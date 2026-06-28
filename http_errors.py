@@ -47,13 +47,6 @@ def _extract_code(exc: Exception) -> Optional[int]:
         val = getattr(exc, attr, None)
         if isinstance(val, int):
             return val
-    text = str(exc)
-    if "429" in text:
-        return 429
-    if "401" in text:
-        return 401
-    if "403" in text:
-        return 403
     return None
 
 

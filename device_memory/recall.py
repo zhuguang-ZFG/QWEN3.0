@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from device_memory.schemas import MemoryEntry, MemoryType
+
+_log = logging.getLogger(__name__)
 from device_memory.quality_gates import is_hard_safety, is_safe_for_recall
 from device_memory.store import MemoryStoreBackend
 
@@ -84,6 +87,6 @@ def _parse_value(value: str) -> dict[str, Any]:
         data = json.loads(value)
         if isinstance(data, dict):
             return data
-    except (json.JSONDecodeError, TypeError):
-        pass
+    except (json.JSONDecodeError, TypeError) as exc:
+        _log.warning("device_memory value parse failed: %s", exc)
     return {}

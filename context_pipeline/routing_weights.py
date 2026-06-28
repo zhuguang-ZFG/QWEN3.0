@@ -127,8 +127,8 @@ class RoutingWeights:
                 try:
                     WEIGHTS_PATH.rename(backup)
                     _log.warning("corrupt weights file renamed to %s", backup)
-                except OSError:
-                    pass
+                except OSError as exc:
+                    _log.warning("routing weights corrupt rename failed: %s", exc)
 
     def _save(self) -> None:
         WEIGHTS_PATH.parent.mkdir(parents=True, exist_ok=True)

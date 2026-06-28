@@ -170,5 +170,7 @@ def _record_promotion_audit(
         }
         with open(audit_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    except OSError:
-        pass
+    except OSError as exc:
+        import logging
+
+        logging.getLogger(__name__).warning("promotion audit write failed: %s", exc)

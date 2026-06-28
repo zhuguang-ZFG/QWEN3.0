@@ -7,6 +7,7 @@ import sqlite3
 import time
 from dataclasses import dataclass
 
+from config.sqlite_pool import pooled_sqlite_conn
 from semantic_cache.config import cache_db_path
 
 
@@ -42,13 +43,8 @@ class SemanticCacheStore:
         self.db_path = db_path or cache_db_path()
         self._ensure_schema()
 
-    def _connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, timeout=10)
-        conn.row_factory = sqlite3.Row
-        return conn
-
     def _ensure_schema(self) -> None:
-        with self._connection() as conn:
+        with pooled_sqlite_conn(self.db_path) as conn:
             conn.executescript(self._SCHEMA)
 
     def get_candidates(
@@ -57,7 +53,8 @@ class SemanticCacheStore:
         limit: int = 100,
     ) -> list[CacheEntry]:
         """Return recent entries that may match the query."""
-        with self._connection() as conn:
+        with pooled_sqlite_conn(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 """
                 SELECT id, query_text, embedding, response, created_at
@@ -88,7 +85,7 @@ class SemanticCacheStore:
     ) -> None:
         """Insert or replace a cache entry keyed by query hash."""
         now = time.time()
-        with self._connection() as conn:
+        with pooled_sqlite_conn(self.db_path) as conn:
             conn.execute(
                 """
                 INSERT INTO semantic_cache (query_hash, query_text, embedding, response, created_at)
@@ -111,7 +108,7 @@ class SemanticCacheStore:
 
     def bump_hit_count(self, entry_id: int) -> None:
         """Increment hit count for a returned entry."""
-        with self._connection() as conn:
+        with pooled_sqlite_conn(self.db_path) as conn:
             conn.execute(
                 "UPDATE semantic_cache SET hit_count = hit_count + 1 WHERE id = ?",
                 (entry_id,),
@@ -119,13 +116,13 @@ class SemanticCacheStore:
 
     def clear(self) -> int:
         """Delete all cached entries. Returns deleted count."""
-        with self._connection() as conn:
+        with pooled_sqlite_conn(self.db_path) as conn:
             cur = conn.execute("DELETE FROM semantic_cache")
             return cur.rowcount
 
     def prune(self, max_age_seconds: float) -> int:
         """Delete entries older than ``max_age_seconds``. Returns deleted count."""
         cutoff = time.time() - max_age_seconds
-        with self._connection() as conn:
+        with pooled_sqlite_conn(self.db_path) as conn:
             cur = conn.execute("DELETE FROM semantic_cache WHERE created_at < ?", (cutoff,))
             return cur.rowcount

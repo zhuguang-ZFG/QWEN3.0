@@ -8,16 +8,27 @@
 > Updated: 2026-06-28
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4064 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **4083 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml`、`.github/workflows/deploy.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-docs-site.yml` 已配置；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（ secrets 待配置）。
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
-> 安全审计：`findings.md` AUDIT-1 CRITICAL 批次已修复部署（C1/C2/C3）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
+> 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-29）LiMa HIGH 批次修复：AUDIT-1 H1~H6
+
+- **目标**：修复 LiMa 后端系统深度审查（AUDIT-1）标记的 6 个 HIGH 问题。
+- **改动**：
+  - H1：`semantic_cache/store.py` 改用 SQLite 连接池；`semantic_cache/cache.py` 单例化。
+  - H2：`http_response.py` 防御性解析；`http_errors.py` 移除子串状态码匹配。
+  - H3/H4：`http_stream.py` + 新增 `http_stream_core.py` 真实记录流式质量；客户端断连/取消不再误罚后端。
+  - H5：`route_scorer.py` 三处静默异常改为 warning；拆分为小函数。
+  - H6：9 个生产路径的静默 `except: pass` 改为 warning；CI gate 增加 `ImportError` 模式检测。
+- **验证**：ruff/format/pyright/check_code_size 全通过；全量 pytest 4083 passed；VPS 部署成功，`https://chat.donglicao.com/health` 200。
 
 ### 最近完成（2026-06-28）LiMa CRITICAL 批次修复：AUDIT-1 C1/C2/C3
 

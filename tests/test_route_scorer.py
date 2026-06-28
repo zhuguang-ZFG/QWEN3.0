@@ -169,3 +169,39 @@ def test_routing_select_keeps_only_backend_even_if_quarantined(monkeypatch, tmp_
     monkeypatch.setattr(health_tracker, "get_latency_map", lambda: {})
 
     assert select("chat", {}) == ["only_backend"]
+
+
+def test_effective_score_logs_and_fallback_on_reputation_failure(monkeypatch, caplog):
+    import backend_reputation
+
+    monkeypatch.setattr(backend_reputation, "get_stats", lambda: (_ for _ in ()).throw(RuntimeError("rep boom")))
+    with caplog.at_level("WARNING"):
+        score = route_scorer.effective_score("some_backend", "chat")
+    assert 0.0 <= score <= 1.0
+    assert any("backend_reputation score failed" in rec.message for rec in caplog.records)
+
+
+def test_effective_score_logs_and_fallback_on_routing_weights_failure(monkeypatch, caplog):
+    import context_pipeline.routing_weights as routing_weights
+
+    def _raise(*args, **kwargs):
+        raise RuntimeError("weights boom")
+
+    monkeypatch.setattr(routing_weights, "get_routing_weights", _raise)
+    with caplog.at_level("WARNING"):
+        score = route_scorer.effective_score("some_backend", "chat")
+    assert 0.0 <= score <= 1.0
+    assert any("routing_weights lookup failed" in rec.message for rec in caplog.records)
+
+
+def test_effective_score_logs_and_fallback_on_backend_profile_failure(monkeypatch, caplog):
+    import backend_profile
+
+    def _raise(*args, **kwargs):
+        raise RuntimeError("profile boom")
+
+    monkeypatch.setattr(backend_profile, "get_profile", _raise)
+    with caplog.at_level("WARNING"):
+        score = route_scorer.effective_score("some_backend", "chat")
+    assert 0.0 <= score <= 1.0
+    assert any("backend_profile score failed" in rec.message for rec in caplog.records)

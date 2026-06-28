@@ -38,8 +38,8 @@ def _post_routing_bridge(final_backend: str, ms: int, answer: str, scenario: str
         from context_pipeline.routing_bridge import record_routing_outcome
 
         record_routing_outcome(final_backend, ms, bool(answer), scenario, skip_weights=True)
-    except (ImportError, TypeError):
-        pass
+    except (ImportError, TypeError) as exc:
+        logger.warning("routing_bridge unavailable: %s", exc)
     except Exception as exc:
         _warn("routing_bridge", exc)
 

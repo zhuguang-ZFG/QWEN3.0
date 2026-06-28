@@ -92,8 +92,8 @@ async def key_url_inventory():
         from key_pool import get_pool_status
 
         providers = get_pool_status()
-    except (ImportError, AttributeError):
-        pass
+    except (ImportError, AttributeError) as exc:
+        _log.warning("key_pool inventory unavailable: %s", exc)
 
     return {"backends": backend_list, "key_pools": {"providers": providers}}
 

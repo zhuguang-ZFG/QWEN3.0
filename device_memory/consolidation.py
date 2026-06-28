@@ -131,6 +131,6 @@ def _parse_episode_value(value: str) -> dict[str, Any]:
         data = json.loads(value)
         if isinstance(data, dict):
             return data
-    except (json.JSONDecodeError, TypeError):
-        pass
+    except (json.JSONDecodeError, TypeError) as exc:
+        _log.warning("device_memory episode value parse failed: %s", exc)
     return {}

@@ -7,6 +7,7 @@ import tempfile
 
 import pytest
 
+from config.sqlite_pool import pool_clear, pooled_sqlite_conn
 from semantic_cache.cache import SemanticCache, _cosine_similarity
 from semantic_cache.embedder import FakeEmbedder
 from semantic_cache.store import SemanticCacheStore
@@ -18,6 +19,7 @@ def tmp_store():
         path = f.name
     store = SemanticCacheStore(db_path=path)
     yield store
+    pool_clear()
     os.unlink(path)
 
 
@@ -92,6 +94,9 @@ def test_store_bumps_hit_count(tmp_store):
     cache.store_response("q", "r")
     cache.lookup("q")
     cache.lookup("q")
-    with tmp_store._connection() as conn:
+    import sqlite3
+
+    with pooled_sqlite_conn(tmp_store.db_path) as conn:
+        conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT hit_count FROM semantic_cache").fetchone()
     assert row["hit_count"] == 2

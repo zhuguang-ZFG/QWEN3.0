@@ -142,6 +142,11 @@ _SILENT_EXCEPTION_PASS_SNIPPETS = (
     "except Exception:\n        pass",
     "except Exception:\n                pass",
     "except Exception:\n            pass",
+    "except ImportError:\n        pass",
+    "except ImportError:\n                pass",
+    "except ImportError:\n            pass",
+    "except (ImportError, TypeError):\n        pass",
+    "except (ImportError, AttributeError):\n        pass",
 )
 
 _P13_SKIP_DIRS = frozenset(
