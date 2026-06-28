@@ -11,10 +11,17 @@
 | IMAGE-1-2 | deploy | `scripts/deploy_unified.py` readiness 检查对慢启动偏激进，触发误回滚 | Closed |
 | IMAGE-1-3 | security | `XMIAOM_API_KEY` 在 SSH 诊断命令中暴露，需轮换 | Open |
 | IMAGE-1-4 | ops | systemd `EnvironmentFile` 变量不显示在 `systemctl show --property=Environment`，需以 `/proc/<pid>/environ` 为准 | Documented |
+| IMAGE-1-5 | mini-program | 小程序已新增「云生图」Tab，调用 `/device/v1/app/images/generations` | Closed |
+| IMAGE-1-6 | firmware | 固件端暂未接入云生图结果预览/绘制，为下一步 | Open |
 
 **关键动作**
 - `backends_registry/commercial/platforms.py` 注册 `xmiaom_gpt_image_2`，超时最终设为 180s。
-- `routes/images.py` 优先 xmiaom，失败回退 Pollinations.ai。
+- `routes/images.py` 优先 xmiaom，失败回退 Pollinations.ai；优化错误日志，记录 `status_code` 与异常消息。
+- 新增 `routes/device_app_images.py`：`/device/v1/app/images/generations`，使用设备 App 鉴权，供小程序调用。
+- 小程序 `manager-mobile`：
+  - 新增 `api/images/images.ts` 封装设备 App 图像接口。
+  - `pages/create/create.vue` 新增「云生图」Tab：输入 prompt → 云端生成 → 预览/保存相册/发送到设备绘制。
+  - 补充 `i18n/zh_CN.ts` 与 `i18n/en.ts` 相关键。
 - VPS `/opt/lima-router/.env` 追加 `XMIAOM_API_KEY`，systemd 服务进程环境确认已加载。
 - `scripts/deploy_unified_restart.py` 修复 readiness 检查：
   - `_health_ready()` 改用轻量 `/health/ready`（原 `/health` 会遍历后端断路器，响应可达 26s，拖住单 worker）。
@@ -27,10 +34,12 @@
 - VPS 本地 `POST /v1/images/generations` 真实返回 xmiaom 图片 URL（`https://ai.xmiaom.com/gpt/images/...`）。
 - 失败时正确降级到 Pollinations.ai。
 - 重新执行 `deploy_unified.py --slice core` 未触发回滚。
+- 小程序 `pnpm type-check` / `pnpm lint` clean；CI 测试 **115 passed / 0 failed**。
 
 **后续**
 - 轮换 `XMIAOM_API_KEY`。
 - 如需公网 nginx 暴露图像接口，检查 nginx 代理超时是否 ≥180s。
+- 固件端（U8 LCD 预览 + U1 绘制）接入云生图链路。
 
 ## 2026-06-27 P4-8：全链路追踪接入生产路径
 
