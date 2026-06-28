@@ -23,6 +23,8 @@ tmp/
 reference/*
 !reference/grbl_fix/
 !reference/grbl_fix/**
+reference/grbl_fix/__pycache__/
+scripts/lima_guardian_hidden.vbs
 
 # === 第三方项目 ===
 llama.cpp/
