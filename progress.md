@@ -1,5 +1,30 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 云生图端到端闭环：复用图片 URL + U8 路径 cmd 容错
+
+- **目标**：让小程序「云生图」结果发送到设备绘制时不再重复生成图片，并修复 U8 解析无 `cmd` 字段路径段的问题。
+- **关键结果**：
+  - LiMa `device_gateway/device_draw_handler.py`：
+    - `handle_device_draw()` 新增可选 `image_url` 参数。
+    - 若调用方提供有效 `image_url`（如小程序生成的 Pollinations URL），跳过 DashScope 图片生成，直接走 SVG 转换与优化。
+    - 无效/非 http(s) URL 自动回落原有生成流程。
+  - LiMa `device_gateway/task_draw_params.py`：
+    - `build_draw_generated_params()` 从 `params` 读取 `imageUrl`/`image_url` 并传入 `handle_device_draw()`。
+    - 最终将 `image_url` 带回 `run_params`，下发给 U8 作为预览/溯源字段。
+  - 固件 `esp32S_XYZ/firmware/u8-xiaozhi/main/boards/zhuguang/dlc-motor-control-p1-ai/motion_executor.cc`：
+    - `RunPathWithTaskId()` 对缺失 `"cmd"` 的段默认：第一段 `M`，其余 `L`。
+    - 保留显式 `cmd` 与 `x/y` 校验，仅放宽 cmd 缺省行为。
+  - 提交并推送：
+    - `esp32S_XYZ@17b8e57` fix(u8): default missing path segment cmd to M/L
+    - `QWEN3.0@c564497f` feat(draw): use provided cloud image URL in draw_generated; sync u8 path cmd fix
+- **验证**：
+  - LiMa 本地 pytest：`tests/test_device_draw_handler.py`、`tests/test_device_draw_handler_part2.py`、`tests/test_device_draw_integration.py`、`tests/test_device_app_tasks.py` → **27 passed / 0 failed**。
+  - LiMa `ruff check` / `check_code_size.py` / `pyright` 对修改文件 clean。
+  - 固件 CI：`python -m pytest tests/ci -q` → **115 passed / 0 failed**。
+  - `python scripts/deploy_unified.py --slice core` 重新部署成功，VPS Health OK。
+- **待跟进**：
+  - U8 端 LCD 预览云生图需要该板子初始化真实 display 并下载 `image_url`，当前 zhuguang 板未启用 display，硬件就绪后可按 `mcp_server.cc:244` 的 `preview_image` 模式接入。
+
 ## 2026-06-28 图片生成接口增加进程内 LRU 缓存与 Prometheus 指标
 
 - **目标**：降低图片生成成本与延迟，并为缓存效果提供可观测性。
