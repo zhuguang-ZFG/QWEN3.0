@@ -1,5 +1,37 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 生图降级链路再扩容：接入百度/腾讯/字节（6 → 9 后端）
+
+- **目标**：覆盖所有已配 key 的中国厂商生图能力，降级链路从 6 后端扩到 9 后端。
+- **重大发现（修正最初判断）**：原计划「百度/腾讯/字节是自有格式需独立 client」**是错的**。查证三份官方文档后确认：**三家全部提供 OpenAI 兼容的 images 端点**，返回标准 `data[].url`/`data[].b64_json`，与 Agnes/SiliconFlow/智谱完全同构，全部可复用 `_generate_via_openai_image_endpoint`，零成本接入。
+
+| 供应商 | OpenAI 兼容生图端点 | 模型 | key |
+|--------|---------------------|------|-----|
+| 百度千帆 | `qianfan.baidubce.com/v2/images/generations` | stable-diffusion-xl | BAIDU_API_KEY ✅ |
+| 腾讯混元 | `api.cloudai.tencent.com/v1/images/generations` | hunyuan-image | TENCENT_API_KEY ✅ |
+| 字节豆包 | `ark.cn-beijing.volces.com/api/v3/images/generations` | doubao-seedream-3-0-t2i-250928 | VOLCENGINE_API_KEY ✅ |
+
+- **改动（2 文件改 + 1 测试）**：
+  - **`routes/images_backends.py`**：新增 `_generate_via_baidu`/`_generate_via_tencent`/`_generate_via_volcengine`，全部复用 `_generate_via_openai_image_endpoint`（和 Agnes/SiliconFlow/智谱同构）。
+  - **`routes/images.py`**：降级链路 6 → **9 后端**。**表驱动重构**——抽出 `_IMAGE_BACKENDS` 表（`(label, generator)` 元组列表），`_generate_image_urls` 改为循环遍历表，pollinations 仍作最终兜底。重构后 `_generate_image_urls` 仅 37 行（原 if 链 53 行超 50 行约束），未来加后端只需在表里加一行。
+  - **`tests/test_routes_images_fallback.py`**：新增 3 个降级测试（baidu/tencent/volcengine），复用现有 `_FakeClient`/`_FakeResponse` fixtures。
+- **关键陷阱（已处理）**：
+  - 字节豆包 `model` 参数实际需接入点 ID（ep-xxx）或特定模型 ID——代码用模型名占位，部署时若需 ep-xxx 可通过环境变量覆盖（不阻塞本轮）。
+  - 腾讯生图域名是 `api.cloudai.tencent.com`（非 chat 用的 `api.hunyuan.cloud.tencent.com`）。
+  - 代码大小约束：表驱动重构避免函数超 50 行（原 if 链会超限）。
+- **未改**：`_generate_via_openai_image_endpoint`/`_extract_openai_image_url`（已处理 url/b64_json）、写字机降级（经 image_fallback 自动享受 9 后端）、模型名脱敏（对外仍「LiMa 生图」）。
+- **门禁验证（`.venv310` Python 3.10.20）**：
+  - 聚焦测试（4 文件）：**30 passed**（含 6 个降级测试）
+  - ruff：All checks passed
+  - `check_code_size.py`：PASS（表驱动后函数均 ≤50 行）
+  - **全量 pytest：4025 passed, 3 skipped, 0 failed**（194s）—— 无回归
+- **降级全景（9 后端，覆盖所有已配 key 的中国厂商 + 免费国际厂商）**：
+  ```
+  xmiaom → agnes → siliconflow → zhipu → baidu → tencent → volcengine → freetheai → pollinations
+  ```
+  写字机生图经 image_fallback 自动享受全部 9 后端。
+- **真实生图未验证**：本轮只做代码接入+降级逻辑+单测，9 后端实际效果需部署后真实 key 冒烟。
+
 ## 2026-06-28 生图后端大扩容：接入 Agnes/SiliconFlow/智谱 + 写字机五后端降级
 
 - **目标**：(1) 接入已配 key 却闲置的生图供应商，扩展降级链路；(2) 消除写字机生图单点风险（DashScope 挂了全停）。
@@ -10175,3 +10207,28 @@ uff check 2 文件 clean；导入无循环依赖。
   - `pyright tests/conftest.py scripts/run_pre_commit_check.py` → 0 errors。
   - 全量 `pytest -m "not network"`（跳过长期外部测试）→ **4012 passed / 3 skipped / 2 deselected / 0 failed**。
 - **提交**：`590bf9ff` 已推送至 `origin/main`。
+
+## 2026-06-29 生图多后端降级 + 品牌脱敏落地
+
+- **目标**：消除写字机/绘图机生图链路的单点故障，并对外隐藏真实后端模型名。
+- **关键结果**：
+  - **多后端降级链路**：
+    - `routes/images_backends.py` 新增 Agnes、SiliconFlow、智谱 CogView、百度千帆、腾讯混元、字节豆包 6 个 OpenAI 兼容图像后端。
+    - `routes/images.py` 重构 `_generate_image_urls` 为后端链：xmiaom → agnes → siliconflow → zhipu → baidu → tencent → volcengine → freetheai → pollinations。
+    - `device_gateway/image_fallback.py` 新增 `generate_via_image_fallback`，在 DashScope 生图失败时复用 `/v1/images` 多后端链路。
+    - `device_gateway/device_draw_handler.py` 集成该降级，避免 DashScope 单点导致绘图机无法获取图片。
+  - **品牌脱敏**：
+    - `device_gateway/draw_responses.py` 新增 `PUBLIC_DRAW_MODEL_LABEL = "LiMa 生图"`，所有 draw 响应统一返回品牌标签。
+    - `routes/device_app_images.py` 响应 `backend` 字段统一返回 `"LiMa 生图"`，真实后端名仅用于内部监控。
+  - **配置**：`.env.example` 新增 `AGNES_AI_API_KEY` 说明。
+  - **代码体积**：将 `_generate_image_urls` 的级联 `if` 重构为循环遍历 `_IMAGE_BACKENDS`，函数回到 50 行以内。
+- **测试**：
+  - 新增 `tests/test_device_draw_handler_fallback.py`（3 用例）覆盖 DashScope 失败降级、全部失败保留原错误、成功不触发降级。
+  - 新增 `tests/test_routes_images_fallback.py`（6 用例）覆盖 agnes/siliconflow/zhipu/baidu/tencent/volcengine 逐级 fallback。
+  - 扩展 `tests/test_device_draw_handler.py` 与 `tests/test_device_app_images.py` 的脱敏断言。
+  - 全量 `pytest -m "not network"` → **4015 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `ruff check .` / `pyright` 目标文件 / `check_code_size.py` → clean / PASS。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core` 成功（844 文件上传，服务重启）。
+  - `https://chat.donglicao.com/health` 200，`health/ready` 200。
+- **提交**：`eebcb3ac` 已推送至 `origin/main`。
