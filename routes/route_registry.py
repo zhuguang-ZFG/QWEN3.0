@@ -159,6 +159,7 @@ _DEVICE_APP_ROUTERS = [
     ("routes.device_app_assets", "device_app_assets"),
     ("routes.device_app_chat", "device_app_chat"),
     ("routes.device_app_discovery", "device_app_discovery"),
+    ("routes.device_app_images", "device_app_images"),
     ("routes.device_app_members", "device_app_members"),
     ("routes.device_app_misc", "device_app_misc"),
     ("routes.device_app_notifications", "device_app_notifications"),

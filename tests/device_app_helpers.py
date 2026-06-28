@@ -72,6 +72,7 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     from routes.device_app_auth import router as auth_router
     from routes.device_app_chat import router as chat_router
     from routes.device_app_discovery import router as discovery_router
+    from routes.device_app_images import router as images_router
     from routes.device_app_members import router as member_router
     from routes.device_app_misc import router as misc_router
     from routes.device_app_notifications import router as notifications_router
@@ -89,6 +90,7 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     app.include_router(auth_router)
     app.include_router(chat_router)
     app.include_router(discovery_router)
+    app.include_router(images_router)
     app.include_router(member_router)
     app.include_router(misc_router)
     app.include_router(notifications_router)

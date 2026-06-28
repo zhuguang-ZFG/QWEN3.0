@@ -100,7 +100,13 @@ async def _generate_via_xmiaom(prompt: str, size: str) -> list[dict]:
     try:
         data = await call_raw_async(IMAGE_BACKEND, payload)
     except Exception as exc:
-        _log.warning("xmiaom image generation failed: %s", type(exc).__name__)
+        status = getattr(exc, "status_code", None)
+        _log.warning(
+            "xmiaom image generation failed: %s (status=%s, msg=%s)",
+            type(exc).__name__,
+            status,
+            str(exc)[:200],
+        )
         return []
 
     content = ""
@@ -112,7 +118,10 @@ async def _generate_via_xmiaom(prompt: str, size: str) -> list[dict]:
 
     image_url = _extract_image_url(content)
     if not image_url:
-        _log.warning("xmiaom image generation returned no image URL in content")
+        _log.warning(
+            "xmiaom image generation returned no image URL in content: %s",
+            content[:200],
+        )
         return []
 
     duration_ms = int((time.time() - started) * 1000)
@@ -122,6 +131,23 @@ async def _generate_via_xmiaom(prompt: str, size: str) -> list[dict]:
 async def _generate_via_pollinations(prompt: str, size: str, n: int) -> list[dict]:
     """Fallback image URL generator using Pollinations.ai."""
     return [{"url": build_pollinations_url(prompt, size)} for _ in range(n)]
+
+
+async def _generate_image_urls(prompt: str, size: str, n: int) -> tuple[list[dict], str, int]:
+    """Generate image URLs and return (items, backend, duration_ms)."""
+    enhanced_prompt = prompt
+    if re.search(r"[\u4e00-\u9fff]", enhanced_prompt):
+        enhanced_prompt = f"high quality, detailed, {enhanced_prompt}"
+
+    data_items = await _generate_via_xmiaom(enhanced_prompt, size)
+    backend = IMAGE_BACKEND
+    duration_ms = data_items[0].get("latency_ms", 0) if data_items else 0
+    if not data_items:
+        data_items = await _generate_via_pollinations(enhanced_prompt, size, n)
+        backend = "pollinations"
+        duration_ms = 0
+
+    return data_items, backend, duration_ms
 
 
 @router.post("/v1/images/generations", dependencies=[Depends(require_private_api_key)])
@@ -138,21 +164,11 @@ async def image_generations(request: Request):
     if not prompt:
         raise HTTPException(status_code=400, detail="Empty prompt")
 
-    if re.search(r"[\u4e00-\u9fff]", prompt):
-        prompt = f"high quality, detailed, {prompt}"
-
     client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else ""
     )
 
-    data_items = await _generate_via_xmiaom(prompt, img_req.size)
-    backend = IMAGE_BACKEND
-    duration_ms = data_items[0].get("latency_ms", 0) if data_items else 0
-    if not data_items:
-        data_items = await _generate_via_pollinations(prompt, img_req.size, img_req.n)
-        backend = "pollinations"
-        duration_ms = 0
-
+    data_items, backend, duration_ms = await _generate_image_urls(prompt, img_req.size, img_req.n)
     urls = [{"url": item["url"]} for item in data_items]
     _record_image_request(img_req.prompt[:80], backend, duration_ms, client_ip)
 
