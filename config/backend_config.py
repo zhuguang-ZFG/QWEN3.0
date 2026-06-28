@@ -84,6 +84,7 @@ OPENGATEWAY_API_KEY: str = os.environ.get("OPENGATEWAY_API_KEY", "")
 LONGCAT_API_KEY: str = os.environ.get("LONGCAT_API_KEY", "")
 MIMO_TTS_KEY: str = os.environ.get("MIMO_TTS_KEY", "")
 MIMO_V2_PRO_KEY: str = os.environ.get("MIMO_V2_PRO_KEY", "")
+XMIAOM_API_KEY: str = os.environ.get("XMIAOM_API_KEY", "")
 
 # Coding-pool specific keys
 XFYUN_API_KEY: str = os.environ.get("XFYUN_API_KEY", "")

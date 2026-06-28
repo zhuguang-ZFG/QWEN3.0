@@ -110,7 +110,7 @@ class SemanticCache:
 
     def clear(self) -> None:
         """Remove all cached entries."""
-        self.store.prune(0)
+        self.store.clear()
 
 
 def get_cache() -> SemanticCache | None:

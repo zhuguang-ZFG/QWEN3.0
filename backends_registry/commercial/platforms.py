@@ -8,6 +8,7 @@ from config.backend_config import (
     FREEMODEL_API_KEY,
     SAMBANOVA_API_KEY,
     TOGETHER_API_KEY,
+    XMIAOM_API_KEY,
 )
 
 BACKENDS = {
@@ -205,5 +206,12 @@ BACKENDS = {
         "fmt": "openai",
         "timeout": 20,
         "caps": ["tool_calls"],
+    },
+    "xmiaom_gpt_image_2": {
+        "url": "https://ai.xmiaom.com/v1/chat/completions",
+        "key": XMIAOM_API_KEY,
+        "model": "gpt-image-2",
+        "fmt": "openai",
+        "timeout": 60,
     },
 }

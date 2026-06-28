@@ -117,6 +117,12 @@ class SemanticCacheStore:
                 (entry_id,),
             )
 
+    def clear(self) -> int:
+        """Delete all cached entries. Returns deleted count."""
+        with self._connection() as conn:
+            cur = conn.execute("DELETE FROM semantic_cache")
+            return cur.rowcount
+
     def prune(self, max_age_seconds: float) -> int:
         """Delete entries older than ``max_age_seconds``. Returns deleted count."""
         cutoff = time.time() - max_age_seconds
