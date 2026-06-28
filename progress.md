@@ -1,5 +1,16 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 小程序 WebSocket 鉴权 bug 修复 + getBearerToken 去重
+
+- **目标**：修复上一里程碑发现的遗留 bug——`useDeviceWebSocket.ts` 把整个 token 存储 JSON 字符串当 Bearer，导致 WS 鉴权必然失败。
+- **根因**：token 存储格式为 `JSON.stringify({token, expireAt})`，但 `useDeviceWebSocket.ts:71` 直接 `uni.getStorageSync('token')` 取原始字符串用作 `Bearer` 和 `op:'auth'` 消息，发送的是 `Bearer {"token":"xxx","expireAt":...}` 而非 `Bearer xxx`。
+- **改动（顺带消除 DRY 违规）**：
+  1. `utils/index.ts`：新增共享 `getBearerToken()`（解析 JSON 取 `.token`，解析失败回退原始字符串，空存储返回 null）。
+  2. `useDeviceWebSocket.ts`：改用 `getBearerToken()`（修复 bug，影响 HTTP 握手头 + WS 消息层鉴权两处）。
+  3. `chat.ts` + `useUpload.ts`：删除各自重复的本地 `getBearerToken()`（两份相同拷贝），改 import 共享版。
+- **验证**：`vue-tsc --noEmit` 通过（EXIT=0）；`eslint` 4 文件通过（EXIT=0）；一致性检查确认 `getBearerToken` 定义仅剩 1 处，3 个调用点全部引用共享版。
+- **效果**：WS 设备详情页鉴权现在能正确发送 token；消除 3 处重复的 token 解析逻辑，未来 token 存储格式变更只需改 1 处。
+
 ## 2026-06-28 小程序 token 静默刷新：修复 alova 刷新拦截器架构性失效
 
 - **目标**：实现小程序端 JWT token 过期后的静默刷新，避免用户在 24h token 过期后被强制登出。
@@ -13,10 +24,11 @@
   3. `http/request/alova.ts`：改用 `refreshTokenOnSuccess`（isExpired 检 `response.statusCode===401`），handler 调 `v2RefreshToken()`；alova 源码确认 handler 成功后自动重发原始请求（`refreshTokenIfExpired` line 81 `await method`），对业务层透明。
   4. **防无限循环**：alova 内置无循环保护（刷新后重试仍 401 会死循环），加 `REFRESH_COOLDOWN_MS=30s` 冷却期，冷却期内重复触发视为刷新无效，回退登录页。
 - **验证**：
-  - `vue-tsc --noEmit` 通过（EXIT_CODE=0，无类型错误）。
-  - `eslint` 通过（修复了 `perfectionist/sort-imports` 导入顺序）。
+  - 本地：`vue-tsc --noEmit` 通过（EXIT_CODE=0，无类型错误）；`eslint` 通过（修复了 `perfectionist/sort-imports` 导入顺序）。
   - 一致性：确认 `chat.ts`/`useUpload.ts` 读 `parsed.token` 兼容新格式；旧 `expire` 字段无其他引用。
-- **遗留发现（未修复，超出本任务范围）**：`useDeviceWebSocket.ts:71` 直接读 `getStorageSync('token')` 原始字符串当 Bearer，但存储的是 JSON（`{token,expireAt}`），是 **预存 bug**（旧 `{token,expire}` 格式时同样错误），建议后续修为 `JSON.parse(...).token`。
+  - CI：esp32S_XYZ run `28326758413` 全绿，Manager mobile tests 1m0s ✓（含 type-check + 微信小程序 build）。
+- **提交**：esp32S_XYZ `0b7987a` `feat(manager-mobile): implement silent token refresh for mini-program`；父仓库子模块指针 `dad09ce2`。
+- **遗留发现（已在上一条目中修复）**：`useDeviceWebSocket.ts:71` 直接读 `getStorageSync('token')` 原始字符串当 Bearer 的预存 bug 已用共享 `getBearerToken()` 修复。
 - **未验证项（待真机）**：微信 code 一次性、uni.login 在小程序后台静默刷新的可行性需真机验证；token 临近过期主动刷新（而非等 401）可后续用 `refreshTokenOnSuccess.isExpired` 加本地 `expireAt` 预判实现。
 
 ## 2026-06-28 U1 固件瘦身：删除 26 个冗余机器配置 + OTA 通道调研

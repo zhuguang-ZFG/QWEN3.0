@@ -19,6 +19,12 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-28）小程序 WebSocket 鉴权 bug 修复 + getBearerToken 去重
+
+- **目标**：修复 `useDeviceWebSocket.ts` 把整个 token 存储 JSON 当 Bearer 的预存 bug。
+- **改动**：`utils/index.ts` 新增共享 `getBearerToken()`；`useDeviceWebSocket.ts`/`chat.ts`/`useUpload.ts` 统一引用（消除 3 处重复）。
+- **验证**：`vue-tsc` + `eslint` 通过。
+
 ### 最近完成（2026-06-28）小程序 token 静默刷新：修复 alova 刷新拦截器架构性失效
 
 - **目标**：实现小程序端 JWT token 过期后的静默刷新，避免 24h 过期强制登出。
@@ -27,7 +33,9 @@
   - `login/index.vue`：存绝对过期时间戳 `expireAt`（原存相对 `expire:86400` 是 bug）。
   - `api/v2/index.ts`：新增 `v2RefreshToken()`；`v2Login` 加 `authRole:'login'` 防 `onAuthRequired` 死锁。
   - `alova.ts`：改用 `refreshTokenOnSuccess`（isExpired 检 `statusCode===401`）；加 30s 冷却防无限刷新循环。
-- **验证**：`vue-tsc --noEmit` 通过；`eslint` 通过；一致性检查通过。
+- **验证**：
+  - 本地：`vue-tsc --noEmit` 通过；`eslint` 通过；一致性检查通过。
+  - CI：esp32S_XYZ run `28326758413` 全绿，Manager mobile tests 1m0s ✓（含 type-check + 微信小程序 build）。
 - **遗留**：`useDeviceWebSocket.ts:71` 读 token 存储当 Bearer 是预存 bug（建议后续修）。
 
 ### 最近完成（2026-06-28）Pollinations.ai 增强、中文 prompt 翻译与图片模块拆分
