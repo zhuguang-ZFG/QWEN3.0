@@ -23,7 +23,9 @@
 
 - **目标**：修复 `useDeviceWebSocket.ts` 把整个 token 存储 JSON 当 Bearer 的预存 bug。
 - **改动**：`utils/index.ts` 新增共享 `getBearerToken()`；`useDeviceWebSocket.ts`/`chat.ts`/`useUpload.ts` 统一引用（消除 3 处重复）。
-- **验证**：`vue-tsc` + `eslint` 通过。
+- **验证**：
+  - 本地：`vue-tsc` + `eslint` 通过。
+  - CI：esp32S_XYZ run `28327010932` 全绿，Manager mobile tests 1m0s ✓。
 
 ### 最近完成（2026-06-28）小程序 token 静默刷新：修复 alova 刷新拦截器架构性失效
 

@@ -8,7 +8,10 @@
   1. `utils/index.ts`：新增共享 `getBearerToken()`（解析 JSON 取 `.token`，解析失败回退原始字符串，空存储返回 null）。
   2. `useDeviceWebSocket.ts`：改用 `getBearerToken()`（修复 bug，影响 HTTP 握手头 + WS 消息层鉴权两处）。
   3. `chat.ts` + `useUpload.ts`：删除各自重复的本地 `getBearerToken()`（两份相同拷贝），改 import 共享版。
-- **验证**：`vue-tsc --noEmit` 通过（EXIT=0）；`eslint` 4 文件通过（EXIT=0）；一致性检查确认 `getBearerToken` 定义仅剩 1 处，3 个调用点全部引用共享版。
+- **验证**：
+  - `vue-tsc --noEmit` 通过（EXIT=0）；`eslint` 4 文件通过（EXIT=0）；一致性检查确认 `getBearerToken` 定义仅剩 1 处，3 个调用点全部引用共享版。
+  - CI：esp32S_XYZ run `28327010932` 全绿，Manager mobile tests 1m0s ✓。
+- **提交**：esp32S_XYZ `9b031a9` `fix(manager-mobile): WS auth used full token JSON as Bearer`；父仓库子模块指针 `01329779`。
 - **效果**：WS 设备详情页鉴权现在能正确发送 token；消除 3 处重复的 token 解析逻辑，未来 token 存储格式变更只需改 1 处。
 
 ## 2026-06-28 小程序 token 静默刷新：修复 alova 刷新拦截器架构性失效
