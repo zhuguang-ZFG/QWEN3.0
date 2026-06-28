@@ -1,5 +1,27 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 LiMa CRITICAL 批次修复：AUDIT-1 C1/C2/C3
+
+- **目标**：修复 LiMa 后端系统深度审查（AUDIT-1）标记的 3 个 CRITICAL 问题。
+- **C1 设备 WS fallback 默认关闭**：
+  - `device_gateway/auth.py`：`_WS_REGISTERED_DEVICE_FALLBACK` 默认 `"0"`。
+  - `.env.example`：显式声明开关并加安全注释。
+  - `tests/test_device_gateway_auth.py`：新增默认关闭 / 显式开启测试。
+- **C2 asyncio 后台 task 强引用**：
+  - `server_lifespan.py`：WARM phases 用 `_warm_phase_tasks` 集合持有 task 并加 done 回调。
+  - `device_gateway/mqtt_client.py`：保存 MQTT loop task，stop 时 cancel 并清理。
+  - `device_gateway/mqtt_handlers.py`：从 `mqtt_client.py` 拆分 handlers，控制文件大小 ≤300 行。
+- **C3 SSE 编排路径异常捕获**：
+  - `routes/chat_stream.py`：`_stream_orchestration` 包 try/except，异常时回退到兜底消息。
+  - `tests/test_routes_chat_stream.py`：新增异常回退测试（TDD：先见失败再修复通过）。
+- **验证**：
+  - `ruff check` clean；`ruff format` clean；`pyright` 目标文件 0 errors；`scripts/check_code_size.py` PASS。
+  - 全量 pytest：**4064 passed, 3 skipped, 2 deselected, 0 failed**。
+  - VPS 部署 `scripts/deploy_unified.py --slice core` 成功；`https://chat.donglicao.com/health` 200。
+- **影响**：
+  - U8 固件若未在 VPS `.env` 显式开启 `LIMA_WS_REGISTERED_DEVICE_FALLBACK=1`，空 token 设备将无法接入 `/device/v1/ws`。这是安全默认，需运维 opt-in。
+- **提交**：待提交。
+
 ## 2026-06-28 小程序 WebSocket 鉴权 bug 修复 + getBearerToken 去重
 
 - **目标**：修复上一里程碑发现的遗留 bug——`useDeviceWebSocket.ts` 把整个 token 存储 JSON 字符串当 Bearer，导致 WS 鉴权必然失败。

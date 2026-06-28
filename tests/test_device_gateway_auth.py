@@ -97,3 +97,31 @@ def test_constant_time_comparison(monkeypatch):
     monkeypatch.setattr(DEVICE, "tokens", "dev1=secret123")
     assert validate_device_token("dev1", "secret123") is True
     assert validate_device_token("dev1", "SECRET123") is False
+
+
+def test_registered_device_fallback_default_off(monkeypatch):
+    """By default the registered-device fallback is disabled for security."""
+    from device_gateway import auth
+
+    monkeypatch.setattr(auth, "_WS_REGISTERED_DEVICE_FALLBACK", False)
+    original = auth._is_registered_device
+    auth._is_registered_device = lambda _did: True
+    try:
+        assert validate_device_token("registered-device-id", "") is False
+    finally:
+        auth._is_registered_device = original
+
+
+def test_registered_device_fallback_enabled(monkeypatch):
+    """When explicitly enabled, empty token + registered device is allowed."""
+    from device_gateway import auth
+
+    monkeypatch.setattr(auth, "_WS_REGISTERED_DEVICE_FALLBACK", True)
+    original = auth._is_registered_device
+    auth._is_registered_device = lambda _did: True
+    try:
+        assert validate_device_token("registered-device-id", "") is True
+        auth._is_registered_device = lambda _did: False
+        assert validate_device_token("unknown-device-id", "") is False
+    finally:
+        auth._is_registered_device = original

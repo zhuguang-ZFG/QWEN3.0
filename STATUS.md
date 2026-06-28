@@ -8,16 +8,26 @@
 > Updated: 2026-06-28
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4005+ passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
-> 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-draw/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
+> Tests: 全量 **4064 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml`、`.github/workflows/deploy.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-docs-site.yml` 已配置；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（ secrets 待配置）。
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
-> 安全审计：`findings.md` 2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
+> 安全审计：`findings.md` AUDIT-1 CRITICAL 批次已修复部署（C1/C2/C3）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-28）LiMa CRITICAL 批次修复：AUDIT-1 C1/C2/C3
+
+- **目标**：修复 LiMa 后端系统深度审查（AUDIT-1）标记的 3 个 CRITICAL 问题。
+- **改动**：
+  - C1：`device_gateway/auth.py` fallback 默认关闭；`.env.example` 显式声明；新增单元测试。
+  - C2：`server_lifespan.py` WARM phases task 强引用；`device_gateway/mqtt_client.py` MQTT loop task 保存并 cancel；拆分 `mqtt_handlers.py` 保持文件 ≤300 行。
+  - C3：`routes/chat_stream.py` `_stream_orchestration` 加 try/except 异常回退；新增回归测试。
+- **验证**：ruff/format/pyright/check_code_size 全通过；全量 pytest 4064 passed；VPS 部署成功，`https://chat.donglicao.com/health` 200。
+- **注意**：U8 固件若未在 VPS `.env` 显式开启 `LIMA_WS_REGISTERED_DEVICE_FALLBACK=1`，空 token 设备将无法接入 `/device/v1/ws`，需运维 opt-in。
 
 ### 最近完成（2026-06-28）小程序 WebSocket 鉴权 bug 修复 + getBearerToken 去重
 

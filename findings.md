@@ -3,6 +3,152 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-28 AUDIT-1：LiMa 后端系统深度审查（安全/健壮性/配置）
+
+> 多维度审查：安全与鉴权、错误处理与健壮性、路由与配置一致性。基础质量门禁全部通过（`check_code_size.py` PASS、`ruff check` clean），但发现多个生产运行时风险。所有 CRITICAL/HIGH 发现均经亲自核验。
+
+### 审计范围
+- 公网入口：`https://chat.donglicao.com`（FastAPI + SQLite）
+- 排除：tests/、reference/、.venv310/、node_modules/、esp32S_XYZ/、.worktrees/
+
+### CRITICAL（立即修复）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-1-C1 | `device_gateway/auth.py:16,57-67` + `routes/device_gateway.py:190-192` | 设备鉴权 fallback 默认开启（`LIMA_WS_REGISTERED_DEVICE_FALLBACK="1"`），空 token + 已知 device_id 即可冒充任意注册设备连入 `/device/v1/ws`。`/ws` 路由无 HTTP 层鉴权依赖，device_id 由客户端 hello 消息提供（用户可控）。该开关未在 `.env.example` 声明 | ✓ 已读源码确认 |
+| AUDIT-1-C2 | `server_lifespan.py:73` + `device_gateway/mqtt_client.py:176` | `asyncio.create_task(...)` 返回值被丢弃，GC 可中途回收后台任务（预热探测循环、MQTT 消息循环），导致静默取消无日志。MQTT 设备会静默断连且不重连 | ✓ 已读源码确认 |
+| AUDIT-1-C3 | `routes/chat_stream.py:156-163` | `_stream_orchestration` 的 `_authoritative_route(...)` 调用未包 try/except（兄弟函数 `_resolve_authoritative_content:134` 有），路由引擎抛异常时整个 SSE 响应崩溃，用户看到中断的流且无降级消息 | ✓ 已读源码确认 |
+
+### HIGH（本周修复）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-1-H1 | `semantic_cache/store.py:45-48,51,60,91` | SQLite 连接泄漏：`with self._connection() as conn` 只管理事务不关闭连接，每次缓存操作泄漏一个文件描述符。项目已有 `config/sqlite_pool.py` 却未使用 | ✓ 已读源码确认 |
+| AUDIT-1-H2 | `http_response.py:21` + `http_errors.py:50-57` | `data["choices"][0]["message"]` 直接索引，后端返回合法 JSON 但非 chat 格式（如 `{"error":{...}}`）时 KeyError；经 `_extract_code` 子串匹配（`"401" in text`）误判状态码，可能把配额消息误判为鉴权失败 → `key_pool` **永久拉黑健康 API key** | ✓ 已读调用链确认 |
+| AUDIT-1-H3 | `http_stream.py:121-125,201,292` | 流式质量指标恒为 0：`_record_stream_success` 的 `total_text` 两处调用都传 `None`，`record_response_quality(backend, 0)` 恒 0，污染质量路由评分 | ✓ 已读源码确认 |
+| AUDIT-1-H4 | `http_stream.py:202,293` | `except (BackendError, httpx.HTTPStatusError, Exception)` 过宽，客户端断连（GeneratorExit/ClientDisconnect）被误记为后端故障，惩罚健康后端健康分/冷却 | ✓ 已读源码确认 |
+| AUDIT-1-H5 | `route_scorer.py:139,149,158` | `except (ImportError, Exception)`（冗余，Exception 覆盖 ImportError）吞掉 reputation/weights/profile 子系统所有异常，静默回退 0.5 默认分，真实 bug 无日志，路由评分被无声扭曲 | ✓ 已读源码确认 |
+| AUDIT-1-H6 | `route_post_process.py:41` 等 14 处 | 生产路径 `except: pass` 违反 AGENTS.md 硬规则（至少需 logger.warning）。涉及 route_post_process/device_memory/user_identity/session_memory 等 | ✓ 已读源码确认 |
+
+### MEDIUM（计划修复）
+
+| ID | 文件:行号 | 发现 |
+|----|-----------|------|
+| AUDIT-1-M1 | `server.py:62-63` | CORS 中间件完全缺失（全项目零 `CORSMiddleware`）；若前后端跨域浏览器请求被拦，若靠 nginx 配 `*`+credentials 则是危险组合且不可审计 |
+| AUDIT-1-M2 | `streaming.py:74-80` | `_async_fallback_to_api` 函数体完全为空（无 yield 无调用），异步原生流式空响应无降级，而同步桥接有完整实现——不对称缺口 |
+| AUDIT-1-M3 | `key_pool.py:150-153` | API key 指纹暴露后4位（`suffix = key[-4:]`），经 admin 接口可见，部分泄漏 |
+| AUDIT-1-M4 | `server_bootstrap.py:38-44` | `last_resort_call` 兜底只 log 异常类型名，返回 `""` 让上层误判为正常空回复 |
+| AUDIT-1-M5 | `.env.example` | 变量名不一致：代码用 `MIMO_TTS_KEY`/`MIMO_V2_PRO_KEY`，`.env.example` 写 `MIMO_API_KEY`；`LIMA_WS_REGISTERED_DEVICE_FALLBACK` 未声明 |
+| AUDIT-1-M6 | `routes/request_tracking.py:57-74` | `get_ip_location` 在请求路径内做同步阻塞 HTTP 调用（0.5s 超时），阻塞事件循环 |
+
+### 已确认安全的维度（无需修复）
+
+- **SQL 注入**：动态 SQL 值均走 `?` 参数化，列名经 `ALLOWED_DEVICE_COLUMNS` 白名单校验 ✓
+- **SSRF**：无用户可控 URL 传入 httpx；IP 定位用严格正则校验 ✓
+- **路径穿越**：`upload.py` 的 `_safe_upload_path` 三重防护（正则+resolve+is_relative_to）✓
+- **硬编码密钥**：全项目零命中，密钥均经 `os.environ` 注入，`.env` 已 gitignore ✓
+- **JWT 严格性**：显式 `algorithms=["HS256"]`、捕获过期/无效、查 DB 校验 active ✓
+- **Admin 鉴权**：`secrets.compare_digest` 恒定时间比较，无恒真分支 ✓
+- **孤儿路由**：`facade.py`/`v3_adapters.py` 经核实为内部辅助模块（无顶层 router）✓
+
+### 修复批次建议
+1. **第一批（CRITICAL）**：C1 关闭 fallback 默认值+生产硬禁用；C2 给 task 加强引用+done 回调；C3 给 `_stream_orchestration` 补 try/except
+2. **第二批（HIGH-健壮性）**：H1 sqlite 连接关闭；H2 http_response 防御性 .get()；H3 流式质量指标；H4 流式错误分类；H5 route_scorer 异常范围收窄
+3. **第三批（HIGH-规范）**：H6 批量给 except:pass 补 warning
+4. **第四批（MEDIUM）**：CORS、异步降级实现、env 一致性等
+
+### AUDIT-1 CRITICAL 批次修复完成（2026-06-28）
+
+| ID | 修复文件 | 措施 | 验证 |
+|----|----------|------|------|
+| C1 | `device_gateway/auth.py`, `.env.example` | fallback 默认关闭；env 显式声明 | 新增单元测试：默认拒绝、开启后放行、未注册拒绝 |
+| C2 | `server_lifespan.py`, `device_gateway/mqtt_client.py` | WARM phases / MQTT loop task 强引用，stop 时 cancel | 全量 pytest pass；部署启动日志显示各 phase ok |
+| C3 | `routes/chat_stream.py` | `_stream_orchestration` 加 try/except，异常时回退兜底消息 | 新增测试：异常后仍流式输出 fallback |
+
+- 质量门禁：`ruff check` clean；`ruff format` clean；`pyright` 目标文件 0 errors；`scripts/check_code_size.py` PASS。
+- 部署：`scripts/deploy_unified.py --slice core` 成功，`https://chat.donglicao.com/health` 返回 200。
+- 状态：**AUDIT-1 CRITICAL 批次已关闭**。
+
+## 2026-06-28 AUDIT-2：Web 端深度审查（chat-web 管理面板 + donglicao-site-v2 官网）
+
+> 两个 Web 前端项目的安全与质量审查。chat-web 为原生 HTML/JS 管理控制台（公网），donglicao-site-v2 为 Next.js 16 静态导出官网。关键发现均经亲自核验源码确认。
+
+### AUDIT-2-A：chat-web 管理面板（原生 HTML/JS）
+
+**总体评价**：维护质量较高——聊天消息渲染（chat-messages.js）和 playground 正确使用 `textContent`/`escapeHtml`，所有页面配有 CSP，CDN 脚本带 SRI，无硬编码密钥。但存在若干真实可利用的安全隐患。
+
+#### HIGH 级别（经核验）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-2-W1 | `js/handwriting.js:144-153` | **存储型 XSS**：`viewBox="0 0 ${item.width} ${item.height}"` 将后端返回的 width/height 未转义直接插入 SVG 属性，整体经 innerHTML 注入。若后端值含 `" onload="alert(document.cookie)` 即触发。同段 `svg_path`（:147）正确用了 escapeHtml，但宽高被遗漏。**修复极简：parseInt** | ✓ 已读源码确认 |
+| AUDIT-2-W2 | `js/devices.js:165` + `voice-call.html:228-231,262` | **WebSocket token 暴露在 URL**：因浏览器 WebSocket 不能设自定义头，把完整 Bearer token 放进 `?authorization=Bearer ${token}` query string。会被 nginx access log、Referer 头记录。一旦泄露可长期冒充用户 | ✓ 已读源码确认 |
+| AUDIT-2-W3 | `js/auth.js:6,18-28` + 多处 | **token 存 localStorage**：`lima_token`、`lima-api-key` 等全存 localStorage（非 httpOnly），任意 XSS 可窃取并长期持有管理员凭证 | ✓ 已读源码确认 |
+
+#### MEDIUM 级别
+
+| ID | 文件:行号 | 发现 |
+|----|-----------|------|
+| AUDIT-2-W4 | 所有 HTML CSP（index.html:9 等） | CSP 全局允许 `'unsafe-inline'`（`script-src 'self' 'unsafe-inline'`），使事件处理器注入可直接利用，配合 W1 形成完整 XSS 链 |
+| AUDIT-2-W5 | login.html/register.html/voice-call.html | **这三个页面完全没有 CSP**（仅 6 个页面有），登录页（含凭证输入）与语音页（含麦克风授权）是 XSS 最薄弱入口 |
+| AUDIT-2-W6 | `js/keys.js:125-128` | **登出不彻底**：`removeToken()` 只删 `lima_token`，`lima-api-key`/`lima_sessions`（完整聊天历史）/`lima_playground_history` 等全部残留，共享设备隐私泄露 |
+| AUDIT-2-W7 | `chat-messages.js:198-210` | KaTeX 数学渲染对模型输出内容解析 `$...$`，LaTeX 命令（`\href` 等）是已知攻击面，建议启用 `strict:true`/`trust:false` |
+
+#### LOW 级别
+- `index.html:127,222` 等外链 `window.open`/`target=_blank` 缺 `rel="noopener noreferrer"`（反向 tabnabbing）
+- `register.html:76-78` 前端校验过弱（邮箱无格式校验，密码仅 6 位）
+- `js/asset-upload.js:18-24` SVG 以明文读取上传，无内容净化，依赖消费方防 XSS
+- `js/keys.js:113` 删除 key 时 id 未 `encodeURIComponent`（路径参数注入）
+- 多处 `showToast(err.message)` 直接回显后端错误原文（信息泄露）
+
+#### 已确认安全的维度（无需修复）
+- **无硬编码密钥**：全仓 grep 无 `sk-...`、`LIMA_ADMIN_TOKEN` ✓
+- **聊天消息渲染安全**：`formatContent` 先 escapeHtml 再 markdown，图片 URL 有域名白名单+协议校验 ✓
+- **Playground 渲染安全**：响应追加用 textContent，历史项用 createElement+textContent ✓
+- **SRI 完备**：所有 CDN 脚本/样式带 integrity+crossorigin ✓
+- **无 token 暴露在 URL 参数**（除 WS 鉴权外）✓
+
+### AUDIT-2-B：donglicao-site-v2 官网（Next.js 16 + React 19）
+
+**总体评价**：静态导出（`output:"export"`），代码质量高，无分析/追踪脚本，无 eval/dangerouslySetInnerHTML 滥用（仅用于受控 JSON-LD）。但存在合规性与配置问题。
+
+#### HIGH 级别（经核验）
+
+| ID | 文件:行号 | 发现 | 核验 |
+|----|-----------|------|------|
+| AUDIT-2-S1 | `app/components/Footer.tsx:164` | **ICP 备案号为占位符** `京ICP备XXXXXXXX号-1`，公网上线即违规（工信部可要求整改/关站）。额外：主体是"深圳市动力巢科技"但备案前缀为"京ICP"（北京），省份不一致 | ✓ 已读源码确认 |
+| AUDIT-2-S2 | `next.config.ts:1-12` | **完全缺失安全响应头**：无 CSP/X-Frame-Options/X-Content-Type-Options。注意：静态导出下 Next 的 headers() 本身不生效，必须在 nginx/CDN 层配置 | ✓ 已读源码确认 |
+
+#### MEDIUM 级别
+
+| ID | 文件:行号 | 发现 |
+|----|-----------|------|
+| AUDIT-2-S3 | `app/login/page.tsx:39` + `app/register/page.tsx:34` | token 存 localStorage（与 chat-web W3 同类问题），配合无 CSP 风险叠加 |
+| AUDIT-2-S4 | `app/components/Hero.tsx:31` | **死链**：`href="/developer/"` 但 `app/developer/` 下只有 `playground/`，点击命中 not-found。应改为 `/developer/playground/` |
+| AUDIT-2-S5 | 十几处（login/register/playground/Developer/Hero/Navbar） | **所有 URL 硬编码**，零个 `NEXT_PUBLIC_`/`process.env`，切换环境需改源码 |
+| AUDIT-2-S6 | `app/developer/playground/page.tsx:54,133-139` | Playground 允许用户自定义任意 Base URL，携带 `Authorization: Bearer` 发出，存在凭据外泄面 |
+
+#### LOW 级别
+- 多处外链仅 `rel="noopener"` 缺 `noreferrer`
+- 错误信息直接回显 `err.message`/后端 JSON（信息泄露）
+- `app/layout.tsx:58-59` preconnect 指向自身域名（无效）
+- 隐私政策未提及 localStorage 存储的 token（与实际数据处理不一致）
+
+#### 已确认安全的维度
+- **无分析/追踪脚本**：无 GA/百度统计/Sentry，与隐私政策声明一致 ✓
+- **无 eval/innerHTML/document.write** ✓
+- **dangerouslySetInnerHTML 仅用于受控 JSON-LD**（JSON.stringify 后端对象）✓
+- **blog/[slug] 路由内容来自受控 posts.ts**，无注入面 ✓
+- **法律页中英文条款对齐**，均有 force-static ✓
+- **构建产物未 git 跟踪**（.gitignore 忽略 /dist/.next/.env）✓
+
+### Web 端修复优先级建议
+1. **立即（HIGH，公网暴露）**：W1 handwriting XSS 一行 parseInt 修复；W2 WS token 改 ticket 机制；S1 ICP 占位符替换/核对省份
+2. **本周（HIGH/MEDIUM）**：W5 三页面补 CSP；W6 登出彻底清理；S2 nginx 补安全头；S4 死链修复
+3. **计划（MEDIUM/LOW）**：W3/S3 token 存储迁移 httpOnly cookie；W4 CSP 移除 unsafe-inline；S5 URL 环境变量化
+
+
+
 ## 2026-06-28 U8-1：小智 U8 固件与 LiMa OTA/WS 对接 3 个 CRITICAL 阻塞已修复并部署
 
 | ID | Area | Finding | Status |

@@ -170,3 +170,15 @@ async def test_stream_speculative_fallback_when_no_chunks(mock_auth, mock_senten
     chunks = [c async for c in cs._stream_speculative("q", [], "cid", sys_prompt_preview="", ide_source="", prefer="")]
     assert chunks == ["fallback chunk"]
     mock_auth.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch.object(cs, "_authoritative_route")
+@patch.object(cs, "stream_sentences")
+async def test_stream_orchestration_fallback_on_authoritative_error(mock_sentences, mock_auth):
+    mock_auth.side_effect = RuntimeError("boom")
+    mock_sentences.return_value = _async_gen(["fallback"])
+    chunks = [c async for c in cs._stream_orchestration("q", [], "cid", sys_prompt_preview="", ide_source="")]
+    assert chunks == ["fallback"]
+    mock_auth.assert_called_once()
+    mock_sentences.assert_called_once()

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from typing import Set
+
+import logging
 
 from server_lifespan_phases import (
     CRITICAL_PHASES,
@@ -29,6 +32,18 @@ from server_lifespan_state import (
 )
 
 __all__ = ["lifespan", "STARTUP_PHASES", "get_startup_state"]
+
+_log = logging.getLogger(__name__)
+
+# Strong references to warm-phase background tasks so they are not GC'd mid-flight.
+# Tasks remove themselves via done callback when they complete.
+_warm_phase_tasks: Set[asyncio.Task] = set()
+
+
+def _track_background_task(task: asyncio.Task) -> None:
+    """Hold a strong reference to a background task until it completes."""
+    _warm_phase_tasks.add(task)
+    task.add_done_callback(_warm_phase_tasks.discard)
 
 
 async def _run_warm_phase(name: str, coro) -> None:
@@ -70,7 +85,9 @@ async def _run_startup_phases() -> None:
     set_startup_status("warming")
 
     for name, phase_fn in WARM_PHASES:
-        asyncio.create_task(_run_warm_phase(name, phase_fn()))
+        _track_background_task(asyncio.create_task(_run_warm_phase(name, phase_fn())))
+
+    _log.info("[LIFESPAN] started %d warm-phase background tasks", len(_warm_phase_tasks))
 
 
 async def _run_shutdown_phases() -> None:

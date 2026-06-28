@@ -153,14 +153,18 @@ async def _stream_orchestration(
     ide_source: str,
 ) -> AsyncGenerator[str, None]:
     """Stream orchestration route result as sentence chunks."""
-    result = await _authoritative_route(
-        query,
-        messages,
-        sys_prompt_preview=sys_prompt_preview,
-        ide_source=ide_source,
-        use_orchestration=True,
-    )
-    answer = result.get("answer", "") if isinstance(result, dict) else str(result)
+    try:
+        result = await _authoritative_route(
+            query,
+            messages,
+            sys_prompt_preview=sys_prompt_preview,
+            ide_source=ide_source,
+            use_orchestration=True,
+        )
+        answer = result.get("answer", "") if isinstance(result, dict) else str(result)
+    except Exception as exc:
+        _log.warning("stream orchestration authoritative route failed: %s", type(exc).__name__, exc_info=True)
+        answer = ""
     content = _ensure_content(answer, messages)
     async for chunk in stream_sentences(chat_id, content):
         yield chunk

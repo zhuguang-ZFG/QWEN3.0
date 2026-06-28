@@ -12,8 +12,9 @@ _log = logging.getLogger(__name__)
 
 # 固件直连兜底开关：固件 NVS 无 token（全代码无写入点），连 /ws 时 token 永远空。
 # 开启后，token 为空但 device_id 是已注册设备（v2_device 表存在）时放行。
-# 默认开启，因为固件目前无法获取 token（详见 docs/XIAOZHI_INTEGRATION_GAP_CN.md TASK-6）。
-_WS_REGISTERED_DEVICE_FALLBACK = os.environ.get("LIMA_WS_REGISTERED_DEVICE_FALLBACK", "1") == "1"
+# 安全默认关闭：知道 device_id 即可空 token 连入 /device/v1/ws 是 CRITICAL 风险。
+# U8 真机需运维在 .env 中显式设置 LIMA_WS_REGISTERED_DEVICE_FALLBACK=1。
+_WS_REGISTERED_DEVICE_FALLBACK = os.environ.get("LIMA_WS_REGISTERED_DEVICE_FALLBACK", "0") == "1"
 
 
 def configured_device_tokens() -> dict[str, str]:
