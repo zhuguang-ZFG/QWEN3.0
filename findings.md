@@ -28,7 +28,7 @@
 
 **风险/后续**
 - TASK-6 当前为方案 b（LiMa 兜底，零固件改），安全性弱于 token；后续可选方案 a（OTA 下发 token + 固件写入 NVS）升级。
-- 子模块 `esp32S_XYZ` 工作区 dirty（含大量非相关 boards 删除），本次未提交指针，待固件侧清理后单独提交。
+- 子模块 `esp32S_XYZ` 已提交并推送到 `f690660`：U8 board 瘦身至 zhuguang-only、OTA_URL 指向 LiMa、U1 response 上限 8KB、application 看门狗注册、CI native test/markdown link 修复；父仓库指针更新到 `f343ada0`。CI run 28325660979 全绿（含 U8 firmware build 6m45s）。
 
 ## 2026-06-28 IMAGE-5：Pollinations.ai 参数增强与中文 prompt 翻译
 

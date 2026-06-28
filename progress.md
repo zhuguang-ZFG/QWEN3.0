@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 U8 固件核心质量加固：ReadU1Response 上限 + watchdog 注册
+
+- **目标**：瘦身后的 U8 核心代码深度质量检查，修复发现的 2 个 MEDIUM 健壮性问题。
+- **#1 ReadU1Response 内存耗尽风险（已修复）**：`u1_protocol_client.cc:ReadU1Response` 的 `response.append` 无上限，U1 故障狂发数据时字符串无限增长耗尽堆。修复：`u1_protocol_client.h:26` 加 `kU1MaxResponseBytes = 8KB` 常量，`ReadU1Response` 循环内超限 break + ESP_LOGW 警告。
+- **#2 watchdog 配置但未注册（已修复）**：`sdkconfig:24 CONFIG_ESP_TASK_WDT_TIMEOUT_S=10` 配了看门狗，但无任务 `esp_task_wdt_add`，卡死不触发重启。修复：`application.cc:15` include esp_task_wdt.h；主循环（line 189）`esp_task_wdt_add(NULL)`，每轮（line 193）`esp_task_wdt_reset()`；将 `portMAX_DELAY` 改为 5s 有限超时（kMainLoopWaitTicks，< 看门狗 10s），确保无事件时也能喂狗。
+- **质量评估结论**：U8 核心代码整体质量良好（cJSON 内存管理规范、OTA 安全 A 级、u1_protocol_client 有 mutex/超时/边界检查、motion_executor 有工作区校验）。U1 基于 Grbl 成熟框架，安全机制完备。仅这 2 个 MEDIUM 是真改进点。
+- **验证**：
+  - esp32S_XYZ CI 全绿通过（run 28325660979）：U8 firmware build 6m45s、U1 firmware build、native tests、schema、GPIO、Python unit、fake integration、manager mobile、markdown link check 全部 ✓
+  - 静态测试 **115 passed, 169 subtests**（无回归）；代码一致性核对通过。
+- **提交**：esp32S_XYZ `f690660` `fix(u8): CI native test + markdown links + U1 hardening`；父仓库子模块指针 `f343ada0`。
+- **需用户验证**：真机确认 watchdog 无误触发。
+
 ## 2026-06-28 U8 固件 board 瘦身：删除 100 个冗余 board（减 70%）
 
 - **目标**：U8 固件代码瘦身，只适配唯一编译目标 `zhuguang/dlc-motor-control-p1-ai`（你的产品 board），删除 xiaozhi-esp32 上游的 100 个冗余 board 适配。
@@ -13,11 +25,12 @@
   - U8 main 总行数：**120,438 → 35,623（-70.4%，删 84,815 行）**
   - boards：91,827 → 8,315 行
 - **验证**：
-  - esp32S_XYZ CI 静态测试：**115 passed, 169 subtests passed**（瘦身前后一致）
+  - esp32S_XYZ CI 全绿通过（run 28325660979）：U8 firmware build 6m45s、U1 build、native tests、schema、GPIO、Python unit、fake integration、manager mobile、markdown link check 全部 ✓
+  - 静态测试：**115 passed, 169 subtests passed**（瘦身前后一致）
   - 悬空引用检查：你的 board 的 11 个 include 全部解析到 common/ 或 zhuguang/
   - U8↔U1 核心代码完整保留
-- **需用户验证**：本仓库无 ESP-IDF 工具链，需本地 `idf.py build` 编译验证 + 真机烧录。瘦身是纯删除，风险集中在共享依赖完整性——已通过 include 追溯确认。
-- **产出**：esp32S_XYZ/STATUS.md 已更新瘦身条目（含指标表）；改动未 git commit。
+- **提交**：esp32S_XYZ `e6bc465` `feat(u8): slim boards to zhuguang-only and point OTA to LiMa`；父仓库子模块指针 `f343ada0`。
+- **需用户验证**：真机烧录。
 
 ## 2026-06-28 小智整合 CRITICAL 修补执行（TASK-1/2/6 全部落地）
 
