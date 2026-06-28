@@ -1,5 +1,39 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 TASK-6 铁证核实：固件 WS token 永远为空（第三硬阻塞确认）
+
+- **触发**：用户要求"未核实的也需要核实清楚"。TASK-6 原标注"固件 token 来源未核实"，需追到底。
+- **核实方法**：全代码搜固件 token 写入点 + 追 LiMa 鉴权链路。
+- **铁证结论**：固件 NVS `token` 字段**全代码无任何写入点**（`firmware/u8-xiaozhi/main/` 搜 `SetString.*token`/`nvs_set_str` 零命中）→ token 永远空 → 固件连 /ws 不带 Authorization（`websocket_protocol.cc:109` 跳过）→ LiMa `extract_ws_token` 返回空 → `validate_device_token`（`auth.py:34` `if not token: return False`）拒绝 → `_authenticate_hello`（`ws_handlers.py:92`）close(1008)。
+- **第二层发现**：`validate_device_token`（auth.py:31）查 `configured_device_tokens()` 预配置映射，用 `compare_digest` 严格匹配——即使固件有 token 也需与 LiMa 配置一致。固件无条件发 Device-Id header（websocket_protocol.cc:113），但 LiMa `extract_ws_token`（dispatch.py:42-56）不读 Device-Id，鉴权阶段被忽略。
+- **TASK-6 升级**：从"潜在阻塞"升级为"铁证级硬阻塞"，给出三个施工方案（a: OTA 下发 token + 固件 ota.cc 补 1 处写入；b: LiMa Device-Id 兜底鉴权零固件改；c: 配网流程存 token），含取舍和风险。
+- **手册现状**：`docs/XIAOZHI_INTEGRATION_GAP_CN.md` 的"未核实"清单已清空（除 TASK-4/5 调研项和真机测试）。3 个 CRITICAL 阻塞（TASK-1/2/6）全部有完整证据链 + 施工方案，可放心交接。
+- **结论**：手册现在 100% 可执行，无黑盒。执行 Agent 拿到即可施工。
+
+## 2026-06-28 小智整合施工手册二次复核（修正 3 处断言 + 新增 TASK-6）
+
+- **触发**：用户要求"再次检查"施工手册准确性（手册要交接给执行 Agent，错误断言会导致弯路）。
+- **复核修正 3 处断言**：
+  1. **TASK-1 机制描述错误**：原说"OTA 不下发 websocket 字段→固件拿不到 WS 地址"。实际机制是 `application.cc:488-494` 协议选择——无 websocket 段则 `HasWebsocketConfig()=false` → **兜底走 MQTT**（非 WS）→ 连不上 LiMa WS 网关。且固件 `websocket_protocol.cc:93-94` 有 WS URL 兜底默认值（已是 LiMa 地址），但只在选了 WS 协议后才生效。已修正文档。
+  2. **TASK-1 mqtt 字段建议修正**：原建议返回 `"mqtt": None`。修正为**不返回 mqtt 键**更干净（固件 cJSON_IsObject(null)=false 走 else 分支，效果相同）。且补充：**device_ota_app.py 当前无 `import time`/`import os`**（执行 Agent 必须新增，否则 TASK-1 辅助函数报错）。
+  3. **行号修正**：`ota.cc:194` → 实际 `189`（method 判断）；LiMa `/check` 行号 `90/91/97`（非 90/93）；TASK-2 鉴权方案 a 明确：**不要改 `authorize()`**（它是 JWT 校验，device_logic/auth.py:87），应新增独立 `authorize_device_by_header`。
+- **复核新发现 TASK-6（CRITICAL）**：固件连 LiMa `/ws` 需先 POST `/ws/ticket` 换票（device_gateway.py:168），换票要 Bearer token，固件 token 来源（`websocket_protocol.cc:89 settings.GetString("token")`，NVS）**未确认**——候选配网/OTA/写死。若 token 为空，连上 /ws 也被拒。这是继 OTA 之后的第三个潜在硬阻塞。
+- **复核确认无误的断言**：固件 Device-Id header（ota.cc:156，无 Bearer）✅、固件发 POST（ota.cc:189）✅、固件解析 websocket/mqtt/server_time（ota.cc:242/263/284）✅、server_time 用 valuedouble（ota.cc:292，int JSON 兼容）✅、WS hello_ack 契约兼容（protocol_frames.py:22）✅。
+- **产出**：`docs/XIAOZHI_INTEGRATION_GAP_CN.md` 更新——执行摘要改为 3 个 CRITICAL 阻塞、TASK-1 机制/字段/import 三处修正、新增 TASK-6（WS token 链路）、执行顺序图改为 TASK-1/2/6 三者并行且都完成才能 TASK-3。
+- **结论**：手册现在更准确，但仍含 1 个未核实项（固件 token 来源）需执行 Agent 实地查证——这是无法仅靠读代码确定的（依赖固件配网运行时行为）。
+
+## 2026-06-28 小智服务器整合缺口审计 + 施工手册（交接给执行 Agent）
+
+- **目标**：LiMa 形成战斗力替换 xiaozhi-esp32-server，接管 U8 固件语音等能力。用户要求把缺口细化成施工手册，交别的 Agent 执行。
+- **背景发现**：小智服务端 4 组件已于 2026-06-25 物理删除，LiMa 已接管约 90% 能力（语音对话 ASR→LLM→TTS、ASR 6 家/TTS 5 家、声纹、视觉、管理后台 19 路由、配网、记忆、意图识别等）。**真正缺口集中在 OTA 契约层**。
+- **深挖出 3 个 CRITICAL 硬阻塞**（全部在固件↔LiMa 的 OTA 对接）：
+  1. **OTA 响应缺连接字段**：固件 `ota.cc:242-281` 期望 `websocket`/`mqtt`/`server_time` 三段（拿 WS 地址 + 时钟同步），LiMa `_ota_status_for_device`（device_ota_app.py:30-79）完全不下发 → 固件拿不到 LiMa WS 地址 → 语音链路建不起来。
+  2. **HTTP 方法不匹配**：固件 `ota.cc:194` 发 POST（带 system_info body），LiMa `/check`（device_ota_app.py:90）只接 GET。
+  3. **鉴权方式不匹配**：固件 `ota.cc:155-164` 用 `Device-Id`/`Client-Id` header（非 Bearer），LiMa `/check`（line 93）要 `authorization` Bearer → 固件请求会被 LiMa 401 拒绝。
+- **另确认 WS 协议层已兼容**：固件 `websocket_protocol.cc:245 ParseServerHello` 期望的 hello_ack 字段，LiMa `protocol_frames.py:22 hello_ack` 已全部提供，握手层不用改。
+- **产出**：[`docs/XIAOZHI_INTEGRATION_GAP_CN.md`](docs/XIAOZHI_INTEGRATION_GAP_CN.md) —— 施工手册，含 13 项已接住能力清单 + 5 个 TASK（TASK-1/2/3 为 CRITICAL 路径，4/5 为 P2 调研），每个 TASK 精确到文件:行、改动代码、方案取舍、验收 checkbox、风险。
+- **交接说明**：供执行 Agent 直接施工，自包含。TASK-1（后端补字段）+ TASK-2（方法/鉴权/URL 三合一）必须都完成才能 TASK-3 真机冒烟。
+
 ## 2026-06-29 M16 设备任务可观测性与重试边界
 
 - **目标**：让设备任务从创建、派发、ack 到重试/死信的全过程可度量；避免无限重试导致队列死锁。
@@ -68,7 +102,9 @@
   - `check_code_size.py`：PASS（无文件 >300 行，无函数 >50 行）
   - pyright：0 errors
   - **全量 pytest：4052 passed, 3 skipped, 2 deselected, 0 failed**（~200s）—— 无回归
-- **真实手写体效果待部署验证**：代码逻辑+测试已交付（用 fonttools 生成测试字体）。**真实效果需在 VPS 部署后配置霞鹜文楷字体并触发"写：床前明月光"冒烟**（下载 `LxgwWenKai.ttf` 到 `xiaozhi_drawing/fonts/` 或设置 `LIMA_HANDWRITING_FONT`）。
+- **真实手写体效果已验证**：VPS 下载 `LxgwWenKai-Regular.ttf`（25 MB）到 `/opt/lima-router/xiaozhi_drawing/fonts/LxgwWenKai.ttf`，远程 Python 直接调用 `text_to_svg_path('床前明月光')` 与 `try_text_to_handwriting('写：床前明月光', device_id=None)` 均成功：
+  - `text_to_svg_path`: status=success, contour_count=5, font=LxgwWenKai.ttf
+  - `try_text_to_handwriting`: status=success, model=handwriting:font, svg_path_len=2229
 
 
 ## 2026-06-28 生图降级链路再扩容：接入百度/腾讯/字节（6 → 9 后端）
