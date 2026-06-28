@@ -97,6 +97,25 @@
 - **后续**：
   - 7 天后在京东云节点运行上述命令，根据输出调整 `deploy/prometheus/startup_alerts.yml` 中的阈值。
 
+## 2026-06-28 检查小程序端与固件端问题
+
+- **范围**：`esp32S_XYZ` 子仓库（固件 `u1-grbl`/`u8-xiaozhi`，小程序 `server/xiaozhi-esp32-server/main/manager-mobile`）。
+- **固件端**：
+  - 发现 `firmware/u1-grbl/Grbl_Esp32/src/MotionControl.cpp` 与 `Settings.cpp` 有两处未提交修复。
+  - `Settings.cpp`：`notCycleOrHold()` 原逻辑 `state == Cycle && state == Hold` 恒假，导致 Cycle/Hold 时仍可执行设置列表命令；修复为 `||`。
+  - `MotionControl.cpp`：`"Found"` 探测日志在探测运动设置前打印，失败/超时时也会误报；已移到 `sys.probe_succeeded = true` 之后。
+  - 已在子模块提交 `25051d1` 并 push，主仓库子模块引用已更新到 `334bf5b5`。
+- **小程序端**：
+  - `pnpm run type-check` 最初因 `node_modules` 缺失 `z-paging` 失败；运行 `pnpm install` 后 type-check 与 lint 均通过。
+  - `pnpm install` 的 `prepare` 脚本在 `manager-mobile` 下误创建了嵌套 `.git`，已删除，避免 esp32S_XYZ 将其识别为子模块。
+  - `python -m pytest tests/` 有 **17 个失败**，集中在 `tests/ci/test_manager_mobile_device_info.py` 与 `tests/ci/test_manager_mobile_privacy_permissions.py`。
+  - 根因：小程序页面已重构为 `pages/v2/device-detail/`，测试仍在查找旧变量名（如 `latestDeviceInfoTaskId`），而 v2 实现已改用 `v2GetDeviceInfo`/`deviceInfo` 等。这是页面重构后的测试漂移，需要按 v2 实现更新测试期望。
+- **已验证**：
+  - esp32S_XYZ：`tools/validate_schemas.py` → 64 passed；`tools/check_gpio.py` → OK。
+  - manager-mobile：`type-check` 通过；`lint` 通过。
+- **待处理**：
+  - 修复 17 个 manager-mobile CI 测试以匹配 v2 页面实现。
+
 ## 2026-06-28 完成 G6：基于 Prometheus 启动指标配置启动慢与未就绪告警
 
 - **目标**：让 G5 导出的启动阶段指标真正产生告警价值，在启动慢、长时间未就绪或启动错误时及时通知。
