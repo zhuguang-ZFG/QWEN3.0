@@ -97,7 +97,7 @@ def test_pre_commit_quick_commands_use_tracked_gates():
     commands = pre_commit_check.quick_commands(["server.py", "types.pyi"], python="py")
 
     assert commands == [
-        ["py", "scripts/run_ruff_check.py"],
+        ["py", "scripts/run_ruff_check.py", "server.py", "types.pyi"],
         ["git", "diff", "--cached", "--check"],
         ["py", "-m", "py_compile", "server.py"],
     ]

@@ -1,5 +1,20 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-27 修复 manager-mobile CI 测试漂移并同步 esp32S_XYZ 子模块
+
+- **目标**：让 `esp32S_XYZ` 子模块的 manager-mobile CI 测试与 v2 设备详情/设备列表实现保持一致，并同步父仓库子模块指针。
+- **关键结果**：
+  - 在 `esp32S_XYZ` 更新 `tests/ci/test_manager_mobile_device_info.py` 与 `tests/ci/test_manager_mobile_privacy_permissions.py`：API 路径改用 `${appPrefix}`、i18n 键替换硬编码中文、补充 v2 composable/component 引用、移除已退役的 v1 变量断言。
+  - 推送 `esp32S_XYZ` 提交 `fcc7215`。
+  - 在 `QWEN3.0` 父仓库同步 `esp32S_XYZ` 子模块指针：`25051d1 → fcc7215`。
+  - 修复父仓库完整 pytest 中暴露的测试漂移：
+    - `tests/test_ci_gates.py::test_pre_commit_quick_commands_use_tracked_gates`：更新期望命令，使 `run_ruff_check.py` 接收变更路径。
+    - `tests/test_deploy_unified.py::_RestartSsh`：对 `/health/ready` 返回 `{"status":"ready"}`，匹配真实就绪探针语义。
+- **验证**：
+  - `esp32S_XYZ` 子模块 CI 测试：`pytest tests/ci/test_manager_mobile_device_info.py tests/ci/test_manager_mobile_privacy_permissions.py` 全绿。
+  - `QWEN3.0` 完整 pytest：`3991 passed / 0 failed`。
+  - `ruff check` 对修改的 Python 文件 clean。
+
 ## 2026-06-28 完成 G7：在京东云监控栈真实挂载启动告警规则并验证
 
 - **目标**：让 G6 的启动告警规则真正接入 LiMa 生产监控栈（京东云 `117.72.118.95`），并提供 Alertmanager 路由示例。
