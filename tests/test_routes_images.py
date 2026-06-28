@@ -101,3 +101,63 @@ def test_build_pollinations_url():
     assert "width=512" in url
     assert "height=256" in url
     assert "nologo=true" in url
+
+
+def test_cache_returns_same_result_without_second_backend_call(client, monkeypatch):
+    img._image_cache.clear()
+    call_count = {"n": 0}
+
+    async def fake_xmiaom(prompt: str, size: str):
+        call_count["n"] += 1
+        return [{"url": "https://example.com/cached.png", "backend": "xmiaom"}]
+
+    monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
+
+    response1 = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "cache me", "size": "1024x1024"},
+    )
+    assert response1.status_code == 200
+    url1 = response1.json()["data"][0]["url"]
+
+    response2 = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "cache me", "size": "1024x1024"},
+    )
+    assert response2.status_code == 200
+    url2 = response2.json()["data"][0]["url"]
+
+    assert url1 == url2
+    assert call_count["n"] == 1
+
+
+def test_skip_cache_header_bypasses_cache(client, monkeypatch):
+    img._image_cache.clear()
+    call_count = {"n": 0}
+
+    async def fake_xmiaom(prompt: str, size: str):
+        call_count["n"] += 1
+        return [{"url": f"https://example.com/img{call_count['n']}.png", "backend": "xmiaom"}]
+
+    monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
+
+    response1 = client.post(
+        "/v1/images/generations",
+        headers={**_auth_header(), "X-Skip-Cache": "1"},
+        json={"prompt": "skip me", "size": "1024x1024"},
+    )
+    assert response1.status_code == 200
+    url1 = response1.json()["data"][0]["url"]
+
+    response2 = client.post(
+        "/v1/images/generations",
+        headers={**_auth_header(), "X-Skip-Cache": "1"},
+        json={"prompt": "skip me", "size": "1024x1024"},
+    )
+    assert response2.status_code == 200
+    url2 = response2.json()["data"][0]["url"]
+
+    assert url1 != url2
+    assert call_count["n"] == 2

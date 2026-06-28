@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from device_logic.auth import authorize
 from device_logic.http import err, read_body
-from routes.images import ImageRequest, _generate_image_urls
+from routes.images import ImageRequest, _generate_image_urls, _should_skip_cache
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-images"])
 
@@ -34,7 +34,9 @@ async def device_app_image_generations(request: Request, authorization: str = He
     if not prompt:
         return err(400, "empty prompt", 400)
 
-    data_items, backend, _duration_ms = await _generate_image_urls(prompt, img_req.size, img_req.n)
+    data_items, backend, _duration_ms = await _generate_image_urls(
+        prompt, img_req.size, img_req.n, skip_cache=_should_skip_cache(request)
+    )
     urls = [{"url": item["url"]} for item in data_items]
 
     return JSONResponse(

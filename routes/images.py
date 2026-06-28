@@ -6,6 +6,7 @@ Fallback: Pollinations.ai URL builder (kept for zero-config environments and cha
 
 import json
 import logging
+import os
 import re
 import time
 import urllib.parse
@@ -21,6 +22,43 @@ router = APIRouter()
 _log = logging.getLogger(__name__)
 
 IMAGE_BACKEND = "xmiaom_gpt_image_2"
+
+_IMAGE_CACHE_TTL_SECONDS = int(os.environ.get("LIMA_IMAGE_CACHE_TTL_SECONDS", "3600"))
+_IMAGE_CACHE_MAX_ENTRIES = int(os.environ.get("LIMA_IMAGE_CACHE_MAX_ENTRIES", "100"))
+_image_cache: dict[tuple[str, str], tuple[list[dict], str, float]] = {}
+
+
+def _image_cache_key(prompt: str, size: str) -> tuple[str, str]:
+    return (prompt.strip().lower(), size)
+
+
+def _get_cached_image(prompt: str, size: str) -> tuple[list[dict], str] | None:
+    if _IMAGE_CACHE_TTL_SECONDS <= 0:
+        return None
+    key = _image_cache_key(prompt, size)
+    entry = _image_cache.get(key)
+    if not entry:
+        return None
+    data_items, backend, cached_at = entry
+    if time.time() - cached_at > _IMAGE_CACHE_TTL_SECONDS:
+        _image_cache.pop(key, None)
+        return None
+    _log.debug("image cache hit for key=%s", key)
+    return data_items, backend
+
+
+def _set_cached_image(prompt: str, size: str, data_items: list[dict], backend: str) -> None:
+    if _IMAGE_CACHE_TTL_SECONDS <= 0:
+        return
+    key = _image_cache_key(prompt, size)
+    if len(_image_cache) >= _IMAGE_CACHE_MAX_ENTRIES:
+        oldest = min(_image_cache, key=lambda k: _image_cache[k][2])
+        _image_cache.pop(oldest, None)
+    _image_cache[key] = (data_items, backend, time.time())
+
+
+def _should_skip_cache(request: Request) -> bool:
+    return request.headers.get("x-skip-cache", "").strip().lower() in ("1", "true", "yes")
 
 
 class ImageRequest(BaseModel):
@@ -133,11 +171,22 @@ async def _generate_via_pollinations(prompt: str, size: str, n: int) -> list[dic
     return [{"url": build_pollinations_url(prompt, size)} for _ in range(n)]
 
 
-async def _generate_image_urls(prompt: str, size: str, n: int) -> tuple[list[dict], str, int]:
-    """Generate image URLs and return (items, backend, duration_ms)."""
+async def _generate_image_urls(
+    prompt: str, size: str, n: int, *, skip_cache: bool = False
+) -> tuple[list[dict], str, int]:
+    """Generate image URLs and return (items, backend, duration_ms).
+
+    Caches successful results by (prompt, size) to avoid redundant API calls.
+    """
     enhanced_prompt = prompt
     if re.search(r"[\u4e00-\u9fff]", enhanced_prompt):
         enhanced_prompt = f"high quality, detailed, {enhanced_prompt}"
+
+    if not skip_cache:
+        cached = _get_cached_image(enhanced_prompt, size)
+        if cached is not None:
+            data_items, backend = cached
+            return data_items, backend, 0
 
     data_items = await _generate_via_xmiaom(enhanced_prompt, size)
     backend = IMAGE_BACKEND
@@ -146,6 +195,9 @@ async def _generate_image_urls(prompt: str, size: str, n: int) -> tuple[list[dic
         data_items = await _generate_via_pollinations(enhanced_prompt, size, n)
         backend = "pollinations"
         duration_ms = 0
+
+    if data_items:
+        _set_cached_image(enhanced_prompt, size, data_items, backend)
 
     return data_items, backend, duration_ms
 
@@ -168,7 +220,9 @@ async def image_generations(request: Request):
         request.client.host if request.client else ""
     )
 
-    data_items, backend, duration_ms = await _generate_image_urls(prompt, img_req.size, img_req.n)
+    data_items, backend, duration_ms = await _generate_image_urls(
+        prompt, img_req.size, img_req.n, skip_cache=_should_skip_cache(request)
+    )
     urls = [{"url": item["url"]} for item in data_items]
     _record_image_request(img_req.prompt[:80], backend, duration_ms, client_ip)
 
