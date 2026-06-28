@@ -8,7 +8,7 @@
 | ID | Area | Finding | Status |
 |----|------|---------|--------|
 | IMAGE-1-1 | backend | xmiaom gpt-image-2 生成耗时波动大（45s–130s） | Documented |
-| IMAGE-1-2 | deploy | `scripts/deploy_unified.py` readiness 检查对慢启动偏激进，触发误回滚 | Documented |
+| IMAGE-1-2 | deploy | `scripts/deploy_unified.py` readiness 检查对慢启动偏激进，触发误回滚 | Closed |
 | IMAGE-1-3 | security | `XMIAOM_API_KEY` 在 SSH 诊断命令中暴露，需轮换 | Open |
 | IMAGE-1-4 | ops | systemd `EnvironmentFile` 变量不显示在 `systemctl show --property=Environment`，需以 `/proc/<pid>/environ` 为准 | Documented |
 
@@ -16,12 +16,17 @@
 - `backends_registry/commercial/platforms.py` 注册 `xmiaom_gpt_image_2`，超时最终设为 180s。
 - `routes/images.py` 优先 xmiaom，失败回退 Pollinations.ai。
 - VPS `/opt/lima-router/.env` 追加 `XMIAOM_API_KEY`，systemd 服务进程环境确认已加载。
-- 手动 scp + `systemctl restart lima-router` 完成部署（绕过自动回滚）。
+- `scripts/deploy_unified_restart.py` 修复 readiness 检查：
+  - `_health_ready()` 改用轻量 `/health/ready`（原 `/health` 会遍历后端断路器，响应可达 26s，拖住单 worker）。
+  - `_ready_ready()` curl 超时从 10s 放宽到 30s。
+  - 更新 `tests/test_deploy_unified.py` mock 以包含 `startup_status`。
+- `python scripts/deploy_unified.py --slice core` 重新部署成功，Health OK。
 
 **验证**
 - 本地 pytest：`3991 passed / 3 skipped / 0 failed`。
 - VPS 本地 `POST /v1/images/generations` 真实返回 xmiaom 图片 URL（`https://ai.xmiaom.com/gpt/images/...`）。
 - 失败时正确降级到 Pollinations.ai。
+- 重新执行 `deploy_unified.py --slice core` 未触发回滚。
 
 **后续**
 - 轮换 `XMIAOM_API_KEY`。

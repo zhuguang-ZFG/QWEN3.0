@@ -14,6 +14,7 @@
     - `ce0e2cbf` 接入 xmiaom gpt-image-2 图像生成后端
     - `ca08aefd` 延长 xmiaom_gpt_image_2 超时至 120s
     - `5e47fda1` 延长 xmiaom_gpt_image_2 超时至 180s
+    - `3e2bbee1` 修复 deploy_unified readiness 检查：改用轻量 `/health/ready`、放宽 ready 超时到 30s
 - **验证**：
   - 本地完整 pytest 回归：`3991 passed / 3 skipped / 0 failed`。
   - `ruff check` / `scripts/check_code_size.py` 对修改文件 clean。
@@ -22,9 +23,9 @@
     - 首次返回 xmiaom 图片 URL（耗时约 102s）。
     - 第二次 xmiaom 返回 `BackendError`，正确降级 Pollinations.ai。
     - 第三次返回 xmiaom 图片 URL（耗时约 128s）。
+  - `python scripts/deploy_unified.py --slice core` 重新部署成功，Health OK，未再触发回滚。
 - **运维注意**：
   - xmiaom gpt-image-2 生成耗时波动大（45s–130s），后端超时设为 180s。
-  - `scripts/deploy_unified.py --slice core` 的 readiness 检查对本次重启偏激进（`/health` 响应一度达 26s），触发自动回滚；后改为手动 scp + systemctl restart 完成部署。
   - `XMIAOM_API_KEY` 曾在诊断命令中暴露，建议尽快轮换。
 
 ## 2026-06-27 固件侧 U1 GRBL 回归测试与状态守卫审计
