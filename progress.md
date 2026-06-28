@@ -1,5 +1,24 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 小程序 token 静默刷新：修复 alova 刷新拦截器架构性失效
+
+- **目标**：实现小程序端 JWT token 过期后的静默刷新，避免用户在 24h token 过期后被强制登出。
+- **关键发现（架构性 bug）**：原代码使用 `refreshTokenOnError`，但经 alova 3.3.3 源码核实：
+  - LiMa 后端 token 过期返回 **HTTP 401 状态码**（非业务 code）。
+  - uni-app 请求适配器对任何 HTTP 状态码（含 401）都走 `success` 回调，仅网络层失败才 `reject`。
+  - 因此 HTTP 401 **必然进入 `responded.onSuccess`**，而 `refreshTokenOnError` 仅在适配器 `reject` 时触发 → **对 LiMa 的 401 永远不触发**，原 handler 是死代码。
+- **方案（3 处改动 + 防循环）**：
+  1. `pages/v2/login/index.vue`：存储绝对过期时间戳 `expireAt = now + expiresIn`（原存相对 `expire: 86400` 是 bug，无法用于过期判断）。
+  2. `api/v2/index.ts`：新增 `v2RefreshToken()`（微信 code → v2Login → 更新本地 token）；`v2Login` meta 加 `authRole:'login'`，避免在 `tokenRefreshing=true` 时被 `onAuthRequired` 的 `waitForTokenRefreshed` 死锁。
+  3. `http/request/alova.ts`：改用 `refreshTokenOnSuccess`（isExpired 检 `response.statusCode===401`），handler 调 `v2RefreshToken()`；alova 源码确认 handler 成功后自动重发原始请求（`refreshTokenIfExpired` line 81 `await method`），对业务层透明。
+  4. **防无限循环**：alova 内置无循环保护（刷新后重试仍 401 会死循环），加 `REFRESH_COOLDOWN_MS=30s` 冷却期，冷却期内重复触发视为刷新无效，回退登录页。
+- **验证**：
+  - `vue-tsc --noEmit` 通过（EXIT_CODE=0，无类型错误）。
+  - `eslint` 通过（修复了 `perfectionist/sort-imports` 导入顺序）。
+  - 一致性：确认 `chat.ts`/`useUpload.ts` 读 `parsed.token` 兼容新格式；旧 `expire` 字段无其他引用。
+- **遗留发现（未修复，超出本任务范围）**：`useDeviceWebSocket.ts:71` 直接读 `getStorageSync('token')` 原始字符串当 Bearer，但存储的是 JSON（`{token,expireAt}`），是 **预存 bug**（旧 `{token,expire}` 格式时同样错误），建议后续修为 `JSON.parse(...).token`。
+- **未验证项（待真机）**：微信 code 一次性、uni.login 在小程序后台静默刷新的可行性需真机验证；token 临近过期主动刷新（而非等 401）可后续用 `refreshTokenOnSuccess.isExpired` 加本地 `expireAt` 预判实现。
+
 ## 2026-06-28 U1 固件瘦身：删除 26 个冗余机器配置 + OTA 通道调研
 
 - **目标**：U1（Grbl_Esp32）瘦身，只保留实际使用的机器配置。

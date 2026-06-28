@@ -19,6 +19,17 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-28）小程序 token 静默刷新：修复 alova 刷新拦截器架构性失效
+
+- **目标**：实现小程序端 JWT token 过期后的静默刷新，避免 24h 过期强制登出。
+- **关键发现（架构性 bug）**：原 `refreshTokenOnError` 对 LiMa 的 HTTP 401 永远不触发——LiMa 返回 HTTP 401 状态码，而 uni-app 适配器对所有 HTTP 状态码走 success 回调（仅网络失败 reject），故 401 进入 `onSuccess` 路径，`refreshTokenOnError` 是死代码。
+- **改动**：
+  - `login/index.vue`：存绝对过期时间戳 `expireAt`（原存相对 `expire:86400` 是 bug）。
+  - `api/v2/index.ts`：新增 `v2RefreshToken()`；`v2Login` 加 `authRole:'login'` 防 `onAuthRequired` 死锁。
+  - `alova.ts`：改用 `refreshTokenOnSuccess`（isExpired 检 `statusCode===401`）；加 30s 冷却防无限刷新循环。
+- **验证**：`vue-tsc --noEmit` 通过；`eslint` 通过；一致性检查通过。
+- **遗留**：`useDeviceWebSocket.ts:71` 读 token 存储当 Bearer 是预存 bug（建议后续修）。
+
 ### 最近完成（2026-06-28）Pollinations.ai 增强、中文 prompt 翻译与图片模块拆分
 
 - **目标**：让零配置的 Pollinations.ai 后端支持更多参数，并自动翻译中文 prompt；同时把图片生成代码拆成可维护的小模块。
