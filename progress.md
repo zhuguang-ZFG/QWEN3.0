@@ -1,5 +1,15 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 U1 固件瘦身：删除 26 个冗余机器配置 + OTA 通道调研
+
+- **目标**：U1（Grbl_Esp32）瘦身，只保留实际使用的机器配置。
+- **改动**：删除 `Grbl_Esp32/src/Machines/` 下 26 个冗余机器配置（3axis_v4/mpcnc/lowrider/tapster 等上游模板），保留 `dlc_motor_control_p1.h`（你的 XYYZ 写字机配置，Machine.h include 它）+ `test_drive.h`（初始测试配置）。
+- **瘦身效果**：Machines 从 3,182 行/28 文件 → 205 行/2 文件（**-93.6%，删 2,977 行**）。
+- **验证**：CI 静态测试 115 passed（无回归）；`dlc_motor_control_p1.h` 不依赖任何已删配置（引用检查通过）。
+- **OTA 通道调研（WiFi/蓝牙关闭决策）**：U1 固件升级两通道——① platformio upload 串口烧录（不依赖 WiFi）② WebUI `/updatefw` WiFi OTA（依赖 ENABLE_WIFI）。U1 是 MOTOR_MCU 通过 UART 被 U8 控制，本身不需网络。**关闭 WiFi/蓝牙（省 6K+ 行 WebUI）是产品决策，需用户确认是否需要现场 WiFi 调试/远程升级 U1，未擅自关闭**。
+- **加厚方向（待真机）**：① strapping pin 显式初始化 ② 激光安全联锁核对 ③ 运动参数实机标定。
+- **产出**：esp32S_XYZ/STATUS.md 更新；改动未 git commit。
+
 ## 2026-06-28 U8 固件核心质量加固：ReadU1Response 上限 + watchdog 注册
 
 - **目标**：瘦身后的 U8 核心代码深度质量检查，修复发现的 2 个 MEDIUM 健壮性问题。
