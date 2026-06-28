@@ -51,6 +51,8 @@ def _resolve_vendor(url: str) -> str:
         return "中国移动"
     if "right.codes" in url:
         return "Claude"
+    if "xmiaom" in url:
+        return "小喵 AI"
     if "localhost" in url or "127.0.0.1" in url:
         return "本地模型"
     return "未知"
@@ -80,6 +82,8 @@ def _resolve_capabilities(name: str, cfg_caps: list[str]) -> list[str]:
         caps.append("视觉")
     if "thinking" in name or "r1" in name:
         caps.append("深度推理")
+    if "image" in name or "gpt-image" in name:
+        caps.append("图像生成")
     if not caps:
         caps.append("纯文本")
     return caps
