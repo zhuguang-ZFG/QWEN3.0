@@ -9,6 +9,7 @@ from device_ledger.events import new_event
 from device_ledger.store import ledger_store
 from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState
+from observability import prometheus_metrics
 
 from . import store as store_mod
 
@@ -90,7 +91,10 @@ def ack_processing_task(device_id: str, task_id: str) -> bool:
 
 
 def recover_stale_processing(device_id: str, timeout_sec: float = 120.0) -> int:
-    return store_mod.task_store.recover_stale_processing(device_id, timeout_sec=timeout_sec)
+    count = store_mod.task_store.recover_stale_processing(device_id, timeout_sec=timeout_sec)
+    for _ in range(count):
+        prometheus_metrics.record_device_task_retry("unknown")
+    return count
 
 
 def pending_count(device_id: str | None = None) -> int:

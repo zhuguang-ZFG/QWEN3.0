@@ -218,6 +218,17 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
                 self._write_task_state(task_id, state)
         return removed
 
+    def abandon_processing_task(self, device_id: str, task_id: str) -> bool:
+        """Remove a task from the processing queue without re-queueing it."""
+        removed = self._remove_processing_task(device_id, task_id)
+        if removed:
+            state = self._read_task_state(task_id)
+            if state:
+                state["status"] = "dead_letter"
+                state.pop("processing_started_at", None)
+                self._write_task_state(task_id, state)
+        return removed
+
     def recover_stale_processing(self, device_id: str, timeout_sec: float = 120.0) -> int:
         """Re-queue tasks stuck in processing queue for longer than timeout_sec.
 

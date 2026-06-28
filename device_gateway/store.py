@@ -54,6 +54,8 @@ class DeviceTaskStore(Protocol):
 
     def remove_pending_task(self, device_id: str, task_id: str) -> bool: ...
 
+    def abandon_processing_task(self, device_id: str, task_id: str) -> bool: ...
+
 
 class InMemoryDeviceTaskStore(StoreConfigMixin):
     backend_name = "memory"
@@ -187,6 +189,10 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
                     del queue[index]
                     return True
             return False
+
+    def abandon_processing_task(self, device_id: str, task_id: str) -> bool:
+        """In-memory store has no processing queue; state update is handled by callers."""
+        return False
 
     def list_tasks_for_device(self, device_id: str, status: str = "", limit: int = 20) -> list[dict[str, Any]]:
         with self._lock:

@@ -7,13 +7,16 @@ from uuid import uuid4
 
 from fastapi.responses import JSONResponse
 
+from device_gateway.model_routing import resolve_device_route_policy
 from device_gateway.path_validator import validate_capability_params
+from device_gateway.store import task_store
 from device_intelligence.schemas import TaskPlan
 from device_intelligence.simulator import simulate_motion
 from device_logic.http import err
 from device_policy import policy_engine
 from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState
+from observability import prometheus_metrics
 
 
 def gateway_capability(intent: str, params: dict[str, Any]) -> tuple[str, dict[str, Any], str | None]:
@@ -60,10 +63,7 @@ def build_gateway_task(
     workflow.advance(task_id, TaskState.WAITING_APPROVAL if needs_approval else TaskState.READY_TO_DISPATCH)
     from device_gateway.model_routing import resolve_device_route_policy
 
-    route_policy = resolve_device_route_policy(
-        {"capability": capability, "params": sanitized},
-        device_id=device_id,
-    )
+    route_policy = resolve_device_route_policy({"capability": capability, "params": sanitized}, device_id=device_id)
     task = {
         "type": "motion_task",
         "task_id": task_id,
@@ -79,17 +79,17 @@ def build_gateway_task(
     }
     if request_id:
         task["request_id"] = request_id
-    from device_gateway import store as store_mod
-
-    store_mod.task_store.create_task_state(task, status="created")
+    task_store.create_task_state(task, status="created")
+    prometheus_metrics.record_device_task_issued(capability, source)
     return task, None
 
 
 async def dispatch_or_enqueue(device_id: str, task: dict[str, Any]) -> dict[str, Any]:
     from device_gateway.sessions import registry
-    from device_gateway.tasks import enqueue_pending_task
+    from device_gateway.tasks import enqueue_pending_task, pending_count
     from routes.device_gateway_dispatch import dispatch_task_to_session, publish_task_available_safe
 
+    capability = str(task.get("capability", "unknown"))
     session = registry.get(device_id)
     sent = False
     if session is not None:
@@ -98,4 +98,7 @@ async def dispatch_or_enqueue(device_id: str, task: dict[str, Any]) -> dict[str,
     if not sent:
         queue_depth = enqueue_pending_task(device_id, task)
         await publish_task_available_safe(device_id, str(task.get("task_id", "")))
+    if not sent:
+        prometheus_metrics.record_device_task_dispatched(capability, "queued")
+    prometheus_metrics.set_device_tasks_pending(pending_count())
     return {"sent": sent, "queueDepth": queue_depth, "dispatchStatus": "sent" if sent else "queued"}

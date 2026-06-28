@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from device_ledger.store import ledger_store
+from observability import prometheus_metrics
 
 from . import store as store_mod
 from .store import DeviceTaskStore, InMemoryDeviceTaskStore
@@ -97,6 +98,11 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
     if request.entrypoint:
         create_kwargs["entrypoint"] = request.entrypoint
     task = await create_task_from_transcript_async(device_id, text, **create_kwargs)
+    capability = str(task.get("capability", "unknown"))
+    source = str(task.get("source", request.source or "unknown"))
+    if not task.get("error"):
+        prometheus_metrics.record_device_task_issued(capability, source)
+
     if task.get("error"):
         return DeviceTaskRouteResult("failed", False, pending_count(device_id), task)
 
@@ -105,17 +111,17 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
         from routes.device_gateway_dispatch import dispatch_task_to_session
 
         sent = await dispatch_task_to_session(session, task)
-        return DeviceTaskRouteResult(
-            "sent" if sent else "queued",
-            sent,
-            pending_count(device_id),
-            task,
-        )
+        status = "sent" if sent else "queued"
+        prometheus_metrics.record_device_task_dispatched(capability, status)
+        prometheus_metrics.set_device_tasks_pending(pending_count())
+        return DeviceTaskRouteResult(status, sent, pending_count(device_id), task)
 
     from routes.device_gateway_dispatch import publish_task_available_safe
 
     queue_depth = enqueue_pending_task(device_id, task)
     await publish_task_available_safe(device_id, str(task.get("task_id", "")))
+    prometheus_metrics.record_device_task_dispatched(capability, "queued")
+    prometheus_metrics.set_device_tasks_pending(pending_count())
     return DeviceTaskRouteResult("queued", False, queue_depth, task)
 
 

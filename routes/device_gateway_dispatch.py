@@ -11,6 +11,7 @@ from device_gateway.attestation import ACTION_FULL_ACCESS
 from device_gateway.notifier import publish_task_available
 from device_gateway.protocol import ProtocolError, error_frame
 from device_gateway.sessions import DeviceSession, registry
+from device_gateway.store import task_store
 from device_gateway.tasks import (
     mark_task_dispatched,
     pending_count,
@@ -22,8 +23,11 @@ from device_ws_ticket import consume as consume_device_ws_ticket
 
 # Re-exported from task_lifecycle to keep consumers on a single import path.
 from device_gateway.task_lifecycle import record_motion_event_observability
+from observability import prometheus_metrics
 
 _log = logging.getLogger(__name__)
+
+MAX_TASK_RETRIES = 3
 
 
 def _ws_state(websocket: WebSocket) -> dict:
@@ -84,7 +88,23 @@ def requeue_session_outstanding(
     tasks = [*outstanding, *(extra_tasks or [])]
     if not tasks:
         return pending_count(session.device_id)
-    return requeue_pending_tasks(session.device_id, tasks)
+
+    to_requeue: list[dict[str, Any]] = []
+    for task in tasks:
+        task_id = str(task.get("task_id", ""))
+        capability = str(task.get("capability", "unknown"))
+        retry_count = task_store.increment_retry_count(task_id)
+        prometheus_metrics.record_device_task_retry(capability)
+        if retry_count > MAX_TASK_RETRIES:
+            _log.warning("task %s exceeded max retries, moving to dead letter", task_id)
+            prometheus_metrics.record_device_task_dead_letter(capability)
+            task_store.abandon_processing_task(session.device_id, task_id)
+            continue
+        to_requeue.append(task)
+
+    if not to_requeue:
+        return pending_count(session.device_id)
+    return requeue_pending_tasks(session.device_id, to_requeue)
 
 
 def _is_attestation_restricted(session: DeviceSession) -> bool:
@@ -100,6 +120,7 @@ def _is_attestation_restricted(session: DeviceSession) -> bool:
 
 
 async def dispatch_task_to_session(session: DeviceSession, task: dict[str, Any]) -> bool:
+    capability = str(task.get("capability", "unknown"))
     if _is_attestation_restricted(session):
         _log.warning(
             "dispatch blocked device=%s attestation=%s task=%s",
@@ -107,6 +128,7 @@ async def dispatch_task_to_session(session: DeviceSession, task: dict[str, Any])
             session.attestation_action,
             task.get("task_id", ""),
         )
+        prometheus_metrics.record_device_task_dispatch_failure("attestation_restricted")
         requeue_session_outstanding(session, [task])
         return False
     try:
@@ -119,11 +141,13 @@ async def dispatch_task_to_session(session: DeviceSession, task: dict[str, Any])
             exc,
             exc_info=True,
         )
+        prometheus_metrics.record_device_task_dispatch_failure("websocket_error")
         registry.unregister(session.device_id, session.websocket)
         requeue_session_outstanding(session, [task])
         return False
     session.mark_task_dispatched(task)
     mark_task_dispatched(task["task_id"])
+    prometheus_metrics.record_device_task_dispatched(capability, "sent")
     return True
 
 

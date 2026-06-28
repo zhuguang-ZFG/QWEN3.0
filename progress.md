@@ -1,5 +1,70 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 M16 设备任务可观测性与重试边界
+
+- **目标**：让设备任务从创建、派发、ack 到重试/死信的全过程可度量；避免无限重试导致队列死锁。
+- **改动（8 文件改 + 3 新建文件）**：
+  - **`observability/prometheus_metrics.py`**：拆分注册逻辑；新增 device task 指标注册。
+  - 新建 **`observability/prometheus_device_task_metrics.py`**：提供 `record_device_task_issued/dispatched/dispatch_failure/retry/dead_letter`、`set_device_tasks_pending`。
+  - 新建 **`observability/prometheus_image_metrics.py`**：把原 `record_image_*` 函数迁出，保持主文件 ≤300 行。
+  - **`device_logic/gateway.py`**：`build_gateway_task` 记录 `issued`；`dispatch_or_enqueue` 记录 `queued` 并更新 pending gauge。
+  - **`device_gateway/tasks.py`**：`create_and_route_task` 记录 `issued`/`dispatched`/`queued`。
+  - **`routes/device_gateway_dispatch.py`**：`dispatch_task_to_session` 记录 `sent` 与失败原因；`requeue_session_outstanding` 增加 `MAX_TASK_RETRIES=3`，超限任务调用 `abandon_processing_task` 并记录 dead letter。
+  - **`device_gateway/task_lifecycle.py`**：`recover_stale_processing` 每恢复一个任务记录一次 retry。
+  - **`device_gateway/store.py`** + **`device_gateway/redis_store.py`**：新增 `abandon_processing_task` 接口（内存后端 no-op，Redis 从 processing 队列移除并置状态 `dead_letter`）。
+  - 新建 **`tests/test_device_task_metrics.py`**：覆盖 issued/dispatched/queued 指标与重试边界。
+- **关键陷阱（已处理）**：
+  - 指标命名冲突：最初 `lima_device_tasks_created_total` 与既有 `lima_device_tasks_total` 的 auto-created `_created` 时间戳冲突，改名为 `lima_device_tasks_issued_total`。
+  - 循环导入：device task 记录函数放在独立子模块，主模块在末尾 re-export，避免启动时循环。
+- **门禁验证（`.venv310` Python 3.10.20，工作树 `.worktrees/feat-device-task-metrics`）**：
+  - 聚焦测试（device gateway/task/dispatch）：**208 passed**
+  - 全量 pytest（排除 worktree 缺失的子模块/固件文件）：**4001 passed, 3 skipped**
+  - ruff check + format：All checks passed
+  - `scripts/check_code_size.py`：PASS
+  - pyright：0 errors（仅 prometheus_client 可选依赖 warning）
+- **新增指标清单**：
+  - `lima_device_tasks_issued_total{capability, source}`
+  - `lima_device_tasks_dispatched_total{capability, status}`
+  - `lima_device_task_dispatch_failures_total{reason}`
+  - `lima_device_task_retries_total{capability}`
+  - `lima_device_tasks_dead_letter_total{capability}`
+  - `lima_device_tasks_pending_total` (gauge)
+- **重试策略**：任务派发失败/设备掉线时最多重试 3 次，超过后移入 dead letter 并停止占用 processing 队列。
+
+## 2026-06-28 AI 写字机加「字体转路径」手写体能力（无损，跳过生图）
+
+- **目标**：给写字机加真正的手写体能力。现有「生图→骨架化」链路对文字效果差（像素图转路径损精度）；新增「fonttools 字形提取→SVG path」链路，**无损**输出手写体笔画路径。
+- **背景**：用户提出"模拟手写体是 AI 写字机特别需要的"，并问能否把 autohanding.com（凹凸工坊）转成 API。经查证凹凸工坊是纯网页工具无 API、输出是图片（和写字机需求不匹配），故采用正确方向：字体直接转路径。
+- **技术依据**：fonttools `TransformPen + SVGPathPen` 官方直接工具（字形→SVG path，无损）；霞鹜文楷 LxgwWenKai（SIL OFL 1.1 可商用）。
+- **改动（3 新建 + 3 改）**：
+  - **`xiaozhi_drawing/text_to_path.py`**（新建，217 行）：核心模块。`text_to_svg_path(text)` 用 fonttools 提取字形轮廓，多字按行布局，整体居中缩放到 workspace (200,200)，返回与 `_svg_payload` 同结构 dict。字体缺失/文字空/字形未覆盖时返回 failed + 明确错误（硬规则 #1，不静默）。
+  - **`device_gateway/handwriting_path.py`**（新建，97 行）：写字意图检测 + 接入。`try_text_to_handwriting()` 触发逻辑（两者结合）：① 显式前缀「写：/write:」优先；② 否则设备类型是 `esp32_writing_machine` 且不含画图关键词（画/绘/draw）；③ 画图关键词强制走生图。返回结构与 `_try_preset_shape` 一致。
+  - **`device_gateway/device_draw_handler.py`**（改）：新增 `_try_fast_paths`（preset + handwriting 复合快速路径），接入 `_try_preset_or_generate`，位于 preset_shape 之后、生图之前。
+  - **`xiaozhi_drawing/fonts/.gitkeep`**（新建）：字体目录占位 + 获取说明（霞鹜文楷下载指引）。
+  - **`.gitignore`**（改）：排除 `*.ttf/*.otf/*.woff*`（30+MB 字体不进 git）。
+  - **`requirements_server.txt`**（改）：新增 `fonttools>=4.47.0`（实际已装 4.63.0）。
+- **写字机四层快速路径（改完后）**：
+  ```
+  1. 提供 image_url    → 直接转路径
+  2. 预设形状          → _try_preset_shape（画圆/方/星）
+  3. 写字意图（新增）  → _try_text_to_handwriting（字体转路径，无损手写体）
+  4. AI 生图           → _generate_image（9 后端降级）→ 骨架化
+  ```
+- **测试 `tests/test_text_to_path.py`**（新建，13 测试）：
+  - 用 `fonttools.FontBuilder + TTGlyphPen` 生成最小测试字体，验证「文字→path」完整管线（含成功/缺字体/无可渲染字符/意图检测各分支）。
+- **关键陷阱（已处理）**：
+  - 字体不进 git（.gitignore + 环境变量 `LIMA_HANDWRITING_FONT` + 部署下载）。
+  - 字体缺失优雅降级：`try_text_to_handwriting` 返回 None 让链路回退生图，不阻断。
+  - 字形未覆盖：逐字 try + 跳过 + 警告。
+  - 代码大小：拆出 `text_to_path.py`（217 行）、`handwriting_path.py`（97 行）、`_try_fast_paths` 复合函数，保 device_draw_handler ≤300 行、所有函数 ≤50 行。
+- **未改**：`_try_preset_shape`/`screen_drawing_request`/`_generate_image`/生图 9 后端链路/svg_converter 完全不动。
+- **门禁验证（`.venv310` Python 3.10.20）**：
+  - 聚焦测试（5 文件）：**36 passed**（含 13 个手写体测试）
+  - ruff：All checks passed
+  - `check_code_size.py`：PASS（无文件 >300 行，无函数 >50 行）
+  - **全量 pytest：4038 passed, 3 skipped, 0 failed**（190s）—— 无回归
+- **真实手写体效果未验证**：本轮交付完整代码逻辑+测试（用 fonttools 生成测试字体）。**真实效果需部署后配霞鹜文楷字体冒烟**（下载 LxgwWenKai.ttf 到 `xiaozhi_drawing/fonts/`，触发"写：床前明月光"）。
+
 ## 2026-06-28 生图降级链路再扩容：接入百度/腾讯/字节（6 → 9 后端）
 
 - **目标**：覆盖所有已配 key 的中国厂商生图能力，降级链路从 6 后端扩到 9 后端。
