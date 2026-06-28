@@ -1,5 +1,36 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 M16 设备任务可观测性与重试边界
+
+- **目标**：让设备任务从创建、派发、ack 到重试/死信的全过程可度量；避免无限重试导致队列死锁。
+- **改动（8 文件改 + 3 新建文件）**：
+  - **`observability/prometheus_metrics.py`**：拆分注册逻辑；新增 device task 指标注册。
+  - 新建 **`observability/prometheus_device_task_metrics.py`**：提供 `record_device_task_issued/dispatched/dispatch_failure/retry/dead_letter`、`set_device_tasks_pending`。
+  - 新建 **`observability/prometheus_image_metrics.py`**：把原 `record_image_*` 函数迁出，保持主文件 ≤300 行。
+  - **`device_logic/gateway.py`**：`build_gateway_task` 记录 `issued`；`dispatch_or_enqueue` 记录 `queued` 并更新 pending gauge。
+  - **`device_gateway/tasks.py`**：`create_and_route_task` 记录 `issued`/`dispatched`/`queued`。
+  - **`routes/device_gateway_dispatch.py`**：`dispatch_task_to_session` 记录 `sent` 与失败原因；`requeue_session_outstanding` 增加 `MAX_TASK_RETRIES=3`，超限任务调用 `abandon_processing_task` 并记录 dead letter。
+  - **`device_gateway/task_lifecycle.py`**：`recover_stale_processing` 每恢复一个任务记录一次 retry。
+  - **`device_gateway/store.py`** + **`device_gateway/redis_store.py`**：新增 `abandon_processing_task` 接口（内存后端 no-op，Redis 从 processing 队列移除并置状态 `dead_letter`）。
+  - 新建 **`tests/test_device_task_metrics.py`**：覆盖 issued/dispatched/queued 指标与重试边界。
+- **关键陷阱（已处理）**：
+  - 指标命名冲突：最初 `lima_device_tasks_created_total` 与既有 `lima_device_tasks_total` 的 auto-created `_created` 时间戳冲突，改名为 `lima_device_tasks_issued_total`。
+  - 循环导入：device task 记录函数放在独立子模块，主模块在末尾 re-export，避免启动时循环。
+- **门禁验证（`.venv310` Python 3.10.20，工作树 `.worktrees/feat-device-task-metrics`）**：
+  - 聚焦测试（device gateway/task/dispatch）：**208 passed**
+  - 全量 pytest（排除 worktree 缺失的子模块/固件文件）：**4001 passed, 3 skipped**
+  - ruff check + format：All checks passed
+  - `scripts/check_code_size.py`：PASS
+  - pyright：0 errors（仅 prometheus_client 可选依赖 warning）
+- **新增指标清单**：
+  - `lima_device_tasks_issued_total{capability, source}`
+  - `lima_device_tasks_dispatched_total{capability, status}`
+  - `lima_device_task_dispatch_failures_total{reason}`
+  - `lima_device_task_retries_total{capability}`
+  - `lima_device_tasks_dead_letter_total{capability}`
+  - `lima_device_tasks_pending_total` (gauge)
+- **重试策略**：任务派发失败/设备掉线时最多重试 3 次，超过后移入 dead letter 并停止占用 processing 队列。
+
 ## 2026-06-29 M15 Handwriting 韧性增强：autohanding 重试 + 本地 ASCII 降级
 
 - **目标**：消除写字机/绘图机手写服务对 autohanding.com 的单点依赖；外部服务抖动时 ASCII 文本仍能输出确定性路径，中文字符则清晰报错而非静默降级。
@@ -20,6 +51,8 @@
   - 手写/写字：`autohanding` → 失败 → `lima-local` stroke font（仅限 ASCII）
   - 中文：`autohanding` 失败 → 502 + 明确错误（不输出乱码）
 - **真实手写效果未验证**：autohanding 的真实重试与降级效果需部署后用真实域名/token 冒烟。
+
+
 
 ## 2026-06-28 生图降级链路再扩容：接入百度/腾讯/字节（6 → 9 后端）
 

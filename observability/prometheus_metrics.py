@@ -110,6 +110,40 @@ def _register_counters(counter, registry) -> None:
         ["status", "fallback"],
         registry=registry,
     )
+    _register_device_task_counters(counter, registry)
+
+
+def _register_device_task_counters(counter, registry) -> None:
+    _counters["device_tasks_issued"] = counter(
+        "lima_device_tasks_issued_total",
+        "Device tasks issued",
+        ["capability", "source"],
+        registry=registry,
+    )
+    _counters["device_tasks_dispatched"] = counter(
+        "lima_device_tasks_dispatched_total",
+        "Device tasks dispatched",
+        ["capability", "status"],
+        registry=registry,
+    )
+    _counters["device_task_dispatch_failures"] = counter(
+        "lima_device_task_dispatch_failures_total",
+        "Device task dispatch failures",
+        ["reason"],
+        registry=registry,
+    )
+    _counters["device_task_retries"] = counter(
+        "lima_device_task_retries_total",
+        "Device task retries",
+        ["capability"],
+        registry=registry,
+    )
+    _counters["device_tasks_dead_letter"] = counter(
+        "lima_device_tasks_dead_letter_total",
+        "Device tasks abandoned after max retries",
+        ["capability"],
+        registry=registry,
+    )
 
 
 def _register_histograms(histogram, registry) -> None:
@@ -177,6 +211,11 @@ def _register_gauges(gauge, registry) -> None:
         "Current number of cached image generation entries",
         registry=registry,
     )
+    _gauges["device_tasks_pending"] = gauge(
+        "lima_device_tasks_pending_total",
+        "Current number of device tasks pending dispatch",
+        registry=registry,
+    )
 
 
 def record_request(backend: str, status: str, duration_ms: float) -> None:
@@ -240,37 +279,6 @@ def record_backend_score(backend: str, score: float) -> None:
         gauge.labels(backend=backend).set(max(0.0, min(1.0, float(score))))
 
 
-def record_image_cache_lookup(result: str) -> None:
-    """Record an image cache lookup as hit or miss."""
-    if not is_enabled():
-        return
-    _ensure_instruments()
-    counter = _counters.get("image_cache_lookups")
-    if counter:
-        normalized = "hit" if result == "hit" else "miss"
-        counter.labels(result=normalized).inc()
-
-
-def record_image_request(backend: str) -> None:
-    """Record an image generation request by the backend that served it."""
-    if not is_enabled():
-        return
-    _ensure_instruments()
-    counter = _counters.get("image_requests")
-    if counter:
-        counter.labels(backend=backend or "unknown").inc()
-
-
-def record_image_cache_entries(count: int) -> None:
-    """Update the gauge of current image cache entries."""
-    if not is_enabled():
-        return
-    _ensure_instruments()
-    gauge = _gauges.get("image_cache_entries")
-    if gauge:
-        gauge.set(float(count))
-
-
 def generate_metrics() -> bytes:
     """Generate Prometheus text format output."""
     if not is_enabled():
@@ -280,11 +288,24 @@ def generate_metrics() -> bytes:
     return client["generate_latest"](_registry)
 
 
-# Re-export startup/retirement helpers from a focused submodule so this file
-# stays under the project size limit while keeping the public API unchanged.
+# Re-export focused submodule helpers so this file stays under the project size limit
+# while keeping the public API unchanged.
+from observability.prometheus_device_task_metrics import (  # noqa: E402
+    record_device_task_dead_letter,
+    record_device_task_dispatch_failure,
+    record_device_task_dispatched,
+    record_device_task_issued,
+    record_device_task_retry,
+    set_device_tasks_pending,
+)
 from observability.prometheus_handwriting_metrics import (  # noqa: E402
     record_handwriting_duration,
     record_handwriting_request,
+)
+from observability.prometheus_image_metrics import (  # noqa: E402
+    record_image_cache_entries,
+    record_image_cache_lookup,
+    record_image_request,
 )
 from observability.prometheus_startup_metrics import (  # noqa: E402
     record_backend_retirement_event,
