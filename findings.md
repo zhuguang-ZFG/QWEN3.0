@@ -13,11 +13,13 @@
 | IMAGE-1-4 | ops | systemd `EnvironmentFile` 变量不显示在 `systemctl show --property=Environment`，需以 `/proc/<pid>/environ` 为准 | Documented |
 | IMAGE-1-5 | mini-program | 小程序已新增「云生图」Tab，调用 `/device/v1/app/images/generations` | Closed |
 | IMAGE-1-6 | firmware | 固件端暂未接入云生图结果预览/绘制，为下一步 | Open |
+| IMAGE-1-7 | firmware | U8 `application.cc` custom message 日志未释放 `cJSON_PrintUnformatted` 内存 | Closed |
 
 **关键动作**
 - `backends_registry/commercial/platforms.py` 注册 `xmiaom_gpt_image_2`，超时最终设为 180s。
 - `routes/images.py` 优先 xmiaom，失败回退 Pollinations.ai；优化错误日志，记录 `status_code` 与异常消息。
 - 新增 `routes/device_app_images.py`：`/device/v1/app/images/generations`，使用设备 App 鉴权，供小程序调用。
+- 固件 `u8-xiaozhi`：修复 `application.cc` custom message 日志中 `cJSON_PrintUnformatted` 返回的 `char*` 未释放导致的内存泄漏。
 - 小程序 `manager-mobile`：
   - 新增 `api/images/images.ts` 封装设备 App 图像接口。
   - `pages/create/create.vue` 新增「云生图」Tab：输入 prompt → 云端生成 → 预览/保存相册/发送到设备绘制。

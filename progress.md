@@ -17,6 +17,7 @@
     - `3e2bbee1` 修复 deploy_unified readiness 检查：改用轻量 `/health/ready`、放宽 ready 超时到 30s
     - `a4f5a2d7` LiMa 新增 `/device/v1/app/images/generations`（设备 App 鉴权）并优化图片接口错误日志
     - `736fb207` 同步 esp32S_XYZ 子模块：小程序新增「云生图」Tab
+    - `ebe78a83` 同步 esp32S_XYZ 子模块：U8 固件修复 custom message cJSON 内存泄漏
 - **验证**：
   - 本地完整 pytest 回归：`3991 passed / 3 skipped / 0 failed`。
   - `ruff check` / `scripts/check_code_size.py` 对修改文件 clean。
@@ -27,6 +28,7 @@
     - 第三次返回 xmiaom 图片 URL（耗时约 128s）。
   - `python scripts/deploy_unified.py --slice core` 重新部署成功，Health OK，未再触发回滚。
   - 小程序 `manager-mobile`：`pnpm type-check` / `pnpm lint` clean；CI 测试 **115 passed / 0 failed**。
+  - 固件 CI 测试：**115 passed / 0 failed**。
 - **运维注意**：
   - xmiaom gpt-image-2 生成耗时波动大（45s–130s），后端超时设为 180s。
   - `XMIAOM_API_KEY` 曾在诊断命令中暴露，建议尽快轮换。
