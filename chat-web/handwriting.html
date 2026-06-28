@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>仿手写 - LiMa 星云</title>
+  <meta name="description" content="在 LiMa 星云控制台将文字转换为仿手写笔迹，并下发给写字机/绘图机执行。">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: ws:; font-src 'self'; upgrade-insecure-requests;">
+  <link rel="stylesheet" href="styles.css?v=nebula2">
+  <style>
+    .handwriting-layout { display:flex; min-height:100vh; width:100%; }
+    .handwriting-main { flex:1; padding:32px; position:relative; z-index:1; max-width:1200px; margin:0 auto; width:100%; }
+    .handwriting-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .handwriting-header h1 { font-size:1.5rem; }
+    .handwriting-form { display:grid; gap:18px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; }
+    .form-group { display:flex; flex-direction:column; gap:8px; }
+    .form-group label { font-size:.85rem; color:var(--text-muted); }
+    .form-group textarea, .form-group select, .form-group input[type="range"] { width:100%; }
+    .form-group textarea { min-height:120px; padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-input); color:var(--text); resize:vertical; font-family:inherit; }
+    .form-group select { padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-input); color:var(--text); }
+    .char-count { font-size:.75rem; color:var(--text-dim); text-align:right; }
+    .char-count.over { color:var(--rose); }
+    .form-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:18px; }
+    .slider-row { display:flex; align-items:center; gap:12px; }
+    .slider-row input[type="range"] { flex:1; }
+    .slider-value { min-width:36px; text-align:right; font-variant-numeric:tabular-nums; color:var(--text-muted); }
+    .mode-toggle { display:inline-flex; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
+    .mode-toggle button { padding:8px 16px; background:transparent; color:var(--text-muted); border:none; cursor:pointer; }
+    .mode-toggle button.active { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; }
+    .btn-primary { padding:10px 18px; border-radius:var(--radius-sm); border:1px solid transparent; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; font-weight:600; cursor:pointer; }
+    .btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+    .result-area { margin-top:24px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; min-height:120px; }
+    .result-area:empty { display:none; }
+    .result-title { font-weight:600; margin-bottom:12px; }
+    .result-meta { font-size:.85rem; color:var(--text-muted); margin-top:6px; }
+    .result-error { color:var(--rose); }
+    .svg-preview { background:#fff; border-radius:var(--radius-sm); overflow:hidden; padding:16px; }
+    .svg-preview svg { display:block; margin:0 auto; max-height:600px; }
+    .result-details { margin-top:12px; }
+    .result-details pre { background:rgba(0,0,0,.2); padding:12px; border-radius:var(--radius-sm); overflow:auto; font-size:.8rem; max-height:300px; }
+    .loading { display:flex; align-items:center; gap:10px; color:var(--text-muted); }
+    .spinner { width:18px; height:18px; border:2px solid rgba(255,255,255,.1); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .toast { position:fixed; bottom:24px; right:24px; padding:12px 18px; border-radius:var(--radius-sm); background:var(--bg-card); border:1px solid var(--border); color:var(--text); z-index:200; transform:translateY(120%); transition:transform .2s; }
+    .toast.show { transform:translateY(0); }
+    @media (max-width:640px) { .handwriting-main { padding:20px; } }
+  </style>
+</head>
+<body>
+  <div class="handwriting-layout">
+    <aside class="sidebar" style="width:var(--sidebar-w); flex-shrink:0;">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="brand-mark"><svg class="svg-icon"><use href="icons.svg#i-sparkles"/></svg></div>
+          <div class="brand-text"><h1>LiMa 星云</h1><div class="brand-text-sub">控制台</div></div>
+        </div>
+      </div>
+      <div class="section-label">账户</div>
+      <div class="device-list">
+        <a href="index.html" class="device-card" style="text-decoration:none; color:inherit;">
+          <div class="device-card-top"><div class="device-icon ai"><svg class="svg-icon"><use href="icons.svg#i-bot"/></svg></div><div class="device-meta"><div class="device-name">对话</div><div class="device-sub">星云 AI</div></div></div>
+        </a>
+        <a href="devices.html" class="device-card" style="text-decoration:none; color:inherit;">
+          <div class="device-card-top"><div class="device-icon draw"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div class="device-meta"><div class="device-name">设备</div><div class="device-sub">管理硬件</div></div></div>
+        </a>
+        <a href="handwriting.html" class="device-card active" style="text-decoration:none; color:inherit;">
+          <div class="device-card-top"><div class="device-icon write"><svg class="svg-icon"><use href="icons.svg#i-pencil"/></svg></div><div class="device-meta"><div class="device-name">仿手写</div><div class="device-sub">生成笔迹</div></div></div>
+        </a>
+        <a href="keys.html" class="device-card" style="text-decoration:none; color:inherit;">
+          <div class="device-card-top"><div class="device-icon write"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></div><div class="device-meta"><div class="device-name">API Key</div><div class="device-sub">访问密钥</div></div></div>
+        </a>
+        <a href="usage.html" class="device-card" style="text-decoration:none; color:inherit;">
+          <div class="device-card-top"><div class="device-icon human"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><div class="device-meta"><div class="device-name">用量</div><div class="device-sub">Token / 费用</div></div></div>
+        </a>
+      </div>
+    </aside>
+
+    <main class="handwriting-main">
+      <div class="handwriting-header">
+        <h1>仿手写生成</h1>
+        <div class="mode-toggle">
+          <button type="button" id="modePreview" class="active">预览 SVG</button>
+          <button type="button" id="modeTask">下发设备</button>
+        </div>
+      </div>
+
+      <form id="handwritingForm" class="handwriting-form">
+        <div class="form-group">
+          <label for="textInput">要转换的文字</label>
+          <textarea id="textInput" placeholder="输入一段文字，生成仿手写笔迹…" required></textarea>
+          <div class="char-count" id="charCount">0 / 3500</div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fontSelect">字体</label>
+            <select id="fontSelect"></select>
+          </div>
+          <div class="form-group">
+            <label for="paperSelect">纸张背景</label>
+            <select id="paperSelect"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="mistakeRate">涂改概率（更像手写）</label>
+            <div class="slider-row">
+              <input type="range" id="mistakeRate" min="0" max="100" value="3">
+              <span class="slider-value" id="mistakeValue">3</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="messyRatio">潦草程度</label>
+            <div class="slider-row">
+              <input type="range" id="messyRatio" min="0" max="100" value="0">
+              <span class="slider-value" id="messyValue">0</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="charRandom">字形随机性</label>
+            <div class="slider-row">
+              <input type="range" id="charRandom" min="0" max="100" value="0">
+              <span class="slider-value" id="charRandomValue">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" id="deviceWrap" hidden>
+          <label for="deviceSelect">目标设备</label>
+          <select id="deviceSelect"></select>
+        </div>
+
+        <div>
+          <button type="submit" class="btn-primary" id="generateBtn">生成 SVG 预览</button>
+        </div>
+      </form>
+
+      <div class="result-area" id="resultArea"></div>
+      <div class="loading" id="loading" hidden><div class="spinner"></div>处理中…</div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/handwriting.js"></script>
+</body>
+</html>

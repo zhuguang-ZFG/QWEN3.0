@@ -10045,5 +10045,29 @@ uff check 2 文件 clean；导入无循环依赖。
   - `python scripts/deploy_unified.py --slice core` 成功上传 850 个文件并重启。
   - VPS health `https://chat.donglicao.com/health` 返回 OK，模块列表含 `handwriting: true`。
   - 公网 `/device/v1/app/handwriting` 无 token 返回 401、非法 token 返回 401，确认路由已上线且鉴权生效；真实 token 端到端调用待有测试账号后补充。
+
+## 2026-06-28 autohanding.com 仿手写 Phase 2 落地
+
+- **目标**：为 LiMa 提供可直接操作的仿手写 Web UI，支持文字输入、字体/纸张/参数选择、SVG 预览，以及一键下发到已绑定设备。
+- **关键结果**：
+  - 后端选项接口：
+    - `routes/handwriting.py` 新增 `GET /device/v1/app/handwriting/options`，返回字体、纸张、默认值与最大字数。
+  - Chat Web 页面：
+    - 新增 `chat-web/handwriting.html` 与 `chat-web/js/handwriting.js`。
+    - 表单包含文字输入（实时字数）、字体/纸张下拉框、涂改概率/潦草程度/字形随机性滑块。
+    - 支持“预览 SVG”和“下发设备”两种模式；下发模式可选择已绑定设备并调用 `/devices/{id}/tasks`。
+    - 结果区可渲染白色背景黑色笔迹的 SVG 预览，或展示任务下发结果。
+  - 导航：
+    - `chat-web/devices.html` 侧边栏新增“仿手写”入口。
+  - 部署脚本修复：
+    - `scripts/deploy_chat_web.py` 加载 `.env`，修复密码回退逻辑，新增 `handwriting.html` / `js/handwriting.js` 到部署文件列表。
+- **验证**：
+  - `python scripts/check_code_size.py` → PASS。
+  - `ruff check .` / `ruff format --check .` clean。
+  - `python -m pytest -m "not network" -q` → **4031 passed / 3 skipped / 2 deselected / 0 failed**。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core` 成功。
+  - `python scripts/deploy_chat_web.py` 成功（修复后使用密码认证）。
+  - 公网 `https://chat.donglicao.com/handwriting.html` 可访问；VPS access log 显示 `/device/v1/app/handwriting/options` 返回 401/307/404 正常路由日志。
 - **待跟进**：
-  - Phase 2：小程序/Chat Web 手写输入 UI（文本框、字体/纸张选择、参数滑块、预览/生成）。
+  - 真实设备账号端到端验证（预览 SVG 与下发任务）。

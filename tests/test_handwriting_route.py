@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from integrations.autohanding import constants
 from integrations.autohanding.client import AutohandingClientError, AutohandingRateLimitError
 from routes import handwriting as hw
 
@@ -154,3 +155,12 @@ def test_handwriting_autohanding_error(client, auth_header):
         )
 
     assert response.status_code == 502
+
+
+def test_handwriting_options(client, auth_header):
+    response = client.get("/device/v1/app/handwriting/options", headers=auth_header)
+    assert response.status_code == 200
+    data = response.json()
+    assert constants.DEFAULT_FONT_TYPE in data["fonts"]
+    assert constants.DEFAULT_PAPER_BG_TYPE in data["papers"]
+    assert data["defaults"]["font_type"] == constants.DEFAULT_FONT_TYPE

@@ -1903,3 +1903,20 @@
 **风险/待办**
 - autohanding.com 为第三方免费接口，存在速率限制与可用性风险；生产高并发场景应加缓存或接入付费/私有仿手写服务。
 - Phase 2 需要小程序/Chat Web 的手写输入 UI。
+
+## autohanding.com 仿手写集成 Phase 2
+
+**状态**：已完成并部署。
+
+**关键发现**
+- Chat Web 新增 `handwriting.html` 后，需要同步更新 `scripts/deploy_chat_web.py` 的 `FILES` 列表，否则新页面不会进入 `/var/www/chat/`。
+- `deploy_chat_web.py` 原来未加载 `.env` 且仅捕获 `SSHException`，在有密码无密钥场景下会直接报 `AuthenticationException`；修复后加载 `.env` 并回退密码登录。
+- `/device/v1/app/handwriting/options` 接口让前端无需硬编码 autohanding 字体/纸张映射，后端变更自动同步到 UI。
+
+**部署验证**
+- `scripts/deploy_unified.py --slice core` + `scripts/deploy_chat_web.py` 均成功。
+- `https://chat.donglicao.com/handwriting.html` 可公开访问，页面结构符合现有控制台风格。
+- VPS access log 显示 `/device/v1/app/handwriting/options` 路由已生效。
+
+**风险/待办**
+- 真实账号端到端验证（输入文字 → 返回 SVG → 下发设备）待补充。

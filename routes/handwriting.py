@@ -109,6 +109,32 @@ async def _build_task_response(req: HandwritingRequest) -> JSONResponse:
     return JSONResponse({"created": int(time.time()), "data": [params]})
 
 
+def _build_options_response() -> JSONResponse:
+    return JSONResponse(
+        {
+            "fonts": constants.FONT_OPTIONS,
+            "papers": constants.PAPER_BG_OPTIONS,
+            "defaults": {
+                "font_type": constants.DEFAULT_FONT_TYPE,
+                "paper_bg_type": constants.DEFAULT_PAPER_BG_TYPE,
+                "mistake_rate": constants.DEFAULT_MISTAKE_RATE,
+                "messy_ratio": constants.DEFAULT_MESSY_RATIO,
+                "char_random": constants.DEFAULT_CHAR_RANDOM,
+            },
+            "max_text_length": constants.MAX_TEXT_LENGTH,
+        }
+    )
+
+
+@router.get("/handwriting/options")
+async def device_app_handwriting_options(authorization: str = Header(default="")) -> JSONResponse:
+    """Return available fonts, papers and defaults for the handwriting preview."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    return _build_options_response()
+
+
 @router.post("/handwriting")
 async def device_app_handwriting(request: Request, authorization: str = Header(default="")) -> JSONResponse:
     """Generate a handwritten page from text and return an SVG path or task."""

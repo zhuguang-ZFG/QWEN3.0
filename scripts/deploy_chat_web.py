@@ -16,8 +16,10 @@ import sys
 from pathlib import Path
 
 import paramiko
+from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(dotenv_path=PROJECT_ROOT / ".env")
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import deploy_config
@@ -55,6 +57,8 @@ FILES = [
     "js/playground-ui.js",
     "js/playground-utils.js",
     "js/playground.js",
+    "handwriting.html",
+    "js/handwriting.js",
 ]
 
 
@@ -66,7 +70,7 @@ def _connect() -> paramiko.SSHClient:
     password = deploy_config.deploy_pass()
     try:
         ssh.connect(host, username=user, key_filename=KEY, timeout=15)
-    except paramiko.SSHException:
+    except (paramiko.SSHException, paramiko.AuthenticationException):
         if not password:
             raise
         ssh.connect(host, username=user, password=password, timeout=15)
