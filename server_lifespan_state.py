@@ -38,7 +38,7 @@ def set_startup_status(status: str) -> None:
 
         record_startup_status(status)
     except ImportError:
-        pass
+        _log.warning("observability.prometheus_metrics unavailable; startup status will not be recorded")
 
 
 def reset_startup_state() -> None:
@@ -88,7 +88,7 @@ def record_phase(name: str, elapsed_ms: float, status: str = "ok", detail: str =
 
         record_startup_phase(name, elapsed_ms)
     except ImportError:
-        pass
+        _log.warning("observability.prometheus_metrics unavailable; startup phase metrics will not be recorded")
     return phase
 
 

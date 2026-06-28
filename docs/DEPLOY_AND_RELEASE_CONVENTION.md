@@ -23,7 +23,7 @@
 7. GitHub 上传
 ```
 
-> **Gitee 同步已退役**：`findings.md` OPS-022 已记录移除 `gitee` remote，不再作为强制步骤。如有特殊需要，可手动执行 `python scripts/push_dual_remotes.py`。
+> **Gitee 同步已退役**：`findings.md` OPS-022 已记录移除 `gitee` remote，不再作为强制步骤。原脚本已归档至 `docs/archive/retired/`。
 
 ### Step 1: 本地门禁
 
@@ -158,13 +158,8 @@ git push -u origin HEAD
 
 Gitee 镜像同步已不再是强制 closeout 步骤。`findings.md` OPS-022 已记录移除 `gitee` remote。
 
-如仍有手动同步需求：
-
-```bash
-# 需要先确认本地存在 gitee remote
-git remote get-url gitee
-python scripts/push_dual_remotes.py
-```
+原双远程推送脚本已归档至 `docs/archive/retired/push_dual_remotes.py`，不再维护；如确需手动同步，
+请自行配置 `gitee` remote 并执行归档脚本（不保证与当前仓库结构兼容）。
 
 ---
 
@@ -178,7 +173,7 @@ python scripts/push_dual_remotes.py
 | 指定文件 | `scripts/deploy_unified.py --files a.py b.py` | 仅上传指定文件 |
 | JDCloud 探测 | `scripts/check_jdcloud_node.py` | 只读烟雾，不部署 |
 | 预提交门禁 | `scripts/run_pre_commit_check.py` | ruff + pytest 本地门禁 |
-| 双远程推送 | `scripts/push_dual_remotes.py` | GitHub + Gitee 同步（Gitee 已退役） |
+| 双远程推送 | `docs/archive/retired/push_dual_remotes.py` | GitHub + Gitee 同步（已退役归档） |
 
 ---
 

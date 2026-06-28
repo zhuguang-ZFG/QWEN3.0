@@ -1,5 +1,29 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-28 生图后端模型名脱敏：对外统一品牌「LiMa 生图」
+
+- **目标**：消除生图结果对客户端/用户的真实后端名泄漏（`xmiaom_gpt_image_2`/`freetheai`/`pollinations`/`wanx2.1-t2i-turbo`），对外统一显示品牌「LiMa 生图」。内部后端多样性（Pollinations model 参数、降级链路）保留，但对用户透明。
+- **背景**：审计发现小程序 `create.vue` 的 `backend-tag` 直接把 `res.backend`（真实后端名）贴给用户看，违反「不让用户知道后台用了什么模型」的产品原则。
+- **改动（5 文件）**：
+  - **后端 `routes/device_app_images.py`**：新增模块常量 `PUBLIC_IMAGE_BACKEND_LABEL = "LiMa 生图"`，响应体 `backend` 字段返回该品牌名；真实 `backend`（来自 `_generate_image_urls`）保留在函数局部，不外泄。
+  - **后端 `device_gateway/draw_responses.py`**：新增 `PUBLIC_DRAW_MODEL_LABEL = "LiMa 生图"`，三个 builder（`build_failed/partial/success_response`）的 `model` 字段统一返回品牌名（真实模型 `wanx2.1-t2i-turbo` 等仅用于调用方日志）。
+  - **小程序 `api/images/images.ts`**：`backend?` 字段加注释说明是品牌标签非真实后端。
+  - **小程序 `pages/create/create.vue`**：`imageResultBackend` ref 加注释；保留 `backend-tag` 显示块（选项 a，强化「LiMa 星云」品牌露出）。
+  - **测试 `tests/test_device_app_images.py:57`**：断言由 `== "xmiaom"` 改为 `== "LiMa 生图"`。
+  - **测试 `tests/test_device_draw_handler.py:37`**：断言由 `== "wanx2.1-t2i-turbo"` 改为 `== "LiMa 生图"`。
+- **未改（明确边界）**：
+  - `routes/images.py` 的 `/v1/images/generations` 已不返回 backend，干净，不动。
+  - 内部监控（`_record_image_request` / Prometheus 指标）保留真实后端名，仅对外响应脱敏。
+  - Pollinations `model` 参数逻辑（`images_pollinations.py:37-39`）内部用，不动。
+  - `_try_preset_shape` 的 `preset:{shape}` model（非 AI 后端，是形状名，line 56）不动，其测试 `test_try_preset_shape_circle:78` 仍通过。
+  - 写字链路加降级（链路 B 单点）属独立改动，本轮不做。
+- **门禁验证（`.venv310` Python 3.10.20）**：
+  - 聚焦测试 `test_device_app_images.py + test_device_draw_handler.py + test_routes_images.py`：**31 passed**（含降级测试 `test_freetheai_fallback_when_xmiaom_fails`、`test_no_freetheai_key_falls_back_to_pollinations`，证明降级链路未受影响）
+  - ruff（4 改动文件）：All checks passed
+  - `check_code_size.py`：PASS
+  - **全量 pytest：4031 passed, 3 skipped, 0 failed**（207s）—— 较改动前 4015 无回归
+- **风险评估**：纯字段值替换，不改逻辑链路/降级/缓存；设备端（ESP32/fake）读 `model` 仅作展示，向后兼容。
+
 ## 2026-06-28 全栈深度质量审计（四子系统）
 
 - **目标**：学习项目并深度质量检查 LiMa 后端、Web 前端、微信小程序、ESP32 固件四子系统。
@@ -10071,3 +10095,25 @@ uff check 2 文件 clean；导入无循环依赖。
   - 公网 `https://chat.donglicao.com/handwriting.html` 可访问；VPS access log 显示 `/device/v1/app/handwriting/options` 返回 401/307/404 正常路由日志。
 - **待跟进**：
   - 真实设备账号端到端验证（预览 SVG 与下发任务）。
+
+## 2026-06-29 深度质量审计 P1 修复
+
+- **目标**：修复 `docs/DEEP_QUALITY_AUDIT_CN.md` 中 3 项 P1 HIGH/MEDIUM 问题。
+- **关键结果**：
+  - **P1-1 静默降级**：`server_lifespan_state.py` 中两处 `except ImportError: pass` 改为 `_log.warning(...)`，明确提示 `observability.prometheus_metrics` 不可用时启动/阶段指标不会被记录。
+  - **P1-2 SRI 完整性**：为 `chat-web/index.html` 与 `chat-web/usage.html` 的 CDN 资源（KaTeX、highlight.js、ECharts）补全 `integrity="sha384-..."` 与 `crossorigin="anonymous"`；`index.html` 同步修复了 `highlight.min.js` 404 路径，改用 `cdn-release@11.9.0/build/highlight.min.js`。
+  - **P1-3 退役 Gitee 镜像代码归档**：
+    - 将 `gitee_mirror.py`、`gitee_mirror_store.py`、`gitee_mirror_urls.py`、`scripts/push_dual_remotes.py`（及 `.ps1`/`.sh` wrapper）、`tests/test_gitee_mirror.py` 归档至 `docs/archive/retired/`。
+    - 从 `scripts/run_pre_commit_check.py` 的 `CI_PYTEST_IGNORES` 中移除 `tests/test_gitee_mirror.py`。
+    - 从 `tests/test_five_line_closeout.py` 中移除已归档的 `remote_head_sha` / `compare_mirror_heads` 测试，保留 router_v3 池断言。
+    - 更新 `tests/README.md`、`.env.example`、`docs/DEPLOY_AND_RELEASE_CONVENTION.md`、`docs/DEEP_QUALITY_AUDIT_CN.md` 中对退役脚本/测试的引用。
+- **验证**：
+  - `ruff check .` → clean。
+  - `ruff format --check .` → clean。
+  - `pyright server_lifespan_state.py tests/test_five_line_closeout.py scripts/run_pre_commit_check.py` → 0 errors。
+  - `python scripts/check_code_size.py server_lifespan_state.py tests/test_five_line_closeout.py scripts/run_pre_commit_check.py` → PASS。
+  - `python -m pytest tests/test_five_line_closeout.py -q` → 2 passed。
+  - `python -m pytest tests -q -m "not network" --ignore=tests/test_lima_smoke_task_script.py --ignore=tests/test_healthcheck_ping.py --ignore=tests/test_memory_daemon_ctl.py` → **4006 passed / 3 skipped / 2 deselected / 0 failed**。
+- **部署**：
+  - 后端 `python scripts/deploy_unified.py --slice core`（VPS 重启 + health/ready 等待）成功。
+  - 静态页 `python scripts/deploy_chat_web.py` 成功，SRI 版本 CDN 资源生效。

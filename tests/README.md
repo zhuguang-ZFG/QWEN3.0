@@ -188,8 +188,8 @@ python -m pytest tests -q --ignore=tests/test_memory_daemon_ctl.py --ignore=test
 
 ### Research & External Integrations
 - `test_research.py` / `test_research_radar.py`
-- `test_gitee_mirror.py` / `test_gitee_tools.py` / `test_gitee_webhook.py`
-- `test_github_webhook.py` / `test_local_tool_modules.py`
+- `test_gitee_ai_adapter.py` — Gitee 模力方舟 AI 后端（注意：Gitee 镜像同步相关脚本与测试已归档至 `docs/archive/retired/`）
+- `test_local_tool_modules.py`
 - `test_provider_inventory.py` / `test_provider_automation_catalog.py` / `test_provider_automation_runner.py` / `test_provider_automation_impact.py` / `test_provider_automation_admission.py`
 - `test_narrative.py` / `test_lightrag.py`
 
