@@ -43,12 +43,17 @@ def test_default_log_file_path():
 def test_log_file_created_and_rotated(tmp_path: Path):
     log_path = tmp_path / "app.log"
     script = """
-import logging
-from observability.structured_logging import setup_structured_logging
+import logging, sys
+try:
+    from observability.structured_logging import setup_structured_logging, stop_file_listener
+except ImportError as e:
+    print(f"IMPORT_ERROR: {e}", file=sys.stderr)
+    sys.exit(1)
 setup_structured_logging()
 log = logging.getLogger("test.rotation")
 for i in range(20):
     log.info("x" * 200)
+stop_file_listener()
 print("done")
 """
     result = _run_in_tmp(
