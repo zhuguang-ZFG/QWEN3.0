@@ -1,6 +1,6 @@
 """Tests for svg_validator.py"""
 
-from xiaozhi_drawing.svg_validator import validate_svg_path
+from xiaozhi_drawing.svg_validator import sanitize_svg_markup, validate_svg_path
 
 
 def test_valid_simple_path():
@@ -108,3 +108,44 @@ def test_bbox_calculation():
     assert bbox["max_y"] == 120
     assert bbox["width"] == 90
     assert bbox["height"] == 100
+
+
+def test_sanitize_removes_script_tag():
+    svg = '<svg><script>alert(1)</script><rect width="10" height="10"/></svg>'
+    result = sanitize_svg_markup(svg)
+    assert result.ok is True
+    assert "<script>" in result.removed
+    assert "<script>" not in result.cleaned
+    assert "<rect" in result.cleaned
+
+
+def test_sanitize_removes_event_handlers():
+    svg = '<svg><rect width="10" height="10" onload="alert(1)" onclick="evil()"/></svg>'
+    result = sanitize_svg_markup(svg)
+    assert result.ok is True
+    assert any("onload" in r for r in result.removed)
+    assert any("onclick" in r for r in result.removed)
+    assert "onload" not in result.cleaned
+    assert "onclick" not in result.cleaned
+
+
+def test_sanitize_removes_javascript_href():
+    svg = '<svg><a href="javascript:alert(1)"><rect/></a></svg>'
+    result = sanitize_svg_markup(svg)
+    assert result.ok is True
+    assert "javascript:" not in result.cleaned
+
+
+def test_sanitize_rejects_doctype():
+    svg = '<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><svg></svg>'
+    result = sanitize_svg_markup(svg)
+    assert result.ok is False
+    assert "DOCTYPE" in result.error
+
+
+def test_sanitize_preserves_valid_svg():
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg>'
+    result = sanitize_svg_markup(svg)
+    assert result.ok is True
+    assert result.removed == []
+    assert "<circle" in result.cleaned

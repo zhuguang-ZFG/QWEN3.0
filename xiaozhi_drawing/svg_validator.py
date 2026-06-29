@@ -1,10 +1,23 @@
-"""SVG 路径验证器
+"""SVG 路径验证器与内容净化
 
-验证 SVG path 的有效性、复杂度和工作区适配。
+验证 SVG path 的有效性、复杂度和工作区适配；同时提供上传 SVG 标记的
+脚本/事件处理器剥离，防止存储型 XSS。
 """
 
 from dataclasses import dataclass
 import re
+import xml.etree.ElementTree as ET
+
+
+# AUDIT-11-A1：SVG 上传内容净化上限
+_MAX_SVG_SIZE_BYTES = 1 * 1024 * 1024
+
+# 危险标签：script 可直接执行；foreignObject/iframe/object/embed 可引入外部内容；
+# style 虽非直接脚本，但可触发 CSS exfil / expression（旧 IE），一并移除以简化攻击面。
+_BANNED_SVG_TAGS = frozenset({"script", "foreignobject", "iframe", "object", "embed", "style"})
+
+# 危险 URI scheme
+_DANGEROUS_URI_SCHEMES = ("javascript:", "data:text/html", "vbscript:")
 
 
 @dataclass
@@ -15,6 +28,16 @@ class ValidationResult:
     errors: list[str]
     warnings: list[str]
     complexity: dict  # {point_count, stroke_count, bbox}
+
+
+@dataclass
+class SanitizationResult:
+    """SVG 内容净化结果"""
+
+    ok: bool
+    cleaned: str
+    removed: list[str]
+    error: str = ""
 
 
 def _validate_complexity(point_count: int, max_points: int, errors: list, warnings: list) -> None:
@@ -126,3 +149,98 @@ def _calculate_bbox(points: list[tuple[float, float]]) -> dict:
         "width": max(xs) - min(xs),
         "height": max(ys) - min(ys),
     }
+
+
+def _local_name(tag: str) -> str:
+    """剥离 XML namespace，只返回本地标签名/属性名。"""
+    if tag.startswith("{"):
+        return tag.split("}", 1)[-1].lower()
+    return tag.lower()
+
+
+def _is_dangerous_uri(value: str) -> bool:
+    """检查属性值是否包含可执行 URI scheme。"""
+    lowered = value.strip().lower()
+    return any(lowered.startswith(scheme) for scheme in _DANGEROUS_URI_SCHEMES)
+
+
+def _sanitize_element(element: ET.Element, removed: list[str]) -> bool:
+    """递归处理单个元素：返回 True 表示该元素应被保留。"""
+    tag_local = _local_name(element.tag)
+
+    if tag_local in _BANNED_SVG_TAGS:
+        removed.append(f"<{tag_local}>")
+        return False
+
+    # 检查并清洗属性
+    for attr_name in list(element.attrib):
+        attr_local = _local_name(attr_name)
+        value = element.attrib[attr_name]
+
+        if attr_local.startswith("on"):
+            removed.append(f"{tag_local}@{attr_local}")
+            del element.attrib[attr_name]
+            continue
+
+        if attr_local in {"href", "src", "data", "xlink:href"} and _is_dangerous_uri(value):
+            removed.append(f"{tag_local}@{attr_local}={value[:40]}")
+            del element.attrib[attr_name]
+            continue
+
+    # 递归处理子元素：必须倒序删除，避免索引错乱
+    for child in list(element):
+        if not _sanitize_element(child, removed):
+            element.remove(child)
+
+    return True
+
+
+def sanitize_svg_markup(svg_bytes: bytes | str) -> SanitizationResult:
+    """净化 SVG 标记：删除 script/foreignObject/iframe/object/embed/style 标签、
+    事件处理器属性以及 javascript:/data:text/html 等危险 URI。
+
+    使用标准库 xml.etree.ElementTree 解析，拒绝 DOCTYPE/处理指令以防御
+    XXE/Billion laughs 攻击向量。
+
+    若内容不以 '<' 开头（例如纯 path data），视为无标记内容直接放行。
+    """
+    if isinstance(svg_bytes, str):
+        raw = svg_bytes
+    else:
+        try:
+            raw = svg_bytes.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            return SanitizationResult(ok=False, cleaned="", removed=[], error=f"invalid utf-8: {exc}")
+
+    if len(raw.encode("utf-8")) > _MAX_SVG_SIZE_BYTES:
+        return SanitizationResult(
+            ok=False,
+            cleaned="",
+            removed=[],
+            error=f"SVG exceeds max size {_MAX_SVG_SIZE_BYTES} bytes",
+        )
+
+    stripped = raw.strip()
+    if not stripped.startswith("<"):
+        # 纯路径数据或文本，无 SVG 标记，无需净化
+        return SanitizationResult(ok=True, cleaned=raw, removed=[])
+
+    lower_preview = stripped.lower()
+    if "<!doctype" in lower_preview:
+        return SanitizationResult(ok=False, cleaned="", removed=[], error="DOCTYPE is not allowed in SVG")
+
+    try:
+        root = ET.fromstring(raw)
+    except ET.ParseError as exc:
+        return SanitizationResult(ok=False, cleaned="", removed=[], error=f"SVG parse error: {exc}")
+
+    removed: list[str] = []
+    _sanitize_element(root, removed)
+
+    # 固定常见 SVG 命名空间前缀，避免序列化后出现 ns0/ns1
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+    ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+
+    # encoding='unicode' 返回 str，不带 XML 声明
+    cleaned = ET.tostring(root, encoding="unicode")
+    return SanitizationResult(ok=True, cleaned=cleaned, removed=removed)

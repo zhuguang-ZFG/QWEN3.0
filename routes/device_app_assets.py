@@ -15,6 +15,7 @@ from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, ok, read_body, str_field
 from routes.device_app_task_store import insert_task_row
+from xiaozhi_drawing.svg_validator import sanitize_svg_markup
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-assets"])
 
@@ -128,6 +129,33 @@ async def get_asset(asset_id: str, authorization: str = Header(default="")):
     return ok(_asset_payload(row))
 
 
+def _prepare_asset_payload(body: dict[str, Any]) -> tuple[str, str, str, str, list[str], JSONResponse | None]:
+    """校验并清洗 asset 创建参数；返回 (title, category, content, difficulty, tags, error)。"""
+    title = str_field(body, "title")
+    category = str_field(body, "category")
+    content = str_field(body, "content")
+    if not title or not category or not content:
+        return "", "", "", "", [], err(400, "title, category and content are required", 400)
+    if category not in _ASSET_CATEGORIES:
+        return "", "", "", "", [], err(400, f"invalid category: {category}", 400)
+
+    if category == "svg" and content:
+        sanitized = sanitize_svg_markup(content)
+        if not sanitized.ok:
+            return "", "", "", "", [], err(400, f"invalid svg: {sanitized.error}", 400)
+        content = sanitized.cleaned
+
+    difficulty = str_field(body, "difficulty") or "easy"
+    if difficulty not in _DIFFICULTIES:
+        return "", "", "", "", [], err(400, f"invalid difficulty: {difficulty}", 400)
+
+    tags = body.get("tags", [])
+    if not isinstance(tags, list):
+        return "", "", "", "", [], err(400, "tags must be an array", 400)
+
+    return title, category, content, difficulty, [str(t) for t in tags], None
+
+
 @router.post("/assets")
 async def create_asset(request: Request, authorization: str = Header(default="")):
     account = authorize(authorization)
@@ -138,21 +166,9 @@ async def create_asset(request: Request, authorization: str = Header(default="")
     if isinstance(body, JSONResponse):
         return body
 
-    title = str_field(body, "title")
-    category = str_field(body, "category")
-    content = str_field(body, "content")
-    if not title or not category or not content:
-        return err(400, "title, category and content are required", 400)
-    if category not in _ASSET_CATEGORIES:
-        return err(400, f"invalid category: {category}", 400)
-
-    difficulty = str_field(body, "difficulty") or "easy"
-    if difficulty not in _DIFFICULTIES:
-        return err(400, f"invalid difficulty: {difficulty}", 400)
-
-    tags = body.get("tags", [])
-    if not isinstance(tags, list):
-        return err(400, "tags must be an array", 400)
+    title, category, content, difficulty, tags, error = _prepare_asset_payload(body)
+    if error is not None:
+        return error
 
     asset_id = new_id()
     with connect() as conn:
@@ -168,7 +184,7 @@ async def create_asset(request: Request, authorization: str = Header(default="")
                 category,
                 content,
                 str_field(body, "previewUrl") or body.get("preview_url", ""),
-                json.dumps([str(t) for t in tags], ensure_ascii=False),
+                json.dumps(tags, ensure_ascii=False),
                 difficulty,
                 now(),
             ),

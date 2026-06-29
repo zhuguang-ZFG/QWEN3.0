@@ -1,5 +1,17 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 AUDIT-11 A1：SVG 上传内容净化
+
+- **目标**：消除 `xiaozhi_drawing/svg_validator.py` 只做几何校验、不做内容净化的存储型 XSS 风险。
+- **实现**：
+  - `xiaozhi_drawing/svg_validator.py` 新增 `sanitize_svg_markup`：用标准库 `xml.etree.ElementTree` 解析；删除 `script`/`foreignObject`/`iframe`/`object`/`embed`/`style` 标签；删除 `on*` 事件处理器属性；删除 `javascript:`/`data:text/html`/`vbscript:` 危险 URI；拒绝 `<!DOCTYPE`；纯 path data（不以 `<` 开头）直接放行。
+  - `routes/device_app_assets.py`：`POST /device/v1/app/assets` 在 `category=svg` 时调用清洗；重构 `_prepare_asset_payload` 保持 `create_asset` 不超过 50 行。
+  - `tests/test_svg_validator.py` 新增 5 个净化用例：script 标签、事件处理器、javascript href、DOCTYPE 拒绝、合法 SVG 保留。
+- **验证**：
+  - `tests/test_svg_validator.py` + `tests/test_device_app_assets.py`：**27 passed, 0 failed**。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件 clean。
+- **提交部署**：待提交。
+
 ## 2026-06-29 延后项修复：AUDIT-8 P2/P4 + AUDIT-4 F1（三阶段核心路径优化）
 
 - **目标**：处理全量修复中标注延后的核心路径项（intent 去重、客户端重试、httpx 连接池复用），分三阶段独立可回滚。
