@@ -709,9 +709,10 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | I1 | `integrations/autohanding/client.py` | `_extract_first_png` 解压前检查 `zf.getinfo(names[0]).file_size` 上限（50MB），超限拒绝。防 zip bomb（实测 497KB 压缩→500MB 解压可 OOM） | ruff 通过 |
 | W1 | `routes/device_gateway_ws.py`、`device_gateway/sessions.py`、`routes/device_gateway_ws_handlers.py` | WS receive 加 `asyncio.wait_for` 超时（鉴权前 60s/鉴权后 600s），防 Slowloris；`SessionRegistry` 加 `_MAX_DEVICE_SESSIONS=2000` 连接上限，`register` 返回 `"too_many"` 时 `handle_hello` 拒绝连接 close(1013) | ruff + 45 测试通过 |
 | A1 | `xiaozhi_drawing/svg_validator.py`、`routes/device_app_assets.py` | 新增 `sanitize_svg_markup`：用标准库 `xml.etree.ElementTree` 删除 `script`/`foreignObject`/`iframe`/`object`/`embed`/`style` 标签、事件处理器属性、`javascript:` 危险 URI；拒绝 DOCTYPE；纯 path data 直接放行。设备 asset 创建 `category=svg` 时强制清洗 | 27 测试通过 |
+| I2 | `integrations/autohanding/client.py`、`server_lifespan.py` | autohanding 客户端改用缓存的 `httpx.AsyncClient` 单例（带连接池），避免每次请求重建 TLS 握手；`server_lifespan` shutdown 调用 `close_autohanding_client` | 10 测试通过 |
 
-- **延后项**：W2（移除 query 参数 token 注入，需前后端协同）、W3（僵尸会话心跳清理）、I2（autohanding 连接池复用）
-- 状态：**AUDIT-11 HIGH 批次已关闭**（I1/W1/A1）。
+- **延后项**：W2（移除 query 参数 token 注入，需前后端协同）、W3（僵尸会话心跳清理）
+- 状态：**AUDIT-11 HIGH/MEDIUM 批次已关闭**（I1/W1/A1/I2）。
 
 
 ## 2026-06-29 AUDIT-12：U8/U1 固件侧安全与健壮性审查

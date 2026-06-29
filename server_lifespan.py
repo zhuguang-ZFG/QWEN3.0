@@ -106,6 +106,14 @@ async def _run_shutdown_phases() -> None:
     except Exception as exc:
         _log.warning("aclose_all_clients failed on shutdown: %s", exc)
 
+    # AUDIT-11-I2: close autohanding shared async client on shutdown
+    try:
+        from integrations.autohanding.client import close_autohanding_client
+
+        await close_autohanding_client()
+    except Exception as exc:
+        _log.warning("close_autohanding_client failed on shutdown: %s", exc)
+
 
 @asynccontextmanager
 async def lifespan(application):

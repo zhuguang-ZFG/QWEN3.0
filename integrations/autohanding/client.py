@@ -26,6 +26,35 @@ DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
 
+# AUDIT-11-I2：复用 httpx.AsyncClient 连接池，避免每次请求重建 TLS 握手。
+_SHARED_ASYNC_CLIENT: httpx.AsyncClient | None = None
+_SHARED_CLIENT_LOCK = asyncio.Lock()
+_SHARED_CLIENT_TIMEOUT = httpx.Timeout(DEFAULT_TIMEOUT_SECONDS, connect=10.0)
+_SHARED_LIMITS = httpx.Limits(max_connections=10, max_keepalive_connections=3)
+
+
+async def _shared_async_client() -> httpx.AsyncClient:
+    """返回缓存的 AsyncClient；首次调用在当前事件循环内懒创建。"""
+    global _SHARED_ASYNC_CLIENT
+    if _SHARED_ASYNC_CLIENT is None:
+        async with _SHARED_CLIENT_LOCK:
+            if _SHARED_ASYNC_CLIENT is None:
+                _SHARED_ASYNC_CLIENT = httpx.AsyncClient(
+                    timeout=_SHARED_CLIENT_TIMEOUT,
+                    follow_redirects=True,
+                    limits=_SHARED_LIMITS,
+                )
+    return _SHARED_ASYNC_CLIENT
+
+
+async def close_autohanding_client() -> None:
+    """关闭共享 AsyncClient；应由 lifespan shutdown 调用。"""
+    global _SHARED_ASYNC_CLIENT
+    client = _SHARED_ASYNC_CLIENT
+    _SHARED_ASYNC_CLIENT = None
+    if client is not None:
+        await client.aclose()
+
 
 class AutohandingRateLimitError(Exception):
     """Raised when autohanding reports rate limiting."""
@@ -83,7 +112,7 @@ async def _post_preview(
     timeout: float,
 ) -> httpx.Response:
     try:
-        return await client.post(url, files=form, headers=headers)
+        return await client.post(url, files=form, headers=headers, timeout=timeout)
     except httpx.TimeoutException as exc:
         raise AutohandingClientError(f"request timeout after {timeout}s") from exc
     except httpx.HTTPError as exc:
@@ -177,7 +206,6 @@ async def convert_text(
     headers = _build_headers()
     url = constants.PREVIEW_BASE_URL + constants.PREVIEW_TEXT_ENDPOINT
 
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        response = await _post_preview_with_retry(client, url, form, headers, timeout, max_retries=max_retries)
-
+    client = await _shared_async_client()
+    response = await _post_preview_with_retry(client, url, form, headers, timeout, max_retries=max_retries)
     return _parse_preview_response(response)

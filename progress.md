@@ -1,5 +1,18 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 AUDIT-11 I2：autohanding 连接池复用
+
+- **目标**：消除 autohanding 客户端每次请求新建 `httpx.AsyncClient` 的 TLS 握手开销与 FD 压力。
+- **实现**：
+  - `integrations/autohanding/client.py`：新增 `_shared_async_client()` 缓存带 `httpx.Limits` 的 `AsyncClient`；`convert_text` 改用缓存实例；新增 `close_autohanding_client()` 供 lifespan shutdown 调用；`_post_preview` 把 `timeout` 透传到每次 `post`。
+  - `server_lifespan.py`：shutdown 阶段调用 `close_autohanding_client()`。
+  - `tests/test_autohanding_client.py`：改为直接设置 `_SHARED_ASYNC_CLIENT` 为 mock（替代原来的 `httpx.AsyncClient` 上下文管理器 patch），新增 `test_close_autohanding_client`。
+- **验证**：
+  - `tests/test_autohanding_client.py`：**10 passed, 0 failed**。
+  - `tests/test_handwriting_route.py`：**10 passed, 0 failed**（无回归）。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件 clean。
+- **提交部署**：待提交。
+
 ## 2026-06-29 AUDIT-11 A1：SVG 上传内容净化
 
 - **目标**：消除 `xiaozhi_drawing/svg_validator.py` 只做几何校验、不做内容净化的存储型 XSS 风险。
