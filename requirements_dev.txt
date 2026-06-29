@@ -1,9 +1,11 @@
 # LiMa development/test/lint dependencies
 # Install: pip install -r requirements_dev.txt
+#
+# AUDIT-7-D4: 版本收紧（~= 锁定主.次，允许补丁更新）
 
 # Test and static analysis tools (moved from requirements_server.txt)
-hypothesis>=6.0
+hypothesis~=6.0
 pyright>=1.1.0
-deptry>=0.20
-pytest-timeout>=2.0
-freezegun>=1.5.0
+deptry~=0.20
+pytest-timeout~=2.0
+freezegun~=1.5
