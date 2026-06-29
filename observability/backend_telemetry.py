@@ -34,6 +34,19 @@ def _telemetry_path() -> Path:
     return _data_dir() / "backend_telemetry.jsonl"
 
 
+def _flush_records(records: list[dict[str, Any]]) -> None:
+    from observability.jsonl_store import append_jsonl_record
+
+    path = _telemetry_path()
+    for record in records:
+        append_jsonl_record(path, record, keep_lines=MAX_RECENT, logger=_log)
+
+
+from observability import telemetry_aggregator
+
+telemetry_aggregator.install_default(_flush_records)
+
+
 def _short(value: Any, limit: int = 80) -> str:
     text = str(value or "")
     if not text:
@@ -150,14 +163,8 @@ def record_backend_attempt(
             success=success,
         ),
     }
-    from observability.jsonl_store import append_jsonl_record
-
-    return append_jsonl_record(
-        _telemetry_path(),
-        record,
-        keep_lines=MAX_RECENT,
-        logger=_log,
-    )
+    telemetry_aggregator.record(record)
+    return True
 
 
 def _read_recent(limit: int) -> list[dict[str, Any]]:
@@ -182,17 +189,23 @@ def _read_recent(limit: int) -> list[dict[str, Any]]:
 
 
 def recent_backend_attempts(limit: int = MAX_RECENT) -> list[dict[str, Any]]:
+    # AUDIT-5-O10：读取前先把内存中的聚合记录刷到 jsonl，保证 guard/summary 看到最新数据。
+    telemetry_aggregator.flush()
     return _read_recent(max(limit, 1))
 
 
+def _count(item: dict[str, Any]) -> int:
+    return max(int(item.get("count", 1)), 1)
+
+
 def _build_success_rate_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
-    total = len(records)
-    failures = sum(1 for item in records if not item.get("success", False))
+    total = sum(_count(item) for item in records)
+    failures = sum(_count(item) for item in records if not item.get("success", False))
     error_classes: dict[str, int] = {}
     for item in records:
         error_class = _short(item.get("error_class", ""), 40)
         if error_class:
-            error_classes[error_class] = error_classes.get(error_class, 0) + 1
+            error_classes[error_class] = error_classes.get(error_class, 0) + _count(item)
     success = total - failures
     return {
         "total": total,
@@ -236,7 +249,7 @@ def _build_status_breakdown(records: list[dict[str, Any]]) -> dict[str, int]:
         code = _status(item.get("status_code", 0))
         if code > 0:
             key = str(code)
-            breakdown[key] = breakdown.get(key, 0) + 1
+            breakdown[key] = breakdown.get(key, 0) + _count(item)
     return breakdown
 
 
@@ -245,22 +258,23 @@ def backend_telemetry_summary(limit: int = 20, slow_ms: int = 30000) -> dict[str
     success_metrics = _build_success_rate_metrics(records)
     latency_metrics = _build_latency_metrics(records)
     status_breakdown = _build_status_breakdown(records)
-    slow = sum(1 for item in records if _int(item.get("latency_ms", 0)) >= slow_ms)
+    slow = sum(_count(item) for item in records if _int(item.get("latency_ms", 0)) >= slow_ms)
     per_backend: dict[str, dict[str, Any]] = {}
     for item in records:
         backend = _short(item.get("backend", "unknown")) or "unknown"
         latency = _int(item.get("latency_ms", 0))
         ok = bool(item.get("success", False))
         err = _short(item.get("error_class", ""), 40)
+        n = _count(item)
         stats = per_backend.setdefault(backend, _BACKEND_STATS_TEMPLATE.copy())
-        stats["attempts"] += 1
-        stats["success"] += int(ok)
-        stats["failures"] += int(not ok)
-        stats["total_latency_ms"] += latency
+        stats["attempts"] += n
+        stats["success"] += int(ok) * n
+        stats["failures"] += int(not ok) * n
+        stats["total_latency_ms"] += latency * n
         stats["max_latency_ms"] = max(stats["max_latency_ms"], latency)
-        stats["slow"] += int(latency >= slow_ms)
+        stats["slow"] += int(latency >= slow_ms) * n
         if err:
-            stats["error_classes"][err] = stats["error_classes"].get(err, 0) + 1
+            stats["error_classes"][err] = stats["error_classes"].get(err, 0) + n
     by_backend: dict[str, dict[str, Any]] = {}
     ranked = sorted(per_backend.items(), key=lambda pair: (-pair[1]["attempts"], pair[0]))[:10]
     for backend, stats in ranked:

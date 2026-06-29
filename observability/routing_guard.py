@@ -58,14 +58,19 @@ def _empty_backend_stats() -> dict[str, Any]:
     }
 
 
+def _count(item: dict[str, Any]) -> int:
+    return max(int(item.get("count", 1)), 1)
+
+
 def _update_stats(stats: dict[str, Any], item: dict, order: int) -> None:
     """Update one backend's stats from a single telemetry record."""
     ts = float(item.get("ts", 0) or 0)
     error_class = _short(item.get("error_class"), 40)
     success = bool(item.get("success", False))
-    stats["attempts"] += 1
+    n = _count(item)
+    stats["attempts"] += n
     if success:
-        stats["success"] += 1
+        stats["success"] += n
         if (ts, order) > (
             float(stats["latest_success_ts"]),
             int(stats["latest_success_order"]),
@@ -73,7 +78,7 @@ def _update_stats(stats: dict[str, Any], item: dict, order: int) -> None:
             stats["latest_success_ts"] = ts
             stats["latest_success_order"] = order
     else:
-        stats["failures"] += 1
+        stats["failures"] += n
         if (ts, order) > (
             float(stats["latest_failure_ts"]),
             int(stats["latest_failure_order"]),
@@ -82,7 +87,7 @@ def _update_stats(stats: dict[str, Any], item: dict, order: int) -> None:
             stats["latest_failure_order"] = order
             stats["latest_failure_class"] = error_class
         if error_class in HARD_FAILURE_CLASSES:
-            stats["hard_failures"] += 1
+            stats["hard_failures"] += n
 
 
 def _aggregate_records(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:

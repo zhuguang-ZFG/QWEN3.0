@@ -1,5 +1,20 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-5 O10：后端遥测错误聚合
+
+- **目标**：解决同类错误（如同一后端 quota/auth/timeout）逐条写入 `backend_telemetry.jsonl`，500 条上限被重复记录刷掉、根因丢失的问题。
+- **实现**：
+  - 新增 `observability/telemetry_aggregator.py`：`BackendTelemetryAggregator` 按（backend、error_class、status_code、phase、attempt 等）指纹聚合重复记录；同一指纹累计 `count`、最新时间、最大 latency；内存缓冲达到 100 条唯一指纹或 500 次尝试时自动 flush 到 jsonl；同时启动 60 秒周期 flush 与进程退出 flush。
+  - `observability/backend_telemetry.py`：`record_backend_attempt` 改为写入聚合器；`recent_backend_attempts` 在读取前自动 flush，保证 routing_guard/summary 看到最新数据；summary 各指标按 `count` 加权统计。
+  - `observability/routing_guard.py`：`_update_stats` 按记录的 `count` 更新 attempts/failures/hard_failures，使聚合后的记录仍能被正确隔离。
+  - 新增 `tests/test_telemetry_aggregator.py`：覆盖合并重复、分离不同指纹、latency/count 更新、阈值 flush。
+- **验证**：
+  - `tests/test_telemetry_aggregator.py`：**4 passed, 0 failed**；`tests/test_backend_telemetry.py`、`tests/test_routing_guard.py`、`tests/test_ops_metrics_payload.py` 均通过。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4173 passed, 3 skipped, 2 deselected, 0 failed**。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 约 15 秒后返回 200。
+- **状态**：AUDIT-5 O10 关闭；AUDIT-5 剩余延后项为 O3/O5/O6。
+
 ## 2026-06-30 AUDIT-5 O9：滚动文件日志（RotatingFileHandler）
 
 - **目标**：解决无日志轮转导致高并发错误循环冲爆磁盘的问题。
