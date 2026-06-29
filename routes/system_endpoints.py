@@ -64,23 +64,49 @@ def _startup_error_phases(errors: list[Any]) -> list[str]:
     return phases
 
 
+def _model_owned_by(model_id: str, backend_name: str) -> str:
+    """Derive an OpenAI-style owned_by value from model id or backend key."""
+    if "/" in model_id:
+        return model_id.split("/", 1)[0]
+    lowered = backend_name.lower()
+    if lowered.startswith(("claude_", "anthropic_")):
+        return "anthropic"
+    if lowered.startswith(("gpt", "o1", "o3", "o4")):
+        return "openai"
+    if "deepseek" in lowered:
+        return "deepseek"
+    if "qwen" in lowered:
+        return "qwen"
+    if "gemini" in lowered or "google" in lowered:
+        return "google"
+    if "llama" in lowered or "meta" in lowered:
+        return "meta"
+    if lowered.startswith(("free_", "community_")):
+        return "community"
+    return "lima"
+
+
 @router.get("/v1/models", dependencies=[Depends(require_private_api_key)])
 async def list_models():
-    models = [
-        {"id": "claude-opus-4-7", "object": "model", "created": _model_created, "owned_by": "anthropic"},
-        {"id": "claude-sonnet-4", "object": "model", "created": _model_created, "owned_by": "anthropic"},
-        {"id": "claude-haiku-4", "object": "model", "created": _model_created, "owned_by": "anthropic"},
-        {"id": "gpt-5.4", "object": "model", "created": _model_created, "owned_by": "openai"},
-        {"id": "gpt-4.1", "object": "model", "created": _model_created, "owned_by": "openai"},
-        {"id": "o1", "object": "model", "created": _model_created, "owned_by": "openai"},
-        {"id": "o4-mini", "object": "model", "created": _model_created, "owned_by": "openai"},
-        {"id": "deepseek-v4-pro", "object": "model", "created": _model_created, "owned_by": "deepseek"},
-        {"id": "deepseek-v4-flash", "object": "model", "created": _model_created, "owned_by": "deepseek"},
-        {"id": "qwen3-coder", "object": "model", "created": _model_created, "owned_by": "qwen"},
-        {"id": "gemini-2.0-flash", "object": "model", "created": _model_created, "owned_by": "google"},
-        {"id": "llama-3.3-70b", "object": "model", "created": _model_created, "owned_by": "meta"},
-        {"id": _model_id, "object": "model", "created": _model_created, "owned_by": "donglicao"},
-    ]
+    """Return dynamically registered models instead of a hardcoded list."""
+    seen: set[str] = set()
+    models: list[dict[str, Any]] = []
+    for name, cfg in BACKENDS.items():
+        model_id = cfg.get("model") or name
+        if not model_id or model_id in seen:
+            continue
+        seen.add(model_id)
+        models.append(
+            {
+                "id": model_id,
+                "object": "model",
+                "created": _model_created,
+                "owned_by": _model_owned_by(str(model_id), name),
+            }
+        )
+    models.append(
+        {"id": _model_id, "object": "model", "created": _model_created, "owned_by": "donglicao"}
+    )
     return {"object": "list", "data": models}
 
 

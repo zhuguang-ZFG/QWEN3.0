@@ -45,6 +45,45 @@ def test_models_accepts_bearer_token(monkeypatch):
     assert response.json()["object"] == "list"
 
 
+def test_models_dynamic_from_backends_registry(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr(
+        system_endpoints,
+        "BACKENDS",
+        {
+            "groq_llama": {"model": "llama-3.3-70b"},
+            "openrouter_gpt": {"model": "openai/gpt-4.1"},
+            "no_model_backend": {},
+        },
+    )
+    client = TestClient(server.app)
+    response = client.get("/v1/models", headers={"Authorization": "Bearer test-key"})
+    assert response.status_code == 200
+    payload = response.json()
+    ids = {m["id"] for m in payload["data"]}
+    assert "llama-3.3-70b" in ids
+    assert "openai/gpt-4.1" in ids
+    owned_by = {m["id"]: m["owned_by"] for m in payload["data"]}
+    assert owned_by["openai/gpt-4.1"] == "openai"
+    assert owned_by["llama-3.3-70b"] == "meta"
+
+
+def test_models_dedup_duplicate_model_ids(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr(
+        system_endpoints,
+        "BACKENDS",
+        {
+            "provider_a": {"model": "shared-model"},
+            "provider_b": {"model": "shared-model"},
+        },
+    )
+    client = TestClient(server.app)
+    response = client.get("/v1/models", headers={"Authorization": "Bearer test-key"})
+    data = response.json()["data"]
+    assert sum(1 for m in data if m["id"] == "shared-model") == 1
+
+
 def test_live_key_returns_metadata_not_raw_provider_key(monkeypatch):
     secret = "sk-google-test-secret-do-not-leak"
     monkeypatch.setenv("GOOGLE_AI_KEY", secret)

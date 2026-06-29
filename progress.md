@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-6 A7：`/v1/models` 动态生成
+
+- **目标**：消除 `/v1/models` 硬编码 13 个模型 ID 与实际注册后端漂移的问题。
+- **实现**：
+  - `routes/system_endpoints.py`：`list_models()` 改为遍历 `backends_registry.BACKENDS`，从每个后端的 `model` 字段（或 backend name）取模型 ID；去重；按 model id 的 provider 前缀或 backend key 推导 `owned_by`；保留 LiMa 自有模型。
+  - `tests/test_system_endpoints.py`：新增动态生成、去重、`owned_by` 推导测试。
+- **验证**：
+  - `tests/test_system_endpoints.py`：**13 passed, 0 failed**（含 2 个新增用例）。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4154 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-ximxb6lp）。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 约 15 秒后返回 200。
+  - 已 commit 并 push 到 `origin/main`。
+- **状态**：AUDIT-6 A7 关闭；AUDIT-6 剩余延后项为 A4/A5/A6（大范围端点改造）。
+
 ## 2026-06-30 AUDIT-8 P5：embedding LRU 缓存 + 异步 embed 路径
 
 - **目标**：消除语义缓存每次 lookup/store 同步调用 Jina 网络的开销，减少重复查询的 embedding 耗时与失败面。
