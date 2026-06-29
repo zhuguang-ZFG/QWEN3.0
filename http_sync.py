@@ -12,8 +12,14 @@ import httpx
 from response_cleaner import clean_response, _is_backend_error
 
 from backends_registry import BACKENDS
-from http_errors import BackendError, _emit_backend_error, _extract_code, _extract_retry_after
+from http_errors import (
+    BackendError,
+    _emit_backend_error,
+    _extract_code,
+    _extract_retry_after,
+)
 from http_response import _extract_answer, _extract_usage
+from http_retry import _post_with_retry
 
 _log = logging.getLogger(__name__)
 
@@ -221,8 +227,7 @@ def call_api(
 
     try:
         with hc._build_client(backend, timeout) as client:
-            resp = client.post(cfg["url"], content=body, headers=headers)
-            resp.raise_for_status()
+            resp = _post_with_retry(client, cfg["url"], content=body, headers=headers, backend=backend)
             return _process_response(
                 resp.text,
                 backend,

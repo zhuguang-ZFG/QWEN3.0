@@ -89,7 +89,7 @@ async def key_url_inventory():
 
     providers: dict[str, Any] = {}
     try:
-        from key_pool import get_pool_status
+        from key_pool import get_pool_status  # type: ignore[import-not-found]
 
         providers = get_pool_status()
     except (ImportError, AttributeError) as exc:
@@ -120,5 +120,17 @@ async def trigger_retrain():
 
 @router.get("/api/agent-audit", dependencies=[Depends(verify_admin)])
 async def agent_audit(limit: int = 50):
-    """Legacy agent audit endpoint retained for admin UI compatibility."""
-    return {"tasks": []}
+    """Admin audit trail (AUDIT-5-O4).
+
+    原实现硬编码返回空数组（假审计）。现从 tool_gateway.audit 持久化日志读取
+    最近的管理操作（backend 增删/切换、退役等），供 admin UI 展示真实审计。
+    """
+    try:
+        from tool_gateway.audit import query_events
+
+        # query_events 用精确匹配，这里取较多条再 Python 侧过滤 admin_ 前缀
+        recent = query_events(limit=min(max(limit * 4, 200), 500))
+        events = [e for e in recent if str(e.get("event", "")).startswith("admin_")][:limit]
+    except Exception:
+        events = []
+    return {"tasks": events, "count": len(events)}

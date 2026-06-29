@@ -147,6 +147,16 @@ async def _check_attestation(
     return result
 
 
+async def _reject_too_many_connections(websocket: WebSocket, device_id: str, request_id: str | None) -> None:
+    """AUDIT-11-W1：连接数达上限时拒绝新设备。"""
+    _log.warning("device connection limit reached, rejecting device=%s", device_id)
+    await send_ws_error(
+        websocket,
+        ProtocolError("E_TOO_MANY_CONNECTIONS", "server connection limit reached", request_id),
+    )
+    await websocket.close(code=1013)
+
+
 async def handle_hello(
     websocket: WebSocket,
     message: dict[str, Any],
@@ -168,8 +178,12 @@ async def handle_hello(
     )
 
     previous = registry.register(session)
+    # AUDIT-11-W1：连接数达上限，拒绝新设备
+    if previous == "too_many":
+        await _reject_too_many_connections(websocket, device_id, request_id)
+        return None, None, False
     record_device_connected(device_id)
-    if previous and previous.websocket is not websocket:
+    if isinstance(previous, DeviceSession) and previous.websocket is not websocket:
         reattach_tasks(session, previous.take_outstanding_tasks())
         try:
             await previous.websocket.close(code=1012)

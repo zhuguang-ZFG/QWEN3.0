@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 
@@ -12,6 +13,7 @@ _log = logging.getLogger(__name__)
 from backends_registry import BACKENDS
 from http_errors import BackendError
 from http_response import _extract_answer, _extract_usage
+from http_retry import _post_with_retry_async
 from http_sync import _enforce_https_scheme, _handle_call_error
 
 
@@ -48,8 +50,7 @@ async def call_api_async(
 
     try:
         async with hc._build_async_client(backend, timeout) as client:
-            resp = await client.post(cfg["url"], content=body, headers=headers)
-            resp.raise_for_status()
+            resp = await _post_with_retry_async(client, cfg["url"], content=body, headers=headers, backend=backend)
             payload = resp.json()
 
         answer = _extract_answer(payload, cfg["fmt"])
@@ -110,8 +111,7 @@ async def call_raw_async(backend: str, payload: bytes) -> dict:
     _enforce_https_scheme(cfg["url"], backend)
     try:
         async with hc._build_async_client(backend, cfg.get("timeout", 30)) as client:
-            resp = await client.post(cfg["url"], content=payload, headers=headers)
-            resp.raise_for_status()
+            resp = await _post_with_retry_async(client, cfg["url"], content=payload, headers=headers, backend=backend)
             data = resp.json()
         latency_ms = int((time.time() - started) * 1000)
         hc.health_tracker.record_success(backend, latency_ms)

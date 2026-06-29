@@ -6,6 +6,7 @@ for audio streaming (PCM 16kHz 16-bit mono).
 
 from __future__ import annotations
 
+import asyncio
 import json
 from json import JSONDecodeError
 import logging
@@ -107,6 +108,16 @@ async def _handle_text_frame(
     return device_id, session, authenticated, True
 
 
+async def _receive_with_idle_timeout(websocket: WebSocket, authenticated: bool):
+    """AUDIT-11-W1：receive 加超时防 Slowloris。返回 (data, timed_out)。"""
+    recv_timeout = 600 if authenticated else 60
+    try:
+        data = await asyncio.wait_for(websocket.receive(), timeout=recv_timeout)
+        return data, False
+    except asyncio.TimeoutError:
+        return None, True
+
+
 async def handle_device_ws(websocket: WebSocket) -> None:
     await websocket.accept()
     device_id: str | None = None
@@ -114,7 +125,17 @@ async def handle_device_ws(websocket: WebSocket) -> None:
     authenticated = False
     try:
         while True:
-            data = await websocket.receive()
+            # AUDIT-11-W1：receive 加超时，防 Slowloris 慢速攻击（超时逻辑提取到 helper）
+            data, timed_out = await _receive_with_idle_timeout(websocket, authenticated)
+            if timed_out:
+                await send_ws_error(
+                    websocket,
+                    ProtocolError("E_IDLE_TIMEOUT", "connection idle too long", None),
+                )
+                break
+
+            if data is None:
+                break
 
             if data.get("type") == "websocket.disconnect":
                 break

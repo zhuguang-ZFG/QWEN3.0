@@ -38,17 +38,23 @@ from server_bootstrap import (
 )
 from server_lifespan import lifespan
 
+# AUDIT-6-A1：生产环境禁用 Swagger/OpenAPI 文档（防端点结构泄漏）。
+# 默认关闭；开发环境设 LIMA_DOCS_ENABLED=1 可在 /docs、/openapi.json 暴露文档。
+_docs_enabled = os.environ.get("LIMA_DOCS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
 app = FastAPI(
     title="LiMa",
     version=MODEL_VERSION,
     description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
     lifespan=lifespan,
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
 )
 
 if MONITORING.sentry_dsn:
     try:
-        import sentry_sdk
-        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        import sentry_sdk  # type: ignore[import-not-found]
+        from sentry_sdk.integrations.fastapi import FastApiIntegration  # type: ignore[import-not-found]
 
         sentry_sdk.init(
             dsn=MONITORING.sentry_dsn,
