@@ -18,6 +18,7 @@ from config.settings import (
     SECURITY,
     UPLOAD,
     VOICE,
+    WECHAT,
     DigitalHumanConfig,
 )
 
@@ -81,6 +82,16 @@ def distill_log_enabled() -> bool:
 def wechat_dev_login_enabled() -> bool:
     """WeChat dev-login bypass for device app auth."""
     return FLAGS.wechat_dev_login
+
+
+def wechat_miniapp_appid() -> str:
+    """WeChat mini-program AppID for jscode2session."""
+    return WECHAT.miniapp_appid
+
+
+def wechat_miniapp_secret() -> str:
+    """WeChat mini-program AppSecret for jscode2session."""
+    return WECHAT.miniapp_secret
 
 
 def xiaozhi_dev_static_login_code_enabled() -> bool:

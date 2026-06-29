@@ -31,6 +31,7 @@ from config.settings_core import (
     resolve_backend_key,
 )
 from config.voice_settings import VOICE, VOICEPRINT, VOICE_PROVIDERS
+from config.wechat_settings import WechatConfig
 
 DB = DatabaseConfig()
 REDIS = RedisConfig()
@@ -52,8 +53,10 @@ OBSERVABILITY = ObservabilityConfig()
 MONITORING = MonitoringConfig()
 INTEGRATIONS = IntegrationsConfig()
 FLEET = FleetConfig()
+WECHAT = WechatConfig()
 
 __all__ = [
+    "WECHAT",
     "BACKEND_OPS",
     "BRAND",
     "DB",

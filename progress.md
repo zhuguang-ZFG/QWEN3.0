@@ -1,5 +1,45 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 微信小程序一键登录后端诊断
+
+- **目标**：解决生产环境微信小程序一键登录无法使用的问题。
+- **发现**：
+  - 后端真实微信登录已实现（`device_logic/wechat_gateway.py` 调用 `jscode2session`）。
+  - VPS `.env` 中 `LIMA_WX_APPID=wx095c2365e9138c2f` 已配置，但 `LIMA_WX_SECRET` 为空。
+  - 由于 `LIMA_WX_SECRET` 未配置，`_login_by_wechat` 在真实微信登录路径失败后进入 `else` 分支，返回 `503 WeChat login is not configured`。
+  - 已清理 `.env` 中重复的 `LIMA_XIAOZHI_WECHAT_DEV_LOGIN` 和 `LIMA_DEVICE_AUTH_RATE_REDIS` 条目，当前均为 `0`。
+  - 服务已重启，`/health/ready` 正常，登录接口返回清晰的 503 错误。
+- **阻塞**：需要用户提供微信小程序的 `AppSecret`，写入 VPS `.env` 后重启服务即可启用真实微信登录。
+- **额外修复**：
+  - `device_logic/wechat_gateway.py`：`jscode2session` 改为异步（`httpx.AsyncClient`），避免在 FastAPI async 路由中阻塞事件循环。
+  - `routes/device_app_auth.py` 相应改为 `await gateway.jscode2session(code)`。
+  - 同步更新 `tests/test_wechat_gateway.py` / `tests/test_device_app_auth.py`。
+  - `.env.example` 追加 `LIMA_XIAOZHI_WECHAT_DEV_LOGIN=0` 说明。
+  - VPS 磁盘告警：根分区使用率达 98%，已清理 systemd journal（`journalctl --vacuum-size=500M`）并轮转压缩 `/var/log/messages`，释放约 1.6G，降至 95%。
+- **验证**：
+  - 本地 `.venv310` 全量 `pytest --tb=short -q`：`4185 passed, 3 skipped, 2 deselected, 1 flaky failure in test_observability_log_rotation.py::test_log_file_created_and_rotated`（单独重试通过）。
+  - `ruff check` / `pyright` 针对改动文件全部 clean。
+  - `scripts/deploy_unified.py --slice core` 部署成功，VPS `/health/ready` 200。
+  - `curl -X POST http://127.0.0.1:8080/device/v1/app/auth/login -d '{"code":"123"}'` 返回 `{"code":503,"message":"WeChat login is not configured"}`。
+
+### 2026-06-27 续：AppSecret 配置与小程序上传
+
+- **AppSecret 配置**：VPS `/opt/lima-router/.env` 已写入 `LIMA_WX_APPID=wxbf3c1e0013b46343` 与 `LIMA_WX_SECRET=***`，重启 `lima-router` 后生效。
+- **后端通联验证**：使用假 `code` 调用微信 `jscode2session` 返回 `{"errcode":40029,"errmsg":"invalid code"}`，后端包装为 HTTP 401；证明 AppID/Secret 有效，真实登录链路已打通。
+- **异步化修复**：`device_logic/wechat_gateway.py` 的 `jscode2session` 已改为 `httpx.AsyncClient` 异步调用；`routes/device_app_auth.py` 已 `await`；相关测试同步更新。
+- **小程序源码同步**：
+  - `manager-mobile` AppID 全部替换为 `wxbf3c1e0013b46343`（`env/.env`、`project.config.json`、`src/manifest.json`）。
+  - 版本号 bump 至 `3.5.0`。
+  - `pnpm run build:mp-weixin` 成功。
+- **小程序上传**：通过微信开发者工具 CLI 上传 `dist/build/mp-weixin` 至微信公众平台，大小 999.1 KB，版本 3.5.0。
+- **VPS 清理**：清理 systemd journal、轮转压缩 `/var/log/messages`，根分区从 98% 降至 95%；终止了之前残留的 `find /` 与 `du -` 僵尸进程，缓解 I/O wait。
+- **验证**：
+  - 本地 `.venv310` 聚焦测试 `tests/test_device_app_auth.py` + `tests/test_wechat_gateway.py`：**11 passed, 0 failed**。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 针对改动文件全部 clean。
+  - VPS `/health/ready` 200。
+- **当前阻塞**：小程序上传后需在微信公众平台「版本管理」中提交审核/发布；真实设备登录需发布后用真 code 测试。
+- **待跟进风险**：VPS 内存仅 1.8G，已用 1.6G，swap 1.4G 活跃，kswapd 与 I/O wait 仍高，登录请求偶发超时。建议升级内存或停止非核心服务（searxng/new-api/one-api/netdata 等）。
+
 ## 2026-06-30 AUDIT-5 O3：告警规则评估器
 
 - **目标**：解决告警规则系统只有 CRUD 端点、没有评估器、配置的阈值永远不会触发的问题。

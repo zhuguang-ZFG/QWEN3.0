@@ -124,3 +124,33 @@ def test_device_app_auth_dev_mode_without_login_code_returns_503(tmp_path, monke
         response = client.post(path, json=body)
         assert response.status_code == 503, f"{path}: {response.text}"
         assert "SMS verification code is not configured" in response.json()["message"]
+
+
+def test_device_app_auth_wechat_login_with_real_config(tmp_path, monkeypatch):
+    from config import settings
+    import device_logic.wechat_gateway as wechat_gateway
+
+    monkeypatch.setattr(settings.WECHAT, "miniapp_appid", "wxappid")
+    monkeypatch.setattr(settings.WECHAT, "miniapp_secret", "secret")
+    monkeypatch.delenv("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", raising=False)
+
+    original_jscode2session = wechat_gateway.WechatMiniappGateway.jscode2session
+
+    async def fake_jscode2session(self, code):
+        if code == "valid-code":
+            return {"openid": "o-real", "session_key": "sk", "unionid": ""}
+        raise wechat_gateway.WechatLoginError("invalid code")
+
+    monkeypatch.setattr(wechat_gateway.WechatMiniappGateway, "jscode2session", fake_jscode2session)
+
+    try:
+        client, _store = make_client(tmp_path, monkeypatch)
+        logged_in = client.post("/device/v1/app/auth/login", json={"code": "valid-code"})
+        assert logged_in.status_code == 200, logged_in.text
+        assert logged_in.json()["accountId"]
+        assert logged_in.json()["token"]
+
+        bad = client.post("/device/v1/app/auth/login", json={"code": "bad-code"})
+        assert bad.status_code == 401
+    finally:
+        monkeypatch.setattr(wechat_gateway.WechatMiniappGateway, "jscode2session", original_jscode2session)

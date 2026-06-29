@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Header, Request, Response
 
-from config.env import wechat_dev_login_enabled, xiaozhi_dev_static_login_code_enabled
+from config.env import (
+    wechat_dev_login_enabled,
+    wechat_miniapp_appid,
+    wechat_miniapp_secret,
+    xiaozhi_dev_static_login_code_enabled,
+)
 from fastapi.responses import JSONResponse
 
 from device_logic.auth import (
@@ -21,8 +27,11 @@ from device_logic.captcha import create_captcha, generate_captcha_image
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, read_body, str_field
 from device_logic.sms import login_code_error, sms_verification_payload, validate_login_code
+from device_logic.wechat_gateway import WechatLoginError, WechatMiniappGateway
 from routes import device_app_auth_email, device_app_auth_keys
 from routes.request_tracking import client_ip
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-auth"])
 router.include_router(device_app_auth_email.router)
@@ -33,12 +42,6 @@ def _static_login_code_error() -> JSONResponse | None:
     if xiaozhi_dev_static_login_code_enabled():
         return login_code_error()
     return err(503, "Static SMS verification code is disabled outside dev mode", 503)
-
-
-def _wechat_openid_from_code(code: str) -> str:
-    if not wechat_dev_login_enabled():
-        return ""
-    return f"wx:{code}"
 
 
 def _find_or_create_wechat_account(openid: str, nickname: str | None) -> Any:
@@ -75,10 +78,25 @@ def _find_or_create_phone_account(phone: str, nickname: str | None) -> Any:
 
 
 async def _login_by_wechat(body: dict) -> dict | JSONResponse:
-    """Handle WeChat-code login path."""
+    """Handle WeChat-code login path.
+
+    Production: call WeChat jscode2session with configured appid/secret.
+    Dev: if LIMA_XIAOZHI_WECHAT_DEV_LOGIN=1, treat code as openid for local tests.
+    """
     code = str_field(body, "code", "smsCode")
-    openid = _wechat_openid_from_code(code)
-    if not openid:
+    appid = wechat_miniapp_appid()
+    secret = wechat_miniapp_secret()
+    if appid and secret:
+        try:
+            gateway = WechatMiniappGateway(appid, secret)
+            session = await gateway.jscode2session(code)
+            openid = session["openid"]
+        except WechatLoginError as exc:
+            logger.warning("WeChat login failed for appid=%s: %s", appid, exc)
+            return err(401, f"WeChat login failed: {exc}", 401)
+    elif wechat_dev_login_enabled():
+        openid = f"wx:{code}"
+    else:
         return err(503, "WeChat login is not configured", 503)
     row = _find_or_create_wechat_account(openid, body.get("nickname"))
     return _login_response(row)
