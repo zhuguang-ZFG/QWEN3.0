@@ -66,6 +66,9 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
         self._counter = itertools.count(1)
         self._tasks: dict[str, dict[str, Any]] = {}
         self._pending_by_device: dict[str, deque[dict[str, Any]]] = {}
+        # AUDIT-9-S3: processing queue mirrors Redis backend's LMOVE semantics,
+        # so ack/recover/abandon are testable in the InMemory backend too.
+        self._processing_by_device: dict[str, dict[str, dict[str, Any]]] = {}
 
     def reset(self) -> None:
         with self._lock:
@@ -121,16 +124,23 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
             return len(self._pending_by_device[device_id])
 
     def pop_pending_tasks(self, device_id: str, limit: int = 16) -> list[dict[str, Any]]:
+        import time as _time
+
         with self._lock:
             queue = self._pending_by_device.get(device_id)
             if not queue:
                 return []
             tasks: list[dict[str, Any]] = []
+            processing = self._processing_by_device.setdefault(device_id, {})
+            now = _time.time()
             while queue and len(tasks) < limit:
                 task = queue.popleft()
                 tasks.append(task)
-                state = self._tasks.setdefault(task["task_id"], {"task": task, "status": "queued", "events": []})
+                tid = task["task_id"]
+                processing[tid] = {"task": task, "processing_started_at": now}
+                state = self._tasks.setdefault(tid, {"task": task, "status": "queued", "events": []})
                 state["status"] = "dispatching"
+                state["processing_started_at"] = now
             if not queue:
                 self._pending_by_device.pop(device_id, None)
             return tasks
@@ -152,10 +162,37 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
                 state["status"] = "dispatched"
 
     def ack_processing(self, device_id: str, task_id: str) -> bool:
-        return False
+        with self._lock:
+            processing = self._processing_by_device.get(device_id, {})
+            entry = processing.pop(task_id, None)
+            if entry is None:
+                return False
+            state = self._tasks.get(task_id)
+            if state:
+                state.pop("processing_started_at", None)
+            return True
 
     def recover_stale_processing(self, device_id: str, timeout_sec: float = 120.0) -> int:
-        return 0
+        import time as _time
+
+        with self._lock:
+            processing = self._processing_by_device.get(device_id)
+            if not processing:
+                return 0
+            now = _time.time()
+            queue = self._pending_by_device.setdefault(device_id, deque())
+            recovered = []
+            for tid, entry in list(processing.items()):
+                started = float(entry.get("processing_started_at", 0))
+                if started > 0 and now - started > timeout_sec:
+                    processing.pop(tid, None)
+                    queue.appendleft(entry["task"])
+                    state = self._tasks.get(tid)
+                    if state:
+                        state["status"] = "queued"
+                        state.pop("processing_started_at", None)
+                    recovered.append(tid)
+            return len(recovered)
 
     def pending_count(self, device_id: str | None = None) -> int:
         with self._lock:
@@ -191,8 +228,17 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
             return False
 
     def abandon_processing_task(self, device_id: str, task_id: str) -> bool:
-        """In-memory store has no processing queue; state update is handled by callers."""
-        return False
+        # AUDIT-9-S3: now removes from processing queue + marks dead_letter.
+        with self._lock:
+            processing = self._processing_by_device.get(device_id, {})
+            entry = processing.pop(task_id, None)
+            if entry is None:
+                return False
+            state = self._tasks.get(task_id)
+            if state:
+                state["status"] = "dead_letter"
+                state.pop("processing_started_at", None)
+            return True
 
     def list_tasks_for_device(self, device_id: str, status: str = "", limit: int = 20) -> list[dict[str, Any]]:
         with self._lock:

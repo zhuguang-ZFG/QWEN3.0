@@ -686,9 +686,10 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | S1 | `device_gateway/redis_store.py` | `reset_task_for_retry` 重置为 queued 时递增 retry_count，与 InMemory 对齐。修复生产 Redis 下 execute_recovery 的 attempt 永远=0 导致的**设备失败任务无限重试** bug | ruff + 37 任务存储测试通过 |
 | S2 | `routes/device_gateway_helpers.py`、`device_gateway/sessions.py` | stale reaper 后台任务（与 AUDIT-4-F2 同一修复，60s 周期扫描 processing 队列） | 见 AUDIT-4 |
 
-- ~~延后项：S3（InMemory 加 processing 队列概念，需改测试矩阵）、S4（task state CAS）~~ S4 ✅ 已完成（见下）；S3 仍延后
+- ~~延后项：S3（InMemory 加 processing 队列概念，需改测试矩阵）、S4（task state CAS）~~ S3/S4 ✅ 均已完成
 - **AUDIT-9 S4 修复完成（2026-06-30）**：新增 `device_gateway/redis_cas.py`——两个 Lua 脚本（CAS 写 + events 原生追加）+ Python 包装（`cas_write_state`/`append_event_atomic`/`_cas_update` helper，bounded 3 次重试）。改造 11 个调用点：`record_motion_event` 用 events 原生追加（彻底消除覆盖丢失）；其余 10 处用 version CAS + 冲突重试；`task_snapshot` 返回 `_version`；`_write_task_state` 加 `expected_version` 参数（None=盲写向后兼容）。Lua 不可用时（测试 fake）回退纯 Python。验证：ruff + size + 10 新增 CAS 测试 + 全量 4196 passed。
-- 状态：**AUDIT-9 全部关闭**（S1/S2/S4）；S3 仍延后（InMemory processing 队列，需改测试矩阵）。
+- **AUDIT-9 S3 修复完成（2026-06-30）**：`device_gateway/store.py` InMemory 后端新增 `_processing_by_device` 队列，`pop_pending_tasks` 把任务移到 processing（记录 `processing_started_at`）；`ack_processing`/`recover_stale_processing`/`abandon_processing_task` 从空实现改为真实逻辑（与 Redis 后端语义对齐）。新增 3 个 InMemory processing 队列测试（ack/recover/abandon）。消除"测试用 InMemory 无法覆盖生产 Redis processing 队列语义"的盲区。
+- 状态：**AUDIT-9 全部关闭**（S1/S2/S3/S4）。
 
 
 ## 2026-06-29 AUDIT-10：运动控制校验与记忆 PII 审查
