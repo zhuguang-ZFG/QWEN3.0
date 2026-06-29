@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Apply Grbl_Esp32 code review fixes. Run: python D:\\QWEN3.0\\apply_grbl_fixes.py"""
+
 from __future__ import annotations
 
 import os
@@ -60,12 +61,12 @@ def patch_motion(text: str) -> tuple[str, list[str]]:
     patterns = [
         (
             "        sys.probe_succeeded = true;  // Indicate to system the probing cycle completed successfully.\r\n    }",
-            "        sys.probe_succeeded = true;  // Indicate to system the probing cycle completed successfully.\r\n        grbl_msg_sendf(CLIENT_SERIAL, MsgLevel::Info, \"Found\");\r\n    }",
+            '        sys.probe_succeeded = true;  // Indicate to system the probing cycle completed successfully.\r\n        grbl_msg_sendf(CLIENT_SERIAL, MsgLevel::Info, "Found");\r\n    }',
             "added Found after probe_succeeded (CRLF)",
         ),
         (
             "        sys.probe_succeeded = true;  // Indicate to system the probing cycle completed successfully.\n    }",
-            "        sys.probe_succeeded = true;  // Indicate to system the probing cycle completed successfully.\n        grbl_msg_sendf(CLIENT_SERIAL, MsgLevel::Info, \"Found\");\n    }",
+            '        sys.probe_succeeded = true;  // Indicate to system the probing cycle completed successfully.\n        grbl_msg_sendf(CLIENT_SERIAL, MsgLevel::Info, "Found");\n    }',
             "added Found after probe_succeeded (LF)",
         ),
     ]

@@ -52,9 +52,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def _file_formatter() -> logging.Formatter:
-    return JsonFormatter() if _ENABLED else logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-    )
+    return JsonFormatter() if _ENABLED else logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 
 def _setup_file_logging() -> None:

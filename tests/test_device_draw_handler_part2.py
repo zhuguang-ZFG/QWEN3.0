@@ -159,9 +159,7 @@ class TestHandleDeviceDraw:
         )
         mock_precheck.return_value = None
 
-        resp = await handle_device_draw(
-            "a cat", device_id="dev-img", image_url="https://example.com/cat.png"
-        )
+        resp = await handle_device_draw("a cat", device_id="dev-img", image_url="https://example.com/cat.png")
         assert resp["status"] == "success"
         assert resp["image_url"] == "https://example.com/cat.png"
         mock_client.generate.assert_not_called()

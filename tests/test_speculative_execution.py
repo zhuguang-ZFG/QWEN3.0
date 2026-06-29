@@ -48,9 +48,7 @@ def test_speculative_worker_failure_does_not_record_health_failure(monkeypatch):
     monkeypatch.setattr(spec_exec.health_tracker, "record_success", lambda *a, **k: None)
     monkeypatch.setattr(spec_exec.budget_manager, "record_usage", lambda *a, **k: None)
     record_failure_calls = []
-    monkeypatch.setattr(
-        spec_exec.health_tracker, "record_failure", lambda *a, **k: record_failure_calls.append((a, k))
-    )
+    monkeypatch.setattr(spec_exec.health_tracker, "record_failure", lambda *a, **k: record_failure_calls.append((a, k)))
 
     def failing_call(backend: str, _messages: list[dict], _max_tokens: int) -> str:
         raise RuntimeError("backend down")

@@ -1,4 +1,5 @@
 """Phase 3 ordered: (1) WebSettings (2) paper_system (3) security + dual build"""
+
 from __future__ import annotations
 
 import os
@@ -122,11 +123,7 @@ def fix_paper_system(path: Path) -> bool:
     }
 
     def guard_for(name: str) -> str:
-        return (
-            f"\n    if (!paper_motion_allowed()) {{\n"
-            f"        return;\n"
-            f"    }}\n"
-        )
+        return f"\n    if (!paper_motion_allowed()) {{\n        return;\n    }}\n"
 
     for m in list(re.finditer(r"\n(void\s+(\w+)\s*\([^)]*\)\s*\{)", text)):
         name = m.group(2)
@@ -177,8 +174,7 @@ def build(machine: str) -> int:
     exe = str(pio) if pio.is_file() else "pio"
     log_file = REPORT.parent / f"build_{machine.replace('.h', '')}.log"
     cmd = (
-        f'cd /d "{REPO}" && set PLATFORMIO_BUILD_FLAGS=-DMACHINE_FILENAME={machine} && '
-        f'"{exe}" run > "{log_file}" 2>&1'
+        f'cd /d "{REPO}" && set PLATFORMIO_BUILD_FLAGS=-DMACHINE_FILENAME={machine} && "{exe}" run > "{log_file}" 2>&1'
     )
     log(f"\nBUILD {machine}: {cmd}")
     rc = subprocess.call(cmd, shell=True)

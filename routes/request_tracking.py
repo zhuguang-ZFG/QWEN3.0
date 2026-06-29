@@ -154,7 +154,9 @@ def _sanitize_query_and_prompt(query: str, sys_prompt_preview: str) -> tuple[str
         return (query or "")[:80], (sys_prompt_preview or "")[:100]
 
 
-def _build_log_entry(safe_query, backend, intent, duration_ms, success, client_ip, country, ide_source, safe_sys_prompt) -> dict:
+def _build_log_entry(
+    safe_query, backend, intent, duration_ms, success, client_ip, country, ide_source, safe_sys_prompt
+) -> dict:
     """Build the recent_logs entry dict."""
     return {
         "time": time.strftime("%H:%M:%S"),

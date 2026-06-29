@@ -125,9 +125,7 @@ async def create_structured_completion_async(
         logger.warning("unknown instructor provider %s", provider)
         return None
 
-    client = _instructor.from_openai(
-        _openai.AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=timeout)
-    )
+    client = _instructor.from_openai(_openai.AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=timeout))
     try:
         return await client.chat.completions.create(
             model=model,

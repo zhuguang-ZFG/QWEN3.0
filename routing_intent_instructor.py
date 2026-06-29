@@ -35,9 +35,7 @@ _INSTRUCTOR_CACHE_SIZE = 256
 
 
 def _cache_key(query: str, system_prompt: str, ide: str, provider: str, model: str) -> str:
-    return hashlib.sha256(
-        f"{provider}:{model}:{ide}:{system_prompt}:{query}".encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(f"{provider}:{model}:{ide}:{system_prompt}:{query}".encode("utf-8")).hexdigest()
 
 
 def _build_messages(query: str, system_prompt: str, ide: str) -> list[dict]:

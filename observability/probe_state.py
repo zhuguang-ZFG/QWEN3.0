@@ -12,9 +12,7 @@ _lock = threading.Lock()
 # Heuristic: redact metadata fields whose names contain secret-bearing fragments.
 # We intentionally err on the side of over-redaction to avoid leaking credentials
 # in probe metadata; benign keys such as "monkey" or "author" are preserved.
-_SENSITIVE_KEY_FRAGMENTS = frozenset(
-    ("token", "secret", "password", "credential", "api_key", "auth_token", "_key")
-)
+_SENSITIVE_KEY_FRAGMENTS = frozenset(("token", "secret", "password", "credential", "api_key", "auth_token", "_key"))
 
 
 def _is_sensitive_key(key: str) -> bool:

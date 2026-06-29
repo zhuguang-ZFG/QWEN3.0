@@ -1,4 +1,5 @@
 """Write changelog, commit, push to GitHub."""
+
 from __future__ import annotations
 
 import shutil

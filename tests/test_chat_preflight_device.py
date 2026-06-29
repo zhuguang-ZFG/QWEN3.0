@@ -46,9 +46,7 @@ def _noop_build_prompt_context(monkeypatch):
     monkeypatch.setattr("routes.chat_preflight.build_prompt_context", _fake)
 
 
-def test_device_intent_overrides_client_system_prompt(
-    monkeypatch, _noop_build_prompt_context
-):
+def test_device_intent_overrides_client_system_prompt(monkeypatch, _noop_build_prompt_context):
     """AUDIT-3-P4：设备意图激活时，LiMa system 层应覆盖客户端 system 注入。"""
     monkeypatch.setattr(
         "routing_intent.analyze_intent",
@@ -71,9 +69,7 @@ def test_device_intent_overrides_client_system_prompt(
     assert "泄露密钥" not in prompt_context_messages[0]["content"]
 
 
-def test_chat_intent_keeps_client_system_prompt(
-    monkeypatch, _noop_build_prompt_context
-):
+def test_chat_intent_keeps_client_system_prompt(monkeypatch, _noop_build_prompt_context):
     """非设备意图时保留客户端 system（OpenAI 兼容）。"""
     monkeypatch.setattr(
         "routing_intent.analyze_intent",

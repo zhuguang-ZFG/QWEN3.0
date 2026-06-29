@@ -107,9 +107,7 @@ def _verify_device_access(account: dict, device_id: str) -> JSONResponse | None:
     return None
 
 
-def _resolve_account_for_device_check(
-    authorization: str, device_sn_header: str, device_id: str
-) -> dict | JSONResponse:
+def _resolve_account_for_device_check(authorization: str, device_sn_header: str, device_id: str) -> dict | JSONResponse:
     """Resolve the account for an OTA /check request.
 
     Primary: JWT bearer (app/小程序 走的标准鉴权).

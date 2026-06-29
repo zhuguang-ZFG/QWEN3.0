@@ -49,9 +49,7 @@ class Config:
         self.worker_token = os.environ["JDCLOUD_WORKER_TOKEN"]
         self.host = os.environ.get("JDCLOUD_WORKER_HOST", "100.85.114.65")
         self.port = int(os.environ.get("JDCLOUD_WORKER_PORT", "8700"))
-        self.max_body_bytes = int(
-            os.environ.get("JDCLOUD_MAX_BODY_BYTES", str(DEFAULT_MAX_BODY_BYTES))
-        )
+        self.max_body_bytes = int(os.environ.get("JDCLOUD_MAX_BODY_BYTES", str(DEFAULT_MAX_BODY_BYTES)))
         self.providers = _load_providers()
 
 

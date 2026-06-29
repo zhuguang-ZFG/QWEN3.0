@@ -222,9 +222,7 @@ def test_probe_ingress_skips_invalid_latency_type(monkeypatch):
         headers={"Authorization": "Bearer probe-token"},
         json={
             "source": "jdcloud",
-            "probes": [
-                {"provider": "groq", "status": "alive", "latency_ms": "fast"}
-            ],
+            "probes": [{"provider": "groq", "status": "alive", "latency_ms": "fast"}],
         },
     )
     assert response.status_code == 200
@@ -247,9 +245,7 @@ def test_probe_jdcloud_get_filters_by_source(monkeypatch):
         headers={"Authorization": "Bearer probe-token"},
         json={
             "source": "other-source",
-            "probes": [
-                {"provider": "groq", "status": "alive", "latency_ms": 120.0}
-            ],
+            "probes": [{"provider": "groq", "status": "alive", "latency_ms": 120.0}],
         },
     )
     response = _build_client(override_admin=True).get("/admin/api/probe/jdcloud")

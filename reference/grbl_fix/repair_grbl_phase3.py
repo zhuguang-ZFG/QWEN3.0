@@ -1,4 +1,5 @@
 """Repair paper_system.cpp after phase3 guard bug + fix WebSettings getBytes."""
+
 from __future__ import annotations
 
 import re
@@ -80,6 +81,7 @@ def patch_paper_conservative(text: str) -> str:
             continue
         pat = rf"(\n(?:void|bool|uint8_t|int|float)\s+{re.escape(fn)}\s*\([^{{]*\{{\s*\n)"
         if re.search(pat, text):
+
             def add(m: re.Match, _fn=fn) -> str:
                 body = m.group(1)
                 if "paper_motion_allowed" in text[text.find(body) : text.find(body) + 160]:
@@ -114,10 +116,7 @@ def patch_websettings(text: str) -> tuple[str, bool]:
 
 def build(machine: str) -> int:
     pio = Path.home() / ".platformio" / "penv" / "Scripts" / "pio.exe"
-    cmd = (
-        f'cd /d "{REPO}" && set PLATFORMIO_BUILD_FLAGS=-DMACHINE_FILENAME={machine} && '
-        f'"{pio}" run'
-    )
+    cmd = f'cd /d "{REPO}" && set PLATFORMIO_BUILD_FLAGS=-DMACHINE_FILENAME={machine} && "{pio}" run'
     return subprocess.call(cmd, shell=True)
 
 

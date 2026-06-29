@@ -1,4 +1,5 @@
 """Capture full platformio build log for Grbl_Esp32. Run: python D:\\QWEN3.0\\diagnose_grbl_build.py"""
+
 import os
 import subprocess
 import sys
@@ -6,6 +7,7 @@ from pathlib import Path
 
 REPO = Path(r"D:\Users\Grbl_Esp32")
 LOG = Path(r"D:\QWEN3.0\tmp\grbl_build_full.log")
+
 
 def main() -> int:
     LOG.parent.mkdir(parents=True, exist_ok=True)
@@ -41,6 +43,7 @@ def main() -> int:
     LOG.write_text(text, encoding="utf-8")
     print(text[-8000:] if len(text) > 8000 else text)
     return last.returncode
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

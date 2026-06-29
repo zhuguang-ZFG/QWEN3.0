@@ -104,9 +104,7 @@ async def list_models():
                 "owned_by": _model_owned_by(str(model_id), name),
             }
         )
-    models.append(
-        {"id": _model_id, "object": "model", "created": _model_created, "owned_by": "donglicao"}
-    )
+    models.append({"id": _model_id, "object": "model", "created": _model_created, "owned_by": "donglicao"})
     return {"object": "list", "data": models}
 
 

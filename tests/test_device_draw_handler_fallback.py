@@ -30,9 +30,7 @@ class TestImageFallback:
     @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p, **kwargs: p)
     @patch("device_gateway.image_fallback._generate_image_urls")
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
-    async def test_dashscope_failure_triggers_image_fallback(
-        self, mock_client_cls, mock_gen_urls
-    ):
+    async def test_dashscope_failure_triggers_image_fallback(self, mock_client_cls, mock_gen_urls):
         """DashScope 失败 → 降级链路成功，应返回降级结果。"""
         mock_client = MagicMock()
         mock_client.generate.return_value = {"status": "failed", "images": [], "error": "rate limited"}
@@ -52,9 +50,7 @@ class TestImageFallback:
     @patch("device_gateway.device_draw_handler.enhance_drawing_prompt", lambda p, **kwargs: p)
     @patch("device_gateway.image_fallback._generate_image_urls")
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
-    async def test_both_dashscope_and_fallback_fail_returns_dashscope_error(
-        self, mock_client_cls, mock_gen_urls
-    ):
+    async def test_both_dashscope_and_fallback_fail_returns_dashscope_error(self, mock_client_cls, mock_gen_urls):
         """DashScope + 降级都失败，应返回 DashScope 原始错误（保留诊断信息）。"""
         mock_client = MagicMock()
         mock_client.generate.return_value = {"status": "failed", "images": [], "error": "dashscope down"}

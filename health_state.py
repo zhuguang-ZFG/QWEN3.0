@@ -111,11 +111,7 @@ def set_quality_penalty(backend: str, penalty: float) -> None:
 
 def get_latency_map() -> dict[str, float]:
     with _lock:
-        return {
-            backend: quality.avg_latency
-            for backend, quality in _quality_states.items()
-            if quality.avg_latency > 0
-        }
+        return {backend: quality.avg_latency for backend, quality in _quality_states.items() if quality.avg_latency > 0}
 
 
 def reset_all_state() -> None:

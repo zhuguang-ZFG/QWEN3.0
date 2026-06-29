@@ -159,9 +159,7 @@ def _extract_first_png(zip_bytes: bytes) -> bytes:
             # zip bomb 防护：解压前检查声明大小，超限拒绝（不实际解压）
             info = zf.getinfo(names[0])
             if info.file_size > _MAX_DECOMPRESSED_PNG_BYTES:
-                raise AutohandingClientError(
-                    f"PNG too large ({info.file_size} bytes), possible zip bomb"
-                )
+                raise AutohandingClientError(f"PNG too large ({info.file_size} bytes), possible zip bomb")
             return zf.read(names[0])
     except zipfile.BadZipFile as exc:
         raise AutohandingClientError("response is not a valid ZIP") from exc

@@ -38,9 +38,7 @@ async def test_draw_generated_natural_language_uses_device_draw_handler():
         task = await project_to_motion_task_async("dev-draw-1", voice_task)
 
     assert "error" not in task
-    mock_draw.assert_awaited_once_with(
-        "画一只猫", device_id="dev-draw-1", user_preferences={}, image_url=None
-    )
+    mock_draw.assert_awaited_once_with("画一只猫", device_id="dev-draw-1", user_preferences={}, image_url=None)
     params = task["params"]
     assert params["source_capability"] == "draw_generated"
     assert params["prompt"] == "画一只猫"

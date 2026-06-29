@@ -40,8 +40,10 @@ def resolve_intent(query: str, system_prompt: str, ide_source: str, precomputed_
                 return intent
 
         # AUDIT-8-P2：上游已算好则复用，避免重复 analyze_intent（含 instructor HTTP）
-        intent_result = precomputed_intent if precomputed_intent else analyze_intent(
-            query, system_prompt=system_prompt, ide=ide_source
+        intent_result = (
+            precomputed_intent
+            if precomputed_intent
+            else analyze_intent(query, system_prompt=system_prompt, ide=ide_source)
         )
         intent = str(intent_result.get("intent", "chat"))
         source = intent_result.get("source", source)

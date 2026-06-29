@@ -69,7 +69,5 @@ def apply_non_stream_last_resort(final_backend: str, answer: str, messages: list
     except Exception as exc:
         import logging
 
-        logging.getLogger("routing_engine").warning(
-            "non-stream last_resort_call failed: %s", exc, exc_info=True
-        )
+        logging.getLogger("routing_engine").warning("non-stream last_resort_call failed: %s", exc, exc_info=True)
     return final_backend, answer

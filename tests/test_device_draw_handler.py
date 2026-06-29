@@ -238,9 +238,7 @@ class TestHandleDeviceDraw:
     @patch("device_gateway.device_draw_handler.enhance_drawing_prompt")
     @patch("device_gateway.image_fallback._generate_image_urls")
     @patch("device_gateway.device_draw_handler.DashScopeImageClient")
-    async def test_image_generation_failure_records_retry_hint(
-        self, mock_client_cls, mock_gen_urls, mock_enhance
-    ):
+    async def test_image_generation_failure_records_retry_hint(self, mock_client_cls, mock_gen_urls, mock_enhance):
         mock_enhance.side_effect = lambda prompt, **kwargs: prompt
         mock_client = MagicMock()
         mock_client.generate.return_value = {"status": "failed", "error": "rate limited"}

@@ -25,9 +25,7 @@ async def generate_via_image_fallback(prompt: str, size: str, device_id: Optiona
     # size 格式适配：DashScope 用 '*' (1024*1024)，images.py 用 'x' (1024x1024)
     normalized_size = size.replace("*", "x")
     try:
-        data_items, _backend, _duration = await _generate_image_urls(
-            prompt, normalized_size, 1, {}, skip_cache=False
-        )
+        data_items, _backend, _duration = await _generate_image_urls(prompt, normalized_size, 1, {}, skip_cache=False)
         if data_items:
             return {
                 "status": "success",

@@ -278,7 +278,7 @@ def route(
 
     cached = _check_cache_or_none(query, picked, cache_enabled)
     if cached is not None:
-        return build_route_result(t0, picked, original_backend, cached, messages, injected_ids, backends, original_backend, False)
+        return build_route_result(t0, picked, original_backend, cached, messages, injected_ids, backends, original_backend, False)  # fmt: skip
 
     final_backend, answer = _execute_route_call(call_fn, picked, max_tokens, query, needs_tools, tools)
     store_cached_response(query, answer, picked.request_type)

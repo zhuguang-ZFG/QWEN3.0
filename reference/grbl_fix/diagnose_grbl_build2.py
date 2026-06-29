@@ -1,4 +1,5 @@
 """Deep Grbl_Esp32 build diagnosis. Run: python D:\\QWEN3.0\\diagnose_grbl_build2.py"""
+
 from __future__ import annotations
 
 import os

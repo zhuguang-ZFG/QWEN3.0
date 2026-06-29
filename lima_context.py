@@ -63,10 +63,7 @@ def build_context_digest(
     safe_paths = [p for p in paths if not _is_instruction_tainted(p)]
     safe_signals = [s for s in signals if not _is_instruction_tainted(s)]
 
-    if (
-        not any([safe_paths, safe_signals, safe_workspace, safe_ide])
-        and language == "general"
-    ):
+    if not any([safe_paths, safe_signals, safe_workspace, safe_ide]) and language == "general":
         return ""
 
     lines = ["LiMa context preflight:"]
