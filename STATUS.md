@@ -19,6 +19,20 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-30）esp32S_XYZ 子模块同步：firmware 安全加固 + 小程序暗色主题
+
+- **目标**：提交并推送 `esp32S_XYZ` 子模块的本地改动，并更新父仓库子模块指针。
+- **子模块改动**：
+  - `firmware/u8-xiaozhi`：AUDIT-12-F3 本地控制 WebSocket Bearer/?token 鉴权、OTA 安全加固。
+  - `server/xiaozhi-esp32-server/main/manager-mobile`：暗色星云主题 i18n / 配置 / 合约同步；新增 `scripts/upload-mp-weixin.js`；修复 `src/style/index.scss` prettier 格式。
+- **验证**：
+  - `pnpm install` 后 `vue-tsc --noEmit` 通过。
+  - `pnpm run lint` 0 errors（剩余 11 条 `unocss/order` warning，不影响提交）。
+  - 清理了 `pnpm install` 意外生成的嵌套 `.git` 仓库和 `nul` 文件。
+- **提交**：
+  - 子模块：`034356f`（feat(firmware)）、`43ae263`（feat(mp)）已推送至 `origin/main`。
+  - 父仓库：`7677a290` chore(submodule) 已推送至 `origin/main`。
+
 ### 最近完成（2026-06-30）chat-web 静态资源同步 + 全仓库 ruff format
 
 - **目标**：将 chat-web 前端改动部署到 VPS，并清理全局 ruff format 债务后推送 GitHub。

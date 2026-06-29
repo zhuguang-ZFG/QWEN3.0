@@ -10965,3 +10965,24 @@ uff check 2 文件 clean；导入无循环依赖。
   - `00314da5` feat(chat-web): sync chat-web static files and styles
   - 已推送至 `origin/main`。
 - **未提交**：`esp32S_XYZ` 子模块仍有本地改动，未纳入本次推送。
+
+## 2026-06-30 esp32S_XYZ 子模块同步：firmware 安全加固 + 小程序暗色主题
+
+- **目标**：继续处理 `esp32S_XYZ` 子模块本地改动，提交并推送，同时更新父仓库子模块指针。
+- **子模块变更范围**：
+  - `firmware/u8-xiaozhi/main/boards/common/websocket_control_server.cc`：AUDIT-12-F3 本地控制 WS 鉴权（Authorization Bearer / `?token=`）。
+  - `firmware/u8-xiaozhi/main/boards/zhuguang/dlc-motor-control-p1-ai/motion_executor.cc`：运动执行器相关改动。
+  - `firmware/u8-xiaozhi/main/ota.cc`：OTA 安全加固。
+  - `server/xiaozhi-esp32-server/main/manager-mobile/`：暗色星云主题 i18n / 配置 / provisioning 合约同步；新增 `scripts/upload-mp-weixin.js`；修复 `src/style/index.scss` prettier 格式。
+- **本地门禁**：
+  - `pnpm install`：Lockfile up to date；安装后清理了意外生成的嵌套 `.git` 目录和 `nul` 文件。
+  - `pnpm run type-check`（`vue-tsc --noEmit`）：通过。
+  - `pnpm run lint`：0 errors，剩余 11 条 `unocss/order` warning（可自动修复，但未纳入本次变更）。
+- **提交与推送**：
+  - 子模块 `esp32S_XYZ`：
+    - `034356f` feat(firmware): AUDIT-12-F3 local WebSocket auth and OTA hardening
+    - `43ae263` feat(mp): dark nebula theme i18n/config sync and upload script
+  - 父仓库：
+    - `7677a290` chore(submodule): bump esp32S_XYZ to 43ae263
+  - 均已推送至对应 `origin/main`。
+- **未提交**：`.joycode/`、`docs/superpowers/plans/2026-06-29-miniprogram-dark-theme-unify.md`、`docs/superpowers/specs/2026-06-29-chatweb-visual-polish-design.md`、`docs/superpowers/specs/2026-06-29-miniprogram-dark-theme-unify-design.md` 仍为未跟踪文件，未纳入本次提交。
