@@ -38,7 +38,10 @@
   - `ruff check` / `pyright` / `scripts/check_code_size.py` 针对改动文件全部 clean。
   - VPS `/health/ready` 200。
 - **当前阻塞**：小程序上传后需在微信公众平台「版本管理」中提交审核/发布；真实设备登录需发布后用真 code 测试。
-- **待跟进风险**：VPS 内存仅 1.8G，已用 1.6G，swap 1.4G 活跃，kswapd 与 I/O wait 仍高，登录请求偶发超时。建议升级内存或停止非核心服务（searxng/new-api/one-api/netdata 等）。
+- **VPS 内存清理完成**：已停止主 VPS 上的 `lima-searxng`、`one-api`、`new-api` 容器（`netdata` 原已 inactive）。内存从 `used 1.4G / available 484M` 改善为 `used 918M / available 952M`。
+- **容器自动重启已关闭**：将 `one-api`、`new-api`、`lima-searxng` 的 Podman restart policy 从 `always`/`unless-stopped` 重建为 `no`，避免 VPS 重启后非核心服务再次占用内存。
+- **京东云分担限制**：按 `JDCLOUD_RUNTIME_STATUS.md`，京东云节点 (`117.72.118.95`) 仅作为二级 provider-probe / 监控节点，不宜直接暴露为第二个公网 API 入口。可 offload 的主要是 `new-api`（已在京东云部署）和监控/探测任务；核心 `lima-router`/`redis`/`nginx` 迁移需独立架构设计与安全审查。
+- **待跟进风险**：若后续业务增长或 `lima-openobserve` / `mission-server` 占用继续上升，建议升级主 VPS 内存至 4G。
 
 ## 2026-06-30 AUDIT-5 O3：告警规则评估器
 
