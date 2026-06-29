@@ -165,8 +165,10 @@ def _classify_and_recall(
         if span is not None:
             span.metadata["request_type"] = req_type
 
+    # AUDIT-8-P9: v3.0 起编码能力退役，classify_scenario 永远返回 chat；
+    # retrieval 也是 no-op。直接硬编码，避免热路径上的 dataclass 校验与函数调用开销。
+    scenario = "chat"
     with trace_span("scenario") as span:
-        scenario = classify_scenario(messages, query=query, ide_source=ide_source, request_type=req_type)
         if span is not None:
             span.metadata["scenario"] = scenario
 
@@ -175,10 +177,10 @@ def _classify_and_recall(
         if span is not None:
             span.metadata["recalled_backend"] = recall_attempt
 
+    retrieval_text = ""
     with trace_span("retrieval") as span:
-        messages, retrieval_text = inject_retrieval_context(messages)
         if span is not None:
-            span.metadata["has_context"] = bool(retrieval_text)
+            span.metadata["has_context"] = False
 
     return req_type, scenario, recall_attempt, retrieval_text
 

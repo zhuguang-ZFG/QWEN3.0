@@ -30,7 +30,22 @@
   - `tests/test_mqtt_client_loop.py`：新增回归测试，验证 `connect_async` 被调用且阻塞 `connect` 未被调用。
   - `tests/test_mqtt_client_loop.py` + `tests/test_device_mqtt_transport.py` + `tests/test_routes_device_gateway_helpers.py`：12 passed。
   - `ruff check` / `pyright` 目标文件 clean。
-  - 全量 `pytest --tb=short -q` 运行中（后台任务 bash-p1wes49a）。
+  - 全量 `pytest --tb=short -q`：**4144 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-p1wes49a）。
+  - `scripts/deploy_unified.py --slice core` 部署成功；启动阶段显示 `device_gateway.runtime.start` 与 `device_gateway.mqtt_client.start` 位于 WARM 阶段且耗时分别为 41.4ms / 4.2ms；VPS `/health/ready` 最终返回 200。
+  - 已 commit `5160791e` 并 push 到 `origin/main`。
+- **状态**：AUDIT-4 全部关闭。
+
+## 2026-06-30 AUDIT-8 P9：路由热路径移除退役逻辑
+
+- **目标**：消除 routing_engine 热路径上 `classify_scenario`（v3.0 起永远返回 chat）和 `inject_retrieval_context`（no-op）的无谓函数调用与 dataclass 校验开销。
+- **实现**：
+  - `routing_engine.py`：`_classify_and_recall` 中直接硬编码 `scenario = "chat"`、`retrieval_text = ""`，保留 trace_span 以便可观测性兼容，但不再调用 `classify_scenario` 和 `inject_retrieval_context`。
+- **验证**：
+  - `tests/test_routing_classifier_scenario.py`：新增回归测试，验证 `_classify_and_recall` 不调用退役函数。
+  - `tests/test_route_pipeline.py` / `tests/test_pick_backend.py`：更新断言以匹配退役行为。
+  - 路由相关测试集（10 个文件）106 passed。
+  - `ruff check` / `pyright` 目标文件 clean。
+  - 全量 `pytest --tb=short -q` 运行中（后台任务 bash-bhwc83au）。
 - **状态**：待全量测试通过后部署。
 
 ## 2026-06-29 AUDIT-11 I2：autohanding 连接池复用

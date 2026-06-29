@@ -68,7 +68,8 @@ def test_route_full_pipeline_with_call_fn_mock(
         )
 
     mock_classify.assert_called_once()
-    mock_classify_scenario.assert_called_once()
+    # AUDIT-8-P9: classify_scenario 永远返回 chat，已在热路径移除，避免 dataclass 校验开销。
+    mock_classify_scenario.assert_not_called()
     mock_select.assert_called_once()
     mock_execute.assert_called_once()
 

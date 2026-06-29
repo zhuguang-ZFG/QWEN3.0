@@ -147,12 +147,13 @@ def test_no_recalled_backend_forwarded_as_none(mocks):
 # ---------------------------------------------------------------------------
 
 
-def test_retrieval_context_populated(mocks):
-    """retrieval 注入有内容时，PickResult.retrieval_context 应非空。"""
+def test_retrieval_context_empty_because_retrieval_is_retired(mocks):
+    """AUDIT-8-P9：retrieval 已是 no-op，retrieval_context 永远为空。"""
     mocks["inject_retrieval_context"].return_value = (_MSGS_RETRIEVAL, "some context text")
     result = pick_backend("q", _DEFAULT_MSGS)
 
-    assert result.retrieval_context == "some context text"
+    assert result.retrieval_context == ""
+    mocks["inject_retrieval_context"].assert_not_called()
 
 
 # ---------------------------------------------------------------------------
