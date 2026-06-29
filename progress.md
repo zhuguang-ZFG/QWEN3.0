@@ -10,11 +10,12 @@
   - **阶段 3 AUDIT-8-P4 httpx 连接池复用**：`http_request_builder/client.py` 按 backend 缓存长生命 client（带 `httpx.Limits` 连接池）+ no-op context wrapper（`__exit__` 不关闭，保持 `with` 调用点兼容）；AsyncClient 懒创建（loop 安全）；`add_backend`/`remove_backend` 配套缓存失效；FastAPI shutdown 调 `aclose_all_clients`。消除每次调用重建 TLS 握手的 FD 泄漏 + 延迟开销。7 个新测试覆盖复用/独立/no-op/失效。
 - **仍延后项**：AUDIT-8 P1（异步 LLM）/P5（embedding 异步化）/P6/P7（共享状态+多 worker）、AUDIT-4 F7（启动降级）、AUDIT-6 A4/A5/A6（API 改造）、AUDIT-11 A1（SVG 净化）、固件 idf.py 真机编译。
 - 状态：**三个核心路径延后项已完成并验证**。
+- **提交部署**：commit `4ca51589` 已 push 到 `origin/main`；`scripts/deploy_unified.py --slice core` + `scripts/deploy_chat_web.py` 部署成功；`https://chat.donglicao.com/health` 200。
 
 ## 2026-06-29 全量修复：AUDIT-3~12 共 10 份审计批次修复（含物理安全 + 设备接管）
 
 - **目标**：按顺序全量修复 AUDIT-2~12 所有已确认问题，不让任何高危项遗漏。
-- **质量门禁（全绿）**：`ruff check .` clean；`check_code_size.py` PASS；`pytest` **4103 passed, 0 failed**。
+- **质量门禁（全绿）**：`ruff check .` clean；`check_code_size.py` PASS；`pytest` **4126 passed, 3 skipped, 2 deselected, 0 failed**。
 - **修复清单（按 AUDIT）**：
   - **AUDIT-3 提示词**：中文注入模式覆盖（`忽略.{0,8}指令`/`无视`/`越狱`/`DAN`）+ 注入阻断升级 BLOCK + 输出 guardrail 接入 route_post_process
   - **AUDIT-4 容错率**：stale reaper 后台任务（60s 周期）+ 路由背压 Semaphore（LIMA_ROUTE_MAX_CONCURRENCY=32）+ 非流式 last_resort 降级 + monotonic 持久化 bug 修复（重启清零 cooldown）
@@ -29,7 +30,8 @@
 - **最高危修复**：AUDIT-12 OTA 签名强制（消除完全设备接管）+ AUDIT-10 NaN 拦截（消除撞机）+ AUDIT-9 无限重试（消除任务死循环）。
 - **延后项**：核心路径性能（异步 LLM/intent 去重/连接池）、大范围 API 改造、SVG 净化——需独立集成测试，已在 findings.md 记录。
 - **未验证项**：固件修改需 `idf.py build` 真机编译验证；AUDIT-4 F1/F4 容错需模拟慢后端集成测试。
-- 状态：**AUDIT-2~12 主要项已修复并验证（pytest/ruff/size 全绿）**。
+- 状态：**AUDIT-2~12 主要项已修复、验证并部署（pytest/ruff/size 全绿）**。
+- **提交部署**：commit `4ca51589` 已 push 到 `origin/main`；`scripts/deploy_unified.py --slice core` 上传 854 个文件；`scripts/deploy_chat_web.py` 重新部署静态页面；VPS health 200。
 
 ## 2026-06-29 LiMa Web 端修复：AUDIT-2 W1/W2/W3/W5/W6/W7 + S1/S2/S4
 
