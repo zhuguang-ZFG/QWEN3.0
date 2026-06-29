@@ -45,7 +45,22 @@
   - `tests/test_route_pipeline.py` / `tests/test_pick_backend.py`：更新断言以匹配退役行为。
   - 路由相关测试集（10 个文件）106 passed。
   - `ruff check` / `pyright` 目标文件 clean。
-  - 全量 `pytest --tb=short -q` 运行中（后台任务 bash-bhwc83au）。
+  - 全量 `pytest --tb=short -q`：**4145 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-bhwc83au）。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 最终返回 200。
+  - 已 commit `09240725` 并 push 到 `origin/main`。
+- **状态**：AUDIT-8 P9 关闭。
+
+## 2026-06-30 AUDIT-8 P8：投机执行共享线程池 + 失败不落健康分
+
+- **目标**：减少投机执行每次新建 ThreadPoolExecutor 的开销，并避免投机失败的 loser 后端被误判为不健康。
+- **实现**：
+  - `speculative_execution.py`：新增模块级共享 `ThreadPoolExecutor`，延迟创建并复用；取消 futures 时不再 `shutdown` 线程池。
+  - 移除 `_spec_worker` 异常分支中的 `health_tracker.record_failure`，仅保留 `record_backend_attempt` 遥测。
+- **验证**：
+  - 新增 `tests/test_speculative_execution.py`：2 个回归用例覆盖线程池复用与不记录 health failure。
+  - `tests/test_backend_telemetry.py` + `tests/test_route_pipeline.py` 无回归：11 passed。
+  - `ruff check` / `pyright` 目标文件 clean。
+  - 全量 `pytest --tb=short -q` 运行中（后台任务 bash-4fzvgzd0）。
 - **状态**：待全量测试通过后部署。
 
 ## 2026-06-29 AUDIT-11 I2：autohanding 连接池复用

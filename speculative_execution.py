@@ -24,9 +24,33 @@ logger = logging.getLogger("speculative")
 MIN_VALID_LENGTH = 10
 _LATENCY_WINDOW = 10
 _SLOW_THRESHOLD_MS = 4000
+_MAX_WORKERS = 3
 
 _latency_lock = threading.Lock()
 _latency_history: dict[str, list[float]] = {}
+
+# Shared thread pool reused across speculative calls to avoid per-call pool creation.
+_executor: ThreadPoolExecutor | None = None
+_executor_lock = threading.Lock()
+
+
+def _get_executor() -> ThreadPoolExecutor:
+    """Return the lazily-created shared ThreadPoolExecutor."""
+    global _executor
+    if _executor is None:
+        with _executor_lock:
+            if _executor is None:
+                _executor = ThreadPoolExecutor(max_workers=_MAX_WORKERS, thread_name_prefix="spec")
+    return _executor
+
+
+def _shutdown_shared_executor() -> None:
+    """Shutdown the shared executor (intended for process exit / tests)."""
+    global _executor
+    with _executor_lock:
+        if _executor is not None:
+            _executor.shutdown(wait=False)
+            _executor = None
 
 
 def _submit_workers(
@@ -54,15 +78,11 @@ def _submit_workers(
     return futures
 
 
-def _shutdown_executor(
-    executor: ThreadPoolExecutor,
-    futures: dict[Future[str], str],
-) -> None:
-    """Cancel pending futures and shut down the pool without waiting."""
+def _cancel_pending(futures: dict[Future[str], str]) -> None:
+    """Cancel speculative losers without tearing down the shared pool."""
     for future in futures:
         if not future.done():
             future.cancel()
-    executor.shutdown(wait=False)
 
 
 def speculative_call(
@@ -81,12 +101,12 @@ def speculative_call(
         raise RuntimeError("No backends available for speculative execution")
 
     t0 = time.time()
-    executor = ThreadPoolExecutor(max_workers=max_parallel, thread_name_prefix="spec")
+    executor = _get_executor()
+    futures = _submit_workers(executor, candidates, call_fn, messages, max_tokens, scenario, request_type)
     try:
-        futures = _submit_workers(executor, candidates, call_fn, messages, max_tokens, scenario, request_type)
         winner_backend, winner_answer = _spec_race(futures, timeout_sec)
     finally:
-        _shutdown_executor(executor, futures)
+        _cancel_pending(futures)
 
     if not winner_backend:
         raise RuntimeError("All speculative backends failed or returned empty")
@@ -131,7 +151,8 @@ def _spec_worker(
         return result if isinstance(result, str) else ""
     except Exception as e:
         latency = (time.time() - backend_t0) * 1000
-        health_tracker.record_failure(backend, error_code=getattr(e, "status_code", 500))
+        # AUDIT-8-P8: do not penalize backend health for losing a speculative race.
+        # Telemetry still records the attempt for observability.
         _record_latency(backend, latency + _SLOW_THRESHOLD_MS)
         _record_backend_attempt(
             backend=backend,
