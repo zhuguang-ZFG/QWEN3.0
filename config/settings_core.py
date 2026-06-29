@@ -233,14 +233,12 @@ class UploadConfig:
 class ObservabilityConfig:
     telemetry_jsonl_max_bytes: int = int(os.environ.get("LIMA_TELEMETRY_JSONL_MAX_BYTES", str(1024 * 1024)))
     openobserve_enabled: bool = os.environ.get("OPENOBSERVE_ENABLED", "").strip().lower() in {"1", "true", "yes"}
-    prometheus_metrics: bool = os.environ.get("LIMA_PROMETHEUS_METRICS", "0").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    prometheus_metrics: bool = os.environ.get("LIMA_PROMETHEUS_METRICS", "0").strip().lower() in {"1", "true", "yes", "on"}
     structured_logging: bool = os.environ.get("LIMA_STRUCTURED_LOGGING", "1").strip().lower() not in {"0", "false", "no", "off"}
     service_name: str = os.environ.get("LIMA_SERVICE_NAME", "lima-router")
+    log_file_path: str = os.environ.get("LIMA_LOG_FILE_PATH", "logs/lima-router.log")
+    log_file_max_bytes: int = int(os.environ.get("LIMA_LOG_FILE_MAX_MB", "100")) * 1024 * 1024
+    log_file_backup_count: int = int(os.environ.get("LIMA_LOG_FILE_BACKUPS", "5"))
     tracing_enabled: bool = os.environ.get("LIMA_TRACING_ENABLED", "1").strip().lower() not in {
         "0",
         "false",

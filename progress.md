@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-5 O9：滚动文件日志（RotatingFileHandler）
+
+- **目标**：解决无日志轮转导致高并发错误循环冲爆磁盘的问题。
+- **实现**：
+  - `config/settings_core.py`：`ObservabilityConfig` 新增 `log_file_path`（默认 `logs/lima-router.log`）、`log_file_max_bytes`（默认 100MB）、`log_file_backup_count`（默认 5）。
+  - `observability/structured_logging.py`：新增 `_setup_file_logging()`，安装 `RotatingFileHandler`；结构化日志开启时文件使用 JSON 格式，关闭时使用纯文本；`LIMA_LOG_FILE_PATH` 设为空字符串可关闭文件日志。
+  - 修复 `JsonFormatter` 在 Windows 上对 `%f` 的 `ValueError`：改为 `datetime.utcfromtimestamp(record.created).strftime(...)`。
+  - `.env.example`：新增 `LIMA_LOG_FILE_PATH` / `LIMA_LOG_FILE_MAX_MB` / `LIMA_LOG_FILE_BACKUPS` 注释样例。
+  - 新增 `tests/test_observability_log_rotation.py`：覆盖默认路径、创建与滚动、空路径关闭、JSON/纯文本格式。
+- **验证**：
+  - `tests/test_observability_log_rotation.py`：**5 passed, 0 failed**；`tests/test_observability_structured_logging.py` 仍通过。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4169 passed, 3 skipped, 2 deselected, 0 failed**。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 约 35 秒后返回 200。
+- **状态**：AUDIT-5 O9 关闭；AUDIT-5 剩余延后项为 O3/O5/O6/O10。
+
 ## 2026-06-30 AUDIT-5 O11：/health 匿名信息泄漏修复
 
 - **目标**：消除 `/health` 对匿名请求暴露内部模块清单、启动阶段、安全开关等侦察信息的问题。
