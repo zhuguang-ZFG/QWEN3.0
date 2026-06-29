@@ -44,18 +44,28 @@ def test_create_ws_ticket(mock_issue, client):
 @patch.object(se.server_lifespan, "STARTUP_PHASES", ["init", "ready"])
 def test_health_ok(mock_state, client):
     mock_state.return_value = {"status": "ready", "errors": [], "pending_warm": []}
-    response = client.get("/health")
+    response = client.get("/health", headers={"Authorization": "Bearer test-key"})
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["model"] == "lima-test"
     assert payload["startup"]["phases"] == ["init", "ready"]
+    assert "modules" in payload
+    assert "security" in payload
+
+
+def test_health_anonymous_omits_internal_details(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    payload = response.json()
+    assert set(payload.keys()) == {"status", "version", "model", "startup"}
+    assert set(payload["startup"].keys()) == {"status"}
 
 
 @patch.object(se.server_lifespan, "get_startup_state")
 def test_health_degraded_on_error(mock_state, client):
     mock_state.return_value = {"status": "error", "errors": [{"phase": "db"}], "pending_warm": []}
-    response = client.get("/health")
+    response = client.get("/health", headers={"Authorization": "Bearer test-key"})
     assert response.status_code == 503
     assert response.json()["status"] == "degraded"
 

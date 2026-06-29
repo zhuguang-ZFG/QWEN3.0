@@ -100,12 +100,13 @@ def test_live_key_returns_metadata_not_raw_provider_key(monkeypatch):
     assert secret not in response.text
 
 
-def test_health_uses_shared_loaded_modules():
+def test_health_uses_shared_loaded_modules(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
     try:
         system_endpoints._loaded_modules["unit_test_module"] = True
 
         client = TestClient(server.app)
-        response = client.get("/health")
+        response = client.get("/health", headers={"Authorization": "Bearer test-key"})
 
         assert response.status_code == 200
         assert response.json()["modules"]["unit_test_module"] is True
@@ -113,7 +114,27 @@ def test_health_uses_shared_loaded_modules():
         system_endpoints._loaded_modules.pop("unit_test_module", None)
 
 
+def test_health_anonymous_omits_internal_details(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr(
+        system_endpoints.server_lifespan,
+        "get_startup_state",
+        lambda: {"status": "ready", "errors": [], "pending_warm": []},
+    )
+
+    client = TestClient(server.app)
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert set(payload.keys()) == {"status", "version", "model", "startup"}
+    assert set(payload["startup"].keys()) == {"status"}
+    assert "modules" not in payload
+    assert "security" not in payload
+
+
 def test_health_returns_503_when_startup_status_is_error(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
     monkeypatch.setattr(
         system_endpoints.server_lifespan,
         "get_startup_state",
@@ -122,7 +143,7 @@ def test_health_returns_503_when_startup_status_is_error(monkeypatch):
     monkeypatch.setattr(system_endpoints.server_lifespan, "STARTUP_PHASES", [])
 
     client = TestClient(server.app)
-    response = client.get("/health")
+    response = client.get("/health", headers={"Authorization": "Bearer test-key"})
 
     assert response.status_code == 503
     assert response.json()["status"] == "degraded"
@@ -131,12 +152,13 @@ def test_health_returns_503_when_startup_status_is_error(monkeypatch):
     assert response.json()["startup"]["error_phases"] == ["unit"]
 
 
-def test_health_includes_anonymous_access_security(monkeypatch):
+def test_health_includes_anonymous_access_security_when_authenticated(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
     monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
     monkeypatch.setenv("LIMA_RUNTIME_ENV", "production")
 
     client = TestClient(server.app)
-    response = client.get("/health")
+    response = client.get("/health", headers={"Authorization": "Bearer test-key"})
 
     assert response.status_code == 200
     security = response.json()["security"]["anonymous_access"]

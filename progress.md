@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-5 O11：/health 匿名信息泄漏修复
+
+- **目标**：消除 `/health` 对匿名请求暴露内部模块清单、启动阶段、安全开关等侦察信息的问题。
+- **实现**：
+  - `routes/system_endpoints.py`：`/health` 增加 `authorization: str = Header(default="")` 参数；通过 `extract_bearer_token` + `is_token_valid` 判断调用方是否持有有效 token。
+  - 匿名响应仅保留 `status`、`version`、`model` 和 `startup.status`；`modules`、`startup` 详细字段、`security.anonymous_access` 仅在认证后返回。
+  - 更新 `tests/test_system_endpoints.py` 与 `tests/test_routes_system_endpoints.py`：原有检查内部字段的用例改为带 Bearer token；新增匿名响应形状断言。
+- **验证**：
+  - `tests/test_system_endpoints.py` + `tests/test_routes_system_endpoints.py`：全部通过（含新增匿名/认证形状用例）。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4164 passed, 3 skipped, 2 deselected, 0 failed**。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS 匿名 `https://chat.donglicao.com/health` 返回仅 `{status, version, model, startup: {status}}`，不再含 `modules`/`security`。
+- **状态**：AUDIT-5 O11 关闭；AUDIT-5 剩余延后项为 O3/O5/O6/O9/O10。
+
 ## 2026-06-30 AUDIT-5 O7：X-Request-Id 响应头中间件
 
 - **目标**：让每条 HTTP 响应都携带 `X-Request-Id`，便于客户端报障时反查服务端日志，并为多跳 fallback 提供显式 request_id 串联。

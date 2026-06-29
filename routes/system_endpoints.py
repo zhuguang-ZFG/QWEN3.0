@@ -120,9 +120,8 @@ async def create_ws_ticket(authorization: str = Header(default="")) -> dict[str,
 
 
 @router.get("/health")
-async def health():
+async def health(authorization: str = Header(default="")):
     state = server_lifespan.get_startup_state()
-    phases = list(server_lifespan.STARTUP_PHASES)
     startup_errors = state.get("errors", [])
     startup_status = state["status"]
     overall_status = "ok"
@@ -132,23 +131,30 @@ async def health():
         overall_status = "ok"  # serving, but background warm-up still in progress
     elif startup_status == "starting":
         overall_status = "degraded"
-    payload = {
+
+    token = extract_bearer_token(authorization)
+    authenticated = is_token_valid(token)
+
+    payload: dict[str, Any] = {
         "status": overall_status,
         "version": "2.0",
         "model": _model_id,
-        "modules": _loaded_modules,
-        "startup": {
+    }
+    if authenticated:
+        payload["modules"] = _loaded_modules
+        payload["startup"] = {
             "status": startup_status,
-            "phases": phases,
+            "phases": list(server_lifespan.STARTUP_PHASES),
             "pending_warm": state.get("pending_warm", []),
             "errors": startup_errors if health_show_errors() else [],
             "error_count": len(startup_errors),
             "error_phases": _startup_error_phases(startup_errors),
-        },
-        "security": {
-            "anonymous_access": anonymous_access_status(),
-        },
-    }
+        }
+        payload["security"] = {"anonymous_access": anonymous_access_status()}
+    else:
+        # AUDIT-5-O11: 匿名 /health 不暴露内部模块清单、启动阶段、安全开关等侦察信息
+        payload["startup"] = {"status": startup_status}
+
     if startup_status == "error":
         return JSONResponse(status_code=503, content=payload)
     return payload
