@@ -42,14 +42,24 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
         self._write_task_state(task["task_id"], state)
 
     def record_motion_event(self, event: dict[str, Any]) -> dict[str, Any]:
+        """Append a motion event atomically (AUDIT-9-S4).
+
+        Uses a Lua script to append the event and update status inside Redis,
+        avoiding the lost-update problem of concurrent read-modify-write cycles.
+        """
+        from device_gateway.redis_cas import append_event_atomic
+
         task_id = event["task_id"]
-        state = self._read_task_state(task_id) or {"task": None, "status": "unknown", "events": []}
-        events = list(state.get("events", []))
-        events.append(deepcopy(event))
-        state["events"] = events
-        state["status"] = event["phase"]
-        self._write_task_state(task_id, state)
-        return {"task_id": task_id, "phase": event["phase"], "event_count": len(events)}
+        phase = event.get("phase", "")
+        updated = append_event_atomic(
+            self._redis, self._key("tasks"), task_id, event, DEVICE.redis_task_ttl, new_status=phase
+        )
+        if updated is None:
+            # Task missing — create a stub state (preserves original behavior).
+            updated = {"task": None, "status": phase, "events": [deepcopy(event)]}
+            self._write_task_state(task_id, updated)
+        events = updated.get("events", [])
+        return {"task_id": task_id, "phase": phase, "event_count": len(events)}
 
     def task_snapshot(self, task_id: str) -> dict[str, Any] | None:
         state = self._read_task_state(task_id)
@@ -60,6 +70,7 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
             "status": state.get("status"),
             "retry_count": state.get("retry_count", 0),
             "events": deepcopy(list(state.get("events", []))),
+            "_version": state.get("_version", 0),
         }
 
     def active_tasks_for_device(self, device_id: str) -> list[dict[str, Any]]:
@@ -115,10 +126,13 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
         task["_enqueued_at"] = self._redis.time()[0]
         queue_depth = int(self._redis.rpush(self._queue_key(device_id), encode_redis_json(task)))
         self._ensure_queue_ttl(device_id)
-        state = self._read_task_state(task["task_id"]) or {"task": task, "status": "created", "events": []}
-        state["task"] = deepcopy(task)
-        state["status"] = "queued"
-        self._write_task_state(task["task_id"], state)
+        default = {"task": deepcopy(task), "status": "created", "events": []}
+
+        def _enqueue(s):
+            s["task"] = deepcopy(task)
+            s["status"] = "queued"
+
+        self._cas_update(task["task_id"], _enqueue, default_state=default)
         return queue_depth
 
     def pop_pending_tasks(self, device_id: str, limit: int = 16) -> list[dict[str, Any]]:
@@ -136,15 +150,14 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
         tasks = [decode_redis_json(item) for item in raw_tasks]
         processing_started_at = self._redis.time()[0] if tasks else 0
         for task in tasks:
-            state = self._read_task_state(task["task_id"]) or {
-                "task": task,
-                "status": "queued",
-                "events": [],
-            }
-            state["task"] = deepcopy(task)
-            state["status"] = "dispatching"
-            state["processing_started_at"] = processing_started_at
-            self._write_task_state(task["task_id"], state)
+            default = {"task": deepcopy(task), "status": "queued", "events": []}
+
+            def _dispatch(s, _t=task, _ps=processing_started_at):
+                s["task"] = deepcopy(_t)
+                s["status"] = "dispatching"
+                s["processing_started_at"] = _ps
+
+            self._cas_update(task["task_id"], _dispatch, default_state=default)
         return tasks
 
     def requeue_pending_tasks(self, device_id: str, tasks: list[dict[str, Any]]) -> int:
@@ -156,18 +169,18 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
         queue_depth = int(self._redis.lpush(self._queue_key(device_id), *encoded))
         self._ensure_queue_ttl(device_id)
         for task in tasks:
-            state = self._read_task_state(task["task_id"]) or {"task": task, "status": "created", "events": []}
-            state["task"] = deepcopy(task)
-            state["status"] = "queued"
-            state.pop("processing_started_at", None)
-            self._write_task_state(task["task_id"], state)
+            default = {"task": deepcopy(task), "status": "created", "events": []}
+
+            def _requeue(s, _t=task):
+                s["task"] = deepcopy(_t)
+                s["status"] = "queued"
+                s.pop("processing_started_at", None)
+
+            self._cas_update(task["task_id"], _requeue, default_state=default)
         return queue_depth
 
     def mark_task_dispatched(self, task_id: str) -> None:
-        state = self._read_task_state(task_id)
-        if state is not None:
-            state["status"] = "dispatched"
-            self._write_task_state(task_id, state)
+        self._cas_update(task_id, lambda s: s.__setitem__("status", "dispatched"))
 
     def pending_count(self, device_id: str | None = None) -> int:
         if device_id is not None:
@@ -178,23 +191,26 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
         return total
 
     def increment_retry_count(self, task_id: str) -> int:
-        state = self._read_task_state(task_id)
-        if state is None:
-            return 0
-        count = int(state.get("retry_count", 0)) + 1
-        state["retry_count"] = count
-        self._write_task_state(task_id, state)
-        return count
+        # AUDIT-9-S4: CAS-protected increment to avoid losing count on concurrent writes.
+        result_holder: list[int] = []
+
+        def _bump(s):
+            count = int(s.get("retry_count", 0)) + 1
+            s["retry_count"] = count
+            result_holder.append(count)
+
+        self._cas_update(task_id, _bump)
+        return result_holder[0] if result_holder else 0
 
     def reset_task_for_retry(self, task_id: str) -> None:
         # AUDIT-9-S1：与 InMemory 对齐——重置为 queued 时递增 retry_count。
-        # 原实现不递增，导致生产 Redis 下 execute_recovery 的 attempt 永远=0，
-        # should_retry 永远放行 → 设备失败任务无限重试，永不进死信。
-        state = self._read_task_state(task_id)
-        if state is not None:
-            state["status"] = "queued"
-            state["retry_count"] = int(state.get("retry_count", 0)) + 1
-            self._write_task_state(task_id, state)
+        # AUDIT-9-S4：用 CAS 保护，避免并发覆盖 retry_count/status。
+
+        def _reset(s):
+            s["status"] = "queued"
+            s["retry_count"] = int(s.get("retry_count", 0)) + 1
+
+        self._cas_update(task_id, _reset)
 
     def remove_pending_task(self, device_id: str, task_id: str) -> bool:
         key = self._queue_key(device_id)
@@ -216,21 +232,21 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
         """Remove a task from the processing queue after device ack."""
         removed = self._remove_processing_task(device_id, task_id)
         if removed:
-            state = self._read_task_state(task_id)
-            if state:
-                state.pop("processing_started_at", None)
-                self._write_task_state(task_id, state)
+            # AUDIT-9-S4: CAS-protected pop of processing_started_at.
+            self._cas_update(task_id, lambda s: s.pop("processing_started_at", None))
         return removed
 
     def abandon_processing_task(self, device_id: str, task_id: str) -> bool:
         """Remove a task from the processing queue without re-queueing it."""
         removed = self._remove_processing_task(device_id, task_id)
         if removed:
-            state = self._read_task_state(task_id)
-            if state:
-                state["status"] = "dead_letter"
-                state.pop("processing_started_at", None)
-                self._write_task_state(task_id, state)
+            self._cas_update(
+                task_id,
+                lambda s: (
+                    s.__setitem__("status", "dead_letter"),
+                    s.pop("processing_started_at", None),
+                ),
+            )
         return removed
 
     def recover_stale_processing(self, device_id: str, timeout_sec: float = 120.0) -> int:
@@ -263,9 +279,14 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
                         self._redis.lpush(pending_key, item)
                         self._ensure_queue_ttl(device_id)
                         if state:
-                            state["status"] = "queued"
-                            state.pop("processing_started_at", None)
-                            self._write_task_state(task_id, state)
+                            # AUDIT-9-S4: CAS-protected status update.
+                            self._cas_update(
+                                task_id,
+                                lambda s: (
+                                    s.__setitem__("status", "queued"),
+                                    s.pop("processing_started_at", None),
+                                ),
+                            )
                         count += 1
             except Exception as exc:
                 _log.warning(

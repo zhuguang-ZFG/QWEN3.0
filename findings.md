@@ -87,7 +87,7 @@
 - ~~AUDIT-12 OTA/WS 日志脱敏~~ ✅ 已完成（firmware_url 剥离 query、activation payload 不打印 hmac、WS 消息只打印长度）
 - AUDIT-8 P6/P7（共享状态+多 worker）— 性能核心路径
 - AUDIT-6 A4/A5/A6（响应信封/REST/Pydantic 收口）— 大范围端点改造；A7 已关闭
-- AUDIT-9 S4（task state CAS 乐观锁）— 需重构 10+ 处 read-modify-write 为乐观锁+重试，架构级改造
+- ~~AUDIT-9 S4（task state CAS 乐观锁）~~ ✅ 已完成（redis_cas.py Lua CAS + events 原生追加 + 11 调用点改造 + 10 测试）
 - AUDIT-7 D4（依赖 hash pinning）— 需 pip-compile 生成锁文件并验证构建
 - AUDIT-5 O6（OpenTelemetry 接入）— 新依赖
 - AUDIT-11 W2（移除 query 参数 token 注入）— 需前后端协同
@@ -685,8 +685,9 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | S1 | `device_gateway/redis_store.py` | `reset_task_for_retry` 重置为 queued 时递增 retry_count，与 InMemory 对齐。修复生产 Redis 下 execute_recovery 的 attempt 永远=0 导致的**设备失败任务无限重试** bug | ruff + 37 任务存储测试通过 |
 | S2 | `routes/device_gateway_helpers.py`、`device_gateway/sessions.py` | stale reaper 后台任务（与 AUDIT-4-F2 同一修复，60s 周期扫描 processing 队列） | 见 AUDIT-4 |
 
-- **延后项**：S3（InMemory 加 processing 队列概念，需改测试矩阵）、S4（task state CAS）
-- 状态：**AUDIT-9 CRITICAL/HIGH 已关闭**（S1/S2）。S1 是消除生产无限重试的核心修复。
+- ~~延后项：S3（InMemory 加 processing 队列概念，需改测试矩阵）、S4（task state CAS）~~ S4 ✅ 已完成（见下）；S3 仍延后
+- **AUDIT-9 S4 修复完成（2026-06-30）**：新增 `device_gateway/redis_cas.py`——两个 Lua 脚本（CAS 写 + events 原生追加）+ Python 包装（`cas_write_state`/`append_event_atomic`/`_cas_update` helper，bounded 3 次重试）。改造 11 个调用点：`record_motion_event` 用 events 原生追加（彻底消除覆盖丢失）；其余 10 处用 version CAS + 冲突重试；`task_snapshot` 返回 `_version`；`_write_task_state` 加 `expected_version` 参数（None=盲写向后兼容）。Lua 不可用时（测试 fake）回退纯 Python。验证：ruff + size + 10 新增 CAS 测试 + 全量 4196 passed。
+- 状态：**AUDIT-9 全部关闭**（S1/S2/S4）；S3 仍延后（InMemory processing 队列，需改测试矩阵）。
 
 
 ## 2026-06-29 AUDIT-10：运动控制校验与记忆 PII 审查

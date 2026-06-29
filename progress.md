@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-9-S4 task state CAS 乐观锁改造（架构级里程碑）
+
+- **目标**：消除设备任务状态的并发覆盖写丢失（events 追加丢失 + retry_count/status 覆盖）。
+- **质量门禁（全绿）**：`ruff` clean；`check_code_size.py` PASS；`pytest` **4196 passed, 0 failed**。
+- **改造内容**（方案 A：Lua CAS + events 原生追加）：
+  - 新增 `device_gateway/redis_cas.py`：两个 Lua 脚本（CAS 写 `_CAS_LUA` + events 原生追加 `_APPEND_EVENT_LUA`）+ Python 包装（`cas_write_state`/`append_event_atomic`/`bump_version`/`get_version`/`_cas_update` helper，bounded 3 次冲突重试）。Lua 不可用时（测试 fake）回退纯 Python。
+  - `_write_task_state` 加 `expected_version` 参数（None=盲写向后兼容，非 None 走 CAS）。
+  - `record_motion_event` 改用 `append_event_atomic`（单脚本原子追加 event + 更新 status + version+1），彻底消除并发 append 丢事件。
+  - 其余 10 个调用点（enqueue/pop/requeue/mark/increment/reset/ack/abandon/recover）改用 `_cas_update`（read→mutate→CAS write，冲突重试）。
+  - `task_snapshot` 返回 `_version`（两后端 API 一致）；InMemory 后端零改动（`_lock` 已保证原子）。
+- **新增测试**：`tests/test_redis_task_cas.py`（10 个：CAS 成功/失败/创建/缺失、events 原生追加无丢失、向后兼容旧 state、version 工具）。
+- **向后兼容**：旧 state 无 `_version` 视为 0；`_write_task_state` 默认盲写。
+- 状态：**AUDIT-9 全部关闭**（S1/S2/S4）。
+
 ## 2026-06-29 按 findings.md 推进剩余延后项（V4 + W3 核实 + 固件日志脱敏）
 
 - **目标**：处理 findings.md 中标注延后的低风险项。

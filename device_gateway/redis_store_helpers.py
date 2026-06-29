@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from copy import deepcopy
 from typing import Any
 
 from config.settings import DEVICE
@@ -105,10 +106,60 @@ class RedisStoreHelpers:
             return None
         return decode_redis_json(raw)
 
-    def _write_task_state(self, task_id: str, state: dict[str, Any]) -> None:
+    def _write_task_state(
+        self,
+        task_id: str,
+        state: dict[str, Any],
+        expected_version: int | None = None,
+    ) -> bool:
+        """Write task state.
+
+        AUDIT-9-S4: when ``expected_version`` is not None, use a Lua CAS script
+        that only writes if the stored ``_version`` matches; returns True on
+        success, False on conflict. When ``expected_version`` is None (default),
+        performs a blind overwrite for backward compatibility.
+        """
         tasks_key = self._key("tasks")
-        self._redis.hset(tasks_key, task_id, encode_redis_json(state))
-        self._redis.expire(tasks_key, DEVICE.redis_task_ttl)
+        ttl = DEVICE.redis_task_ttl
+        if expected_version is None:
+            self._redis.hset(tasks_key, task_id, encode_redis_json(state))
+            self._redis.expire(tasks_key, ttl)
+            return True
+        # Lazy import to avoid circular dependency at module load.
+        from device_gateway.redis_cas import cas_write_state
+
+        return cas_write_state(self._redis, tasks_key, task_id, state, expected_version, ttl)
+
+    def _cas_update(
+        self,
+        task_id: str,
+        mutator,
+        default_state: dict[str, Any] | None = None,
+        max_retries: int = 3,
+    ) -> dict[str, Any] | None:
+        """AUDIT-9-S4: read-modify-write with optimistic CAS + bounded retry.
+
+        Reads current state (or ``default_state`` if missing), applies
+        ``mutator(state) -> state`` (in-place), then writes via CAS. On version
+        conflict, re-reads and retries up to ``max_retries`` times. Returns the
+        final state, or None if the task is missing and no default was provided.
+        """
+        from device_gateway.redis_cas import bump_version, get_version
+
+        for _ in range(max_retries):
+            state = self._read_task_state(task_id)
+            if state is None:
+                if default_state is None:
+                    return None
+                state = deepcopy(default_state)
+            expected = get_version(state)
+            mutator(state)
+            bump_version(state)
+            if self._write_task_state(task_id, state, expected_version=expected):
+                return state
+            # Conflict: another writer updated the version; retry.
+        _log.warning("cas_update exhausted retries for task=%s", task_id)
+        return None
 
 
 _ACTIVE_STATUSES = frozenset({"dispatched", "running", "processing", "progress", "accepted"})
