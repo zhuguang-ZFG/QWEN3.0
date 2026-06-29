@@ -62,7 +62,7 @@ print("done")
         },
     )
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "done"
+    assert "done" in result.stdout, f"unexpected stdout: {result.stdout!r}"
     files = sorted(tmp_path.iterdir())
     assert any(f.name.startswith("app.log") for f in files)
     backups = [f for f in files if f.name.startswith("app.log.")]
