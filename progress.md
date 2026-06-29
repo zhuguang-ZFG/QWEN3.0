@@ -10640,3 +10640,7 @@ uff check 2 文件 clean；导入无循环依赖。
   - `pyright` 目标文件 → 0 errors。
   - `python scripts/check_code_size.py` 目标文件 → PASS。
   - 全量 `python -m pytest --tb=short -q` → **4137 passed / 3 skipped / 2 deselected / 0 failed**。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core` 成功（854 文件上传，服务重启）。
+  - 公网 `https://chat.donglicao.com/health` 200，`/health/ready` 200，device_gateway 等模块加载正常。
+- **提交**：`18325a5b` 已推送至 `origin/main`。
