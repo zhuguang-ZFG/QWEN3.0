@@ -82,8 +82,15 @@
 - ~~AUDIT-5 O5（审计 jsonl 非 append-only）~~ ✅ 已完成（`observability/jsonl_store.py` 改为按大小滚动：`path.jsonl` 超限时重命名为 `.1`/`.2`/...，不再重写整个文件；backend/cli telemetry 读取支持多备份文件）
 - ~~AUDIT-7 D7（Docker Compose 无资源限制）~~ ✅ 已完成（lima 1C/1G，redis/searxng 各 0.5C/512M）
 - ~~AUDIT-8 P1（instructor 同步 LLM 阻塞）~~ ✅ 已完成（LRU 缓存、阈值 0.8/超时 5s/重试 1、新增 async 路径）
+- ~~AUDIT-10 V4（device_memory disable TTL 续命）~~ ✅ 已完成（读剩余 TTL 重设而非全新 TTL）
+- ~~AUDIT-11 W3（僵尸会话清理）~~ ✅ 已核实完成（remove_zombies + reaper 后台任务接线）
+- ~~AUDIT-12 OTA/WS 日志脱敏~~ ✅ 已完成（firmware_url 剥离 query、activation payload 不打印 hmac、WS 消息只打印长度）
 - AUDIT-8 P6/P7（共享状态+多 worker）— 性能核心路径
 - AUDIT-6 A4/A5/A6（响应信封/REST/Pydantic 收口）— 大范围端点改造；A7 已关闭
+- AUDIT-9 S4（task state CAS 乐观锁）— 需重构 10+ 处 read-modify-write 为乐观锁+重试，架构级改造
+- AUDIT-7 D4（依赖 hash pinning）— 需 pip-compile 生成锁文件并验证构建
+- AUDIT-5 O6（OpenTelemetry 接入）— 新依赖
+- AUDIT-11 W2（移除 query 参数 token 注入）— 需前后端协同
 - 固件所有修改需 `idf.py build` 真机编译验证
 
 ### 其他修复
@@ -726,8 +733,9 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | V2 | `device_gateway/path_validator.py` | feed 转换包 try/except，非数字返回 `E_BAD_PARAMS` 而非抛 ValueError/TypeError | Python 实测：feed='abc'=BLOCKED, feed=None=BLOCKED |
 | V3 | `session_memory/redact.py` | 新增 PII 脱敏模式（手机号 `1[3-9]\d{9}`、身份证 18 位、邮箱、银行卡 16-19 位），`has_secret`/`redact_text` 统一覆盖。记忆存储前剥离 PII | Python 实测：手机/邮箱/身份证均替换为 [REDACTED_PII] |
 
-- **延后项**：V4（device_memory Redis disable 误续命 TTL，需读剩余 TTL 再重设）
-- 状态：**AUDIT-10 HIGH 批次已关闭**（V1/V2/V3）。V1 是物理安全修复（防撞机）。
+- ~~延后项：V4（device_memory Redis disable 误续命 TTL，需读剩余 TTL 再重设）~~ ✅ 已完成（见下）
+- **AUDIT-10 V4 修复完成（2026-06-29）**：`device_memory/redis_store.py` `disable` 改为读 Redis `ttl(key)` 获取剩余秒数（客户端不支持 ttl 时回退按 created_at 计算剩余值），用剩余 TTL 重设而非 `ttl_days*86400` 全新 TTL。修复禁用旧记忆反而"续命"的 bug。验证：ruff + 60 device store 测试通过。
+- 状态：**AUDIT-10 全部关闭**（V1/V2/V3/V4）。V1 是物理安全修复（防撞机）。
 
 
 ## 2026-06-29 AUDIT-11：第三方集成、上传资产、WebSocket 协议边界审查
@@ -776,8 +784,9 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | A1 | `xiaozhi_drawing/svg_validator.py`、`routes/device_app_assets.py` | 新增 `sanitize_svg_markup`：用标准库 `xml.etree.ElementTree` 删除 `script`/`foreignObject`/`iframe`/`object`/`embed`/`style` 标签、事件处理器属性、`javascript:` 危险 URI；拒绝 DOCTYPE；纯 path data 直接放行。设备 asset 创建 `category=svg` 时强制清洗 | 27 测试通过 |
 | I2 | `integrations/autohanding/client.py`、`server_lifespan.py` | autohanding 客户端改用缓存的 `httpx.AsyncClient` 单例（带连接池），避免每次请求重建 TLS 握手；`server_lifespan` shutdown 调用 `close_autohanding_client` | 10 测试通过 |
 
-- **延后项**：W2（移除 query 参数 token 注入，需前后端协同）、W3（僵尸会话心跳清理）
-- 状态：**AUDIT-11 HIGH/MEDIUM 批次已关闭**（I1/W1/A1/I2）。
+- **延后项**：W2（移除 query 参数 token 注入，需前后端协同）
+- ~~W3（僵尸会话心跳清理）~~ ✅ 已核实完成：`device_gateway/sessions.py` 的 `remove_zombies`（按 `last_seen_at` 心跳超时清理 + outstanding tasks requeue）已实现，并由 `routes/device_gateway_helpers.py` 的 reaper 后台任务（`_ZOMBIE_HEARTBEAT_TIMEOUT_SECONDS`）周期调用。
+- 状态：**AUDIT-11 HIGH/MEDIUM 批次已关闭**（I1/W1/A1/I2/W3）。
 
 
 ## 2026-06-29 AUDIT-12：U8/U1 固件侧安全与健壮性审查
@@ -825,8 +834,8 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | F5 | `esp32S_XYZ/firmware/u8-xiaozhi/main/boards/zhuguang/dlc-motor-control-p1-ai/motion_executor.cc` | PATH_SEG 段坐标加 `std::isfinite`（拦 NaN/Inf）+ ±500mm 物理边界校验。固件侧双重防线，不依赖后端 path_validator | 源码审查 |
 
 - **待真机验证**：所有固件修改需 `idf.py build` 编译 + 烧录真机验证（OTA 拒绝无签名固件、本地 WS 鉴权、坐标边界）
-- **延后项**：OTA/WS 日志脱敏（F 的 URL/payload 不打印敏感字段）
-- 状态：**AUDIT-12 HIGH 批次已关闭**（F1/F2/F3/F5）。F1 是消除完全设备接管的核心修复。
+- ~~延后项：OTA/WS 日志脱敏（F 的 URL/payload 不打印敏感字段）~~ ✅ 已完成（2026-06-29）：`ota.cc` 的 `Upgrading firmware from %s` 改为剥离 query（防 token 泄漏）；`Activation payload: %s` 改为只打印 serial（防 hmac/challenge 凭证泄漏）；`websocket_control_server.cc` 的 `Got packet with message: %s` 改为只打印长度（防控制指令/敏感数据泄漏）。
+- 状态：**AUDIT-12 全部关闭**（F1/F2/F3/F5 + 日志脱敏）。F1 是消除完全设备接管的核心修复。
 
 
 ## 2026-06-28 U8-1：小智 U8 固件与 LiMa OTA/WS 对接 3 个 CRITICAL 阻塞已修复并部署

@@ -82,13 +82,25 @@ class RedisMemoryStore(DeviceStoreBase):
         return True
 
     def disable(self, entry_id: str) -> bool:
-        raw = self._redis.get(self._entry_key(entry_id))
+        key = self._entry_key(entry_id)
+        raw = self._redis.get(key)
         if not raw:
             return False
         entry = MemoryEntry.model_validate_json(raw)
         updated = entry.model_copy(update={"disabled": True})
-        entry_ttl = max(1, int(updated.ttl_days * 86400))
-        self._redis.set(self._entry_key(entry_id), updated.model_dump_json(), ex=entry_ttl)
+        # AUDIT-10-V4：禁用应保留剩余 TTL，而非用 ttl_days*86400 重设全新 TTL（会"续命"旧记忆）。
+        # 优先用 Redis TTL 命令读剩余秒数；读不到（或客户端不支持 ttl）则按 created_at 计算剩余值。
+        remaining = -1
+        ttl_fn = getattr(self._redis, "ttl", None)
+        if callable(ttl_fn):
+            try:
+                remaining = int(ttl_fn(key))
+            except Exception:
+                remaining = -1
+        if remaining < 0:
+            age_days = (int(time.time()) - updated.created_at) / 86400
+            remaining = max(1, int((updated.ttl_days - age_days) * 86400))
+        self._redis.set(key, updated.model_dump_json(), ex=max(1, int(remaining)))
         return True
 
     def export(self, device_id: str) -> str:

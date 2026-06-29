@@ -1,5 +1,16 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 按 findings.md 推进剩余延后项（V4 + W3 核实 + 固件日志脱敏）
+
+- **目标**：处理 findings.md 中标注延后的低风险项。
+- **质量门禁（全绿）**：`ruff` clean；`check_code_size.py` PASS；`pytest` **4186 passed, 0 failed**。
+- **本次完成**：
+  - **AUDIT-10 V4**（device_memory disable TTL 续命）：`disable` 改为读 Redis `ttl(key)` 剩余秒数重设（客户端不支持 ttl 时回退按 created_at 计算），而非用 `ttl_days*86400` 全新 TTL。修复禁用旧记忆反而"续命"的 bug。
+  - **AUDIT-11 W3**（僵尸会话清理）：核实 `remove_zombies`（按 `last_seen_at` 心跳超时清理 + outstanding tasks requeue）已实现并接线到 reaper 后台任务，findings.md 标注已过时，更新为完成。
+  - **AUDIT-12 OTA/WS 日志脱敏**：`ota.cc` 的 `Upgrading firmware from %s` 剥离 query（防 token 泄漏）；`Activation payload: %s` 改为只打印 serial（防 hmac/challenge 凭证泄漏）；`websocket_control_server.cc` 的 `Got packet with message: %s` 改为只打印长度（防控制指令/敏感数据泄漏）。
+- **评估为架构级、本次不推进的项**（需独立里程碑）：S4（task state CAS，需重构 10+ 处 read-modify-write）、D4（依赖 hash pinning）、O6（OpenTelemetry）、A4/A5/A6（API 信封统一）、P6/P7（共享状态+多 worker）、W2（WS query token 移除）。
+- 状态：**findings.md 低风险延后项已全部推进完毕**。
+
 ## 2026-06-29 京东云 probe 结果回写 Phase 1 完成
 
 - **ingress endpoint 已就绪**：主 VPS `POST /admin/api/probe/ingress` 由
