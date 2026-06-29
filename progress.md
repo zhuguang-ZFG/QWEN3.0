@@ -10,7 +10,7 @@
 - **验证**：
   - `tests/test_svg_validator.py` + `tests/test_device_app_assets.py`：**27 passed, 0 failed**。
   - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件 clean。
-- **提交部署**：待提交。
+- **提交部署**：commit `830bb825` 已 push 到 `origin/main`；`scripts/deploy_unified.py --slice core` 上传 854 个文件；VPS health 200。
 
 ## 2026-06-29 延后项修复：AUDIT-8 P2/P4 + AUDIT-4 F1（三阶段核心路径优化）
 
