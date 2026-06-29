@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-8 P5：embedding LRU 缓存 + 异步 embed 路径
+
+- **目标**：消除语义缓存每次 lookup/store 同步调用 Jina 网络的开销，减少重复查询的 embedding 耗时与失败面。
+- **实现**：
+  - `semantic_cache/embedder.py`：新增线程安全 `_EmbeddingLRUCache`，`JinaEmbedder.embed()` 批量查询时仅对未缓存文本发起网络请求；`LIMA_EMBEDDING_CACHE_SIZE` 默认 1024，设 0 可禁用；API key 作为缓存 key 一部分，轮换时自动失效旧缓存。
+  - `code_context/embedding_client.py`：新增 `get_embeddings_async()` 使用 `httpx.AsyncClient`，支持代理；`JinaEmbedder.aembed()` 与之共享 LRU 缓存，供未来非阻塞调用者使用。
+  - `semantic_cache/config.py`：新增 `embedding_cache_size()` 读取 `LIMA_EMBEDDING_CACHE_SIZE`。
+  - `semantic_cache/cache.py`：`_default_embedder()` 将 Jina API key 传入 embedder。
+  - `.env.example`：新增 `LIMA_EMBEDDING_CACHE_SIZE=1024` 注释样例。
+- **验证**：
+  - 新增 `tests/test_semantic_cache.py` 5 个用例：重复查询命中、批量部分缓存、LRU 淘汰、空结果不缓存、`aembed` 异步缓存。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4152 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-9tuqe6un）。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 在约 30 秒后返回 200。
+  - 已 commit `808683df` 并 push 到 `origin/main`。
+- **状态**：AUDIT-8 P5 关闭。
+
 ## 2026-06-30 AUDIT-3 延后项 P4/P5/P6/P7：客户端 system 覆盖 + 版本标记迁出 + IDE/上下文摘要过滤
 
 - **目标**：关闭 AUDIT-3 剩余 LOW 级别延后项（P4 客户端 system 覆盖、P6 IDE 值字符过滤、P7 上下文摘要关键词过滤），减少提示词注入面。
