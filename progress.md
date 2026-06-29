@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-7 D7：Docker Compose 资源限制
+
+- **目标**：防止 `lima`/`redis`/`searxng` 任一服务内存泄漏拖垮整机。
+- **实现**：
+  - `docker-compose.yml`：为三个服务添加 `deploy.resources.limits`。
+    - `lima`: `cpus: "1.5"`, `memory: 1G`
+    - `redis`: `cpus: "0.5"`, `memory: 512M`
+    - `searxng`: `cpus: "0.5"`, `memory: 512M`
+- **验证**：
+  - `python -c "import yaml; yaml.safe_load(open('docker-compose.yml'))"` YAML 语法检查通过。
+  - `ruff check` 不涉及 Docker 配置；无 Python 代码变更。
+  - 已 commit 并 push 到 `origin/main`。
+- **状态**：AUDIT-7 D7 关闭；AUDIT-7 剩余延后项为 D4/D5/D6/D8/D9/D10。
+
 ## 2026-06-30 AUDIT-5 O8：结构化 JSON 日志默认开启
 
 - **目标**：解决生产默认 stderr 纯文本日志无法被 Loki/ELK 解析的问题。
