@@ -19,6 +19,12 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-30）清理剩余未跟踪文件
+
+- **目标**：处理 `.joycode/` 和 `docs/superpowers/` 下三个未跟踪文件。
+- **提交**：`5b9bb78d` docs: add superpowers plans/specs and joycode project memory 已推送至 `origin/main`。
+- **结果**：工作区已干净。
+
 ### 最近完成（2026-06-30）esp32S_XYZ 子模块同步：firmware 安全加固 + 小程序暗色主题
 
 - **目标**：提交并推送 `esp32S_XYZ` 子模块的本地改动，并更新父仓库子模块指针。

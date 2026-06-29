@@ -10986,3 +10986,11 @@ uff check 2 文件 clean；导入无循环依赖。
     - `7677a290` chore(submodule): bump esp32S_XYZ to 43ae263
   - 均已推送至对应 `origin/main`。
 - **未提交**：`.joycode/`、`docs/superpowers/plans/2026-06-29-miniprogram-dark-theme-unify.md`、`docs/superpowers/specs/2026-06-29-chatweb-visual-polish-design.md`、`docs/superpowers/specs/2026-06-29-miniprogram-dark-theme-unify-design.md` 仍为未跟踪文件，未纳入本次提交。
+
+## 2026-06-30 清理剩余未跟踪文件
+
+- **目标**：处理之前保留的 `.joycode/` 和 `docs/superpowers/` 下三个未跟踪文件。
+- **提交**：
+  - `5b9bb78d` docs: add superpowers plans/specs and joycode project memory
+  - 已推送至 `origin/main`。
+- **结果**：工作区已干净，无剩余未跟踪/未提交变更。
