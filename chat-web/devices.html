@@ -7,7 +7,7 @@
   <meta name="description" content="在 LiMa 星云控制台管理已绑定的 AI 设备。">
   <meta name="theme-color" content="#0a0a0f">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: ws:; font-src 'self'; upgrade-insecure-requests;">
-  <link rel="stylesheet" href="styles.css?v=nebula2">
+  <link rel="stylesheet" href="styles.css?v=taste3">
   <style>
     .devices-layout { display:flex; min-height:100vh; width:100%; }
     .devices-main { flex:1; padding:32px; position:relative; z-index:1; max-width:1200px; margin:0 auto; width:100%; }
@@ -48,8 +48,6 @@
     .btn-danger { padding:8px 14px; border-radius:var(--radius-sm); border:1px solid rgba(239,68,68,.4); background:rgba(239,68,68,.1); color:#ef4444; cursor:pointer; }
     .btn-secondary { padding:8px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-card-hover); color:var(--text); cursor:pointer; }
     .modal-overlay.open { display:flex; }
-    .toast { position:fixed; bottom:24px; right:24px; padding:12px 18px; border-radius:var(--radius-sm); background:var(--bg-card); border:1px solid var(--border); color:var(--text); z-index:200; transform:translateY(120%); transition:transform .2s; }
-    .toast.show { transform:translateY(0); }
     @media (max-width:640px) {
       .devices-main { padding:20px; }
       .drawer { width:100vw; }
@@ -91,7 +89,10 @@
         <button class="btn-primary" id="addDeviceBtn">+ 添加设备</button>
       </div>
       <div id="deviceGrid" class="device-grid"></div>
-      <div id="emptyState" class="empty" hidden>暂无绑定设备，点击右上角添加。</div>
+      <div id="emptyState" class="device-empty-illust" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <p>暂无绑定设备<br>点击右上角添加你的第一台 AI 设备</p>
+      </div>
     </main>
   </div>
 
@@ -126,15 +127,15 @@
       <div class="modal-desc">解绑后设备将不再受该账号控制，确认继续？</div>
       <div class="modal-actions">
         <button class="modal-btn" id="cancelUnbind">取消</button>
-        <button class="modal-btn primary" id="confirmUnbind">确认解绑</button>
+        <button class="btn-danger confirm" id="confirmUnbind">确认解绑</button>
       </div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
-  <script src="js/api.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/devices.js"></script>
+  <script src="js/api.js?v=taste3"></script>
+  <script src="js/auth.js?v=taste3"></script>
+  <script src="js/devices.js?v=taste3"></script>
 </body>
 </html>

@@ -16,6 +16,8 @@
   const estimatedCost = document.getElementById("estimatedCost");
   const detailsBody = document.getElementById("detailsBody");
   const pager = document.getElementById("pager");
+  const usageEmpty = document.getElementById("usageEmpty");
+  const summaryCards = document.getElementById("summaryCards");
 
   let currentDays = 30;
   let currentPage = 1;
@@ -111,20 +113,32 @@
 
   async function loadUsage() {
     try {
-      const query = `?days=${currentDays}&page=${currentPage}&page_size=${currentPageSize}`;
-      const data = await LiMaAPI.get(API_PATH + query, token);
-      const summary = data.summary || {};
+      var query = "?days=" + currentDays + "&page=" + currentPage + "&page_size=" + currentPageSize;
+      var data = await LiMaAPI.get(API_PATH + query, token);
+      var summary = data.summary || {};
+      var hasData = (summary.totalTokens > 0) || (summary.totalRequests > 0);
+
+      if (hasData) {
+        usageEmpty.hidden = true;
+        summaryCards.hidden = false;
+      } else {
+        usageEmpty.hidden = false;
+        summaryCards.hidden = true;
+      }
+
       totalTokens.textContent = formatNumber(summary.totalTokens);
       totalRequests.textContent = formatNumber(summary.totalRequests);
       estimatedCost.textContent = "¥" + Number(summary.estimatedCost || 0).toFixed(4);
 
       renderDailyCharts(data.daily || []);
       renderCapabilityChart(data.byCapability || []);
-      const details = data.details || {};
+      var details = data.details || {};
       renderDetails(details.items || [], details.page || 1, details.pageSize || currentPageSize, details.total || 0);
     } catch (err) {
       console.error(err);
-      detailsBody.innerHTML = `<tr><td colspan="4" class="empty">加载失败：${escapeHtml(err.message || "未知错误")}</td></tr>`;
+      usageEmpty.hidden = false;
+      summaryCards.hidden = true;
+      detailsBody.innerHTML = '<tr><td colspan="4" class="empty">加载失败：' + escapeHtml(err.message || "未知错误") + '</td></tr>';
     }
   }
 

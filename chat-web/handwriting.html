@@ -7,7 +7,7 @@
   <meta name="description" content="在 LiMa 星云控制台将文字转换为仿手写笔迹，并下发给写字机/绘图机执行。">
   <meta name="theme-color" content="#0a0a0f">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: ws:; font-src 'self'; upgrade-insecure-requests;">
-  <link rel="stylesheet" href="styles.css?v=nebula2">
+  <link rel="stylesheet" href="styles.css?v=taste3">
   <style>
     .handwriting-layout { display:flex; min-height:100vh; width:100%; }
     .handwriting-main { flex:1; padding:32px; position:relative; z-index:1; max-width:1200px; margin:0 auto; width:100%; }
@@ -42,8 +42,6 @@
     .loading { display:flex; align-items:center; gap:10px; color:var(--text-muted); }
     .spinner { width:18px; height:18px; border:2px solid rgba(255,255,255,.1); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .toast { position:fixed; bottom:24px; right:24px; padding:12px 18px; border-radius:var(--radius-sm); background:var(--bg-card); border:1px solid var(--border); color:var(--text); z-index:200; transform:translateY(120%); transition:transform .2s; }
-    .toast.show { transform:translateY(0); }
     @media (max-width:640px) { .handwriting-main { padding:20px; } }
   </style>
 </head>
@@ -144,8 +142,8 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="js/api.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/handwriting.js"></script>
+  <script src="js/api.js?v=taste3"></script>
+  <script src="js/auth.js?v=taste3"></script>
+  <script src="js/handwriting.js?v=taste3"></script>
 </body>
 </html>

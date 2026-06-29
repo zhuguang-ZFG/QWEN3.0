@@ -39,10 +39,14 @@
   let currentMode = "preview";
   let devices = [];
 
-  function showToast(message, duration = 3000) {
-    els.toast.textContent = message;
-    els.toast.classList.add("show");
-    setTimeout(() => els.toast.classList.remove("show"), duration);
+  function showToast(message, duration) {
+    if (window.LiMaToast) {
+      window.LiMaToast(message, { type: "info", duration: duration || 3500 });
+    } else {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      setTimeout(function () { els.toast.classList.remove("show"); }, duration || 3000);
+    }
   }
 
   function escapeHtml(str) {

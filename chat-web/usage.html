@@ -7,7 +7,7 @@
   <meta name="description" content="查看 LiMa 星云 API 用量、Token 消耗与费用估算。">
   <meta name="theme-color" content="#0a0a0f">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; upgrade-insecure-requests;">
-  <link rel="stylesheet" href="styles.css?v=nebula2">
+  <link rel="stylesheet" href="styles.css?v=taste3">
   <style>
     .usage-layout { display:flex; min-height:100vh; width:100%; }
     .usage-main { flex:1; padding:32px; position:relative; z-index:1; max-width:1200px; margin:0 auto; width:100%; }
@@ -73,10 +73,15 @@
         </select>
       </div>
 
-      <div class="summary-cards">
-        <div class="summary-card"><div class="label">Token 总消耗</div><div class="value" id="totalTokens">—</div></div>
-        <div class="summary-card"><div class="label">请求总数</div><div class="value" id="totalRequests">—</div></div>
-        <div class="summary-card"><div class="label">预估费用</div><div class="value" id="estimatedCost">—</div></div>
+      <div id="usageEmpty" class="usage-empty-illust" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        <p>使用后这里会显示用量统计</p>
+      </div>
+
+      <div class="summary-cards" id="summaryCards">
+        <div class="summary-card card-tokens"><div class="label">Token 总消耗</div><div class="value" id="totalTokens">—</div></div>
+        <div class="summary-card card-requests"><div class="label">请求总数</div><div class="value" id="totalRequests">—</div></div>
+        <div class="summary-card card-cost"><div class="label">预估费用</div><div class="value" id="estimatedCost">—</div></div>
       </div>
 
       <div class="chart-grid">
@@ -99,8 +104,8 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"
           integrity="sha384-BQKzmHvQLMCAnL3UtDBA1Al5tFjsCz1wrMlIUA1wkzo14DYkRWjywW+p9pCj0cwd"
           crossorigin="anonymous"></script>
-  <script src="js/api.js?v=nebula2"></script>
-  <script src="js/auth.js?v=nebula2"></script>
-  <script src="js/usage.js?v=nebula2"></script>
+  <script src="js/api.js?v=taste3"></script>
+  <script src="js/auth.js?v=taste3"></script>
+  <script src="js/usage.js?v=taste3"></script>
 </body>
 </html>

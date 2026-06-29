@@ -68,9 +68,13 @@
   }
 
   function showToast(message) {
-    toast.textContent = message;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 3000);
+    if (window.LiMaToast) {
+      window.LiMaToast(message, { type: "info" });
+    } else {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(function () { toast.classList.remove("show"); }, 3000);
+    }
   }
 
   async function loadDevices() {
@@ -109,7 +113,7 @@
     devices.forEach((device) => {
       const status = statuses[device.deviceId] || { online: false, working: false };
       const tile = document.createElement("div");
-      tile.className = "device-tile";
+      tile.className = "device-tile" + (statusClass(status) === "busy" ? " busy" : "");
       tile.dataset.id = device.deviceId;
       tile.innerHTML = `
         <div class="device-tile-top">
@@ -204,14 +208,21 @@
   }
 
   function updateTileStatus(deviceId, status) {
-    const tile = grid.querySelector(`.device-tile[data-id="${CSS.escape(deviceId)}"]`);
+    var tile = grid.querySelector('.device-tile[data-id="' + CSS.escape(deviceId) + '"]');
     if (!tile) return;
-    const badge = tile.querySelector(".status-badge");
-    const dot = tile.querySelector(".status-dot");
+    var badge = tile.querySelector(".status-badge");
+    var dot = tile.querySelector(".status-dot");
     if (!badge) return;
-    badge.className = `status-badge ${statusClass(status)}`;
-    if (dot) dot.className = `status-dot ${statusClass(status)}`;
+    var sc = statusClass(status);
+    badge.className = "status-badge " + sc;
+    if (dot) dot.className = "status-dot " + sc;
     badge.childNodes[1].textContent = statusLabel(status);
+    /* Update busy gradient border */
+    if (sc === "busy") {
+      tile.classList.add("busy");
+    } else {
+      tile.classList.remove("busy");
+    }
   }
 
   function updateDrawerStatus(status) {
@@ -354,6 +365,22 @@
 
   function openUnbindModal() {
     if (!selectedDeviceId) return;
+    var device = devices.find(function (d) { return d.deviceId === selectedDeviceId; });
+    var name = device ? deviceName(device) : "未知设备";
+    var sn = device ? (device.deviceSn || device.deviceId) : "";
+    var desc = confirmModal.querySelector(".modal-desc");
+    if (desc) {
+      desc.innerHTML =
+        '<div class="unbind-warning">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+          '<div class="unbind-warning-text">' +
+            '即将解绑设备 <strong>' + escapeHtml(name) + '</strong>，解绑后该设备将不再受此账号控制。<br>' +
+            '<span class="unbind-device-name">' + escapeHtml(sn) + '</span>' +
+          '</div>' +
+        '</div>';
+    }
+    var unbindBtn = confirmModal.querySelector(".btn-danger");
+    if (unbindBtn) unbindBtn.classList.add("confirm");
     confirmModal.classList.add("open");
   }
 
