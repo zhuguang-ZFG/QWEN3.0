@@ -57,7 +57,9 @@ def _apply_prefix_cache(sys_text: str, messages: list[dict]) -> tuple[str, list[
         if sys_text and messages:
             sys_text, messages = optimize_for_prefix_cache(sys_text, messages)
     except ImportError:
-        logger.warning("context_pipeline.cache.optimize_for_prefix_cache not available; prefix cache disabled")
+        # Module absent is the normal case on many deployments; avoid logging it
+        # on every request, which floods the disk and stalls the event loop.
+        logger.debug("context_pipeline.cache.optimize_for_prefix_cache not available; prefix cache disabled")
     except Exception as exc:
         logger.warning("prefix cache optimization failed: %s", exc, exc_info=True)
     return sys_text, messages

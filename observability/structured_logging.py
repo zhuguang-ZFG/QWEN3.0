@@ -14,14 +14,17 @@ import datetime
 import json
 import logging
 import os
+import queue
 import sys
-from logging.handlers import RotatingFileHandler
+from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 
 from config import settings
 
 _ENABLED = settings.OBSERVABILITY.structured_logging
 _SERVICE_NAME = settings.OBSERVABILITY.service_name
 _LOG_CFG = settings.OBSERVABILITY
+
+_listener: QueueListener | None = None
 
 
 class JsonFormatter(logging.Formatter):
@@ -55,22 +58,41 @@ def _file_formatter() -> logging.Formatter:
 
 
 def _setup_file_logging() -> None:
-    """Install a size-limited RotatingFileHandler on the root logger."""
+    """Install a size-limited, async file handler on the root logger.
+
+    AUDIT-5-O9 follow-up: use a QueueHandler + QueueListener so file I/O does
+    not stall the async event loop under heavy backend log volume.
+    """
+    global _listener
     path = _LOG_CFG.log_file_path
     if not path:
         return
     directory = os.path.dirname(path)
     if directory:
         os.makedirs(directory, exist_ok=True)
-    handler = RotatingFileHandler(
+    file_handler = RotatingFileHandler(
         path,
         maxBytes=_LOG_CFG.log_file_max_bytes,
         backupCount=_LOG_CFG.log_file_backup_count,
         encoding="utf-8",
         delay=True,
     )
-    handler.setFormatter(_file_formatter())
-    logging.root.addHandler(handler)
+    file_handler.setFormatter(_file_formatter())
+    log_queue: queue.Queue[logging.LogRecord] = queue.Queue(-1)
+    _listener = QueueListener(log_queue, file_handler, respect_handler_level=True)
+    _listener.start()
+    logging.root.addHandler(QueueHandler(log_queue))
+
+
+def stop_file_listener() -> None:
+    """Flush and stop the background file-log listener, if running."""
+    global _listener
+    if _listener is not None:
+        try:
+            _listener.stop()
+        except Exception as exc:
+            logging.getLogger(__name__).warning("failed to stop log listener: %s", exc)
+        _listener = None
 
 
 def setup_structured_logging() -> None:

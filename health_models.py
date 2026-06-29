@@ -46,6 +46,10 @@ class QualityState:
     last_success: float = 0.0
     last_failure: float = 0.0
 
+    @property
+    def avg_latency(self) -> float:
+        return sum(self.latencies) / len(self.latencies) if self.latencies else 0.0
+
 
 def calc_cooldown(failures: int, error_code: Optional[int] = None) -> float:
     if error_code in (401, 403):

@@ -96,10 +96,11 @@ def test_structured_file_log_format_is_json(tmp_path: Path):
     log_path = tmp_path / "app.log"
     script = """
 import logging
-from observability.structured_logging import setup_structured_logging
+from observability.structured_logging import setup_structured_logging, stop_file_listener
 setup_structured_logging()
 log = logging.getLogger("test.json")
 log.info("hello")
+stop_file_listener()
 print("done")
 """
     result = _run_in_tmp(
@@ -122,10 +123,11 @@ def test_plain_file_log_format_when_structured_disabled(tmp_path: Path):
     log_path = tmp_path / "app.log"
     script = """
 import logging
-from observability.structured_logging import setup_structured_logging
+from observability.structured_logging import setup_structured_logging, stop_file_listener
 setup_structured_logging()
 log = logging.getLogger("test.plain")
 log.warning("plain")
+stop_file_listener()
 print("done")
 """
     result = _run_in_tmp(

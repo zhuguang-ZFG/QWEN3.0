@@ -54,6 +54,7 @@ def test_record_failure_persists_health_state():
         error_code=502,
         error_text="upstream failed",
     )
+    hs.flush_pending_save()
     hs.reset_all_state()
 
     hs.load_health_state()
