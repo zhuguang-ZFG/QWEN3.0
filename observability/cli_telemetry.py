@@ -115,32 +115,17 @@ def sanitize_cli_outcome(
 def record_cli_outcome(record: dict[str, Any]) -> bool:
     from observability.jsonl_store import append_jsonl_record
 
-    return append_jsonl_record(
-        _telemetry_path(),
-        record,
-        keep_lines=MAX_RECENT,
-        logger=_log,
-    )
+    return append_jsonl_record(_telemetry_path(), record, logger=_log)
 
 
 def _read_recent(limit: int) -> list[dict[str, Any]]:
-    path = _telemetry_path()
-    if not path.exists():
-        return []
+    from observability.jsonl_store import read_recent_jsonl_records
+
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()[-max(limit, 1) :]
+        return read_recent_jsonl_records(_telemetry_path(), limit)
     except Exception as exc:
         _log.warning("failed to read cli telemetry: %s", type(exc).__name__)
         return []
-    records: list[dict[str, Any]] = []
-    for line in lines:
-        try:
-            parsed = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(parsed, dict):
-            records.append(parsed)
-    return records
 
 
 def cli_telemetry_summary(limit: int = 20) -> dict[str, Any]:

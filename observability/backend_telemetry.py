@@ -39,7 +39,7 @@ def _flush_records(records: list[dict[str, Any]]) -> None:
 
     path = _telemetry_path()
     for record in records:
-        append_jsonl_record(path, record, keep_lines=MAX_RECENT, logger=_log)
+        append_jsonl_record(path, record, logger=_log)
 
 
 from observability import telemetry_aggregator
@@ -168,24 +168,13 @@ def record_backend_attempt(
 
 
 def _read_recent(limit: int) -> list[dict[str, Any]]:
-    path = _telemetry_path()
-    if not path.exists():
-        return []
+    from observability.jsonl_store import read_recent_jsonl_records
+
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()[-max(limit, 1) :]
+        return read_recent_jsonl_records(_telemetry_path(), limit)
     except Exception as exc:
         _log.warning("failed to read backend telemetry: %s", type(exc).__name__)
         return []
-
-    records: list[dict[str, Any]] = []
-    for line in lines:
-        try:
-            parsed = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(parsed, dict):
-            records.append(parsed)
-    return records
 
 
 def recent_backend_attempts(limit: int = MAX_RECENT) -> list[dict[str, Any]]:
