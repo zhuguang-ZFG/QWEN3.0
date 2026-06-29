@@ -72,7 +72,9 @@ def test_cas_write_creates_when_expected_negative():
 
 def test_append_event_atomic_appends_and_bumps_version():
     r = _FakeRedis()
-    r.hset(TASKS_KEY, "t1", '{"task":{"task_id":"t1"},"status":"dispatched","events":[{"phase":"accepted"}],"_version":1}')
+    r.hset(
+        TASKS_KEY, "t1", '{"task":{"task_id":"t1"},"status":"dispatched","events":[{"phase":"accepted"}],"_version":1}'
+    )
     updated = append_event_atomic(r, TASKS_KEY, "t1", {"phase": "done"}, 300, new_status="done")
     assert updated is not None
     assert len(updated["events"]) == 2
