@@ -8,16 +8,27 @@
 > Updated: 2026-06-30
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4186 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **4201 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
-> CI/CD：`.github/workflows/test.yml`、`.github/workflows/deploy.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-docs-site.yml` 已配置；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（ secrets 待配置）。
+> CI/CD：`.github/workflows/test.yml` ✅、`.github/workflows/deploy.yml` ✅、`.github/workflows/deploy-site-v2.yml` ✅、`.github/workflows/deploy-docs-site.yml` ✅（全部绿灯）；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（secrets 待配置）。
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-30）deploy-docs-site CI 修复 — 最后一个 CI 失败项关闭
+
+- **目标**：修复 `deploy-docs-site.yml` 工作流 0s 失败。
+- **根因**：`secrets` context 在 step `if` 条件中不可用（GitHub Actions 限制），导致工作流文件解析失败。与 `deploy-site-v2.yml` 曾有的问题相同（commit `12977187` 已修复）。
+- **修复**：
+  - 将 `secrets.X != ''` 检查移至 job-level `env:` 变量（`VPS_HOST_SET`/`VPS_SSH_KEY_SET`/`DOCS_SITE_DIR_SET`）。
+  - step `if` 改为 `env.VAR == 'true'`。
+  - Node 版本 `20` → `22`（pnpm 11.9 要求 ≥ 22.13，Node 20 已被 GH Actions 废弃）。
+- **结果**：三个 CI 工作流（Tests ✅、Deploy ✅、Deploy Docs Site ✅）全部绿灯。
+- **提交**：`e2f7b20d`（secrets context 修复）、`f897c84d`（Node 版本升级）。
 
 ### 最近完成（2026-06-30）清理剩余未跟踪文件
 
