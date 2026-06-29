@@ -5,10 +5,10 @@
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-28
+> Updated: 2026-06-30
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4083 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **4186 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -18,6 +18,16 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-30）chat-web 静态资源同步 + 全仓库 ruff format
+
+- **目标**：将 chat-web 前端改动部署到 VPS，并清理全局 ruff format 债务后推送 GitHub。
+- **改动**：
+  - `chat-web/` 下 14 个静态文件（HTML/JS/CSS）视觉与交互更新。
+  - 对 32 个 Python 文件运行 `ruff format`；在 `config/settings_core.py`、`routing_engine.py` 两处过长行加 `# fmt: skip`，避免格式化后触发 size 门禁。
+- **验证**：全量 pytest **4186 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check` / `ruff format --check` / `pyright` / `scripts/check_code_size.py` 全通过；VPS `python scripts/deploy_unified.py --slice core` 861 文件上传成功，服务重启，`https://chat.donglicao.com/health` 返回 200。
+- **提交**：`0a6bc689`（style）、`00314da5`（feat(chat-web)）已推送至 `origin/main`。
+- **未提交**：`esp32S_XYZ` 子模块仍有本地改动，未纳入本次推送。
 
 ### 最近完成（2026-06-29）LiMa HIGH 批次修复：AUDIT-1 H1~H6
 

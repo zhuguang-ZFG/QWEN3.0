@@ -10947,3 +10947,21 @@ uff check 2 文件 clean；导入无循环依赖。
   - 重新部署后 `/health/ready` 恢复 200（~1s），服务可用。
 - **后续**：AUDIT-4-F7 需先将 MQTT 连接改为完全非阻塞（或独立线程 + queue）后再移入 WARM；当前保持 CRITICAL 以保障生产稳定。
 - **提交**：`0299060c`（revert phases）、`4b744084`（restore MQTT）已推送至 `origin/main`。
+
+## 2026-06-30 chat-web 静态资源同步 + 全仓库 ruff format
+
+- **目标**：部署验证 VPS 并上传 GitHub。
+- **本地门禁**：
+  - 全量 pytest：**4186 passed, 3 skipped, 2 deselected**。
+  - `ruff check .`：通过。
+  - `ruff format --check`：最初未通过（32 个文件需格式化），已按用户选择运行 `ruff format .`。
+  - `pyright <改动 .py 文件>`：0 errors，8 warnings（`jdcloud_worker.py` 类型、`instructor_client.py` 可选依赖导入）。
+  - `scripts/check_code_size.py`：通过。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core`：861 文件上传，0 失败，服务重启成功。
+  - 公网 `https://chat.donglicao.com/health` 200，版本 `lima-1.3`，状态 `ready`。
+- **提交**：
+  - `0a6bc689` style: apply ruff format to 32 Python files
+  - `00314da5` feat(chat-web): sync chat-web static files and styles
+  - 已推送至 `origin/main`。
+- **未提交**：`esp32S_XYZ` 子模块仍有本地改动，未纳入本次推送。
