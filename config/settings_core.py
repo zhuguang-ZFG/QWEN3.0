@@ -239,7 +239,7 @@ class ObservabilityConfig:
         "yes",
         "on",
     }
-    structured_logging: bool = os.environ.get("LIMA_STRUCTURED_LOGGING", "0").strip().lower() in {"1", "true", "yes"}
+    structured_logging: bool = os.environ.get("LIMA_STRUCTURED_LOGGING", "1").strip().lower() not in {"0", "false", "no", "off"}
     service_name: str = os.environ.get("LIMA_SERVICE_NAME", "lima-router")
     tracing_enabled: bool = os.environ.get("LIMA_TRACING_ENABLED", "1").strip().lower() not in {
         "0",

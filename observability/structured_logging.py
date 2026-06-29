@@ -1,6 +1,6 @@
 """Structured JSON logging for LiMa — OpenTelemetry-compatible log format.
 
-Enabled via LIMA_STRUCTURED_LOGGING=1.
+Enabled by default; disable with LIMA_STRUCTURED_LOGGING=0.
 Outputs JSON lines with trace_id, span_id, and service context for
 correlation with OTEL Collector / Loki.
 """

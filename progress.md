@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-5 O8：结构化 JSON 日志默认开启
+
+- **目标**：解决生产默认 stderr 纯文本日志无法被 Loki/ELK 解析的问题。
+- **实现**：
+  - `config/settings_core.py`：`ObservabilityConfig.structured_logging` 默认值从 `"0"` 改为 `"1"`，显式设 `"0"/"false"/"no"/"off"` 可关闭。
+  - `observability/structured_logging.py`：docstring 更新为默认开启。
+  - `.env.example`：新增 `LIMA_STRUCTURED_LOGGING=1` 注释样例。
+  - `tests/test_observability_structured_logging.py`：子进程隔离测试验证默认开启、显式关闭、显式开启。
+- **验证**：
+  - `tests/test_observability_structured_logging.py`：**3 passed, 0 failed**。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4157 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-7k7jb289）。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 最终返回 200。
+  - 已 commit 并 push 到 `origin/main`。
+- **状态**：AUDIT-5 O8 关闭；AUDIT-5 剩余延后项为 O3/O5/O6/O7/O9/O10/O11。
+
 ## 2026-06-30 AUDIT-6 A7：`/v1/models` 动态生成
 
 - **目标**：消除 `/v1/models` 硬编码 13 个模型 ID 与实际注册后端漂移的问题。
