@@ -4,7 +4,7 @@
 # AUDIT-7-D4: 版本收紧（~= 锁定主.次，允许补丁更新）
 
 # Test and static analysis tools (moved from requirements_server.txt)
-hypothesis~=6.0
+hypothesis~=6.155
 pyright>=1.1.0
 deptry~=0.20
 pytest-timeout~=2.0
