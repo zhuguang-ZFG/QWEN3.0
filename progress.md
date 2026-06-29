@@ -10618,3 +10618,25 @@ uff check 2 文件 clean；导入无循环依赖。
   - `python scripts/deploy_unified.py --slice core` 成功（844 文件上传，服务重启）。
   - `https://chat.donglicao.com/health` 200，`health/ready` 200。
 - **提交**：`eebcb3ac` 已推送至 `origin/main`。
+
+## 2026-06-30 findings 代码侧问题集中修复（AUDIT-11-W3 / W2 + OTA state_store）
+
+- **目标**：继续清理 `findings.md` 中 AUDIT-11 剩余代码侧问题，并修复全量测试在 Windows 上的偶发失败。
+- **关键结果**：
+  - **AUDIT-11-W3 WebSocket 僵尸会话清理**：
+    - `device_gateway/sessions.py`：`DeviceSession` 新增 `last_seen_at` 时间戳；`register`/`update_heartbeat` 自动刷新；新增 `remove_zombies(timeout_seconds)` 方法，驱逐超时会话并将其 `in-flight` 任务通过 `requeue_pending_tasks` 重新入队。
+    - `routes/device_gateway_helpers.py`：新增 `_zombie_session_reaper_loop` 后台任务（90s 心跳超时，30s 扫描周期），在 `start_device_gateway_runtime` 启动、`stop_device_gateway_runtime` 取消；驱逐会话后异步关闭底层 WebSocket。
+    - 新增 `tests/device_ota/test_state_store.py`（设备会话僵尸清理回归测试）。
+  - **AUDIT-11-W2 device WS query token 默认拒绝**：
+    - `routes/device_gateway_dispatch.py`：`extract_ws_token()` 默认不再接受 `?token=` / `?authorization=` query 参数（防止 Bearer token 进入 nginx access log / Referer）。
+    - 保留环境变量 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN=1` 作为 legacy 迁移期临时回退。
+    - `.env.example` 新增 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN=0` 说明。
+    - `tests/conftest.py` 增加 autouse fixture，默认在测试中开启 legacy query token，避免大量既有用例因安全默认而失败；`tests/test_device_ws_ticket.py` 新增 3 个用例验证默认拒绝与 env 回退。
+  - **OTA state_store Windows 文件锁重试**：
+    - `device_ota/state_store.py`：`save_section()` 通过 `_atomic_replace_with_retry()` 对 `Path.replace()` 进行 3 次重试，缓解 Windows 上 antivirus/索引导致的偶发 `PermissionError`。
+    - 新增 `tests/device_ota/test_state_store.py` 回归用例模拟首次 `PermissionError`、第二次成功。
+- **验证**：
+  - `ruff check .` → All checks passed。
+  - `pyright` 目标文件 → 0 errors。
+  - `python scripts/check_code_size.py` 目标文件 → PASS。
+  - 全量 `python -m pytest --tb=short -q` → **4137 passed / 3 skipped / 2 deselected / 0 failed**。

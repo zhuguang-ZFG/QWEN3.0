@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+
+from device_gateway.task_lifecycle import requeue_pending_tasks
+
+
+_log = logging.getLogger(__name__)
 
 
 def _now_iso() -> str:
@@ -23,6 +30,7 @@ class DeviceSession:
     negotiated_capabilities: frozenset[str] = field(default_factory=frozenset)
     attestation_action: str = ""
     last_uptime_ms: int = 0
+    last_seen_at: float = field(default_factory=time.monotonic, repr=False)
     send_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     inflight_tasks: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
     inflight_lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
@@ -69,11 +77,9 @@ class SessionRegistry:
         with self._lock:
             previous = self._sessions.get(session.device_id)
             # 新设备连接且已达上限 → 拒绝（已注册设备重连不算超限）
-            if (
-                previous is None
-                and len(self._sessions) >= self._MAX_DEVICE_SESSIONS
-            ):
+            if previous is None and len(self._sessions) >= self._MAX_DEVICE_SESSIONS:
                 return "too_many"
+            session.last_seen_at = time.monotonic()
             self._sessions[session.device_id] = session
             return previous
 
@@ -104,6 +110,41 @@ class SessionRegistry:
             session = self._sessions.get(device_id)
             if session:
                 session.last_uptime_ms = uptime_ms
+                session.last_seen_at = time.monotonic()
+
+    def remove_zombies(
+        self,
+        timeout_seconds: float,
+        now: float | None = None,
+    ) -> list[DeviceSession]:
+        """Evict sessions whose last heartbeat is older than ``timeout_seconds``.
+
+        Outstanding in-flight tasks are requeued so they can be retried once the
+        device reconnects. Returns the evicted sessions so callers can close the
+        underlying WebSocket outside of the registry lock.
+        """
+        if now is None:
+            now = time.monotonic()
+        cutoff = now - timeout_seconds
+        removed: list[DeviceSession] = []
+        with self._lock:
+            stale_ids = [device_id for device_id, session in self._sessions.items() if session.last_seen_at < cutoff]
+            for device_id in stale_ids:
+                session = self._sessions.pop(device_id, None)
+                if session is None:
+                    continue
+                outstanding = session.take_outstanding_tasks()
+                if outstanding:
+                    try:
+                        requeue_pending_tasks(device_id, outstanding)
+                    except Exception:
+                        _log.warning(
+                            "failed to requeue outstanding tasks for zombie device=%s",
+                            device_id,
+                            exc_info=True,
+                        )
+                removed.append(session)
+        return removed
 
     def clear(self) -> None:
         with self._lock:

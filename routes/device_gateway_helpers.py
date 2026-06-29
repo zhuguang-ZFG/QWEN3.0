@@ -29,6 +29,12 @@ _REAPER_INTERVAL_SECONDS = 60.0
 _REAPER_STALE_SECONDS = 120.0
 _reaper_task: asyncio.Task[None] | None = None
 
+# AUDIT-11-W3：WebSocket 僵尸会话清理周期。
+# 设备心跳超时后，registry 中的会话会被驱逐，未完成的 in-flight 任务重新入队。
+_ZOMBIE_HEARTBEAT_TIMEOUT_SECONDS = 90.0
+_ZOMBIE_REAPER_INTERVAL_SECONDS = 30.0
+_zombie_reaper_task: asyncio.Task[None] | None = None
+
 
 def _record_device_task_evidence(
     *,
@@ -75,25 +81,50 @@ async def _stale_task_reaper_loop() -> None:
             logger.warning("stale task reaper iteration failed: %s", exc, exc_info=True)
 
 
+async def _zombie_session_reaper_loop() -> None:
+    """Periodically evict WebSocket sessions that missed heartbeats (AUDIT-11-W3)."""
+    while True:
+        try:
+            await asyncio.sleep(_ZOMBIE_REAPER_INTERVAL_SECONDS)
+            removed = registry.remove_zombies(_ZOMBIE_HEARTBEAT_TIMEOUT_SECONDS)
+            for session in removed:
+                logger.info("zombie session evicted device=%s", session.device_id)
+                try:
+                    await session.websocket.close()
+                except Exception:
+                    logger.debug(
+                        "websocket close failed for zombie device=%s",
+                        session.device_id,
+                        exc_info=True,
+                    )
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            logger.warning("zombie session reaper iteration failed: %s", exc, exc_info=True)
+
+
 async def start_device_gateway_runtime() -> None:
-    global _reaper_task
+    global _reaper_task, _zombie_reaper_task
     configure_task_store_from_env()
     configure_memory_store_from_env()
     configure_ledger_store_from_env()
     configure_notifier_from_env()
     await start_task_notifier(notify_local_session_task_available)
     _reaper_task = asyncio.create_task(_stale_task_reaper_loop())
+    _zombie_reaper_task = asyncio.create_task(_zombie_session_reaper_loop())
 
 
 async def stop_device_gateway_runtime() -> None:
-    global _reaper_task
-    if _reaper_task is not None and not _reaper_task.done():
-        _reaper_task.cancel()
-        try:
-            await _reaper_task
-        except (asyncio.CancelledError, Exception):
-            pass
-        _reaper_task = None
+    global _reaper_task, _zombie_reaper_task
+    for task in (_reaper_task, _zombie_reaper_task):
+        if task is not None and not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
+    _reaper_task = None
+    _zombie_reaper_task = None
     await stop_task_notifier()
 
 

@@ -157,6 +157,19 @@ def bypass_default_attestation_in_legacy_tests(request, monkeypatch):
     monkeypatch.setattr(handlers.attestation_verifier, "verify", _test_verify)
 
 
+@pytest.fixture(autouse=True)
+def _allow_legacy_device_ws_query_token_in_tests(monkeypatch):
+    """AUDIT-11-W2: legacy device WS query-token path remains reachable in tests.
+
+    Production defaults to rejecting ``?token=`` / ``?authorization=`` query
+    parameters to prevent Bearer tokens from leaking into access logs and
+    Referer headers. Tests continue to exercise the legacy branch via this
+    opt-in fixture; dedicated tests verify the secure default when the variable
+    is unset.
+    """
+    monkeypatch.setenv("LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN", "1")
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Clean up test temp directory and restore original env vars after session completes."""
     import shutil

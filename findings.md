@@ -10,7 +10,7 @@
 ### 质量门禁（全绿）
 - `ruff check .`：All checks passed
 - `scripts/check_code_size.py`：PASS（所有文件 ≤300 行，函数 ≤50 行）
-- `pytest --tb=short -q`：**4103 passed, 3 skipped, 0 failed**
+- `pytest --tb=short -q`：**4137 passed, 3 skipped, 2 deselected, 0 failed**
 
 ### 各批次修复状态
 
@@ -25,7 +25,7 @@
 | AUDIT-8 | 性能 | P3 缓存 WAL + P2 intent 去重 + P4 httpx 连接池复用 | P3/P2/P4 关闭（P1/P5 延后） |
 | AUDIT-9 | 状态机 | S1 reset_task_for_retry 对齐/S2 reaper（AUDIT-4） | CRITICAL/HIGH 全关闭 |
 | AUDIT-10 | 运动控制+PII | V1 NaN 拦截/V2 feed try/V3 PII 脱敏 | HIGH 全关闭 |
-| AUDIT-11 | 集成/上传/WS | I1 zip bomb/W1 WS 超时+连接限制 | HIGH 全关闭（A1 SVG 净化延后） |
+| AUDIT-11 | 集成/上传/WS | A1 SVG 净化/W1 WS 超时+连接限制/W2 query token 默认拒绝/W3 僵尸会话清理/I2 autohanding 连接池复用 | HIGH 全关闭 |
 | AUDIT-12 | 固件 | F1 OTA 签名强制/F2 URL 白名单/F3 本地 WS 鉴权/F5 固件坐标边界 | HIGH 全关闭（需真机编译验证） |
 
 ### 已修复的最高危项（按影响排序）
@@ -43,8 +43,10 @@
 - ~~AUDIT-8 P4（连接池）~~ ✅ 已完成（http_request_builder/client.py 按 backend 缓存 + no-op wrapper，7 测试）
 - AUDIT-8 P1（异步 LLM）/P5（embedding 异步化+LRU）/P6/P7（共享状态+多 worker）— 性能核心路径
 - AUDIT-6 A4/A5/A6（响应信封/REST/Pydantic 收口）— 大范围端点改造
-- AUDIT-11 A1（SVG 净化）— 需 lxml 依赖
 - 固件所有修改需 `idf.py build` 真机编译验证
+
+### 其他修复
+- **OTA 状态保存 Windows 文件锁重试**：`device_ota/state_store.py` 对 `Path.replace()` 增加 3 次重试（`_atomic_replace_with_retry`），消除全量测试在 Windows 上的偶发 `PermissionError`；新增 `tests/device_ota/test_state_store.py` 回归用例。
 
 ## 2026-06-28 AUDIT-1：LiMa 后端系统深度审查（安全/健壮性/配置）
 
