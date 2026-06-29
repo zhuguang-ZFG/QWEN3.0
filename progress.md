@@ -1,5 +1,29 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 京东云 probe 结果回写 Phase 1 完成
+
+- **ingress endpoint 已就绪**：主 VPS `POST /admin/api/probe/ingress` 由
+  `routes/admin_probe_ingress.py` 实现，使用独立 `LIMA_PROBE_INGRESS_TOKEN`，
+  默认关闭；`GET /admin/api/probe/jdcloud` 可查询京东云 probe 快照。
+- **京东云推送部署完成**：
+  - 推送脚本 `deploy/jdcloud/push_probe_results.py` +
+    `push_probe_results_utils.py` 已上传。
+  - systemd 单元 `lima-probe-push.service` / `lima-probe-push.timer` 已部署并启用，
+    每 5 分钟推送一次。
+- **主 VPS 环境更新**：已追加 `LIMA_PROBE_INGRESS_ENABLED=1` 与 token，重启
+  `lima-router.service`，服务 `/health/ready` 正常。
+- **手动推送验证**：京东云 `systemctl start lima-probe-push.service` 日志显示
+  `probe push: status=200 recorded=39`；主 VPS `GET /admin/api/probe/jdcloud`
+  返回 `count=39`。
+- **京东云清理完成**：
+  - 退役 `openclaw-gateway` 容器。
+  - 清理 docker images、systemd journal、日志。
+  - 内存：`used 3.4G / available 436M` → `used 3.1G / available 688M`
+  - 磁盘：`used 32G` → `used 28G`
+- **质量门禁**：
+  - `pytest tests/test_admin_probe_ingress.py` 全部通过。
+  - `ruff check`、`pyright`、`scripts/check_code_size.py` 针对改动文件 clean。
+
 ## 2026-06-29 微信小程序一键登录后端诊断
 
 - **目标**：解决生产环境微信小程序一键登录无法使用的问题。

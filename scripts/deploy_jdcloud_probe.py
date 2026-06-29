@@ -53,10 +53,20 @@ def collect_probe_files(project_root: Path) -> list[tuple[Path, str]]:
                 rel = path.relative_to(probe_src).as_posix()
                 pairs.append((path, f"{JDCLOUD_REMOTE_PROBE}/{rel}"))
     jdcloud_dir = project_root / "deploy" / "jdcloud"
-    for name in ("lima-probe-browser.service", "lima-probe.service", "lima-probe.timer"):
+    for name in (
+        "lima-probe-browser.service",
+        "lima-probe.service",
+        "lima-probe.timer",
+        "lima-probe-push.service",
+        "lima-probe-push.timer",
+    ):
         local = jdcloud_dir / name
         if local.is_file():
             pairs.append((local, f"/etc/systemd/system/{name}"))
+    for name in ("push_probe_results.py", "push_probe_results_utils.py"):
+        local = jdcloud_dir / name
+        if local.is_file():
+            pairs.append((local, f"{JDCLOUD_REMOTE_PROBE}/{name}"))
     return pairs
 
 

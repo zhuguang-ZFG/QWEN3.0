@@ -1,5 +1,16 @@
 # LiMa Findings
 
+## 2026-06-29 京东云清理与 probe 回写
+
+- **`openclaw-gateway` 已退役**：京东云节点上不再运行该服务，相关容器已移除。
+- **Docker / journal / 日志清理完成**：镜像、systemd journal、历史日志已清理，
+  释放磁盘与内存压力。
+- **probe push 已激活**：`lima-probe-push.service` / `lima-probe-push.timer` 运行中，
+  每 5 分钟将京东云 probe 结果推送到主 VPS `/admin/api/probe/ingress`。
+- **count 语义为 unique-provider 快照**：`GET /admin/api/probe/jdcloud` 返回的
+  `count` 表示当前快照中不同 provider 的数量（最新验证为 39），每次推送会刷新
+  整个快照，而非追加历史记录。
+
 ## 2026-06-29 微信小程序登录与 VPS 磁盘检查
 
 - **微信登录**：VPS `.env` 中 `LIMA_WX_APPID=wx095c2365e9138c2f` 已配置，`LIMA_WX_SECRET` 为空，导致 `/device/v1/app/auth/login` 返回 503。真实登录需用户提供 AppSecret。
