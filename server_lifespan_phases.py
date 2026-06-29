@@ -137,6 +137,16 @@ async def start_prometheus() -> None:
             raise
 
 
+async def start_alert_evaluator() -> None:
+    async with PhaseTimer("observability.alert_evaluator.start"):
+        try:
+            from observability.alert_evaluator import start_alert_evaluator as _start_evaluator
+
+            _start_evaluator()
+        except ImportError as exc:
+            _log.warning("observability.alert_evaluator not installed; alert evaluator startup skipped: %s", exc)
+
+
 # ---------------------------------------------------------------------------
 # Shutdown phases.
 # ---------------------------------------------------------------------------
@@ -207,6 +217,7 @@ WARM_PHASES: list[tuple[str, _PhaseFn]] = [
     ("observability.structured_logging", setup_structured_logging),
     ("context_pipeline.auto_indexer.start", start_auto_indexer),
     ("observability.prometheus.start", start_prometheus),
+    ("observability.alert_evaluator.start", start_alert_evaluator),
     ("device_gateway.runtime.start", start_device_gateway_runtime),
     ("device_gateway.mqtt_client.start", start_mqtt_client),
 ]

@@ -15,6 +15,11 @@ router = APIRouter()
 _ALERT_RULES: dict[str, dict[str, Any]] = {}
 
 
+def iter_enabled_rules() -> list[dict[str, Any]]:
+    """Return enabled alert rules for the evaluator."""
+    return [rule for rule in _ALERT_RULES.values() if rule.get("enabled")]
+
+
 @router.get("/api/alerts/rules", dependencies=[Depends(verify_admin)])
 async def list_alert_rules():
     return {"rules": list(_ALERT_RULES.values())}

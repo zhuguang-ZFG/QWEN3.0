@@ -1,5 +1,25 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-5 O3：告警规则评估器
+
+- **目标**：解决告警规则系统只有 CRUD 端点、没有评估器、配置的阈值永远不会触发的问题。
+- **实现**：
+  - `observability/alert_evaluator.py`：新增 `BackendTelemetryAlertEvaluator`（函数式模块）。
+    - 每 60 秒读取 `routes/admin_extra_alerts.iter_enabled_rules()`。
+    - 指标来源：`backend_telemetry_summary`（error_rate/success_rate/failed_recent/slow_recent/latency_p95/latency_p99）与 `_collect_health`（dead_backends/degraded_backends）。
+    - 支持条件 `gt`/`gte`/`lt`/`lte`/`eq`。
+    - 命中后写 `data/alert_log.jsonl`，并输出结构化 warning 日志。
+    - cooldown = max(60s, rule.window_sec)，防止同一规则刷屏。
+  - `routes/admin_extra_alerts.py`：新增 `iter_enabled_rules()` 导出接口。
+  - `server_lifespan_phases.py`：WARM 阶段新增 `observability.alert_evaluator.start`，随服务启动后台评估线程。
+  - 新增 `tests/test_alert_evaluator.py`：覆盖条件判断、命中触发、cooldown、空规则。
+- **验证**：
+  - `tests/test_alert_evaluator.py`：**6 passed, 0 failed**。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4179 passed, 3 skipped, 2 deselected, 0 failed**。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 约 15 秒后返回 200。
+- **状态**：AUDIT-5 O3 关闭；AUDIT-5 剩余延后项为 O5（审计 append-only 化）、O6（OpenTelemetry 接入）。
+
 ## 2026-06-30 AUDIT-5 O10：后端遥测错误聚合
 
 - **目标**：解决同类错误（如同一后端 quota/auth/timeout）逐条写入 `backend_telemetry.jsonl`，500 条上限被重复记录刷掉、根因丢失的问题。
