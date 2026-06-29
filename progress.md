@@ -60,8 +60,10 @@
   - 新增 `tests/test_speculative_execution.py`：2 个回归用例覆盖线程池复用与不记录 health failure。
   - `tests/test_backend_telemetry.py` + `tests/test_route_pipeline.py` 无回归：11 passed。
   - `ruff check` / `pyright` 目标文件 clean。
-  - 全量 `pytest --tb=short -q` 运行中（后台任务 bash-4fzvgzd0）。
-- **状态**：待全量测试通过后部署。
+  - 全量 `pytest --tb=short -q`：**4147 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-4fzvgzd0）。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 最终返回 200。
+  - 已 commit `66c3e362` 并 push 到 `origin/main`。
+- **状态**：AUDIT-8 P8 关闭。
 
 ## 2026-06-29 AUDIT-11 I2：autohanding 连接池复用
 

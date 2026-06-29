@@ -62,8 +62,9 @@ class SemanticCache:
         # deterministic fake embedder so the cache works offline/tests.
         from semantic_cache.config import jina_api_key
 
-        if jina_api_key():
-            return JinaEmbedder(dimensions=embedding_dimensions())
+        key = jina_api_key()
+        if key:
+            return JinaEmbedder(dimensions=embedding_dimensions(), api_key=key)
         logger.warning("Jina API key not configured; semantic cache uses offline fake embedder")
         return FakeEmbedder(dimensions=embedding_dimensions())
 

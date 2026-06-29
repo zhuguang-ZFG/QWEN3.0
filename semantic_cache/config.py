@@ -42,6 +42,15 @@ def embedding_dimensions() -> int:
         return 256
 
 
+def embedding_cache_size() -> int:
+    """Max number of query embeddings to keep in the Jina embedder LRU cache."""
+    try:
+        value = int(os.environ.get("LIMA_EMBEDDING_CACHE_SIZE", "1024"))
+    except ValueError:
+        value = 1024
+    return max(0, value)
+
+
 def jina_api_key() -> str:
     """Jina API key for the default embedder."""
     return EMBEDDING.jina_api_key
