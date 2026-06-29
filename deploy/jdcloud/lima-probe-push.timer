@@ -3,9 +3,8 @@ Description=Push JDCloud probe results to LiMa every 5 minutes
 
 [Timer]
 Unit=lima-probe-push.service
-OnBootSec=1min
+OnBootSec=2min
 OnUnitActiveSec=5min
-RandomizedDelaySec=30
 Persistent=true
 
 [Install]

@@ -1,6 +1,6 @@
 # 京东云利用率提升计划（Phase 1：probe 结果回写与异地观测）
 
-> 状态：已实施（Phase 1）
+> 状态：Phase 1 已完成
 > 作者：Kimi Code CLI
 > 日期：2026-06-28
 > 关联：`docs/ops/JDCLOUD_RUNTIME_STATUS.md`、`docs/ops/JDCLOUD_NEWAPI_DEPLOY.md`
@@ -111,10 +111,21 @@ class ProbeIngressEvent:
 
 ---
 
-## 7. 下一步
+## 7. Phase 1 完成证据
 
-1. 确认实施 Phase 1（A 方向）。
-2. 获取/确认京东云 SSH/部署凭证。
-3. 实施 LiMa 接收端点 + 京东云推送脚本。
-4. 部署到主 VPS + 京东云，验证数据回流。
-5. 更新 `docs/ops/JDCLOUD_RUNTIME_STATUS.md` 与 `STATUS.md`。
+- `POST /admin/api/probe/ingress` 端点已存在于主 VPS，无需新建。
+- 京东云推送脚本 `deploy/jdcloud/push_probe_results.py` 与
+  `push_probe_results_utils.py` 已部署。
+- `lima-probe-push.service` / `lima-probe-push.timer` 已启用并 active，
+  每 5 分钟推送一次。
+- 手动触发推送返回 `200`，`recorded=39`。
+- `GET /admin/api/probe/jdcloud` 返回 `count=39`，数据与京东云 probe 快照一致。
+- 京东云节点清理完成：退役 `openclaw-gateway`，清理 docker images/journal/logs；
+  内存从 `used 3.4G / available 436M` 改善为 `used 3.1G / available 688M`；
+  磁盘从 `used 32G` 降至 `used 28G`。
+
+## 8. 下一步
+
+1. 观察 Phase 1 数据质量与稳定性。
+2. 评估 Phase 2（分担低价/免费后端流量）的内存与网络约束。
+3. 更新 `docs/ops/JDCLOUD_RUNTIME_STATUS.md` 与 `STATUS.md`。
