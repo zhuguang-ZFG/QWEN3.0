@@ -51,7 +51,8 @@ def collect_probe_files(project_root: Path) -> list[tuple[Path, str]]:
         for path in sorted(probe_src.rglob("*")):
             if path.is_file() and "__pycache__" not in path.parts:
                 rel = path.relative_to(probe_src).as_posix()
-                pairs.append((path, f"{JDCLOUD_REMOTE_PROBE}/{rel}"))
+                # 上传到 /opt/lima-probe/provider_probe/ 子目录，使 `from provider_probe.xxx import` 能正常工作
+                pairs.append((path, f"{JDCLOUD_REMOTE_PROBE}/provider_probe/{rel}"))
     jdcloud_dir = project_root / "deploy" / "jdcloud"
     for name in (
         "lima-probe-browser.service",

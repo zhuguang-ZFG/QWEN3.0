@@ -12,11 +12,9 @@ def test_collect_probe_files_includes_provider_probe_and_systemd_units():
     pairs = deploy_jdcloud_probe.collect_probe_files(project_root)
 
     remotes = {remote for _local, remote in pairs}
-    assert any(
-        remote.startswith("/opt/lima-probe/") and not remote.startswith("/opt/lima-probe/provider_probe/")
-        for remote in remotes
-    )
-    assert "/opt/lima-probe/browser_service.py" in remotes
+    # provider_probe 包内容应在 /opt/lima-probe/provider_probe/ 子目录下
+    assert any(remote.startswith("/opt/lima-probe/provider_probe/") for remote in remotes)
+    assert "/opt/lima-probe/provider_probe/browser_service.py" in remotes
     assert "/etc/systemd/system/lima-probe-browser.service" in remotes
     assert "/etc/systemd/system/lima-probe.timer" in remotes
 
