@@ -128,6 +128,9 @@ def _create_mqtt_client(
         else:
             _log.warning("MQTT connect failed: rc=%s", reason_code)
 
+    def on_connect_fail(client, userdata, exc=None):
+        _log.warning("MQTT connect failed asynchronously: %s", exc)
+
     def on_message(client, userdata, msg):
         try:
             payload = _json.loads(msg.payload.decode("utf-8", errors="replace"))
@@ -140,6 +143,7 @@ def _create_mqtt_client(
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
     client.on_connect = on_connect
+    client.on_connect_fail = on_connect_fail
     client.on_message = on_message
     client.on_disconnect = on_disconnect
     client.will_set(will_topic, lwt_offline, qos=0, retain=True)
@@ -204,11 +208,14 @@ async def _mqtt_message_loop() -> None:
         device_status_topic(DEVICE.mqtt_client_id),
     )
 
+    # Use connect_async + loop_start to avoid blocking the asyncio event loop
+    # while the TCP/TLS handshake proceeds in paho's background thread.
+    client.loop_start()
     try:
-        client.connect(DEVICE.mqtt_broker, DEVICE.mqtt_port, keepalive=60)
-        client.loop_start()
+        client.connect_async(DEVICE.mqtt_broker, DEVICE.mqtt_port, keepalive=60)
     except Exception as exc:
-        _log.error("MQTT connect failed: %s", exc)
+        _log.error("MQTT async connect schedule failed: %s", exc)
+        client.loop_stop()
         return
 
     try:

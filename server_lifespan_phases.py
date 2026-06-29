@@ -199,8 +199,6 @@ CRITICAL_PHASES: list[_PhaseFn] = [
     load_retired_backends,
     apply_startup_admission,
     start_probe_loop,
-    start_device_gateway_runtime,
-    start_mqtt_client,
 ]
 
 WARM_PHASES: list[tuple[str, _PhaseFn]] = [
@@ -209,4 +207,6 @@ WARM_PHASES: list[tuple[str, _PhaseFn]] = [
     ("observability.structured_logging", setup_structured_logging),
     ("context_pipeline.auto_indexer.start", start_auto_indexer),
     ("observability.prometheus.start", start_prometheus),
+    ("device_gateway.runtime.start", start_device_gateway_runtime),
+    ("device_gateway.mqtt_client.start", start_mqtt_client),
 ]

@@ -1,5 +1,6 @@
 """Regression tests for device_gateway/mqtt_client.py event loop handling (P0-2)."""
 
+import asyncio
 import json
 import time
 from unittest.mock import MagicMock, patch
@@ -37,6 +38,32 @@ def test_motion_event_without_running_loop_warns_and_drops(caplog):
 
     mock_handle.assert_not_called()
     assert any("no running event loop" in m for m in caplog.messages), caplog.messages
+
+
+async def test_start_mqtt_client_uses_async_connect_to_avoid_blocking_loop():
+    """AUDIT-4-F7: MQTT connect must not block the asyncio event loop."""
+    fake_device = MagicMock()
+    fake_device.mqtt_enabled = True
+    fake_device.mqtt_broker = "test-broker"
+    fake_device.mqtt_port = 1883
+    fake_device.mqtt_client_id = "lima-test"
+
+    mqtt_client.DEVICE = fake_device  # type: ignore[assignment]
+
+    mock_client_cls = MagicMock()
+    mock_client = MagicMock()
+    mock_client_cls.return_value = mock_client
+
+    with patch("paho.mqtt.client.Client", mock_client_cls):
+        await mqtt_client.start_mqtt_client()
+        # Give the created task a chance to call connect/loop_start
+        await asyncio.sleep(0.05)
+        await mqtt_client.stop_mqtt_client()
+        await asyncio.sleep(0.05)
+
+    assert mock_client.connect_async.called, "Expected non-blocking connect_async"
+    assert not mock_client.connect.called, "Blocking connect should not be used"
+    assert mock_client.loop_start.called
 
 
 def test_motion_event_with_main_loop_forwards_via_threadsafe():

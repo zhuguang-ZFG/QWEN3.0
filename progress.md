@@ -18,7 +18,20 @@
   - 修复后 `tests/test_token_health.py`：3 passed。
   - 全量 `pytest --tb=short -q`（含 P5 改动前）：**4141 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-tze9j2el）。
   - P5 改动后全量 `pytest --tb=short -q`：**4143 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-o5kt27a6）。
-- **状态**：AUDIT-3 全部关闭（P1/P2/P3/P4/P5/P6/P7）。进入部署/提交环节。
+- **状态**：AUDIT-3 全部关闭（P1/P2/P3/P4/P5/P6/P7）。已部署并推送 commit `fa8da569`。
+
+## 2026-06-30 AUDIT-4 F7：MQTT 非阻塞连接 + 启动降 WARM
+
+- **目标**：消除 MQTT 客户端 `client.connect()` 在启动时阻塞 asyncio 事件循环的问题（此前尝试移入 WARM 因阻塞导致 SSL 握手失败，已回滚）。
+- **实现**：
+  - `device_gateway/mqtt_client.py`：将 `client.connect()` + `client.loop_start()` 改为 `client.loop_start()` + `client.connect_async()`，TCP/TLS 握手在 paho 后台线程异步进行；新增 `on_connect_fail` 回调记录异步连接失败。
+  - `server_lifespan_phases.py`：将 `start_device_gateway_runtime` 与 `start_mqtt_client` 从 `CRITICAL_PHASES` 移到 `WARM_PHASES`，加快关键路径就绪速度。
+- **验证**：
+  - `tests/test_mqtt_client_loop.py`：新增回归测试，验证 `connect_async` 被调用且阻塞 `connect` 未被调用。
+  - `tests/test_mqtt_client_loop.py` + `tests/test_device_mqtt_transport.py` + `tests/test_routes_device_gateway_helpers.py`：12 passed。
+  - `ruff check` / `pyright` 目标文件 clean。
+  - 全量 `pytest --tb=short -q` 运行中（后台任务 bash-p1wes49a）。
+- **状态**：待全量测试通过后部署。
 
 ## 2026-06-29 AUDIT-11 I2：autohanding 连接池复用
 
