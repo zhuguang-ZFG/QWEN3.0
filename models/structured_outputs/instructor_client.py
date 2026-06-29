@@ -91,3 +91,52 @@ def create_structured_completion(
     except Exception as exc:
         logger.warning("instructor structured completion failed for %s/%s: %s", provider, model, exc)
         return None
+
+
+async def create_structured_completion_async(
+    messages: list[dict],
+    response_model: type[T],
+    *,
+    provider: str = "groq",
+    model: str = "llama-3.1-8b-instant",
+    max_retries: int = 1,
+    timeout: float = 5.0,
+    temperature: float = 0.0,
+    max_tokens: int | None = None,
+) -> T | None:
+    """Async variant of create_structured_completion using AsyncOpenAI.
+
+    Returns None on missing dependencies/keys or call failure.
+    """
+    try:
+        import openai as _openai
+        import instructor as _instructor
+    except ImportError as exc:
+        logger.warning("instructor/openai not installed: %s", exc)
+        return None
+
+    api_key = key_pool.get_key(provider)
+    if not api_key:
+        logger.warning("no active key for provider %s", provider)
+        return None
+
+    base_url = _PROVIDER_BASE_URLS.get(provider)
+    if not base_url:
+        logger.warning("unknown instructor provider %s", provider)
+        return None
+
+    client = _instructor.from_openai(
+        _openai.AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=timeout)
+    )
+    try:
+        return await client.chat.completions.create(
+            model=model,
+            messages=messages,
+            response_model=response_model,
+            max_retries=max_retries,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    except Exception as exc:
+        logger.warning("instructor async structured completion failed for %s/%s: %s", provider, model, exc)
+        return None

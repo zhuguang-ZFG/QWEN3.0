@@ -1,5 +1,20 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-8 P1：instructor intent 缓存 + 降级 + async 路径
+
+- **目标**：降低低置信度 instructor intent 同步 LLM 调用对主路径的阻塞与重复开销。
+- **实现**：
+  - `config/env.py`：默认阈值从 `0.70` 提到 `0.80`，超时从 `10s` 降到 `5s`，最大重试从 `2` 降到 `1`，减少触发频率与单次阻塞时间。
+  - `routing_intent_instructor.py`：新增 256 容量 LRU 缓存，按 `(provider, model, ide, system_prompt, query)` 哈希键缓存 instructor 结果；新增 `amaybe_instructor_intent()` 使用 `AsyncOpenAI` 的非阻塞路径。
+  - `models/structured_outputs/instructor_client.py`：新增 `create_structured_completion_async()`。
+- **验证**：
+  - `tests/test_instructor_intent_fallback.py`：原有用例更新默认断言，新增缓存命中、缓存键区分 IDE/provider、async 路径用例。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4160 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-g6nhnuuh）。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 约 15 秒后返回 200。
+  - 已 commit 并 push 到 `origin/main`。
+- **状态**：AUDIT-8 P1 关闭；AUDIT-8 剩余延后项为 P6/P7（共享状态+多 worker）。
+
 ## 2026-06-30 AUDIT-7 D7：Docker Compose 资源限制
 
 - **目标**：防止 `lima`/`redis`/`searxng` 任一服务内存泄漏拖垮整机。

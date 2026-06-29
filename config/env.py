@@ -193,9 +193,9 @@ def instructor_intent_enabled() -> bool:
 def instructor_intent_threshold() -> float:
     """Confidence threshold below which Instructor fallback is triggered."""
     try:
-        return float(os.environ.get("LIMA_INSTRUCTOR_INTENT_THRESHOLD", "0.70"))
+        return float(os.environ.get("LIMA_INSTRUCTOR_INTENT_THRESHOLD", "0.80"))
     except ValueError:
-        return 0.70
+        return 0.80
 
 
 def instructor_intent_provider() -> str:
@@ -211,17 +211,17 @@ def instructor_intent_model() -> str:
 def instructor_intent_timeout() -> float:
     """Timeout in seconds for Instructor intent fallback calls."""
     try:
-        return float(os.environ.get("LIMA_INSTRUCTOR_INTENT_TIMEOUT", "10"))
+        return float(os.environ.get("LIMA_INSTRUCTOR_INTENT_TIMEOUT", "5"))
     except ValueError:
-        return 10.0
+        return 5.0
 
 
 def instructor_intent_max_retries() -> int:
     """Max retries for Instructor structured output calls."""
     try:
-        return int(os.environ.get("LIMA_INSTRUCTOR_INTENT_MAX_RETRIES", "2"))
+        return int(os.environ.get("LIMA_INSTRUCTOR_INTENT_MAX_RETRIES", "1"))
     except ValueError:
-        return 2
+        return 1
 
 
 def tracing_enabled() -> bool:

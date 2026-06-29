@@ -5,6 +5,14 @@ from config import env
 from models.structured_outputs.schemas import IntentResult
 
 
+@pytest.fixture(autouse=True)
+def _clear_instructor_cache():
+    """Clear the instructor intent LRU cache between tests for deterministic counts."""
+    from routing_intent_instructor import _cached_instructor_call
+
+    _cached_instructor_call.cache_clear()
+
+
 @pytest.mark.parametrize(
     "raw, expected",
     [
@@ -33,11 +41,11 @@ def test_instructor_intent_config_defaults(monkeypatch):
     monkeypatch.delenv("LIMA_INSTRUCTOR_INTENT_TIMEOUT", raising=False)
     monkeypatch.delenv("LIMA_INSTRUCTOR_INTENT_MAX_RETRIES", raising=False)
     assert env.instructor_intent_enabled() is False
-    assert env.instructor_intent_threshold() == 0.70
+    assert env.instructor_intent_threshold() == 0.80
     assert env.instructor_intent_provider() == "groq"
     assert env.instructor_intent_model() == "llama-3.1-8b-instant"
-    assert env.instructor_intent_timeout() == 10.0
-    assert env.instructor_intent_max_retries() == 2
+    assert env.instructor_intent_timeout() == 5.0
+    assert env.instructor_intent_max_retries() == 1
 
 
 def test_instructor_intent_custom_values(monkeypatch):
@@ -56,9 +64,9 @@ def test_instructor_intent_custom_values(monkeypatch):
 @pytest.mark.parametrize(
     "env_var, getter, bad_value, default",
     [
-        ("LIMA_INSTRUCTOR_INTENT_THRESHOLD", env.instructor_intent_threshold, "bad", 0.70),
-        ("LIMA_INSTRUCTOR_INTENT_TIMEOUT", env.instructor_intent_timeout, "abc", 10.0),
-        ("LIMA_INSTRUCTOR_INTENT_MAX_RETRIES", env.instructor_intent_max_retries, "x", 2),
+        ("LIMA_INSTRUCTOR_INTENT_THRESHOLD", env.instructor_intent_threshold, "bad", 0.80),
+        ("LIMA_INSTRUCTOR_INTENT_TIMEOUT", env.instructor_intent_timeout, "abc", 5.0),
+        ("LIMA_INSTRUCTOR_INTENT_MAX_RETRIES", env.instructor_intent_max_retries, "x", 1),
     ],
 )
 def test_instructor_intent_parse_fallback(monkeypatch, env_var, getter, bad_value, default):
@@ -168,7 +176,7 @@ def test_analyze_intent_low_confidence_uses_instructor(monkeypatch):
     from routing_intent import analyze_intent
 
     monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_ENABLED", "1")
-    monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_THRESHOLD", "0.70")
+    monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_THRESHOLD", "0.80")
     fake = IntentResult(
         intent="architecture",
         confidence=0.85,
@@ -186,9 +194,51 @@ def test_analyze_intent_instructor_failure_keeps_rule_result(monkeypatch):
     from routing_intent import analyze_intent
 
     monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_ENABLED", "1")
-    monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_THRESHOLD", "0.70")
+    monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_THRESHOLD", "0.80")
     with patch("routing_intent_instructor.instructor_client.create_structured_completion", return_value=None):
         result = analyze_intent("explain quantum mechanics to me")
         # Should keep the rule/default result rather than crash.
         assert "confidence" in result
         assert result["intent"] == "chat"
+
+
+def test_maybe_instructor_intent_caches_repeated_query(monkeypatch):
+    from routing_intent_instructor import maybe_instructor_intent
+
+    monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_ENABLED", "1")
+    fake = IntentResult(intent="architecture", confidence=0.85, source="instructor")
+    with patch("routing_intent_instructor.instructor_client.create_structured_completion") as mock_create:
+        mock_create.return_value = fake
+        first = maybe_instructor_intent("design a bridge", ide="vscode")
+        second = maybe_instructor_intent("design a bridge", ide="vscode")
+
+    assert first == second
+    mock_create.assert_called_once()
+
+
+def test_maybe_instructor_intent_cache_key_includes_ide_and_provider(monkeypatch):
+    from routing_intent_instructor import maybe_instructor_intent
+
+    monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_ENABLED", "1")
+    fake = IntentResult(intent="architecture", confidence=0.85, source="instructor")
+    with patch("routing_intent_instructor.instructor_client.create_structured_completion") as mock_create:
+        mock_create.return_value = fake
+        maybe_instructor_intent("design a bridge", ide="vscode")
+        maybe_instructor_intent("design a bridge", ide="pycharm")
+
+    assert mock_create.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_amaybe_instructor_intent_returns_result(monkeypatch):
+    from routing_intent_instructor import amaybe_instructor_intent
+
+    monkeypatch.setenv("LIMA_INSTRUCTOR_INTENT_ENABLED", "1")
+    fake = IntentResult(intent="architecture", confidence=0.85, source="instructor")
+    with patch("routing_intent_instructor.instructor_client.create_structured_completion_async") as mock_create:
+        mock_create.return_value = fake
+        result = await amaybe_instructor_intent("design a bridge", ide="vscode")
+
+    assert result["intent"] == "architecture"
+    assert result["instructor_used"] is True
+    mock_create.assert_awaited_once()

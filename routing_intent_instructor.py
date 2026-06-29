@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
-
+import hashlib
 import time
+from functools import lru_cache
+from typing import Any
 
 from config import env as _env
 from models.structured_outputs import IntentResult, instructor_client
@@ -27,6 +28,45 @@ _INSTRUCTOR_INTENT_PROMPT = (
     "Be concise and return only valid JSON."
 )
 
+# AUDIT-8-P1: cache low-confidence instructor intent results to avoid repeating
+# the same network LLM call for identical queries. Cache key includes provider
+# and model so key/endpoint rotations invalidate stale entries automatically.
+_INSTRUCTOR_CACHE_SIZE = 256
+
+
+def _cache_key(query: str, system_prompt: str, ide: str, provider: str, model: str) -> str:
+    return hashlib.sha256(
+        f"{provider}:{model}:{ide}:{system_prompt}:{query}".encode("utf-8")
+    ).hexdigest()
+
+
+def _build_messages(query: str, system_prompt: str, ide: str) -> list[dict]:
+    return [
+        {"role": "system", "content": _INSTRUCTOR_INTENT_PROMPT},
+        {"role": "user", "content": f"Query: {query}\nIDE: {ide}\nSystem context: {system_prompt}"},
+    ]
+
+
+@lru_cache(maxsize=_INSTRUCTOR_CACHE_SIZE)
+def _cached_instructor_call(
+    key: str,
+    query: str,
+    system_prompt: str,
+    ide: str,
+    provider: str,
+    model: str,
+) -> IntentResult | None:
+    """Synchronously call Instructor with LRU memoization."""
+    result = instructor_client.create_structured_completion(
+        messages=_build_messages(query, system_prompt, ide),
+        response_model=IntentResult,
+        provider=provider,
+        model=model,
+        max_retries=_env.instructor_intent_max_retries(),
+        timeout=_env.instructor_intent_timeout(),
+    )
+    return result
+
 
 def maybe_instructor_intent(
     query: str,
@@ -37,6 +77,7 @@ def maybe_instructor_intent(
 
     Returns None if disabled, if dependencies/keys are missing, or if the call
     fails. On failure a warning is logged and metrics are recorded.
+    Results are cached per (query, system_prompt, ide, provider, model).
     """
     if not _env.instructor_intent_enabled():
         return None
@@ -44,17 +85,10 @@ def maybe_instructor_intent(
     provider = _env.instructor_intent_provider()
     model = _env.instructor_intent_model()
     start = time.perf_counter()
-    result = instructor_client.create_structured_completion(
-        messages=[
-            {"role": "system", "content": _INSTRUCTOR_INTENT_PROMPT},
-            {"role": "user", "content": f"Query: {query}\nIDE: {ide}\nSystem context: {system_prompt}"},
-        ],
-        response_model=IntentResult,
-        provider=provider,
-        model=model,
-        max_retries=_env.instructor_intent_max_retries(),
-        timeout=_env.instructor_intent_timeout(),
-    )
+
+    key = _cache_key(query, system_prompt, ide, provider, model)
+    result = _cached_instructor_call(key, query, system_prompt, ide, provider, model)
+
     latency_ms = (time.perf_counter() - start) * 1000.0
     if result is None:
         _record_metric(instructor_intent_event(provider, model, False, reason="no_result"))
@@ -62,4 +96,44 @@ def maybe_instructor_intent(
 
     _record_metric(instructor_intent_event(provider, model, True))
     _record_metric(instructor_intent_latency_event(provider, model, latency_ms))
-    return result.model_dump()
+    dumped = result.model_dump()
+    dumped["instructor_used"] = True
+    return dumped
+
+
+async def amaybe_instructor_intent(
+    query: str,
+    system_prompt: str = "",
+    ide: str = "unknown",
+) -> dict[str, Any] | None:
+    """Async variant of maybe_instructor_intent for non-blocking callers.
+
+    This path does not share the sync LRU cache; it is provided for future
+    async route handlers. The sync production path remains maybe_instructor_intent.
+    """
+    if not _env.instructor_intent_enabled():
+        return None
+
+    provider = _env.instructor_intent_provider()
+    model = _env.instructor_intent_model()
+    start = time.perf_counter()
+
+    result = await instructor_client.create_structured_completion_async(
+        messages=_build_messages(query, system_prompt, ide),
+        response_model=IntentResult,
+        provider=provider,
+        model=model,
+        max_retries=_env.instructor_intent_max_retries(),
+        timeout=_env.instructor_intent_timeout(),
+    )
+
+    latency_ms = (time.perf_counter() - start) * 1000.0
+    if result is None:
+        _record_metric(instructor_intent_event(provider, model, False, reason="no_result"))
+        return None
+
+    _record_metric(instructor_intent_event(provider, model, True))
+    _record_metric(instructor_intent_latency_event(provider, model, latency_ms))
+    dumped = result.model_dump()
+    dumped["instructor_used"] = True
+    return dumped
