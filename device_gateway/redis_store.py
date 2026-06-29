@@ -187,9 +187,13 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
         return count
 
     def reset_task_for_retry(self, task_id: str) -> None:
+        # AUDIT-9-S1：与 InMemory 对齐——重置为 queued 时递增 retry_count。
+        # 原实现不递增，导致生产 Redis 下 execute_recovery 的 attempt 永远=0，
+        # should_retry 永远放行 → 设备失败任务无限重试，永不进死信。
         state = self._read_task_state(task_id)
         if state is not None:
             state["status"] = "queued"
+            state["retry_count"] = int(state.get("retry_count", 0)) + 1
             self._write_task_state(task_id, state)
 
     def remove_pending_task(self, device_id: str, task_id: str) -> bool:

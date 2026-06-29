@@ -201,8 +201,29 @@ def test_build_streaming_response(mock_stream, mock_intent):
 @patch("routes.chat_handler_dispatch.v3_route", return_value={"answer": "ok"})
 async def test_execute_non_stream_route_v3(mock_v3, mock_intent):
     ctx_obj = make_ctx()
+    # AUDIT-8-P2：intent 现在由 start_chat_run 预先计算并存入 ctx.intent，
+    # execute_non_stream_route 直接复用而非重算。
+    ctx_obj.intent = {"intent": "chat"}
     req = _request()
     result, intent = await dispatch.execute_non_stream_route(ctx_obj, req)
     assert result["answer"] == "ok"
     assert intent == {"intent": "chat"}
     mock_v3.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("routes.chat_handler_dispatch.routing_intent.analyze_intent", return_value={"intent": "chat"})
+@patch("routes.chat_handler_dispatch.v3_route", return_value={"answer": "ok"})
+async def test_execute_non_stream_route_reuses_precomputed_intent(mock_v3, mock_intent):
+    """AUDIT-8-P2：execute_non_stream_route 复用 ctx.intent，不重算 analyze_intent，
+    并将 precomputed_intent 透传给 v3_route。"""
+    ctx_obj = make_ctx()
+    ctx_obj.intent = {"intent": "coding"}
+    req = _request()
+    result, intent = await dispatch.execute_non_stream_route(ctx_obj, req)
+    assert intent == {"intent": "coding"}
+    # 不在 execute_non_stream_route 内重算 intent
+    mock_intent.assert_not_called()
+    # precomputed_intent 透传给 v3_route
+    _, kwargs = mock_v3.call_args
+    assert kwargs.get("precomputed_intent") == {"intent": "coding"}

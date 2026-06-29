@@ -158,7 +158,8 @@ async def image_generations(request: Request):
     try:
         img_req = ImageRequest(**body)
     except ValidationError:
-        return JSONResponse({"error": "invalid image request"}, status_code=400)
+        # AUDIT-6-A2：error 字段用对象形式，与 chat_endpoints 的 {"error":{"message":...}} 一致
+        return JSONResponse({"error": {"message": "invalid image request", "type": "invalid_request_error"}}, status_code=400)
     prompt = img_req.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="Empty prompt")

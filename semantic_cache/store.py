@@ -45,6 +45,10 @@ class SemanticCacheStore:
 
     def _ensure_schema(self) -> None:
         with pooled_sqlite_conn(self.db_path) as conn:
+            # AUDIT-8-P3：启用 WAL 模式，允许并发读写（缓存查询时不阻塞写入），
+            # 消除默认 journal 模式下 upsert/bump_hit_count 与 lookup 的全库互斥锁。
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
             conn.executescript(self._SCHEMA)
 
     def get_candidates(

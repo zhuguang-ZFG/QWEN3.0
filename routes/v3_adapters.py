@@ -13,7 +13,16 @@ from think_plan_context import enhance_coding_prompt, needs_plan
 
 
 def v3_route(
-    query, messages, system_prompt="", ide="", max_tokens=4096, needs_tools=False, tools=None, prefer=None, **_kw
+    query,
+    messages,
+    system_prompt="",
+    ide="",
+    max_tokens=4096,
+    needs_tools=False,
+    tools=None,
+    prefer=None,
+    precomputed_intent=None,
+    **_kw,
 ):
     """V3 路由适配器：返回与 smart_router.route() 兼容的 dict。"""
 
@@ -31,6 +40,7 @@ def v3_route(
         needs_tools=needs_tools,
         tools=tools,
         preferred_backend=prefer or "",
+        precomputed_intent=precomputed_intent,
     )
     return {
         "answer": result.answer,

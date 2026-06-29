@@ -29,6 +29,18 @@ _SECRET_RE = re.compile(
     re.IGNORECASE,
 )
 
+# AUDIT-10-V3：PII 脱敏模式（公网中文用户合规）。记忆存储前剥离敏感个人信息。
+_PII_PATTERNS = [
+    # 中国大陆手机号（1[3-9]xxxxxxxxx）
+    re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)"),
+    # 18 位身份证号（末位 X 或数字）
+    re.compile(r"(?<!\d)[1-9]\d{16}[\dXx](?!\d)"),
+    # 邮箱
+    re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"),
+    # 银行卡号（16-19 位连续数字）
+    re.compile(r"(?<!\d)\d{16,19}(?!\d)"),
+]
+
 _CREDENTIAL_URL_RE = re.compile(r"https?://[^@\s]+:[^@\s]+@\S+", re.IGNORECASE)
 
 _SSH_KEY_RE = re.compile(
@@ -38,21 +50,26 @@ _SSH_KEY_RE = re.compile(
 
 
 def has_secret(text: str) -> bool:
-    """Check if text contains secret-like patterns."""
+    """Check if text contains secret-like or PII patterns."""
     if _SECRET_RE.search(text):
         return True
     if _CREDENTIAL_URL_RE.search(text):
         return True
     if _SSH_KEY_RE.search(text):
         return True
+    if any(p.search(text) for p in _PII_PATTERNS):
+        return True
     return False
 
 
 def redact_text(text: str) -> str:
-    """Replace detected secrets with [REDACTED] markers. Returns cleaned text."""
+    """Replace detected secrets and PII with [REDACTED] markers. Returns cleaned text."""
     text = _SECRET_RE.sub("[REDACTED]", text)
     text = _CREDENTIAL_URL_RE.sub("[REDACTED_URL]", text)
     text = _SSH_KEY_RE.sub("[REDACTED_KEY]", text)
+    # PII：手机号/身份证/邮箱/银行卡统一替换为 [REDACTED_PII]
+    for pattern in _PII_PATTERNS:
+        text = pattern.sub("[REDACTED_PII]", text)
     return text
 
 

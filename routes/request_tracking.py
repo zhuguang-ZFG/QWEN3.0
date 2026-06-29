@@ -144,6 +144,32 @@ def elapsed_ms(started_at: float) -> int:
     return max(0, int((time.time() - started_at) * 1000))
 
 
+def _sanitize_query_and_prompt(query: str, sys_prompt_preview: str) -> tuple[str, str]:
+    """AUDIT-5-O2：脱敏 query/sys_prompt 后返回（剥离密钥类模式）。"""
+    try:
+        from observability.events import _sanitize_text
+
+        return _sanitize_text(query)[:80], (_sanitize_text(sys_prompt_preview)[:100] if sys_prompt_preview else "")
+    except Exception:
+        return (query or "")[:80], (sys_prompt_preview or "")[:100]
+
+
+def _build_log_entry(safe_query, backend, intent, duration_ms, success, client_ip, country, ide_source, safe_sys_prompt) -> dict:
+    """Build the recent_logs entry dict."""
+    return {
+        "time": time.strftime("%H:%M:%S"),
+        "query": safe_query,
+        "backend": backend,
+        "intent": intent,
+        "ms": duration_ms,
+        "success": success,
+        "ip": client_ip,
+        "country": country,
+        "ide": ide_source,
+        "sys_prompt": safe_sys_prompt,
+    }
+
+
 def record_request(
     query: str,
     backend: str,
@@ -159,6 +185,8 @@ def record_request(
     if not country and client_ip:
         country = get_ip_location(client_ip)
 
+    safe_query, safe_sys_prompt = _sanitize_query_and_prompt(query, sys_prompt_preview)
+
     with _stats_lock:
         _stats["total_requests"] += 1
         if backend not in _stats["backend_calls"]:
@@ -168,18 +196,9 @@ def record_request(
             _stats["backend_calls"][backend]["success"] += 1
         _stats["backend_calls"][backend]["total_ms"] += duration_ms
         _stats["intent_distribution"][intent] = _stats["intent_distribution"].get(intent, 0) + 1
-        log_entry = {
-            "time": time.strftime("%H:%M:%S"),
-            "query": query[:80],
-            "backend": backend,
-            "intent": intent,
-            "ms": duration_ms,
-            "success": success,
-            "ip": client_ip,
-            "country": country,
-            "ide": ide_source,
-            "sys_prompt": sys_prompt_preview[:100] if sys_prompt_preview else "",
-        }
+        log_entry = _build_log_entry(
+            safe_query, backend, intent, duration_ms, success, client_ip, country, ide_source, safe_sys_prompt
+        )
         _stats["recent_logs"].append(log_entry)
         if len(_stats["recent_logs"]) > 100:
             _stats["recent_logs"] = _stats["recent_logs"][-100:]

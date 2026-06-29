@@ -50,6 +50,24 @@ def _extract_code(exc: Exception) -> Optional[int]:
     return None
 
 
+# AUDIT-4-F1：可重试的瞬时错误状态码。408/429/502/503/504 是服务端瞬时/限流，
+# 重试一次通常能成功；400/401/403 及其他 4xx 是永久错误，绝不重试。
+RETRYABLE_STATUS_CODES = frozenset({408, 429, 502, 503, 504})
+
+
+def is_retryable_error(exc: Exception) -> bool:
+    """判定异常是否为可重试的瞬时错误。
+
+    可重试：httpx.RequestError（连接重置/超时/网络抖动等）或 HTTP 状态码
+    在 RETRYABLE_STATUS_CODES 中。不可重试：4xx 鉴权/格式错误及其他永久错误。
+    """
+    if isinstance(exc, httpx.RequestError):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in RETRYABLE_STATUS_CODES
+    return False
+
+
 def _emit_backend_error(backend: str, error_code: int | None, error_text: str) -> None:
     try:
         from observability.metrics import record as obs_record

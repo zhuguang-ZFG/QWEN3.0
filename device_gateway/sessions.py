@@ -52,13 +52,28 @@ class DeviceSession:
 
 
 class SessionRegistry:
+    # AUDIT-11-W1：最大并发设备连接数，防资源耗尽。
+    # 同一 device_id 的新连接会覆盖旧的（不计入上限），故上限针对唯一设备数。
+    _MAX_DEVICE_SESSIONS = 2000
+
     def __init__(self) -> None:
         self._sessions: dict[str, DeviceSession] = {}
         self._lock = threading.RLock()
 
-    def register(self, session: DeviceSession) -> DeviceSession | None:
+    def register(self, session: DeviceSession) -> DeviceSession | None | str:
+        """Register a session.
+
+        Returns the previous session (if superseded), or the string "too_many"
+        if the connection limit has been reached (caller should reject).
+        """
         with self._lock:
             previous = self._sessions.get(session.device_id)
+            # 新设备连接且已达上限 → 拒绝（已注册设备重连不算超限）
+            if (
+                previous is None
+                and len(self._sessions) >= self._MAX_DEVICE_SESSIONS
+            ):
+                return "too_many"
             self._sessions[session.device_id] = session
             return previous
 
@@ -78,6 +93,11 @@ class SessionRegistry:
     def count(self) -> int:
         with self._lock:
             return len(self._sessions)
+
+    def active_device_ids(self) -> list[str]:
+        """Return device_ids of all currently connected sessions (AUDIT-4-F2 reaper)."""
+        with self._lock:
+            return list(self._sessions.keys())
 
     def update_heartbeat(self, device_id: str, uptime_ms: int) -> None:
         with self._lock:

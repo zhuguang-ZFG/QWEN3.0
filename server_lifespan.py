@@ -98,6 +98,13 @@ async def _run_shutdown_phases() -> None:
     await stop_session_memory_daemon()
     await stop_device_gateway_runtime()
     await stop_mqtt_client()
+    # AUDIT-8-P4: close pooled httpx async clients on shutdown
+    try:
+        from http_request_builder import aclose_all_clients
+
+        await aclose_all_clients()
+    except Exception as exc:
+        _log.warning("aclose_all_clients failed on shutdown: %s", exc)
 
 
 @asynccontextmanager

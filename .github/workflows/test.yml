@@ -57,5 +57,9 @@ jobs:
             echo "No Python files changed"
           fi
 
+      - name: Run test suite (AUDIT-7-D1)
+        # 原工作流装了 pytest 却从不运行。pytest.ini 默认 -m "not network" 排除真实后端调用。
+        run: python -m pytest --tb=short -q
+
       - name: Security scan
         run: bandit -r routes/ scripts/ lima_mcp_stdio/ -s B310,B324,B604,B608,B601,B108 -ll

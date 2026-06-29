@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from device_gateway.protocol_families import MotionErrorCode
@@ -42,6 +43,9 @@ def _point_outside_workspace(point: dict[str, Any], profile: DeviceProfile) -> b
     for axis in ("x", "y", "z"):
         value = point.get(axis, 0)
         if not isinstance(value, (int, float)):
+            return True
+        # AUDIT-10-V1：NaN/Inf 绕过比较（IEEE 754），物理安全关键——必须拦截。
+        if not math.isfinite(value):
             return True
         if float(value) < 0 or float(value) > profile.workspace_mm[axis]:
             return True

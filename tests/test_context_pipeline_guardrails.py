@@ -29,8 +29,9 @@ from context_pipeline.guardrails import (
 def test_check_injection_detects_patterns(content: str):
     result = check_injection([{"role": "user", "content": content}])
     assert result.passed is False
-    assert "injection_pattern_detected" in result.violations
-    assert result.severity == GuardrailSeverity.WARN
+    # AUDIT-3-P3：高置信度注入模式现在升级为 BLOCK（而非 WARN）
+    assert "injection_pattern_blocked" in result.violations
+    assert result.severity == GuardrailSeverity.BLOCK
 
 
 def test_check_injection_ignores_non_user():

@@ -53,14 +53,28 @@ BACKENDS.update(_coding)
 BACKENDS.update(_misc)
 
 
+def _invalidate_client_cache(name: str) -> None:
+    """AUDIT-8-P4: drop cached httpx client when a backend's config changes."""
+    try:
+        from http_request_builder import invalidate_client_cache
+
+        invalidate_client_cache(name)
+    except Exception as exc:  # best-effort; cache will simply rebuild on next call
+        logger.debug("client cache invalidation for %s failed: %s", name, exc)
+
+
 def add_backend(name: str, cfg: dict) -> None:
     """Register a new backend. Routes layer should use this instead of direct dict mutation."""
     BACKENDS[name] = dict(cfg)
+    _invalidate_client_cache(name)
 
 
 def remove_backend(name: str) -> bool:
     """Unregister a backend. Returns False if not found."""
-    return BACKENDS.pop(name, None) is not None
+    removed = BACKENDS.pop(name, None) is not None
+    if removed:
+        _invalidate_client_cache(name)
+    return removed
 
 
 def has_backend(name: str) -> bool:

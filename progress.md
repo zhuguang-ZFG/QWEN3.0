@@ -1,5 +1,36 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-29 延后项修复：AUDIT-8 P2/P4 + AUDIT-4 F1（三阶段核心路径优化）
+
+- **目标**：处理全量修复中标注延后的核心路径项（intent 去重、客户端重试、httpx 连接池复用），分三阶段独立可回滚。
+- **质量门禁（全绿）**：`ruff check .` clean；`check_code_size.py` PASS；`pytest` **4126 passed, 3 skipped, 0 failed**（比上一轮 4103 多 23 个新测试）。
+- **三阶段修复**：
+  - **阶段 1 AUDIT-8-P2 intent 去重**：删除流式死调用 `analyze_intent`；`ChatRunContext` 加 `intent` 字段由 `start_chat_run` 算一次缓存；`execute_non_stream_route` 读 `ctx.intent`；`resolve_intent` 支持 `precomputed_intent` 透参短路（保留 semantic_router 优先级）。CPU 浪费 ~3x 消除。新增 dedup 测试验证只算一次。
+  - **阶段 2 AUDIT-4-F1 客户端重试**：新增 `http_errors.is_retryable_error`（网络/408/429/502/503/504 可重试）+ 新模块 `http_retry.py`（`_post_with_retry`/`_post_with_retry_async`，默认 2 次指数退避，429 遵从 Retry-After）；重试期间不调 `record_failure`（避免过度惩罚冷却），仅最终耗尽调一次。`call_api`/`call_api_async`/`call_raw_async` 接入。15 个新测试覆盖可重试/不可重试/耗尽/成功清零四场景。
+  - **阶段 3 AUDIT-8-P4 httpx 连接池复用**：`http_request_builder/client.py` 按 backend 缓存长生命 client（带 `httpx.Limits` 连接池）+ no-op context wrapper（`__exit__` 不关闭，保持 `with` 调用点兼容）；AsyncClient 懒创建（loop 安全）；`add_backend`/`remove_backend` 配套缓存失效；FastAPI shutdown 调 `aclose_all_clients`。消除每次调用重建 TLS 握手的 FD 泄漏 + 延迟开销。7 个新测试覆盖复用/独立/no-op/失效。
+- **仍延后项**：AUDIT-8 P1（异步 LLM）/P5（embedding 异步化）/P6/P7（共享状态+多 worker）、AUDIT-4 F7（启动降级）、AUDIT-6 A4/A5/A6（API 改造）、AUDIT-11 A1（SVG 净化）、固件 idf.py 真机编译。
+- 状态：**三个核心路径延后项已完成并验证**。
+
+## 2026-06-29 全量修复：AUDIT-3~12 共 10 份审计批次修复（含物理安全 + 设备接管）
+
+- **目标**：按顺序全量修复 AUDIT-2~12 所有已确认问题，不让任何高危项遗漏。
+- **质量门禁（全绿）**：`ruff check .` clean；`check_code_size.py` PASS；`pytest` **4103 passed, 0 failed**。
+- **修复清单（按 AUDIT）**：
+  - **AUDIT-3 提示词**：中文注入模式覆盖（`忽略.{0,8}指令`/`无视`/`越狱`/`DAN`）+ 注入阻断升级 BLOCK + 输出 guardrail 接入 route_post_process
+  - **AUDIT-4 容错率**：stale reaper 后台任务（60s 周期）+ 路由背压 Semaphore（LIMA_ROUTE_MAX_CONCURRENCY=32）+ 非流式 last_resort 降级 + monotonic 持久化 bug 修复（重启清零 cooldown）
+  - **AUDIT-5 可观测性**：/health/ready 运行时探活（后端 alive + 磁盘空间）+ query 脱敏（_sanitize_text）+ admin 审计日志（audit_event）+ 假审计修复
+  - **AUDIT-6 API 契约**：FastAPI docs 默认禁用 + images error 字段类型统一 + docs/error_codes.md 错误码表
+  - **AUDIT-7 部署运维**：CI test.yml 加 pytest 步骤（恢复测试门禁）+ deploy.yml environment:production + Litestream S3/R2 异地副本模板
+  - **AUDIT-8 性能**：semantic_cache PRAGMA journal_mode=WAL
+  - **AUDIT-9 状态机**：Redis reset_task_for_retry 递增 retry_count（消除生产无限重试）+ reaper 接线（AUDIT-4）
+  - **AUDIT-10 运动控制+PII**：path_validator + safety.py 加 math.isfinite 拦 NaN/Inf（防撞机）+ feed try/except + redact.py 补 PII 模式（手机/身份证/邮箱/银行卡）
+  - **AUDIT-11 集成/WS**：autohanding zip bomb 防护（50MB 上限）+ WS receive 超时（防 Slowloris）+ SessionRegistry 连接限制（2000）
+  - **AUDIT-12 固件**：OTA 签名强制（sha256+signature 缺失即拒）+ OTA URL 域名白名单 + 本地控制 WS 鉴权（NVS token）+ 固件 PATH_SEG 坐标边界（isfinite + ±500mm）
+- **最高危修复**：AUDIT-12 OTA 签名强制（消除完全设备接管）+ AUDIT-10 NaN 拦截（消除撞机）+ AUDIT-9 无限重试（消除任务死循环）。
+- **延后项**：核心路径性能（异步 LLM/intent 去重/连接池）、大范围 API 改造、SVG 净化——需独立集成测试，已在 findings.md 记录。
+- **未验证项**：固件修改需 `idf.py build` 真机编译验证；AUDIT-4 F1/F4 容错需模拟慢后端集成测试。
+- 状态：**AUDIT-2~12 主要项已修复并验证（pytest/ruff/size 全绿）**。
+
 ## 2026-06-29 LiMa Web 端修复：AUDIT-2 W1/W2/W3/W5/W6/W7 + S1/S2/S4
 
 - **目标**：按 findings.md 顺序修复 AUDIT-2 Web 端 HIGH/MEDIUM 发现项。

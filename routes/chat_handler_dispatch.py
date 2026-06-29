@@ -34,6 +34,15 @@ def _chat_handler():
     return mod
 
 
+# AUDIT-4-F3：路由层背压信号量。
+# 限制同时通过 to_thread 进入 v3_route 的并发请求数，防止慢后端场景下
+# 请求堆积耗尽线程池导致整机无响应。容量可经环境变量调整。
+import os as _os
+
+_ROUTE_MAX_CONCURRENCY = int(_os.environ.get("LIMA_ROUTE_MAX_CONCURRENCY", "32"))
+_route_semaphore = asyncio.Semaphore(_ROUTE_MAX_CONCURRENCY)
+
+
 @dataclass
 class RoutePrefs:
     prefer: str | None
@@ -55,6 +64,8 @@ class ChatRunContext:
     memory_session_id: str | None
     preflight: ChatPreflightResult
     prefs: RoutePrefs
+    # AUDIT-8-P2：单请求级 intent 缓存，避免 analyze_intent 在一次请求中被调用 2-3 次。
+    intent: dict | None = None
 
 
 def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RoutePrefs:
@@ -99,7 +110,7 @@ def start_chat_run(
         trace=trace,
     )
     prefs = resolve_route_prefs(req, ide_source, query)
-    return ChatRunContext(
+    ctx = ChatRunContext(
         chat_id=make_chat_id(),
         query=query,
         t0=time.time(),
@@ -113,6 +124,9 @@ def start_chat_run(
         preflight=preflight,
         prefs=prefs,
     )
+    # AUDIT-8-P2：单请求算一次 intent，execute_non_stream_route 和路由引擎复用。
+    ctx.intent = routing_intent.analyze_intent(query, system_prompt=preflight.system_prompt, ide=prefs.ide_source)
+    return ctx
 
 
 async def maybe_image_response(
@@ -197,7 +211,7 @@ async def maybe_thinking_response(
 
 
 def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> StreamingResponse:
-    routing_intent.analyze_intent(ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source)
+    # AUDIT-8-P2：原此处 analyze_intent 结果未使用（死调用），路由引擎内部会重算，已删除。
     _chat_handler()  # ensures chat_handler deps are imported/injected
     headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     trace = get_current_trace()
@@ -220,17 +234,23 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
 
 
 async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tuple[dict, dict]:
-    intent = routing_intent.analyze_intent(ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source)
+    # AUDIT-8-P2：复用 start_chat_run 已算好的 intent，不再重复调用 analyze_intent
+    intent = ctx.intent if isinstance(ctx.intent, dict) else {}
     _chat_handler()  # ensures chat_handler deps are imported/injected
-    result = await asyncio.to_thread(
-        v3_route,
-        ctx.query,
-        ctx.preflight.request_messages,
-        system_prompt=ctx.sys_prompt_preview,
-        ide=ctx.ide_source,
-        max_tokens=req.max_tokens or 4096,
-        needs_tools=req.has_tools,
-        tools=req.tools,
-        prefer=ctx.prefs.prefer,
-    )
-    return result, intent if isinstance(intent, dict) else {}
+    # AUDIT-4-F3：背压——限制同时进入路由（to_thread）的并发请求数。
+    # 当所有后端都慢时，避免 40+ 并发占满线程池导致整机无响应；
+    # 超出上限的请求在 semaphore 上排队，而非无限堆积压垮服务器。
+    async with _route_semaphore:
+        result = await asyncio.to_thread(
+            v3_route,
+            ctx.query,
+            ctx.preflight.request_messages,
+            system_prompt=ctx.sys_prompt_preview,
+            ide=ctx.ide_source,
+            max_tokens=req.max_tokens or 4096,
+            needs_tools=req.has_tools,
+            tools=req.tools,
+            prefer=ctx.prefs.prefer,
+            precomputed_intent=ctx.intent,
+        )
+    return result, intent

@@ -114,6 +114,11 @@ async def _post_preview_with_retry(
     raise last_exc or AutohandingClientError("all autohanding retry attempts failed")
 
 
+# AUDIT-11-I1：解压大小上限，防 zip bomb（高压缩比恶意 ZIP 导致 OOM）。
+# 单张手写 PNG 不会超过 10MB，50MB 余量足够。
+_MAX_DECOMPRESSED_PNG_BYTES = 50 * 1024 * 1024
+
+
 def _extract_first_png(zip_bytes: bytes) -> bytes:
     """Extract the first PNG found in a ZIP archive."""
     try:
@@ -122,6 +127,12 @@ def _extract_first_png(zip_bytes: bytes) -> bytes:
             if not names:
                 raise AutohandingClientError("no PNG found in response ZIP")
             names.sort()
+            # zip bomb 防护：解压前检查声明大小，超限拒绝（不实际解压）
+            info = zf.getinfo(names[0])
+            if info.file_size > _MAX_DECOMPRESSED_PNG_BYTES:
+                raise AutohandingClientError(
+                    f"PNG too large ({info.file_size} bytes), possible zip bomb"
+                )
             return zf.read(names[0])
     except zipfile.BadZipFile as exc:
         raise AutohandingClientError("response is not a valid ZIP") from exc

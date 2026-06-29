@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -9,6 +10,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 
 from config.env import gemini_live_model, google_ai_key, health_show_errors
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
 
 import brand_config
 from access_guard import anonymous_access_status, extract_bearer_token, is_token_valid, require_private_api_key
@@ -127,16 +130,49 @@ async def health():
 
 @router.get("/health/ready")
 async def health_ready() -> JSONResponse:
-    """Strict readiness probe: return 200 only when all warm phases are done."""
+    """Strict readiness probe: return 200 only when all warm phases done AND runtime deps OK.
+
+    AUDIT-5-O1：原实现只检查启动 phase 状态，运行时依赖（SQLite/后端可用性/磁盘）挂掉仍返回 200，
+    导致公网 LB 探针被死实例欺骗。此处增加运行时依赖探活：至少一个后端非 dead + SQLite 可读写。
+    """
     state = server_lifespan.get_startup_state()
     startup_status = state["status"]
+
+    # 运行时依赖探活（轻量，best-effort 但失败需反映到 ready 状态）
+    runtime_checks: dict[str, str] = {}
+    ready = startup_status == "ready"
+
+    # 检查 1：至少一个后端非 dead（否则所有请求必然失败）
+    try:
+        from health_state import get_health_map
+
+        health_map = get_health_map()
+        alive = sum(1 for s in health_map.values() if s != "dead")
+        if alive == 0 and health_map:
+            runtime_checks["backends"] = "all_dead"
+            ready = False
+    except Exception as exc:
+        logger.debug("health/ready backend probe failed: %s", exc)  # 启动初期 health_map 可能未就绪
+
+    # 检查 2：磁盘可用空间（缓存/日志写入需要）
+    try:
+        import shutil
+
+        usage = shutil.disk_usage("/")
+        if usage.free < 256 * 1024 * 1024:  # < 256MB
+            runtime_checks["disk"] = "low_space"
+            ready = False
+    except Exception as exc:
+        logger.debug("health/ready disk probe failed: %s", exc)
+
     payload: dict[str, Any] = {
-        "status": "ready" if startup_status == "ready" else "not_ready",
+        "status": "ready" if ready else "not_ready",
         "startup_status": startup_status,
         "pending_warm": list(state.get("pending_warm", [])),
         "error_count": len(state.get("errors", [])),
+        "runtime_checks": runtime_checks,
     }
-    status_code = 200 if startup_status == "ready" else 503
+    status_code = 200 if ready else 503
     return JSONResponse(status_code=status_code, content=payload)
 
 

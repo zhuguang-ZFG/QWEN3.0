@@ -7,6 +7,8 @@ MotionErrorCode enum in protocol_families.py.
 
 from __future__ import annotations
 
+import math
+
 from device_gateway.model_routing import CONTROL_CAPABILITIES
 from device_gateway.protocol_families import MotionErrorCode
 from device_intelligence.safety import profile_limit_error
@@ -63,10 +65,18 @@ def validate_run_path_params(params: dict, profile: DeviceProfile | None = None)
             val = point.get(axis, 0)
             if not isinstance(val, (int, float)):
                 return {}, MotionErrorCode.E_BAD_PARAMS.value
+            # AUDIT-10-V1：NaN/Inf 绕过边界校验（IEEE 754 NaN 比较全 False）。
+            # NaN 坐标下发物理机械臂会导致 G-code 未定义行为，可能撞机。
+            if not math.isfinite(val):
+                return {}, MotionErrorCode.E_BAD_PARAMS.value
             if val < MIN_POINT_COORD or val > MAX_POINT_COORD:
                 return {}, MotionErrorCode.E_BAD_PARAMS.value
 
-    feed = float(params.get("feed", 500.0))
+    # AUDIT-10-V2：feed 转换加 try/except，非数字返回结构化错误而非抛异常。
+    try:
+        feed = float(params.get("feed", 500.0))
+    except (TypeError, ValueError):
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
     if feed < MIN_FEED or feed > MAX_FEED:
         return {}, MotionErrorCode.E_BAD_PARAMS.value
 

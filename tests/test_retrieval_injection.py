@@ -39,7 +39,7 @@ def test_routing_engine_reuses_shared_injector(monkeypatch):
 
     monkeypatch.setattr(
         routing_engine,
-        "_pick_for_route",
+        "pick_backend",
         lambda *a, **kw: routing_engine.PickResult(
             backend="unit_backend",
             backends=["unit_backend"],

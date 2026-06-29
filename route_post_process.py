@@ -61,6 +61,22 @@ def _post_cloud_services(
         _log.warning("cloud_services failed: %s", cloud_exc, exc_info=True)
 
 
+def _check_output_guardrail(final_backend: str, answer: str) -> None:
+    """AUDIT-3-P2：输出 guardrail——检测危险输出并告警（post-closeout，仅告警不阻断）。"""
+    try:
+        from context_pipeline.guardrails import GuardrailSeverity, check_output_safety
+
+        out_check = check_output_safety(answer or "")
+        if not out_check.passed and out_check.severity in (GuardrailSeverity.BLOCK, GuardrailSeverity.WARN):
+            _log.warning(
+                "output_guardrail_violation backend=%s violations=%s",
+                final_backend,
+                out_check.violations,
+            )
+    except Exception as exc:
+        _warn("output_guardrail", exc)
+
+
 def _post_response_pipeline(
     final_backend: str,
     answer: str,
@@ -69,6 +85,8 @@ def _post_response_pipeline(
     messages: list[dict],
 ) -> None:
     """Run quality scoring + routing_weights + skill_store via response pipeline."""
+    _check_output_guardrail(final_backend, answer)
+
     try:
         from context_pipeline.response_processors import build_default_response_pipeline
         from context_pipeline.response_pipeline import ResponseContext
@@ -81,20 +99,27 @@ def _post_response_pipeline(
                 status_code=200 if answer else 500,
             )
         )
-    except ImportError:
+    except ImportError as exc:
+        _warn("response_pipeline_import", exc)
         return
     except Exception as exc:
         _warn("response_pipeline", exc)
         return
 
+    _record_weights_and_skills(final_backend, answer, ms, scenario, messages, resp_ctx)
+
+
+def _record_weights_and_skills(final_backend, answer, ms, scenario, messages, resp_ctx) -> None:
+    """Best-effort routing_weights + skill_store updates."""
+    no_real = final_backend in ("exhausted", "none", "cache")
     # Routing weights
     try:
         from context_pipeline.routing_weights import get_routing_weights
 
         rw = get_routing_weights()
-        if resp_ctx.quality_ok and final_backend not in ("exhausted", "none", "cache"):
+        if resp_ctx.quality_ok and not no_real:
             rw.record_success(final_backend, scenario)
-        elif final_backend not in ("exhausted", "none", "cache"):
+        elif not no_real:
             rw.record_failure(final_backend, scenario)
     except Exception as exc:
         _log.warning("routing_weights record failed: %s", exc, exc_info=True)
@@ -103,7 +128,7 @@ def _post_response_pipeline(
     try:
         from context_pipeline.skill_store import get_skill_store
 
-        if resp_ctx.quality_ok and answer and final_backend not in ("exhausted", "none", "cache"):
+        if resp_ctx.quality_ok and answer and not no_real:
             get_skill_store().crystallize(messages, scenario, final_backend, 0, ms)
             get_skill_store().confirm_success()
         elif not resp_ctx.quality_ok:

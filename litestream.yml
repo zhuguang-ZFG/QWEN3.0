@@ -21,12 +21,24 @@ dbs:
     replicas:
       - type: file
         path: /opt/lima-router/backups/litestream/lima_sessions
+      # AUDIT-7-D3：异地副本（Cloudflare R2 / S3）。设置 LITESTREAM_S3_BUCKET 等环境变量后自动启用。
+      # 当 LITESTREAM_S3_BUCKET 未设置时，sync-interval 占位不生效，仅本地 file replica 生效。
+      - type: s3
+        bucket: ${LITESTREAM_S3_BUCKET}
+        path: lima_sessions
+        region: ${LITESTREAM_S3_REGION}
+        endpoint: ${LITESTREAM_S3_ENDPOINT}
 
   # --- Agent Task Queue (task lifecycle, worker assignments) ---
   - path: /opt/lima-router/data/agent_tasks.db
     replicas:
       - type: file
         path: /opt/lima-router/backups/litestream/agent_tasks
+      - type: s3
+        bucket: ${LITESTREAM_S3_BUCKET}
+        path: agent_tasks
+        region: ${LITESTREAM_S3_REGION}
+        endpoint: ${LITESTREAM_S3_ENDPOINT}
 
   # --- Semantic Cache (LLM response cache, low criticality but high churn) ---
   - path: /opt/lima-router/data/semantic_cache.db
@@ -45,6 +57,11 @@ dbs:
     replicas:
       - type: file
         path: /opt/lima-router/backups/litestream/tool_audit
+      - type: s3
+        bucket: ${LITESTREAM_S3_BUCKET}
+        path: tool_audit
+        region: ${LITESTREAM_S3_REGION}
+        endpoint: ${LITESTREAM_S3_ENDPOINT}
 
   # --- Mastery Loop (skill profiles, weak-point tracking) ---
   - path: /opt/lima-router/data/mastery_loop.db
@@ -57,3 +74,8 @@ dbs:
     replicas:
       - type: file
         path: /opt/lima-router/backups/litestream/outcome_ledger
+      - type: s3
+        bucket: ${LITESTREAM_S3_BUCKET}
+        path: outcome_ledger
+        region: ${LITESTREAM_S3_REGION}
+        endpoint: ${LITESTREAM_S3_ENDPOINT}

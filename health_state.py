@@ -229,10 +229,14 @@ def load_health_state() -> int:
                     count += 1
 
                 for row in conn.execute("SELECT * FROM cooldown_states"):
+                    # AUDIT-4-F6：cooldown_until 用 time.monotonic() 计算，重启归零。
+                    # 直接加载上一进程的绝对值会导致 is_cooled_down 在"永不冷却"和
+                    # "全熔断"间随机摇摆。重启时清零 cooldown_until，让 probe_loop 重新探测，
+                    # 同时保留 consecutive_failures/error 统计（仅重置时间基准）。
                     _cooldown_states[row[0]] = CooldownState(
                         consecutive_failures=row[1],
                         current_cooldown=row[2],
-                        cooldown_until=row[3],
+                        cooldown_until=0.0,
                         last_error_code=row[4],
                         state=row[5],
                         last_error_class=row[6],

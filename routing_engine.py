@@ -13,7 +13,7 @@ from context_pipeline.retrieval_injection import inject_retrieval_context
 from response_builder import build_anthropic_response, build_response, make_chat_id
 from routing_classifier import classify, classify_scenario
 from routing_engine_cache import store_cached_response, traced_lookup_cached_response
-from routing_engine_helpers import build_route_result, identity_shortcut
+from routing_engine_helpers import apply_non_stream_last_resort, build_route_result, identity_shortcut
 from routing_engine_intent import resolve_intent
 from routing_intent import intent_to_prompt_scenario
 from routing_engine_context import (
@@ -77,10 +77,11 @@ def _enrich_with_intent_and_skills(
     system_prompt: str,
     ide_source: str,
     backends: list[str],
+    precomputed_intent: dict | None = None,
 ) -> tuple[list[dict], str]:
     """Analyze intent (with optional semantic-router shortcut), inject skills, compress."""
     with trace_span("skills") as span:
-        intent = resolve_intent(query, system_prompt, ide_source)
+        intent = resolve_intent(query, system_prompt, ide_source, precomputed_intent)
         route_role = intent if intent.startswith("device_") else ""
         prompt_scenario = intent_to_prompt_scenario(intent) or ""
 
@@ -111,6 +112,7 @@ def pick_backend(
     headers: dict | None = None,
     needs_tools: bool = False,
     preferred_backend: str = "",
+    precomputed_intent: dict | None = None,
 ) -> PickResult:
     """选路前半段：与 route() 共享 classify/inject/select/skills 管线，不执行 HTTP。"""
     req_type, scenario, recall_attempt, retrieval_text = _classify_and_recall(
@@ -132,7 +134,9 @@ def pick_backend(
         model,
     )
 
-    messages, prompt_scenario = _enrich_with_intent_and_skills(messages, query, system_prompt, ide_source, backends)
+    messages, prompt_scenario = _enrich_with_intent_and_skills(
+        messages, query, system_prompt, ide_source, backends, precomputed_intent
+    )
     backend = backends[0] if backends else "longcat_chat"
     return PickResult(
         backend=backend,
@@ -206,31 +210,6 @@ def _select_backends(
         return sticky_key, backends
 
 
-def _pick_for_route(
-    query: str,
-    messages: list[dict],
-    fmt: str,
-    ide_source: str,
-    model: str,
-    system_prompt: str,
-    headers: dict | None,
-    needs_tools: bool,
-    preferred_backend: str,
-) -> PickResult:
-    """包装 pick_backend，避免 route() 被大量关键字参数撑开。"""
-    return pick_backend(
-        query,
-        messages,
-        fmt=fmt,
-        ide_source=ide_source,
-        model=model,
-        system_prompt=system_prompt,
-        headers=headers,
-        needs_tools=needs_tools,
-        preferred_backend=preferred_backend or "",
-    )
-
-
 def _execute_route_call(
     call_fn: Callable | None,
     picked: PickResult,
@@ -272,29 +251,43 @@ def route(
     needs_tools: bool = False,
     tools: list[dict] | None = None,
     preferred_backend: str = "",
+    precomputed_intent: dict | None = None,
 ) -> RouteResult:
     """统一路由入口。call_fn(backend, messages, max_tokens) -> str"""
     t0 = time.time()
     shortcut = identity_shortcut(query, channel_role, t0)
     if shortcut:
         return shortcut
-    picked = _pick_for_route(
-        query, messages, fmt, ide_source, model, system_prompt, headers, needs_tools, preferred_backend
+    picked = pick_backend(
+        query,
+        messages,
+        fmt=fmt,
+        ide_source=ide_source,
+        model=model,
+        system_prompt=system_prompt,
+        headers=headers,
+        needs_tools=needs_tools,
+        preferred_backend=preferred_backend or "",
+        precomputed_intent=precomputed_intent,
     )
     backends = picked.backends
     original_backend = backends[0] if backends else "none"
     injected_ids = get_injected_ids(messages, picked.messages)
 
-    cached_answer, _, _ = traced_lookup_cached_response(query, picked.request_type, cache_enabled)
-    if cached_answer is not None:
-        return build_route_result(
-            t0, picked, original_backend, cached_answer, messages, injected_ids, backends, original_backend, False
-        )
+    cached = _check_cache_or_none(query, picked, cache_enabled)
+    if cached is not None:
+        return build_route_result(t0, picked, original_backend, cached, messages, injected_ids, backends, original_backend, False)
 
     final_backend, answer = _execute_route_call(call_fn, picked, max_tokens, query, needs_tools, tools)
     store_cached_response(query, answer, picked.request_type)
-
+    final_backend, answer = apply_non_stream_last_resort(final_backend, answer, picked.messages)
     fallback_used = bool(final_backend not in ("exhausted", "none") and backends and final_backend != original_backend)
     return build_route_result(
         t0, picked, final_backend, answer, messages, injected_ids, backends, original_backend, fallback_used
     )
+
+
+def _check_cache_or_none(query, picked, cache_enabled):
+    """AUDIT-8-P2：缓存查询提取，控制 route() 函数体积。命中返回 answer，否则 None。"""
+    cached_answer, _, _ = traced_lookup_cached_response(query, picked.request_type, cache_enabled)
+    return cached_answer

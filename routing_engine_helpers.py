@@ -53,3 +53,23 @@ def build_route_result(
         skills_injected=injected_ids,
         retrieval_context=picked.retrieval_context,
     )
+
+
+def apply_non_stream_last_resort(final_backend: str, answer: str, messages: list) -> tuple[str, str]:
+    """AUDIT-4-F5：非流式路径对齐流式降级——全部后端耗尽时调用 Cloudflare 终极降级，
+    避免非流式客户端（如 IDE）在全局故障时收到空内容。"""
+    if final_backend != "exhausted" or answer:
+        return final_backend, answer
+    try:
+        from server_bootstrap import last_resort_call
+
+        fallback_answer = last_resort_call(messages)
+        if fallback_answer:
+            return "cloudflare-last-resort", fallback_answer
+    except Exception as exc:
+        import logging
+
+        logging.getLogger("routing_engine").warning(
+            "non-stream last_resort_call failed: %s", exc, exc_info=True
+        )
+    return final_backend, answer

@@ -93,4 +93,9 @@ def test_trigger_retrain(client):
 def test_agent_audit(client):
     response = client.get("/api/agent-audit", headers=_auth_headers())
     assert response.status_code == 200
-    assert response.json()["tasks"] == []
+    # AUDIT-5-O4：agent-audit 现从真实审计日志读取，不再硬编码空数组。
+    # 空审计日志时 tasks 为空列表，count 为 0；有操作时含真实事件。
+    data = response.json()
+    assert "tasks" in data
+    assert "count" in data
+    assert data["count"] == len(data["tasks"])

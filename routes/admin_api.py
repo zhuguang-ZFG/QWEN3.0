@@ -117,6 +117,18 @@ def _backend_status_info(name: str) -> dict:
     }
 
 
+def _admin_actor(req: Request) -> str:
+    """Extract admin actor identity for audit logging (AUDIT-5-O4)."""
+    try:
+        # verify_admin 设置的会话/cookie 身份；尽力提取，失败返回 ip
+        actor = req.cookies.get("lima_admin_user") or ""
+        if actor:
+            return actor
+        return req.client.host if req.client else "unknown"
+    except Exception:
+        return "unknown"
+
+
 @router.post("/api/backends", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_add_backend(req: Request):
     _stats, _lock, backend_enabled = stats_context()
@@ -148,6 +160,13 @@ async def admin_add_backend(req: Request):
         },
     )
     backend_enabled[name] = True
+    # AUDIT-5-O4：记录破坏性 admin 操作（密钥经 audit_event 自动脱敏）
+    try:
+        from tool_gateway.audit import audit_event
+
+        audit_event("admin_backend_added", backend=name, url=url, model=model, fmt=fmt, actor=_admin_actor(req))
+    except Exception as exc:
+        logging.getLogger(__name__).debug("admin audit (add) failed: %s", exc)
     try:
         test_result = test_backend_sync(name)
         return {"ok": True, "message": f"backend '{name}' added", "test": test_result}
@@ -167,6 +186,12 @@ async def admin_delete_backend(name: str):
         raise HTTPException(404, f"backend '{name}' not found")
     remove_backend(name)
     backend_enabled.pop(name, None)
+    try:
+        from tool_gateway.audit import audit_event
+
+        audit_event("admin_backend_deleted", backend=name)
+    except Exception as exc:
+        logging.getLogger(__name__).debug("admin audit (delete) failed: %s", exc)
     return {"ok": True, "message": f"backend '{name}' deleted"}
 
 
@@ -177,6 +202,12 @@ async def admin_toggle_backend(name: str):
         raise HTTPException(404, f"backend '{name}' not found")
     current = backend_enabled.get(name, True)
     backend_enabled[name] = not current
+    try:
+        from tool_gateway.audit import audit_event
+
+        audit_event("admin_backend_toggled", backend=name, enabled=not current)
+    except Exception as exc:
+        logging.getLogger(__name__).debug("admin audit (toggle) failed: %s", exc)
     return {"ok": True, "enabled": not current}
 
 

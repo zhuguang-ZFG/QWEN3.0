@@ -16,6 +16,9 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    # AUDIT-7-D2：生产部署环境保护。需在 GitHub repo Settings → Environments → production
+    # 配置 required reviewers / wait timer，防止误合并直接 SSH 进生产。
+    environment: production
     env:
       VPS_SSH_KEY_SET: ${{ secrets.VPS_SSH_KEY != '' }}
       VPS_HOST_SET: ${{ secrets.VPS_HOST != '' }}
