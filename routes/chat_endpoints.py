@@ -17,6 +17,7 @@ from access_guard import require_public_or_private_api_key
 from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
 from context_pipeline.tracing import get_current_trace, new_trace
+from prompt_engineering.layers import PROMPT_VERSION
 from response_builder import build_response, make_chat_id
 from routes.async_compat import maybe_await
 from routes.json_body import read_json_object
@@ -193,6 +194,8 @@ async def chat_completions(request: Request):
 
 
 def _attach_trace_header_and_record(response) -> None:
+    if hasattr(response, "headers") and not response.headers.get("X-LiMa-Prompt-Version"):
+        response.headers["X-LiMa-Prompt-Version"] = PROMPT_VERSION
     trace = get_current_trace()
     if trace is None:
         return

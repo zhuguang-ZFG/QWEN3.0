@@ -21,6 +21,25 @@ JS_RE = re.compile(r"\b(function |const |let |npm |tsx?\b|jsx?\b|TypeScript|Java
 RUST_RE = re.compile(r"\b(fn |cargo |\.rs\b|borrow checker|rustc)\b", re.I)
 GO_RE = re.compile(r"\b(func |go test|go.mod|\.go\b)\b", re.I)
 
+# Phrases that could turn context values into prompt-injection payloads.
+_BLOCKED_INSTRUCTION_PHRASES = (
+    "ignore previous",
+    "ignore all",
+    "forget all",
+    "forget previous",
+    "override instruction",
+    "disregard previous",
+    "ignore instruction",
+    "previous instruction",
+    "developer mode",
+    "system prompt",
+)
+
+
+def _is_instruction_tainted(value: str) -> bool:
+    lowered = str(value).lower()
+    return any(phrase in lowered for phrase in _BLOCKED_INSTRUCTION_PHRASES)
+
 
 def build_context_digest(
     query: str,
@@ -39,22 +58,30 @@ def build_context_digest(
     workspace = _extract_workspace_hint(system_prompt or text)
     ide = ide_source or _detect_ide(text)
 
-    if not any([paths, signals, workspace, ide]) and language == "general":
+    safe_ide = ide if ide and not _is_instruction_tainted(ide) else ""
+    safe_workspace = workspace if workspace and not _is_instruction_tainted(workspace) else ""
+    safe_paths = [p for p in paths if not _is_instruction_tainted(p)]
+    safe_signals = [s for s in signals if not _is_instruction_tainted(s)]
+
+    if (
+        not any([safe_paths, safe_signals, safe_workspace, safe_ide])
+        and language == "general"
+    ):
         return ""
 
     lines = ["LiMa context preflight:"]
-    if ide:
-        lines.append(f"- IDE: {ide}")
-    if workspace:
-        lines.append(f"- Workspace hint: {workspace}")
+    if safe_ide:
+        lines.append(f"- IDE: {safe_ide}")
+    if safe_workspace:
+        lines.append(f"- Workspace hint: {safe_workspace}")
     if task:
         lines.append(f"- Task shape: {task}")
     if language != "general":
         lines.append(f"- Language: {language}")
-    if paths:
-        lines.append("- Files mentioned: " + ", ".join(paths))
-    if signals:
-        lines.append("- Tool/error signals: " + " | ".join(signals))
+    if safe_paths:
+        lines.append("- Files mentioned: " + ", ".join(safe_paths))
+    if safe_signals:
+        lines.append("- Tool/error signals: " + " | ".join(safe_signals))
     lines.append(
         "- Boundary: VPS cannot read the user's local workspace directly; rely on client tool results and explicit file context."
     )
@@ -107,7 +134,7 @@ def _detect_language(text: str) -> str:
         "rust": len(RUST_RE.findall(text)),
         "go": len(GO_RE.findall(text)),
     }
-    best = max(scores, key=scores.get)
+    best = max(scores.items(), key=lambda item: item[1])[0]
     return best if scores[best] else "general"
 
 

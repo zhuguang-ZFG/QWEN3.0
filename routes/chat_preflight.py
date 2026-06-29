@@ -92,22 +92,33 @@ def _build_prompt_context_from_request(
     request_headers: dict | None,
     trace,
 ):
-    """Build prompt context and apply device intent merge."""
-    system_prompt = extract_system_prompt(req.messages) or sys_prompt_preview or ""
+    """Build prompt context and apply device intent merge.
+
+    AUDIT-3-P4：客户端 system 消息仅在非设备意图场景保留；当 LiMa 设备意图层激活时，
+    LiMa 系统提示完全覆盖客户端 system，避免攻击者通过 system 消息注入指令。
+    """
+    client_system = extract_system_prompt(req.messages) or sys_prompt_preview or ""
+    # 先让记忆召回基于空 system_prompt 工作，避免把客户端 system 作为“上下文”拼入 LiMa 层。
     prompt_ctx = build_prompt_context(
         req,
-        system_prompt=system_prompt,
+        system_prompt="",
         request_headers=request_headers,
         client_ip=client_ip,
         ide_source=ide_source,
         trace=trace,
     )
     request_messages = prompt_ctx.request_messages
-    system_prompt = merge_device_intent_system_prompt(
+    memory_system = prompt_ctx.system_prompt
+    merged_system = merge_device_intent_system_prompt(
         extract_query(req.messages),
-        prompt_ctx.system_prompt,
+        memory_system,
         ide_source=ide_source,
     )
+    # 无设备意图时恢复客户端 system（OpenAI 兼容）；有设备意图时 LiMa 层已覆盖。
+    if merged_system == memory_system:
+        system_prompt = (client_system + "\n\n" + memory_system).strip()
+    else:
+        system_prompt = merged_system
     prompt_context_messages = messages_with_system_context(request_messages, system_prompt)
     return request_messages, prompt_context_messages, system_prompt, prompt_ctx
 

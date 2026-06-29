@@ -15,9 +15,9 @@ from tests.promptfoo.prompt_provider import call_api
     "scenario",
     ["chat", "coding", "vision", "device_draw", "device_write", "device_control"],
 )
-def test_compose_system_prompt_contains_version_marker(scenario):
+def test_compose_system_prompt_excludes_version_marker(scenario):
     result = call_api(f"scenario={scenario}\nide=", {}, {})
-    assert f"<!-- lima-prompts-v2.0.{scenario} -->" in result["output"]
+    assert f"<!-- lima-prompts-v2.0.{scenario} -->" not in result["output"]
 
 
 def test_chat_prompt_contains_skill_and_safety():

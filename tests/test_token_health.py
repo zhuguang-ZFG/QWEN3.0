@@ -17,7 +17,11 @@ def test_save_token_status():
     # Verify no exception raised
 
 
-def test_check_all_tokens_no_import():
-    # Test graceful handling when backends_registry not available
+def test_check_all_tokens_no_import(monkeypatch):
+    # Avoid real network calls; verify graceful handling and result shape.
+    monkeypatch.setattr(th, "check_token", lambda backend: {"backend": backend, "status": "valid", "ok": True})
     results = th.check_all_tokens()
     assert isinstance(results, list)
+    for result in results:
+        assert "backend" in result
+        assert "status" in result

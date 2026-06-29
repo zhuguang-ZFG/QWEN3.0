@@ -10,6 +10,8 @@ Layer 6 (Quality Gate): Output constraints and self-verification
 Composition order in compose_system_prompt: 1 → 2 → 3 → 4 → 5 (optional) → 6.
 """
 
+import re
+
 from prompt_engineering.registry import load_prompt_template
 
 # Bump this when any layer template changes (for A/B tracking and rollback).
@@ -37,6 +39,11 @@ def _build_role_text(scenario: str, name: str, name_cn: str) -> str:
     return template.format(**kwargs)
 
 
+def _sanitize_ide_name(ide: str) -> str:
+    """Keep only ASCII letters and digits; strip spaces and injection punctuation."""
+    return re.sub(r"[^A-Za-z0-9]", "", ide)[:64]
+
+
 def build_role_layer(ide: str, scenario: str) -> str:
     """Layer 1: Role definition with constraints."""
     from brand_config import PUBLIC_MODEL_NAME, PUBLIC_MODEL_NAME_CN
@@ -44,7 +51,7 @@ def build_role_layer(ide: str, scenario: str) -> str:
     role = _build_role_text(scenario, PUBLIC_MODEL_NAME, PUBLIC_MODEL_NAME_CN)
 
     if ide:
-        ide_safe = ide.replace("\n", " ").replace("\r", " ")[:64]
+        ide_safe = _sanitize_ide_name(ide)
         role += (
             f"\n[环境] 用户正在 {ide_safe} 中使用你。"
             "该IDE具备文件读写、终端执行、代码搜索等工具能力。"
@@ -162,6 +169,11 @@ def build_quality_gate(scenario: str) -> str:
     return gate_map.get(scenario, gate_map["chat"])
 
 
+def prompt_version_for(scenario: str) -> str:
+    """Return the version marker for a scenario (intended for response headers/logs)."""
+    return f"{PROMPT_VERSION}.{scenario}"
+
+
 def compose_system_prompt(
     ide: str,
     scenario: str,
@@ -179,8 +191,5 @@ def compose_system_prompt(
         parts.append(f"[上下文]\n{code_context}")
 
     parts.append(build_quality_gate(scenario))
-
-    # Hidden version marker for logging/A/B without affecting model output
-    parts.append(f"<!-- {PROMPT_VERSION}.{scenario} -->")
 
     return "\n\n".join(parts)

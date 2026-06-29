@@ -71,7 +71,7 @@ def test_compose_system_prompt_returns_non_empty_string(scenario):
     prompt = compose_system_prompt(ide="", scenario=scenario, code_context="")
     assert isinstance(prompt, str)
     assert prompt.strip()
-    assert PROMPT_VERSION in prompt
+    assert PROMPT_VERSION not in prompt
 
 
 def test_cache_invalidation_reloads_on_mtime_change():

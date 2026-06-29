@@ -1,5 +1,25 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-3 延后项 P4/P5/P6/P7：客户端 system 覆盖 + 版本标记迁出 + IDE/上下文摘要过滤
+
+- **目标**：关闭 AUDIT-3 剩余 LOW 级别延后项（P4 客户端 system 覆盖、P6 IDE 值字符过滤、P7 上下文摘要关键词过滤），减少提示词注入面。
+- **实现**：
+  - `routes/chat_preflight.py`：`_build_prompt_context_from_request` 区分 `client_system` 与 `memory_system`；仅在无设备意图时把客户端 system 拼回，设备意图激活时由 `merge_device_intent_system_prompt` 生成的 LiMa system 完全覆盖。
+  - `prompt_engineering/layers.py`：新增 `_sanitize_ide_name`，仅保留 ASCII 字母/数字，移除空格、标点和潜在注入文案；替换原来只做换行替换的 `ide_safe` 逻辑。
+  - `lima_context.py`：新增 `_BLOCKED_INSTRUCTION_PHRASES` 与 `_is_instruction_tainted`，对 `ide`、`workspace`、`paths`、`signals` 做指令关键词过滤；顺带修复 `_detect_language` 的 `pyright` 类型告警。
+  - `prompt_engineering/layers.py` + `routes/chat_endpoints.py`：AUDIT-3-P5，将 system prompt 末尾的 HTML 注释版本标记移除，新增 `prompt_version_for()`；在 chat 响应中通过 header `X-LiMa-Prompt-Version` 返回版本号。
+- **验证**：
+  - `tests/test_chat_preflight_device.py`：3 passed（P4 覆盖/保留两条路径）。
+  - `tests/test_prompt_engineering.py` + `tests/test_prompt_registry.py` + `tests/test_promptfoo_provider.py`：P5/P6 过滤相关用例通过。
+  - `tests/test_lima_context.py`：5 passed（P7 过滤）。
+  - `tests/test_chat_endpoints_trace_header.py`：新增 P5 header 用例通过。
+  - `ruff check .` clean；`pyright` 目标文件 clean；`scripts/check_code_size.py` PASS。
+  - 全量 `pytest --tb=short -q` 首次在 95% 处挂起，定位到 `tests/test_token_health.py::test_check_all_tokens_no_import` 会真实调用所有后端；已修复：用 monkeypatch 替换 `token_health.check_token`，避免网络请求。
+  - 修复后 `tests/test_token_health.py`：3 passed。
+  - 全量 `pytest --tb=short -q`（含 P5 改动前）：**4141 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-tze9j2el）。
+  - P5 改动后全量 `pytest --tb=short -q`：**4143 passed, 3 skipped, 2 deselected, 0 failed**（后台任务 bash-o5kt27a6）。
+- **状态**：AUDIT-3 全部关闭（P1/P2/P3/P4/P5/P6/P7）。进入部署/提交环节。
+
 ## 2026-06-29 AUDIT-11 I2：autohanding 连接池复用
 
 - **目标**：消除 autohanding 客户端每次请求新建 `httpx.AsyncClient` 的 TLS 握手开销与 FD 压力。
