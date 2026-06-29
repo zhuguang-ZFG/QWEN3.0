@@ -18,23 +18,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: docs-site/pnpm-lock.yaml
+
+      - name: Enable pnpm
+        run: corepack enable
 
       - name: Install dependencies and build
         working-directory: docs-site
         run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
+          corepack pnpm install --frozen-lockfile
+          corepack pnpm run build
 
       - name: Deploy to VPS
         if: ${{ secrets.VPS_HOST != '' && secrets.DOCS_SITE_DIR != '' }}
