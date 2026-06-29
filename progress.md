@@ -10644,3 +10644,19 @@ uff check 2 文件 clean；导入无循环依赖。
   - `python scripts/deploy_unified.py --slice core` 成功（854 文件上传，服务重启）。
   - 公网 `https://chat.donglicao.com/health` 200，`/health/ready` 200，device_gateway 等模块加载正常。
 - **提交**：`18325a5b` 已推送至 `origin/main`。
+
+## 2026-06-30 AUDIT-4-F7 尝试与回滚
+
+- **目标**：将 `start_device_gateway_runtime` / `start_mqtt_client` 从 `CRITICAL_PHASES` 移到 `WARM_PHASES`，避免 MQTT broker 抖动阻塞核心 chat 服务启动。
+- **关键结果**：
+  - 修改 `server_lifespan_phases.py`，将 device/MQTT 启动移入 `WARM_PHASES`；新增 `tests/test_server_lifespan.py` 验证阶段分类。
+  - 全量 `pytest` 通过（4138 passed）。
+- **生产回归**：
+  - 部署后 `/health` 响应极慢（数十秒），`/health/ready` 多次 504 / SSL 握手失败，FastAPI 动态端点几乎不可用。
+  - 根因：`device_gateway/mqtt_client.py` 中 `client.connect()` 是同步阻塞调用；放入 warm phase 后与请求共用一个事件循环，导致单 worker 被阻塞。
+  - 尝试用 `asyncio.to_thread()` 包裹 `client.connect()` 仍未恢复稳定，疑似 paho connect 线程安全/时序问题或 warm 阶段叠加后事件循环争抢。
+- **处置**：
+  - 立即回滚：恢复 `server_lifespan_phases.py` 原 `CRITICAL_PHASES`（含 device/MQTT），恢复 `device_gateway/mqtt_client.py` 到改动前状态，移除 `tests/test_server_lifespan.py`。
+  - 重新部署后 `/health/ready` 恢复 200（~1s），服务可用。
+- **后续**：AUDIT-4-F7 需先将 MQTT 连接改为完全非阻塞（或独立线程 + queue）后再移入 WARM；当前保持 CRITICAL 以保障生产稳定。
+- **提交**：`0299060c`（revert phases）、`4b744084`（restore MQTT）已推送至 `origin/main`。

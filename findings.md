@@ -38,7 +38,7 @@
 
 ### 延后项（需独立排期/集成测试）
 - ~~AUDIT-4 F1（客户端重试）~~ ✅ 已完成（http_retry.py + call_api/async 接入，15 测试）
-- AUDIT-4 F7（device/MQTT 启动降 WARM）— 需验证降级后设备功能
+- AUDIT-4 F7（device/MQTT 启动降 WARM）— 2026-06-30 尝试移入 WARM 后生产出现事件循环阻塞/SSL 握手失败，已回滚；需先把 MQTT `client.connect()` 改为完全非阻塞（独立线程/queue）再迁移
 - ~~AUDIT-8 P2（单次 intent）~~ ✅ 已完成（ChatRunContext 缓存 + resolve_intent 透参短路）
 - ~~AUDIT-8 P4（连接池）~~ ✅ 已完成（http_request_builder/client.py 按 backend 缓存 + no-op wrapper，7 测试）
 - AUDIT-8 P1（异步 LLM）/P5（embedding 异步化+LRU）/P6/P7（共享状态+多 worker）— 性能核心路径
