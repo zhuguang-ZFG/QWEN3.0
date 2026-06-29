@@ -18,6 +18,7 @@ class TestServerCors:
         assert response.status_code == 200
         assert response.headers.get("access-control-allow-origin") == "*"
         assert "X-LiMa-Trace-Id" in response.headers.get("access-control-expose-headers", "")
+        assert "X-Request-Id" in response.headers.get("access-control-expose-headers", "")
 
     def test_health_preflight_returns_200(self):
         response = self.client.options(

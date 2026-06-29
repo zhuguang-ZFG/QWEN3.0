@@ -28,6 +28,7 @@ from vision_handler import (
 )
 from http_body_limit import BodySizeLimitMiddleware
 from lima_constants import MODEL_VERSION
+from routes.request_id_middleware import RequestIdMiddleware
 from routes.security_headers import SecurityHeadersMiddleware
 from server_bootstrap import (
     MAX_BODY_SIZE,
@@ -68,6 +69,7 @@ if MONITORING.sentry_dsn:
 
 app.add_middleware(BodySizeLimitMiddleware, max_body_size=MAX_BODY_SIZE)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestIdMiddleware)
 
 _cors_origins = [o.strip() for o in os.environ.get("LIMA_CORS_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
@@ -76,7 +78,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-LiMa-Trace-Id"],
+    expose_headers=["X-LiMa-Trace-Id", "X-Request-Id"],
 )
 
 _stats, _stats_lock, _backend_enabled, _loaded_modules = create_runtime_state()

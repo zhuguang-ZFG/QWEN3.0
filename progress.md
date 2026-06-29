@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 AUDIT-5 O7：X-Request-Id 响应头中间件
+
+- **目标**：让每条 HTTP 响应都携带 `X-Request-Id`，便于客户端报障时反查服务端日志，并为多跳 fallback 提供显式 request_id 串联。
+- **实现**：
+  - 新增 `routes/request_id_middleware.py`：`RequestIdMiddleware` 继承 `BaseHTTPMiddleware`，在响应返回前检查 `X-Request-Id`；若缺失则优先复用 `X-LiMa-Trace-Id`，否则生成新的 UUID。
+  - `server.py`：在 `BodySizeLimitMiddleware` 之后、`SecurityHeadersMiddleware` 之后注册 `RequestIdMiddleware`；CORS `expose_headers` 同时暴露 `X-LiMa-Trace-Id` 与 `X-Request-Id`。
+  - 新增 `tests/test_request_id_middleware.py`：覆盖 `/health` 自动注入、以及 chat 路径复用 trace id 的场景。
+- **验证**：
+  - `tests/test_request_id_middleware.py` + `tests/test_server_cors.py` + `tests/test_chat_endpoints_trace_header.py`：**7 passed, 0 failed**。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件全部 clean。
+  - 全量 `pytest --tb=short -q`：**4162 passed, 3 skipped, 2 deselected, 0 failed**。
+  - `scripts/deploy_unified.py --slice core` 部署成功；VPS `/health/ready` 在约 15 秒后返回 200，响应头包含 `X-Request-Id`。
+- **状态**：AUDIT-5 O7 关闭；AUDIT-5 剩余延后项为 O3/O5/O6/O9/O10/O11。
+
 ## 2026-06-30 AUDIT-8 P1：instructor intent 缓存 + 降级 + async 路径
 
 - **目标**：降低低置信度 instructor intent 同步 LLM 调用对主路径的阻塞与重复开销。
