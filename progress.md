@@ -1,5 +1,16 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 deploy-docs-site CI 修复（最后一个 CI 失败项关闭）
+
+- **目标**：修复 `deploy-docs-site.yml` 工作流 0s 失败。
+- **根因**：`secrets` context 在 step `if` 条件中不可用，导致工作流文件解析失败（与 `deploy-site-v2.yml` 曾有的问题相同）。
+- **修复**：
+  - 将 `secrets.X != ''` 检查移至 job-level `env:` 变量（`VPS_HOST_SET`/`VPS_SSH_KEY_SET`/`DOCS_SITE_DIR_SET`）。
+  - step `if` 改为 `env.VAR == 'true'`。
+  - Node 版本 `20` → `22`（pnpm 11.9 要求 ≥ 22.13，Node 20 已被 GH Actions 废弃）。
+- **质量门禁（全绿）**：Tests ✅、Deploy ✅、Deploy Docs Site ✅。
+- **提交**：`e2f7b20d`（secrets context 修复）、`f897c84d`（Node 版本升级）。
+
 ## 2026-06-30 AUDIT-9-S4 task state CAS 乐观锁改造（架构级里程碑）
 
 - **目标**：消除设备任务状态的并发覆盖写丢失（events 追加丢失 + retry_count/status 覆盖）。

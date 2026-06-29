@@ -1,5 +1,14 @@
 # LiMa Findings
 
+## 2026-06-30 deploy-docs-site CI 0s 失败根因与修复
+
+- **根因**：`deploy-docs-site.yml` 在 step `if` 条件中直接引用 `secrets.X != ''`，但 GitHub Actions 的 `secrets` context 在 step `if` 表达式中不可用（仅在 `env` context 赋值时求值），导致工作流文件解析失败、0s 退出。
+- **佐证**：`deploy-site-v2.yml` 曾有相同问题，commit `12977187` 已用 job-level `env:` + `env.VAR == 'true'` 修复。
+- **修复**：将 secret 可用性检查移至 `jobs.build-and-deploy.env:`，step `if` 改为 `env.VPS_HOST_SET == 'true'`。
+- **次生问题**：修复后 `Install dependencies and build` 步骤报 `ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite`——corepack 默认安装 pnpm 11.9.0，要求 Node ≥ 22.13，但工作流指定 `node-version: 20`。Node 20 已被 GitHub Actions 标记废弃。
+- **次生修复**：`node-version: 20` → `22`。
+- **结果**：三个 CI 工作流（Tests ✅、Deploy ✅、Deploy Docs Site ✅）全部绿灯。
+
 ## 2026-06-29 京东云清理与 probe 回写
 
 - **`openclaw-gateway` 已退役**：京东云节点上不再运行该服务，相关容器已移除。
