@@ -11,7 +11,7 @@
   - `tests/test_autohanding_client.py`：**10 passed, 0 failed**。
   - `tests/test_handwriting_route.py`：**10 passed, 0 failed**（无回归）。
   - `ruff check` / `pyright` / `scripts/check_code_size.py` 目标文件 clean。
-- **提交部署**：待提交。
+- **提交部署**：commit `8655133c` 已 push 到 `origin/main`；`scripts/deploy_unified.py --slice core` 上传 854 个文件；VPS health 200。
 
 ## 2026-06-29 AUDIT-11 A1：SVG 上传内容净化
 
