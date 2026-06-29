@@ -205,9 +205,7 @@ async def _mqtt_message_loop() -> None:
     )
 
     try:
-        # AUDIT-4-F7: run blocking paho connect off the event loop so the MQTT
-        # broker shake does not stall the single worker's request handling.
-        await asyncio.to_thread(client.connect, DEVICE.mqtt_broker, DEVICE.mqtt_port, keepalive=60)
+        client.connect(DEVICE.mqtt_broker, DEVICE.mqtt_port, keepalive=60)
         client.loop_start()
     except Exception as exc:
         _log.error("MQTT connect failed: %s", exc)
