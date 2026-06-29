@@ -30,6 +30,8 @@ from http_body_limit import BodySizeLimitMiddleware
 from lima_constants import MODEL_VERSION
 from routes.request_id_middleware import RequestIdMiddleware
 from routes.security_headers import SecurityHeadersMiddleware
+# Diagnostic stack-dump handler (SIGUSR1 on Unix) for production stalls.
+from observability import stack_dump  # noqa: F401
 from server_bootstrap import (
     MAX_BODY_SIZE,
     MODEL_CREATED,

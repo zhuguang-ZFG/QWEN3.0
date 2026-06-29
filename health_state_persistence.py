@@ -36,6 +36,7 @@ def _ensure_db_dir() -> None:
 
 def _ensure_tables(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS health_states (
             backend TEXT PRIMARY KEY,
@@ -68,29 +69,37 @@ def _ensure_tables(conn: sqlite3.Connection) -> None:
 
 
 def save_health_state() -> None:
-    """Persist health state to SQLite using the thread-local pool."""
+    """Persist health state to SQLite using the thread-local pool.
+
+    AUDIT-8-P6 follow-up: copy state under the lock, then write to SQLite
+    without holding the lock. This prevents slow fsyncs from stalling async
+    readers such as ``/health/ready`` and the routing selector.
+    """
     _ensure_db_dir()
     try:
+        with _lock:
+            health_map = list(_health_map.items())
+            cooldown_states = list(_cooldown_states.items())
+            quality_states = list(_quality_states.items())
         with pooled_sqlite_conn(_DB_PATH) as conn:
             _ensure_tables(conn)
-            with _lock:
-                _persist_health_map(conn)
-                _persist_cooldown_states(conn)
-                _persist_quality_states(conn)
+            _persist_health_map(conn, health_map)
+            _persist_cooldown_states(conn, cooldown_states)
+            _persist_quality_states(conn, quality_states)
     except Exception as exc:
         logger.warning("Failed to save health state: %s", exc)
 
 
-def _persist_health_map(conn: sqlite3.Connection) -> None:
-    for backend, status in _health_map.items():
+def _persist_health_map(conn: sqlite3.Connection, health_map: list[tuple[str, str]]) -> None:
+    for backend, status in health_map:
         conn.execute(
             "INSERT OR REPLACE INTO health_states (backend, status, updated_at) VALUES (?, ?, ?)",
             (backend, status, time.time()),
         )
 
 
-def _persist_cooldown_states(conn: sqlite3.Connection) -> None:
-    for backend, state in _cooldown_states.items():
+def _persist_cooldown_states(conn: sqlite3.Connection, cooldown_states: list[tuple[str, CooldownState]]) -> None:
+    for backend, state in cooldown_states:
         conn.execute(
             "INSERT OR REPLACE INTO cooldown_states VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
@@ -105,8 +114,8 @@ def _persist_cooldown_states(conn: sqlite3.Connection) -> None:
         )
 
 
-def _persist_quality_states(conn: sqlite3.Connection) -> None:
-    for backend, quality in _quality_states.items():
+def _persist_quality_states(conn: sqlite3.Connection, quality_states: list[tuple[str, QualityState]]) -> None:
+    for backend, quality in quality_states:
         conn.execute(
             "INSERT OR REPLACE INTO quality_states VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
