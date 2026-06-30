@@ -35,7 +35,7 @@ bcrypt~=5.0.0
 # 绘画引擎依赖（战略转型新增 2026-06-09）
 opencv-python-headless==4.10.0.84  # 轮廓检测（无 GUI，适合服务器）
 scikit-image>=0.22.0,<0.25         # 骨架化（Zhang-Suen，笔绘机单线路径）
-dashscope==1.20.11         # 通义千问 SDK（文生图）
+dashscope==1.26.0         # 通义千问 SDK（文生图）
 Pillow==10.4.0             # 图像处理
 fonttools~=4.63.0          # 手写体字形提取（文字转 SVG 路径，写字机）
 
