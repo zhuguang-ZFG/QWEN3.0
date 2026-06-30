@@ -1375,6 +1375,8 @@ ruff check: clean（触及文件）
 
 - **自动化部署**：`.github/workflows/deploy-{docs-site,site-v2,chat-web}.yml` 按路径触发 push 到 Pages。
 - **已收尾**：JDCloud `.env` 已配置 `LIMA_CORS_ORIGINS=https://app.donglicao.com,https://chat.donglicao.com` 并重启；Aliyun 旧静态文件与 `www.donglicao.com` nginx 配置已清理，备份目录也已删除，释放约 37.7 MB。
+- **生产修复**：JDCloud `lima-router` 设备存储/session_bus 已切 Redis，`/device/v1/health` 恢复 `production_ready=true`。
+- **利用率审计**：见 `docs/ops/CLOUDFLARE_GITHUB_GOOGLE_AUDIT_2026-06-30.md`。
 
 ## 代码质量
 

@@ -11252,6 +11252,20 @@ uff check 2 文件 clean；导入无循环依赖。
 - **提交**：通过 GitHub CLI 合并 PR #18（commit `825757bb`）到 `main`，本地已 fast-forward 同步。
 - **结果**：PR #18 已合并；PR #1 已由后续 PR #22 替代合并。
 
+## 2026-06-30 Cloudflare / GitHub / Google 利用率审计与 P0 优化
+
+- **目标**：盘点 LiMa 对 Cloudflare、GitHub、Google 的利用情况，顺手实施低风险高收益优化。
+- **审计报告**：`docs/ops/CLOUDFLARE_GITHUB_GOOGLE_AUDIT_2026-06-30.md`
+  - Cloudflare：Pages / DNS 已用；R2 / Workers / Turnstile / AI Gateway / Analytics 未用。
+  - GitHub：Actions / Dependabot(pip/docker/github-actions) / pip cache 已用；npm/pnpm cache / Dependabot alerts / npm Dependabot 未用。
+  - Google：Gemini/Gemma 后端已用；Search Console / sitemap / Analytics / OAuth 未用。
+  - Telegram：已退役，不纳入优化。
+- **P0 已实施**：
+  - `deploy-site-v2.yml`：`actions/setup-node@v4` 增加 `cache: npm`。
+  - `deploy-docs-site.yml`：`actions/setup-node@v4` 增加 `cache: pnpm`。
+  - `.github/dependabot.yml`：增加 `donglicao-site-v2/` 和 `docs-site/` 的 npm 每周检查。
+- **待手动开启**：仓库 Settings → Security → Dependabot alerts（需要仓库管理员在 GitHub Web 界面开启）。
+
 ## 2026-06-30 Cloudflare Pages 静态站点迁移
 
 - **目标**：将 docs-site、site-v2、chat-web 从 Aliyun VPS 迁到 Cloudflare Pages，节省服务器资源与 GitHub Actions 复杂度。
@@ -11276,3 +11290,7 @@ uff check 2 文件 clean；导入无循环依赖。
   - 将旧版 `donglicao-site/chat.html` 的跳转目标从 `chat.donglicao.com` 改为 `app.donglicao.com`，并同步到 JDCloud `/opt/lima-router/donglicao-site/chat.html`，重启 `lima-router` 后生效。
   - 将官网 v2（`donglicao-site-v2`）中所有面向用户的入口链接（Hero、Navbar、ProductPage、Developer「获取 API Key」、Pricing 注册、英文首页 Try Console）从 `chat.donglicao.com` 改为 `app.donglicao.com`；API 示例与登录/注册/Playground 的 `baseUrl` 仍保持 `chat.donglicao.com`。
   - 重新部署 `lima-www` 到 Cloudflare Pages，smoke test 通过。
+- **生产应急修复**：
+  - 发现 `https://chat.donglicao.com/device/v1/health` 返回 503，`production_ready=false`；根因是 JDCloud `lima-router` 的设备存储/session_bus 使用 `memory`，未跨进程共享。
+  - 在 JDCloud `/opt/lima-router/.env` 追加 `LIMA_DEVICE_MEMORY_STORE=redis`、`LIMA_DEVICE_LEDGER_STORE=redis`、`LIMA_DEVICE_TASK_STORE=redis`、`LIMA_DEVICE_SESSION_BUS=redis`、`LIMA_DEVICE_REDIS_URL=redis://:<encoded_password>@100.85.114.65:6379/0`、`LIMA_DEVICE_AUTH_RATE_REDIS=auto`。
+  - 重启 `lima-router` 后 `/device/v1/health` 返回 `production_ready=true`，公网验证 200。
