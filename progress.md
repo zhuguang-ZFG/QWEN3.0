@@ -11318,3 +11318,22 @@ uff check 2 文件 clean；导入无循环依赖。
   - `curl -I https://donglicao.com/product-draw/` → `301` → `https://www.donglicao.com/product-draw/`。
   - `https://www.donglicao.com/` 仍为 200 OK。
 - **待用户确认**：在国内网络刷新 `donglicao.com` 与 `www.donglicao.com`，看是否还有 526。
+
+## 2026-06-30 不绑卡 Cloudflare 缓存/性能优化
+
+- **目标**：继续利用 Cloudflare 免费能力优化站点性能，暂不开 R2。
+- **改动**：
+  - 为 `lima-www` / `lima-docs` / `lima-chat-web` 三个 Pages 站点添加 `_headers` 文件。
+  - 哈希化静态资源（Next.js / VitePress）设置 1 年 immutable 缓存；未哈希的 chat-web JS/CSS 设置 1 天缓存。
+  - HTML 页面设置 `must-revalidate`，全局增加 `X-Content-Type-Options` / `Referrer-Policy`。
+- **部署**：
+  - `deploy-site-v2.yml` 成功。
+  - `deploy-docs-site.yml` 成功。
+  - `deploy-chat-web.yml` 成功。
+- **验证**：
+  - `www.donglicao.com` HTML：`max-age=0, must-revalidate`。
+  - `www.donglicao.com/_next/static/...css`：`max-age=31536000, immutable`。
+  - `docs.donglicao.com/` 与 `app.donglicao.com/styles.css` 均命中预期头。
+- **下一步建议**：
+  - 在 Cloudflare Dashboard 手动开启 Early Hints、Brotli、Always Online。
+  - 有余力时把 chat-web 的 `styles.css` 和 `js/*.js` 改成带哈希的构建输出，进一步延长缓存时间。

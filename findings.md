@@ -2922,3 +2922,30 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 - `curl -I https://donglicao.com/product-draw/` 同样 301 到 `https://www.donglicao.com/product-draw/`。
 - `https://www.donglicao.com/` 保持 200 OK。
 - 无需 Page Rules / Bulk Redirects 权限即可通过 Pages Worker 完成 apex → www 跳转。
+
+## 2026-06-30 不绑卡 Cloudflare 缓存/性能优化
+
+**目标**：在不绑定付款方式的前提下，利用 Cloudflare Pages `_headers` 提升静态资源缓存、减少回源。
+
+**改动**
+- `donglicao-site-v2/public/_headers`：
+  - `/_next/static/*` 和 `/assets/*` → `Cache-Control: public, max-age=31536000, immutable`（Next.js 哈希文件名，可永久缓存）。
+  - 全局添加 `X-Content-Type-Options: nosniff`、`Referrer-Policy: strict-origin-when-cross-origin`。
+- `docs-site/public/_headers`：
+  - `/assets/*` → 1 年 immutable；`/*.html` → `must-revalidate`。
+  - 同样的安全响应头。
+- `chat-web/_headers`：
+  - `/js/*`、`/styles.css` → `max-age=86400`（文件名未哈希，不宜 immutable）。
+  - `/*.html` → `must-revalidate`；全局安全响应头。
+
+**验证**
+- 三个 Pages 站点 GitHub Actions 部署均成功。
+- `https://www.donglicao.com/` HTML：`Cache-Control: public, max-age=0, must-revalidate`。
+- `https://www.donglicao.com/_next/static/chunks/0ay_2b40le1mg.css`：`Cache-Control: public, max-age=31536000, immutable`。
+- `https://docs.donglicao.com/` 和 `https://app.donglicao.com/styles.css` 均命中预期缓存头。
+
+**后续可继续免费的 Cloudflare 优化**
+- 在 Cloudflare Dashboard 开启 **Early Hints**（Speed → Optimization → Early Hints）。
+- 确认 **Brotli** 已开启（Speed → Optimization → Brotli，通常默认开启）。
+- 开启 **Always Online**（Caching → Configuration → Always Online）。
+- 添加 Cache Rule 把 `/api/*` 或特定静态路径缓存到边缘（需要 Zone 规则权限或 Dashboard 操作）。
