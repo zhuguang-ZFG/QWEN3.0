@@ -1,22 +1,31 @@
 # JDCloud Runtime Status
 
-> Updated: 2026-06-27
-> Scope: secondary JDCloud node used by LiMa ops/probe work.
+> Updated: 2026-06-30
+> Scope: JDCloud node `117.72.118.95` now runs the primary `lima-router` compute; public HTTPS ingress is still handled by Alibaba Cloud with Tailscale backhaul.
 
 ## Summary
 
-JDCloud is now treated as a real LiMa ops node, not as disposable scratch.
-The current node is `117.72.118.95` and is used for secondary
-provider-probe / monitoring experiments.
+JDCloud has been promoted from a secondary ops/probe node to the primary
+`lima-router` compute node. The public `chat.donglicao.com` DNS still points to
+Alibaba Cloud, which reverse-proxies dynamic requests over Tailscale to JDCloud
+(`100.85.114.65:8080`).
 
-Primary LiMa production traffic remains on:
+Primary LiMa production API traffic now terminates on:
 
 ```text
 https://chat.donglicao.com/v1
 ```
 
-The JDCloud node must not become a second public API surface without a separate
-design, security review, and smoke plan.
+The actual compute runs on:
+
+```text
+JDCloud 117.72.118.95:8080
+```
+
+This split-ingress design was required because JDCloud blocks inbound traffic
+whose HTTP `Host` or TLS SNI is `chat.donglicao.com` (domain-level policy).
+A future Cloudflare Tunnel (`cloudflared`) deployment could remove the Alibaba
+Cloud reverse-proxy layer.
 
 ## 2026-06-30 深度清理
 
@@ -45,8 +54,9 @@ design, security review, and smoke plan.
 | Item | Status |
 |---|---|
 | Public IP | `117.72.118.95` |
-| Role | Secondary provider-probe / monitoring node + probe result ingress source |
-| Primary API replacement | No |
+| Role | Primary `lima-router` compute node; public HTTPS ingress is still on Alibaba Cloud via Tailscale |
+| Primary API replacement | Compute: yes; direct public ingress: no (blocked by JDCloud domain policy) |
+| Tailscale IP | `100.85.114.65` |
 | Credential storage | Outside Git only |
 | Tracked deploy assets | `deploy/jdcloud/` shell and systemd templates |
 | Local scratch policy | Ignored by exact `.gitignore` rules |

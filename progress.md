@@ -1,5 +1,34 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 LiMa 主计算迁移到京东云（公网入口保留阿里云）
+
+- **背景**：原计划将 `chat.donglicao.com` 的 Cloudflare 回源 IP 直接切到京东云，完成主服务迁移。
+- **执行过程**：
+  1. 京东云：将 `/opt/lima-router-pilot` 重命名为 `/opt/lima-router`，更新并启用 `lima-router.service`。
+  2. 京东云：安装 `litestream`，因原 `litestream.yml` 含未配置的 `s3` replica，改为 `/opt/lima-router/litestream.jdcloud.yml`（仅 file replica，覆盖所有 `.db`）。
+  3. 京东云：通过 tar 从阿里云复制 `/var/www/chat`、nginx `chat.donglicao.com.conf`、`00-cloudflare-realip.conf`、Let's Encrypt 证书与 `options-ssl-nginx.conf`；在 `/etc/nginx/nginx.conf` 补全 `limit_req_zone`。
+  4. 阿里云：创建 `/opt/lima-router/backups/pre-jdcloud-migration/` 数据快照（63M tar.gz）。
+  5. 切换窗口：停止阿里云 `lima-router` / `litestream`，停止京东云 `lima-router` / `litestream`；通过 tar 管道复制生产 SQLite 数据到京东云；启动京东云服务。
+  6. DNS 切换：将 `chat.donglicao.com` A 记录改为京东云 `117.72.118.95`。
+- **遇到的问题**：京东云对 `chat.donglicao.com` 存在域名级拦截，直接访问返回“网页禁止访问”，HTTPS SNI 握手被重置，公网无法直接入户。
+- **解决方案**：不回滚，利用现有 Tailscale 内网穿透：
+  - DNS 改回阿里云 `47.112.162.80`。
+  - 阿里云 nginx `chat.donglicao.com.conf` 中所有 `proxy_pass http://127.0.0.1:8080` 改为 `proxy_pass http://100.85.114.65:8080`（京东云 Tailscale IP）。
+  - 静态文件仍由阿里云本地 `/var/www/chat` 服务。
+- **验证结果**：
+  - `https://chat.donglicao.com/health` → 200，返回京东云 `lima-router` ready。
+  - 真实 `POST /v1/chat/completions`（生产 key + 浏览器 User-Agent）→ 200，后端 `cfai_qwen_coder` 正常响应。
+- **当前架构**：
+  ```text
+  User → Cloudflare → Aliyun 47.112.162.80:443 → Tailscale → JDCloud 100.85.114.65:8080
+  ```
+- **资源快照**：
+  - 京东云：`lima-router` RSS 315M，`mem available 817M`，`disk 28%`。
+  - 阿里云：仅 nginx 作为反向代理，内存占用极小。
+- **遗留/下一步**：
+  - 评估 Cloudflare Tunnel（`cloudflared`）以彻底绕过京东云域名拦截，去掉阿里云反向代理层。
+  - 观察 Tailscale 延迟与稳定性；若 relay 影响大，考虑 DERP 优化或专用隧道。
+
 ## 2026-06-30 京东云 LiMa Router 并行试点
 
 - **目标**：验证主 `lima-router` 是否可在京东云节点运行，不切换 `chat.donglicao.com` DNS。
