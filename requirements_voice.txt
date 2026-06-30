@@ -14,5 +14,5 @@ edge-tts>=6.1
 funasr>=1.1
 onnxruntime>=1.16
 modelscope>=1.15
-torch>=2.0
+torch>=2.12.1
 torchaudio>=2.0
