@@ -19,10 +19,23 @@
   - 聚焦 Pillow 相关测试：`tests/test_svg_converter.py`, `tests/test_svg_converter_sketch.py`, `tests/test_svg_binarize.py` → 33 passed。
   - 聚焦 FastAPI/Starlette 相关测试：`tests/test_device_app_auth.py`, `tests/test_routes_chat_preflight.py`, `tests/test_routing_engine_post.py` → 25 passed。
   - 完整门禁 `scripts/run_pre_commit_check.py --full` → 4239 passed, 3 skipped, ruff 通过。
+- **扩展修复（esp32S_XYZ 子模块）**：
+  - 子模块仓库同步提交并 push 到 `zhuguang-ZFG/esp32S_XYZ`。
+  - `esp32S_XYZ/requirements.txt`：`pytest>=9.0.3`（CVE-2025-71176）。
+  - `esp32S_XYZ/firmware/u8-xiaozhi/scripts/Image_Converter/requirements.txt`：`Pillow~=12.2.0`。
+- **扫描工具误报说明**：
+  - 运行 `pip-audit` 时，本地杀毒软件将 `cyclonedx-python-lib` 的 `vulnerability.cpython-310.pyc` 误报为 `HEUR:HackTool/VulnScan.a` 并删除。
+  - 已执行 `--force-reinstall pip-audit` 恢复，`pip-audit --local` 再次运行正常。
+- **仍未修复的 GitHub Dependabot 告警**：
+  - `donglicao-site-v2/package-lock.json`：`postcss` 通过 `next` 引入，2 个 moderate（需升级 `next` 或 `postcss`，可能破坏构建）。
+  - `docs-site/pnpm-lock.yaml`：`vite` / `esbuild` 通过 `vitepress` 引入，4 个 moderate/high（需升级 `vitepress` 或 `vite`，可能破坏构建）。
+  - `Dockerfile`：基础镜像 `python:3.10-slim` 可能存在 OS 级 CVE（需切到更新 digest 或版本）。
+  - 以上均为前端/文档站/容器构建侧，不影响 `lima-router` 运行时。
 - **风险与后续**：
   - Pillow 大版本 10→12 已确认通过全部图像处理测试；生产部署后需观察 `xiaozhi_drawing/svg_converter.py` 与 `device_logic/captcha.py` 行为。
   - pip 大版本 23→26 仅影响包安装流程，未引入运行时变更。
   - 建议后续在 CI 中加入 `pip-audit --requirement requirements_server.txt` 门禁。
+  - 前端/文档站漏洞是否继续修复，需要用户确认（涉及 next/vitepress 大版本或覆盖）。
 
 ## 2026-06-30 LiMa 主计算与公网入口均已迁移至京东云（最终使用 Cloudflare Tunnel）
 
