@@ -11370,3 +11370,9 @@ uff check 2 文件 clean；导入无循环依赖。
 - **Cloudflare Cache Rules**
   - API Token 无 Cache Rules 权限，已整理 Dashboard 配置步骤写入 `findings.md`。
   - 待用户在 Cloudflare Dashboard 手动添加 Pages 静态资源长缓存与 `/health` 短缓存两条规则。
+
+- **2026-06-30 Cache Rules 部署验证**：
+  - `www.donglicao.com/assets/hero.avif` → `Cf-Cache-Status: HIT`。
+  - `www.donglicao.com/_next/static/...css` → 二次请求 `HIT` + `immutable`。
+  - `chat.donglicao.com/health` → 二次请求 `HIT`，`max-age=5`。
+- 用户按步骤在 Cloudflare Dashboard 成功创建两条 Cache Rules。

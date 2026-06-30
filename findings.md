@@ -3008,3 +3008,9 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 2. **API /health 短缓存**
    - Expression：`http.host eq "chat.donglicao.com" and http.request.uri.path eq "/health"`
    - Action：Cache / Edge TTL：5 seconds / Browser TTL：5 seconds
+
+**2026-06-30 补充验证（Cache Rules 生效）**
+- `https://www.donglicao.com/assets/hero.avif`：`Cf-Cache-Status: HIT`，`Cache-Control: public, max-age=31536000, immutable`。
+- `https://www.donglicao.com/_next/static/chunks/0-qjc1qrxfa54.css`：第二次请求 `Cf-Cache-Status: HIT`，`immutable`。
+- `https://chat.donglicao.com/health`：第二次请求 `Cf-Cache-Status: HIT`，`Cache-Control: max-age=5`。
+- 两条 Cloudflare Cache Rules 已成功生效。
