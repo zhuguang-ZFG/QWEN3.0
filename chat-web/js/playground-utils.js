@@ -173,7 +173,7 @@
 
   function buildCurl(ctx) {
     const body = ctx.editor ? ctx.editor.getValue() : prettyJson(DEFAULT_BODY);
-    const url = global.location.origin + "/v1/chat/completions";
+    const url = window.LIMA_CONFIG.apiOrigin + "/v1/chat/completions";
     const auth = ctx.els.auth.value.trim();
     let cmd = "curl -X POST \\\n";
     cmd += "  " + url + " \\\n";

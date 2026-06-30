@@ -11,7 +11,7 @@
     会使用 new Function()/eval 进行编译。其余脚本仅允许同源和精确版本的 CDN 源，
     外部脚本均带有 Subresource Integrity (SRI) 校验。
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; img-src 'self' data: blob:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://chat.donglicao.com https://api.donglicao.com; worker-src 'self' blob: https://cdn.jsdelivr.net; img-src 'self' data: blob:;">
   <link rel="stylesheet" href="styles.css?v=taste3">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"
           integrity="sha384-BQKzmHvQLMCAnL3UtDBA1Al5tFjsCz1wrMlIUA1wkzo14DYkRWjywW+p9pCj0cwd"
@@ -149,6 +149,7 @@
 
   <div class="toast" id="pgToast"></div>
 
+  <script src="js/config.js?v=taste3"></script>
   <script src="js/playground-utils.js?v=1"></script>
   <script src="js/playground-ui.js?v=1"></script>
   <script src="js/playground.js?v=1"></script>

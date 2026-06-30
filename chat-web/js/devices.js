@@ -11,7 +11,7 @@
 
   const DEVICES_API = "/device/v1/app/devices";
   const TASKS_API = "/device/v1/app/tasks";
-  const WS_BASE = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
+  const WS_BASE = window.LIMA_CONFIG.wsOrigin;
 
   const grid = document.getElementById("deviceGrid");
   const emptyState = document.getElementById("emptyState");

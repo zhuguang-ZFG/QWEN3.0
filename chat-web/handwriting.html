@@ -6,7 +6,7 @@
   <title>仿手写 - LiMa 星云</title>
   <meta name="description" content="在 LiMa 星云控制台将文字转换为仿手写笔迹，并下发给写字机/绘图机执行。">
   <meta name="theme-color" content="#0a0a0f">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: ws:; font-src 'self'; upgrade-insecure-requests;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: ws: https://chat.donglicao.com https://api.donglicao.com; font-src 'self'; upgrade-insecure-requests;">
   <link rel="stylesheet" href="styles.css?v=taste3">
   <style>
     .handwriting-layout { display:flex; min-height:100vh; width:100%; }
@@ -142,6 +142,7 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="js/config.js?v=taste3"></script>
   <script src="js/api.js?v=taste3"></script>
   <script src="js/auth.js?v=taste3"></script>
   <script src="js/handwriting.js?v=taste3"></script>

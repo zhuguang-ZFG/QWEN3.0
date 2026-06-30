@@ -202,6 +202,7 @@ body::before{
     <span class="btn-label">语音/视频通话</span>
   </div>
 </div>
+<script src="js/config.js?v=taste3"></script>
 <script>
 const $=id=>document.getElementById(id);
 const statusEl=$('status'),subtitleEl=$('subtitle'),btnCall=$('btnCall'),btnEnd=$('btnEnd');
@@ -251,8 +252,15 @@ async function startCall(){
       videoEl.srcObject=stream;videoEl.style.display='block';placeholder.style.display='none';
       SAMPLE_RATE_OUT=24000;
       const proto=window.location.protocol==='https:'?'wss:':'ws:';
-      const base=cfg.url.startsWith('/')?window.location.host+cfg.url:cfg.url;
-      const wsUrl=proto+'//'+base+'?ticket='+encodeURIComponent(ticket);
+      let base;
+      if (/^wss?:\/\//i.test(cfg.url)) {
+        base = cfg.url;
+      } else if (cfg.url.startsWith('/')) {
+        base = window.LIMA_CONFIG.wsOrigin.replace(/^wss?:\/\//,'') + cfg.url;
+      } else {
+        base = cfg.url;
+      }
+      const wsUrl=(/^wss?:\/\//i.test(base)?base:proto+'//'+base)+'?ticket='+encodeURIComponent(ticket);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
         ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}});
@@ -265,8 +273,7 @@ async function startCall(){
       stream=await navigator.mediaDevices.getUserMedia({audio:{sampleRate:SAMPLE_RATE_IN,echoCancellation:true,noiseSuppression:true}});
       videoEl.style.display='none';placeholder.style.display='flex';
       SAMPLE_RATE_OUT=16000;
-      const proto=window.location.protocol==='https:'?'wss:':'ws:';
-      const wsUrl=proto+'//'+window.location.host+'/v1/voice'+'?ticket='+encodeURIComponent(ticket);
+      const wsUrl=window.LIMA_CONFIG.wsOrigin+'/v1/voice'+'?ticket='+encodeURIComponent(ticket);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
         statusEl.textContent='已连接 · 本地语音对话';
