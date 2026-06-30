@@ -15,6 +15,7 @@
   - 新增测试 43 passed（因 `tests/conftest.py` 全局 fixture 触发已存在的 FastAPI/Pydantic 版本兼容问题，使用 `--noconftest` 运行；该问题与本次改动无关）。
 - **债务记录**：`PONYTAIL-DEBT.md` 已记录 RPM 进程内窗口的多 worker 近似上限。
 - **状态**：**已完成** — PR #22 已合并到 `main`，PR #1 已关闭，分支 `feat/client-keys-v2` 已清理。
+- **生产部署**：`python scripts/deploy_unified.py --slice core`，868 文件上传成功，服务重启；`https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3","startup":{"status":"ready"}}`。
 
 ## 2026-06-30 依赖更新 VPS 部署
 
