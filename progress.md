@@ -11337,3 +11337,17 @@ uff check 2 文件 clean；导入无循环依赖。
 - **下一步建议**：
   - 在 Cloudflare Dashboard 手动开启 Early Hints、Brotli、Always Online。
   - 有余力时把 chat-web 的 `styles.css` 和 `js/*.js` 改成带哈希的构建输出，进一步延长缓存时间。
+
+## 2026-06-30 站点 canonical 统一与 sitemap 部署
+
+- **问题发现**：手动添加的 `public/sitemap.xml` / `robots.txt` 被 Next.js 动态生成器覆盖，且动态生成器仍使用 apex 域名 `donglicao.com`。
+- **修复**：
+  - 批量替换 `donglicao-site-v2/app/` 中 17 个文件的 canonical base：`https://donglicao.com` → `https://www.donglicao.com`。
+  - 更新 `sitemap.ts`、`robots.ts` 输出 www 版本。
+  - 删除手写 `public/sitemap.xml`、`public/robots.txt`。
+- **部署**：`deploy-site-v2.yml` 成功。
+- **验证**：
+  - `curl https://www.donglicao.com/sitemap.xml` 输出 `https://www.donglicao.com/...`。
+  - `curl https://www.donglicao.com/robots.txt` 包含 `Sitemap: https://www.donglicao.com/sitemap.xml`。
+  - HTML canonical 已改为 `https://www.donglicao.com/`。
+- **待用户操作**：在 Google Search Console 添加属性 `https://www.donglicao.com` 并提交 sitemap。

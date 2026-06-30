@@ -2949,3 +2949,24 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 - 确认 **Brotli** 已开启（Speed → Optimization → Brotli，通常默认开启）。
 - 开启 **Always Online**（Caching → Configuration → Always Online）。
 - 添加 Cache Rule 把 `/api/*` 或特定静态路径缓存到边缘（需要 Zone 规则权限或 Dashboard 操作）。
+
+## 2026-06-30 站点 canonical 统一为 www.donglicao.com
+
+**背景**
+- 站点原本在 `sitemap.ts`、`robots.ts` 和各个 page metadata 中使用 `https://donglicao.com` 作为 canonical base。
+- 由于 apex 已 301 重定向到 `www.donglicao.com`，继续使用 apex 作为 canonical 会导致搜索引擎收到不一致信号。
+
+**改动**
+- 将 `donglicao-site-v2/app/` 下 17 个文件中的 `https://donglicao.com` 替换为 `https://www.donglicao.com`（仅影响站点自身 URL，不影响 `chat.donglicao.com`、`app.donglicao.com` 等子域名）。
+- `sitemap.ts` 和 `robots.ts` 改为输出 `https://www.donglicao.com/*`。
+- 删除手写的 `public/sitemap.xml` 和 `public/robots.txt`，避免覆盖 Next.js 动态生成结果。
+
+**验证**
+- `https://www.donglicao.com/sitemap.xml` 中 URL 已为 `https://www.donglicao.com/...`。
+- `https://www.donglicao.com/robots.txt` 中 `Sitemap:` 指向 `https://www.donglicao.com/sitemap.xml`。
+- HTML `<link rel="canonical" href="https://www.donglicao.com/" />` 已生效。
+
+**待提交 Google Search Console**
+- 添加属性 `https://www.donglicao.com`（网域或 URL 前缀均可）。
+- 验证所有权（推荐 DNS TXT 记录，Cloudflare 直接加一条 TXT 即可）。
+- 在“站点地图”中提交 `https://www.donglicao.com/sitemap.xml`。
