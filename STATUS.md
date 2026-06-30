@@ -40,14 +40,14 @@
   - 配置、路由注册、`.env.example` 同步更新。
   - 43 个新增/修改测试通过；`ruff`、`pyright`、`check_code_size` 通过。
 - **债务**：RPM 为进程内窗口，多 worker 近似；已记入 `PONYTAIL-DEBT.md`。
-- **下一步**：创建新 PR 关闭 #1。
+- **结果**：PR #22 已合并到 `main`，PR #1 已关闭。
 
 ### 最近完成（2026-06-30）关闭 6 个高风险 dependabot PR + 合并安全补丁 #18
 
 - **目标**：处理 dependabot PR 队列。
 - **已关闭（高风险）**：#11（modelscope）、#12（edge-tts）、#13（python 3.14 Docker）、#15（dashscope）、#17（opencv）、#20（numpy 约束变更）。
 - **已合并（安全补丁）**：#18 `alibabacloud-nls-python-sdk >=1.0 → >=1.0.2`（commit `825757bb`）。
-- **仍开放**：#1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`（将由 `feat/client-keys-v2` 替代关闭）。
+- **已关闭**：#1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`（由 PR #22 替代合并）。
 
 ### 最近完成（2026-06-30）Security Headers AUDIT 修复：消除 nginx 重复头
 

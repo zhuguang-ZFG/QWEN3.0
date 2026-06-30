@@ -14,7 +14,7 @@
   - `py_compile` ✅、`ruff check` ✅、`pyright` 0 errors ✅、`check_code_size.py` ✅。
   - 新增测试 43 passed（因 `tests/conftest.py` 全局 fixture 触发已存在的 FastAPI/Pydantic 版本兼容问题，使用 `--noconftest` 运行；该问题与本次改动无关）。
 - **债务记录**：`PONYTAIL-DEBT.md` 已记录 RPM 进程内窗口的多 worker 近似上限。
-- **状态**：分支 `feat/client-keys-v2` 已推送，待创建 PR 关闭 #1。
+- **状态**：**已完成** — PR #22 已合并到 `main`，PR #1 已关闭，分支 `feat/client-keys-v2` 已清理。
 
 ## 2026-06-30 依赖更新 VPS 部署
 
@@ -11100,11 +11100,11 @@ uff check 2 文件 clean；导入无循环依赖。
 - **关闭原因**：主版本/运行时跳跃或约束变更，存在 ABI/API 不兼容风险，待人工验证后再决定是否升级。
 - **仍开放 PR**：
   - #18 `alibabacloud-nls-python-sdk >=1.0 → >=1.0.2`（小版本补丁，安全，可合并）
-  - #1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`（用户功能 PR，需决策）
+  - #1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`（用户功能 PR，已由 PR #22 替代合并）
 
 ## 2026-06-30 合并 dependabot 安全补丁 PR #18
 
 - **目标**：合并低风险依赖补丁 `alibabacloud-nls-python-sdk >=1.0 → >=1.0.2`。
 - **改动**：`requirements_voice.txt` 一行版本约束收紧。
 - **提交**：通过 GitHub CLI 合并 PR #18（commit `825757bb`）到 `main`，本地已 fast-forward 同步。
-- **仍开放 PR**：#1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`。
+- **结果**：PR #18 已合并；PR #1 已由后续 PR #22 替代合并。
