@@ -1,5 +1,4 @@
 name: Deploy Docs Site
-
 on:
   push:
     branches: [main]
@@ -7,53 +6,36 @@ on:
       - "docs-site/**"
       - ".github/workflows/deploy-docs-site.yml"
   workflow_dispatch:
-
 concurrency:
   group: deploy-docs-site
   cancel-in-progress: false
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
-      VPS_SSH_KEY_SET: ${{ secrets.VPS_SSH_KEY != '' }}
-      VPS_HOST_SET: ${{ secrets.VPS_HOST != '' }}
-      DOCS_SITE_DIR_SET: ${{ secrets.DOCS_SITE_DIR != '' }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v7
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Enable pnpm
         run: corepack enable
-
       - name: Install dependencies and build
         working-directory: docs-site
         run: |
           corepack pnpm install --frozen-lockfile
           corepack pnpm run build
-
-      - name: Deploy to VPS
-        if: env.VPS_HOST_SET == 'true' && env.DOCS_SITE_DIR_SET == 'true'
-        uses: appleboy/scp-action@v0.1.7
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER || 'root' }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "docs-site/.vitepress/dist/*"
-          target: ${{ secrets.DOCS_SITE_DIR }}
-          strip_components: 3
-          rm: true
-
-      - name: Reload nginx
-        if: env.VPS_HOST_SET == 'true'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER || 'root' }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            nginx -t && systemctl reload nginx
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy docs-site/.vitepress/dist --project-name=lima-docs --branch=main
+      - name: Smoke test (Pages dev domain)
+        run: |
+          sleep 10
+          curl -sf https://lima-docs.pages.dev/ -o /dev/null
+          echo "docs-site Pages deploy OK"
