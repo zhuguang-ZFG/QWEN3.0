@@ -11061,3 +11061,18 @@ uff check 2 文件 clean；导入无循环依赖。
   - #12 update edge-tts >=6.1 → >=7.2.8
   - #11 update modelscope >=1.15 → >=1.37.1
   - #20 update numpy requirement
+
+## 2026-06-30 Security Headers AUDIT 修复：消除 nginx 重复头
+
+- **目标**：处理工作区中未提交的安全头修复，提交、推送并部署。
+- **改动**：
+  - `routes/security_headers.py`：默认仅设置 CSP、Permissions-Policy、X-XSS-Protection；`LIMA_BEHIND_NGINX != 1` 时兜底设置 X-Frame-Options、X-Content-Type-Options、Referrer-Policy、HSTS。
+  - `tests/test_routes_security_headers.py`、`tests/test_security_headers.py`：覆盖 nginx 后/无 nginx 两种场景。
+- **验证**：
+  - 聚焦 pytest：`tests/test_routes_security_headers.py`、`tests/test_security_headers.py` → **8 passed / 0 failed**。
+  - `ruff check` / `pyright` / `scripts/check_code_size.py`：全通过。
+- **部署**：
+  - `python scripts/deploy_unified.py --slice core`：862 文件上传，0 失败，服务重启成功。
+  - 公网 `https://chat.donglicao.com/health` 200。
+  - 响应头验证：nginx 提供 X-Frame-Options、X-Content-Type-Options、Referrer-Policy、HSTS；中间件提供 CSP、Permissions-Policy、X-XSS-Protection，无重复/冲突。
+- **提交**：`4204c5a6` fix(security): avoid duplicate security headers when behind nginx 已推送至 `origin/main`。

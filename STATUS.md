@@ -30,6 +30,16 @@
 - **结果**：三个 CI 工作流（Tests ✅、Deploy ✅、Deploy Docs Site ✅）全部绿灯。
 - **提交**：`e2f7b20d`（secrets context 修复）、`f897c84d`（Node 版本升级）。
 
+### 最近完成（2026-06-30）Security Headers AUDIT 修复：消除 nginx 重复头
+
+- **目标**：修复生产环境 nginx 与 `SecurityHeadersMiddleware` 重复设置 `X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy`、`Strict-Transport-Security` 的问题。
+- **改动**：
+  - `routes/security_headers.py`：默认只设置 CSP、Permissions-Policy、X-XSS-Protection；当 `LIMA_BEHIND_NGINX != 1` 时再由中间件兜底设置四个基础头。
+  - `tests/test_routes_security_headers.py`、`tests/test_security_headers.py`：更新测试覆盖两套场景。
+- **验证**：聚焦 pytest 8 passed；ruff / pyright / check_code_size 全通过；VPS `deploy_unified.py --slice core` 862 文件上传成功，服务重启。
+- **线上验证**：`https://chat.donglicao.com/health` 200；响应头中 nginx 负责四个基础头，中间件负责 CSP/Permissions-Policy/X-XSS-Protection，无重复。
+- **提交**：`4204c5a6` fix(security) 已推送至 `origin/main`。
+
 ### 最近完成（2026-06-30）清理剩余未跟踪文件
 
 - **目标**：处理 `.joycode/` 和 `docs/superpowers/` 下三个未跟踪文件。
