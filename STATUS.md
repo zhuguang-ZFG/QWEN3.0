@@ -11,6 +11,7 @@
 > Tests: 全量 **4249 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout` 与 `httpx2`，pytest warnings 已清零。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
+> ⚠️ 运维警示：主 VPS 磁盘 40G 已用 37G（98%），内存 1.8G 中可用约 477M，swap 占用 934M，load average 6+。已导致 `/device/v1/app/auth/login` 偶发 502/超时。需尽快扩容磁盘或清理系统。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml` ✅、`.github/workflows/deploy.yml` ✅、`.github/workflows/deploy-site-v2.yml` ✅、`.github/workflows/deploy-docs-site.yml` ✅（全部绿灯）；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（secrets 待配置）。
@@ -19,6 +20,20 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-30）微信小程序登录超时排查
+
+- **现象**：用户截图显示 `LiMa 星云 → DLC 写字机` 一键登录报 `request:fail timeout errno: 5`。
+- **客户端修复**：
+  - `manager-mobile/src/api/v2/index.ts`：`v2Login` 超时从 15s 提升到 30s，并对 timeout/network 错误自动重试 1 次。
+  - 已构建 `dist/build/mp-weixin`（未上传，待你确认后上传）。
+- **服务端排查**：
+  - `/device/v1/app/auth/login` 实测响应 2-4s（主要耗时在微信 `jscode2session`）。
+  - 发现主 VPS 磁盘 98% 满、内存紧张、load average 6+，偶发 nginx 502 / 连接拒绝。
+  - 已重启 `lima-router` 释放内存，但根因是系统资源不足，需扩容/清理。
+- **提交**：
+  - 主仓库：`c918aa9f`（WeChat jscode2session 耗时日志）。
+  - 子模块 `esp32S_XYZ`：`7d5086f`（登录超时与重试）。
 
 ### 最近完成（2026-06-30）deploy-docs-site CI 修复 — 最后一个 CI 失败项关闭
 

@@ -18,6 +18,24 @@
 - **状态**：**已完成** — PR #22 已合并到 `main`，PR #1 已关闭，分支 `feat/client-keys-v2` 已清理。
 - **生产部署**：`python scripts/deploy_unified.py --slice core`，868 文件上传成功，服务重启；`https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3","startup":{"status":"ready"}}`。
 
+## 2026-06-30 微信小程序登录超时排查
+
+- **现象**：用户截图显示 `LiMa 星云 → DLC 写字机` 一键登录报 `request:fail timeout errno: 5`。
+- **客户端修复**：
+  - `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/src/api/v2/index.ts`：
+    - `v2Login` 的 `uni.request` timeout 从 15s 提升到 30s。
+    - 对 timeout/network 类错误自动重试 1 次。
+  - 已构建 `dist/build/mp-weixin`，尚未上传微信后台。
+- **服务端排查**：
+  - `/device/v1/app/auth/login` 实测响应 2-4s（主要耗时在微信 `jscode2session`）。
+  - 发现主 VPS 严重资源紧张：磁盘 40G 已用 37G（98%），内存 1.8G 中可用约 477M，swap 占用 934M，load average 6+。
+  - nginx error.log 出现 `connect() failed (111: Connection refused)`，说明服务偶发不可达。
+  - 已重启 `lima-router` 释放内存（RSS 从 568M 降到 90M），但系统级资源瓶颈仍在。
+- **提交**：
+  - 主仓库 `c918aa9f` feat(wechat): add jscode2session timing log。
+  - 子模块 `esp32S_XYZ` `7d5086f` feat(login): increase timeout to 30s and add retry for wx login。
+- **后续建议**：尽快扩容阿里云系统盘或清理系统；上传小程序新版本。
+
 ## 2026-06-30 清零 pytest warnings
 
 - **目标**：消除全量 pytest 运行时的所有 warnings。
