@@ -1,5 +1,11 @@
 # LiMa Findings
 
+## 2026-06-30 依赖更新 VPS 部署验证
+
+- **redis 8.0.1 + python-dotenv 1.2.2 + uvicorn 0.49** 已部署到生产 VPS（`deploy_unified.py --slice core`，862 文件）。
+- **健康检查通过**：`/health` status=ok、startup=ready；`/health/ready` error_count=0。
+- **uvicorn 0.49 ProxyHeadersMiddleware 行为变更**：项目不使用 `--proxy-headers`，生产验证无影响。
+
 ## 2026-06-30 依赖安全更新批次
 
 - **redis 8.0.0→8.0.1**：bug fixes（async cluster node connection release、hiredis readiness、pubsub listen blocking、RESP3 FT.SEARCH bytes keys）。

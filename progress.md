@@ -1,5 +1,12 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 依赖更新 VPS 部署
+
+- **目标**：将依赖更新（redis 8.0.1、python-dotenv 1.2.2、uvicorn 0.49）部署到生产 VPS。
+- **部署**：`python scripts/deploy_unified.py --slice core`，862 文件上传，服务重启成功。
+- **健康验证**：`/health` → `status: ok, startup: ready`；`/health/ready` → `status: ready, error_count: 0`。
+- **结果**：生产环境已运行 redis 8.0.1 + python-dotenv 1.2.2 + uvicorn 0.49。
+
 ## 2026-06-30 依赖安全更新批次
 
 - **目标**：应用 dependabot 标记的安全补丁级依赖更新。
