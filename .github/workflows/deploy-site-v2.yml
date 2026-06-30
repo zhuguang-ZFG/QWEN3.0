@@ -20,7 +20,7 @@ jobs:
       VPS_HOST_SET: ${{ secrets.VPS_HOST != '' }}
       SITE_V2_DIR_SET: ${{ secrets.SITE_V2_DIR != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
