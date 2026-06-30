@@ -15,7 +15,7 @@ paramiko~=5.0.0
 cryptography>=48.0.1       # transitive via paramiko; GHSA-537c-gmf6-5ccf
 numpy>=1.26.0,<2.3
 redis~=8.0.1
-python-multipart>=0.0.31,<1.0
+python-multipart>=0.0.32,<1.0
 
 # Dev / CI (test runner, type checking, dead-dep scanning)
 # Moved to requirements_dev.txt
