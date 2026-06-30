@@ -11048,3 +11048,16 @@ uff check 2 文件 clean；导入无循环依赖。
   - `5b9bb78d` docs: add superpowers plans/specs and joycode project memory
   - 已推送至 `origin/main`。
 - **结果**：工作区已干净，无剩余未跟踪/未提交变更。
+
+## 2026-06-30 dependabot 高风险 PR 处理
+
+- **目标**：关闭 6 个高风险 dependabot PR（#11、#12、#13、#15、#17、#20）。
+- **结果**：GitHub CLI 当前 `GITHUB_TOKEN` 权限不足，无法执行 `closePullRequest`/`addComment`。
+- **用户决策**：保持这些 PR 开放，不处理，后续再决定。
+- **待关闭列表**：
+  - #13 bump python from 3.10-slim to 3.14-slim
+  - #17 bump opencv-python-headless 4.10→4.13
+  - #15 bump dashscope 1.20→1.26
+  - #12 update edge-tts >=6.1 → >=7.2.8
+  - #11 update modelscope >=1.15 → >=1.37.1
+  - #20 update numpy requirement
