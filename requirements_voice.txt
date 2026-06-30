@@ -7,7 +7,7 @@
 alibabacloud-nls-python-sdk>=1.0.2
 dashscope>=1.20                  # DashScope/Bailian ASR/TTS (uses ALIYUN_API_KEY)
 httpx>=0.27.0                    # already in requirements_server.txt
-websockets>=14.0                 # already pulled by uvicorn[standard] usually
+websockets>=16.0                 # already pulled by uvicorn[standard] usually
 
 # Local ASR/VAD/voiceprint (heavy; only needed if using local providers)
 edge-tts>=6.1
