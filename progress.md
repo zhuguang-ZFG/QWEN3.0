@@ -12,7 +12,8 @@
   - 新增测试：`tests/client_keys/test_storage.py`、`test_quota.py`、`test_router.py`、`tests/test_access_guard_client_keys.py`。
 - **质量门禁**：
   - `py_compile` ✅、`ruff check` ✅、`pyright` 0 errors ✅、`check_code_size.py` ✅。
-  - 新增测试 43 passed（因 `tests/conftest.py` 全局 fixture 触发已存在的 FastAPI/Pydantic 版本兼容问题，使用 `--noconftest` 运行；该问题与本次改动无关）。
+  - 新增测试 43 passed（使用 `.venv310` Python 3.10.20 运行）。
+  - 此前报告的使用系统 Python 3.14 运行失败，实为 `tests/conftest.py` 的 Python 版本 guard（LiMa 仅支持 3.10），并非 FastAPI/Pydantic 兼容问题。
 - **债务记录**：`PONYTAIL-DEBT.md` 已记录 RPM 进程内窗口的多 worker 近似上限。
 - **状态**：**已完成** — PR #22 已合并到 `main`，PR #1 已关闭，分支 `feat/client-keys-v2` 已清理。
 - **生产部署**：`python scripts/deploy_unified.py --slice core`，868 文件上传成功，服务重启；`https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3","startup":{"status":"ready"}}`。
