@@ -109,4 +109,21 @@ jobs:
               if not result.get("success"):
                   raise RuntimeError(f"Failed to set DNS for {subdomain}: {result}")
               print(f"Created DNS {subdomain}.{ZONE_NAME} -> {target}")
+
+          # Add custom domains to Pages projects
+          for project_name, subdomain in PROJECTS:
+              domain = f"{subdomain}.{ZONE_NAME}"
+              result = api_call(
+                  "POST",
+                  f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/pages/projects/{project_name}/domains",
+                  {"name": domain},
+              )
+              if result.get("success"):
+                  print(f"Added custom domain {domain} to {project_name}")
+              elif result.get("errors") and any(
+                  "already exists" in (e.get("message") or "").lower() for e in result["errors"]
+              ):
+                  print(f"Custom domain {domain} already exists in {project_name}")
+              else:
+                  raise RuntimeError(f"Failed to add custom domain {domain}: {result}")
           PY
