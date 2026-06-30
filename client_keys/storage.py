@@ -57,9 +57,7 @@ class ClientKeyStorage:
                     )
                     """
                 )
-                conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_client_keys_hash ON client_keys(key_hash)"
-                )
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_client_keys_hash ON client_keys(key_hash)")
                 conn.commit()
         except (sqlite3.Error, OSError) as exc:
             _log.error("client_keys: failed to initialize schema at %s: %s", self._db_path, exc)
@@ -136,9 +134,7 @@ class ClientKeyStorage:
     def get_by_value(self, key_value: str) -> ClientKey | None:
         try:
             with self._lock, self._connection() as conn:
-                row = conn.execute(
-                    "SELECT * FROM client_keys WHERE key_hash = ?", (_hash_token(key_value),)
-                ).fetchone()
+                row = conn.execute("SELECT * FROM client_keys WHERE key_hash = ?", (_hash_token(key_value),)).fetchone()
         except sqlite3.Error as exc:
             _log.error("client_keys: failed to look up key by value: %s", exc)
             raise ClientKeyStorageError(f"Failed to look up client key: {exc}") from exc
@@ -155,9 +151,7 @@ class ClientKeyStorage:
         values = list(updates.values()) + [key_id]
         try:
             with self._lock, self._connection() as conn:
-                cursor = conn.execute(
-                    f"UPDATE client_keys SET {set_clause} WHERE key_id = ?", values
-                )
+                cursor = conn.execute(f"UPDATE client_keys SET {set_clause} WHERE key_id = ?", values)
                 conn.commit()
                 return cursor.rowcount > 0
         except sqlite3.Error as exc:
