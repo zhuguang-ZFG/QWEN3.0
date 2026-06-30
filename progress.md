@@ -18,6 +18,19 @@
 - **状态**：**已完成** — PR #22 已合并到 `main`，PR #1 已关闭，分支 `feat/client-keys-v2` 已清理。
 - **生产部署**：`python scripts/deploy_unified.py --slice core`，868 文件上传成功，服务重启；`https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3","startup":{"status":"ready"}}`。
 
+## 2026-06-30 清零 pytest warnings
+
+- **目标**：消除全量 pytest 运行时的所有 warnings。
+- **修复项**：
+  - 安装 `httpx2~=2.5`，消除 `starlette.testclient` 的 `Using httpx with starlette.testclient is deprecated` 警告。
+  - 将测试中的 `client.post(..., data="...")` 改为 `content="..."`（`tests/test_routes_chat_endpoints.py`、`test_routes_device_gateway.py`、`test_routes_embeddings.py`）。
+  - 将 `client.get(..., cookies={...})` 改为 `client.cookies.set(...)`（`tests/test_routes_admin.py`）。
+  - 在 `pytest.ini` 过滤由测试隔离/全局后台任务产生的 `AsyncMockMixin._execute_mock_call` 和 `Queue.get` 未 await 警告。
+  - 更新 `.github/workflows/test.yml` 安装 `pytest-timeout` 与 `httpx2`。
+  - 更新 `requirements_dev.txt` 加入 `httpx2~=2.5`。
+- **验证**：`.venv310/Scripts/python.exe -m pytest -q` → **4249 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**。
+- **提交**：`837b91f0`。
+
 ## 2026-06-30 修复 pytest timeout 配置 warning
 
 - **目标**：消除全量 pytest 运行时的 `PytestConfigWarning: Unknown config option: timeout / timeout_func_only / timeout_method` 警告。
