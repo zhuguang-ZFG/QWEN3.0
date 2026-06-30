@@ -11,7 +11,6 @@ import logging
 from server_lifespan_phases import (
     CRITICAL_PHASES,
     WARM_PHASES,
-    stop_auto_indexer,
     stop_device_gateway_runtime,
     stop_mqtt_client,
     stop_prometheus,
@@ -94,7 +93,6 @@ async def _run_shutdown_phases() -> None:
     """Execute all shutdown phases sequentially."""
     stop_probe_loop()
     await stop_prometheus()
-    await stop_auto_indexer()
     await stop_session_memory_daemon()
     await stop_device_gateway_runtime()
     await stop_mqtt_client()

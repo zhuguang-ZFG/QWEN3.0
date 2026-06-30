@@ -16,7 +16,9 @@
 
 ## Warm（条件触及）
 
-`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`guardrails.py`、`entity_extraction.py`、`complexity.py` 等——由 env、场景或后处理链触发，非每次请求必经。
+`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`guardrails.py`、`entity_extraction.py`、`complexity.py` 等——由 env、场景或后处理链触发，非每次请求必经。
+
+`auto_indexer.py` 仍保留给 `lima_mcp_stdio` 按需初始化代码索引；`lima-router` 启动 lifespan 不再自动运行它。
 
 ## Cold（实验 / 离线）
 

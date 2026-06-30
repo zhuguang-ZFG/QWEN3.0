@@ -215,7 +215,6 @@ WARM_PHASES: list[tuple[str, _PhaseFn]] = [
     ("backend_profile.load", load_backend_profiles),
     ("session_memory.daemon.start", start_session_memory_daemon),
     ("observability.structured_logging", setup_structured_logging),
-    ("context_pipeline.auto_indexer.start", start_auto_indexer),
     ("observability.prometheus.start", start_prometheus),
     ("observability.alert_evaluator.start", start_alert_evaluator),
     ("device_gateway.runtime.start", start_device_gateway_runtime),
