@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import OptimizedImage from "./OptimizedImage";
 
 const footerLinks = [
   {
@@ -110,7 +110,7 @@ export default function Footer() {
                       </svg>
                     </a>
                     <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-32 -translate-x-1/2 rounded-lg border border-white/10 bg-[#0d1117] p-2 opacity-0 transition group-hover:opacity-100">
-                      <Image src={s.qr} alt={s.label} width={112} height={112} className="rounded" />
+                      <OptimizedImage src={s.qr} alt={s.label} width={112} height={112} className="rounded" />
                       <span className="mt-1 block text-center text-xs text-slate-400">{s.label}</span>
                     </div>
                   </div>

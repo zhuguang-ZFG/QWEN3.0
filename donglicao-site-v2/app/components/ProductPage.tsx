@@ -1,4 +1,4 @@
-import Image from "next/image";
+import OptimizedImage from "./OptimizedImage";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
@@ -118,12 +118,11 @@ export default function ProductPage({
             </div>
           </div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10">
-            <Image
+            <OptimizedImage
               src={heroImage}
               alt={title}
               fill
               priority
-              decoding="async"
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
             />

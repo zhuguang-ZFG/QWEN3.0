@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import OptimizedImage from "./OptimizedImage";
 
 export default function Hero() {
   return (
@@ -48,7 +48,7 @@ export default function Hero() {
 
         <div className="relative">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-2xl shadow-cyan-500/10">
-            <Image
+            <OptimizedImage
               src="/assets/hero.webp"
               alt="LiMa 量子星云网络可视化"
               fill

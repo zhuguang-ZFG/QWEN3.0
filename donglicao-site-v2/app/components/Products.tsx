@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import OptimizedImage from "./OptimizedImage";
 
 const products = [
   {
@@ -54,12 +54,10 @@ export default function Products() {
             >
               {p.image && (
                 <div className="relative mb-6 aspect-video overflow-hidden rounded-xl">
-                  <Image
+                  <OptimizedImage
                     src={p.image}
                     alt={p.title}
                     fill
-                    loading="lazy"
-                    decoding="async"
                     className="object-cover transition duration-500 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 50vw"
                   />

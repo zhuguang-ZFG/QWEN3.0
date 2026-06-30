@@ -1,4 +1,4 @@
-import Image from "next/image";
+import OptimizedImage from "./OptimizedImage";
 
 const scenarios = [
   {
@@ -40,12 +40,10 @@ export default function Scenarios() {
               }`}
             >
               <div className={`relative ${s.large ? "aspect-[3/4]" : "aspect-video"} overflow-hidden`}>
-                <Image
+                <OptimizedImage
                   src={s.image}
                   alt={s.title}
                   fill
-                  loading="lazy"
-                  decoding="async"
                   className="object-cover transition duration-500 group-hover:scale-105"
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
