@@ -32,6 +32,14 @@ design, security review, and smoke plan.
 - **内存**：停止并禁用无外部连接的侧边服务 `mimo-proxy`、`tts-proxy`、`lima-voice`、`hermes-api`，可用内存从约 932M 提升至 **1072M**。
 - **保留服务**：`new-api`（Docker）、`qwen2api`（Docker）、`mysql`、`redis-server`、`prometheus`、`jdcloud-worker`、`lima-probe-browser`、`llm-cache`、`nginx` 均保持运行。
 
+## 2026-06-30 LiMa Router 并行试点
+
+- 在 `117.72.118.95` 上部署了 `/opt/lima-router-pilot`（Python 3.10 venv），监听 `127.0.0.1:8080`。
+- 已创建 systemd 服务 `lima-router-pilot.service`，`MemoryMax=1536M`。
+- 从阿里云安全复制生产 `.env`，设备存储改为 `memory`。
+- `/health` 返回 ready；`/v1/chat/completions` 真实请求返回 200，后端 `scnet_ds_flash`。
+- 当前为**内部试点**，`chat.donglicao.com` 仍指向阿里云；未开放京东云公网 API。
+
 ## Current Role
 
 | Item | Status |

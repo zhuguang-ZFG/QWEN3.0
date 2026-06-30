@@ -1,5 +1,23 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 京东云 LiMa Router 并行试点
+
+- **目标**：验证主 `lima-router` 是否可在京东云节点运行，不切换 `chat.donglicao.com` DNS。
+- **部署过程**：
+  - 京东云安装 Python 3.10（deadsnakes PPA）。
+  - 创建 `/opt/lima-router-pilot`，通过 `git ls-files` + tar 同步 1897 个运行时文件（65 MB）。
+  - 安全复制阿里云 `/opt/lima-router/.env`，将设备相关存储改为 `memory` 避免占用 Redis。
+  - 创建 systemd 服务 `lima-router-pilot.service`，端口 `8080`，`MemoryMax=1536M`。
+- **验证结果**：
+  - `curl http://127.0.0.1:8080/health` → `status=ok`、`startup=ready`。
+  - `POST /v1/chat/completions`（`gpt-3.5-turbo`，max_tokens=5）→ HTTP 200，后端 `scnet_ds_flash`，总耗时 9.5s。
+- **资源对比（约运行 4 分钟后）**：
+  - 阿里云：`loadavg ~2`、`mem available 544M`、`disk 56%`。
+  - 京东云：`loadavg ~0.03`、`mem available 908M`、`lima-router-pilot` RSS 227M、`disk 31%`。
+- **遗留问题/下一步**：
+  - 部分后端 probe 报 `ConnectError`，但核心路由可用；可能与京东云网络白名单或 .env 代理配置有关，不影响 pilot 结论。
+  - 若决定正式迁移，需制定 DNS + HTTPS 证书 + nginx 切换方案，并做回滚演练。
+
 ## 2026-06-30 阿里云/京东云深度清理与性能优化（续）
 
 - **阿里云深度清理**：

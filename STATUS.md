@@ -21,6 +21,17 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-30）京东云 LiMa Router 并行试点
+
+- **部署**：在京东云 `117.72.118.95` 上安装 Python 3.10，创建 `/opt/lima-router-pilot`，同步代码，安全复制生产 `.env`（设备存储改为 memory），创建 `lima-router-pilot.service`（`MemoryMax=1536M`）。
+- **验证**：
+  - `/health` 返回 `status=ok`、`startup=ready`。
+  - 真实 `/v1/chat/completions` 请求返回 200，由 `scnet_ds_flash` 后端响应。
+- **资源对比（2026-06-30 19:52）**：
+  - 阿里云：`loadavg ~2`、`mem available 544M`、`disk 56%`。
+  - 京东云：`loadavg ~0.03`、`mem available 908M`（含 pilot RSS 227M）、`disk 31%`。
+- **结论**：京东云 4G 内存节点运行 `lima-router` 完全可行，资源余量明显优于阿里云；迁移前还需完成公网入口（DNS + HTTPS + nginx）切换方案与回滚演练。
+
 ### 最近完成（2026-06-30）阿里云/京东云深度清理与性能优化
 
 - **阿里云深度清理**：
