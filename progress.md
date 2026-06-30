@@ -1,5 +1,16 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 依赖安全更新批次
+
+- **目标**：应用 dependabot 标记的安全补丁级依赖更新。
+- **更新内容**：
+  - `requirements_server.txt`：redis 8.0.0→8.0.1、python-dotenv 1.2.0→1.2.2、uvicorn 0.48→0.49。
+  - `.github/workflows/test.yml`：actions/setup-python v5→v6、actions/cache v4→v5→v6。
+  - `.github/workflows/deploy.yml`：actions/setup-python v5→v6。
+- **质量门禁**：本地 pytest **4201 passed / 0 failed**；CI Tests ✅、Deploy ✅。
+- **提交**：`9eb7019b`（redis+dotenv+setup-python+cache）、`94dd3532`（uvicorn+cache v6）。
+- **dependabot PR 审查**：10 个开放 PR 中，5 个安全可合并（已手动应用），5 个风险较高建议关闭（Python 3.14 Docker、opencv/dashscope/edge-tts/modelscope 大版本跳跃、numpy 约束变更、uvicorn 行为变更——uvicorn 已验证安全后手动合并）。需用户在 GitHub UI 关闭剩余 PR。
+
 ## 2026-06-30 deploy-docs-site CI 修复（最后一个 CI 失败项关闭）
 
 - **目标**：修复 `deploy-docs-site.yml` 工作流 0s 失败。

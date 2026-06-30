@@ -1,5 +1,14 @@
 # LiMa Findings
 
+## 2026-06-30 依赖安全更新批次
+
+- **redis 8.0.0→8.0.1**：bug fixes（async cluster node connection release、hiredis readiness、pubsub listen blocking、RESP3 FT.SEARCH bytes keys）。
+- **python-dotenv 1.2.0→1.2.2**：bug fixes（symlink handling、file mode preservation）；Python 3.14 compat；breaking: `set_key`/`unset_key` 不再自动 follow symlinks。
+- **uvicorn 0.48→0.49**：`ProxyHeadersMiddleware` 改为 consume duplicate forwarding headers（而非 ignore）；`httptools` min 0.8.0。项目不使用 `--proxy-headers`，无影响。
+- **actions/setup-python v5→v6**：Node 24 runtime；新增 `pip-version` 支持。
+- **actions/cache v4→v5→v6**：Node 24 runtime；security fixes（minimatch ReDoS、undici decompression bomb）。
+- **本地 pytest 4201 passed / 0 failed**；CI Tests ✅、Deploy ✅、Deploy Docs Site ✅。
+
 ## 2026-06-30 deploy-docs-site CI 0s 失败根因与修复
 
 - **根因**：`deploy-docs-site.yml` 在 step `if` 条件中直接引用 `secrets.X != ''`，但 GitHub Actions 的 `secrets` context 在 step `if` 表达式中不可用（仅在 `env` context 赋值时求值），导致工作流文件解析失败、0s 退出。
