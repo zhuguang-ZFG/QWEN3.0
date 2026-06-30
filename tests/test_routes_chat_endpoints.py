@@ -48,7 +48,9 @@ def test_missing_auth_header(client):
 
 
 def test_invalid_json_body(deps_client):
-    response = deps_client.post("/v1/chat/completions", data="not json", headers={"Authorization": "Bearer test-key"})
+    response = deps_client.post(
+        "/v1/chat/completions", content="not json", headers={"Authorization": "Bearer test-key"}
+    )
     assert response.status_code == 400
 
 

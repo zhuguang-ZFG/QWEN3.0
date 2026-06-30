@@ -52,7 +52,7 @@ def test_device_gateway_events_requires_auth(client):
 
 
 def test_device_gateway_events_invalid_json(client):
-    response = client.post("/device/v1/events", data="not-json", headers={"Authorization": "Bearer test-key"})
+    response = client.post("/device/v1/events", content="not-json", headers={"Authorization": "Bearer test-key"})
     assert response.status_code == 400
 
 

@@ -34,7 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_server.txt
-          pip install pytest pytest-asyncio pytest-mock pytest-timeout ruff bandit pyright freezegun hypothesis
+          pip install pytest pytest-asyncio pytest-mock pytest-timeout httpx2 ruff bandit pyright freezegun hypothesis
 
       - name: Ruff lint and format check
         run: |

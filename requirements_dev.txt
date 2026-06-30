@@ -9,3 +9,4 @@ pyright>=1.1.0
 deptry~=0.20
 pytest-timeout~=2.0
 freezegun~=1.5
+httpx2~=2.5  # starlette.testclient prefers httpx2 over httpx; suppresses deprecation warning

@@ -27,7 +27,8 @@ def test_admin_page_no_token_returns_503(client, monkeypatch):
 
 
 def test_admin_page_invalid_cookie_returns_login_form(client):
-    response = client.get("/admin", cookies={admin_auth.SESSION_COOKIE: "invalid"})
+    client.cookies.set(admin_auth.SESSION_COOKIE, "invalid")
+    response = client.get("/admin")
     assert response.status_code == 401
     assert "Admin Login" in response.text
 
@@ -35,7 +36,8 @@ def test_admin_page_invalid_cookie_returns_login_form(client):
 def test_admin_page_valid_cookie_returns_dashboard(client):
     with patch.object(admin, "render_admin_dashboard", return_value="<h1>Dashboard</h1>"):
         cookie = admin_auth.admin_session_value()
-        response = client.get("/admin", cookies={admin_auth.SESSION_COOKIE: cookie})
+        client.cookies.set(admin_auth.SESSION_COOKIE, cookie)
+        response = client.get("/admin")
     assert response.status_code == 200
     assert "Dashboard" in response.text
 

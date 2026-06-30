@@ -37,7 +37,7 @@ def test_missing_auth_returns_401(client):
 
 
 def test_invalid_json_returns_400(client):
-    response = client.post("/v1/embeddings", headers=_auth_header(), data="not-json")
+    response = client.post("/v1/embeddings", headers=_auth_header(), content="not-json")
     assert response.status_code == 400
 
 
