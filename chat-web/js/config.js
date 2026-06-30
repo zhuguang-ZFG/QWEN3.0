@@ -4,6 +4,7 @@
   window.LIMA_CONFIG = {
     apiOrigin: "https://chat.donglicao.com",
     wsOrigin: "wss://chat.donglicao.com",
+    turnstileSiteKey: "0x4AAAAAADte5jOdkXGwfJIh",
   };
 
   // ponytail: 当 chat-web 托管在 app.donglicao.com 时，把相对 API 路径重定向到

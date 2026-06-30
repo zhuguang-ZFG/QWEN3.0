@@ -10,6 +10,7 @@ from device_logic.auth import _hash_password, _login_response, _verify_password
 from device_logic.auth_email import account_by_email, is_valid_email
 from device_logic.auth_rate import allow_device_auth
 from device_logic.http import err, new_id, read_body, str_field
+from device_logic.turnstile import is_turnstile_configured, verify_turnstile_token
 from routes.request_tracking import client_ip
 
 router = APIRouter(tags=["device-app-auth"])
@@ -22,6 +23,9 @@ async def register_email(request: Request):
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body
+    if is_turnstile_configured():
+        if not await verify_turnstile_token(body.get("turnstile_token"), client_ip(request)):
+            return err(400, "Turnstile verification failed", 400)
     email = str_field(body, "email")
     password = str_field(body, "password")
     if not is_valid_email(email):
@@ -51,6 +55,9 @@ async def login_email(request: Request):
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body
+    if is_turnstile_configured():
+        if not await verify_turnstile_token(body.get("turnstile_token"), client_ip(request)):
+            return err(400, "Turnstile verification failed", 400)
     email = str_field(body, "email")
     password = str_field(body, "password")
     if not is_valid_email(email):

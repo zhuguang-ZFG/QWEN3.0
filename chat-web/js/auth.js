@@ -63,12 +63,16 @@
     el.hidden = !message;
   }
 
-  async function login(email, password) {
-    return window.LiMaAPI.post(LOGIN_PATH, { email, password });
+  async function login(email, password, turnstileToken) {
+    const payload = { email, password };
+    if (turnstileToken) payload.turnstile_token = turnstileToken;
+    return window.LiMaAPI.post(LOGIN_PATH, payload);
   }
 
-  async function register(email, password, nickname) {
-    return window.LiMaAPI.post(REGISTER_PATH, { email, password, nickname });
+  async function register(email, password, nickname, turnstileToken) {
+    const payload = { email, password, nickname };
+    if (turnstileToken) payload.turnstile_token = turnstileToken;
+    return window.LiMaAPI.post(REGISTER_PATH, payload);
   }
 
   window.LiMaAuth = {

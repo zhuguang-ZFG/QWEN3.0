@@ -54,6 +54,8 @@ class SecurityConfig:
     jwt_secret: str = os.environ.get("LIMA_JWT_SECRET", "").strip()
     device_auth_rate_redis: str = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS", "auto").strip().lower()
     device_auth_rate_redis_url: str = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS_URL", "").strip()
+    turnstile_site_key: str = os.environ.get("TURNSTILE_SITE_KEY", "").strip()
+    turnstile_secret_key: str = os.environ.get("TURNSTILE_SECRET_KEY", "").strip()
 
 
 @dataclass

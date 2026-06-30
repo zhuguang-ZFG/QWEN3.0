@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://chat.donglicao.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; upgrade-insecure-requests; base-uri 'self'; form-action 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://chat.donglicao.com; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; font-src 'self'; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; upgrade-insecure-requests; base-uri 'self'; form-action 'self';">
   <title>登录 - LiMa 控制台</title>
   <meta name="description" content="登录 LiMa 量子星云控制台，管理 API Key、设备与用量。">
   <meta name="theme-color" content="#07070f">
@@ -36,8 +36,9 @@
           <input type="password" name="password" autocomplete="current-password" required placeholder="••••••">
         </div>
       </label>
+      <div id="turnstile-widget" class="turnstile-widget"></div>
       <div class="auth-error" id="error" role="alert" hidden></div>
-      <button type="submit" class="auth-btn" id="submit">登录</button>
+      <button type="submit" class="auth-btn" id="submit" disabled>登录</button>
     </form>
     <p class="auth-footer">还没有账号？<a href="register.html">去注册</a></p>
   </div>
@@ -45,6 +46,7 @@
   <script src="js/config.js?v=taste3"></script>
   <script src="js/api.js?v=taste3"></script>
   <script src="js/auth.js?v=taste3"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script>
     (function () {
       "use strict";
@@ -52,16 +54,42 @@
       const form = document.getElementById("login-form");
       const error = document.getElementById("error");
       const submit = document.getElementById("submit");
+      let turnstileToken = null;
+
+      function initTurnstile() {
+        const siteKey = window.LIMA_CONFIG && window.LIMA_CONFIG.turnstileSiteKey;
+        if (!siteKey || !window.turnstile) {
+          submit.disabled = false;
+          return;
+        }
+        window.turnstile.render("#turnstile-widget", {
+          sitekey: siteKey,
+          callback: function (token) {
+            turnstileToken = token;
+            submit.disabled = false;
+          },
+          "expired-callback": function () { turnstileToken = null; submit.disabled = true; },
+          "error-callback": function () { turnstileToken = null; submit.disabled = true; },
+        });
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initTurnstile);
+      } else {
+        initTurnstile();
+      }
+
       form.addEventListener("submit", async function (e) {
         e.preventDefault();
         showError("");
         const email = form.email.value.trim();
         const password = form.password.value;
         if (!email || !password) { showError("请填写邮箱和密码"); return; }
+        const siteKey = window.LIMA_CONFIG && window.LIMA_CONFIG.turnstileSiteKey;
+        if (siteKey && !turnstileToken) { showError("请完成人机验证"); return; }
         submit.disabled = true;
         submit.textContent = "登录中…";
         try {
-          const data = await LiMaAuth.login(email, password);
+          const data = await LiMaAuth.login(email, password, turnstileToken);
           LiMaAuth.setToken(data.token);
           window.location.href = "index.html";
         } catch (err) {
