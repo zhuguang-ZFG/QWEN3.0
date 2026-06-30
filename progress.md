@@ -1,5 +1,13 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-01 修复 Dependabot / pip-audit 依赖漏洞
+
+- 运行 `pip-audit --local` 识别 `.venv310` 中 5 个包 17 个 CVE/GHSA。
+- 升级：`pip 23.0.1→26.1.2`, `cryptography 48.0.0→48.0.1`, `Pillow 10.4.0→12.2.0`, `python-multipart 0.0.30→0.0.31`, `starlette 1.2.1→1.3.1`。
+- 收紧 `requirements_server.txt`：提升 `python-multipart`/`Pillow` 下限，新增 `starlette>=1.3.1` 与 `cryptography>=48.0.1` 显式约束。
+- 验证：`pip-audit` 归零；Pillow 相关测试 33 passed；FastAPI/Starlette 相关测试 25 passed；完整门禁 4239 passed, 3 skipped。
+- 文档：更新 `findings.md`。
+
 ## 2026-06-30 LiMa 主计算与公网入口完全迁移到京东云（Cloudflare Tunnel）
 
 - **背景**：原计划将 `chat.donglicao.com` 的 Cloudflare 回源 IP 直接切到京东云，完成主服务迁移。

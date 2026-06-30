@@ -1,5 +1,29 @@
 # LiMa Findings
 
+## 2026-07-01 Dependabot / pip-audit 依赖漏洞修复
+
+- **扫描结果**：本地 `.venv310` 运行 `pip-audit --local` 发现 5 个包共 17 个已知漏洞：
+  - `cryptography 48.0.0` → GHSA-537c-gmf6-5ccf（OpenSSL 静态链接漏洞）
+  - `Pillow 10.4.0` → CVE-2026-25990 / CVE-2026-40192 / CVE-2026-42308 / CVE-2026-42310 / CVE-2026-42311
+  - `pip 23.0.1` → CVE-2023-5752 / CVE-2025-8869 / CVE-2026-1703 / CVE-2026-3219 / CVE-2026-6357 / CVE-2026-8643
+  - `python-multipart 0.0.30` → CVE-2026-53540（负 Content-Length 导致无界读取）
+  - `starlette 1.2.1` → CVE-2026-54282 / CVE-2026-54283（urlencoded 表单限制绕过、URL 主机欺骗）
+- **修复操作**：
+  - 升级本地 venv：`pip==26.1.2`, `cryptography==48.0.1`, `Pillow==12.2.0`, `python-multipart==0.0.31`, `starlette==1.3.1`。
+  - 收紧 `requirements_server.txt`：
+    - `python-multipart>=0.0.31,<1.0`
+    - `Pillow~=12.2.0`
+    - 新增显式下限：`starlette>=1.3.1`（FastAPI 传递依赖）、`cryptography>=48.0.1`（Paramiko 传递依赖）。
+- **验证**：
+  - `pip-audit --local` → `No known vulnerabilities found`。
+  - 聚焦 Pillow 相关测试：`tests/test_svg_converter.py`, `tests/test_svg_converter_sketch.py`, `tests/test_svg_binarize.py` → 33 passed。
+  - 聚焦 FastAPI/Starlette 相关测试：`tests/test_device_app_auth.py`, `tests/test_routes_chat_preflight.py`, `tests/test_routing_engine_post.py` → 25 passed。
+  - 完整门禁 `scripts/run_pre_commit_check.py --full` → 4239 passed, 3 skipped, ruff 通过。
+- **风险与后续**：
+  - Pillow 大版本 10→12 已确认通过全部图像处理测试；生产部署后需观察 `xiaozhi_drawing/svg_converter.py` 与 `device_logic/captcha.py` 行为。
+  - pip 大版本 23→26 仅影响包安装流程，未引入运行时变更。
+  - 建议后续在 CI 中加入 `pip-audit --requirement requirements_server.txt` 门禁。
+
 ## 2026-06-30 LiMa 主计算与公网入口均已迁移至京东云（最终使用 Cloudflare Tunnel）
 
 - **迁移结论**：主 `lima-router` 计算节点已成功迁移到京东云 `117.72.118.95`，生产数据与备份组件已就位。
