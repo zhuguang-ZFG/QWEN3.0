@@ -276,26 +276,3 @@ class IntegrationsConfig:
 @dataclass
 class FleetConfig:
     allowed_commands: str = os.environ.get("LIMA_FLEET_ALLOWED_COMMANDS", "").strip()
-
-
-def get_key_pool_raw(provider: str) -> str:
-    """Return the raw key-pool value for *provider* from the environment."""
-    import re
-
-    safe = re.sub(r"[^A-Za-z0-9]+", "_", provider).strip("_").upper()
-    return os.environ.get(f"LIMA_KEY_POOL_{safe}", "")
-
-
-def resolve_backend_key(key: str) -> str:
-    """Resolve a backend key, expanding ``$ENV_VAR`` references at call time."""
-    if key.startswith("$"):
-        return os.environ.get(key.lstrip("$"), "")
-    return key
-
-
-def get_env(name: str, default: str = "") -> str:
-    """Read a dynamic environment variable at call time.
-
-    Used for env names that are not known until runtime (e.g. per-backend key_env_var).
-    """
-    return os.environ.get(name, default)

@@ -1,5 +1,29 @@
 # LiMa Findings
 
+## 2026-07-01 全栈深度质量检查（LiMa + Web + chat-web + 小程序 + 固件）
+
+### 检查范围与结果
+
+- **LiMa 后端**：pytest 4249 passed / 0 failed；ruff clean；pyright 0 errors；code size PASS（修复后）。
+- **donglicao-site-v2**（Next.js 官网）：XSS 0、密钥泄漏 0、SEO 正确、apex→www 重定向安全。发现 1 个 MEDIUM：`public/_headers` 缺 CSP/HSTS/X-Frame-Options（仅 X-Content-Type-Options + Referrer-Policy），加固版仅存在于未启用的 `nginx-headers.conf.example`。
+- **chat-web**（Cloudflare Pages 前端）：Turnstile 服务端验证正确（fail-closed）、SRI 完整、无密钥泄漏。发现 5 个 MEDIUM：(1) `_headers` 无 HSTS；(2) `'unsafe-inline' script-src` + sessionStorage token 提升 XSS 影响；(3) Turnstile site key 配置但 secret 缺失时静默放行；(4) `hash-assets.mjs` 遗漏根级 `chat-*.js`（immutable 缓存无 bust）；(5) devices.js status 插值未 escape（当前数据安全）。
+- **小程序 manager-mobile**：Bearer bug 已修复、AppID 一致、HTTPS/WSS 全覆盖。发现 4 个 MEDIUM：(1) 设备转移 unionid 发送为 `toPhone` 字段（后端契约待核实）；(2) 上传文件类型验证被注释掉；(3) 登录态基于 accountId 而非 token（可能误跳转登录）；(4) 非 WeChat 端 chat streaming fallback 为死代码。
+- **固件 esp32S_XYZ**：AUDIT-12 全部 6 项控制（OTA 签名/URL 白名单/WS 鉴权/坐标边界/日志脱敏）均 PRESENT 且无回归。发现 1 个 MEDIUM：`McpServer::DoToolCall` 跳过 `user_only` 执行门禁（未认证本地 WS 可 `tools/call self.reboot` DoS，固件安装仍被 F1 签名门禁阻断）。4 个 LOW：control_ws_token 无写入者（默认开放）、token 比较非常量时间、activation 失败日志含完整响应体、IDF floor 5.5.2 可升 5.5.3。
+
+### 本次修复（3 项）
+
+1. **`config/settings_core.py` 301 行 → 280 行**（违反 ≤300 硬规则）：提取 `get_key_pool_raw`/`resolve_backend_key`/`get_env` 三个纯函数到新 `config/settings_helpers.py`；`config/settings.py` 更新导入源。code size 检查从 FAIL → PASS。
+2. **Turnstile fail-open 警告**（`device_logic/turnstile.py`）：当 `TURNSTILE_SITE_KEY` 已配置但 `TURNSTILE_SECRET_KEY` 为空时，启动日志输出 `WARNING`（之前静默放行，无任何日志）。
+3. **死代码清理**（`server_lifespan_phases.py`）：移除 `start_auto_indexer`/`stop_auto_indexer` 定义（commit `ba3d64ee` 已移除调用但保留了函数定义）。
+
+### 待跟进项（需独立排期）
+
+- **donglicao-site-v2 `_headers`**：将 CSP/HSTS/X-Frame-Options/Permissions-Policy 从 `nginx-headers.conf.example` 回填到 `public/_headers`。
+- **chat-web `hash-assets.mjs`**：扩展哈希范围覆盖根级 `chat-*.js`，避免 immutable 缓存无 bust。
+- **小程序设备转移 `toPhone` 字段**：核实后端契约是否期望 unionid。
+- **固件 `DoToolCall` user_only 门禁**：在执行路径增加 `user_only` 检查。
+- **18 个 dependabot PR**：6 SAFE（httpx/fastapi/python-multipart/pytest-timeout/pyright/websockets）可手动应用；5 RISKY（torch/torchaudio/dashscope/onnxruntime）建议关闭；7 需独立审查（eslint-10/typescript-6/types-node-26/react/tailwindcss/vue/wrangler-action/setup-node）。
+
 ## 2026-07-01 Dependabot / pip-audit 依赖漏洞修复
 
 - **扫描结果**：本地 `.venv310` 运行 `pip-audit --local` 发现 5 个包共 17 个已知漏洞：

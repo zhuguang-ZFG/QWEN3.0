@@ -1,5 +1,16 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-01 全栈深度质量检查 + 3 项修复
+
+- **检查范围**：LiMa 后端 + donglicao-site-v2 + chat-web + 小程序 manager-mobile + 固件 esp32S_XYZ。
+- **质量门禁（修复后全绿）**：pytest **4249 passed / 0 failed**；ruff clean；pyright 0 errors；`check_code_size.py` PASS。
+- **修复**：
+  1. `config/settings_core.py` 301→280 行：提取 3 个纯函数到 `config/settings_helpers.py`（消除 ≤300 硬规则违反）。
+  2. `device_logic/turnstile.py`：site key 配置但 secret 缺失时输出 WARNING（消除静默 fail-open）。
+  3. `server_lifespan_phases.py`：移除 `start_auto_indexer`/`stop_auto_indexer` 死代码（ba3d64ee 已移除调用）。
+- **审计结论**：5 个子系统审计完成，共发现 11 个 MEDIUM、10+ LOW 问题（详见 `findings.md`）。无 CRITICAL/HIGH。本次修复 3 项可立即处理的，其余需独立排期。
+- **VPS 健康**：CI 全绿（Tests/Deploy/CodeQL）；VPS `/health` 被 Cloudflare Challenge 拦截（Turnstile Under-Attack 模式？），需核实是否为临时策略。
+
 ## 2026-07-01 修复 Dependabot / pip-audit 依赖漏洞
 
 - 运行 `pip-audit --local` 识别 `.venv310` 中 5 个包 17 个 CVE/GHSA。

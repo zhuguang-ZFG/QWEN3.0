@@ -112,16 +112,6 @@ async def setup_structured_logging() -> None:
             _log.warning("observability.structured_logging not installed; structured logging setup skipped: %s", exc)
 
 
-async def start_auto_indexer() -> None:
-    async with PhaseTimer("context_pipeline.auto_indexer.start"):
-        try:
-            from context_pipeline.auto_indexer import start_auto_indexer
-
-            start_auto_indexer()
-        except ImportError as exc:
-            _log.warning("context_pipeline.auto_indexer not installed; auto indexer skipped: %s", exc)
-
-
 async def start_prometheus() -> None:
     async with PhaseTimer("observability.prometheus.start"):
         try:
@@ -163,15 +153,6 @@ async def stop_prometheus() -> None:
         stop_exporter()
     except ImportError as exc:
         _log.warning("prometheus_exporter not installed; prometheus stop skipped: %s", exc)
-
-
-async def stop_auto_indexer() -> None:
-    try:
-        from context_pipeline.auto_indexer import stop_auto_indexer
-
-        stop_auto_indexer()
-    except ImportError as exc:
-        _log.warning("auto_indexer not installed; auto indexer stop skipped: %s", exc)
 
 
 async def stop_session_memory_daemon() -> None:

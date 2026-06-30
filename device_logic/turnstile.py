@@ -9,8 +9,17 @@ import httpx
 
 _log = logging.getLogger(__name__)
 
+TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "").strip()
 TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "").strip()
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+# Warn loudly when the frontend widget is configured but server-side verification is not.
+# This avoids a silent fail-open where Turnstile appears active but every request bypasses it.
+if TURNSTILE_SITE_KEY and not TURNSTILE_SECRET_KEY:
+    _log.warning(
+        "TURNSTILE_SITE_KEY is set but TURNSTILE_SECRET_KEY is empty — "
+        "Turnstile verification is DISABLED (fail-open misconfiguration)"
+    )
 
 
 def is_turnstile_configured() -> bool:
