@@ -22,12 +22,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build hashed assets
+        working-directory: chat-web
+        run: node scripts/hash-assets.mjs
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy chat-web --project-name=lima-chat-web --branch=main
+          command: pages deploy chat-web/dist --project-name=lima-chat-web --branch=main
 
       - name: Smoke test (Pages dev + custom domain)
         run: |
