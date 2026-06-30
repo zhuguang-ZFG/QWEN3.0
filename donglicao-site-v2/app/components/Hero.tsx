@@ -20,7 +20,7 @@ export default function Hero() {
           </p>
           <div className="flex flex-wrap gap-4">
             <a
-              href="https://chat.donglicao.com"
+              href="https://app.donglicao.com"
               target="_blank"
               rel="noopener"
               className="rounded-full bg-cyan-500 px-6 py-3 font-semibold text-white hover:bg-cyan-400"

@@ -49,7 +49,7 @@ export default function Navbar() {
               定价
             </Link>
             <a
-              href="https://chat.donglicao.com"
+              href="https://app.donglicao.com"
               target="_blank"
               rel="noopener"
               className="rounded-full bg-cyan-500 px-4 py-2 text-center font-medium text-white hover:bg-cyan-400"

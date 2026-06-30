@@ -31,7 +31,7 @@ const plans = [
       { text: "API Key", included: false },
     ],
     cta: "免费开始",
-    href: "https://chat.donglicao.com/register",
+    href: "https://app.donglicao.com/register",
     primary: false,
   },
   {
@@ -48,7 +48,7 @@ const plans = [
       { text: "邮件支持", included: true },
     ],
     cta: "立即订阅",
-    href: "https://chat.donglicao.com/register",
+    href: "https://app.donglicao.com/register",
     primary: true,
   },
   {
@@ -65,7 +65,7 @@ const plans = [
       { text: "专属客服", included: true },
     ],
     cta: "立即订阅",
-    href: "https://chat.donglicao.com/register",
+    href: "https://app.donglicao.com/register",
     primary: true,
   },
   {
@@ -233,7 +233,7 @@ export default function PricingPage() {
             <p className="mt-2 text-slate-400">免费开始体验 LiMa 量子星云，随时可以升级。</p>
             <div className="mt-6 flex justify-center gap-4">
               <a
-                href="https://chat.donglicao.com/register"
+                href="https://app.donglicao.com/register"
                 target="_blank"
                 rel="noopener"
                 className="rounded-full bg-cyan-500 px-6 py-2.5 font-semibold text-white hover:bg-cyan-400"

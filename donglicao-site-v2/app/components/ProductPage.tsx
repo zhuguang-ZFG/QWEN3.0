@@ -99,7 +99,7 @@ export default function ProductPage({
             <p className="text-lg leading-relaxed text-slate-400">{description}</p>
             <div className="flex flex-wrap gap-4">
               <a
-                href="https://chat.donglicao.com"
+                href="https://app.donglicao.com"
                 target="_blank"
                 rel="noopener"
                 className="rounded-full px-6 py-3 font-semibold text-white"

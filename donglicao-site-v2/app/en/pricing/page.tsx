@@ -34,7 +34,7 @@ const plans = [
       { text: "API Key", included: false },
     ],
     cta: "Start free",
-    href: "https://chat.donglicao.com/register",
+    href: "https://app.donglicao.com/register",
     primary: false,
   },
   {
@@ -51,7 +51,7 @@ const plans = [
       { text: "Email support", included: true },
     ],
     cta: "Subscribe",
-    href: "https://chat.donglicao.com/register",
+    href: "https://app.donglicao.com/register",
     primary: true,
   },
   {
@@ -68,7 +68,7 @@ const plans = [
       { text: "Dedicated support", included: true },
     ],
     cta: "Subscribe",
-    href: "https://chat.donglicao.com/register",
+    href: "https://app.donglicao.com/register",
     primary: true,
   },
   {
@@ -241,7 +241,7 @@ export default function PricingEnPage() {
             <p className="mt-2 text-slate-400">Start free and upgrade whenever you are ready.</p>
             <div className="mt-6 flex justify-center gap-4">
               <a
-                href="https://chat.donglicao.com/register"
+                href="https://app.donglicao.com/register"
                 target="_blank"
                 rel="noopener"
                 className="rounded-full bg-cyan-500 px-6 py-2.5 font-semibold text-white hover:bg-cyan-400"

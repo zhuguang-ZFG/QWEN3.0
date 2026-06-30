@@ -76,7 +76,7 @@ export default function HomeEn() {
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <a
-                href="https://chat.donglicao.com"
+                href="https://app.donglicao.com"
                 target="_blank"
                 rel="noopener"
                 className="rounded-lg bg-cyan-500 px-6 py-3 font-semibold text-white transition hover:bg-cyan-400"
