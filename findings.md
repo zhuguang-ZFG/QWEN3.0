@@ -26,16 +26,22 @@
 - **扫描工具误报说明**：
   - 运行 `pip-audit` 时，本地杀毒软件将 `cyclonedx-python-lib` 的 `vulnerability.cpython-310.pyc` 误报为 `HEUR:HackTool/VulnScan.a` 并删除。
   - 已执行 `--force-reinstall pip-audit` 恢复，`pip-audit --local` 再次运行正常。
-- **仍未修复的 GitHub Dependabot 告警**：
-  - `donglicao-site-v2/package-lock.json`：`postcss` 通过 `next` 引入，2 个 moderate（需升级 `next` 或 `postcss`，可能破坏构建）。
-  - `docs-site/pnpm-lock.yaml`：`vite` / `esbuild` 通过 `vitepress` 引入，4 个 moderate/high（需升级 `vitepress` 或 `vite`，可能破坏构建）。
-  - `Dockerfile`：基础镜像 `python:3.10-slim` 可能存在 OS 级 CVE（需切到更新 digest 或版本）。
-  - 以上均为前端/文档站/容器构建侧，不影响 `lima-router` 运行时。
+- **扩展修复（前端与容器）**：
+  - `donglicao-site-v2/package.json`：添加 `overrides` 强制 `postcss>=8.5.10`；`npm audit` 归零，`npm run build` 成功。
+  - `docs-site/pnpm-workspace.yaml`：添加 `overrides` 强制 `vite ^6.4.3`、`esbuild ^0.25.0`；`pnpm audit` 归零，`pnpm run build` 成功。
+  - `Dockerfile`：基础镜像从浮动 `python:3.10-slim` 固定为 `python:3.10.20-slim-bookworm@sha256:89cef4d55961e885def21b86e34e102e65b7eab8cd281e806a66ff1709c9a455`。
+- **额外修复**：
+  - `.github/workflows/test.yml`：将错误的 `actions/checkout@v7`、`actions/setup-python@v6`、`actions/cache@v6` 改为正确的 v4/v5/v4。
+- **仍未修复的告警**：
+  - GitHub push 后仍提示 default branch 有 16 个漏洞（7 high, 9 moderate）。本地可扫描的 manifests 已全部 clean，剩余可能来源：
+    - GitHub Dependabot 计数存在延迟/缓存。
+    - `esp32S_XYZ` 子模块中其他未扫描的旧 npm/pnpm/Dockerfile manifests（如 `u1-grbl/embedded` 仍有 33 个高危/严重级漏洞，`xiaozhi-esp32-server/main/manager-mobile` 因私有 registry 无法 audit）。
+    - Dockerfile 固定 digest 后仍可能存在 Debian 系统级未修补 CVE。
 - **风险与后续**：
   - Pillow 大版本 10→12 已确认通过全部图像处理测试；生产部署后需观察 `xiaozhi_drawing/svg_converter.py` 与 `device_logic/captcha.py` 行为。
   - pip 大版本 23→26 仅影响包安装流程，未引入运行时变更。
   - 建议后续在 CI 中加入 `pip-audit --requirement requirements_server.txt` 门禁。
-  - 前端/文档站漏洞是否继续修复，需要用户确认（涉及 next/vitepress 大版本或覆盖）。
+  - 子模块中遗留的旧前端构建链（gulp/cheerio/underscore 等）如需继续修复，涉及直接依赖大版本升级，可能破坏 ESP32 固件构建流程，需单独评估。
 
 ## 2026-06-30 LiMa 主计算与公网入口均已迁移至京东云（最终使用 Cloudflare Tunnel）
 

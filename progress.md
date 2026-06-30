@@ -6,10 +6,13 @@
 - 升级：`pip 23.0.1→26.1.2`, `cryptography 48.0.0→48.0.1`, `Pillow 10.4.0→12.2.0`, `python-multipart 0.0.30→0.0.31`, `starlette 1.2.1→1.3.1`。
 - 收紧 `requirements_server.txt`：提升 `python-multipart`/`Pillow` 下限，新增 `starlette>=1.3.1` 与 `cryptography>=48.0.1` 显式约束。
 - 同步修复 `esp32S_XYZ` 子模块：`pytest>=9.0.3`、`Pillow~=12.2.0`；子模块单独 commit/push 后更新主仓库引用。
+- 扩展修复前端与容器：`donglicao-site-v2` postcss override、`docs-site` vite/esbuild override、`Dockerfile` 固定 `python:3.10.20-slim-bookworm` digest；均通过 build 与 audit。
+- 修复 `.github/workflows/test.yml` 错误 action 版本（checkout/setup-python/cache）。
+- 子模块 `esp32S_XYZ/firmware/u1-grbl/embedded` 执行 `npm audit fix`，从 50 个漏洞降至 33 个。
 - 杀毒软件误报 `cyclonedx` 为 `HEUR:HackTool/VulnScan.a`，已 force-reinstall `pip-audit` 恢复。
 - 验证：`pip-audit` 归零；Pillow 相关测试 33 passed；FastAPI/Starlette 相关测试 25 passed；完整门禁 4239 passed, 3 skipped。
 - 已 push 到 GitHub：`main` 与 `esp32S_XYZ` 子模块。
-- 剩余未修复：前端 `donglicao-site-v2`（next/postcss）、文档站 `docs-site`（vitepress/vite/esbuild）、`Dockerfile` 基础镜像，待用户确认是否继续。
+- GitHub 仍提示 16 个漏洞，本地可扫描 manifests 已全部 clean，剩余可能来自 Dependabot 缓存或子模块未扫描的旧构建链。
 - 文档：更新 `findings.md`、`progress.md`。
 
 ## 2026-06-30 LiMa 主计算与公网入口完全迁移到京东云（Cloudflare Tunnel）
