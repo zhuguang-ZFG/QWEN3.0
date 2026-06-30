@@ -36,9 +36,14 @@ class WechatMiniappGateway:
             "grant_type": "authorization_code",
         }
         try:
+            import time
+
+            start = time.monotonic()
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(_JS_CODE2SESSION_URL, params=params)
                 response.raise_for_status()
+            elapsed_ms = (time.monotonic() - start) * 1000
+            logger.info("WeChat jscode2session took %.1fms", elapsed_ms)
         except httpx.HTTPError as exc:
             logger.warning("WeChat jscode2session request failed: %s", exc)
             raise WechatLoginError("WeChat login request failed") from exc
