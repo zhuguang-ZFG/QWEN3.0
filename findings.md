@@ -7,7 +7,7 @@
 - **清理收益**：删除已停止容器 `one-api`/`new-api`/`lima-searxng` + journal vacuum 后，磁盘进一步降至 **80%**；再移除未启用的 `lima-openobserve` 容器及镜像后降至 **79%**。
 - **mission-server 真相**：它并非 DLC 写字机任务队列，而是 `parallel-ai` 项目的 Phase 1 mission supervisor（AI worker 任务监管），监听 58000/55432。当前唯一可见调用方是已退役的 `openclaw-gateway`（`/root/.config/systemd/user/openclaw-gateway.service`），且所有请求均返回 404；`openclaw-gateway` 本身处于每秒无限重启循环（restart counter 达 67 万+）。
 - **openclaw-gateway 已处理**：停止、禁用、移除 systemd 用户单元，循环终止。
-- **mission-server 数据**：Postgres 数据卷约 63M，占用内存约 200M+（api/worker/db）。若确认无其他调用方，可直接停止容器并备份数据卷。
+- **mission-server 已下线并备份**：Postgres 数据卷约 63M，容器占内存约 200M+。已导出 SQL、打包源码与数据卷至 `/opt/backups/mission-server-20260630-182949/`，随后 `podman-compose down` 并删除镜像/卷。主 VPS 磁盘从 98% → 78%，可用内存升至 ~650M。
 - **主 VPS 仍紧绷**：loadavg 8+、内存可用 518M、swap 活跃。登录超时是资源瓶颈与代码超时的叠加结果；仅提升客户端 timeout 不能根治。
 - **京东云可分担空间**：节点已较重（new-api/MySQL/Redis/Prometheus/browser/Worker），可用内存 ~558M。适合继续承接**无状态/低内存**侧载，不适合再压常驻重服务。
 - **迁移候选结论**：

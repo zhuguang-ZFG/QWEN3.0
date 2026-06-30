@@ -11,9 +11,9 @@
   - `journalctl --vacuum-size=500M` 释放归档日志 536M。
   - 结果：根分区从 **98% → 80%**（40G 中 30G 已用）。
 - **当前资源快照（主 VPS）**：
-  - CPU loadavg ~4.5–5，内存 total 1.8G / used ~1.2G / available ~640M，swap 已用 ~2G/5G。
+  - CPU loadavg ~4.5，内存 total 1.8G / used ~1.2G / available ~650M，swap 已用 ~2.2G/5G。
   - 核心 `lima-router` RSS ~363M；`litestream` RSS ~66M；`lima-openobserve` 已清理；已退役的 `openclaw-gateway` 用户 systemd 服务已停止并禁用（此前处于每秒无限重启循环，产生大量 404 日志）。
-  - 容器 `mission-server`*3 仍在运行；其唯一可见调用方即 `openclaw-gateway`，且全部返回 404。
+  - `mission-server`（parallel-ai mission supervisor）已停止并备份；其唯一可见调用方即 `openclaw-gateway`，且全部返回 404。
 - **京东云节点现状**：
   - 已运行 `new-api`、probe、MySQL、Redis、Prometheus、browser helper、轻量 Worker；可用内存仅 ~558M（3.9G total）。
   - 通过 `D:/Downloads/VPS.txt` 中的凭据登录成功，并已完成深度清理（详见下方）。
@@ -24,12 +24,12 @@
 - **可迁移/清理候选（按风险排序）**：
   1. **低风险清理**：`ai-router.service`（旧版 AI Router v2.1，nginx 已不反代，RSS 仅 2.6M，但需确认无内部调用）、`hermes-api.service`（nginx 当前不暴露 `/hermes/`，日志为空）、`lima-scnet-reverse.service`（描述为 disabled adapter shell）。
   2. **中风险迁移/清理**：`lima-openobserve` 容器（`OPENOBSERVE_ENABLED=0` 默认关闭，LiMa 未启用；镜像 324M）✅ 已移除。
-  3. **高风险迁移（需业务确认）**：`mission-server`（`mission-db`/`mission-api`/`mission-worker`，`/opt/autolook/parallel-ai/mission-server`，与 DLC 写字机任务相关，Port 58000/55432；当前无活跃连接，需确认是否仍有客户端依赖）。
+  3. **高风险迁移/清理**：`mission-server` ✅ 已停止并备份 Postgres 数据卷；确认唯一调用方为已退役的 `openclaw-gateway`（全部 404），无实际业务流量。
   4. **不建议迁移**：`lima-router`、`redis`、`nginx`、`litestream`、`kimi-proxy`、`lima-voice` 与公网入口或设备实时路径强相关。
 - **待办**：
   - 上传微信小程序新版本 ✅ 已完成 v3.6.0 上传。
-  - 清理阿里云非核心服务：`lima-openobserve` ✅ 已移除；`mission-server` 待确认业务依赖。
-  - 若 `mission-server` 仍在为写字机业务服务，需制定带数据迁移的双节点方案，而非直接关停。
+  - 清理阿里云非核心服务：`lima-openobserve` ✅ 已移除；`openclaw-gateway` ✅ 已停止禁用；`mission-server` ✅ 已停止并备份。
+  - 后续：关注主 VPS loadavg 与可用内存，必要时再扩容。
 
 ## 2026-06-30 client-keys 功能重写（替代 PR #1）
 

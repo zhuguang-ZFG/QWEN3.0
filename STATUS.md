@@ -11,7 +11,7 @@
 > Tests: 全量 **4249 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout` 与 `httpx2`，pytest warnings 已清零。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
-> ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **80%**（40G 中 30G 已用），`litestream` 备份已恢复，但仍内存紧张（1.8G 中可用约 518M）、load average 6+。已导致 `/device/v1/app/auth/login` 偶发 502/超时。京东云节点已完成深度清理（磁盘 51% → 33%，可用内存升至 1072M）。建议继续扩容主 VPS 磁盘/内存，或将 `lima-openobserve` / `mission-server` 等非核心服务迁往京东云。
+> ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **78%**（40G 中 30G 已用），`litestream` 备份已恢复，内存可用升至 ~650M，load average 从 6+ 降至 ~4.5。登录超时风险显著降低。京东云节点已完成深度清理（磁盘 51% → 33%，可用内存升至 1072M）。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml` ✅、`.github/workflows/deploy.yml` ✅、`.github/workflows/deploy-site-v2.yml` ✅、`.github/workflows/deploy-docs-site.yml` ✅（全部绿灯）；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（secrets 待配置）。
@@ -40,7 +40,7 @@
 - **磁盘缓解**：重启 `litestream` 释放其持有的已删除 WAL（约 6G），清理停止的 Podman 容器（`one-api`/`new-api`/`lima-searxng`）与归档 journal，根分区从 98% → **80%**。
 - **Litestream 修复**：配置文件中残留未配置环境变量的 `s3` replica，导致启动报错 `bucket required for s3 replica`。已重写为仅本地 file replica，并移除不存在的 `tool_audit.db`/`mastery_loop.db` 配置；服务已恢复运行，现有 5 个 DB 的 generation 查询正常。
 - **京东云迁移评估**：主 VPS 仍高负载（loadavg ~8），内存可用 ~518M。可迁移/清理候选已整理进 `progress.md` / `findings.md`。
-- **阿里云非核心清理**：`lima-openobserve` 容器及镜像已移除（LiMa 未启用）；`mission-server` 当前无活跃连接，但与 DLC 写字机任务相关，待确认业务依赖后再决定是否迁移/下线。
+- **阿里云非核心清理**：`lima-openobserve` 容器及镜像已移除（LiMa 未启用）；已退役的 `openclaw-gateway` 用户 systemd 服务已停止并禁用（此前每秒无限重启并产生 67 万+ restart counter）；`mission-server`（parallel-ai mission supervisor）已确认唯一调用方为 `openclaw-gateway` 且全部 404，已停止容器、备份 Postgres 数据卷（`/opt/backups/mission-server-20260630-182949/`）并清理镜像/卷。
 - **京东云深度清理**：通过本地凭据登录 `117.72.118.95` 后完成清理：删除未使用的 `/opt/llm-cache/venv`（5.1G）、清理 `pip`/`npm`/`apt` 缓存与旧日志、移除停用服务 `qwen-gateway`、停止无外部连接的侧边服务 `mimo-proxy`/`tts-proxy`/`lima-voice`/`hermes-api`；磁盘 **51% → 33%**，可用内存 **~932M → 1072M**；核心 `new-api`/`qwen2api`/MySQL/Redis/Prometheus/Worker/Probe/`llm-cache`/nginx 保持运行。
 
 ### 最近完成（2026-06-30）deploy-docs-site CI 修复 — 最后一个 CI 失败项关闭
