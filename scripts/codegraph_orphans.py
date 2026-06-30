@@ -25,7 +25,6 @@ ROOT_KEEP = frozenset({"server.py", "conftest.py"})
 COLD_MODULES = [
     "graph_retrieval",
     "complexity",
-    "retrieval_corpus",
 ]
 
 
