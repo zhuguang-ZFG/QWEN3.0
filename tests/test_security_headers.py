@@ -17,7 +17,9 @@ app.add_route("/", homepage)
 
 
 class TestSecurityHeadersMiddleware:
-    def test_basic_headers(self):
+    def test_basic_headers(self, monkeypatch):
+        # AUDIT fix: edge headers only set when not behind nginx
+        monkeypatch.setenv("LIMA_BEHIND_NGINX", "0")
         client = TestClient(app)
         response = client.get("/")
         assert response.headers["X-Content-Type-Options"] == "nosniff"
@@ -31,7 +33,8 @@ class TestSecurityHeadersMiddleware:
         assert "default-src 'self'" in csp
         assert "frame-ancestors 'none'" in csp
 
-    def test_hsts_on_https(self):
+    def test_hsts_on_https(self, monkeypatch):
+        monkeypatch.setenv("LIMA_BEHIND_NGINX", "0")
         client = TestClient(app)
         response = client.get("/", headers={"X-Forwarded-Proto": "https"})
         assert "Strict-Transport-Security" in response.headers
