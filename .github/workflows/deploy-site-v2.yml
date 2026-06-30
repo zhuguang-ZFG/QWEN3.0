@@ -44,8 +44,20 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy donglicao-site-v2/dist --project-name=lima-www --branch=main
 
-      - name: Smoke test (Pages dev domain)
+      - name: Smoke test (Pages dev + custom domain)
         run: |
-          curl -sf --retry 5 --retry-delay 5 --retry-connrefused \
-            https://lima-www.pages.dev/ -o /dev/null
+          for url in https://lima-www.pages.dev/ https://www.donglicao.com/; do
+            for i in {1..12}; do
+              echo "Checking $url (attempt $i)..."
+              if curl -sf --max-time 10 "$url" -o /dev/null; then
+                echo "$url OK"
+                break
+              fi
+              if [ "$i" -eq 12 ]; then
+                echo "$url failed after 12 attempts"
+                exit 1
+              fi
+              sleep 5
+            done
+          done
           echo "site-v2 Pages deploy OK"

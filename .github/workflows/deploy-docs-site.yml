@@ -34,7 +34,20 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy docs-site/.vitepress/dist --project-name=lima-docs --branch=main
-      - name: Smoke test (Pages dev domain)
+      - name: Smoke test (Pages dev + custom domain)
         run: |
-          curl -sf --retry 5 --retry-delay 5 --retry-connrefused https://lima-docs.pages.dev/ -o /dev/null
+          for url in https://lima-docs.pages.dev/ https://docs.donglicao.com/; do
+            for i in {1..12}; do
+              echo "Checking $url (attempt $i)..."
+              if curl -sf --max-time 10 "$url" -o /dev/null; then
+                echo "$url OK"
+                break
+              fi
+              if [ "$i" -eq 12 ]; then
+                echo "$url failed after 12 attempts"
+                exit 1
+              fi
+              sleep 5
+            done
+          done
           echo "docs-site Pages deploy OK"
