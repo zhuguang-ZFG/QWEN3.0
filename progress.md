@@ -11294,3 +11294,20 @@ uff check 2 文件 clean；导入无循环依赖。
   - 发现 `https://chat.donglicao.com/device/v1/health` 返回 503，`production_ready=false`；根因是 JDCloud `lima-router` 的设备存储/session_bus 使用 `memory`，未跨进程共享。
   - 在 JDCloud `/opt/lima-router/.env` 追加 `LIMA_DEVICE_MEMORY_STORE=redis`、`LIMA_DEVICE_LEDGER_STORE=redis`、`LIMA_DEVICE_TASK_STORE=redis`、`LIMA_DEVICE_SESSION_BUS=redis`、`LIMA_DEVICE_REDIS_URL=redis://:<encoded_password>@100.85.114.65:6379/0`、`LIMA_DEVICE_AUTH_RATE_REDIS=auto`。
   - 重启 `lima-router` 后 `/device/v1/health` 返回 `production_ready=true`，公网验证 200。
+
+## 2026-06-30 修复 Cloudflare 526（donglicao.com / www.donglicao.com）
+
+- **现象**：用户在国内网络访问 `donglicao.com` 与 `www.donglicao.com` 均报 Cloudflare 526 Invalid SSL certificate。
+- **诊断**：
+  - `donglicao.com` DNS A 记录仍指向 Aliyun VPS `47.112.162.80`，VPS 无对应域名证书。
+  - `www.donglicao.com` Pages 自定义域名状态 active，但部分边缘节点证书可能尚未完成传播。
+- **修复**：
+  - 使用 Cloudflare API Token 在 `lima-www` 添加自定义域名 `donglicao.com`。
+  - 删除 `donglicao.com` 的 A 记录，新增 proxied CNAME 到 `lima-www.pages.dev`。
+  - 更新 `.github/workflows/setup-cloudflare-pages.yml`，对 apex 记录清理 A/AAAA/CNAME 冲突，确保幂等。
+  - 移除不生效的 `donglicao-site-v2/public/_redirects`（Cloudflare Pages `_redirects` 不支持域名级重定向）。
+- **验证**：
+  - 本地 curl：`https://donglicao.com/` 200 OK（cert SAN `donglicao.com`）；`https://www.donglicao.com/` 200 OK；`https://app.donglicao.com/` 200 OK；`https://docs.donglicao.com/` 200 OK。
+- **待办**：
+  - 请用户在国内网络再次测试 `donglicao.com` 与 `www.donglicao.com`。
+  - 在 Cloudflare Dashboard 手动配置 apex -> www 301 重定向（当前 API Token 无 Page Rules / Bulk Redirects 权限）。

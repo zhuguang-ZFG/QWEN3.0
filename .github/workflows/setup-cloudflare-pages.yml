@@ -131,17 +131,20 @@ jobs:
 
           # Setup apex domain: CNAME flattening to www Pages project + custom domain
           target = f"{APEX_PROJECT}.pages.dev"
+          # Remove any conflicting apex records (A/AAAA/CNAME) before adding the CNAME.
+          # Keep MX/TXT/etc. intact.
           apex_records = api_call(
               "GET",
-              f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?name={APEX_DOMAIN}&type=CNAME",
+              f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?name={APEX_DOMAIN}",
           )
           if apex_records.get("success") and apex_records.get("result"):
               for rec in apex_records["result"]:
-                  api_call(
-                      "DELETE",
-                      f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{rec['id']}",
-                  )
-              print(f"Deleted existing apex CNAME records for {APEX_DOMAIN}")
+                  if rec["type"] in ("A", "AAAA", "CNAME"):
+                      api_call(
+                          "DELETE",
+                          f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{rec['id']}",
+                      )
+                      print(f"Deleted existing apex {rec['type']} record for {APEX_DOMAIN}")
           data = {
               "type": "CNAME",
               "name": "@",

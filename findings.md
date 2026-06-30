@@ -2895,3 +2895,23 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 
 **风险/待办**
 - 真实账号端到端验证（输入文字 → 返回 SVG → 下发设备）待补充。
+
+## 2026-06-30 Cloudflare 526 错误修复（donglicao.com / www.donglicao.com）
+
+**根因**
+- `donglicao.com` 的 DNS A 记录仍指向 Aliyun VPS（`47.112.162.80`）且开启 Cloudflare 代理；VPS 上没有 `donglicao.com` 的有效 SSL 证书，导致 Cloudflare 边缘回源时触发 **526 Invalid SSL certificate**。
+- `www.donglicao.com` 已指向 `lima-www.pages.dev`，但 Pages 自定义域名的证书在部分边缘节点可能仍在传播，导致同一时段部分用户也看到 526。
+
+**修复动作**
+- 在 Cloudflare Pages 项目 `lima-www` 中添加自定义域名 `donglicao.com`。
+- 删除 `donglicao.com` 的旧 A 记录，改为 proxied CNAME 到 `lima-www.pages.dev`（Cloudflare 自动 CNAME 扁平化）。
+- 更新 `.github/workflows/setup-cloudflare-pages.yml`：在创建 apex CNAME 前，先删除可能冲突的 A/AAAA/CNAME 记录，避免 workflow 重入失败。
+- 删除 `donglicao-site-v2/public/_redirects`，因为 Cloudflare Pages 的 `_redirects` 不支持基于域名的重定向，该文件实际不生效。
+
+**验证**
+- 全球网络 curl：`https://donglicao.com/` 200 OK，证书 SAN 为 `donglicao.com`；`https://www.donglicao.com/` 200 OK。
+- `lima-www` 自定义域名 `donglicao.com` 在 API 中显示 `verification_data.status=active`，`validation_data.status` 由 `initializing` 推进到 `pending`（继续传播中）。
+
+**遗留事项**
+- apex -> www 的 301 重定向尚未配置。当前 `donglicao.com` 与 `www.donglicao.com` 均返回同一站点内容，存在重复内容问题。
+- 用于本次修复的 API Token 缺少 Zone Page Rules / Account Rules Lists 权限，无法通过 API 创建重定向；需在 Cloudflare Dashboard 手动创建一条 **Bulk Redirect**（或 Page Rule）：`donglicao.com/*` -> `https://www.donglicao.com/$1`，状态码 301。
