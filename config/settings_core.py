@@ -29,6 +29,7 @@ class DatabaseConfig:
     request_log_db: str = db_config.REQUEST_LOG_DB
     tool_audit_db: str = db_config.TOOL_AUDIT_DB
     worker_db: str = db_config.WORKER_DB
+    client_keys_db: str = db_config.CLIENT_KEYS_DB
 
 
 @dataclass
@@ -49,6 +50,7 @@ class SecurityConfig:
     api_key: str = os.environ.get("LIMA_API_KEY", "")
     api_keys: str = os.environ.get("LIMA_API_KEYS", "")
     allow_anonymous: bool = os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower() in {"1", "true", "yes", "on"}
+    client_keys_enabled: bool = os.environ.get("LIMA_CLIENT_KEYS_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}  # fmt: skip
     jwt_secret: str = os.environ.get("LIMA_JWT_SECRET", "").strip()
     device_auth_rate_redis: str = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS", "auto").strip().lower()
     device_auth_rate_redis_url: str = os.environ.get("LIMA_DEVICE_AUTH_RATE_REDIS_URL", "").strip()

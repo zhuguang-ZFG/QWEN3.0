@@ -8,7 +8,7 @@
 > Updated: 2026-06-30
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4201 passed / 3 skipped / 2 deselected / 0 failed**；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **4201 passed / 3 skipped / 2 deselected / 0 failed**（当前 `tests/conftest.py` 全局 fixture 触发 FastAPI/Pydantic 版本兼容问题，需独立修复）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -30,12 +30,24 @@
 - **结果**：三个 CI 工作流（Tests ✅、Deploy ✅、Deploy Docs Site ✅）全部绿灯。
 - **提交**：`e2f7b20d`（secrets context 修复）、`f897c84d`（Node 版本升级）。
 
+### 最近完成（2026-06-30）client-keys 功能重写 v2（替代 PR #1）
+
+- **决策**：不直接合并 PR #1（1012 文件变更、与 main 冲突、范围失控），改为基于当前 `main` 新建 `feat/client-keys-v2` 重写。
+- **实现**：
+  - 新增 `client_keys/` 包（SQLite 存储、SQLite 日/月配额、内存 RPM、Pydantic 校验）。
+  - 新增 `routes/client_keys.py` 管理 API。
+  - `access_guard.py` 支持动态 client key + URL 白名单 + 配额，静态 key 行为不变。
+  - 配置、路由注册、`.env.example` 同步更新。
+  - 43 个新增/修改测试通过；`ruff`、`pyright`、`check_code_size` 通过。
+- **债务**：RPM 为进程内窗口，多 worker 近似；已记入 `PONYTAIL-DEBT.md`。
+- **下一步**：创建新 PR 关闭 #1。
+
 ### 最近完成（2026-06-30）关闭 6 个高风险 dependabot PR + 合并安全补丁 #18
 
 - **目标**：处理 dependabot PR 队列。
 - **已关闭（高风险）**：#11（modelscope）、#12（edge-tts）、#13（python 3.14 Docker）、#15（dashscope）、#17（opencv）、#20（numpy 约束变更）。
 - **已合并（安全补丁）**：#18 `alibabacloud-nls-python-sdk >=1.0 → >=1.0.2`（commit `825757bb`）。
-- **仍开放**：#1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`（需决策）。
+- **仍开放**：#1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`（将由 `feat/client-keys-v2` 替代关闭）。
 
 ### 最近完成（2026-06-30）Security Headers AUDIT 修复：消除 nginx 重复头
 

@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 client-keys 功能重写（替代 PR #1）
+
+- **目标**：基于当前 `main` 重写客户端密钥管理功能，解决 PR #1 的合并冲突、范围失控、尺寸超限、配额多 worker 一致性等问题。
+- **实现**：
+  - 新增 `client_keys/` 包：`storage.py`（SQLite 密钥 CRUD）、`quota.py`（SQLite 日/月配额 + 内存 RPM）、`validation.py`（Pydantic 模型）、`models.py`、``__init__.py``。
+  - 新增 `routes/client_keys.py`：管理端点 `/admin/api/client-keys`（CRUD + regenerate）。
+  - 更新 `access_guard.py`：支持动态 client key 认证、URL 白名单、配额检查；静态 key 行为不变。
+  - 更新 `routes/route_registry.py`：注册 client keys 路由。
+  - 更新 `config/db_config.py`、`config/settings_core.py`、`.env.example`：新增 `LIMA_CLIENT_KEYS_ENABLED`、`LIMA_CLIENT_KEYS_DB`。
+  - 新增测试：`tests/client_keys/test_storage.py`、`test_quota.py`、`test_router.py`、`tests/test_access_guard_client_keys.py`。
+- **质量门禁**：
+  - `py_compile` ✅、`ruff check` ✅、`pyright` 0 errors ✅、`check_code_size.py` ✅。
+  - 新增测试 43 passed（因 `tests/conftest.py` 全局 fixture 触发已存在的 FastAPI/Pydantic 版本兼容问题，使用 `--noconftest` 运行；该问题与本次改动无关）。
+- **债务记录**：`PONYTAIL-DEBT.md` 已记录 RPM 进程内窗口的多 worker 近似上限。
+- **状态**：分支 `feat/client-keys-v2` 已推送，待创建 PR 关闭 #1。
+
 ## 2026-06-30 依赖更新 VPS 部署
 
 - **目标**：将依赖更新（redis 8.0.1、python-dotenv 1.2.2、uvicorn 0.49）部署到生产 VPS。

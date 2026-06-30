@@ -3,7 +3,7 @@
 import logging
 import secrets
 
-from fastapi import Header, HTTPException, WebSocket
+from fastapi import Header, HTTPException, Request, WebSocket
 
 import ws_ticket
 from config.settings import SECURITY
@@ -122,16 +122,67 @@ def is_token_valid(token: str) -> bool:
     return any(constant_time_equals(token, k) for k in keys)
 
 
-def require_private_api_key(authorization: str = Header(default="")) -> None:
-    """FastAPI dependency that always requires a configured private key."""
+def _client_keys_enabled() -> bool:
+    return SECURITY.client_keys_enabled
+
+
+def _dynamic_auth_configured() -> bool:
+    try:
+        import client_keys
+
+        return client_keys.has_client_keys()
+    except Exception as exc:
+        _log.warning("access_guard: unable to check dynamic client keys: %s", exc)
+        return False
+
+
+def _check_dynamic_key(token: str, request: Request | None = None) -> None:
+    """Validate a token against the dynamic client key store."""
+    import client_keys
+    from client_keys import check_allowed_urls, try_consume_quota
+
+    key = client_keys.find_client_key(token)
+    if key is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not key.enabled:
+        raise HTTPException(status_code=403, detail="API key is disabled")
+    if request is not None and not check_allowed_urls(key, request.url.path):
+        raise HTTPException(status_code=403, detail="URL not allowed for this key")
+    allowed, reason = try_consume_quota(key)
+    if not allowed:
+        detail = {
+            "daily_limit": "API key daily quota exceeded",
+            "monthly_limit": "API key monthly quota exceeded",
+            "rpm_limit": "API key rate limit (RPM) exceeded",
+        }.get(reason, "API key quota exceeded")
+        raise HTTPException(status_code=429, detail=detail)
+
+
+def _auth_is_configured() -> bool:
+    """Return True when at least one auth source (static or dynamic) is configured."""
+    if configured_api_keys():
+        return True
+    return _client_keys_enabled() and _dynamic_auth_configured()
+
+
+def require_private_api_key(
+    authorization: str = Header(default=""),
+    request: Request = None,  # type: ignore[assignment]
+) -> None:
+    """FastAPI dependency that requires a static or dynamic private key."""
     token = extract_bearer_token(authorization)
     if is_token_valid(token):
         return
-    if not configured_api_keys():
+    if not _auth_is_configured():
         raise HTTPException(
             status_code=503,
             detail="LiMa private API key is not configured.",
         )
+    if not token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if _client_keys_enabled():
+        _check_dynamic_key(token, request)
+        return
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 
