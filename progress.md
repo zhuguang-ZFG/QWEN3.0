@@ -11272,3 +11272,7 @@ uff check 2 文件 clean；导入无循环依赖。
   - Aliyun VPS 上 `/var/www/chat`、`/www/wwwroot/docs-site`、`/www/wwwroot/donglicao-site` 已移动到 `.bak.pages-migration` 备份；`/etc/nginx/conf.d/www.donglicao.com.conf` 已移出 active；nginx 配置测试与 reload 成功。
   - 从 `app.donglicao.com` 发起 POST 到 `chat.donglicao.com/v1/chat/completions` 返回 401（CORS 通过，仅因 token 无效），证明跨域 API 调用可用。
   - 备份目录已彻底删除，释放约 **37.7 MB**；Aliyun 根分区 `/` 当前使用率为 52%（40G 中 20G 已用）。
+- **后续修正**：
+  - 将旧版 `donglicao-site/chat.html` 的跳转目标从 `chat.donglicao.com` 改为 `app.donglicao.com`，并同步到 JDCloud `/opt/lima-router/donglicao-site/chat.html`，重启 `lima-router` 后生效。
+  - 将官网 v2（`donglicao-site-v2`）中所有面向用户的入口链接（Hero、Navbar、ProductPage、Developer「获取 API Key」、Pricing 注册、英文首页 Try Console）从 `chat.donglicao.com` 改为 `app.donglicao.com`；API 示例与登录/注册/Playground 的 `baseUrl` 仍保持 `chat.donglicao.com`。
+  - 重新部署 `lima-www` 到 Cloudflare Pages，smoke test 通过。
