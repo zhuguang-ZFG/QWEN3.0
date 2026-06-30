@@ -34,6 +34,8 @@ jobs:
               ("lima-www", "www"),
               ("lima-chat-web", "app"),
           ]
+          APEX_PROJECT = "lima-www"
+          APEX_DOMAIN = ZONE_NAME
 
           def api_call(method, url, data=None):
               req = urllib.request.Request(
@@ -126,4 +128,46 @@ jobs:
                   print(f"Custom domain {domain} already exists in {project_name}")
               else:
                   raise RuntimeError(f"Failed to add custom domain {domain}: {result}")
+
+          # Setup apex domain: CNAME flattening to www Pages project + custom domain
+          target = f"{APEX_PROJECT}.pages.dev"
+          apex_records = api_call(
+              "GET",
+              f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?name={APEX_DOMAIN}&type=CNAME",
+          )
+          if apex_records.get("success") and apex_records.get("result"):
+              for rec in apex_records["result"]:
+                  api_call(
+                      "DELETE",
+                      f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{rec['id']}",
+                  )
+              print(f"Deleted existing apex CNAME records for {APEX_DOMAIN}")
+          data = {
+              "type": "CNAME",
+              "name": "@",
+              "content": target,
+              "proxied": True,
+          }
+          result = api_call(
+              "POST",
+              f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records",
+              data,
+          )
+          if not result.get("success"):
+              raise RuntimeError(f"Failed to set apex DNS for {APEX_DOMAIN}: {result}")
+          print(f"Created apex DNS {APEX_DOMAIN} -> {target}")
+
+          apex_domain_result = api_call(
+              "POST",
+              f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/pages/projects/{APEX_PROJECT}/domains",
+              {"name": APEX_DOMAIN},
+          )
+          if apex_domain_result.get("success"):
+              print(f"Added custom domain {APEX_DOMAIN} to {APEX_PROJECT}")
+          elif apex_domain_result.get("errors") and any(
+              "already exists" in (e.get("message") or "").lower() for e in apex_domain_result["errors"]
+          ):
+              print(f"Custom domain {APEX_DOMAIN} already exists in {APEX_PROJECT}")
+          else:
+              raise RuntimeError(f"Failed to add apex custom domain {APEX_DOMAIN}: {apex_domain_result}")
           PY

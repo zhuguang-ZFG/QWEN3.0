@@ -1,0 +1,2 @@
+# Redirect apex domain to www
+donglicao.com/* https://www.donglicao.com/:splat 301
