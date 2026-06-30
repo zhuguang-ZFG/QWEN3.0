@@ -12,7 +12,7 @@ websockets>=14.0                 # already pulled by uvicorn[standard] usually
 # Local ASR/VAD/voiceprint (heavy; only needed if using local providers)
 edge-tts>=6.1
 funasr>=1.1
-onnxruntime>=1.16
+onnxruntime>=1.24.3
 modelscope>=1.15
 torch>=2.0
 torchaudio>=2.0
