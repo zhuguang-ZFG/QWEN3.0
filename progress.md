@@ -11251,3 +11251,23 @@ uff check 2 文件 clean；导入无循环依赖。
 - **改动**：`requirements_voice.txt` 一行版本约束收紧。
 - **提交**：通过 GitHub CLI 合并 PR #18（commit `825757bb`）到 `main`，本地已 fast-forward 同步。
 - **结果**：PR #18 已合并；PR #1 已由后续 PR #22 替代合并。
+
+## 2026-06-30 Cloudflare Pages 静态站点迁移
+
+- **目标**：将 docs-site、site-v2、chat-web 从 Aliyun VPS 迁到 Cloudflare Pages，节省服务器资源与 GitHub Actions 复杂度。
+- **Pages 项目**：`lima-docs`、`lima-www`、`lima-chat-web`（Account ID `3e8dfc378deaf1a6f39fda85ceaca32b`）。
+- **改动**：
+  - 新增 `.github/workflows/deploy-docs-site.yml`、`.github/workflows/deploy-site-v2.yml`、`.github/workflows/deploy-chat-web.yml`：push 路径触发 + `wrangler-action@v3` 部署。
+  - 新增 `.github/workflows/setup-cloudflare-pages.yml`：幂等创建 Pages 项目、删除冲突 DNS 记录、添加 proxied CNAME、注册自定义域名。
+  - `chat-web` 增加跨域配置 `chat-web/js/config.js`，所有 HTML 优先加载；`devices.js`、`playground-utils.js`、`voice-call.html` 改为使用 `window.LIMA_CONFIG.apiOrigin/wsOrigin`。
+  - 从 `.github/workflows/deploy.yml` 移除旧的 chat-web VPS 部署步骤。
+  - 将 `PONYTAIL-DEBT.md` 记录 `chat-web/js/config.js` 的全局 fetch/WebSocket 拦截器债务。
+- **验证**：
+  - `https://docs.donglicao.com/` 200 OK（Cloudflare Pages）。
+  - `https://www.donglicao.com/` 200 OK（Cloudflare Pages）。
+  - `https://app.donglicao.com/` 200 OK（Cloudflare Pages）。
+  - CORS 预检 `Origin: https://app.donglicao.com` → `Access-Control-Allow-Origin: *`，API 调用路径可用。
+- **收尾完成**：
+  - JDCloud `/opt/lima-router/.env` 已追加 `LIMA_CORS_ORIGINS=https://app.donglicao.com,https://chat.donglicao.com`，`lima-router` 重启后 `/health` ready。
+  - Aliyun VPS 上 `/var/www/chat`、`/www/wwwroot/docs-site`、`/www/wwwroot/donglicao-site` 已移动到 `.bak.pages-migration` 备份；`/etc/nginx/conf.d/www.donglicao.com.conf` 已移出 active；nginx 配置测试与 reload 成功。
+  - 从 `app.donglicao.com` 发起 POST 到 `chat.donglicao.com/v1/chat/completions` 返回 401（CORS 通过，仅因 token 无效），证明跨域 API 调用可用。

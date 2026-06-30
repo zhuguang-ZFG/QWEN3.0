@@ -20,6 +20,7 @@
 | `ruff.toml` | — | F401 未加入全局门禁，仅豁免已知 re-export 文件 | ~115 个生产 F401 残留为整洁度噪音 | 引入 `pyright --verifytypes` 或逐文件清理后启用 F401 门禁 |
 | `check_code_size.py` 残留 | — | 12 个 51-54 行函数未拆分（scripts/tests/MCP/xiaozhi） | 单函数轻微超标 1-4 行，非核心生产路径 | 触发下一个生产函数超 50 行时一并清理 |
 | `client_keys/quota.py:33` | 33 | RPM 限流使用进程内内存滑动窗口 | 多 uvicorn worker 时实际 RPM 上限 ≈ limit × worker 数；重启丢失窗口 | 启用 Redis 共享 RPM 计数或 worker 数 >1 且 client-keys 流量高时升级 |
+| `chat-web/js/config.js:9` | 9 | 全局 fetch/WebSocket 拦截器将相对 API 路径自动补全为 `chat.donglicao.com` | 仅按路径前缀 /v1/、/device/v1/、/api/ 判断；非 API 相对路径 fetch 可能被误改；未处理 `Request` 对象 | 所有调用改为显式 `window.LIMA_CONFIG.apiOrigin/wsOrigin` 前缀后移除拦截器 |
 
 ## 待处理项
 
