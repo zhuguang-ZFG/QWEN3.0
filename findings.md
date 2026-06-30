@@ -1,6 +1,6 @@
 # LiMa Findings
 
-## 2026-06-30 LiMa 主计算已迁移至京东云，公网入口通过 Tailscale 反向代理保留阿里云
+## 2026-06-30 LiMa 主计算与公网入口均已迁移至京东云（最终使用 Cloudflare Tunnel）
 
 - **迁移结论**：主 `lima-router` 计算节点已成功迁移到京东云 `117.72.118.95`，生产数据与备份组件已就位。
   - 京东云 `/opt/lima-router` 为正式目录，`lima-router.service` active，`MemoryMax=1536M`。
@@ -10,20 +10,25 @@
   - 将 `chat.donglicao.com` 的 Cloudflare A 记录直接指向京东云 IP 后，公网请求返回 **525 SSL handshake failed** / **403 网页禁止访问**。
   - 根因：京东云对 `chat.donglicao.com` 的 HTTP `Host` / HTTPS SNI 做了域名级拦截（可能为 ICP/接入商备案策略），裸 IP TLS（无 SNI）可通，带 SNI 即被重置。
   - 这意味着 LiMa 主域名**不能直接在京东云作为公网入口**。
-- ** adopted 方案**：利用现有 Tailscale 内网穿透，保留阿里云作为 HTTPS 反向代理。
+- **过渡方案**：利用现有 Tailscale 内网穿透，保留阿里云作为 HTTPS 反向代理。
   - 公网路径：`User → Cloudflare → Aliyun 47.112.162.80:443 → Tailscale → JDCloud 100.85.114.65:8080`。
   - 阿里云 nginx 已将 `chat.donglicao.com` 的动态请求全部转发到京东云 Tailscale IP；静态文件仍由阿里云 `/var/www/chat` 直接服务。
   - 该方案无需回滚，服务已恢复，计算负载实际转移到京东云。
+- **最终方案：Cloudflare Tunnel**：
+  - 在京东云安装 `cloudflared`，创建 tunnel `lima-jdcloud`（ID `8dfd001b-d257-42e9-944d-2f82a976d969`）。
+  - 配置 `/etc/cloudflared/config.yml`：`chat.donglicao.com` → `http://127.0.0.1:8080`。
+  - Cloudflare DNS 中 `chat.donglicao.com` 改为 CNAME 到 `<tunnel-id>.cfargotunnel.com`（已代理）。
+  - 阿里云 nginx 配置已还原为本地 `127.0.0.1:8080`，作为应急回滚备用。
 - **验证**：
   - `https://chat.donglicao.com/health` → 200，由京东云响应。
   - 真实 `POST /v1/chat/completions`（生产 key）→ 200，后端 `cfai_qwen_coder` 正常返回。
 - **资源影响**：
-  - 京东云：`lima-router` RSS ~315M，`mem available ~817M`，`disk 28%`；4G 内存节点承载主服务仍有余量。
-  - 阿里云：不再运行 `lima-router`，仅 nginx 反向代理，资源压力显著降低。
+  - 京东云：`lima-router` RSS ~315M，`cloudflared` RSS ~17M，`mem available ~800M+`，`disk 28%`；4G 内存节点承载主服务仍有余量。
+  - 阿里云：不再承担 `chat.donglicao.com` 流量，仅保留 nginx 备用配置。
 - **风险与后续**：
-  - Tailscale 当前为 relay 模式（`nue`），延迟高于直连；后续可优化 DERP 或改用 Cloudflare Tunnel。
-  - 若 Tailscale 中断，公网服务将 502；需配置监控或保留阿里云快速回切能力。
-  - 长期建议：在京东云部署 `cloudflared` 建立 Cloudflare Tunnel 出站连接，彻底绕过域名拦截并去掉阿里云反向代理层。
+  - `cloudflared` 建立的是出站 QUIC 连接，不受京东云入站域名拦截影响；稳定性取决于 Cloudflare Edge 与京东云之间的网络。
+  - 若 tunnel 中断，可将 `chat.donglicao.com` DNS 改回阿里云 A 记录并启动 `lima-router` 回切（数据需同步）。
+  - 建议为 `cloudflared.service` 配置监控告警，并保留阿里云回滚能力。
 
 ## 2026-06-30 京东云可作为 LiMa 主服务入口（试点验证）
 

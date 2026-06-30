@@ -3,7 +3,7 @@
 > **项目定位**: AI 智能设备统一云端服务（2026-06-09 战略转型完成）
 > **技术栈**: Python 3.10 + FastAPI + SQLite + Redis
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
-> **部署**: 主计算已迁移至 JDCloud (`117.72.118.95`)；公网 HTTPS 入口仍由 Alibaba Cloud (`47.112.162.80`) 反向代理，经 Tailscale (`100.85.114.65`) 转发到京东云后端。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
+> **部署**: 主计算与公网入口均已迁移至 JDCloud (`117.72.118.95`)；通过 Cloudflare Tunnel (`lima-jdcloud`) 直连京东云，不再依赖 Alibaba Cloud 反向代理。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
 
 > Updated: 2026-06-30
 > Branch: `main`
@@ -19,22 +19,22 @@
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
-### 最近完成（2026-06-30）LiMa 主计算迁移到京东云（公网入口保留阿里云）
+### 最近完成（2026-06-30）LiMa 主计算与公网入口完全迁移到京东云（Cloudflare Tunnel）
 
-- **迁移结果**：主 `lima-router` 计算节点已从阿里云切换至京东云 `117.72.118.95`。
+- **迁移结果**：主 `lima-router` 计算节点与 `chat.donglicao.com` 公网入口均已迁移至京东云 `117.72.118.95`。
   - 京东云 `/opt/lima-router` 由 pilot 目录重命名为正式目录；systemd 服务 `lima-router.service` 已启用并运行，`MemoryMax=1536M`。
   - 生产 SQLite 数据与 `router_model.pkl` 已从阿里云复制到京东云；京东云 `litestream` 已配置为本地 file replica，备份所有生产 DB。
   - 京东云已部署 `chat.donglicao.com` nginx + Let's Encrypt 证书配置（因域名拦截当前不直接对外服务，仅作为备用）。
 - **公网入口方案**：
   - 京东云对 `chat.donglicao.com` 存在域名级拦截（HTTP Host / HTTPS SNI 返回“网页禁止访问”），无法直接作为公网入口。
-  - 保留阿里云作为 HTTPS 反向代理：Cloudflare → 阿里云 `47.112.162.80:443` → Tailscale → 京东云 `100.85.114.65:8080`。
-  - 静态文件（`index.html`、`app.js` 等）仍由阿里云 `/var/www/chat` 直接服务，动态 API 请求转发到京东云。
+  - 部署 **Cloudflare Tunnel**（`cloudflared`，tunnel ID `8dfd001b-d257-42e9-944d-2f82a976d969`）在京东云建立出站 QUIC 连接到 Cloudflare Edge。
+  - Cloudflare DNS 中 `chat.donglicao.com` 已改为 CNAME 到 `<tunnel-id>.cfargotunnel.com`（已代理），所有流量通过 tunnel 直达京东云 `127.0.0.1:8080`。
+  - 不再使用阿里云作为反向代理；阿里云 nginx `chat.donglicao.com.conf` 已还原为本地 `127.0.0.1:8080` 配置，作为应急回滚备用。
 - **验证**：
   - `https://chat.donglicao.com/health` → 200，返回京东云 `lima-router` 状态。
-  - 真实 `POST /v1/chat/completions`（带生产 `LIMA_API_KEY`、浏览器 User-Agent）→ 200，后端 `cfai_qwen_coder` 响应正常。
-- **资源（京东云）**：`lima-router` RSS ~315M，`mem available ~817M`，`disk 28%`。
-- **回滚**：阿里云 `lima-router` / `litestream` 已停止但配置/数据完整保留；若京东云故障，可将 DNS 切回阿里云并启动服务恢复。
-- **遗留/下一步**：考虑部署 Cloudflare Tunnel（`cloudflared`）在京东云建立出站隧道，最终去掉阿里云反向代理层。
+  - 真实 `POST /v1/chat/completions`（生产 `LIMA_API_KEY`）→ 200，后端 `cfai_qwen_coder` 响应正常。
+- **资源（京东云）**：`lima-router` RSS ~315M，`cloudflared` RSS ~17M，`mem available ~800M+`，`disk 28%`。
+- **回滚**：阿里云 `lima-router` / `litestream` 已停止但配置/数据完整保留；若京东云故障，可将 `chat.donglicao.com` DNS 改回阿里云 A 记录并启动服务恢复。
 
 ## 当前项目状态
 

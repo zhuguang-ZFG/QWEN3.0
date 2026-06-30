@@ -1,6 +1,6 @@
 # Personal Coding Assistant Progress
 
-## 2026-06-30 LiMa 主计算迁移到京东云（公网入口保留阿里云）
+## 2026-06-30 LiMa 主计算与公网入口完全迁移到京东云（Cloudflare Tunnel）
 
 - **背景**：原计划将 `chat.donglicao.com` 的 Cloudflare 回源 IP 直接切到京东云，完成主服务迁移。
 - **执行过程**：
@@ -11,22 +11,25 @@
   5. 切换窗口：停止阿里云 `lima-router` / `litestream`，停止京东云 `lima-router` / `litestream`；通过 tar 管道复制生产 SQLite 数据到京东云；启动京东云服务。
   6. DNS 切换：将 `chat.donglicao.com` A 记录改为京东云 `117.72.118.95`。
 - **遇到的问题**：京东云对 `chat.donglicao.com` 存在域名级拦截，直接访问返回“网页禁止访问”，HTTPS SNI 握手被重置，公网无法直接入户。
-- **解决方案**：不回滚，利用现有 Tailscale 内网穿透：
+- **过渡方案**：不回滚，先利用现有 Tailscale 内网穿透恢复服务：
   - DNS 改回阿里云 `47.112.162.80`。
   - 阿里云 nginx `chat.donglicao.com.conf` 中所有 `proxy_pass http://127.0.0.1:8080` 改为 `proxy_pass http://100.85.114.65:8080`（京东云 Tailscale IP）。
   - 静态文件仍由阿里云本地 `/var/www/chat` 服务。
+- **最终方案：Cloudflare Tunnel**：
+  - 在京东云安装 `cloudflared`，通过 Cloudflare API Token 创建 tunnel `lima-jdcloud`（ID `8dfd001b-d257-42e9-944d-2f82a976d969`）。
+  - 写入 `/etc/cloudflared/config.yml`，ingress：`chat.donglicao.com` → `http://127.0.0.1:8080`；启动 `cloudflared.service`。
+  - Cloudflare DNS 中 `chat.donglicao.com` 由 A 记录改为 CNAME 到 `<tunnel-id>.cfargotunnel.com`（已代理）。
+  - 阿里云 nginx `chat.donglicao.com.conf` 还原为 `proxy_pass http://127.0.0.1:8080`，作为应急回滚备用。
 - **验证结果**：
   - `https://chat.donglicao.com/health` → 200，返回京东云 `lima-router` ready。
   - 真实 `POST /v1/chat/completions`（生产 key + 浏览器 User-Agent）→ 200，后端 `cfai_qwen_coder` 正常响应。
 - **当前架构**：
   ```text
-  User → Cloudflare → Aliyun 47.112.162.80:443 → Tailscale → JDCloud 100.85.114.65:8080
+  User → Cloudflare Edge → cloudflared tunnel → JDCloud 127.0.0.1:8080
   ```
 - **资源快照**：
-  - 京东云：`lima-router` RSS 315M，`mem available 817M`，`disk 28%`。
-  - 阿里云：仅 nginx 作为反向代理，内存占用极小。
-- **遗留/下一步**：
-  - 评估 Cloudflare Tunnel（`cloudflared`）以彻底绕过京东云域名拦截，去掉阿里云反向代理层。
+  - 京东云：`lima-router` RSS 315M，`cloudflared` RSS 17M，`mem available 800M+`，`disk 28%`。
+  - 阿里云：不再承担 `chat.donglicao.com` 流量，仅保留 nginx 备用配置。
   - 观察 Tailscale 延迟与稳定性；若 relay 影响大，考虑 DERP 优化或专用隧道。
 
 ## 2026-06-30 京东云 LiMa Router 并行试点
