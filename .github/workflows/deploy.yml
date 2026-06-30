@@ -26,13 +26,13 @@ jobs:
       JDCLOUD_HOST_SET: ${{ secrets.JDCLOUD_HOST != '' }}
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -69,12 +69,6 @@ jobs:
             echo "No runtime files changed; skipping core deploy"
           fi
 
-      - name: Deploy Chat Web static files
-        if: env.VPS_SSH_KEY_SET == 'true' && env.VPS_HOST_SET == 'true'
-        timeout-minutes: 5
-        env:
-          LIMA_DEPLOY_HOST: root@${{ secrets.VPS_HOST }}
-        run: python scripts/deploy_chat_web.py
 
       - name: Verify production deployment
         if: env.LIMA_API_KEY_SET == 'true'
