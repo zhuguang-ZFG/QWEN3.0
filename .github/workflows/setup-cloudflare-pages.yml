@@ -63,8 +63,13 @@ jobs:
           zone_id = zones["result"][0]["id"]
           print(f"Zone ID: {zone_id}")
 
-          # Create/update Pages projects
+          # Create/update Pages projects (skip if already exists)
           for project_name, _ in PROJECTS:
+              get_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/pages/projects/{project_name}"
+              get_result = api_call("GET", get_url)
+              if get_result.get("success"):
+                  print(f"Pages project {project_name} already exists")
+                  continue
               url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/pages/projects"
               result = api_call(
                   "POST",
@@ -73,42 +78,35 @@ jobs:
               )
               if result.get("success"):
                   print(f"Created Pages project {project_name}")
-              elif result.get("errors") and any(
-                  e.get("code") == 1003 for e in result["errors"]
-              ):
-                  print(f"Pages project {project_name} already exists")
               else:
                   raise RuntimeError(f"Failed to create {project_name}: {result}")
 
-          # Create/update DNS CNAME records
+          # Create DNS CNAME records; delete any existing records for the same name first
           for project_name, subdomain in PROJECTS:
               target = f"{project_name}.pages.dev"
               records = api_call(
                   "GET",
-                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?type=CNAME&name={subdomain}.{ZONE_NAME}",
+                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?name={subdomain}.{ZONE_NAME}",
               )
+              if records.get("success") and records.get("result"):
+                  for rec in records["result"]:
+                      api_call(
+                          "DELETE",
+                          f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{rec['id']}",
+                      )
+                  print(f"Deleted existing DNS records for {subdomain}.{ZONE_NAME}")
               data = {
                   "type": "CNAME",
                   "name": subdomain,
                   "content": target,
                   "proxied": True,
               }
-              if records.get("success") and records.get("result"):
-                  record_id = records["result"][0]["id"]
-                  result = api_call(
-                      "PATCH",
-                      f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}",
-                      data,
-                  )
-                  action = "Updated"
-              else:
-                  result = api_call(
-                      "POST",
-                      f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records",
-                      data,
-                  )
-                  action = "Created"
+              result = api_call(
+                  "POST",
+                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records",
+                  data,
+              )
               if not result.get("success"):
                   raise RuntimeError(f"Failed to set DNS for {subdomain}: {result}")
-              print(f"{action} DNS {subdomain}.{ZONE_NAME} -> {target}")
+              print(f"Created DNS {subdomain}.{ZONE_NAME} -> {target}")
           PY
