@@ -30,6 +30,12 @@
 - **结果**：三个 CI 工作流（Tests ✅、Deploy ✅、Deploy Docs Site ✅）全部绿灯。
 - **提交**：`e2f7b20d`（secrets context 修复）、`f897c84d`（Node 版本升级）。
 
+### 最近完成（2026-06-30）关闭 6 个高风险 dependabot PR
+
+- **目标**：关闭主版本/运行时跳跃或约束变更的高风险依赖升级 PR。
+- **已关闭**：#11（modelscope）、#12（edge-tts）、#13（python 3.14 Docker）、#15（dashscope）、#17（opencv）、#20（numpy 约束变更）。
+- **仍开放**：#18（alibabacloud-nls-python-sdk 小版本补丁，可安全合并）、#1（客户端密钥管理功能 PR，需决策）。
+
 ### 最近完成（2026-06-30）Security Headers AUDIT 修复：消除 nginx 重复头
 
 - **目标**：修复生产环境 nginx 与 `SecurityHeadersMiddleware` 重复设置 `X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy`、`Strict-Transport-Security` 的问题。

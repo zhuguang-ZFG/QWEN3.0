@@ -11076,3 +11076,12 @@ uff check 2 文件 clean；导入无循环依赖。
   - 公网 `https://chat.donglicao.com/health` 200。
   - 响应头验证：nginx 提供 X-Frame-Options、X-Content-Type-Options、Referrer-Policy、HSTS；中间件提供 CSP、Permissions-Policy、X-XSS-Protection，无重复/冲突。
 - **提交**：`4204c5a6` fix(security): avoid duplicate security headers when behind nginx 已推送至 `origin/main`。
+
+## 2026-06-30 关闭 6 个高风险 dependabot PR
+
+- **目标**：使用新的 GitHub PAT 关闭之前保持开放的 6 个高风险 dependabot PR。
+- **已关闭 PR**：#11、#12、#13、#15、#17、#20
+- **关闭原因**：主版本/运行时跳跃或约束变更，存在 ABI/API 不兼容风险，待人工验证后再决定是否升级。
+- **仍开放 PR**：
+  - #18 `alibabacloud-nls-python-sdk >=1.0 → >=1.0.2`（小版本补丁，安全，可合并）
+  - #1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`（用户功能 PR，需决策）
