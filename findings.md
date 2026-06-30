@@ -2915,3 +2915,10 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 **遗留事项**
 - apex -> www 的 301 重定向尚未配置。当前 `donglicao.com` 与 `www.donglicao.com` 均返回同一站点内容，存在重复内容问题。
 - 用于本次修复的 API Token 缺少 Zone Page Rules / Account Rules Lists 权限，无法通过 API 创建重定向；需在 Cloudflare Dashboard 手动创建一条 **Bulk Redirect**（或 Page Rule）：`donglicao.com/*` -> `https://www.donglicao.com/$1`，状态码 301。
+
+**2026-06-30 补充验证**
+- 推送 `donglicao-site-v2/public/_worker.js` 后，GitHub Actions `deploy-site-v2.yml` 成功部署 `lima-www`。
+- `curl -I https://donglicao.com/` 返回 `HTTP/1.1 301 Moved Permanently`，`Location: https://www.donglicao.com/`。
+- `curl -I https://donglicao.com/product-draw/` 同样 301 到 `https://www.donglicao.com/product-draw/`。
+- `https://www.donglicao.com/` 保持 200 OK。
+- 无需 Page Rules / Bulk Redirects 权限即可通过 Pages Worker 完成 apex → www 跳转。

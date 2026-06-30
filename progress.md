@@ -11311,3 +11311,10 @@ uff check 2 文件 clean；导入无循环依赖。
 - **待办**：
   - 请用户在国内网络再次测试 `donglicao.com` 与 `www.donglicao.com`。
   - 在 Cloudflare Dashboard 手动配置 apex -> www 301 重定向（当前 API Token 无 Page Rules / Bulk Redirects 权限）。
+
+- **2026-06-30 21:30 CST** 部署完成：
+  - GitHub Actions `deploy-site-v2.yml` 成功（run id `28456111966`）。
+  - `curl -I https://donglicao.com/` → `301 Moved Permanently` → `https://www.donglicao.com/`。
+  - `curl -I https://donglicao.com/product-draw/` → `301` → `https://www.donglicao.com/product-draw/`。
+  - `https://www.donglicao.com/` 仍为 200 OK。
+- **待用户确认**：在国内网络刷新 `donglicao.com` 与 `www.donglicao.com`，看是否还有 526。
