@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   description:
     "LiMa pricing plans: from free tier to enterprise, choose the right AI chat, device access and API quota.",
   alternates: {
-    canonical: "https://donglicao.com/en/pricing/",
+    canonical: "https://www.donglicao.com/en/pricing/",
     languages: {
-      "en-US": "https://donglicao.com/en/pricing/",
-      "zh-CN": "https://donglicao.com/pricing/",
-      "x-default": "https://donglicao.com/pricing/",
+      "en-US": "https://www.donglicao.com/en/pricing/",
+      "zh-CN": "https://www.donglicao.com/pricing/",
+      "x-default": "https://www.donglicao.com/pricing/",
     },
   },
 };

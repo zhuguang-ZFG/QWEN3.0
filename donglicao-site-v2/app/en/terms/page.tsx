@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   title: "Terms of Service - LiMa Quantum Nebula",
   description: "LiMa Quantum Nebula terms of service.",
   alternates: {
-    canonical: "https://donglicao.com/en/terms/",
+    canonical: "https://www.donglicao.com/en/terms/",
     languages: {
-      "en-US": "https://donglicao.com/en/terms/",
-      "zh-CN": "https://donglicao.com/terms/",
-      "x-default": "https://donglicao.com/terms/",
+      "en-US": "https://www.donglicao.com/en/terms/",
+      "zh-CN": "https://www.donglicao.com/terms/",
+      "x-default": "https://www.donglicao.com/terms/",
     },
   },
 };

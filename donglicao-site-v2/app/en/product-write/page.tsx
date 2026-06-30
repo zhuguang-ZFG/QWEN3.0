@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   description:
     "LiMa AI Writing Machine converts digital text into real handwriting for letters, cards, signatures and bulk mail.",
   alternates: {
-    canonical: "https://donglicao.com/en/product-write/",
+    canonical: "https://www.donglicao.com/en/product-write/",
     languages: {
-      "en-US": "https://donglicao.com/en/product-write/",
-      "zh-CN": "https://donglicao.com/product-write/",
-      "x-default": "https://donglicao.com/product-write/",
+      "en-US": "https://www.donglicao.com/en/product-write/",
+      "zh-CN": "https://www.donglicao.com/product-write/",
+      "x-default": "https://www.donglicao.com/product-write/",
     },
   },
 };

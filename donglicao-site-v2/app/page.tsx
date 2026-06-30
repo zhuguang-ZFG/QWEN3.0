@@ -16,11 +16,11 @@ export const metadata: Metadata = {
   description:
     "LiMa 量子星云系统是 AI 量子化设备调度平台，以量子路由、多模态坍缩与设备纠缠协同，连接 170+ AI 后端，驱动 AI 绘图机、写字机与 2D 数字人完成真实创作。",
   alternates: {
-    canonical: "https://donglicao.com/",
+    canonical: "https://www.donglicao.com/",
     languages: {
-      "zh-CN": "https://donglicao.com/",
-      "en-US": "https://donglicao.com/en/",
-      "x-default": "https://donglicao.com/",
+      "zh-CN": "https://www.donglicao.com/",
+      "en-US": "https://www.donglicao.com/en/",
+      "x-default": "https://www.donglicao.com/",
     },
   },
 };

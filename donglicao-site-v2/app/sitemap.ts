@@ -4,7 +4,7 @@ import { posts } from "./blog/posts";
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://donglicao.com";
+  const baseUrl = "https://www.donglicao.com";
   const paths = [
     "",
     "/pricing",

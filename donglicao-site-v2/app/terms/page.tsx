@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   title: "用户协议 - LiMa 量子星云系统",
   description: "LiMa 量子星云系统用户协议。",
   alternates: {
-    canonical: "https://donglicao.com/terms/",
+    canonical: "https://www.donglicao.com/terms/",
     languages: {
-      "zh-CN": "https://donglicao.com/terms/",
-      "en-US": "https://donglicao.com/en/terms/",
-      "x-default": "https://donglicao.com/terms/",
+      "zh-CN": "https://www.donglicao.com/terms/",
+      "en-US": "https://www.donglicao.com/en/terms/",
+      "x-default": "https://www.donglicao.com/terms/",
     },
   },
 };

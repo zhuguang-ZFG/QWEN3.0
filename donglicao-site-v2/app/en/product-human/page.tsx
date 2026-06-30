@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   description:
     "LiMa 2D Digital Human drives lip-sync, expression and motion from voice in real time for live streaming and customer service.",
   alternates: {
-    canonical: "https://donglicao.com/en/product-human/",
+    canonical: "https://www.donglicao.com/en/product-human/",
     languages: {
-      "en-US": "https://donglicao.com/en/product-human/",
-      "zh-CN": "https://donglicao.com/product-human/",
-      "x-default": "https://donglicao.com/product-human/",
+      "en-US": "https://www.donglicao.com/en/product-human/",
+      "zh-CN": "https://www.donglicao.com/product-human/",
+      "x-default": "https://www.donglicao.com/product-human/",
     },
   },
 };

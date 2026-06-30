@@ -9,11 +9,11 @@ export const metadata: Metadata = {
   description:
     "LiMa Quantum Nebula privacy policy: how we collect, use, store, and protect your information.",
   alternates: {
-    canonical: "https://donglicao.com/en/privacy/",
+    canonical: "https://www.donglicao.com/en/privacy/",
     languages: {
-      "en-US": "https://donglicao.com/en/privacy/",
-      "zh-CN": "https://donglicao.com/privacy/",
-      "x-default": "https://donglicao.com/privacy/",
+      "en-US": "https://www.donglicao.com/en/privacy/",
+      "zh-CN": "https://www.donglicao.com/privacy/",
+      "x-default": "https://www.donglicao.com/privacy/",
     },
   },
 };

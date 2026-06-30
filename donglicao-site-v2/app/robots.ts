@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: "/api/",
     },
-    sitemap: "https://donglicao.com/sitemap.xml",
+    sitemap: "https://www.donglicao.com/sitemap.xml",
   };
 }

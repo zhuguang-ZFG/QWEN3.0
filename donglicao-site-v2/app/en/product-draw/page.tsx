@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   description:
     "LiMa AI Drawing Machine turns prompts into vector line art and drives a physical plotter via a single API.",
   alternates: {
-    canonical: "https://donglicao.com/en/product-draw/",
+    canonical: "https://www.donglicao.com/en/product-draw/",
     languages: {
-      "en-US": "https://donglicao.com/en/product-draw/",
-      "zh-CN": "https://donglicao.com/product-draw/",
-      "x-default": "https://donglicao.com/product-draw/",
+      "en-US": "https://www.donglicao.com/en/product-draw/",
+      "zh-CN": "https://www.donglicao.com/product-draw/",
+      "x-default": "https://www.donglicao.com/product-draw/",
     },
   },
 };
