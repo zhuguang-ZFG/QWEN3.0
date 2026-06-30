@@ -49,6 +49,7 @@ REQUEST_LOG_DB: str = os.environ.get("LIMA_REQUEST_LOG_DB", "") or str(Path(LIMA
 TOOL_AUDIT_DB: str = os.environ.get("LIMA_AUDIT_DB", "") or str(Path(LIMA_DATA_DIR) / "tool_audit.db")
 WORKER_DB: str = os.environ.get("LIMA_WORKER_DB", "") or str(Path(LIMA_DATA_DIR) / "worker_registry.db")
 WEIGHTS_PATH: str = os.environ.get("LIMA_WEIGHTS_PATH", "") or str(Path(LIMA_DATA_DIR) / "routing_weights.json")
+CLIENT_KEYS_DB: str = os.environ.get("LIMA_CLIENT_KEYS_DB", "") or str(Path(LIMA_DATA_DIR) / "client_keys.db")
 
 # ── User identity ──────────────────────────────────────────────────────────────
 PROFILES_DIR: str = os.environ.get("LIMA_PROFILES_DIR", "/tmp/lima_profiles")

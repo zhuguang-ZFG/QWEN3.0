@@ -19,6 +19,7 @@
 | `device_gateway/mqtt_client.py:81` | 81 | `routes.device_gateway_ws_handlers` lazy import（`handle_motion_event`） | 运行时反向依赖 | 引入事件处理协议接口后消除 |
 | `ruff.toml` | — | F401 未加入全局门禁，仅豁免已知 re-export 文件 | ~115 个生产 F401 残留为整洁度噪音 | 引入 `pyright --verifytypes` 或逐文件清理后启用 F401 门禁 |
 | `check_code_size.py` 残留 | — | 12 个 51-54 行函数未拆分（scripts/tests/MCP/xiaozhi） | 单函数轻微超标 1-4 行，非核心生产路径 | 触发下一个生产函数超 50 行时一并清理 |
+| `client_keys/quota.py:33` | 33 | RPM 限流使用进程内内存滑动窗口 | 多 uvicorn worker 时实际 RPM 上限 ≈ limit × worker 数；重启丢失窗口 | 启用 Redis 共享 RPM 计数或 worker 数 >1 且 client-keys 流量高时升级 |
 
 ## 待处理项
 

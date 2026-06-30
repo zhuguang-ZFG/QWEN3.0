@@ -127,6 +127,10 @@ def _register_admin_and_static_routes(app: FastAPI, deps: RouteRegistryDeps) -> 
 
     app.include_router(admin_v1_auth_router)
 
+    from routes.client_keys import router as client_keys_router
+
+    app.include_router(client_keys_router)
+
     from routes.static_files import router as static_files_router
     from routes.upload import router as upload_router
 
