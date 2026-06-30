@@ -1,5 +1,23 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 阿里云/京东云深度清理与性能优化（续）
+
+- **阿里云深度清理**：
+  - 删除 `/opt/netdata`（1.2G）、`/opt/miniconda`（520M）、`/opt/new-api`（96M）、`/opt/one-api`/`one-api-data`、`/opt/deepseek-free-api`、`/opt/lima-searxng`、`/opt/lima-router/deepcode-cli`（227M）、`/www/backup/donglicao-20260405-160140`（461M）、`/root/.npm`（199M）、`/root/.cache`、`/tmp/openclaw`（48M）、旧 `lima-router.backup.*` tarballs（26M）。
+  - `podman system prune -a -f` 回收 883MB；`journalctl --vacuum-size=50M` 与 `/var/log/messages`、`lima-monitor.log`、`reverse_proxy_keepalive.log` 等 truncate。
+  - 磁盘：根分区 `/dev/vda3` 从 78% → **67%**（40G 中 25G 已用，可用 13G）。
+- **阿里云性能优化**：
+  - 为 `litestream` 编写并启用 systemd service（`/etc/systemd/system/litestream.service`），设置 `MemoryMax=512M`、`Restart=always`。
+  - `systemctl restart lima-router` 释放 leaked 内存；部署后 `/health` status=ok、startup=ready。
+  - 部署 `/etc/logrotate.d/lima`（daily, rotate 7, maxsize 50M, copytruncate）与 `/etc/systemd/journald.conf.d/lima.conf`（`SystemMaxUse=200M`）。
+  - 资源快照：内存 total 1.8G / used 1.0G~1.4G / available 420M~850M（波动），swap used 1.7G~2.2G/5G，loadavg ~4~5；`lima-router` RSS ~280M~545M，`litestream` RSS ~150M~330M（受 512M cap 限制）。
+- **京东云深度清理**：
+  - 删除 `/opt/google/chrome`（403M）、`/root/.openclaw`（64M）、`/root/.cache`（615M）、`/root/go/pkg/mod`（745M）、`/opt/lima-monitoring` 旧 tarballs（约 125M）。
+  - `apt-get clean`、`journalctl --vacuum-size=50M`、日志清理、`docker system prune -f`。
+  - 磁盘：根分区从 33% → **30%**（59G 中 17G 已用，可用 40G）。
+- **京东云 retention 优化**：部署 `/etc/logrotate.d/lima` 与 `/etc/systemd/journald.conf.d/lima.conf`（`SystemMaxUse=200M`）。
+- **遗留**：阿里云仍存在一个 D-state `grep` 进程（扫描 mission-server 端口），预计会在 I/O 空闲后退出；若长期卡死，建议低峰期重启。
+
 ## 2026-06-30 VPS 容量危机缓解 + 京东云迁移评估
 
 - **Litestream 启动失败修复**：

@@ -11,7 +11,7 @@
 > Tests: 全量 **4249 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout` 与 `httpx2`，pytest warnings 已清零。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
-> ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **78%**（40G 中 30G 已用），`litestream` 备份已恢复，内存可用升至 ~650M，load average 从 6+ 降至 ~4.5。登录超时风险显著降低。京东云节点已完成深度清理（磁盘 51% → 33%，可用内存升至 1072M）。
+> ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **67%**（40G 中 25G 已用，释放约 5G），`litestream` 已纳入 systemd 管理并设置 `MemoryMax=512M`，内存可用约 420M~850M（随负载波动），load average 4~5。京东云节点已完成深度清理（磁盘 33% → **30%**，59G 中 17G 已用，释放约 2G）。登录超时风险显著降低。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
 > CI/CD：`.github/workflows/test.yml` ✅、`.github/workflows/deploy.yml` ✅、`.github/workflows/deploy-site-v2.yml` ✅、`.github/workflows/deploy-docs-site.yml` ✅（全部绿灯）；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（secrets 待配置）。
@@ -20,6 +20,22 @@
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-30）阿里云/京东云深度清理与性能优化
+
+- **阿里云深度清理**：
+  - 下线并删除非核心/退役目录：`/opt/netdata`（1.2G）、`/opt/miniconda`（520M）、`/opt/new-api`（96M）、`/opt/one-api`/`one-api-data`、`/opt/deepseek-free-api`、`/opt/lima-searxng`、`/opt/lima-router/deepcode-cli`（227M）、`/www/backup/donglicao-20260405-160140`（461M）、`/root/.npm`（199M）、`/root/.cache`、`/tmp/openclaw`（48M）、旧 `lima-router.backup.*`  tarballs（26M）。
+  - `podman system prune -a -f` 回收 883MB；`journalctl --vacuum-size=50M` 与日志 truncate 释放数百 MB。
+  - 结果：根分区从 78% → **67%**（40G 中 25G 已用，可用 13G）。
+- **阿里云性能优化**：
+  - `litestream` 纳入 systemd 管理（`/etc/systemd/system/litestream.service`），设置 `MemoryMax=512M` 防止内存无限增长；`lima-router` 重启释放 leaked 内存。
+  - 部署 logrotate 配置 `/etc/logrotate.d/lima` 与 journald 限制 `/etc/systemd/journald.conf.d/lima.conf`（`SystemMaxUse=200M`）。
+  - 结果：内存 `used 1.4G / available 420M~850M`（波动），`lima-router` 与 `litestream` 均 active；`/health` status=ok。
+- **京东云深度清理**：
+  - 删除 `/opt/google/chrome`（403M）、`/root/.openclaw`（64M）、`/root/.cache`（615M，含 547M go-build）、`/root/go/pkg/mod`（745M）、`/opt/lima-monitoring` 旧 tarballs（125M）。
+  - `journalctl --vacuum-size=50M`、日志清理、`apt-get clean`、`docker system prune -f`。
+  - 结果：根分区从 33% → **30%**（59G 中 17G 已用，可用 40G）；`new-api`/`qwen2api` 容器保持运行。
+- **京东云 retention 优化**：部署 `/etc/logrotate.d/lima` 与 `/etc/systemd/journald.conf.d/lima.conf`（`SystemMaxUse=200M`）。
 
 ### 最近完成（2026-06-30）微信小程序登录超时排查
 

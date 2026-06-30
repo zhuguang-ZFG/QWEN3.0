@@ -1,5 +1,21 @@
 # LiMa Findings
 
+## 2026-06-30 阿里云/京东云深度清理与性能优化结论
+
+- **清理收益（阿里云）**：根分区从 78% → **67%**（40G 中 25G 已用），共释放约 5G。
+  - 最大项：`/opt/netdata` 1.2G、`/opt/miniconda` 520M、`/opt/lima-router/deepcode-cli` 227M、`/root/.npm` 199M、`/www/backup/donglicao-20260405-160140` 461M、Podman prune 883M。
+  - 退役服务残留：`/opt/new-api`、`/opt/one-api`、`/opt/one-api-data`、`/opt/deepseek-free-api`、`/opt/lima-searxng`、`/tmp/openclaw` 均已删除。
+- **清理收益（京东云）**：根分区从 33% → **30%**（59G 中 17G 已用），共释放约 2G。
+  - 最大项：`/root/go/pkg/mod` 745M、`/root/.cache` 615M、`/opt/google/chrome` 403M、监控 tarballs 125M。
+- **性能/稳定性措施**：
+  - `litestream` 已纳入 systemd 并设置 `MemoryMax=512M`，防止其像之前一样 RSS 涨到 500M+ 且无约束。
+  - `lima-router` 重启后内存回到正常基线；后续需持续观察 RSS 是否再次持续上涨。
+  - 两节点均配置 logrotate 与 journald `SystemMaxUse=200M`，避免日志再次膨胀。
+- **仍存风险**：
+  - 阿里云主 VPS 内存仅 1.8G，正常运行时可用内存 400M~850M，仍偏紧；loadavg 4~5 主要由历史 I/O 压力与 kswapd 贡献。
+  - 一个 D-state `grep` 进程仍在扫描 mission-server 相关端口，预计会自行退出；如长期挂死，低峰期重启可清除。
+  - 京东云 3.8G 内存中 2.7G 已用，可用 1.1G，但无 swap；继续叠加常驻服务需谨慎。
+
 ## 2026-06-30 VPS 容量危机与京东云分担评估
 
 - **Litestream 曾是磁盘占用的直接元凶**：`lsof +L1` 显示 litestream 持有 `/opt/lima-router/data/agent_tasks.db` 的已删除 WAL，累计约 12.9G。重启 litestream 后释放约 6G，磁盘从 98% → 81%。
