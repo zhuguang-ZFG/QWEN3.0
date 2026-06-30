@@ -18,6 +18,16 @@
 - **状态**：**已完成** — PR #22 已合并到 `main`，PR #1 已关闭，分支 `feat/client-keys-v2` 已清理。
 - **生产部署**：`python scripts/deploy_unified.py --slice core`，868 文件上传成功，服务重启；`https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3","startup":{"status":"ready"}}`。
 
+## 2026-06-30 修复 pytest timeout 配置 warning
+
+- **目标**：消除全量 pytest 运行时的 `PytestConfigWarning: Unknown config option: timeout / timeout_func_only / timeout_method` 警告。
+- **根因**：`pytest.ini` 配置了 timeout 相关选项，但 `.venv310` 和 CI 均未安装 `pytest-timeout`。
+- **修复**：
+  - 在 `.venv310` 安装 `pytest-timeout~=2.0`。
+  - 更新 `.github/workflows/test.yml` 的 pip install 命令，加入 `pytest-timeout`。
+- **验证**：`.venv310/Scripts/python.exe -m pytest -q` → **4249 passed / 3 skipped / 2 deselected / 0 failed**，timeout 相关 warnings 已消除。
+- **提交**：`b5e18e1e`。
+
 ## 2026-06-30 依赖更新 VPS 部署
 
 - **目标**：将依赖更新（redis 8.0.1、python-dotenv 1.2.2、uvicorn 0.49）部署到生产 VPS。

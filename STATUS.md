@@ -9,7 +9,7 @@
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
 > Tests: 全量 **4249 passed / 3 skipped / 2 deselected / 0 failed**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
-> 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。
+> 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout`，pytest 的 timeout 配置 warning 已消除。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
