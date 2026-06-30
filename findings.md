@@ -1,5 +1,27 @@
 # LiMa Findings
 
+## 2026-06-30 VPS 容量危机与京东云分担评估
+
+- **Litestream 曾是磁盘占用的直接元凶**：`lsof +L1` 显示 litestream 持有 `/opt/lima-router/data/agent_tasks.db` 的已删除 WAL，累计约 12.9G。重启 litestream 后释放约 6G，磁盘从 98% → 81%。
+- **Litestream 启动失败根因**：`litestream.yml` 中 4 个 `s3` replica 引用了未配置的 `${LITESTREAM_S3_BUCKET}` 等环境变量，导致 `bucket required for s3 replica`。重写为纯 file replica 并移除不存在的 DB 后恢复。
+- **清理收益**：删除已停止容器 `one-api`/`new-api`/`lima-searxng` + journal  vacuum 后，磁盘进一步降至 **80%**。
+- **主 VPS 仍紧绷**：loadavg 8+、内存可用 518M、swap 活跃。登录超时是资源瓶颈与代码超时的叠加结果；仅提升客户端 timeout 不能根治。
+- **京东云可分担空间**：节点已较重（new-api/MySQL/Redis/Prometheus/browser/Worker），可用内存 ~558M。适合继续承接**无状态/低内存**侧载，不适合再压常驻重服务。
+- **迁移候选结论**：
+  - 可立即下线/迁移：`lima-openobserve`（未启用）、`one-api`/`new-api`（已迁京东云，主节点容器已删）、`ai-router`/`hermes-api`/`lima-scnet-reverse`（需二次确认）。
+  - 需谨慎评估：`mission-server`（DLC 写字机任务队列，有 Postgres 数据卷与端口依赖）。
+  - 不可迁移：`lima-router`、`redis`、`nginx`、`litestream`、`kimi-proxy`、`lima-voice`。
+
+## 2026-06-30 京东云深度清理
+
+- **登录**：通过 `D:/Downloads/VPS.txt` 中的凭据登录京东云 `117.72.118.95` 成功；该凭据未写入仓库或对话产物。
+- **磁盘大幅释放**：根分区从 **51% → 33%**。
+  - `/opt/llm-cache/venv`（5.1G）被删除：systemd unit 直接调用系统 `/usr/bin/python3`，venv 实际未被使用，删除后服务仍可正常启动。
+  - `pip` 缓存约 2.8G、`npm` 缓存约 1.6G、`apt` 缓存与旧轮转日志被清理。
+  - 停用并移除 `qwen-gateway` 及其目录。
+- **内存优化**：`mimo-proxy`、`tts-proxy`、`lima-voice`、`hermes-api` 均无外部连接，停止并禁用后可用内存从 ~932M 升至 **1072M**。
+- **核心服务未受影响**：`new-api` / `qwen2api`（Docker）、MySQL、Redis、Prometheus、`jdcloud-worker`、`lima-probe-browser`、`llm-cache`、`nginx` 保持运行。
+
 ## 2026-06-30 依赖更新 VPS 部署验证
 
 - **redis 8.0.1 + python-dotenv 1.2.2 + uvicorn 0.49** 已部署到生产 VPS（`deploy_unified.py --slice core`，862 文件）。

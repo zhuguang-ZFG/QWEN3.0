@@ -1,5 +1,35 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 VPS 容量危机缓解 + 京东云迁移评估
+
+- **Litestream 启动失败修复**：
+  - 根因：`/opt/lima-router/litestream.yml` 中残留 4 个未配置环境变量的 `s3` replica（`${LITESTREAM_S3_BUCKET}` 等为空），litestream 启动即报错 `bucket required for s3 replica`。
+  - 操作：备份旧配置，重写为仅 `file` replica；移除不存在的 `tool_audit.db`/`mastery_loop.db`；重启后 `systemctl status litestream` → active；`litestream generations` 对 5 个现存 DB 正常返回。
+- **磁盘紧急清理**：
+  - 重启 `litestream` 释放其持有的已删除 WAL 文件（约 6G）。
+  - 删除已停止的 Podman 容器 `one-api` / `new-api` / `lima-searxng`。
+  - `journalctl --vacuum-size=500M` 释放归档日志 536M。
+  - 结果：根分区从 **98% → 80%**（40G 中 30G 已用）。
+- **当前资源快照（主 VPS）**：
+  - CPU loadavg ~8，内存 total 1.8G / used 1.35G / available 518M，swap 已用 1.35G/5G。
+  - 核心 `lima-router` RSS ~363M；`litestream` RSS ~66M；容器 `mission-server`*3 + `lima-openobserve` 仍在运行。
+- **京东云节点现状**：
+  - 已运行 `new-api`、probe、MySQL、Redis、Prometheus、browser helper、轻量 Worker；可用内存仅 ~558M（3.9G total）。
+  - 通过 `D:/Downloads/VPS.txt` 中的凭据登录成功，并已完成深度清理（详见下方）。
+- **京东云深度清理（2026-06-30）**：
+  - 磁盘：根分区从 **51% → 33%**（59G 中 19G 已用）。删除未使用的 `/opt/llm-cache/venv`（5.1G）、清理 `pip`/`npm`/`apt` 缓存与旧轮转日志、移除停用服务 `qwen-gateway`。
+  - 内存：停止并禁用无外部连接的侧边服务 `mimo-proxy`、`tts-proxy`、`lima-voice`、`hermes-api`，可用内存从 ~932M 提升至 **1072M**。
+  - 保留：`new-api` / `qwen2api`（Docker）、`mysql`、`redis-server`、`prometheus`、`jdcloud-worker`、`lima-probe-browser`、`llm-cache`、`nginx` 均保持运行。
+- **可迁移/清理候选（按风险排序）**：
+  1. **低风险清理**：`ai-router.service`（旧版 AI Router v2.1，nginx 已不反代，RSS 仅 2.6M，但需确认无内部调用）、`hermes-api.service`（nginx 当前不暴露 `/hermes/`，日志为空）、`lima-scnet-reverse.service`（描述为 disabled adapter shell）。
+  2. **中风险迁移/清理**：`lima-openobserve` 容器（`OPENOBSERVE_ENABLED=0` 默认关闭，LiMa 未启用；镜像 324M）。
+  3. **高风险迁移（需业务确认）**：`mission-server`（`mission-db`/`mission-api`/`mission-worker`，` /opt/autolook/parallel-ai/mission-server`，与 DLC 写字机任务相关，Port 58000/55432；需先确认是否仍有客户端依赖）。
+  4. **不建议迁移**：`lima-router`、`redis`、`nginx`、`litestream`、`kimi-proxy`、`lima-voice` 与公网入口或设备实时路径强相关。
+- **待办**：
+  - 上传微信小程序新版本（已构建未上传）。
+  - 确认京东云 SSH 凭据后，可实施低风险清理与中风险容器迁移/下线。
+  - 若 `mission-server` 仍在为写字机业务服务，需制定带数据迁移的双节点方案，而非直接关停。
+
 ## 2026-06-30 client-keys 功能重写（替代 PR #1）
 
 - **目标**：基于当前 `main` 重写客户端密钥管理功能，解决 PR #1 的合并冲突、范围失控、尺寸超限、配额多 worker 一致性等问题。

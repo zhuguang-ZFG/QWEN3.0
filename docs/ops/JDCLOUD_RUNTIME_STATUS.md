@@ -18,6 +18,20 @@ https://chat.donglicao.com/v1
 The JDCloud node must not become a second public API surface without a separate
 design, security review, and smoke plan.
 
+## 2026-06-30 深度清理
+
+按用户要求对京东云节点执行深度清理：
+
+- **磁盘**：根分区从 **51% → 33%**（59G 中 19G 已用）。
+  - 删除 `/opt/llm-cache/venv`（5.1G）：该 venv 未被 systemd unit 使用，`llm-cache.service` 直接调用系统 `/usr/bin/python3`，删除后服务仍可正常启动。
+  - `pip3 cache purge` 释放 556 个缓存文件（约 2.8G）。
+  - `npm cache clean --force` 清理 npm 缓存（约 1.6G）。
+  - 清理 `/var/log/auth.log.1` 等旧轮转日志。
+  - `apt-get clean` 清理 apt 缓存。
+  - 移除已停用的 `qwen-gateway` 及其 `/opt/qwen-gateway` 目录。
+- **内存**：停止并禁用无外部连接的侧边服务 `mimo-proxy`、`tts-proxy`、`lima-voice`、`hermes-api`，可用内存从约 932M 提升至 **1072M**。
+- **保留服务**：`new-api`（Docker）、`qwen2api`（Docker）、`mysql`、`redis-server`、`prometheus`、`jdcloud-worker`、`lima-probe-browser`、`llm-cache`、`nginx` 均保持运行。
+
 ## Current Role
 
 | Item | Status |
