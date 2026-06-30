@@ -11,9 +11,10 @@
 - **验证结果**：
   - `curl http://127.0.0.1:8080/health` → `status=ok`、`startup=ready`。
   - `POST /v1/chat/completions`（`gpt-3.5-turbo`，max_tokens=5）→ HTTP 200，后端 `scnet_ds_flash`，总耗时 9.5s。
-- **资源对比（约运行 4 分钟后）**：
+- **资源对比（约运行 7 分钟后，已删除 qwen2api）**：
   - 阿里云：`loadavg ~2`、`mem available 544M`、`disk 56%`。
-  - 京东云：`loadavg ~0.03`、`mem available 908M`、`lima-router-pilot` RSS 227M、`disk 31%`。
+  - 京东云：`loadavg ~0.11`、`mem available 984M`、`lima-router-pilot` RSS 252M、`disk 28%`。
+- **qwen2api 删除**：停止并移除 Docker 容器/镜像，删除 `/opt/qwen2api*` 目录，释放约 2G 磁盘；nginx `api.donglicao.com` 中 `/compatible-mode/v1/chat/completions` 反代配置已移除。
 - **遗留问题/下一步**：
   - 部分后端 probe 报 `ConnectError`，但核心路由可用；可能与京东云网络白名单或 .env 代理配置有关，不影响 pilot 结论。
   - 若决定正式迁移，需制定 DNS + HTTPS 证书 + nginx 切换方案，并做回滚演练。

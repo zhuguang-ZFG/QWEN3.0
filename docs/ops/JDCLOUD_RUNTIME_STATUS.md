@@ -30,7 +30,7 @@ design, security review, and smoke plan.
   - `apt-get clean` 清理 apt 缓存。
   - 移除已停用的 `qwen-gateway` 及其 `/opt/qwen-gateway` 目录。
 - **内存**：停止并禁用无外部连接的侧边服务 `mimo-proxy`、`tts-proxy`、`lima-voice`、`hermes-api`，可用内存从约 932M 提升至 **1072M**。
-- **保留服务**：`new-api`（Docker）、`qwen2api`（Docker）、`mysql`、`redis-server`、`prometheus`、`jdcloud-worker`、`lima-probe-browser`、`llm-cache`、`nginx` 均保持运行。
+- **保留服务**：`new-api`（Docker）、`mysql`、`redis-server`、`prometheus`、`jdcloud-worker`、`lima-probe-browser`、`llm-cache`、`nginx` 均保持运行。`qwen2api` 已按用户要求删除。
 
 ## 2026-06-30 LiMa Router 并行试点
 
@@ -180,15 +180,13 @@ probe 结果回写与异地观测：
 | 资源 | 值 | 评估 |
 |---|---|---|
 | CPU | 2 vCPU（Intel Xeon E5-2683 v4 @ 2.10GHz）| 负载极低（loadavg ~0.02），有充足算力 |
-| 内存 | 总计 3.9 GB / 可用 558 MB | 已运行 new-api、MySQL、Redis、Prometheus、browser helper；可用内存偏紧，新增 worker 需谨慎 |
-| 磁盘 | 59 GB 总量 / 26 GB 可用 | 充足 |
+| 内存 | 总计 3.9 GB / 可用 984 MB | 已运行 new-api、MySQL、Redis、Prometheus、browser helper、lima-router-pilot；仍有充足余量 |
+| 磁盘 | 59 GB 总量 / 41 GB 可用 | 充足 |
 | 网络 | 公网 IP `117.72.118.95`、Tailscale `100.85.114.65` | 具备出站能力；443/80 由 nginx 占用 |
-| 主要服务 | new-api:3000、qwen2api:7862、MySQL:3306、Redis:6379、Prometheus、browser:8092 | 端口占用较多，新增公开入口需避免冲突 |
+| 主要服务 | new-api:3000、MySQL:3306、Redis:6379、Prometheus、browser:8092、lima-router-pilot:8080 | 端口占用较多，新增公开入口需避免冲突 |
 | Probe 推送 | `lima-probe-push.timer` active | Phase 1 运行正常 |
 
-**结论**：京东云当前负载轻，可作为低价/免费后代的出站代理；但内存余量仅约 500MB，
-Phase 2 设计应采用轻量反向代理/Worker 模式，不常驻重负载服务，且需要严格的内存与
-连接数上限。
+**结论**：京东云当前负载轻、内存充足，已成功并行运行 `lima-router-pilot`；在保持现有服务前提下，仍有约 900M 可用内存，可支撑正式迁移或作为热备节点。
 
 ## Phase 2 Worker 部署与端到端证据（2026-06-27）
 

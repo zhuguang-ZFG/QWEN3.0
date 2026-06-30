@@ -5,11 +5,12 @@
 - **试点结论**：京东云节点 `117.72.118.95` 可以稳定运行 `lima-router`。
   - 安装 Python 3.10 + venv + 生产 `.env` 后，服务在 8080 端口启动成功，`/health` ready。
   - 真实 `/v1/chat/completions` 请求返回 200，由 `scnet_ds_flash` 后端成功响应，说明路由、后端调用、密钥配置均工作正常。
-- **资源表现优于阿里云**：
-  - 京东云：`loadavg ~0.03`，`mem available ~908M`（含 pilot RSS ~227M），无 swap。
+- **资源表现优于阿里云（删除 qwen2api 后）**：
+  - 京东云：`loadavg ~0.11`，`mem available ~984M`（含 pilot RSS ~252M），无 swap。
   - 阿里云：`loadavg ~2`，`mem available ~544M`，swap 占用 1.3G/5G。
+- **qwen2api 删除**：释放约 2G 磁盘；nginx `api.donglicao.com` 中 `/compatible-mode/v1/chat/completions` 反代配置已移除。
 - **迁移可行性**：
-  - **可行**：京东云 4G 内存 + 59G 磁盘足够承载 `lima-router`；当前还运行 new-api/qwen2api/MySQL/Redis/Prometheus，仍有 900M+ 可用内存。
+  - **可行**：京东云 4G 内存 + 59G 磁盘足够承载 `lima-router`；当前运行 new-api/MySQL/Redis/Prometheus/lima-router-pilot，仍有约 900M+ 可用内存。
   - **风险**：京东云无 swap，若再叠加其他常驻服务，内存缓冲变小；部分后端 probe 出现 `ConnectError`，需确认是否为京东云网络策略或 .env 代理配置导致。
   - **必须完成的工作**：正式迁移前需要 DNS 切换（`chat.donglicao.com` → 京东云 IP）、HTTPS 证书与 nginx 配置、SQLite 数据/备份迁移、回滚演练。
 - **建议**：可进入正式迁移规划；若不想立即迁移，也可将京东云作为热备节点，保持 pilot 运行并定期同步代码。

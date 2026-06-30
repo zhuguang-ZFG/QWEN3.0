@@ -27,9 +27,10 @@
 - **验证**：
   - `/health` 返回 `status=ok`、`startup=ready`。
   - 真实 `/v1/chat/completions` 请求返回 200，由 `scnet_ds_flash` 后端响应。
-- **资源对比（2026-06-30 19:52）**：
+- **资源对比（2026-06-30 19:55，已删除 qwen2api）**：
   - 阿里云：`loadavg ~2`、`mem available 544M`、`disk 56%`。
-  - 京东云：`loadavg ~0.03`、`mem available 908M`（含 pilot RSS 227M）、`disk 31%`。
+  - 京东云：`loadavg ~0.11`、`mem available 984M`（含 pilot RSS 252M）、`disk 28%`。
+- **qwen2api 已删除**：停止并移除 Docker 容器与镜像，删除 `/opt/qwen2api`、`/opt/qwen2api-data`、`/opt/qwen2api-caches`，释放约 2G 磁盘；nginx `api.donglicao.com` 中 `/compatible-mode/v1/chat/completions` 反代配置已移除。
 - **结论**：京东云 4G 内存节点运行 `lima-router` 完全可行，资源余量明显优于阿里云；迁移前还需完成公网入口（DNS + HTTPS + nginx）切换方案与回滚演练。
 
 ### 最近完成（2026-06-30）阿里云/京东云深度清理与性能优化
