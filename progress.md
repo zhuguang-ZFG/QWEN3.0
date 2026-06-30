@@ -11,8 +11,9 @@
   - `journalctl --vacuum-size=500M` 释放归档日志 536M。
   - 结果：根分区从 **98% → 80%**（40G 中 30G 已用）。
 - **当前资源快照（主 VPS）**：
-  - CPU loadavg ~8，内存 total 1.8G / used 1.35G / available 518M，swap 已用 1.35G/5G。
-  - 核心 `lima-router` RSS ~363M；`litestream` RSS ~66M；`lima-openobserve` 已清理；容器 `mission-server`*3 仍在运行。
+  - CPU loadavg ~4.5–5，内存 total 1.8G / used ~1.2G / available ~640M，swap 已用 ~2G/5G。
+  - 核心 `lima-router` RSS ~363M；`litestream` RSS ~66M；`lima-openobserve` 已清理；已退役的 `openclaw-gateway` 用户 systemd 服务已停止并禁用（此前处于每秒无限重启循环，产生大量 404 日志）。
+  - 容器 `mission-server`*3 仍在运行；其唯一可见调用方即 `openclaw-gateway`，且全部返回 404。
 - **京东云节点现状**：
   - 已运行 `new-api`、probe、MySQL、Redis、Prometheus、browser helper、轻量 Worker；可用内存仅 ~558M（3.9G total）。
   - 通过 `D:/Downloads/VPS.txt` 中的凭据登录成功，并已完成深度清理（详见下方）。
