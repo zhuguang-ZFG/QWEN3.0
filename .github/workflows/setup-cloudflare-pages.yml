@@ -1,0 +1,114 @@
+name: Setup Cloudflare Pages Projects
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Pages projects and DNS
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import json
+          import urllib.request
+          import urllib.error
+
+          TOKEN = os.environ["CLOUDFLARE_API_TOKEN"]
+          ACCOUNT_ID = os.environ["CLOUDFLARE_ACCOUNT_ID"]
+          ZONE_NAME = "donglicao.com"
+
+          PROJECTS = [
+              ("lima-docs", "docs"),
+              ("lima-www", "www"),
+              ("lima-chat-web", "app"),
+          ]
+
+          def api_call(method, url, data=None):
+              req = urllib.request.Request(
+                  url,
+                  method=method,
+                  headers={
+                      "Authorization": f"Bearer {TOKEN}",
+                      "Content-Type": "application/json",
+                  },
+              )
+              if data is not None:
+                  req.data = json.dumps(data).encode("utf-8")
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      return json.loads(resp.read().decode("utf-8"))
+              except urllib.error.HTTPError as e:
+                  body = e.read().decode("utf-8")
+                  return json.loads(body)
+
+          # Get zone ID
+          zones = api_call(
+              "GET",
+              f"https://api.cloudflare.com/client/v4/zones?name={ZONE_NAME}",
+          )
+          if not zones.get("success") or not zones.get("result"):
+              raise RuntimeError(f"Failed to find zone {ZONE_NAME}: {zones}")
+          zone_id = zones["result"][0]["id"]
+          print(f"Zone ID: {zone_id}")
+
+          # Create/update Pages projects
+          for project_name, _ in PROJECTS:
+              url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/pages/projects"
+              result = api_call(
+                  "POST",
+                  url,
+                  {"name": project_name, "production_branch": "main"},
+              )
+              if result.get("success"):
+                  print(f"Created Pages project {project_name}")
+              elif result.get("errors") and any(
+                  e.get("code") == 1003 for e in result["errors"]
+              ):
+                  print(f"Pages project {project_name} already exists")
+              else:
+                  raise RuntimeError(f"Failed to create {project_name}: {result}")
+
+          # Create/update DNS CNAME records
+          for project_name, subdomain in PROJECTS:
+              target = f"{project_name}.pages.dev"
+              records = api_call(
+                  "GET",
+                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?type=CNAME&name={subdomain}.{ZONE_NAME}",
+              )
+              data = {
+                  "type": "CNAME",
+                  "name": subdomain,
+                  "content": target,
+                  "proxied": True,
+              }
+              if records.get("success") and records.get("result"):
+                  record_id = records["result"][0]["id"]
+                  result = api_call(
+                      "PATCH",
+                      f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}",
+                      data,
+                  )
+                  action = "Updated"
+              else:
+                  result = api_call(
+                      "POST",
+                      f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records",
+                      data,
+                  )
+                  action = "Created"
+              if not result.get("success"):
+                  raise RuntimeError(f"Failed to set DNS for {subdomain}: {result}")
+              print(f"{action} DNS {subdomain}.{ZONE_NAME} -> {target}")
+          PY
