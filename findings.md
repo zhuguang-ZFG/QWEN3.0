@@ -2970,3 +2970,41 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 - 添加属性 `https://www.donglicao.com`（网域或 URL 前缀均可）。
 - 验证所有权（推荐 DNS TXT 记录，Cloudflare 直接加一条 TXT 即可）。
 - 在“站点地图”中提交 `https://www.donglicao.com/sitemap.xml`。
+
+## 2026-06-30 chat-web 资源哈希 + site-v2 图片 AVIF/WebP 懒加载
+
+**chat-web 资源哈希**
+- 新增 `chat-web/scripts/hash-assets.mjs`：在部署前把 `js/*.js` 和 `styles.css` 重命名为 `name.<hash>.ext`，并改写 HTML 引用。
+- 更新 `chat-web/_headers`：所有 `*.js` / `*.css` 设置 `Cache-Control: public, max-age=31536000, immutable`。
+- 更新 `.github/workflows/deploy-chat-web.yml`：Node 22 环境 → build → deploy `chat-web/dist`。
+- 验证：`app.donglicao.com` HTML 引用的 CSS/JS 均带哈希，`Cache-Control` 为 1 年 immutable。
+
+**site-v2 图片优化**
+- 安装 `sharp` 作为 devDependency。
+- 新增 `donglicao-site-v2/scripts/optimize-images.mjs`，为 `public/assets/` 下的栅格图生成 AVIF 和 WebP 变体。
+- 新增 `OptimizedImage.tsx` 组件：渲染 `<picture>`，优先 AVIF，回退 WebP，再回退原图；非首屏默认 `loading="lazy"`、`decoding="async"`。
+- 替换 Hero、Products、Scenarios、ProductPage、Footer 中的 `next/image` 为 `OptimizedImage`。
+- 生成并提交：`hero.avif`、`product-*.avif`、`scene-*.avif`、`wechat-qr.avif`/`webp`。
+- 验证：站点 HTML 出现 `<picture><source srcSet="/assets/hero.avif" ...>`，非首屏图片 `loading="lazy"`，AVIF 文件 `Content-Type: image/avif`。
+
+**Cloudflare Cache Rules（待 Dashboard 手动配置）**
+当前 API Token 无 `Zone:Cache Rules:Edit` 权限，需在 Cloudflare Dashboard 手动添加：
+
+1. **Pages 静态资源长缓存**
+   - 路径：Caching → Cache Rules → Create rule
+   - Expression：
+     ```
+     (http.host in {"www.donglicao.com" "app.donglicao.com" "docs.donglicao.com"} and (
+       http.request.uri.path contains "/_next/static/" or
+       http.request.uri.path contains "/assets/" or
+       endsWith(http.request.uri.path, ".js") or
+       endsWith(http.request.uri.path, ".css") or
+       endsWith(http.request.uri.path, ".avif") or
+       endsWith(http.request.uri.path, ".webp")
+     ))
+     ```
+   - Action：Cache / Edge TTL：30 days / Browser TTL：1 year
+
+2. **API /health 短缓存**
+   - Expression：`http.host eq "chat.donglicao.com" and http.request.uri.path eq "/health"`
+   - Action：Cache / Edge TTL：5 seconds / Browser TTL：5 seconds

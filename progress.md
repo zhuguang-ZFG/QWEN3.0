@@ -11351,3 +11351,22 @@ uff check 2 文件 clean；导入无循环依赖。
   - `curl https://www.donglicao.com/robots.txt` 包含 `Sitemap: https://www.donglicao.com/sitemap.xml`。
   - HTML canonical 已改为 `https://www.donglicao.com/`。
 - **待用户操作**：在 Google Search Console 添加属性 `https://www.donglicao.com` 并提交 sitemap。
+
+## 2026-06-30 chat-web 资源哈希与 site-v2 图片优化
+
+- **chat-web 哈希构建**
+  - 新增 `chat-web/scripts/hash-assets.mjs`，部署时给 `js/*.js` 和 `styles.css` 加内容哈希。
+  - 更新 `chat-web/_headers`，哈希后的 JS/CSS 缓存 1 年 immutable。
+  - 更新 `.github/workflows/deploy-chat-web.yml` 执行 build 后部署 `chat-web/dist`。
+  - 验证：`login.html` 引用 `styles.<hash>.css`、`js/config.<hash>.js`，响应头 `max-age=31536000, immutable`。
+
+- **site-v2 图片 AVIF/WebP + 懒加载**
+  - `npm install -D sharp`。
+  - 新增 `donglicao-site-v2/scripts/optimize-images.mjs` 生成 AVIF/WebP 变体。
+  - 新增 `OptimizedImage.tsx` 组件，输出 `<picture>` + 默认 lazy loading。
+  - 替换 Hero、Products、Scenarios、ProductPage、Footer 中的图片组件。
+  - 验证：HTML 出现 `<picture><source srcSet="/assets/hero.avif" ...>`，非首屏 `loading="lazy"`。
+
+- **Cloudflare Cache Rules**
+  - API Token 无 Cache Rules 权限，已整理 Dashboard 配置步骤写入 `findings.md`。
+  - 待用户在 Cloudflare Dashboard 手动添加 Pages 静态资源长缓存与 `/health` 短缓存两条规则。
