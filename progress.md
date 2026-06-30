@@ -11271,3 +11271,4 @@ uff check 2 文件 clean；导入无循环依赖。
   - JDCloud `/opt/lima-router/.env` 已追加 `LIMA_CORS_ORIGINS=https://app.donglicao.com,https://chat.donglicao.com`，`lima-router` 重启后 `/health` ready。
   - Aliyun VPS 上 `/var/www/chat`、`/www/wwwroot/docs-site`、`/www/wwwroot/donglicao-site` 已移动到 `.bak.pages-migration` 备份；`/etc/nginx/conf.d/www.donglicao.com.conf` 已移出 active；nginx 配置测试与 reload 成功。
   - 从 `app.donglicao.com` 发起 POST 到 `chat.donglicao.com/v1/chat/completions` 返回 401（CORS 通过，仅因 token 无效），证明跨域 API 调用可用。
+  - 备份目录已彻底删除，释放约 **37.7 MB**；Aliyun 根分区 `/` 当前使用率为 52%（40G 中 20G 已用）。

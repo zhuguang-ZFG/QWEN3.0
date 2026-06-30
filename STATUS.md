@@ -1374,7 +1374,7 @@ ruff check: clean（触及文件）
 | Chat Web | `app.donglicao.com` | Cloudflare Pages (`lima-chat-web`) | ✅ 200 OK；API 指向 `chat.donglicao.com` |
 
 - **自动化部署**：`.github/workflows/deploy-{docs-site,site-v2,chat-web}.yml` 按路径触发 push 到 Pages。
-- **已收尾**：JDCloud `.env` 已配置 `LIMA_CORS_ORIGINS=https://app.donglicao.com,https://chat.donglicao.com` 并重启；Aliyun 旧静态文件与 `www.donglicao.com` nginx 配置已清理。
+- **已收尾**：JDCloud `.env` 已配置 `LIMA_CORS_ORIGINS=https://app.donglicao.com,https://chat.donglicao.com` 并重启；Aliyun 旧静态文件与 `www.donglicao.com` nginx 配置已清理，备份目录也已删除，释放约 37.7 MB。
 
 ## 代码质量
 
