@@ -11085,3 +11085,10 @@ uff check 2 文件 clean；导入无循环依赖。
 - **仍开放 PR**：
   - #18 `alibabacloud-nls-python-sdk >=1.0 → >=1.0.2`（小版本补丁，安全，可合并）
   - #1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`（用户功能 PR，需决策）
+
+## 2026-06-30 合并 dependabot 安全补丁 PR #18
+
+- **目标**：合并低风险依赖补丁 `alibabacloud-nls-python-sdk >=1.0 → >=1.0.2`。
+- **改动**：`requirements_voice.txt` 一行版本约束收紧。
+- **提交**：通过 GitHub CLI 合并 PR #18（commit `825757bb`）到 `main`，本地已 fast-forward 同步。
+- **仍开放 PR**：#1 `feat(client-keys): 客户端密钥管理功能 + 代码审查修复`。
