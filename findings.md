@@ -4,7 +4,8 @@
 
 - **Litestream 曾是磁盘占用的直接元凶**：`lsof +L1` 显示 litestream 持有 `/opt/lima-router/data/agent_tasks.db` 的已删除 WAL，累计约 12.9G。重启 litestream 后释放约 6G，磁盘从 98% → 81%。
 - **Litestream 启动失败根因**：`litestream.yml` 中 4 个 `s3` replica 引用了未配置的 `${LITESTREAM_S3_BUCKET}` 等环境变量，导致 `bucket required for s3 replica`。重写为纯 file replica 并移除不存在的 DB 后恢复。
-- **清理收益**：删除已停止容器 `one-api`/`new-api`/`lima-searxng` + journal  vacuum 后，磁盘进一步降至 **80%**。
+- **清理收益**：删除已停止容器 `one-api`/`new-api`/`lima-searxng` + journal vacuum 后，磁盘进一步降至 **80%**；再移除未启用的 `lima-openobserve` 容器及镜像后降至 **79%**。
+- **mission-server 风险**：该服务（`/opt/autolook/parallel-ai/mission-server`）监听 58000/55432，与 DLC 写字机任务队列相关，当前无活跃 TCP 连接。直接关停可能影响写字机任务下发/状态；迁移到京东云需先备份 Postgres 数据卷并更新调用方地址。
 - **主 VPS 仍紧绷**：loadavg 8+、内存可用 518M、swap 活跃。登录超时是资源瓶颈与代码超时的叠加结果；仅提升客户端 timeout 不能根治。
 - **京东云可分担空间**：节点已较重（new-api/MySQL/Redis/Prometheus/browser/Worker），可用内存 ~558M。适合继续承接**无状态/低内存**侧载，不适合再压常驻重服务。
 - **迁移候选结论**：

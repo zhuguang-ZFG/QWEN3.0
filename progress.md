@@ -12,7 +12,7 @@
   - 结果：根分区从 **98% → 80%**（40G 中 30G 已用）。
 - **当前资源快照（主 VPS）**：
   - CPU loadavg ~8，内存 total 1.8G / used 1.35G / available 518M，swap 已用 1.35G/5G。
-  - 核心 `lima-router` RSS ~363M；`litestream` RSS ~66M；容器 `mission-server`*3 + `lima-openobserve` 仍在运行。
+  - 核心 `lima-router` RSS ~363M；`litestream` RSS ~66M；`lima-openobserve` 已清理；容器 `mission-server`*3 仍在运行。
 - **京东云节点现状**：
   - 已运行 `new-api`、probe、MySQL、Redis、Prometheus、browser helper、轻量 Worker；可用内存仅 ~558M（3.9G total）。
   - 通过 `D:/Downloads/VPS.txt` 中的凭据登录成功，并已完成深度清理（详见下方）。
@@ -22,12 +22,12 @@
   - 保留：`new-api` / `qwen2api`（Docker）、`mysql`、`redis-server`、`prometheus`、`jdcloud-worker`、`lima-probe-browser`、`llm-cache`、`nginx` 均保持运行。
 - **可迁移/清理候选（按风险排序）**：
   1. **低风险清理**：`ai-router.service`（旧版 AI Router v2.1，nginx 已不反代，RSS 仅 2.6M，但需确认无内部调用）、`hermes-api.service`（nginx 当前不暴露 `/hermes/`，日志为空）、`lima-scnet-reverse.service`（描述为 disabled adapter shell）。
-  2. **中风险迁移/清理**：`lima-openobserve` 容器（`OPENOBSERVE_ENABLED=0` 默认关闭，LiMa 未启用；镜像 324M）。
-  3. **高风险迁移（需业务确认）**：`mission-server`（`mission-db`/`mission-api`/`mission-worker`，` /opt/autolook/parallel-ai/mission-server`，与 DLC 写字机任务相关，Port 58000/55432；需先确认是否仍有客户端依赖）。
+  2. **中风险迁移/清理**：`lima-openobserve` 容器（`OPENOBSERVE_ENABLED=0` 默认关闭，LiMa 未启用；镜像 324M）✅ 已移除。
+  3. **高风险迁移（需业务确认）**：`mission-server`（`mission-db`/`mission-api`/`mission-worker`，`/opt/autolook/parallel-ai/mission-server`，与 DLC 写字机任务相关，Port 58000/55432；当前无活跃连接，需确认是否仍有客户端依赖）。
   4. **不建议迁移**：`lima-router`、`redis`、`nginx`、`litestream`、`kimi-proxy`、`lima-voice` 与公网入口或设备实时路径强相关。
 - **待办**：
-  - 上传微信小程序新版本（已构建未上传）。
-  - 确认京东云 SSH 凭据后，可实施低风险清理与中风险容器迁移/下线。
+  - 上传微信小程序新版本 ✅ 已完成 v3.6.0 上传。
+  - 清理阿里云非核心服务：`lima-openobserve` ✅ 已移除；`mission-server` 待确认业务依赖。
   - 若 `mission-server` 仍在为写字机业务服务，需制定带数据迁移的双节点方案，而非直接关停。
 
 ## 2026-06-30 client-keys 功能重写（替代 PR #1）
@@ -55,7 +55,7 @@
   - `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/src/api/v2/index.ts`：
     - `v2Login` 的 `uni.request` timeout 从 15s 提升到 30s。
     - 对 timeout/network 类错误自动重试 1 次。
-  - 已构建 `dist/build/mp-weixin`，尚未上传微信后台。
+  - 已构建 `dist/build/mp-weixin`，版本 `3.6.0` 已通过 `pnpm upload:mp-weixin` 上传至微信后台（上传成功，包大小约 1061KB）。下一步需在微信公众平台「版本管理」中设为体验版/提交审核。
 - **服务端排查**：
   - `/device/v1/app/auth/login` 实测响应 2-4s（主要耗时在微信 `jscode2session`）。
   - 发现主 VPS 严重资源紧张：磁盘 40G 已用 37G（98%），内存 1.8G 中可用约 477M，swap 占用 934M，load average 6+。

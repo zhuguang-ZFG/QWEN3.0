@@ -26,7 +26,7 @@
 - **现象**：用户截图显示 `LiMa 星云 → DLC 写字机` 一键登录报 `request:fail timeout errno: 5`。
 - **客户端修复**：
   - `manager-mobile/src/api/v2/index.ts`：`v2Login` 超时从 15s 提升到 30s，并对 timeout/network 错误自动重试 1 次。
-  - 已构建 `dist/build/mp-weixin`（未上传，待你确认后上传）。
+  - 已构建 `dist/build/mp-weixin`；版本 `3.6.0` 已通过 `pnpm upload:mp-weixin` 上传至微信后台（包大小约 1061KB），待在微信公众平台「版本管理」设为体验版/提交审核。
 - **服务端排查**：
   - `/device/v1/app/auth/login` 实测响应 2-4s（主要耗时在微信 `jscode2session`）。
   - 发现主 VPS 磁盘 98% 满、内存紧张、load average 6+，偶发 nginx 502 / 连接拒绝。
@@ -40,6 +40,7 @@
 - **磁盘缓解**：重启 `litestream` 释放其持有的已删除 WAL（约 6G），清理停止的 Podman 容器（`one-api`/`new-api`/`lima-searxng`）与归档 journal，根分区从 98% → **80%**。
 - **Litestream 修复**：配置文件中残留未配置环境变量的 `s3` replica，导致启动报错 `bucket required for s3 replica`。已重写为仅本地 file replica，并移除不存在的 `tool_audit.db`/`mastery_loop.db` 配置；服务已恢复运行，现有 5 个 DB 的 generation 查询正常。
 - **京东云迁移评估**：主 VPS 仍高负载（loadavg ~8），内存可用 ~518M。可迁移/清理候选已整理进 `progress.md` / `findings.md`。
+- **阿里云非核心清理**：`lima-openobserve` 容器及镜像已移除（LiMa 未启用）；`mission-server` 当前无活跃连接，但与 DLC 写字机任务相关，待确认业务依赖后再决定是否迁移/下线。
 - **京东云深度清理**：通过本地凭据登录 `117.72.118.95` 后完成清理：删除未使用的 `/opt/llm-cache/venv`（5.1G）、清理 `pip`/`npm`/`apt` 缓存与旧日志、移除停用服务 `qwen-gateway`、停止无外部连接的侧边服务 `mimo-proxy`/`tts-proxy`/`lima-voice`/`hermes-api`；磁盘 **51% → 33%**，可用内存 **~932M → 1072M**；核心 `new-api`/`qwen2api`/MySQL/Redis/Prometheus/Worker/Probe/`llm-cache`/nginx 保持运行。
 
 ### 最近完成（2026-06-30）deploy-docs-site CI 修复 — 最后一个 CI 失败项关闭
