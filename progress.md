@@ -1,6 +1,6 @@
 # Personal Coding Assistant Progress
 
-## 2026-07-01 Cloudflare Worker 透明兜底/灰度（实现中）
+## 2026-07-01 Cloudflare Worker 透明兜底/灰度（实现中，部署待 token 权限）
 
 - **目标**：在 `chat.donglicao.com` 边缘部署 Worker，对匿名 `/v1/chat/completions` 请求透明代理到阿里云 pilot，并在 pilot 异常时自动回源到京东云主节点。
 - **实现**：
@@ -9,7 +9,11 @@
   - 新增 `.github/workflows/deploy-chat-router-worker.yml`：自动确保 `origin-chat.donglicao.com` DNS 记录并部署 Worker。
 - **基础设施**：
   - 京东云 `/etc/cloudflared/config.yml` 增加 `origin-chat.donglicao.com` ingress，指向本地 nginx（跳过 TLS 校验）。
-  - 等待 GitHub Actions 使用仓库 `CLOUDFLARE_API_TOKEN` 创建 `origin-chat.donglicao.com` CNAME 到 tunnel。
+  - GitHub Actions 已成功创建 `origin-chat.donglicao.com` CNAME 到 tunnel。
+- **部署状态**：
+  - 代码已 push（`49f7ca5e`），workflow run `28524022102`。
+  - DNS 步骤成功；Worker 部署步骤因 `CLOUDFLARE_API_TOKEN` 缺少 Workers Scripts:Edit 权限而失败（Cloudflare API code 10000）。
+  - 需要更新 GitHub secret `CLOUDFLARE_API_TOKEN`（或单独提供 `CLOUDFLARE_WORKERS_TOKEN`）后重新触发部署。
 - **验证**：待部署完成后，通过 `curl -I -X OPTIONS` 与匿名 POST 观察 `X-Lima-Backend: aliyun|jdcloud` 头。
 
 ## 2026-07-01 前端匿名简单聊天请求分流到阿里云 pilot
