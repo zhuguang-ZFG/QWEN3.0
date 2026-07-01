@@ -1,6 +1,6 @@
 name = "lima-chat-router"
 main = "workers/chat-router.js"
-compatibility_date = "2026-06-30"
+compatibility_date = "2026-07-01"
 
 # 仅拦截 chat.donglicao.com 的 /v1/chat/completions* 路径；
 # 其余路径不经过 Worker，直接回源到 JDCloud tunnel。
