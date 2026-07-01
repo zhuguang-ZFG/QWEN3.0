@@ -38,6 +38,11 @@
     - `POST /device/v1/app/gallery` 上传成功，返回 `fileId` 与 `thumbUrl`。
     - `POST /device/v1/app/images/generations` 带 `image_url` 图生图成功。
     - `POST /device/v1/app/devices/{id}/tasks` `capability=draw_image` 图片绘画任务创建成功。
+- **H5 演示部署**：
+  - 构建 manager-mobile H5（`VITE_APP_PUBLIC_BASE=/mobile/`）并部署到 VPS `/var/www/chat/mobile/`。
+  - nginx 新增 `location ^~ /mobile/` SPA 规则，支持 `/mobile/` 与 `/mobile/pages/create/create` 等路由。
+  - VPS 本地验证：`curl -k -H 'Host: chat.donglicao.com' https://127.0.0.1/mobile/` 返回 200。
+  - 演示地址：`https://chat.donglicao.com/mobile/`（浏览器访问，同域调用后端 API）。
 - **门禁**：后端聚焦测试 56 passed；ruff clean；pyright 0 errors。完整 pytest 仍有 5 个预存在失败，与本次改动无关。
 
 ## 2026-07-01 第二轮修复批次（6 项后端 + 3 项前端 + 6 项安全依赖）

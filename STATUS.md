@@ -53,6 +53,8 @@
   - 部署 Cloudflare Worker 代理 `https://telegram-proxy.donglicao.com` 转发 Telegram Bot API。
   - VPS `.env` 追加 `TELEGRAM_BOT_TOKEN` 与 `TELEGRAM_GALLERY_CHAT_ID`。
   - 端到端验证通过：gallery 上传返回 `fileId`/`thumbUrl`、图生图、图片绘画任务创建均成功。
+  - H5 演示部署：manager-mobile 以 `VITE_APP_PUBLIC_BASE=/mobile/` 构建，上传到 `/var/www/chat/mobile/`；nginx 新增 `location ^~ /mobile/` SPA 规则。
+  - 演示地址：`https://chat.donglicao.com/mobile/`（浏览器访问，同域调用后端 API）。
 - **配置**：`.env.example` 新增 `TELEGRAM_BOT_TOKEN` 与 `TELEGRAM_GALLERY_CHAT_ID`。
 - **门禁**：聚焦测试 56 passed；ruff clean；pyright 0 errors。
 
