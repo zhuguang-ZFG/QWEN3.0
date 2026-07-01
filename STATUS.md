@@ -21,6 +21,14 @@
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
+### 最近完成（2026-07-02）语音控制检修（自检发现并修复 4 个 bug）
+
+- **BUG-1（M2 frameSize 单位错误）**：`useVoiceStream` 的 `frameSize: 1` 实为 1KB（uni-app 单位是 KB），导致回调风暴且与注释不符。改为 `5`（5KB，对齐后端 FRAME_BYTES）。
+- **BUG-2（M0 错误信息泄漏）**：`/voice/transcribe` 失败时把 `{exc}` 拼进返回给客户端的 message（可能含内部地址/堆栈）。改为通用 message，详情只进日志。测试强化为同时断言「不泄漏 mock 异常字符串」。
+- **ISSUE-4（M1/M2 意图不一致）**：M1 走后端 `resolve_voice_task`（未知输入默认 write_text），M2 走前端 `frontendIntent`（原默认 draw_generated）—— 同一段语音两模式给出不同意图。前端 fallback 对齐到 write_text。
+- **MINOR-7（死代码）**：`StreamStatus` 的 `finalizing` 定义了但从未设置，移除。
+- 重新 `build:mp-weixin` + 重新上传微信 v3.8.0（覆盖含 BUG-1 的旧上传）。type-check + 10 后端测试 + ruff + pyright 全过。
+
 ### 最近完成（2026-07-02）小程序语音控制绘图机/写字机（M0+M1+M2）
 
 - **需求**：小程序端补齐语音交互，用语音驱动绘图机（draw_generated）/写字机（write_text）。
