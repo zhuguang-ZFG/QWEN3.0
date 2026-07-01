@@ -16,7 +16,7 @@
   - `https://app.donglicao.com/` 返回的 CSP 与 `js/app-config.<hash>.js` 均包含 `aliyun.donglicao.com`。
   - `curl -X POST https://aliyun.donglicao.com/v1/chat/completions`（Origin: chat.donglicao.com）返回 200，后端为 `pollinations_openai`。
   - 京东云 `/opt/lima-router/chat-web` 源文件已更新，FastAPI `/chat/index.html` 回源正常。
-- **风险**：仅匿名默认模型请求走 pilot；设置 API Key 后自动回主节点。免费后端池耗尽时前端会收到 503/429，建议后续加一次失败自动重试主节点。
+- **后续增强**：`sendMessage()` 已增加一次失败回退：当 pilot 返回 429/503/5xx 或网络错误时，自动重试 `chat.donglicao.com` 主节点。
 
 ## 2026-06-30 阿里云启用 `lima-router-pilot` 作为免费后端辅助节点
 

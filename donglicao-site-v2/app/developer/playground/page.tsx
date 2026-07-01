@@ -57,10 +57,21 @@ export default function PlaygroundPage() {
   const [response, setResponse] = useState<string>("");
   const [error, setError] = useState<string>("");
 
+  function selectBaseUrl(key: string, ep: string, m: string): string {
+    if (!key && ep === "/v1/chat/completions" && (m === "lima" || m === "lima-1.3")) {
+      return "https://aliyun.donglicao.com";
+    }
+    return "https://chat.donglicao.com";
+  }
+
   useEffect(() => {
     const saved = localStorage.getItem("lima_playground_key");
     if (saved) setApiKey(saved);
   }, []);
+
+  useEffect(() => {
+    setBaseUrl(selectBaseUrl(apiKey, endpoint, model));
+  }, [apiKey, endpoint, model]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,12 +89,12 @@ export default function PlaygroundPage() {
         body = { model, prompt, size: "1024x1024", n: 1 };
       }
 
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
       const res = await fetch(`${baseUrl}${endpoint}`, {
         method: selected.method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers,
         body: body ? JSON.stringify(body) : undefined,
       });
 
@@ -144,9 +155,8 @@ export default function PlaygroundPage() {
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-xxx"
+                  placeholder="sk-xxx（留空则匿名请求走阿里云 pilot）"
                   className="w-full rounded-lg border border-white/10 bg-[#0d1117] px-4 py-2 text-slate-200 outline-none focus:border-cyan-500"
-                  required
                 />
               </div>
             </div>
