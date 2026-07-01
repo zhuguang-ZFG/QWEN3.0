@@ -177,6 +177,7 @@ _DEVICE_APP_ROUTERS = [
     ("routes.device_app_tasks", "device_app_tasks"),
     ("routes.device_app_activity", "device_app_activity"),
     ("routes.device_app_gallery", "device_app_gallery"),
+    ("routes.device_app_voice", "device_app_voice"),
 ]
 
 
