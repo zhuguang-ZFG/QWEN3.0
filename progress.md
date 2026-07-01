@@ -1,22 +1,34 @@
 # Personal Coding Assistant Progress
 
-## 2026-07-01 chat-web 匿名简单聊天请求分流到阿里云 pilot
+## 2026-07-01 Cloudflare Worker 透明兜底/灰度（实现中）
 
-- **目标**：让 `app.donglicao.com` / `chat.donglicao.com/chat/` 的匿名简单聊天请求走阿里云 `lima-router-pilot`（仅免费后端），降低京东云主节点负载。
+- **目标**：在 `chat.donglicao.com` 边缘部署 Worker，对匿名 `/v1/chat/completions` 请求透明代理到阿里云 pilot，并在 pilot 异常时自动回源到京东云主节点。
 - **实现**：
-  - 新增 `chat-web/js/app-config.js`：提供 `shouldUsePilot(path, body)` 判定规则（匿名 + 默认模型 `lima`/`lima-1.3` + 无 tools/图片）。
-  - 修改 `chat-web/chat-api.js`：`sendMessage()` 与 `generateImage()` 通过 `LiMaConfig.getApiUrl()` 选择 endpoint。
-  - 修改 `chat-web/index.html`：CSP `connect-src` 增加 `https://aliyun.donglicao.com`。
-  - 更新 `scripts/deploy_chat_web.py` 文件列表，包含 `js/app-config.js`。
-  - `.gitignore` 增加 `chat-web/dist/`（由 `hash-assets.mjs` 生成）。
+  - 新增 `cloudflare/workers/chat-router.js`：按 `Authorization` 头存在性粗分流；无 key 的 POST `/v1/chat/completions*` 走 pilot；其余请求回源 `origin-chat.donglicao.com`。
+  - 新增 `cloudflare/wrangler.toml`：路由 `chat.donglicao.com/v1/chat/completions*`。
+  - 新增 `.github/workflows/deploy-chat-router-worker.yml`：自动确保 `origin-chat.donglicao.com` DNS 记录并部署 Worker。
+- **基础设施**：
+  - 京东云 `/etc/cloudflared/config.yml` 增加 `origin-chat.donglicao.com` ingress，指向本地 nginx（跳过 TLS 校验）。
+  - 等待 GitHub Actions 使用仓库 `CLOUDFLARE_API_TOKEN` 创建 `origin-chat.donglicao.com` CNAME 到 tunnel。
+- **验证**：待部署完成后，通过 `curl -I -X OPTIONS` 与匿名 POST 观察 `X-Lima-Backend: aliyun|jdcloud` 头。
+
+## 2026-07-01 前端匿名简单聊天请求分流到阿里云 pilot
+
+- **目标**：让 chat-web、官网 playground、manager-mobile H5 的匿名简单聊天请求走阿里云 `lima-router-pilot`（仅免费后端），降低京东云主节点负载。
+- **实现**：
+  - **chat-web**：新增 `chat-web/js/app-config.js` 提供 `shouldUsePilot(path, body)` 判定规则；`chat-api.js` 通过 `LiMaConfig.getApiUrl()` 选择 endpoint；`sendMessage()` 已增加一次失败回退（pilot 返回 429/503/5xx 或网络错误时重试 `chat.donglicao.com` 主节点）。
+  - **官网 playground**：`donglicao-site-v2/app/developer/playground/page.tsx` 在 API Key 为空且 endpoint/model 为默认 chat 时自动切换 baseUrl 到 `aliyun.donglicao.com`。
+  - **manager-mobile**：新增 `utils/index.ts` 的 `getChatBaseUrl()`，未登录且默认模型时返回 `aliyun.donglicao.com`；`api/chat/chat.ts` 的流式/非流式 chat 均使用该 baseUrl。
+  - **CSP / 部署**：chat-web CSP 增加 `aliyun.donglicao.com`；`.gitignore` 增加 `chat-web/dist/`；manager-mobile H5 构建 base 设为 `/mobile/`。
 - **部署**：
-  - 通过 `scripts/deploy_unified.py --files` 将变更文件同步到京东云 `/opt/lima-router/chat-web`（FastAPI 静态文件回源）。
-  - `git push` 触发 GitHub Actions `Deploy Chat Web` workflow，自动构建 hashed assets 并部署到 Cloudflare Pages（`app.donglicao.com`）。
+  - chat-web 源文件同步到京东云 `/opt/lima-router/chat-web`，并经 GitHub Actions 部署到 Cloudflare Pages（`app.donglicao.com`）。
+  - 京东云 tunnel 入口由 `http://127.0.0.1:8080` 改为 `https://127.0.0.1:443`（跳过 TLS 校验），恢复 nginx 作为流量入口，从而支持 `/mobile/` H5 静态目录。
+  - manager-mobile H5 构建后通过 `scp -r` 部署到 `/var/www/chat/mobile/`。
+  - 官网 playground 经 GitHub Actions 部署到 Cloudflare Pages（`www.donglicao.com`）。
 - **验证**：
-  - `https://app.donglicao.com/` 返回的 CSP 与 `js/app-config.<hash>.js` 均包含 `aliyun.donglicao.com`。
-  - `curl -X POST https://aliyun.donglicao.com/v1/chat/completions`（Origin: chat.donglicao.com）返回 200，后端为 `pollinations_openai`。
-  - 京东云 `/opt/lima-router/chat-web` 源文件已更新，FastAPI `/chat/index.html` 回源正常。
-- **后续增强**：`sendMessage()` 已增加一次失败回退：当 pilot 返回 429/503/5xx 或网络错误时，自动重试 `chat.donglicao.com` 主节点。
+  - `https://app.donglicao.com/` 与 `https://www.donglicao.com/developer/playground/` 均包含 `aliyun.donglicao.com` 相关引用。
+  - `https://chat.donglicao.com/mobile/index.html` 返回 H5 入口，资源路径以 `/mobile/assets/` 开头。
+  - `/health`、`/v1/chat/completions` 仍正常。
 
 ## 2026-06-30 阿里云启用 `lima-router-pilot` 作为免费后端辅助节点
 

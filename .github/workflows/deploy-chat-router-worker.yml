@@ -1,0 +1,104 @@
+name: Deploy Chat Router Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cloudflare/workers/chat-router.js"
+      - "cloudflare/wrangler.toml"
+      - ".github/workflows/deploy-chat-router-worker.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-chat-router-worker
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure origin-chat DNS record
+        env:
+          CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+          import urllib.error
+
+          TOKEN = os.environ["CLOUDFLARE_TOKEN"]
+          ZONE_NAME = "donglicao.com"
+          TUNNEL_ID = "8dfd001b-d257-42e9-944d-2f82a976d969"
+          HOSTNAME = "origin-chat.donglicao.com"
+          TARGET = f"{TUNNEL_ID}.cfargotunnel.com"
+
+          def api(method, url, data=None):
+              req = urllib.request.Request(
+                  url,
+                  method=method,
+                  headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"},
+              )
+              if data is not None:
+                  req.data = json.dumps(data).encode("utf-8")
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return json.loads(r.read().decode("utf-8"))
+              except urllib.error.HTTPError as e:
+                  return json.loads(e.read().decode("utf-8"))
+
+          zones = api("GET", f"https://api.cloudflare.com/client/v4/zones?name={ZONE_NAME}")
+          if not zones.get("success") or not zones.get("result"):
+              raise RuntimeError(f"Failed to find zone: {zones}")
+          zone_id = zones["result"][0]["id"]
+
+          recs = api(
+              "GET",
+              f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?name={HOSTNAME}&type=CNAME",
+          )
+          existing = recs.get("result", [])
+          if existing and existing[0].get("content") == TARGET and existing[0].get("proxied"):
+              print(f"{HOSTNAME} already points to {TARGET}")
+          else:
+              for rec in existing:
+                  api("DELETE", f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{rec['id']}")
+              result = api(
+                  "POST",
+                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records",
+                  {
+                      "type": "CNAME",
+                      "name": "origin-chat",
+                      "content": TARGET,
+                      "proxied": True,
+                      "comment": "LiMa chat-router worker origin bypass",
+                  },
+              )
+              if not result.get("success"):
+                  raise RuntimeError(f"Failed to create DNS record: {result}")
+              print(f"Created {HOSTNAME} -> {TARGET}")
+          PY
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare
+          command: deploy
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          # OPTIONS preflight
+          curl -sf -X OPTIONS -H "Origin: https://app.donglicao.com" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: Authorization, Content-Type" \
+            -I --max-time 10 \
+            https://chat.donglicao.com/v1/chat/completions
+          echo "Worker route reachable (OPTIONS OK)"
