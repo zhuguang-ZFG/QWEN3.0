@@ -36,9 +36,7 @@ def test_validation_errors(client, body):
 
 
 def test_empty_prompt_returns_400(client):
-    response = client.post(
-        "/v1/images/generations", headers=auth_header(), json={"prompt": "   "}
-    )
+    response = client.post("/v1/images/generations", headers=auth_header(), json={"prompt": "   "})
     assert response.status_code == 400
 
 

@@ -86,9 +86,7 @@ async def send_photo(
     adds the bot, and sets TELEGRAM_GALLERY_CHAT_ID.
     """
     if len(image_bytes) > MAX_FILE_SIZE_BYTES:
-        raise TelegramFileTooLargeError(
-            f"image size {len(image_bytes)} exceeds Telegram limit {MAX_FILE_SIZE_BYTES}"
-        )
+        raise TelegramFileTooLargeError(f"image size {len(image_bytes)} exceeds Telegram limit {MAX_FILE_SIZE_BYTES}")
 
     token = _require_token()
     chat_id = _require_chat_id()
@@ -171,9 +169,7 @@ class TelegramBotClient:
 
     async def get_file_url(self, file_id: str) -> str:
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS, trust_env=False) as client:
-            response = await client.post(
-                _api_url(self.token, "getFile"), json={"file_id": file_id}
-            )
+            response = await client.post(_api_url(self.token, "getFile"), json={"file_id": file_id})
         response.raise_for_status()
         result = _check_response(response.json())
         file_path = result.get("file_path", "")
