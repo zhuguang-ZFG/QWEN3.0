@@ -64,7 +64,8 @@ async def voice_transcribe(
         text = await get_asr_provider().transcribe(pcm_data, sample_rate=16000)
     except Exception as exc:  # 不静默降级：ASR 失败明确报错
         _log.warning("voice transcribe failed: %s", exc)
-        return err(503, f"asr failed: {exc}", 503)
+        # 不向客户端泄漏内部异常细节（可能含后端地址/堆栈）。
+        return err(503, "asr transcription failed", 503)
 
     intent = resolve_voice_task(text)
     return JSONResponse({"code": 0, "data": {"text": text, "intent": intent}})

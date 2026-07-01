@@ -133,9 +133,12 @@ def test_transcribe_asr_failure(voice_client, monkeypatch):
         headers=headers("a-owner"),
     )
     assert resp.status_code == 503
-    body = resp.json()
-    # 不静默降级：错误信息应可见
-    assert "asr" in str(body).lower() or "message" in body
+    body_str = str(resp.json())
+    # 不静默降级：错误响应可见（含通用 asr 提示）。
+    assert "asr" in body_str.lower()
+    # 安全：不向客户端泄漏内部异常细节（mock 抛的是 RuntimeError 含 "asr backend unavailable"）。
+    assert "asr backend unavailable" not in body_str
+    assert "RuntimeError" not in body_str
 
 
 def test_transcribe_strips_wav_header(voice_client, monkeypatch):
