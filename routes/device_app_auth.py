@@ -5,13 +5,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Header, Request, Response
+from fastapi import APIRouter, Header, Request
 
 from config.env import (
     wechat_dev_login_enabled,
     wechat_miniapp_appid,
     wechat_miniapp_secret,
-    xiaozhi_dev_static_login_code_enabled,
 )
 from fastapi.responses import JSONResponse
 
@@ -23,10 +22,8 @@ from device_logic.auth import (
     authorize,
 )
 from device_logic.auth_rate import allow_device_auth
-from device_logic.captcha import create_captcha, generate_captcha_image
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, read_body, str_field
-from device_logic.sms import login_code_error, sms_verification_payload, validate_login_code
 from device_logic.wechat_gateway import WechatLoginError, WechatMiniappGateway
 from routes import device_app_auth_email, device_app_auth_keys
 from routes.request_tracking import client_ip
@@ -36,12 +33,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-auth"])
 router.include_router(device_app_auth_email.router)
 router.include_router(device_app_auth_keys.router)
-
-
-def _static_login_code_error() -> JSONResponse | None:
-    if xiaozhi_dev_static_login_code_enabled():
-        return login_code_error()
-    return err(503, "Static SMS verification code is disabled outside dev mode", 503)
 
 
 def _find_or_create_wechat_account(openid: str, nickname: str | None) -> Any:
@@ -56,21 +47,6 @@ def _find_or_create_wechat_account(openid: str, nickname: str | None) -> Any:
             conn.execute(
                 "INSERT INTO v2_account (id, wechat_openid, nickname) VALUES (?, ?, ?)",
                 (account_id, openid, nickname or "wechat-user"),
-            )
-            conn.commit()
-            row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
-    return row
-
-
-def _find_or_create_phone_account(phone: str, nickname: str | None) -> Any:
-    """Look up an active account by phone, creating one if absent."""
-    with connect() as conn:
-        row = conn.execute("SELECT * FROM v2_account WHERE phone=? AND status='active'", (phone,)).fetchone()
-        if row is None:
-            account_id = new_id()
-            conn.execute(
-                "INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)",
-                (account_id, phone, nickname),
             )
             conn.commit()
             row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
@@ -102,23 +78,13 @@ async def _login_by_wechat(body: dict) -> dict | JSONResponse:
     return _login_response(row)
 
 
-async def _login_by_phone(body: dict) -> dict | JSONResponse:
-    """Handle SMS-code login path."""
-    phone = str_field(body, "phone", "mobile")
-    code = str_field(body, "code", "smsCode")
-    config_error = _static_login_code_error()
-    if config_error:
-        return config_error
-    if not phone or not code:
-        return err(400, "phone and code are required", 400)
-    if not validate_login_code(code):
-        return err(401, "Invalid verification code", 401)
-    row = _find_or_create_phone_account(phone, body.get("nickname"))
-    return _login_response(row)
-
-
 @router.post("/auth/login")
 async def login(request: Request):
+    """WeChat one-tap login (mini-program) or email login (chat-web /官网).
+
+    手机号+短信登录已于 2026-07-02 弃用移除（slimdown P2-16）。
+    小程序走微信一键登录；chat-web 与官网走 /auth/login-email（device_app_auth_email.py）。
+    """
     if not allow_device_auth("login", client_ip(request)):
         return err(429, "Too many login attempts", 429)
     body = await read_body(request)
@@ -127,62 +93,10 @@ async def login(request: Request):
     code = str_field(body, "code", "smsCode")
     if not code:
         return err(400, "code is required", 400)
-    phone = str_field(body, "phone", "mobile")
-    if not phone:
-        data = await _login_by_wechat(body)
-    else:
-        data = await _login_by_phone(body)
+    data = await _login_by_wechat(body)
     if isinstance(data, JSONResponse):
         return data
     return data
-
-
-@router.post("/auth/register")
-async def register(request: Request):
-    if not allow_device_auth("register", client_ip(request)):
-        return err(429, "Too many registration attempts", 429)
-    body = await read_body(request)
-    if isinstance(body, JSONResponse):
-        return body
-    phone = str_field(body, "phone", "mobile")
-    code = str_field(body, "code", "smsCode")
-    if not phone or not code:
-        return err(400, "phone and code are required", 400)
-    config_error = _static_login_code_error()
-    if config_error:
-        return config_error
-    if not validate_login_code(code):
-        return err(401, "Invalid verification code", 401)
-    with connect() as conn:
-        row = conn.execute("SELECT * FROM v2_account WHERE phone=? AND status='active'", (phone,)).fetchone()
-        if row is None:
-            account_id = new_id()
-            conn.execute(
-                "INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)",
-                (account_id, phone, body.get("nickname")),
-            )
-            conn.commit()
-            row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
-    data = _login_response(row)
-    if isinstance(data, JSONResponse):
-        return data
-    return data
-
-
-@router.post("/auth/sms-verification")
-async def sms_verification(request: Request):
-    if not allow_device_auth("sms", client_ip(request)):
-        return err(429, "Too many SMS verification requests", 429)
-    body = await read_body(request)
-    if isinstance(body, JSONResponse):
-        return body
-    phone = str_field(body, "phone", "mobile")
-    if not phone:
-        return err(400, "phone is required", 400)
-    config_error = _static_login_code_error()
-    if config_error:
-        return config_error
-    return sms_verification_payload(phone)
 
 
 @router.get("/auth/me")
@@ -225,17 +139,6 @@ async def delete_account(authorization: str = Header(default="")):
     return {"accountId": account["id"], "deletedAt": deleted_at}
 
 
-@router.get("/auth/captcha")
-async def get_captcha() -> Response:
-    """返回 PNG 图形验证码。"""
-    captcha_id, code = create_captcha()
-    image_bytes = generate_captcha_image(code)
-    if image_bytes is None:
-        return JSONResponse({"code": 503, "message": "Captcha unavailable"}, status_code=503)
-    headers = {"X-Captcha-Id": captcha_id, "Cache-Control": "no-store"}
-    return Response(content=image_bytes, media_type="image/png", headers=headers)
-
-
 @router.put("/auth/change-password")
 async def change_password(request: Request, authorization: str = Header(default="")):
     """修改当前账户密码。"""
@@ -253,7 +156,7 @@ async def change_password(request: Request, authorization: str = Header(default=
         return err(400, "newPassword must be at least 6 characters", 400)
     current_hash = account.get("password_hash")
     if not current_hash:
-        return err(4002, "Password is not set; use SMS login", 400)
+        return err(4002, "Password is not set", 400)
     if not _verify_password(old_password, current_hash):
         return err(4003, "Incorrect old password", 400)
     new_hash = _hash_password(new_password)

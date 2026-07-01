@@ -33,6 +33,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
     monkeypatch.setenv("LIMA_XIAOZHI_LOGIN_CODE", "000000")
     monkeypatch.setenv("LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE", "1")
+    monkeypatch.setenv("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", "1")
     from device_logic.db import _schema_ready_paths
 
     _schema_ready_paths.clear()
@@ -53,7 +54,10 @@ def client(tmp_path, monkeypatch):
 
 class TestDeviceProvision:
     def _login(self, client: TestClient, phone: str = "13000000000") -> str:
-        resp = client.post("/device/v1/app/auth/login", json={"phone": phone, "code": "000000"})
+        # 微信 dev 模式登录（手机号鉴权已于 slimdown P2-16 移除）。
+        # phone 参数仅用于区分不同测试账户，code 唯一即可创建不同 openid 账户。
+        code = f"wx-{phone}"
+        resp = client.post("/device/v1/app/auth/login", json={"code": code})
         assert resp.status_code == 200
         return resp.json()["token"]
 

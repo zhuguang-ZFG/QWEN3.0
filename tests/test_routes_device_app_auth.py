@@ -1,4 +1,9 @@
-"""Tests for routes/device_app_auth.py."""
+"""Tests for routes/device_app_auth.py.
+
+手机号+短信鉴权（register/sms-verification/captcha、login 的 phone 分支）于
+2026-07-02 slimdown P2-16 移除。本文件保留微信登录、me、delete、change-password
+以及邮箱鉴权（device_app_auth_email）与 API key（device_app_auth_keys）的测试。
+"""
 
 from __future__ import annotations
 
@@ -17,7 +22,6 @@ from routes import device_app_auth_keys as key_routes
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setenv("LIMA_XIAOZHI_DEV_STATIC_LOGIN_CODE", "true")
     app = FastAPI()
     app.include_router(auth.router)
     return TestClient(app)
@@ -63,9 +67,6 @@ def _patch_deps(account):
         patch.object(auth, "allow_device_auth", return_value=True),
         patch.object(key_routes, "allow_device_auth", return_value=True),
         patch.object(auth_core, "make_token", return_value="token-123"),
-        patch.object(auth, "validate_login_code", return_value=True),
-        patch.object(auth, "login_code_error", return_value=None),
-        patch.object(auth, "sms_verification_payload", return_value={"code": "123456"}),
         patch.object(auth, "client_ip", return_value="127.0.0.1"),
         patch.object(auth, "connect") as mock_connect,
         patch.object(db_module, "connect") as mock_db_connect,
@@ -79,29 +80,15 @@ def _patch_deps(account):
         yield
 
 
-def test_login_with_phone_success(client):
-    response = client.post("/device/v1/app/auth/login", json={"phone": "12345678901", "code": "123456"})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["token"] == "token-123"
-    assert data["accountId"] == "acc-1"
-
-
 def test_login_missing_code(client):
     response = client.post("/device/v1/app/auth/login", json={"phone": "12345678901"})
     assert response.status_code == 400
     assert "code" in response.json()["message"]
 
 
-def test_login_invalid_code(client):
-    with patch.object(auth, "validate_login_code", return_value=False):
-        response = client.post("/device/v1/app/auth/login", json={"phone": "12345678901", "code": "000000"})
-    assert response.status_code == 401
-
-
 def test_login_rate_limited(client):
     with patch.object(auth, "allow_device_auth", return_value=False):
-        response = client.post("/device/v1/app/auth/login", json={"phone": "12345678901", "code": "123456"})
+        response = client.post("/device/v1/app/auth/login", json={"code": "wx-code"})
     assert response.status_code == 429
 
 
@@ -116,28 +103,6 @@ def test_login_wechat_not_configured(client, monkeypatch):
     monkeypatch.delenv("LIMA_XIAOZHI_WECHAT_DEV_LOGIN", raising=False)
     response = client.post("/device/v1/app/auth/login", json={"code": "wx-code"})
     assert response.status_code == 503
-
-
-def test_register_success(client):
-    response = client.post("/device/v1/app/auth/register", json={"phone": "12345678901", "code": "123456"})
-    assert response.status_code == 200
-    assert response.json()["token"] == "token-123"
-
-
-def test_register_missing_fields(client):
-    response = client.post("/device/v1/app/auth/register", json={"phone": "12345678901"})
-    assert response.status_code == 400
-
-
-def test_sms_verification_success(client):
-    response = client.post("/device/v1/app/auth/sms-verification", json={"phone": "12345678901"})
-    assert response.status_code == 200
-    assert response.json()["code"] == "123456"
-
-
-def test_sms_verification_missing_phone(client):
-    response = client.post("/device/v1/app/auth/sms-verification", json={})
-    assert response.status_code == 400
 
 
 def test_get_me_success(client, auth_header):

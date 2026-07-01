@@ -46,13 +46,6 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-class TestCaptcha:
-    def test_get_captcha_returns_png(self, client):
-        resp = client.get("/device/v1/app/auth/captcha")
-        assert resp.status_code == 200
-        assert resp.headers["content-type"] == "image/png"
-        assert "X-Captcha-Id" in resp.headers
-
 
 class TestChangePassword:
     def _seed_account(self, account_id: str, role: str, password_hash: str | None = None):

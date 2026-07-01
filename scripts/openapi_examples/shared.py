@@ -15,13 +15,6 @@ def uuid(prefix: str) -> str:
 
 def synthetic_query_param(path: str) -> dict[str, Any]:
     """Create a plausible optional query parameter when an endpoint has none."""
-    if "/auth/captcha" in path:
-        return {
-            "name": "width",
-            "in": "query",
-            "required": False,
-            "schema": {"type": "integer", "default": 120, "title": "Width"},
-        }
     return {
         "name": "locale",
         "in": "query",

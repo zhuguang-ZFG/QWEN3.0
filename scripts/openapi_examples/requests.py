@@ -27,20 +27,8 @@ def _req_images_generations() -> Any:
 
 
 def _req_auth_login() -> Any:
-    return {
-        "phone": "+86-13800000000",
-        "password": "your-password",
-        "captcha_id": uuid("cap"),
-        "captcha_code": "1234",
-    }
-
-
-def _req_auth_register() -> Any:
-    return {"phone": "+86-13800000000", "password": "your-password", "sms_code": "123456"}
-
-
-def _req_auth_sms_verification() -> Any:
-    return {"phone": "+86-13800000000", "purpose": "register"}
+    # 微信小程序一键登录（jscode2session 换取的 code）
+    return {"code": "wx-jscode2session-code"}
 
 
 def _req_auth_account_delete() -> Any:
@@ -204,8 +192,6 @@ _REQUEST_BY_PATH: dict[str, Callable[[], Any]] = {
     "/v1/chat/completions": _req_chat_completions,
     "/v1/images/generations": _req_images_generations,
     "/device/v1/app/auth/login": _req_auth_login,
-    "/device/v1/app/auth/register": _req_auth_register,
-    "/device/v1/app/auth/sms-verification": _req_auth_sms_verification,
     "/device/v1/app/auth/account/delete": _req_auth_account_delete,
     "/device/v1/app/auth/change-password": _req_auth_change_password,
     "/device/v1/app/devices/bind": _req_device_bind,

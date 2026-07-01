@@ -10,8 +10,6 @@ SPEC_PATH = ROOT / "docs-site" / "public" / "openapi.yaml"
 
 PUBLIC_PATHS = {
     "/device/v1/app/auth/login",
-    "/device/v1/app/auth/register",
-    "/device/v1/app/auth/captcha",
 }
 
 HTTP_METHODS = {"get", "post", "put", "delete", "patch", "head", "options", "trace"}

@@ -25,12 +25,9 @@ from .responses_asset import (
 )
 from .responses_auth import (
     _resp_auth_account_delete,
-    _resp_auth_captcha,
     _resp_auth_change_password,
     _resp_auth_login,
     _resp_auth_me,
-    _resp_auth_register,
-    _resp_auth_sms_verification,
 )
 from .responses_chat import _resp_chat_completions, _resp_images_generations
 from .responses_device import (
@@ -133,10 +130,7 @@ _RESPONSE_BY_PATH: dict[str, Callable[[], Any]] = {
     "/v1/images/generations": _resp_images_generations,
     "/device/v1/app/auth/login": _resp_auth_login,
     "/device/v1/app/auth/me": _resp_auth_me,
-    "/device/v1/app/auth/register": _resp_auth_register,
-    "/device/v1/app/auth/sms-verification": _resp_auth_sms_verification,
     "/device/v1/app/auth/account/delete": _resp_auth_account_delete,
-    "/device/v1/app/auth/captcha": _resp_auth_captcha,
     "/device/v1/app/auth/change-password": _resp_auth_change_password,
     "/device/v1/app/devices/bind": _resp_device_bind,
     "/device/v1/app/devices/register": _resp_device_register,
