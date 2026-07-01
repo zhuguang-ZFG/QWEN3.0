@@ -1,5 +1,21 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-01 修复 dependabot moderate 漏洞（JDCloud worker 依赖）
+
+- **问题**：GitHub Dependabot 提示默认分支 1 个 moderate 漏洞。扫描定位到 `deploy/jdcloud/jdcloud-worker-requirements.txt`：
+  - `python-dotenv==1.0.1` → CVE-2026-28684（symlink 覆盖任意文件）
+  - `starlette==0.41.3`（fastapi 0.115.6 传递依赖）→ 多个 CVE/PYSEC，包括 CVE-2025-54121、CVE-2025-62727、CVE-2026-48817/48818
+- **修复**：将 worker 依赖与 `requirements_server.txt` 安全版本对齐：
+  - `fastapi==0.115.6` → `>=0.138.2,<0.138.3`
+  - `uvicorn[standard]==0.32.1` → `~=0.49.0`
+  - `httpx==0.27.2` → `~=0.28.0`
+  - `python-dotenv==1.0.1` → `~=1.2.2`
+- **验证**：
+  - 本地 `pip-audit` 扫描修复后的 manifest：**0 vulnerabilities**。
+  - `tests/test_jdcloud_worker.py`：**19 passed**。
+  - 京东云 VPS 更新 `/opt/lima-worker/venv` 包并重启 `jdcloud-worker.service`：状态 active，内存 45.7M。
+  - `GET http://100.85.114.65:8700/health` 返回 `{"status":"ok"}`。
+
 ## 2026-07-01 设备 App 图片绘画与图生图能力闭环（Phase 4 完成）
 
 - **目标**：小程序「AI 创作」简化为绘画-only；新增 Telegram 素材库存储参考图；支持文生图、图生图、图片直绘。

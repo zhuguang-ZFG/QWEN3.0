@@ -1,4 +1,6 @@
-fastapi==0.115.6
-uvicorn[standard]==0.32.1
-httpx==0.27.2
-python-dotenv==1.0.1
+# JDCloud lightweight worker deps (Python 3.10+)
+# Aligned with requirements_server.txt safe versions.
+fastapi>=0.138.2,<0.138.3
+uvicorn[standard]~=0.49.0
+httpx~=0.28.0
+python-dotenv~=1.2.2

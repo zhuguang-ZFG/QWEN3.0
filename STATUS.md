@@ -19,6 +19,21 @@
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
+### 最近完成（2026-07-01）修复 dependabot moderate 漏洞
+
+- **漏洞**：`deploy/jdcloud/jdcloud-worker-requirements.txt` 存在 9 个已知漏洞：
+  - `python-dotenv==1.0.1` → CVE-2026-28684
+  - `starlette==0.41.3`（fastapi 0.115.6 传递）→ CVE-2025-54121、CVE-2025-62727、CVE-2026-48817/48818 等
+- **修复**：将 JDCloud worker 依赖与主 `requirements_server.txt` 安全版本对齐：
+  - `fastapi>=0.138.2,<0.138.3`
+  - `uvicorn[standard]~=0.49.0`
+  - `httpx~=0.28.0`
+  - `python-dotenv~=1.2.2`
+- **验证**：
+  - `pip-audit` 扫描修复后 manifest：**0 vulnerabilities**
+  - `tests/test_jdcloud_worker.py`：**19 passed**
+  - 京东云 VPS `/opt/lima-worker/venv` 已升级并重启服务，`jdcloud-worker.service` active，`/health` 返回 `{"status":"ok"}`
+
 ### 最近完成（2026-07-01）设备 App 图片绘画与图生图能力闭环
 
 - **目标**：把小程序「AI 创作」页面简化为绘画-only，支持文生图、图生图和图片直绘；参考图统一存到 Telegram 素材库。
