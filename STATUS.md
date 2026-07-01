@@ -21,6 +21,13 @@
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
+### 最近完成（2026-07-02）语音端点部署到京东云主生产节点
+
+- **背景**：`deploy_unified.py` 默认连阿里云（LIMA_SERVER=47.112.162.80），但公网入口在京东云（117.72.118.95）。首次部署误打到阿里云，公网 `chat.donglicao.com/device/v1/app/voice/*` 返回 404。
+- **修正**：SSH 到京东云（root 密码凭据），sftp 上传 `routes/device_app_voice.py`（新）+ `routes/route_registry.py`（加注册行），备份原 route_registry，清 pyc 缓存，`systemctl restart lima-router`。
+- **冒烟验证（公网）**：`/voice/ticket` → 401（鉴权生效）；`/voice/transcribe` → 422（UploadFile 字段校验生效）。不再是 404，端点真实可达。
+- **教训**：`deploy_unified.py` 的 `LIMA_SERVER` 默认值过时（仍指阿里云），与 STATUS 拓扑（主入口京东云）不符。**待修**：脚本应支持 `--target jdcloud` 或更新默认值（见待办规划）。
+
 ### 最近完成（2026-07-02）语音控制检修（自检发现并修复 4 个 bug）
 
 - **BUG-1（M2 frameSize 单位错误）**：`useVoiceStream` 的 `frameSize: 1` 实为 1KB（uni-app 单位是 KB），导致回调风暴且与注释不符。改为 `5`（5KB，对齐后端 FRAME_BYTES）。
