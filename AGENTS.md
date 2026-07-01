@@ -194,7 +194,7 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 1. **禁止静默降级** — 生产路径中禁止使用 `except Exception: pass` 或 `except ImportError: pass`。至少必须 `logger.warning` 并说明原因。关键依赖（chromadb、tree-sitter）必须在启动时记录清晰警告，而非在运行时静默降级。
 2. **禁止自动降级验证** — VPS 部署必须在真实 VPS 上验证，不能仅在 localhost 上验证。公网 API 必须通过真实域名和真实 token 测试。
 3. **.env 合并而非覆盖** — 部署必须先备份 VPS 的 `.env`，追加新变量，绝不能用 `sftp.put` 覆盖。
-4. **Telegram 已退役** — 不要重新注册 `/telegram` 路由、webhook 或出站通知。
+4. **Telegram 通知通道已退役** — 不要重新注册 `/telegram` 路由、webhook 或出站通知。注意：Telegram Bot API 仍作为 gallery 图片存储后端使用（`integrations/telegram_bot/`，见 `routes/device_app_gallery.py`），这不是通知通道，不要误删。
 
 ### 文档语言
 
@@ -251,7 +251,7 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 
 ## ECC 开发流程（增量采用）
 
-> 参考 [`reference/ECC`](./reference/ECC)（Everything Claude Code）的跨 harness 工程实践，按 LiMa 现状做增量裁剪。ECC 流程优先于通用建议，但低于本文件「硬规则」和用户的直接指令。
+> 参考跨 harness 工程实践（Everything Claude Code，本地副本位于 `.claude/ecc/`），按 LiMa 现状做增量裁剪。ECC 流程优先于通用建议，但低于本文件「硬规则」和用户的直接指令。
 
 核心要求：
 
@@ -316,7 +316,7 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 
 ## Ponytail（顾问规则，LiMa 优先）
 
-本项目采用 [Ponytail](https://github.com/DietrichGebert/ponytail) 的「lazy senior dev」理念作为代码精简顾问。详情见 [`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md)。源文件位于 `reference/ponytail/`。
+本项目采用 [Ponytail](https://github.com/DietrichGebert/ponytail) 的「lazy senior dev」理念作为代码精简顾问。详情见 [`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md)（上游仓库见 GitHub 链接，本地未留存源文件）。
 
 ### 新增代码/提交前自问（Ponytail 阶梯）
 

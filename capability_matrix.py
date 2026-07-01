@@ -1,4 +1,5 @@
-# DEPRECATED v3.0 — coding capability retired
+# coding capability retired v3.0，但本模块的后端能力矩阵（DIMENSIONS/默认矩阵/classify_intent）
+# 仍被路由与测试使用，未退役。
 """
 LiMa Capability Matrix — 后端能力矩阵 + 精细路由
 

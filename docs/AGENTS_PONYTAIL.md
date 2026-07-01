@@ -1,6 +1,6 @@
 # Ponytail（顾问规则，LiMa 优先）
 
-本项目采用 [Ponytail](https://github.com/DietrichGebert/ponytail) 的「lazy senior dev」理念作为**代码精简顾问**，源文件位于 `reference/ponytail/`。
+本项目采用 [Ponytail](https://github.com/DietrichGebert/ponytail) 的「lazy senior dev」理念作为**代码精简顾问**（上游仓库见 GitHub 链接，本地未留存源文件）。
 
 ## 适用原则
 

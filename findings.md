@@ -1,5 +1,17 @@
 # LiMa Findings
 
+## 2026-07-02 系统瘦身审查：四维度过度设计诊断 + DEPRECATED 标记误标发现
+
+- **背景**：用户质疑「小程序交互复杂化」+「后端过度设计」。对固件/后端/文档/小程序四维度做了量化审查，确认过度设计系统性存在。详见 `docs/superpowers/specs/2026-07-02-system-slimdown-design.md`。
+- **关键发现（误标 bug）**：`speculative_policy.py` 和 `capability_matrix.py` 顶部标 `# DEPRECATED v3.0 — coding capability retired`，但实际：
+  - `speculative_policy.py` 的 `AFFINITY`/`classify_complexity`/`get_affinity_backends` 被 `speculative.py`（请求流水线推测执行步骤）和 `context_pipeline/complexity.py` **活跃 import 使用** —— 是热路径，非死代码。
+  - `capability_matrix.py` 的 `classify_intent` 仍被 `tests/test_capability_matrix_intent.py` 测试。
+  - **直接删除会导致生产崩溃**。真实情况是「coding 能力退役，但模块本身未退役」。
+- **处理**：已修正两个文件的顶部注释，明确区分「coding 退役」与「模块退役」。`routes/eval_internal.py` 确为退役态（返回 410，测试断言），保持原状。
+- **教训**：「DEPRECATED」标记的语义必须精确 —— 标记某个能力的退役 ≠ 标记整个文件可删。删前必须 grep 调用方 + codegraph impact 双重确认。
+- **其他 P0 已完成**：修 AGENTS.md 3 处断链（reference/ECC→.claude/ecc、reference/ponytail/ 不存在）；修 STATUS.md Telegram 措辞矛盾（通知通道退役 vs gallery 存储 API 复用，两者不同）；删 `.claude/skills/gitnexus/`（与 AGENTS.md「禁止 GitNexus」冲突）。
+- **待办**：固件瘦身（98MB node_modules + U1 WiFi 开关 + U8 音频协议矛盾）、文档去重（progress.md 截断、5 份战略文档归档）、P1/P2 见设计文档。
+
 ## 2026-07-01 前端匿名聊天请求已分流至阿里云 pilot
 
 - **结论**：chat-web、`www.donglicao.com` playground、manager-mobile H5 的匿名简单聊天请求现在会发送到 `https://aliyun.donglicao.com/v1/chat/completions`，由阿里云 `lima-router-pilot`（仅免费后端）处理。

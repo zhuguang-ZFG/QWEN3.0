@@ -1,4 +1,5 @@
-# DEPRECATED v3.0 — coding capability retired
+# coding capability retired v3.0，但本模块的 AFFINITY/classify_complexity/get_affinity_backends
+# 仍被 speculative.py（请求流水线推测执行）和 context_pipeline/complexity.py 使用，未退役。
 """Speculative execution policy: complexity classification and backend affinity."""
 
 from __future__ import annotations

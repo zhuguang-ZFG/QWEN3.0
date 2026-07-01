@@ -1445,7 +1445,7 @@ ruff check: clean（触及文件）
 | 模块 | 状态 | 说明 |
 |------|------|------|
 | LiMa Code CLI (deepcode-cli) | ✅ 已退役 | 子模块已移除 |
-| Telegram bot/operator | ✅ 已退役 | 路由/webhook 已移除 |
+| Telegram bot/operator（通知通道） | ✅ 已退役 | 旧的路由/webhook/出站通知已移除。注意：Telegram Bot API 后来（2026-07-01）被复用为 gallery 图片存储后端，两者是不同用途，见「最近完成」 |
 | WeChat 集成 | ✅ 已退役 | 桥接代码已归档 |
 | agent_runtime 路由 | ✅ 已退役 | HTTP 路由已移除 |
 | Anthropic `/v1/messages` 兼容层 | ✅ 已退役 | 端点与转换函数已移除 |
