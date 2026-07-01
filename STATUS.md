@@ -21,6 +21,24 @@
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
+### 最近完成（2026-07-02）小程序语音控制绘图机/写字机（M0+M1+M2）
+
+- **需求**：小程序端补齐语音交互，用语音驱动绘图机（draw_generated）/写字机（write_text）。
+- **M0 后端**：新增 `routes/device_app_voice.py`（2 端点，82 行薄包装）：
+  - `POST /device/v1/app/voice/transcribe`：上传音频 → `get_asr_provider().transcribe` + `resolve_voice_task` → 返回 `{text, intent}`，不派发任务（前端确认后才派发）。剥 WAV RIFF header 取 raw PCM（ASR 期望 16-bit LE mono）。
+  - `POST /device/v1/app/voice/ticket`：`ws_ticket.issue()` 签发一次性 WS 票据供 M2 实时流用。
+  - TDD：`tests/test_device_app_voice.py` 10 用例全绿；ruff/pyright/check_code_size 通过。
+- **M1 小程序按住说话**：`api/voice/voice.ts` + `useVoiceCommand` composable + `voice-command.vue`（确认对话框：可编辑文本/一键切绘图↔写字/派发前强制人工关卡）。复用 `v2SubmitTask`。
+- **M2 小程序实时流**：`useVoiceStream` composable 复用 `/v1/voice` WS（只取 transcript 帧，忽略 LLM/TTS），边说边显，松开进同一确认对话框。
+- **收尾**：`vue-tsc` type-check 通过；版本 3.7.0→3.8.0（380）；`build:mp-weixin` 成功；微信 CLI 上传成功（1.1MB）；子模块指针已更新。
+- **设计文档**：`docs/superpowers/specs/2026-07-02-mini-program-voice-draw-design.md`。
+
+### 最近完成（2026-07-02）系统瘦身（先做减法）
+
+- 四维度过度设计审查后，落地安全瘦身：删手机号鉴权死端点（P2-16，净删 210 行）、U1 固件关 WiFi 编译（P0-2）、5 份重叠战略文档归档（P1-9）、修断链/DEPRECATED 误标/STATUS 矛盾/模块数（43→17）。
+- 执行中发现并如实纠正审查报告 5 处误判（`speculative_policy` 是热路径非死代码、98MB node_modules 未入库、progress.md 全在近 3 天等）。
+- 记录 P0-3 U8 音频协议 bug（OPUS 发送 vs PCM 声明），待硬件决策排期。
+
 ### 最近完成（2026-07-02）AUDIT-11-W2 移除设备 WS query 参数 token 注入
 
 - **实现**：`routes/device_gateway_dispatch.py:extract_ws_token` 彻底移除 `?token=`/`?authorization=` query 参数分支及 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN` 临时开关，仅保留 `?ticket=` 与 `Authorization` header；`.env.example`、`tests/conftest.py`、相关单元/集成测试同步清理；`docs/DEVICE_WS_TOKEN_DEPRECATION_CN.md` 更新为 Phase 2 完成。
