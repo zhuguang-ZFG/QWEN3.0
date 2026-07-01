@@ -9,7 +9,8 @@ from pathlib import Path
 import paramiko
 
 from config import deploy_config
-from scripts.deploy_common import KEY, SERVER, configure_ssh_host_keys
+from scripts.deploy_common import configure_ssh_host_keys
+from scripts.deploy_unified_common import DeployTarget
 
 _REMOTE_CONF_PATH = "/etc/nginx/conf.d/chat.donglicao.com.conf"
 _SOURCE_CONF_NAME = "_nginx_chat_temp.conf"
@@ -23,18 +24,17 @@ def _ssh_exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
     return code, out, err
 
 
-def _connect_ssh() -> paramiko.SSHClient:
-    """Open an SSH connection to the deploy server using key or password fallback."""
+def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
+    """Open an SSH connection to the deploy target using key or password fallback."""
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    password = deploy_config.deploy_pass()
     try:
-        ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
+        ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
     except paramiko.SSHException:
-        if not password:
+        if not target.password:
             raise
-        ssh.connect(SERVER, username="root", password=password, timeout=15)
+        ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
     return ssh
 
 
@@ -91,8 +91,8 @@ def _verify_ready_probe(ssh: paramiko.SSHClient) -> tuple[bool, str]:
     return True, out
 
 
-def sync_nginx_config(*, dry_run: bool = False) -> bool:
-    """Sync authoritative nginx config to VPS, reload, and verify readiness path.
+def sync_nginx_config(*, target: DeployTarget, dry_run: bool = False) -> bool:
+    """Sync authoritative nginx config to a target VPS, reload, and verify readiness path.
 
     On validation failure the original remote config is restored from backup.
     """
@@ -102,12 +102,12 @@ def sync_nginx_config(*, dry_run: bool = False) -> bool:
         print(f"  nginx source config not found: {local_path}", file=sys.stderr)
         return False
 
-    print(f"Syncing nginx config ({_SOURCE_CONF_NAME})...")
+    print(f"Syncing nginx config ({_SOURCE_CONF_NAME}) to {target.name}...")
     if dry_run:
-        print(f"  WOULD UPLOAD: {local_path} -> {_REMOTE_CONF_PATH}")
+        print(f"  WOULD UPLOAD: {local_path} -> {target.host}:{_REMOTE_CONF_PATH}")
         return True
 
-    ssh = _connect_ssh()
+    ssh = _connect_ssh(target)
     try:
         backup_path = _backup_remote_conf(ssh)
         if not backup_path:

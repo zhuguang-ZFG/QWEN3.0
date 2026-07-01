@@ -101,6 +101,20 @@ def deploy_notify_enabled() -> bool:
     }
 
 
+def deploy_target() -> str:
+    """Default deploy target for the unified deploy script.
+
+    Defaults to ``jdcloud`` because the production entry (chat.donglicao.com)
+    is served through the JDCloud node. Override with ``LIMA_DEPLOY_TARGET=aliyun``
+    for the legacy Aliyun pilot node.
+    """
+    return os.environ.get("LIMA_DEPLOY_TARGET", "jdcloud").strip().lower()
+
+
+def aliyun_password() -> str:
+    return os.environ.get("LIMA_ALIYUN_PASSWORD", "") or os.environ.get("LIMA_DEPLOY_PASS", "")
+
+
 def jdcloud_password() -> str:
     return (
         os.environ.get("LIMA_JDCLOUD_ROOT_PASSWORD", "")

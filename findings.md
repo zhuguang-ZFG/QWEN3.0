@@ -12,6 +12,7 @@
 - **其他 P0 已完成**：修 AGENTS.md 3 处断链（reference/ECC→.claude/ecc、reference/ponytail/ 不存在）；修 STATUS.md Telegram 措辞矛盾（通知通道退役 vs gallery 存储 API 复用，两者不同）；删 `.claude/skills/gitnexus/`（与 AGENTS.md「禁止 GitNexus」冲突）。
 - **U8 音频协议矛盾（P0-3，暂不改，需硬件决策）**：U8 固件 `audio_service.cc:406-421` 对麦克风输入做 OPUS 编码后发送（`kAudioTaskTypeEncodeToSendQueue`），但 hello 帧声明 `"format":"pcm"`（`websocket_protocol.cc:233`），后端无 OPUS 解码能力（`device_voice_ws_helpers.py:_ensure_wav` 对 opus 返回 None；`voice_pipeline_ws.py` 假设 PCM）。**结果**：设备实时语音/声纹若走 OPUS 路径，后端无法解码，静默失败。两种修法待定：① 改固件发 PCM（带宽增加 ~10x）；② 后端加 OPUS 解码依赖（opuslib/pyogg）。涉及硬件音频管线决策，不在瘦身 round 内改，单独排期。
 - **待办**：固件瘦身（98MB node_modules + U1 WiFi 开关 + U8 音频协议矛盾）、文档去重（progress.md 截断、5 份战略文档归档）、P1/P2 见设计文档。
+- **BACKLOG-P0-1 已关闭**：`deploy_unified.py` 已支持 `--target {aliyun,jdcloud}`，默认 `jdcloud`，避免默认部署到旧 Aliyun pilot 而生产入口在 JDCloud 的错误。详见 `progress.md` 同日期条目。
 
 ## 2026-07-01 前端匿名聊天请求已分流至阿里云 pilot
 

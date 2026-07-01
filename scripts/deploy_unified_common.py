@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import re
 import shlex
@@ -10,14 +11,56 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts.deploy_common import (
-    SERVER,
-    REMOTE,
-    KEY,
-    configure_ssh_host_keys,
-)
+from config import deploy_config
+from scripts.deploy_common import configure_ssh_host_keys
 
 import paramiko
+
+
+@dataclasses.dataclass(frozen=True)
+class DeployTarget:
+    """Connection details for a single VPS deploy target."""
+
+    name: str
+    host: str
+    remote_path: str
+    user: str
+    password: str
+    key_path: str
+
+
+TARGET_ALIYUN = "aliyun"
+TARGET_JDCLOUD = "jdcloud"
+TARGET_DEFAULT = TARGET_JDCLOUD
+
+
+def get_deploy_target(target: str | None = None) -> DeployTarget:
+    """Resolve a target name into connection credentials.
+
+    Defaults to JDCloud because the production entry (chat.donglicao.com)
+    is served through the JDCloud node. Use ``aliyun`` for the legacy pilot node.
+    """
+    name = (target or deploy_config.deploy_target()).lower().strip()
+    key_path = deploy_config.expanded_key_path()
+    if name == TARGET_ALIYUN:
+        return DeployTarget(
+            name=TARGET_ALIYUN,
+            host=deploy_config.ALIYUN_SERVER,
+            remote_path=deploy_config.REMOTE_PATH,
+            user="root",
+            password=deploy_config.aliyun_password(),
+            key_path=key_path,
+        )
+    if name == TARGET_JDCLOUD:
+        return DeployTarget(
+            name=TARGET_JDCLOUD,
+            host=deploy_config.JDCLOUD_SERVER,
+            remote_path=deploy_config.REMOTE_PATH,
+            user=deploy_config.JDCLOUD_USER,
+            password=deploy_config.jdcloud_password(),
+            key_path=key_path,
+        )
+    raise ValueError(f"unknown deploy target: {target!r}")
 
 
 CORE_FILES = [
@@ -176,17 +219,17 @@ def capacity_result(capacity: dict[str, int], *, min_free_mb: int, min_mem_mb: i
     return {"ok": True, "reason": "capacity ok"}
 
 
-def _connect_ssh() -> paramiko.SSHClient:
+def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
+    """Open an SSH connection to the chosen deploy target using key or password fallback."""
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    password = deploy_config.deploy_pass()
     try:
-        ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
+        ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
     except paramiko.SSHException:
-        if not password:
+        if not target.password:
             raise
-        ssh.connect(SERVER, username="root", password=password, timeout=15)
+        ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
     return ssh
 
 

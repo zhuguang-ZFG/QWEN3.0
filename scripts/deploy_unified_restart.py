@@ -7,11 +7,12 @@ import time
 
 from config import deploy_config
 
-from scripts.deploy_common import SERVER, KEY, configure_ssh_host_keys
+from scripts.deploy_common import configure_ssh_host_keys
 from scripts.deploy_unified_common import (
     HEALTH_GRACE_AFTER_RESTART_S,
     HEALTH_POLL_SECONDS,
     HEALTH_WAIT_SECONDS,
+    DeployTarget,
     READY_POLL_SECONDS,
     READY_WAIT_SECONDS,
 )
@@ -26,18 +27,17 @@ def _ssh_exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
     return code, out, err
 
 
-def _connect_ssh() -> paramiko.SSHClient:
-    """Open an SSH connection to the deploy server using key or password fallback."""
+def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
+    """Open an SSH connection to the deploy target using key or password fallback."""
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
-    password = deploy_config.deploy_pass()
     try:
-        ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
+        ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
     except paramiko.SSHException:
-        if not password:
+        if not target.password:
             raise
-        ssh.connect(SERVER, username="root", password=password, timeout=15)
+        ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
     return ssh
 
 
@@ -144,9 +144,9 @@ def _print_startup_phases(ssh: paramiko.SSHClient) -> None:
         return
 
 
-def restart_server() -> bool:
+def restart_server(target: DeployTarget) -> bool:
     """Clear pycache, restart the systemd service, and wait for health + readiness."""
-    ssh = _connect_ssh()
+    ssh = _connect_ssh(target)
     try:
         if not _restart_service(ssh):
             return False

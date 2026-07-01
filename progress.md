@@ -1,5 +1,25 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-02 deploy_unified.py 支持京东云主生产节点（BACKLOG-P0-1）
+
+- **背景**：2026-07-02 部署小程序语音端点时，`deploy_unified.py` 默认连接阿里云（`LIMA_SERVER=47.112.162.80`），而公网入口 `chat.donglicao.com` 实际走 Cloudflare Tunnel → 京东云（`117.72.118.95`）。误部署导致公网端点返回 404。
+- **实现**：
+  - `config/deploy_config.py`：新增 `deploy_target()`（默认 `jdcloud`）、`aliyun_password()`（回退到 `LIMA_DEPLOY_PASS`）、保留 `jdcloud_password()`。
+  - `scripts/deploy_unified_common.py`：新增 `DeployTarget` 值对象、`get_deploy_target()`、`TARGET_ALIYUN` / `TARGET_JDCLOUD`；`_connect_ssh()` 改为按目标连接。
+  - `scripts/deploy_unified.py`：新增 `--target {aliyun,jdcloud}`，默认 **jdcloud**；打印目标名与 IP；部署标签包含目标名。
+  - `scripts/deploy_unified_preflight.py`/`deploy_unified_deploy.py`/`deploy_unified_restart.py`/`deploy_unified_nginx.py`：全部改为接收 `DeployTarget`，使用目标专属 `host`/`remote_path`/`user`/`password`/`key_path`。
+  - `.env.example`：新增 `LIMA_DEPLOY_TARGET`、`LIMA_ALIYUN_PASSWORD`、`LIMA_JDCLOUD_ROOT_PASSWORD` 说明；保留 `LIMA_DEPLOY_PASS` 作为 Aliyun 历史别名。
+- **验证**：
+  - `python scripts/deploy_unified.py --dry-run --target jdcloud --slice core` → 目标显示 `jdcloud (117.72.118.95)`。
+  - `python scripts/deploy_unified.py --dry-run --target aliyun --slice core` → 目标显示 `aliyun (47.112.162.80)`。
+  - `ruff check scripts/deploy_unified.py scripts/deploy_unified_*.py config/deploy_config.py tests/test_deploy_unified.py` → PASS。
+  - `python -m py_compile` 上述文件 → PASS。
+  - `.venv310` 下全量 pytest：`4286 passed, 3 skipped, 2 deselected`（含更新后的 `tests/test_deploy_unified.py` 10 passed）。
+  - 实际部署 JDCloud：`python scripts/deploy_unified.py --slice core` → 883 uploaded / 0 failed / health OK / `Deploy OK: unified/core/jdcloud`。
+  - 公网冒烟：`https://chat.donglicao.com/health/ready` → `{"status":"ready"}`；`POST /device/v1/app/voice/ticket` → 401（鉴权生效）。
+- **风险**：默认目标从隐式 Aliyun 改为显式 JDCloud，可能改变只依赖 `LIMA_SERVER` 而不看 `--target` 的用户/脚本习惯。已通过 `--target aliyun` 保留回退路径。
+- **文档**：更新 `STATUS.md` 将「待修」改为「已修复」；`findings.md` 关闭 BACKLOG-P0-1；`.env.example` 同步说明。
+
 ## 2026-07-02 移除设备网关 WebSocket query 参数 token 注入（AUDIT-11-W2）
 
 - **背景**：`routes/device_gateway_dispatch.py:extract_ws_token`  historically 支持 ticket / Authorization header / `?token=` / `?authorization=` 四种注入方式，后两者会让 Bearer token 进入 nginx access log 与 Referer。此前生产已默认拒绝 query token，但代码仍保留 legacy 分支和临时环境变量 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN`。

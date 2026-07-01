@@ -26,7 +26,7 @@
 - **背景**：`deploy_unified.py` 默认连阿里云（LIMA_SERVER=47.112.162.80），但公网入口在京东云（117.72.118.95）。首次部署误打到阿里云，公网 `chat.donglicao.com/device/v1/app/voice/*` 返回 404。
 - **修正**：SSH 到京东云（root 密码凭据），sftp 上传 `routes/device_app_voice.py`（新）+ `routes/route_registry.py`（加注册行），备份原 route_registry，清 pyc 缓存，`systemctl restart lima-router`。
 - **冒烟验证（公网）**：`/voice/ticket` → 401（鉴权生效）；`/voice/transcribe` → 422（UploadFile 字段校验生效）。不再是 404，端点真实可达。
-- **教训**：`deploy_unified.py` 的 `LIMA_SERVER` 默认值过时（仍指阿里云），与 STATUS 拓扑（主入口京东云）不符。**待修**：脚本应支持 `--target jdcloud` 或更新默认值（见待办规划）。
+- **教训/修复**：`deploy_unified.py` 已新增 `--target {aliyun,jdcloud}` 参数，默认 **jdcloud**（生产入口），并新增 `DeployTarget` 值对象贯穿 preflight/backup/deploy/restart/nginx 全流程。支持环境变量 `LIMA_DEPLOY_TARGET`、`LIMA_ALIYUN_PASSWORD`、`LIMA_JDCLOUD_ROOT_PASSWORD`。 dry-run 验证已可正确区分 117.72.118.95 与 47.112.162.80。
 
 ### 最近完成（2026-07-02）语音控制检修（自检发现并修复 4 个 bug）
 

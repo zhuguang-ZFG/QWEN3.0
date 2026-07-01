@@ -24,26 +24,19 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from scripts.deploy_common import (
-    SERVER,
-    REMOTE,
-    KEY,
-    configure_ssh_host_keys,
-    format_deploy_ok,
-)
+from scripts.deploy_common import format_deploy_ok
 from scripts.deploy_unified_helpers import expand_with_dependencies
-
-import paramiko
 
 from scripts.deploy_unified_common import (
     CORE_FILES,
-    CORE_DIRS,
     SLICE_FILES,
     HEALTH_WAIT_SECONDS,
+    TARGET_ALIYUN,
+    TARGET_JDCLOUD,
     _DEPLOY_EXCLUDES,
     _collect_runtime_files,
-    parse_capacity_output,
-    capacity_result,
+    DeployTarget,
+    get_deploy_target,
 )
 from scripts.deploy_unified_preflight import prepare_remote_deploy, restore_remote_backup
 from scripts.deploy_unified_deploy import deploy_files
@@ -66,9 +59,9 @@ def _collect_files(args, project_root: Path) -> list[str]:
     return list(dict.fromkeys(files))
 
 
-def _execute_deploy(files: list[str], args, backup_path: str) -> int:
+def _execute_deploy(files: list[str], target: DeployTarget, args, backup_path: str) -> int:
     """Run deploy, handle restart, rollback, and notification."""
-    results = deploy_files(files, dry_run=args.dry_run)
+    results = deploy_files(files, target=target, dry_run=args.dry_run)
 
     print(
         f"\nResult: {results['uploaded']} uploaded, {len(results['failed'])} failed, {len(results['skipped'])} skipped"
@@ -79,7 +72,7 @@ def _execute_deploy(files: list[str], args, backup_path: str) -> int:
         return 1
 
     if args.sync_nginx and not args.dry_run:
-        if not sync_nginx_config(dry_run=args.dry_run):
+        if not sync_nginx_config(target=target, dry_run=args.dry_run):
             return 1
 
     if args.dry_run or args.no_restart:
@@ -87,20 +80,20 @@ def _execute_deploy(files: list[str], args, backup_path: str) -> int:
 
     if results["uploaded"] > 0:
         print("\nRestarting server...")
-        ok = restart_server()
+        ok = restart_server(target=target)
         print(f"Health: {'OK' if ok else 'FAILED'} (wait up to {HEALTH_WAIT_SECONDS}s)")
 
         if not ok:
             if backup_path:
                 print(f"\nHealth check failed; rolling back from {backup_path}...")
-                if restore_remote_backup(backup_path):
-                    restart_server()
+                if restore_remote_backup(backup_path, target=target):
+                    restart_server(target=target)
                 else:
                     print("Rollback failed")
             return 1
 
         notify_text = format_deploy_ok(
-            f"unified/{args.slice}",
+            f"unified/{args.slice}/{target.name}",
             health=f"uploaded={results['uploaded']}",
         )
         print(f"\n{notify_text}")
@@ -117,24 +110,31 @@ def main() -> int:
         help="Which slice to deploy",
     )
     parser.add_argument("--files", nargs="+", help="Specific files to deploy")
+    parser.add_argument(
+        "--target",
+        choices=[TARGET_ALIYUN, TARGET_JDCLOUD],
+        default=TARGET_JDCLOUD,
+        help="Deploy target VPS (default: jdcloud, the production entry via Cloudflare Tunnel)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Show what would be deployed")
     parser.add_argument("--no-restart", action="store_true", help="Skip server restart")
     parser.add_argument(
         "--sync-nginx",
         action="store_true",
-        help="Sync _nginx_chat_temp.conf to VPS and reload nginx (default: off)",
+        help="Sync _nginx_chat_temp.conf to the target VPS and reload nginx (default: off)",
     )
     args = parser.parse_args()
 
+    target = get_deploy_target(args.target)
     project_root = Path(__file__).resolve().parent.parent
     files = _collect_files(args, project_root)
-    print(f"Deploying {len(files)} files ({args.slice})...")
+    print(f"Deploying {len(files)} files ({args.slice}) to {target.name} ({target.host})...")
 
     backup_path = ""
     if not args.dry_run:
         backup_label = "unified-files" if args.files else f"unified-{args.slice}"
         try:
-            preflight = prepare_remote_deploy(files, label=backup_label)
+            preflight = prepare_remote_deploy(files, target=target, label=backup_label)
         except RuntimeError as exc:
             print(f"preflight failed: {exc}")
             return 1
@@ -146,7 +146,7 @@ def main() -> int:
         print(f"Backup: {preflight['backup_path']}")
         backup_path = str(preflight["backup_path"])
 
-    return _execute_deploy(files, args, backup_path)
+    return _execute_deploy(files, target, args, backup_path)
 
 
 if __name__ == "__main__":

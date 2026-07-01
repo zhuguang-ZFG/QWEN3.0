@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 
 from scripts import deploy_unified
+from scripts.deploy_unified_common import capacity_result, get_deploy_target, parse_capacity_output
 
 
 class _Channel:
@@ -130,6 +131,10 @@ class _PrepareSsh:
         self.closed = True
 
 
+def _unit_target() -> object:
+    return get_deploy_target("jdcloud")
+
+
 def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
     import scripts.deploy_unified_deploy as deploy_mod
 
@@ -139,7 +144,7 @@ def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
     monkeypatch.setattr(deploy_mod.paramiko, "SSHClient", lambda: ssh)
     monkeypatch.setattr(deploy_mod, "configure_ssh_host_keys", lambda client: None)
 
-    result = deploy_unified.deploy_files(["scripts/deploy_unified.py"])
+    result = deploy_unified.deploy_files(["scripts/deploy_unified.py"], target=_unit_target())
 
     assert result == {"uploaded": 1, "failed": [], "skipped": []}
     assert sftp.put_calls[0][1] == "/opt/lima-router/scripts/deploy_unified.py"
@@ -153,17 +158,17 @@ def test_main_returns_failure_without_restart_when_upload_fails(monkeypatch):
     monkeypatch.setattr(
         deploy_unified,
         "prepare_remote_deploy",
-        lambda files, label: {"ok": True, "capacity": {}, "backup_path": "/tmp/unit.tgz"},
+        lambda files, target, label: {"ok": True, "capacity": {}, "backup_path": "/tmp/unit.tgz"},
     )
     monkeypatch.setattr(
         deploy_unified,
         "deploy_files",
-        lambda files, dry_run=False: {"uploaded": 0, "failed": ["server.py: boom"], "skipped": []},
+        lambda files, target, dry_run=False: {"uploaded": 0, "failed": ["server.py: boom"], "skipped": []},
     )
     monkeypatch.setattr(
         deploy_unified,
         "restart_server",
-        lambda: (_ for _ in ()).throw(AssertionError("restart should not run after upload failure")),
+        lambda target: (_ for _ in ()).throw(AssertionError("restart should not run after upload failure")),
     )
 
     assert deploy_unified.main() == 1
@@ -177,7 +182,7 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
     monkeypatch.setattr(
         deploy_unified,
         "prepare_remote_deploy",
-        lambda files, label: {
+        lambda files, target, label: {
             "ok": True,
             "capacity": {},
             "backup_path": "/opt/lima-router/backups/unit/runtime-before.tgz",
@@ -186,10 +191,10 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
     monkeypatch.setattr(
         deploy_unified,
         "deploy_files",
-        lambda files, dry_run=False: {"uploaded": 1, "failed": [], "skipped": []},
+        lambda files, target, dry_run=False: {"uploaded": 1, "failed": [], "skipped": []},
     )
 
-    def _restart() -> bool:
+    def _restart(target: object) -> bool:
         restart_calls.append("restart")
         return len(restart_calls) > 1
 
@@ -197,7 +202,7 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
     monkeypatch.setattr(
         deploy_unified,
         "restore_remote_backup",
-        lambda backup_path: rollback_calls.append(backup_path) or True,
+        lambda backup_path, target: rollback_calls.append(backup_path) or True,
     )
 
     assert deploy_unified.main() == 1
@@ -211,16 +216,36 @@ def test_main_dry_run_does_not_open_remote_preflight(monkeypatch):
     monkeypatch.setattr(
         deploy_unified,
         "prepare_remote_deploy",
-        lambda files, label: (_ for _ in ()).throw(AssertionError("preflight should not run in dry-run")),
+        lambda files, target, label: (_ for _ in ()).throw(AssertionError("preflight should not run in dry-run")),
     )
     monkeypatch.setattr(
         deploy_unified,
         "deploy_files",
-        lambda files, dry_run=False: calls.append(f"dry={dry_run}") or {"uploaded": 0, "failed": [], "skipped": []},
+        lambda files, target, dry_run=False: calls.append(f"dry={dry_run}") or {"uploaded": 0, "failed": [], "skipped": []},
     )
 
     assert deploy_unified.main() == 0
     assert calls == ["dry=True"]
+
+
+def test_main_accepts_target_aliyun(monkeypatch):
+    captured: list[str] = []
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py", "--target", "aliyun"])
+    monkeypatch.setattr(
+        deploy_unified,
+        "prepare_remote_deploy",
+        lambda files, target, label: (
+            captured.append(f"target={target.name}") or {"ok": True, "capacity": {}, "backup_path": ""}
+        ),
+    )
+    monkeypatch.setattr(
+        deploy_unified,
+        "deploy_files",
+        lambda files, target, dry_run=False: {"uploaded": 0, "failed": [], "skipped": []},
+    )
+
+    assert deploy_unified.main() == 0
+    assert captured == ["target=aliyun"]
 
 
 def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
@@ -230,7 +255,7 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
     monkeypatch.setattr(restart_mod.paramiko, "SSHClient", lambda: ssh)
     monkeypatch.setattr(restart_mod, "configure_ssh_host_keys", lambda client: None)
 
-    assert deploy_unified.restart_server() is True
+    assert deploy_unified.restart_server(target=_unit_target()) is True
 
     assert deploy_unified.HEALTH_WAIT_SECONDS >= 60
     joined = "\n".join(ssh.commands)
@@ -242,18 +267,18 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
 
 
 def test_parse_capacity_output():
-    capacity = deploy_unified.parse_capacity_output("disk_free_mb=2048\nmem_available_mb=512\n")
+    capacity = parse_capacity_output("disk_free_mb=2048\nmem_available_mb=512\n")
 
     assert capacity == {"disk_free_mb": 2048, "mem_available_mb": 512}
 
 
 def test_capacity_result_rejects_low_disk_or_memory():
-    low_disk = deploy_unified.capacity_result(
+    low_disk = capacity_result(
         {"disk_free_mb": 128, "mem_available_mb": 512},
         min_free_mb=512,
         min_mem_mb=128,
     )
-    low_mem = deploy_unified.capacity_result(
+    low_mem = capacity_result(
         {"disk_free_mb": 2048, "mem_available_mb": 64},
         min_free_mb=512,
         min_mem_mb=128,
@@ -274,7 +299,7 @@ def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
     monkeypatch.setattr(common_mod, "configure_ssh_host_keys", lambda client: None)
     monkeypatch.setattr(preflight_mod.time, "strftime", lambda fmt: "20260609_010203")
 
-    result = deploy_unified.prepare_remote_deploy(["server.py"], label="unit test")
+    result = deploy_unified.prepare_remote_deploy(["server.py"], target=_unit_target(), label="unit test")
 
     assert result["ok"] is True
     assert result["capacity"] == {"disk_free_mb": 2048, "mem_available_mb": 512}
@@ -292,7 +317,7 @@ def test_restore_remote_backup_extracts_tar(monkeypatch):
     monkeypatch.setattr(common_mod.paramiko, "SSHClient", lambda: ssh)
     monkeypatch.setattr(common_mod, "configure_ssh_host_keys", lambda client: None)
 
-    ok = preflight_mod.restore_remote_backup("/opt/lima-router/backups/unit/runtime-before.tgz")
+    ok = preflight_mod.restore_remote_backup("/opt/lima-router/backups/unit/runtime-before.tgz", target=_unit_target())
 
     assert ok is True
     assert any("tar -xzf" in command for command in ssh.commands)

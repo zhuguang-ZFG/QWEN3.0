@@ -7,10 +7,10 @@ import time
 
 from config import deploy_config
 
-from scripts.deploy_common import REMOTE
 from scripts.deploy_unified_common import (
     DEFAULT_MIN_FREE_MB,
     DEFAULT_MIN_MEM_MB,
+    DeployTarget,
     _connect_ssh,
     _exec,
     _safe_backup_label,
@@ -19,10 +19,10 @@ from scripts.deploy_unified_common import (
 )
 
 
-def check_remote_capacity(ssh) -> dict[str, int]:
+def check_remote_capacity(ssh, target: DeployTarget) -> dict[str, int]:
     command = (
         "set -eu; "
-        f"disk=$(df -Pm {shlex.quote(REMOTE)} | awk 'NR==2 {{print $4}}'); "
+        f"disk=$(df -Pm {shlex.quote(target.remote_path)} | awk 'NR==2 {{print $4}}'); "
         "mem=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo); "
         'echo "disk_free_mb=$disk"; '
         'echo "mem_available_mb=$mem"'
@@ -36,14 +36,14 @@ def check_remote_capacity(ssh) -> dict[str, int]:
     return capacity
 
 
-def create_remote_backup(ssh, files: list[str], *, label: str) -> str:
+def create_remote_backup(ssh, files: list[str], *, target: DeployTarget, label: str) -> str:
     safe_label = _safe_backup_label(label)
-    backup_dir = f"{REMOTE}/backups/{safe_label}-{time.strftime('%Y%m%d_%H%M%S')}"
+    backup_dir = f"{target.remote_path}/backups/{safe_label}-{time.strftime('%Y%m%d_%H%M%S')}"
     backup_file = f"{backup_dir}/runtime-before.tgz"
     command = (
         "set -eu; "
         f"mkdir -p {shlex.quote(backup_dir)}; "
-        f"cd {shlex.quote(REMOTE)}; "
+        f"cd {shlex.quote(target.remote_path)}; "
         f"tar --ignore-failed-read -czf {shlex.quote(backup_file)} -T -; "
         f"echo {shlex.quote(backup_file)}"
     )
@@ -58,12 +58,12 @@ def create_remote_backup(ssh, files: list[str], *, label: str) -> str:
     return out.splitlines()[-1].strip()
 
 
-def prepare_remote_deploy(files: list[str], *, label: str) -> dict[str, object]:
+def prepare_remote_deploy(files: list[str], *, target: DeployTarget, label: str) -> dict[str, object]:
     min_free_mb = deploy_config.deploy_min_free_mb()
     min_mem_mb = deploy_config.deploy_min_mem_mb()
-    ssh = _connect_ssh()
+    ssh = _connect_ssh(target)
     try:
-        capacity = check_remote_capacity(ssh)
+        capacity = check_remote_capacity(ssh, target)
         result = capacity_result(
             capacity,
             min_free_mb=min_free_mb,
@@ -71,7 +71,7 @@ def prepare_remote_deploy(files: list[str], *, label: str) -> dict[str, object]:
         )
         if not result["ok"]:
             return {"ok": False, "capacity": capacity, "reason": result["reason"]}
-        backup_path = create_remote_backup(ssh, files, label=label)
+        backup_path = create_remote_backup(ssh, files, target=target, label=label)
         return {
             "ok": True,
             "capacity": capacity,
@@ -81,16 +81,16 @@ def prepare_remote_deploy(files: list[str], *, label: str) -> dict[str, object]:
         ssh.close()
 
 
-def restore_remote_backup(backup_path: str) -> bool:
-    """Extract a pre-deploy tar backup back into REMOTE."""
+def restore_remote_backup(backup_path: str, *, target: DeployTarget) -> bool:
+    """Extract a pre-deploy tar backup back into the target remote path."""
     if not backup_path:
         return False
-    ssh = _connect_ssh()
+    ssh = _connect_ssh(target)
     try:
         command = (
             "set -eu; "
             f"test -f {shlex.quote(backup_path)}; "
-            f"cd {shlex.quote(REMOTE)}; "
+            f"cd {shlex.quote(target.remote_path)}; "
             f"tar -xzf {shlex.quote(backup_path)}"
         )
         code, out, err = _exec(ssh, command)
