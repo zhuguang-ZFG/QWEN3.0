@@ -15,6 +15,7 @@
   - `tests/test_jdcloud_worker.py`：**19 passed**。
   - 京东云 VPS 更新 `/opt/lima-worker/venv` 包并重启 `jdcloud-worker.service`：状态 active，内存 45.7M。
   - `GET http://100.85.114.65:8700/health` 返回 `{"status":"ok"}`。
+- **跟进**：后续 `git push` 不再出现 Dependabot 漏洞提示；本地所有 requirements manifest 扫描均 clean。
 
 ## 2026-07-01 设备 App 图片绘画与图生图能力闭环（Phase 4 完成）
 

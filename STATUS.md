@@ -33,6 +33,7 @@
   - `pip-audit` 扫描修复后 manifest：**0 vulnerabilities**
   - `tests/test_jdcloud_worker.py`：**19 passed**
   - 京东云 VPS `/opt/lima-worker/venv` 已升级并重启服务，`jdcloud-worker.service` active，`/health` 返回 `{"status":"ok"}`
+  - 后续 `git push` 不再出现 Dependabot 漏洞提示；本地所有 requirements manifest 扫描均 clean
 
 ### 最近完成（2026-07-01）设备 App 图片绘画与图生图能力闭环
 
