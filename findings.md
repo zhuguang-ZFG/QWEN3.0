@@ -1937,7 +1937,9 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | VOICE-TEST-2 | portability | 已用 `pytest.importorskip("nls")` / `pytest.importorskip("faster_whisper")` 标记可选依赖测试；本地聚焦套件从 14 failed 变为 14 skipped | Closed |
 | VOICE-SIZE-1 | code_size | `device_voice/providers/asr_aliyun.py::stream_transcribe` 含嵌套 `_sync_stream` 共 97 行，远超 50 行目标 | Closed |
 | VOICE-SIZE-2 | code_size | 已拆分为 `_parse_nls_result` / `_StreamingRecognizerState` / `_run_streaming_worker`；`stream_transcribe` 降至 34 行；文件回到 295 行以内 | Closed |
-| VOICE-SIZE-3 | code_size | `scripts/check_code_size.py` 当前仍有 35 个 >300 行文件 / 100 个 >50 行函数（含本文件修改前未消减项），需持续拆分 | Open |
+| VOICE-SIZE-3 | code_size | `scripts/check_code_size.py` 当前仍有 35 个 >300 行文件 / 100 个 >50 行函数（含本文件修改前未消减项），需持续拆分 | Closed |
+
+**2026-07-01 状态更新**：持续拆分后 `scripts/check_code_size.py` 报告 **0 个 >300 行文件、0 个 >50 行函数**，基线达标。
 
 ## 2026-06-17 小智服务器退役准备：阶段 3 之 2D 数字人接入
 
@@ -1966,7 +1968,9 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | ID | Area | Finding | Status |
 |----|------|---------|--------|
 | ECC-1 | process | LiMa 缺少显式 Plan → TDD → Code Review → Commit 闭环；已在 `AGENTS.md` 和 `docs/ECC_WORKFLOW_CN.md` 中增量采用 ECC 流程 | Closed |
-| ECC-2 | metrics | 缺少代码尺寸自动检查；新增 `scripts/check_code_size.py`，基线更新：23 个 >300 行文件、99 个 >50 行函数（已拆 routing_selector/server_lifespan/chat_stream/device_draw_handler 热路径大函数） | Open |
+| ECC-2 | metrics | 缺少代码尺寸自动检查；新增 `scripts/check_code_size.py`，基线更新：23 个 >300 行文件、99 个 >50 行函数（已拆 routing_selector/server_lifespan/chat_stream/device_draw_handler 热路径大函数） | Closed |
+
+**2026-07-01 状态更新**：当前 `scripts/check_code_size.py` 全量扫描为 **PASS**（0 个 >300 行文件、0 个 >50 行函数）；`run_pre_commit_check.py` 已将其作为阻塞项运行。
 | ECC-3 | metrics | 缺少测试覆盖率基线；已安装 `pytest-cov` 并在 `pytest.ini` 配置；`device_gateway` 聚焦覆盖从 38.2% 提升至 **71.1%**（新增 `device_draw_handler`/`motion` 单元测试） | Open |
 | ECC-4 | tooling | `scripts/run_pre_commit_check.py` 已集成代码尺寸检查作为 warning（不阻塞，现有违规先记录） | Closed |
 

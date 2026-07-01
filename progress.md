@@ -1,5 +1,12 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-01 关闭过时的代码尺寸 findings（VOICE-SIZE-3 / ECC-2）
+
+- **背景**：`findings.md` 中 `VOICE-SIZE-3` 与 `ECC-2` 仍标记为 Open，记录的是历史上存在 23~35 个 >300 行文件 / 99~100 个 >50 行函数的状态。
+- **当前状态**：`scripts/check_code_size.py` 当前扫描结果为 **0 个 >300 行文件、0 个 >50 行函数**，`run_pre_commit_check.py` 已将其作为阻塞门禁运行。
+- **操作**：将 `findings.md` 中两项状态更新为 Closed，并补充 2026-07-01 基线达标的说明。
+- **验证**：`scripts/check_code_size.py` PASS；`scripts/run_pre_commit_check.py --ci --full` 4273 passed。
+
 ## 2026-07-01 CI 新增 `pip-audit` 依赖漏洞门禁
 
 - **背景**：`findings.md` 2026-07-01 依赖漏洞修复项建议将 `pip-audit` 加入 CI，防止已修复的 manifest 漏洞回退。
