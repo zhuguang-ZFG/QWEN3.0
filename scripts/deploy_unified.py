@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -28,7 +27,6 @@ from scripts.deploy_common import format_deploy_ok
 from scripts.deploy_unified_helpers import expand_with_dependencies
 
 from scripts.deploy_unified_common import (
-    CORE_FILES,
     SLICE_FILES,
     HEALTH_WAIT_SECONDS,
     TARGET_ALIYUN,

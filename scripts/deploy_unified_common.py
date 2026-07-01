@@ -5,9 +5,7 @@ from __future__ import annotations
 import dataclasses
 import os
 import re
-import shlex
 import sys
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -101,8 +99,6 @@ SLICE_FILES = {
         "route_post_process.py",
     ],
 }
-
-from config import deploy_config
 
 HEALTH_WAIT_SECONDS = deploy_config.deploy_health_wait_s()
 HEALTH_POLL_SECONDS = 3

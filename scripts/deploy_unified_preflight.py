@@ -8,8 +8,6 @@ import time
 from config import deploy_config
 
 from scripts.deploy_unified_common import (
-    DEFAULT_MIN_FREE_MB,
-    DEFAULT_MIN_MEM_MB,
     DeployTarget,
     _connect_ssh,
     _exec,

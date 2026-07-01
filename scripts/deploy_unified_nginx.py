@@ -8,7 +8,6 @@ from pathlib import Path
 
 import paramiko
 
-from config import deploy_config
 from scripts.deploy_common import configure_ssh_host_keys
 from scripts.deploy_unified_common import DeployTarget
 

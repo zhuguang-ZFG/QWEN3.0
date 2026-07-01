@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 import time
 
-from config import deploy_config
-
 from scripts.deploy_common import configure_ssh_host_keys
 from scripts.deploy_unified_common import (
     HEALTH_GRACE_AFTER_RESTART_S,
