@@ -41,6 +41,7 @@ APP_TASK_CAPABILITIES = frozenset(
         "write_text",
         "draw_generated",
         "draw_image",
+        "handwriting",
         "home",
         "pause",
         "resume",

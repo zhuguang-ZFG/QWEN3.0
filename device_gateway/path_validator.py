@@ -24,6 +24,7 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
     "run_path": frozenset({"path", "feed"}),
     "write_text": frozenset({"path", "feed", "text"}),
     "draw_generated": frozenset({"path", "feed", "prompt"}),
+    "handwriting": frozenset({"path", "feed", "text"}),
     "home": frozenset(),
     "pause": frozenset(),
     "resume": frozenset(),
@@ -117,7 +118,7 @@ def validate_capability_params(
 
     for key, value in params.items():
         if isinstance(value, str):
-            limit = 4096 if key == "preview_svg" else 120
+            limit = 8192 if key == "preview_svg" else 120
             sanitized[key] = value[:limit]
         elif isinstance(value, (int, float)):
             sanitized[key] = value

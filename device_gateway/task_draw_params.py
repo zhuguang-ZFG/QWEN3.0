@@ -16,6 +16,19 @@ from .model_routing import CONTROL_CAPABILITIES, looks_like_svg_path
 from .path_pipeline import render_svg_task, render_text_task, text_to_svg_path
 from .safety import DEFAULT_FEED, safe_point
 
+# Feed rate bounds (mm/min), aligned with path_validator.MAX_FEED/MIN_FEED
+_FEED_MIN = 1
+_FEED_MAX = 2000
+
+
+def _clamp_feed(raw: Any, default: int = DEFAULT_FEED) -> int:
+    """Clamp user-supplied feed to the safe range [1, 2000] mm/min."""
+    try:
+        val = int(raw)
+    except (TypeError, ValueError):
+        return default
+    return max(_FEED_MIN, min(_FEED_MAX, val))
+
 
 def _handwriting_options(params: dict[str, Any]) -> dict[str, Any]:
     from integrations.autohanding import constants
@@ -79,10 +92,10 @@ def _build_local_fallback_params(text: str) -> dict[str, Any]:
     }
 
 
-def _build_handwriting_run_params(svg_path: str, text: str) -> dict[str, Any]:
+def _build_handwriting_run_params(svg_path: str, text: str, feed: int = DEFAULT_FEED) -> dict[str, Any]:
     rendered = render_svg_task(svg_path)
     return {
-        "feed": DEFAULT_FEED,
+        "feed": feed,
         "path": rendered["path"],
         "source_capability": "handwriting",
         "text": text[:80],
@@ -117,7 +130,7 @@ async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> t
         return {}, svg_result.get("error") or "handwriting vectorization failed"
 
     _record_handwriting("success", start_ms)
-    return _build_handwriting_run_params(str(svg_result["svg_path"]), text), None
+    return _build_handwriting_run_params(str(svg_result["svg_path"]), text, _clamp_feed(params.get("feed"))), None
 
 
 def _looks_like_svg_path(text: str) -> bool:
@@ -138,10 +151,11 @@ def _draw_user_preferences(params: dict[str, Any]) -> dict[str, Any]:
 async def build_draw_generated_params(
     prompt: str, device_id: str, params: dict[str, Any]
 ) -> tuple[dict[str, Any], str | None]:
+    user_feed = _clamp_feed(params.get("feed"))
     if _looks_like_svg_path(prompt):
         rendered = render_svg_task(prompt)
         return {
-            "feed": DEFAULT_FEED,
+            "feed": user_feed,
             "path": rendered["path"],
             "source_capability": "draw_generated",
             "prompt": prompt,
@@ -161,7 +175,7 @@ async def build_draw_generated_params(
 
     rendered = render_svg_task(str(result["svg_path"]))
     run_params: dict[str, Any] = {
-        "feed": DEFAULT_FEED,
+        "feed": user_feed,
         "path": rendered["path"],
         "source_capability": "draw_generated",
         "prompt": prompt,
@@ -182,7 +196,7 @@ async def build_run_params_async(
     if capability == "write_text":
         rendered = render_text_task(str(params.get("text", "")))
         return {
-            "feed": DEFAULT_FEED,
+            "feed": _clamp_feed(params.get("feed")),
             "path": rendered["path"],
             "source_capability": "write_text",
             "text": str(params.get("text", ""))[:80],
