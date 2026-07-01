@@ -1,5 +1,18 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-02 为 AUDIT-6-A1 补充 OpenAPI 文档开关显式测试
+
+- **背景**：`server.py` 已按 AUDIT-6-A1 默认禁用 Swagger/OpenAPI 文档（`LIMA_DOCS_ENABLED=1` 可开启），但测试目录此前无针对 `/docs`、`/redoc`、`/openapi.json` 返回行为的断言。
+- **实现**：新增 `tests/test_server_docs_disabled.py`：
+  - 默认环境下通过独立子进程导入 `server`，断言三个文档端点均返回 404。
+  - 设置 `LIMA_DOCS_ENABLED=1` 后，断言 `/docs`、`/redoc` 返回 HTML 200，`/openapi.json` 返回 200。
+  - 使用子进程隔离，避免切换 `LIMA_DOCS_ENABLED` 时污染同进程的全局 `app` 对象。
+- **验证**：
+  - `tests/test_server_docs_disabled.py`：2 passed。
+  - 全量 pytest：`4285 passed, 3 skipped, 2 deselected`。
+  - `ruff check .`、`ruff format --check`、`pyright tests/test_server_docs_disabled.py server.py`、`scripts/check_code_size.py` 均通过。
+- **文档**：更新 `findings.md` AUDIT-6-A1 验证列为新增测试 + 全量门禁。
+
 ## 2026-07-01 关闭过时的代码尺寸 findings（VOICE-SIZE-3 / ECC-2）
 
 - **背景**：`findings.md` 中 `VOICE-SIZE-3` 与 `ECC-2` 仍标记为 Open，记录的是历史上存在 23~35 个 >300 行文件 / 99~100 个 >50 行函数的状态。
