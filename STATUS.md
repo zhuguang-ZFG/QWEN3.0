@@ -1,5 +1,7 @@
 # LiMa Status
 
+> **导航**：2026-07-02 起，旧的 5 份战略规划文档（PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN / LIMA_IMPROVEMENT_PLAN_20260625_V2 / PROJECT_OPTIMIZATION_ROADMAP_CN / DEEP_QUALITY_AUDIT_CN / OPTIMIZATION_ANALYSIS_2026-06-23）已归档至 `docs/archive/strategic-plans-2026-06/`。当前活动瘦身/优化计划见 `docs/superpowers/specs/2026-07-02-system-slimdown-design.md`。本文件历史日志中出现的旧文档名仍指向其归档位置（文件名未变，仅路径前缀变更）。
+
 > **项目定位**: AI 智能设备统一云端服务（2026-06-09 战略转型完成）
 > **技术栈**: Python 3.10 + FastAPI + SQLite + Redis
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口

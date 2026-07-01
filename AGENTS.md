@@ -276,7 +276,7 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 | `docs/ARCHITECTURE.md` | 系统架构 |
 | `docs/DEPLOY_AND_RELEASE_CONVENTION.md` | 部署/发布硬规则 |
 | `docs/LIMA_MEMORY_CN.md` | 长期项目记忆 |
-| `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 当前优化路线图 |
+| `docs/superpowers/specs/2026-07-02-system-slimdown-design.md` | 当前瘦身/优化计划（旧的战略规划已归档至 `docs/archive/strategic-plans-2026-06/`） |
 | `docs/archive/task_plan.md` | 历史任务计划（已归档） |
 | `findings.md` | 事实发现和运维结论 |
 | `progress.md` | 执行进度日志 |

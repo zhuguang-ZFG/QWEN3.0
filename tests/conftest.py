@@ -9,7 +9,7 @@ from typing import Any
 
 # Guard: LiMa is validated on Python 3.10 only. Running on 3.11+ or 3.9- produces
 # false positives (e.g. missing freezegun, incorrect code-size counts) and is
-# not supported. See docs/DEEP_QUALITY_AUDIT_CN.md P2-7.
+# not supported. See docs/archive/strategic-plans-2026-06/DEEP_QUALITY_AUDIT_CN.md P2-7.
 if sys.version_info[:2] != (3, 10):
     raise RuntimeError(
         f"LiMa tests must run under Python 3.10 (got {sys.version_info.major}.{sys.version_info.minor}). "
