@@ -5,8 +5,9 @@
 # （项目已遭遇 fastapi 0.136.3 MAL-2026-4750 恶意版本事件）。现改为 ~=（锁定主.次版本，
 # 允许补丁更新）或 ==（精确锁定），兼顾安全补丁与构建可复现性。
 
-# Exclude fastapi 0.136.3 (MAL-2026-4750 malicious release on PyPI)
-fastapi>=0.138.2,<0.138.3
+# Exclude fastapi 0.136.3 (MAL-2026-4750 malicious release on PyPI) and
+# 0.138.x (breaks legacy route-introspection tests via _IncludedRouter).
+fastapi>=0.136.1,<0.136.3
 starlette>=1.3.1           # transitive via fastapi; CVE-2026-54282/54283
 uvicorn[standard]~=0.49.0
 httpx~=0.28.0

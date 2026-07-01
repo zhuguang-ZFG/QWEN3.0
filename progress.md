@@ -1,5 +1,19 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-01 修复 CI `Tests` workflow 与本地全量测试失败
+
+- **背景**：合并 dependabot PR 后 GitHub `Tests` workflow 仍失败（18 failed），本地 `scripts/run_pre_commit_check.py --ci --full` 同样复现。
+- **根因 1 — FastAPI 0.138.2 路由内省破坏**：
+  - `fastapi>=0.138.2` 将 `app.include_router()` 的结果包装为 `_IncludedRouter`，`server.app.routes` 不再直接包含 `APIRoute` 叶子对象，导致所有路由注册/内省类测试断言失败。
+  - 修复：将 `requirements_server.txt` 与 `deploy/jdcloud/jdcloud-worker-requirements.txt` 的 FastAPI 范围收紧为 `>=0.136.1,<0.136.3`（排除恶意 0.136.3 同时避开 0.138.x），并保留显式 `starlette>=1.3.1` 以继续覆盖 CVE-2026-54282/54283。
+- **根因 2 — path_validator 丢弃已生成 motion path**：
+  - `device_gateway/path_validator.py` 对 `write_text`/`draw_generated`/`handwriting` 等 `_PATH_GENERATING_CAPABILITIES` 会跳过 `path` 字段，即使 `build_run_params_async` 已经生成了有效 path，也会被丢弃，导致 5 个设备任务测试 KeyError/AssertionError。
+  - 修复：新增 `_maybe_preserve_path()` 辅助函数；当 path 已存在且有效时校验并保留，无 path 时仍保持原有“稍后生成”的兼容性。
+- **验证**：
+  - `scripts/run_pre_commit_check.py --ci --full`：`4273 passed, 3 skipped, 2 deselected`
+  - `pip-audit`：installed packages 无已知漏洞
+  - `ruff check .`、`ruff format --check`、`pyright device_gateway/path_validator.py`、`scripts/check_code_size.py` 均通过
+
 ## 2026-07-01 Cloudflare Worker 透明兜底/灰度（已完成）
 
 - **目标**：在 `chat.donglicao.com` 边缘部署 Worker，对匿名 `/v1/chat/completions` 请求透明代理到阿里云 pilot，并在 pilot 异常时自动回源到京东云主节点。

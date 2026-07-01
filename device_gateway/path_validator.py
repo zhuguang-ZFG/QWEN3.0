@@ -116,6 +116,9 @@ def validate_capability_params(
             "feed": _clamp_feed_value(params.get("feed")),
             "source_capability": str(params.get("source_capability", capability)),
         }
+        path_error = _maybe_preserve_path(params, profile, sanitized)
+        if path_error:
+            return {}, path_error
     else:
         sanitized, error = validate_run_path_params(params, profile=profile)
         if error:
@@ -137,6 +140,25 @@ def validate_capability_params(
             sanitized[key] = value
 
     return sanitized, None
+
+
+def _maybe_preserve_path(
+    params: dict,
+    profile: DeviceProfile | None,
+    sanitized: dict[str, Any],
+) -> str | None:
+    """Validate and preserve an already-generated motion path, if present.
+
+    Returns an error code when the path is invalid; otherwise None.
+    """
+    path = params.get("path")
+    if not isinstance(path, list) or len(path) == 0:
+        return None
+    validated_path, path_error = validate_run_path_params(params, profile=profile)
+    if path_error:
+        return path_error
+    sanitized["path"] = validated_path["path"]
+    return None
 
 
 def _clamp_feed_value(raw_feed: Any) -> float:
