@@ -47,6 +47,7 @@ FILES = [
     "chat-messages.js",
     "chat-api.js",
     "js/api.js",
+    "js/app-boot.js",
     "js/auth.js",
     "js/model-selector.js",
     "js/keys.js",

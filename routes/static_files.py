@@ -99,6 +99,13 @@ _MEDIA_TYPES: dict[str, str] = {
 @router.get("/chat/{path:path}")
 async def serve_chat_web_asset(request: Request, path: str):
     """Serve any other chat-web static asset from the chat-web directory."""
+    # 空 path 或目录请求 → 回退到 index.html（SPA 入口）
+    if not path or path.endswith("/"):
+        index_file = _BASE_DIR / "chat-web" / "index.html"
+        if index_file.is_file():
+            return FileResponse(index_file, media_type="text/html", headers={"Cache-Control": "no-cache"})
+        raise HTTPException(404, "Not found")
+
     safe_path = Path(path)
     if safe_path.is_absolute() or ".." in safe_path.parts:
         raise HTTPException(404, "Not found")
