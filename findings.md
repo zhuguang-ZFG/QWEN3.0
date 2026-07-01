@@ -88,6 +88,7 @@
   - `Dockerfile`：基础镜像从浮动 `python:3.10-slim` 固定为 `python:3.10.20-slim-bookworm@sha256:89cef4d55961e885def21b86e34e102e65b7eab8cd281e806a66ff1709c9a455`。
 - **额外修复**：
   - `.github/workflows/test.yml`：将错误的 `actions/checkout@v7`、`actions/setup-python@v6`、`actions/cache@v6` 改为正确的 v4/v5/v4。
+  - 2026-07-01 新增 CI `pip-audit -r requirements_server.txt` 门禁（`PYTHONUTF8=1`），与 `bandit` 合并到 `Security scan` 步骤。
 - **仍未修复的告警**：
   - GitHub push 后仍提示 default branch 有 16 个漏洞（7 high, 9 moderate）。本地可扫描的 manifests 已全部 clean，剩余可能来源：
     - GitHub Dependabot 计数存在延迟/缓存。
@@ -96,7 +97,7 @@
 - **风险与后续**：
   - Pillow 大版本 10→12 已确认通过全部图像处理测试；生产部署后需观察 `xiaozhi_drawing/svg_converter.py` 与 `device_logic/captcha.py` 行为。
   - pip 大版本 23→26 仅影响包安装流程，未引入运行时变更。
-  - 建议后续在 CI 中加入 `pip-audit --requirement requirements_server.txt` 门禁。
+  - ~~建议后续在 CI 中加入 `pip-audit --requirement requirements_server.txt` 门禁。~~ ✅ 已完成（2026-07-01）：`.github/workflows/test.yml` 新增 `pip-audit -r requirements_server.txt` 步骤，环境变量 `PYTHONUTF8=1` 规避 Windows 编码问题。
   - 子模块中遗留的旧前端构建链（gulp/cheerio/underscore 等）如需继续修复，涉及直接依赖大版本升级，可能破坏 ESP32 固件构建流程，需单独评估。
 
 ## 2026-06-30 阿里云启用 `lima-router-pilot` 作为免费后端辅助节点

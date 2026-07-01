@@ -1,5 +1,15 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-01 CI 新增 `pip-audit` 依赖漏洞门禁
+
+- **背景**：`findings.md` 2026-07-01 依赖漏洞修复项建议将 `pip-audit` 加入 CI，防止已修复的 manifest 漏洞回退。
+- **实现**：
+  - `.github/workflows/test.yml` 的 `Install dependencies` 步骤安装 `pip-audit`。
+  - `Security scan` 步骤合并 `bandit` 与 `pip-audit -r requirements_server.txt`；设置 `PYTHONUTF8=1` 避免 Windows 编码下 requirements 中文注释被误识别为 GBK。
+- **验证**：
+  - 本地 `PYTHONUTF8=1 pip-audit -r requirements_server.txt` → `No known vulnerabilities found`。
+  - `bandit` 通过（仅 Low 问题）。
+
 ## 2026-07-01 修复 CI `Tests` workflow 与本地全量测试失败
 
 - **背景**：合并 dependabot PR 后 GitHub `Tests` workflow 仍失败（18 failed），本地 `scripts/run_pre_commit_check.py --ci --full` 同样复现。
