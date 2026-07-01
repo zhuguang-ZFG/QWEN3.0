@@ -150,7 +150,7 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
 | 设备网关 | `device_gateway/`, `routes/device_gateway*.py` | `/device/v1/*`；Redis 任务队列 + WSS；ESP32/硬件 |
 
 | 会话记忆 | `session_memory/` | 持久记忆 + 学习循环 |
-| 上下文流水线 | `context_pipeline/` (43 模块) | 检索、代码上下文、验证、重排序 |
+| 上下文流水线 | `context_pipeline/` (17 模块) | 检索注入、技能记忆、响应验证/重排序、token 预算、路由权重（代码上下文 v3.0 已退役移除） |
 | 可观测性 | `observability/` | Prometheus 指标、结构化日志 |
 | 提供商探测 | `packages/provider-probe-offline/provider_probe/`（冷离线；根目录 `provider_probe/` 为指针）, `provider_automation/`, `backends_registry/` | 自动发现新 AI 提供商（仅 JDCloud） |
 
