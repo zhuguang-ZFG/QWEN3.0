@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import logging
-import os as _os
 from pathlib import Path
 
 from code_context.index_store import FileRecord, InMemoryCodeIndex

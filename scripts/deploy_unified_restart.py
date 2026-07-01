@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
-import os
 import time
 
 from config import deploy_config
 
-from scripts.deploy_common import SERVER, KEY, REMOTE, configure_ssh_host_keys
+from scripts.deploy_common import SERVER, KEY, configure_ssh_host_keys
 from scripts.deploy_unified_common import (
     HEALTH_GRACE_AFTER_RESTART_S,
     HEALTH_POLL_SECONDS,
