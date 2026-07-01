@@ -5,7 +5,7 @@
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
 > **部署**: 主计算与公网入口在 JDCloud (`117.72.118.95`)；Cloudflare Tunnel 指向京东云本地 nginx（`https://127.0.0.1:443`），由 nginx 路由 API/静态资源。阿里云 `47.112.162.80` 已部署 `lima-router-pilot` 作为辅助节点，仅处理免费/低价后端流量（`aliyun.donglicao.com`）。chat-web、官网 playground、manager-mobile H5 的匿名简单聊天请求已分流到阿里云 pilot。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
 
-> Updated: 2026-07-01
+> Updated: 2026-07-02
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
 > Tests: 全量 **4285 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
@@ -18,6 +18,11 @@
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+
+### 最近完成（2026-07-02）AUDIT-11-W2 移除设备 WS query 参数 token 注入
+
+- **实现**：`routes/device_gateway_dispatch.py:extract_ws_token` 彻底移除 `?token=`/`?authorization=` query 参数分支及 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN` 临时开关，仅保留 `?ticket=` 与 `Authorization` header；`.env.example`、`tests/conftest.py`、相关单元/集成测试同步清理；`docs/DEVICE_WS_TOKEN_DEPRECATION_CN.md` 更新为 Phase 2 完成。
+- **验证**：设备 WS 聚焦测试 71 passed / 1 skipped；全量 `4285 passed, 3 skipped, 2 deselected`；ruff / pyright / code size 均通过；`grep` 确认无遗留 `?token=` 与 env 开关。
 
 ### 最近完成（2026-07-02）AUDIT-6-A1 OpenAPI 文档开关测试补齐
 

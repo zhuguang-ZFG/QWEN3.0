@@ -96,7 +96,7 @@ def test_cloud_to_fake_u1_draw_generated_svg_loop(
     device_id = "fake-u1-device"
     _home_device(fake_device_server, fake_u1, device_id)
 
-    with lima_client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with lima_client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         _ws_send_hello(ws, device_id)
 
         svg_d = "M0,0 L10,0 L10,10"

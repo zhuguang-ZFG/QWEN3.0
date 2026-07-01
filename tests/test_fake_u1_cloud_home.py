@@ -65,7 +65,7 @@ def test_cloud_to_fake_u1_home_loop(lima_client: TestClient, fake_device_server:
     """Cloud 'home' command executes on fake U1 and reaches terminal 'done' state."""
     device_id = "fake-u1-device"
 
-    with lima_client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with lima_client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         _ws_send_hello(ws, device_id)
 
         response = lima_client.post(

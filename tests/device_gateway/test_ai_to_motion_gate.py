@@ -127,7 +127,7 @@ def test_ws_hello_drain_preserves_request_id_and_entrypoint() -> None:
     client = _client()
     task_id = _create_task(client, "req-ws-drain")
 
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(_hello_payload("dev-1"))
         assert ws.receive_json()["type"] == "hello_ack"
         motion_task = ws.receive_json()
@@ -144,7 +144,7 @@ def test_ws_hello_drain_preserves_request_id_and_entrypoint() -> None:
 
 def test_ws_transcript_creates_entrypoint_evidence() -> None:
     client = _client()
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(_hello_payload("dev-1"))
         assert ws.receive_json()["type"] == "hello_ack"
         ws.send_json(_transcript_payload("req-transcript-1"))
@@ -281,11 +281,11 @@ def test_disconnect_recovery_preserves_terminal_result() -> None:
     client = _client()
     task_id = _create_task(client, "req-recovery-1")
 
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(_hello_payload("dev-1"))
         _assert_motion_task_received(ws, task_id)
 
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(_hello_payload("dev-1"))
         _assert_motion_task_received(ws, task_id)
         _send_terminal_phases(ws, "dev-1", task_id)

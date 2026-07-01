@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any
 
 from fastapi import WebSocket
@@ -55,25 +54,8 @@ def extract_ws_token(websocket: WebSocket) -> str:
     if authorization.strip():
         _log.warning("device WS authorization missing Bearer prefix")
         return authorization.strip()
-    # AUDIT-11-W2: query parameter tokens leak into access logs / Referer.
-    # Default-deny them; keep a temporary opt-in for legacy clients during migration.
-    if os.environ.get("LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN", "0") != "1":
-        _log.warning("device WS query token rejected; use POST /device/v1/ws/ticket or Authorization header")
-        return ""
-
-    # Legacy path (deprecated): some web testers pass the token as a query param.
-    token = websocket.query_params.get("token", "").strip()
-    if token.lower().startswith("bearer "):
-        return token[7:].strip()
-    if token:
-        _log.warning("device WS token query param exposes secret; prefer POST /device/v1/ws/ticket")
-        return token
-    auth_query = websocket.query_params.get("authorization", "").strip()
-    if auth_query.lower().startswith("bearer "):
-        return auth_query[7:].strip()
-    if auth_query:
-        _log.warning("device WS authorization query param missing Bearer prefix")
-        return auth_query
+    # AUDIT-11-W2: query parameter tokens are intentionally not supported.
+    # They leak into access logs / Referer. Use ?ticket= or Authorization header.
     return ""
 
 

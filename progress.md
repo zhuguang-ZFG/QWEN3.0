@@ -1,5 +1,23 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-02 移除设备网关 WebSocket query 参数 token 注入（AUDIT-11-W2）
+
+- **背景**：`routes/device_gateway_dispatch.py:extract_ws_token`  historically 支持 ticket / Authorization header / `?token=` / `?authorization=` 四种注入方式，后两者会让 Bearer token 进入 nginx access log 与 Referer。此前生产已默认拒绝 query token，但代码仍保留 legacy 分支和临时环境变量 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN`。
+- **实现**：
+  - `routes/device_gateway_dispatch.py`：删除 `import os`、移除 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN` 判断与 legacy query token 分支，`extract_ws_token` 仅保留 `?ticket=` 与 `Authorization` header 路径。
+  - `.env.example`：删除 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN` 相关说明。
+  - `tests/conftest.py`：删除 `_allow_legacy_device_ws_query_token_in_tests` autouse fixture。
+  - `tests/test_device_gateway_dispatch.py`、`tests/test_device_ws_ticket.py`、`tests/test_routes_device_gateway_dispatch.py`：更新断言，确认 query token/authorization 被永久拒绝。
+  - 设备 WS 集成测试迁移：把 `client.websocket_connect("/device/v1/ws?token=test-device-token")` 改为 `headers={"Authorization": "Bearer test-device-token"}`，涉及 `tests/device_gateway/test_ai_to_motion_gate.py`、`test_tasks_http.py`、`test_ws_lifecycle.py`、`test_device_gateway_ws_errors.py`、`test_fake_u1_cloud_*.py`、`test_p1_4_device_stability_gate*.py`。
+  - `docs/DEVICE_WS_TOKEN_DEPRECATION_CN.md`：更新为 Phase 2 已完成，query token 注入已移除。
+- **验证**：
+  - 聚焦设备 WS 相关测试：71 passed，1 skipped。
+  - 全量 pytest：`4285 passed, 3 skipped, 2 deselected`。
+  - `ruff check .`、`ruff format --check`、`pyright` 目标文件、`scripts/check_code_size.py` 均通过。
+  - `grep` 确认仓库中不再有 `/device/v1/ws?token=` 与 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN` 代码/测试引用。
+- **风险**：若前端或固件仍有未切换的 `?token=` 调用，生产会认证失败；但生产此前已默认拒绝 query token，因此本次仅清理 legacy 代码与测试，不影响线上行为。
+- **文档**：更新 `findings.md`、`STATUS.md` 将 AUDIT-11-W2 标记为已关闭。
+
 ## 2026-07-02 为 AUDIT-6-A1 补充 OpenAPI 文档开关显式测试
 
 - **背景**：`server.py` 已按 AUDIT-6-A1 默认禁用 Swagger/OpenAPI 文档（`LIMA_DOCS_ENABLED=1` 可开启），但测试目录此前无针对 `/docs`、`/redoc`、`/openapi.json` 返回行为的断言。

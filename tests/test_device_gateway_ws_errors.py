@@ -16,7 +16,7 @@ def _client(monkeypatch) -> TestClient:
 
 def test_websocket_malformed_json_returns_protocol_error(monkeypatch):
     client = _client(monkeypatch)
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_text("{not-json")
         error = ws.receive_json()
 

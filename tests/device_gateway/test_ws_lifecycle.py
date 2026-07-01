@@ -15,7 +15,7 @@ def _client() -> TestClient:
 
 def test_fake_u8_hello_heartbeat_transcript_motion_event_loop():
     client = _client()
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(
             {
                 "type": "hello",
@@ -71,7 +71,7 @@ def test_websocket_transcript_failed_task_is_not_dispatched(monkeypatch):
     )
 
     client = _client()
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(
             {
                 "type": "hello",
@@ -92,7 +92,7 @@ def test_websocket_transcript_failed_task_is_not_dispatched(monkeypatch):
 
 def test_websocket_returns_stable_error_before_hello():
     client = _client()
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json({"type": "heartbeat", "device_id": "dev-1", "uptime_ms": 1, "request_id": "req-before-hello"})
         error = ws.receive_json()
 
@@ -106,7 +106,7 @@ def test_websocket_returns_stable_error_before_hello():
 
 def test_websocket_rejects_invalid_device_token():
     client = _client()
-    with client.websocket_connect("/device/v1/ws?token=wrong") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer wrong"}) as ws:
         ws.send_json(
             {
                 "type": "hello",
@@ -136,7 +136,7 @@ def test_websocket_motion_event_acks_processing_task(monkeypatch):
     monkeypatch.setattr("device_gateway.task_lifecycle.ack_processing_task", fake_ack_processing)
 
     client = _client()
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(
             {
                 "type": "hello",

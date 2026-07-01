@@ -56,7 +56,7 @@ def _client() -> TestClient:
 def test_fake_u8_full_success_cycle():
     """Fake device completes hello → transcript → motion events → done."""
     c = _client()
-    with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with c.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         # hello
         ws.send_json(
             {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
@@ -99,7 +99,7 @@ def test_fake_u8_full_success_cycle():
 def test_fake_u8_failure_event_e_missing_path():
     """Fake device sends failed + E_MISSING_PATH."""
     c = _client()
-    with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with c.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(
             {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
         )
@@ -134,7 +134,7 @@ def test_fake_u8_failure_event_e_missing_path():
 def test_fake_u8_failure_event_e_unsupported_board():
     """Firmware-side error_code/error_message format is preserved."""
     c = _client()
-    with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with c.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(
             {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
         )
@@ -232,7 +232,7 @@ def test_correlation_events_recorded_on_motion():
         pytest.skip("correlation module not loaded")
 
     c = _client()
-    with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with c.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(
             {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
         )

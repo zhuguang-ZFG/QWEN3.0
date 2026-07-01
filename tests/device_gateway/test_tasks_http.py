@@ -103,7 +103,7 @@ def test_tasks_endpoint_flushes_queued_task_when_device_connects():
     ).json()
     assert queued["status"] == "queued"
 
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(
             {
                 "type": "hello",
@@ -132,7 +132,7 @@ def test_device_hello_drains_more_than_one_pending_batch():
         ).json()
         queued_task_ids.append(queued["task"]["task_id"])
 
-    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+    with client.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
         ws.send_json(
             {
                 "type": "hello",

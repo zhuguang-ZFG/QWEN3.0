@@ -322,8 +322,8 @@
 - AUDIT-6 A4/A5/A6（响应信封/REST/Pydantic 收口）— 大范围端点改造；A7 已关闭
 - ~~AUDIT-9 S4（task state CAS 乐观锁）~~ ✅ 已完成（redis_cas.py Lua CAS + events 原生追加 + 11 调用点改造 + 10 测试）
 - ~~AUDIT-7 D4（依赖 hash pinning）~~ ✅ 已完成（19 个 `>=` 收紧为 `~=`/`==`，锁定主.次版本允许补丁更新；pip freeze 验证当前环境兼容；完整 hash pinning 需跨平台 lock 文件，留作后续）
+- ~~AUDIT-11 W2（移除 query 参数 token 注入）~~ ✅ 已完成（2026-07-02）
 - AUDIT-5 O6（OpenTelemetry 接入）— 新依赖
-- AUDIT-11 W2（移除 query 参数 token 注入）— 需前后端协同
 - 固件所有修改需 `idf.py build` 真机编译验证
 
 ### 其他修复
@@ -1019,10 +1019,11 @@ AUDIT-9 多个发现指向同一架构问题：**InMemory 与 Redis 两个 store
 | W1 | `routes/device_gateway_ws.py`、`device_gateway/sessions.py`、`routes/device_gateway_ws_handlers.py` | WS receive 加 `asyncio.wait_for` 超时（鉴权前 60s/鉴权后 600s），防 Slowloris；`SessionRegistry` 加 `_MAX_DEVICE_SESSIONS=2000` 连接上限，`register` 返回 `"too_many"` 时 `handle_hello` 拒绝连接 close(1013) | ruff + 45 测试通过 |
 | A1 | `xiaozhi_drawing/svg_validator.py`、`routes/device_app_assets.py` | 新增 `sanitize_svg_markup`：用标准库 `xml.etree.ElementTree` 删除 `script`/`foreignObject`/`iframe`/`object`/`embed`/`style` 标签、事件处理器属性、`javascript:` 危险 URI；拒绝 DOCTYPE；纯 path data 直接放行。设备 asset 创建 `category=svg` 时强制清洗 | 27 测试通过 |
 | I2 | `integrations/autohanding/client.py`、`server_lifespan.py` | autohanding 客户端改用缓存的 `httpx.AsyncClient` 单例（带连接池），避免每次请求重建 TLS 握手；`server_lifespan` shutdown 调用 `close_autohanding_client` | 10 测试通过 |
+| W2 | `routes/device_gateway_dispatch.py`、`.env.example`、`tests/conftest.py`、设备 WS 集成测试 | 移除 `?token=`/`?authorization=` query 参数 token 注入及 `LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN` 临时开关；`extract_ws_token` 仅保留 `?ticket=` 与 `Authorization` header；测试全部迁移到 header | ruff + pyright + 全量 4285 passed |
 
-- **延后项**：W2（移除 query 参数 token 注入，需前后端协同）
+- ~~W2（移除 query 参数 token 注入）~~ ✅ 已完成（2026-07-02）
 - ~~W3（僵尸会话心跳清理）~~ ✅ 已核实完成：`device_gateway/sessions.py` 的 `remove_zombies`（按 `last_seen_at` 心跳超时清理 + outstanding tasks requeue）已实现，并由 `routes/device_gateway_helpers.py` 的 reaper 后台任务（`_ZOMBIE_HEARTBEAT_TIMEOUT_SECONDS`）周期调用。
-- 状态：**AUDIT-11 HIGH/MEDIUM 批次已关闭**（I1/W1/A1/I2/W3）。
+- 状态：**AUDIT-11 HIGH/MEDIUM 批次已全部关闭**（I1/W1/W2/A1/I2/W3）。
 
 
 ## 2026-06-29 AUDIT-12：U8/U1 固件侧安全与健壮性审查

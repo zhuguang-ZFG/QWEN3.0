@@ -79,21 +79,12 @@ def test_create_device_ws_ticket_rejects_invalid(monkeypatch):
     assert response.json()["code"] == "E_UNAUTHORIZED_DEVICE"
 
 
-def test_extract_ws_token_rejects_query_token_by_default(monkeypatch):
-    """AUDIT-11-W2：默认拒绝 query token，防止 Bearer 进入 access log/Referer。"""
-    monkeypatch.delenv("LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN", raising=False)
+def test_extract_ws_token_rejects_query_token():
+    """AUDIT-11-W2：query token 注入已移除，防止 Bearer 进入 access log/Referer。"""
     ws = _FakeWebSocket(query={"token": "secret-token"})
     assert extract_ws_token(ws) == ""
 
 
-def test_extract_ws_token_rejects_query_authorization_by_default(monkeypatch):
-    monkeypatch.delenv("LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN", raising=False)
+def test_extract_ws_token_rejects_query_authorization():
     ws = _FakeWebSocket(query={"authorization": "Bearer secret-token"})
     assert extract_ws_token(ws) == ""
-
-
-def test_extract_ws_token_allows_query_token_with_env_flag(monkeypatch):
-    """Legacy 兼容：显式设置 LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN=1 时恢复 query token。"""
-    monkeypatch.setenv("LIMA_DEVICE_WS_ALLOW_QUERY_TOKEN", "1")
-    ws = _FakeWebSocket(query={"token": "secret-token"})
-    assert extract_ws_token(ws) == "secret-token"

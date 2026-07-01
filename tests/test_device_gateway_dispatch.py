@@ -20,11 +20,12 @@ class _FakeWebSocket:
     [
         ({"authorization": "Bearer secret-token"}, {}, "secret-token"),
         ({"authorization": "secret-token"}, {}, "secret-token"),
-        ({}, {"token": "query-token"}, "query-token"),
-        ({}, {"token": "Bearer query-token"}, "query-token"),
-        ({}, {"authorization": "Bearer auth-query-token"}, "auth-query-token"),
-        ({}, {"authorization": "auth-query-token"}, "auth-query-token"),
-        ({}, {"token": "token-wins", "authorization": "auth-loses"}, "token-wins"),
+        ({}, {"ticket": "ticket-token"}, ""),
+        ({}, {"token": "query-token"}, ""),
+        ({}, {"token": "Bearer query-token"}, ""),
+        ({}, {"authorization": "Bearer auth-query-token"}, ""),
+        ({}, {"authorization": "auth-query-token"}, ""),
+        ({}, {"token": "token-wins", "authorization": "auth-loses"}, ""),
         ({}, {}, ""),
     ],
 )

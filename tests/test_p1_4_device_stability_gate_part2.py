@@ -117,7 +117,7 @@ def test_stability_loop(request):
         c = _client()
         try:
             _reset_for_tests()  # Clean state between rounds
-            with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+            with c.websocket_connect("/device/v1/ws", headers={"Authorization": "Bearer test-device-token"}) as ws:
                 ws.send_json(
                     {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
                 )

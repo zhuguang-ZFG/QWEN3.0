@@ -41,9 +41,9 @@ def test_extract_ws_token_from_ticket(websocket, monkeypatch):
     assert websocket.scope["state"]["ticket_device_id"] == "dev-1"
 
 
-def test_extract_ws_token_from_query_param(websocket):
+def test_extract_ws_token_ignores_query_param(websocket):
     websocket.query_params.get.side_effect = lambda key, default="": "query-token" if key == "token" else default
-    assert dispatch.extract_ws_token(websocket) == "query-token"
+    assert dispatch.extract_ws_token(websocket) == ""
 
 
 def test_extract_ws_token_missing(websocket):
