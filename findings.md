@@ -1,5 +1,23 @@
 # LiMa Findings
 
+## 2026-07-01 chat-web 匿名聊天请求已分流至阿里云 pilot
+
+- **结论**：`app.donglicao.com` / `chat.donglicao.com/chat/` 的匿名简单聊天请求现在会发送到 `https://aliyun.donglicao.com/v1/chat/completions`，由阿里云 `lima-router-pilot`（仅免费后端）处理。
+- **实现机制**：
+  - 前端 `chat-web/js/app-config.js` 在运行时判断：无 API Key + 模型为默认 `lima`/`lima-1.3` + 无 `tools`/`tool_choice`/图片内容时，使用 pilot endpoint。
+  - `chat-web/chat-api.js` 的 `sendMessage()` 与 `generateImage()` 统一通过 `LiMaConfig.getApiUrl()` 获取完整 URL。
+  - CSP `connect-src` 已增加 `https://aliyun.donglicao.com`。
+- **部署**：
+  - GitHub Actions `Deploy Chat Web` workflow 已自动构建 hashed assets 并部署到 Cloudflare Pages。
+  - 京东云 `/opt/lima-router/chat-web` 源文件也已同步，作为 FastAPI `/chat/` 静态回源。
+- **验证**：
+  - `https://app.donglicao.com/` 返回的 HTML 包含 `js/app-config.<hash>.js` 且 CSP 允许 `aliyun.donglicao.com`。
+  - 直接 POST `aliyun.donglicao.com/v1/chat/completions`（Origin: chat.donglicao.com）返回 200，CORS 正常，后端为 `pollinations_openai`。
+- **风险与后续**：
+  - 当前分流仅覆盖 chat-web；manager-mobile、官网 playground 仍走主节点，后续按需扩展。
+  - 免费后端池耗尽/限速时，pilot 可能返回 503/429；建议前端增加一次失败自动回退到 `chat.donglicao.com`。
+  - Cloudflare Worker 透明兜底方案尚未实施，仍依赖前端正确选择 endpoint。
+
 ## 2026-07-01 全栈深度质量检查（LiMa + Web + chat-web + 小程序 + 固件）
 
 ### 检查范围与结果

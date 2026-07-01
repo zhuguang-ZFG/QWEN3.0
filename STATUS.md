@@ -3,7 +3,7 @@
 > **项目定位**: AI 智能设备统一云端服务（2026-06-09 战略转型完成）
 > **技术栈**: Python 3.10 + FastAPI + SQLite + Redis
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
-> **部署**: 主计算与公网入口在 JDCloud (`117.72.118.95`)；通过 Cloudflare Tunnel (`lima-jdcloud`) 直连京东云。阿里云 `47.112.162.80` 已部署 `lima-router-pilot` 作为辅助节点，仅处理免费/低价后端流量（`aliyun.donglicao.com`）。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
+> **部署**: 主计算与公网入口在 JDCloud (`117.72.118.95`)；通过 Cloudflare Tunnel (`lima-jdcloud`) 直连京东云。阿里云 `47.112.162.80` 已部署 `lima-router-pilot` 作为辅助节点，仅处理免费/低价后端流量（`aliyun.donglicao.com`）。chat-web 匿名简单聊天请求已分流到阿里云 pilot。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
 
 > Updated: 2026-07-01
 > Branch: `main`
@@ -18,6 +18,22 @@
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+
+### 最近完成（2026-07-01）chat-web 匿名聊天分流到阿里云 pilot
+
+- **目标**：让 `app.donglicao.com` / `chat.donglicao.com/chat/` 的匿名简单聊天请求由阿里云 `lima-router-pilot`（仅免费后端）处理。
+- **实现**：
+  - 新增 `chat-web/js/app-config.js`：运行时判断无 API Key + 默认模型 `lima`/`lima-1.3` + 无 tools/图片时，使用 `https://aliyun.donglicao.com`。
+  - `chat-web/chat-api.js` 的 `sendMessage()` / `generateImage()` 统一通过 `LiMaConfig.getApiUrl()` 获取 endpoint。
+  - `chat-web/index.html` CSP `connect-src` 增加 `https://aliyun.donglicao.com`。
+  - `.gitignore` 增加 `chat-web/dist/`（由 `hash-assets.mjs` 生成）。
+- **部署**：
+  - GitHub Actions `Deploy Chat Web` workflow 自动构建 hashed assets 并部署到 Cloudflare Pages（`app.donglicao.com`）。
+  - 京东云 `/opt/lima-router/chat-web` 源文件通过 `deploy_unified.py --files` 同步，作为 FastAPI `/chat/` 静态回源。
+- **验证**：
+  - `https://app.donglicao.com/` 返回 HTML 包含 `js/app-config.<hash>.js`，CSP 允许 `aliyun.donglicao.com`。
+  - 直接 POST `aliyun.donglicao.com/v1/chat/completions`（Origin: chat.donglicao.com）返回 200，后端 `pollinations_openai`，CORS 正常。
+- **后续**：manager-mobile / 官网 playground 的分流按需扩展；建议前端增加 pilot 失败时自动回退主节点。
 
 ### 最近完成（2026-07-01）修复 dependabot moderate 漏洞
 
