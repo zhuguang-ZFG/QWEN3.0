@@ -18,7 +18,7 @@
   - `https://chat.donglicao.com/mobile/index.html` 返回 H5 入口，资源路径以 `/mobile/assets/` 开头。
   - 直接 POST `aliyun.donglicao.com/v1/chat/completions`（Origin: chat.donglicao.com）返回 200，CORS 正常，后端为 `pollinations_openai`。
 - **风险与后续**：
-  - Cloudflare Worker 兜底/灰度方案已实施：新增 `cloudflare/workers/chat-router.js`，部署到 `chat.donglicao.com/v1/chat/completions*`；无 Authorization 的匿名 chat 由 Worker 代理到 pilot，pilot 异常时自动回源京东云。
+  - Cloudflare Worker 兜底/灰度方案已实施并验证：新增 `cloudflare/workers/chat-router.js`，部署到 `chat.donglicao.com/v1/chat/completions*`；无 Authorization 的匿名 chat 由 Worker 代理到 pilot（响应头 `X-Lima-Backend: aliyun`），pilot 异常时自动回源京东云（`X-Lima-Backend: jdcloud`）。
   - manager-mobile 微信小程序包尚未重新上传发版；H5 已部署。
 
 ## 2026-07-01 全栈深度质量检查（LiMa + Web + chat-web + 小程序 + 固件）

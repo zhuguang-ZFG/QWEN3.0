@@ -1,20 +1,20 @@
 # Personal Coding Assistant Progress
 
-## 2026-07-01 Cloudflare Worker 透明兜底/灰度（实现中，部署待 token 权限）
+## 2026-07-01 Cloudflare Worker 透明兜底/灰度（已完成）
 
 - **目标**：在 `chat.donglicao.com` 边缘部署 Worker，对匿名 `/v1/chat/completions` 请求透明代理到阿里云 pilot，并在 pilot 异常时自动回源到京东云主节点。
 - **实现**：
-  - 新增 `cloudflare/workers/chat-router.js`：按 `Authorization` 头存在性粗分流；无 key 的 POST `/v1/chat/completions*` 走 pilot；其余请求回源 `origin-chat.donglicao.com`。
+  - 新增 `cloudflare/workers/chat-router.js`：按 `Authorization` 头存在性粗分流；无 key 的 POST `/v1/chat/completions*` 走 pilot；其余请求回源 `origin-chat.donglicao.com`；pilot 返回 429/5xx/408 时自动回源兜底。
   - 新增 `cloudflare/wrangler.toml`：路由 `chat.donglicao.com/v1/chat/completions*`。
   - 新增 `.github/workflows/deploy-chat-router-worker.yml`：自动确保 `origin-chat.donglicao.com` DNS 记录并部署 Worker。
 - **基础设施**：
   - 京东云 `/etc/cloudflared/config.yml` 增加 `origin-chat.donglicao.com` ingress，指向本地 nginx（跳过 TLS 校验）。
-  - GitHub Actions 已成功创建 `origin-chat.donglicao.com` CNAME 到 tunnel。
-- **部署状态**：
-  - 代码已 push，workflow 已改为使用独立 `CLOUDFLARE_WORKERS_TOKEN`。
-  - DNS 步骤成功；Worker 部署步骤因旧 token 缺少 Workers Scripts:Edit 权限而失败（Cloudflare API code 10000）。
-  - 已设置新的 `CLOUDFLARE_WORKERS_TOKEN`，重新触发部署中。
-- **验证**：待部署完成后，通过 `curl -I -X OPTIONS` 与匿名 POST 观察 `X-Lima-Backend: aliyun|jdcloud` 头。
+  - GitHub Actions 已创建 `origin-chat.donglicao.com` CNAME 到 tunnel。
+- **部署状态**：workflow run `28525746050` 成功，Worker `lima-chat-router` 已部署。
+- **验证**：
+  - `curl -X OPTIONS https://chat.donglicao.com/v1/chat/completions` → 204，CORS 头来自 Worker。
+  - 匿名 POST（无 Authorization）→ `X-Lima-Backend: aliyun`，后端 `pollinations_openai`，响应 200。
+  - 带 Authorization POST → `X-Lima-Backend: jdcloud`，响应 401（dummy key 被主节点拒绝，证明回源路径正常）。
 
 ## 2026-07-01 前端匿名简单聊天请求分流到阿里云 pilot
 

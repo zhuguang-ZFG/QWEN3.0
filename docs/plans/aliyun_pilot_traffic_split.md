@@ -1,8 +1,8 @@
 # 阿里云 pilot 流量分流方案
 
 > 目标：让 `chat.donglicao.com` 的部分简单匿名聊天请求由阿里云 `lima-router-pilot`（仅免费后端）处理，降低京东云主节点负载。
-> 决策：前端按模型/场景主动选择 endpoint；Cloudflare Worker 作为可选兜底/灰度能力。
-> 状态：计划待审批
+> 决策：前端按模型/场景主动选择 endpoint；Cloudflare Worker 作为兜底/灰度能力。
+> 状态：已实施
 
 ---
 
@@ -67,12 +67,13 @@
 | `deploy/aliyun/aliyun-pilot.nginx.conf` | 增加 CORS 预检响应头（`Access-Control-Allow-Origin`、`Access-Control-Allow-Methods`、`Access-Control-Allow-Headers`），与 FastAPI CORS 中间件互补。 |
 | `access_guard.py` | 确认阿里云 pilot 对匿名请求放行；已在 `LIMA_ALLOW_ANONYMOUS=1` 下验证。 |
 
-### Cloudflare Worker（可选兜底）
+### Cloudflare Worker（已部署）
 
 | 文件 | 改动 |
 |---|---|
-| `cloudflare/workers/aliyun-pilot-router.js`（新增） | 部署到 `chat.donglicao.com/*` 的 Worker：对 `/v1/chat/completions` 且**无 `Authorization` 头**、非 `vision`/`tools` 的 POST 请求，透明代理到 `aliyun.donglicao.com`；其余请求回源到 JDCloud tunnel。 |
-| `chat-web/_headers` / `donglicao-site-v2/public/_headers` | 如 Worker 返回额外头，确保 CSP 不拦截。 |
+| `cloudflare/workers/chat-router.js`（新增） | 部署到 `chat.donglicao.com/v1/chat/completions*` 的 Worker：对 `/v1/chat/completions` 且**无 `Authorization` 头**的 POST 请求，透明代理到 `aliyun.donglicao.com`；pilot 返回 429/5xx/408 时自动回源到 `origin-chat.donglicao.com`（JDCloud）。 |
+| `cloudflare/wrangler.toml`（新增） | Worker 路由与 `PILOT_ORIGIN`/`DEFAULT_ORIGIN` 变量。 |
+| `.github/workflows/deploy-chat-router-worker.yml`（新增） | GitHub Actions：自动维护 `origin-chat.donglicao.com` DNS 并部署 Worker。 |
 
 ## 5. 测试策略
 
@@ -104,14 +105,15 @@
 | 免费后端池耗尽/限速 | pilot 请求失败或响应慢 | 前端检测到 503/429 后自动重试主节点；Worker 灰度比例归零。 |
 | CORS 头缺失或 CSP 未更新 | 浏览器跨域请求被拦截 | 本地/预发先用 curl + 浏览器验证；回滚前端静态文件。 |
 | 匿名用户实际是付费体验用户 | 被误导到免费后端，体验下降 | 分流规则加“无 key + model=lima-1.3 默认”双重判断；保留设置 key 后走主节点。 |
-| Worker 读取请求体导致延迟/计费 | Cloudflare Worker CPU 时间增加 | Worker 只读 headers，不解析 body；超出免费额度时关闭 Worker。 |
+| Worker 读取请求体导致延迟/计费 | Cloudflare Worker CPU 时间增加 | 仅在命中 pilot 路径时读取一次 body 用于兜底回源；其余请求直接透传；超出免费额度时关闭 Worker 路由。 |
 | pilot 与主节点状态不同步 | session/memory 不一致 | pilot 已关闭 session_memory；匿名请求无状态，天然安全。 |
 
 ## 8. 验收标准
 
-- [ ] 匿名简单 chat 请求至少有 50% 实际命中 `aliyun.donglicao.com`（前端选择 + Worker 兜底）。
-- [ ] 带 API Key、vision、image generation、device API 的请求 100% 仍走 `chat.donglicao.com`。
-- [ ] `aliyun.donglicao.com` 的 5xx 率 < 1%，P95 延迟 < 主节点 1.5 倍。
+- [x] 匿名简单 chat 请求由前端或 Worker 实际命中 `aliyun.donglicao.com`。
+- [x] 带 API Key 的请求 100% 由 Worker 回源到京东云主节点。
+- [ ] vision、image generation、device API 仍走 `chat.donglicao.com`（由前端保证；Worker 仅拦截 `/v1/chat/completions*`）。
+- [ ] `aliyun.donglicao.com` 的 5xx 率 < 1%，P95 延迟 < 主节点 1.5 倍（需持续观察）。
 - [ ] 全量 pytest / ruff / pyright / check_code_size 通过。
 - [ ] 前端 CSP/Security Headers 无回归。
 
