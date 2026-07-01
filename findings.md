@@ -78,6 +78,29 @@
   - 建议后续在 CI 中加入 `pip-audit --requirement requirements_server.txt` 门禁。
   - 子模块中遗留的旧前端构建链（gulp/cheerio/underscore 等）如需继续修复，涉及直接依赖大版本升级，可能破坏 ESP32 固件构建流程，需单独评估。
 
+## 2026-06-30 阿里云启用 `lima-router-pilot` 作为免费后端辅助节点
+
+- **结论**：阿里云 `47.112.162.80` 不再直接承载 `chat.donglicao.com` 主流量，而是部署独立的 `lima-router-pilot`，仅处理免费/低价后端请求，域名 `aliyun.donglicao.com`。
+- **角色与能力开关**：
+  - 新增 `config/node_role.py`，通过 `LIMA_NODE_ROLE=free_backend_only` 区分主节点与辅助节点。
+  - 辅助节点关闭 `session_memory`、`device_gateway`、`mqtt`、`prometheus`、`alert_evaluator`、`structured_logging`，避免与主节点重复或数据冲突。
+  - `server_lifespan_phases.py` 各可选 phase 在关闭时直接跳过并打印 `INFO` 日志，不静默吞掉。
+- **后端池限制**：
+  - `router_v3/select.py` 在辅助节点上仅保留云侧免费/低价后端（`cfai_*`、`fireworks_*`、`deepinfra_*`、`openrouter_*` 等）。
+  - 明确排除本地 Windows 后端、付费/商业后端、设备相关后端，与京东云主节点形成能力互补。
+- **部署**：
+  - 新增 `deploy/aliyun/`：systemd unit、安装脚本、nginx 配置、README。
+  - 新增 `scripts/deploy_aliyun_pilot.py`：Windows 本地打包（`tarfile`）+ `scp` + 远程安装，规避 Git Bash 缺少 `rsync` 的问题。
+  - 部署时合并旧 `/opt/lima-router/.env`，追加 `LIMA_NODE_ROLE=free_backend_only` 等辅助节点专属变量，不覆盖原配置。
+- **验证**：
+  - `https://aliyun.donglicao.com/health` → 200，由阿里云 pilot 响应。
+  - 匿名 `POST /v1/chat/completions` 通过 `fireworks_qwen_72b` 成功返回，确认后端过滤与路由执行正常。
+  - `/device/v1/status` 返回 404，确认 `device_gateway` 已关闭。
+- **风险与后续**：
+  - `chat.donglicao.com` 目前仍直连京东云（Cloudflare Tunnel），未使用阿里云 pilot；若要通过 pilot 分流主域名流量，需在 Cloudflare Load Balancer 中配置基于路径/权重的规则。
+  - 辅助节点 `.env` 中若包含与主节点相同的 Redis/MQTT/数据库地址，可能意外共享状态；后续建议为辅助节点单独配置只读/隔离连接。
+  - 免费后端可用性与配额需持续监控；若免费池全部不可用，辅助节点应返回 503 而非降级到付费后端。
+
 ## 2026-06-30 LiMa 主计算与公网入口均已迁移至京东云（最终使用 Cloudflare Tunnel）
 
 - **迁移结论**：主 `lima-router` 计算节点已成功迁移到京东云 `117.72.118.95`，生产数据与备份组件已就位。

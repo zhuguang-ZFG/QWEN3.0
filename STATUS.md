@@ -3,7 +3,7 @@
 > **项目定位**: AI 智能设备统一云端服务（2026-06-09 战略转型完成）
 > **技术栈**: Python 3.10 + FastAPI + SQLite + Redis
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
-> **部署**: 主计算与公网入口均已迁移至 JDCloud (`117.72.118.95`)；通过 Cloudflare Tunnel (`lima-jdcloud`) 直连京东云，不再依赖 Alibaba Cloud 反向代理。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
+> **部署**: 主计算与公网入口在 JDCloud (`117.72.118.95`)；通过 Cloudflare Tunnel (`lima-jdcloud`) 直连京东云。阿里云 `47.112.162.80` 已部署 `lima-router-pilot` 作为辅助节点，仅处理免费/低价后端流量（`aliyun.donglicao.com`）。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
 
 > Updated: 2026-07-01
 > Branch: `main`
@@ -58,6 +58,29 @@
   - 演示地址：`https://chat.donglicao.com/mobile/`（浏览器访问，同域调用后端 API）。
 - **配置**：`.env.example` 新增 `TELEGRAM_BOT_TOKEN` 与 `TELEGRAM_GALLERY_CHAT_ID`。
 - **门禁**：聚焦测试 56 passed；ruff clean；pyright 0 errors。
+
+### 最近完成（2026-06-30）阿里云启用 `lima-router-pilot` 作为免费后端辅助节点
+
+- **目标**：在阿里云 `47.112.162.80` 上部署 LiMa 辅助节点，仅处理免费/低价后端请求，与京东云主节点形成功能拆分。
+- **角色机制**：
+  - 新增 `config/node_role.py`：支持 `LIMA_NODE_ROLE=primary`（默认）与 `free_backend_only`。
+  - 辅助节点关闭 `session_memory`、`device_gateway`、`mqtt`、`prometheus`、`alert_evaluator`、`structured_logging` 等子系统。
+  - `server_lifespan_phases.py` 各 phase 读取对应 `LIMA_*_ENABLED` 开关，关闭时直接返回并记录原因。
+- **后端池限制**：
+  - `router_v3/select.py` 在 `free_backend_only` 节点上仅允许 `_CLOUD_FREE_BACKENDS` 列表中的后端（如 `cfai_*`、`fireworks_*`、`deepinfra_*`、`openrouter_*`）。
+  - 排除本地 Windows 后端、付费商业后端、设备相关后端，确保辅助节点不访问主节点资源。
+- **部署脚本**：
+  - 新增 `deploy/aliyun/lima-router-pilot.service`、`install_aliyun_pilot.sh`、`nginx-aliyun-pilot.conf`、`README.md`。
+  - 新增 `scripts/deploy_aliyun_pilot.py`：Windows 本地用 Python `tarfile` 打包 + `scp` 上传，远程执行安装脚本（规避 Git Bash 无 `rsync`）。
+  - 安装时复制 `/opt/lima-router/.env` 并追加辅助节点专属变量，合并而非覆盖。
+- **线上验证**：
+  - `https://aliyun.donglicao.com/health` → 200，由阿里云 pilot 响应。
+  - 匿名 `POST /v1/chat/completions` 经 `fireworks_qwen_72b` 返回 200，确认后端过滤生效。
+  - `/device/v1/status` 返回 404，确认 `device_gateway` 未启用。
+- **风险与后续**：
+  - `chat.donglicao.com` 当前仍由京东云 Cloudflare Tunnel 承载，未主动切到阿里云；如需分流，应在 Cloudflare Load Balancer 中按路径或权重配置。
+  - 辅助节点 `.env` 仍与主节点共享部分连接信息，建议后续为 pilot 单独配置只读/隔离连接。
+  - 免费后端池可用性需监控；池耗尽时应返回 503，禁止自动降级到付费后端。
 
 ### 最近完成（2026-06-30）LiMa 主计算与公网入口完全迁移到京东云（Cloudflare Tunnel）
 

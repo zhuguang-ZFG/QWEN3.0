@@ -8,6 +8,14 @@ from typing import Callable
 
 import http_caller
 import probe_loop
+from config.node_role import (
+    alert_evaluator_enabled,
+    device_gateway_enabled,
+    mqtt_enabled,
+    prometheus_enabled,
+    session_memory_enabled,
+    structured_logging_enabled,
+)
 from server_lifespan_state import PhaseTimer
 
 _log = logging.getLogger(__name__)
@@ -56,6 +64,9 @@ async def start_probe_loop() -> None:
 
 
 async def start_device_gateway_runtime() -> None:
+    if not device_gateway_enabled():
+        _log.info("LIMA_DEVICE_GATEWAY_ENABLED=0; skipping device gateway runtime")
+        return
     async with PhaseTimer("device_gateway.runtime.start"):
         try:
             from routes.device_gateway_helpers import start_device_gateway_runtime
@@ -66,6 +77,9 @@ async def start_device_gateway_runtime() -> None:
 
 
 async def start_mqtt_client() -> None:
+    if not mqtt_enabled():
+        _log.info("LIMA_MQTT_CLIENT_ENABLED=0; skipping MQTT client")
+        return
     async with PhaseTimer("device_gateway.mqtt_client.start"):
         try:
             from device_gateway.mqtt_client import start_mqtt_client
@@ -93,6 +107,9 @@ async def load_backend_profiles() -> None:
 
 
 async def start_session_memory_daemon() -> None:
+    if not session_memory_enabled():
+        _log.info("LIMA_SESSION_MEMORY_ENABLED=0; skipping session memory daemon")
+        return
     async with PhaseTimer("session_memory.daemon.start"):
         try:
             from session_memory.daemon import start_daemon
@@ -103,6 +120,9 @@ async def start_session_memory_daemon() -> None:
 
 
 async def setup_structured_logging() -> None:
+    if not structured_logging_enabled():
+        _log.info("LIMA_STRUCTURED_LOGGING_ENABLED=0; skipping structured logging setup")
+        return
     async with PhaseTimer("observability.structured_logging"):
         try:
             from observability.structured_logging import setup_structured_logging
@@ -113,6 +133,9 @@ async def setup_structured_logging() -> None:
 
 
 async def start_prometheus() -> None:
+    if not prometheus_enabled():
+        _log.info("LIMA_PROMETHEUS_ENABLED=0; skipping prometheus metrics exporter")
+        return
     async with PhaseTimer("observability.prometheus.start"):
         try:
             from observability.prometheus_metrics import validate_startup
@@ -128,6 +151,9 @@ async def start_prometheus() -> None:
 
 
 async def start_alert_evaluator() -> None:
+    if not alert_evaluator_enabled():
+        _log.info("LIMA_ALERT_EVALUATOR_ENABLED=0; skipping alert evaluator")
+        return
     async with PhaseTimer("observability.alert_evaluator.start"):
         try:
             from observability.alert_evaluator import start_alert_evaluator as _start_evaluator

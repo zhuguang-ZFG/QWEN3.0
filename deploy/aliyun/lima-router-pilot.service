@@ -1,0 +1,27 @@
+[Unit]
+Description=LiMa AI Router Pilot (Aliyun Auxiliary Node)
+After=network.target
+
+[Service]
+Type=simple
+User=lima-pilot
+Group=lima-pilot
+WorkingDirectory=/opt/lima-router-pilot/repo
+ExecStart=/opt/lima-router-pilot/venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port 8080
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/lima-router-pilot/.env
+Environment=LIMA_NODE_ROLE=free_backend_only
+Environment=LIMA_SESSION_MEMORY_ENABLED=0
+Environment=LIMA_DEVICE_GATEWAY_ENABLED=0
+Environment=LIMA_MQTT_CLIENT_ENABLED=0
+Environment=LIMA_CONTEXT_RETRIEVAL_ENABLED=0
+Environment=LIMA_PROMETHEUS_ENABLED=1
+Environment=LIMA_ALERT_EVALUATOR_ENABLED=0
+Environment=LIMA_DEVICE_MEMORY_STORE=memory
+Environment=LIMA_DEVICE_LEDGER_STORE=memory
+Environment=LIMA_DEVICE_TASK_STORE=memory
+MemoryMax=1536M
+
+[Install]
+WantedBy=multi-user.target

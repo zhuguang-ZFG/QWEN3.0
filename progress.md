@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-06-30 阿里云启用 `lima-router-pilot` 作为免费后端辅助节点
+
+- **目标**：京东云 `117.72.118.95` 作为 LiMa 主节点承载全功能；阿里云 `47.112.162.80` 仅处理免费/低价后端请求，形成角色拆分。
+- **代码实现**：
+  - 新增 `config/node_role.py`：支持 `LIMA_NODE_ROLE=primary`（默认）与 `free_backend_only`；提供各子系统 `LIMA_*_ENABLED` 开关读取函数。
+  - `server_lifespan_phases.py`：可选 phase（session_memory、device_gateway、mqtt、structured_logging、prometheus、alert_evaluator）在对应开关关闭时直接跳过并打印原因，不静默吞掉。
+  - `router_v3/select.py`：辅助节点上将可用后端过滤为 `_CLOUD_FREE_BACKENDS`（Pollinations、DDG、OVH、Google Flash、DeepSeek Free 等），排除本地 Windows 后端与付费后端。
+- **部署资产**：
+  - 新增 `deploy/aliyun/lima-router-pilot.service`、`install_aliyun_pilot.sh`、`aliyun-pilot.nginx.conf`、`README.md`。
+  - 新增 `scripts/deploy_aliyun_pilot.py`：Windows 本地用 Python `tarfile` 打包仓库，通过 `scp` 上传并远程执行安装脚本（规避 Git Bash 缺少 `rsync`）。
+- **VPS 部署与验证**：
+  - 阿里云 `/opt/lima-router-pilot` 部署完成；旧 `lima-router.service` 已停止以释放 `:8080`。
+  - `.env` 通过合并旧 `/opt/lima-router/.env` 并追加辅助节点专属变量生成，未覆盖原配置。
+  - `https://aliyun.donglicao.com/health` → 200；匿名 `POST /v1/chat/completions` 由 `fireworks_qwen_72b` 返回 200；`/device/v1/status` 404，确认 device_gateway 已关闭。
+- **门禁**：新增 `tests/test_node_role.py` 19 项测试全部通过；ruff / pyright / `check_code_size.py` 全绿。
+- **后续**：`chat.donglicao.com` 仍由京东云 Cloudflare Tunnel 承载；若需分流，可通过 Cloudflare Load Balancer 或按路径/权重的规则切流。
+
 ## 2026-07-01 修复 dependabot moderate 漏洞（JDCloud worker 依赖）
 
 - **问题**：GitHub Dependabot 提示默认分支 1 个 moderate 漏洞。扫描定位到 `deploy/jdcloud/jdcloud-worker-requirements.txt`：
@@ -27,7 +44,7 @@
   - `routes/device_app_images.py`：`/device/v1/app/images/generations` 支持 `image_url` 图生图。
   - 复用 `/device/v1/app/devices/{id}/tasks` 的 `draw_generated` capability 处理图片绘画。
 - **前端实现（manager-mobile）**：
-  - `pages/create/create.vue` 重写为「AI 绘画 / 图片绘画」两模式。
+  - `pages/create/create.vue` 重写为「AI 绘画 / 图片绘画」两模式；抽离 `create-utils.ts` 存放状态/时间/SVG 工具函数，脚本从 334 行降至 253 行。
   - `pages/create/components/image-picker.vue` 支持相册上传与素材库选择。
   - `api/gallery` 新增，`api/images` 扩展 `image_url`。
   - `pages/index/index.vue` 入口第二卡改为「图片绘画」。
