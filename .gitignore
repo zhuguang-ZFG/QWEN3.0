@@ -172,6 +172,7 @@ frp/
 net/new-site/out/
 net/new-site/node_modules/
 net/new-site/.next/
+chat-web/dist/
 release/
 .npm-cache/
 

@@ -19,7 +19,7 @@ async function generateImage(prompt) {
   showTyping('生成图片中...');
 
   try {
-    const response = await fetch('/v1/images/generations', {
+    const response = await fetch(window.LiMaConfig.getApiUrl('/v1/images/generations', {}), {
       method: 'POST',
       signal: abortController.signal,
       headers: authHeaders(),
@@ -95,7 +95,11 @@ async function sendMessage() {
   showTyping('思考中');
 
   try {
-    const response = await fetch('/v1/chat/completions', {
+    const response = await fetch(window.LiMaConfig.getApiUrl('/v1/chat/completions', {
+      model: window.getSelectedModel ? window.getSelectedModel() : 'lima',
+      messages: messages,
+      stream: true,
+    }), {
       method: 'POST',
       signal: abortController.signal,
       headers: authHeaders(),
