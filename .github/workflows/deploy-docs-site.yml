@@ -20,7 +20,7 @@ jobs:
       - name: Enable pnpm
         run: corepack enable
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -31,7 +31,7 @@ jobs:
           corepack pnpm install --frozen-lockfile
           corepack pnpm run build
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
