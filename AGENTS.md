@@ -57,6 +57,43 @@ python scripts/deploy_chat_web.py
 python scripts/repo_stats.py
 ```
 
+### 小程序一键上传（微信开发者工具 CLI）
+
+```bash
+# 1. 进入小程序目录
+cd esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile
+
+# 2. type check（确保 0 errors）
+npx vue-tsc --noEmit
+
+# 3. 编译（mp-weixin）
+npx uni build --platform mp-weixin
+
+# 4. 一键上传到微信平台
+"/c/Users/zhugu/微信web开发者工具/cli.bat" upload \
+  --project "$(pwd)/dist/build/mp-weixin" \
+  --v "X.Y.Z" \
+  -d "提交说明"
+
+# 5. 提交版本号 + 推送
+#    manifest.config.ts: versionName / versionCode +1
+git add manifest.config.ts src/manifest.json src/pages.json
+git commit -m "chore: bump version to X.Y.Z"
+git push origin main
+
+# 6. 父仓库更新子模块指针
+cd /d/QWEN3.0
+git add esp32S_XYZ
+git commit -m "chore: bump esp32S_XYZ submodule — mini-program vX.Y.Z uploaded"
+git push origin main
+```
+
+**注意事项**：
+- AppID：`wxbf3c1e0013b46343`（已配置在 `env/.env` 和 `manifest.config.ts`）
+- 版本号递增：每次上传前 bump `versionName`（如 `3.6.0`→`3.6.1`）和 `versionCode`（`360`→`361`）
+- 上传后需要在 [mp.weixin.qq.com](https://mp.weixin.qq.com) 提交审核才能发布
+- 微信开发者工具需提前登录并开启「设置 → 安全设置 → 服务端口」
+
 ---
 
 ## 架构
@@ -209,6 +246,8 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 5. 仅在推送后，Agent 才提议下一个里程碑
 
 **自动结项**（当用户未说"不要部署/提交"时）：本地 pytest → VPS 部署 + 重启 + 健康/冒烟 → 更新文档 → git add/commit/push。
+
+**小程序改动**：当 `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/` 下有代码变更时，自动执行「小程序一键上传」流程（见上文「常用命令」），包括编译、上传、版本号 bump、子模块指针提交推送。
 
 ## ECC 开发流程（增量采用）
 
