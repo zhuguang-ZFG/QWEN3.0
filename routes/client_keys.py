@@ -12,6 +12,7 @@ from client_keys.storage import _mask_key
 from client_keys.validation import (
     KeyCreateRequest,
     KeyListResponse,
+    KeyMutationResponse,
     KeyRegenerateRequest,
     KeyResponse,
     KeyUpdateRequest,
@@ -47,8 +48,13 @@ async def list_client_keys() -> KeyListResponse:
     return KeyListResponse(keys=[_key_to_response(k) for k in keys], total=len(keys))
 
 
-@router.post("/admin/api/client-keys", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def create_client_key(body: KeyCreateRequest) -> dict:
+@router.post(
+    "/admin/api/client-keys",
+    dependencies=[Depends(verify_admin), Depends(verify_csrf)],
+    response_model=KeyMutationResponse,
+    response_model_exclude_none=True,
+)
+async def create_client_key(body: KeyCreateRequest) -> KeyMutationResponse:
     key = client_keys.storage().create(
         label=body.label,
         quota_daily=body.quota_daily,
@@ -57,20 +63,23 @@ async def create_client_key(body: KeyCreateRequest) -> dict:
         allowed_urls=body.allowed_urls,
     )
     _log.info("admin: created client key %s label=%s", key.key_id, key.label)
-    result = {
-        "ok": True,
-        "key_id": key.key_id,
-        "key_masked": _mask_key(key.key_value),
-        "label": key.label,
-    }
+    key_value = key.key_value if body.reveal else None
     if body.reveal:
         _log.warning("admin: revealing raw key_value for %s", key.key_id)
-        result["key_value"] = key.key_value
-    return result
+    return KeyMutationResponse(
+        key_id=key.key_id,
+        key_masked=_mask_key(key.key_value),
+        key_value=key_value,
+    )
 
 
-@router.put("/admin/api/client-keys/{key_id}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def update_client_key(key_id: str, body: KeyUpdateRequest) -> dict:
+@router.put(
+    "/admin/api/client-keys/{key_id}",
+    dependencies=[Depends(verify_admin), Depends(verify_csrf)],
+    response_model=KeyMutationResponse,
+    response_model_exclude_none=True,
+)
+async def update_client_key(key_id: str, body: KeyUpdateRequest) -> KeyMutationResponse:
     updates = body.model_dump(exclude_unset=True)
     updates.pop("allowed_urls", None)
     if body.allowed_urls is not None:
@@ -81,20 +90,30 @@ async def update_client_key(key_id: str, body: KeyUpdateRequest) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail=f"Key '{key_id}' not found")
     _log.info("admin: updated client key %s", key_id)
-    return {"ok": True, "key_id": key_id}
+    return KeyMutationResponse(key_id=key_id)
 
 
-@router.delete("/admin/api/client-keys/{key_id}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def delete_client_key(key_id: str) -> dict:
+@router.delete(
+    "/admin/api/client-keys/{key_id}",
+    dependencies=[Depends(verify_admin), Depends(verify_csrf)],
+    response_model=KeyMutationResponse,
+    response_model_exclude_none=True,
+)
+async def delete_client_key(key_id: str) -> KeyMutationResponse:
     ok = client_keys.storage().delete(key_id)
     if not ok:
         raise HTTPException(status_code=404, detail=f"Key '{key_id}' not found")
     _log.info("admin: deleted client key %s", key_id)
-    return {"ok": True, "deleted": key_id}
+    return KeyMutationResponse(key_id=key_id, deleted=key_id)
 
 
-@router.post("/admin/api/client-keys/{key_id}/regenerate", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def regenerate_client_key(key_id: str, body: KeyRegenerateRequest) -> dict:
+@router.post(
+    "/admin/api/client-keys/{key_id}/regenerate",
+    dependencies=[Depends(verify_admin), Depends(verify_csrf)],
+    response_model=KeyMutationResponse,
+    response_model_exclude_none=True,
+)
+async def regenerate_client_key(key_id: str, body: KeyRegenerateRequest) -> KeyMutationResponse:
     old_key = client_keys.storage().get_by_key_id(key_id)
     if old_key is None:
         raise HTTPException(status_code=404, detail=f"Key '{key_id}' not found")
@@ -103,8 +122,11 @@ async def regenerate_client_key(key_id: str, body: KeyRegenerateRequest) -> dict
     if new_key is None:
         raise HTTPException(status_code=404, detail=f"Key '{key_id}' not found")
     _log.info("admin: regenerated client key %s", key_id)
-    result = {"ok": True, "key_id": key_id, "key_masked": _mask_key(new_key.key_value)}
+    key_value = new_key.key_value if body.reveal else None
     if body.reveal:
         _log.warning("admin: revealing raw key_value for %s", key_id)
-        result["key_value"] = new_key.key_value
-    return result
+    return KeyMutationResponse(
+        key_id=key_id,
+        key_masked=_mask_key(new_key.key_value),
+        key_value=key_value,
+    )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import secrets
 import sqlite3
@@ -199,7 +200,8 @@ class ClientKeyStorage:
                 )
                 conn.commit()
         except sqlite3.Error as exc:
-            _log.warning("client_keys: failed to persist usage for %s: %s", key_id, exc)
+            _log.error("client_keys: failed to persist usage for %s: %s", key_id, exc)
+            raise ClientKeyStorageError(f"Failed to persist usage: {exc}") from exc
 
 
 def _generate_key_value() -> str:
@@ -224,14 +226,10 @@ def _mask_key(value: str) -> str:
 
 
 def _encode_urls(urls: list[str]) -> str:
-    import json
-
     return json.dumps(urls, ensure_ascii=False)
 
 
 def _decode_urls(raw: str) -> list[str]:
-    import json
-
     try:
         value = json.loads(raw)
         return value if isinstance(value, list) else ["*"]

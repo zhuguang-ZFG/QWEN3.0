@@ -131,7 +131,7 @@ def _dynamic_auth_configured() -> bool:
         import client_keys
 
         return client_keys.has_client_keys()
-    except Exception as exc:
+    except (ImportError, AttributeError) as exc:
         _log.warning("access_guard: unable to check dynamic client keys: %s", exc)
         return False
 

@@ -66,3 +66,19 @@ class KeyResponse(BaseModel):
 class KeyListResponse(BaseModel):
     keys: list[KeyResponse]
     total: int
+
+
+class KeyMutationResponse(BaseModel):
+    """Generic response for key create/update/delete/regenerate operations.
+
+    Optional fields are excluded from serialization when unset so that e.g.
+    ``key_value`` only appears in the JSON when a reveal was requested.
+    """
+
+    model_config = {"exclude_none": True}
+
+    ok: bool = True
+    key_id: str
+    key_masked: str | None = None
+    key_value: str | None = None
+    deleted: str | None = None

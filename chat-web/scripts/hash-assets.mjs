@@ -66,9 +66,12 @@ async function main() {
   await copyRecursive(ROOT, DIST);
 
   // Compute hashes for JS/CSS assets.
+  // Hash js/*.js (subdirectory) AND root-level chat-*.js files.
+  const jsMap = new Map();
+
+  // 1) Hash js/ subdirectory files
   const jsDir = new URL("js/", DIST);
   const jsFiles = (await readdir(jsDir)).filter((n) => n.endsWith(".js"));
-  const jsMap = new Map();
   for (const name of jsFiles) {
     const srcUrl = new URL(name, jsDir);
     const { hash } = await hashFile(srcUrl);
@@ -78,6 +81,21 @@ async function main() {
     await rm(srcUrl);
     jsMap.set(`js/${name}`, `js/${newName}`);
     console.log(`Hashed js/${name} -> js/${newName}`);
+  }
+
+  // 2) Hash root-level chat-*.js files (previously missed — immutable cache without bust)
+  const rootFiles = (await readdir(DIST)).filter(
+    (n) => n.startsWith("chat-") && n.endsWith(".js"),
+  );
+  for (const name of rootFiles) {
+    const srcUrl = new URL(name, DIST);
+    const { hash } = await hashFile(srcUrl);
+    const newName = hashedName(name, hash);
+    const destUrl = new URL(newName, DIST);
+    await copyFile(srcUrl, destUrl);
+    await rm(srcUrl);
+    jsMap.set(name, newName);
+    console.log(`Hashed ${name} -> ${newName}`);
   }
 
   const stylesUrl = new URL("styles.css", DIST);

@@ -58,3 +58,10 @@ class TestSecurityHeadersMiddleware:
         monkeypatch.setenv("LIMA_BEHIND_NGINX", "0")
         response = self._client().get("/", headers={"X-Forwarded-Proto": "https"})
         assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
+
+    def test_csp_is_strict(self):
+        """CSP must enforce default-src 'self' and frame-ancestors 'none'."""
+        response = self._client().get("/")
+        csp = response.headers["Content-Security-Policy"]
+        assert "default-src 'self'" in csp
+        assert "frame-ancestors 'none'" in csp
