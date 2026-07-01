@@ -11,9 +11,9 @@
   - 京东云 `/etc/cloudflared/config.yml` 增加 `origin-chat.donglicao.com` ingress，指向本地 nginx（跳过 TLS 校验）。
   - GitHub Actions 已成功创建 `origin-chat.donglicao.com` CNAME 到 tunnel。
 - **部署状态**：
-  - 代码已 push（`49f7ca5e`），workflow run `28524022102`。
-  - DNS 步骤成功；Worker 部署步骤因 `CLOUDFLARE_API_TOKEN` 缺少 Workers Scripts:Edit 权限而失败（Cloudflare API code 10000）。
-  - 需要更新 GitHub secret `CLOUDFLARE_API_TOKEN`（或单独提供 `CLOUDFLARE_WORKERS_TOKEN`）后重新触发部署。
+  - 代码已 push，workflow 已改为使用独立 `CLOUDFLARE_WORKERS_TOKEN`。
+  - DNS 步骤成功；Worker 部署步骤因旧 token 缺少 Workers Scripts:Edit 权限而失败（Cloudflare API code 10000）。
+  - 已设置新的 `CLOUDFLARE_WORKERS_TOKEN`，重新触发部署中。
 - **验证**：待部署完成后，通过 `curl -I -X OPTIONS` 与匿名 POST 观察 `X-Lima-Backend: aliyun|jdcloud` 头。
 
 ## 2026-07-01 前端匿名简单聊天请求分流到阿里云 pilot
