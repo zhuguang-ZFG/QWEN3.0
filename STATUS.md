@@ -8,7 +8,7 @@
 > Updated: 2026-07-01
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4249 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **4273 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout` 与 `httpx2`，pytest warnings 已清零。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **67%**（40G 中 25G 已用，释放约 5G），`litestream` 已纳入 systemd 管理并设置 `MemoryMax=512M`，内存可用约 420M~850M（随负载波动），load average 4~5。京东云节点已完成深度清理（磁盘 33% → **30%**，59G 中 17G 已用，释放约 2G）。登录超时风险显著降低。
@@ -18,6 +18,15 @@
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+
+### 最近完成（2026-07-01）修复 CI `Tests` workflow 回归
+
+- **背景**：合并 dependabot PR 后 GitHub `Tests` workflow 仍失败 18 个；本地 `scripts/run_pre_commit_check.py --ci --full` 复现。
+- **根因 1**：`fastapi>=0.138.2` 引入 `_IncludedRouter`，`server.app.routes` 不再直接暴露 `APIRoute` 叶子对象，路由内省类测试批量失败。
+  - 修复：`requirements_server.txt` / `deploy/jdcloud/jdcloud-worker-requirements.txt` 的 FastAPI 范围收紧为 `>=0.136.1,<0.136.3`（排除恶意 0.136.3 同时避开 0.138.x），保留 `starlette>=1.3.1`。
+- **根因 2**：`device_gateway/path_validator.py` 对 `write_text`/`draw_generated`/`handwriting` 会丢弃已生成的 `path`，导致 5 个设备任务测试失败。
+  - 修复：新增 `_maybe_preserve_path()`，存在有效 path 时校验并保留。
+- **验证**：本地全量 `4273 passed`；GitHub Actions `Tests` workflow 已恢复绿灯；`pip-audit` clean。
 
 ### 最近完成（2026-07-01）chat-web 匿名聊天分流到阿里云 pilot
 
@@ -41,7 +50,8 @@
   - `python-dotenv==1.0.1` → CVE-2026-28684
   - `starlette==0.41.3`（fastapi 0.115.6 传递）→ CVE-2025-54121、CVE-2025-62727、CVE-2026-48817/48818 等
 - **修复**：将 JDCloud worker 依赖与主 `requirements_server.txt` 安全版本对齐：
-  - `fastapi>=0.138.2,<0.138.3`
+  - `fastapi>=0.136.1,<0.136.3`（后续从 `0.138.2` 回退，因 0.138.x 的 `_IncludedRouter` 破坏路由内省测试；仍排除恶意 0.136.3）
+  - `starlette>=1.3.1`（覆盖 CVE-2026-54282/54283）
   - `uvicorn[standard]~=0.49.0`
   - `httpx~=0.28.0`
   - `python-dotenv~=1.2.2`
