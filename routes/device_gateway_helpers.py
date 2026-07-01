@@ -121,8 +121,10 @@ async def stop_device_gateway_runtime() -> None:
             task.cancel()
             try:
                 await task
-            except (asyncio.CancelledError, Exception):
+            except asyncio.CancelledError:
                 pass
+            except Exception as exc:
+                logger.warning("device_gateway: error while stopping background task: %s", exc)
     _reaper_task = None
     _zombie_reaper_task = None
     await stop_task_notifier()

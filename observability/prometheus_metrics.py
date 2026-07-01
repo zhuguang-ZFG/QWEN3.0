@@ -255,8 +255,9 @@ def generate_metrics() -> bytes:
 
 
 # Re-export focused submodule helpers so this file stays under the project size limit
-# while keeping the public API unchanged.
-from observability.prometheus_device_task_metrics import (  # noqa: E402
+# while keeping the public API unchanged.  F401 suppressed — these are deliberate
+# re-exports consumed by callers that do `from observability import prometheus_metrics`.
+from observability.prometheus_device_task_metrics import (  # noqa: E402,F401
     record_device_task_dead_letter,
     record_device_task_dispatch_failure,
     record_device_task_dispatched,
@@ -264,16 +265,16 @@ from observability.prometheus_device_task_metrics import (  # noqa: E402
     record_device_task_retry,
     set_device_tasks_pending,
 )
-from observability.prometheus_handwriting_metrics import (  # noqa: E402
+from observability.prometheus_handwriting_metrics import (  # noqa: E402,F401
     record_handwriting_duration,
     record_handwriting_request,
 )
-from observability.prometheus_image_metrics import (  # noqa: E402
+from observability.prometheus_image_metrics import (  # noqa: E402,F401
     record_image_cache_entries,
     record_image_cache_lookup,
     record_image_request,
 )
-from observability.prometheus_startup_metrics import (  # noqa: E402
+from observability.prometheus_startup_metrics import (  # noqa: E402,F401
     record_backend_retirement_event,
     record_startup_phase,
     record_startup_status,

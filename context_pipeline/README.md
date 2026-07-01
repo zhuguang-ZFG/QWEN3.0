@@ -18,15 +18,13 @@
 
 `response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`event_log.py`、`guardrails.py`、`entity_extraction.py`、`complexity.py` 等——由 env、场景或后处理链触发，非每次请求必经。
 
-`auto_indexer.py` 仍保留给 `lima_mcp_stdio` 按需初始化代码索引；`lima-router` 启动 lifespan 不再自动运行它。
-
 ## Cold（实验 / 离线）
 
 `lab/` 子目录存放 **零生产 fan-in** 的实验工具（见 [`docs/context_pipeline_lab_CN.md`](../docs/context_pipeline_lab_CN.md)）。
 
 根目录仍可能含 Warm lazy 模块——由 env/场景触发，**不得**在 `server.py` 启动默认 import。
 
-**已退役（CodeGraph 瘦身 CP-1/CP-2/CP-4/CP-9）**：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`、`reflection.py`、`hierarchical_memory.py`、`memory_persistence.py`、`session_memory_enhancer.py`、`artifact.py`、`evolution.py`、`signal_extraction.py`、`retrieval_eval.py`、`retrieval_eval_runner.py`、`local_retrieval/eval_bridge.py`、`lab/static_analysis.py`、`code_context_injection.py`、`code_scanner.py`、`semantic_code_retrieval.py`、`graph_retrieval.py`、`reranking.py`、`production_index.py`、`retrieval_trace.py`、`retrieval_corpus.py`。
+**已退役（CodeGraph 瘦身 CP-1/CP-2/CP-4/CP-9）**：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`、`reflection.py`、`hierarchical_memory.py`、`memory_persistence.py`、`session_memory_enhancer.py`、`artifact.py`、`evolution.py`、`signal_extraction.py`、`retrieval_eval.py`、`retrieval_eval_runner.py`、`local_retrieval/eval_bridge.py`、`lab/static_analysis.py`、`code_context_injection.py`、`code_scanner.py`、`semantic_code_retrieval.py`、`graph_retrieval.py`、`reranking.py`、`production_index.py`、`retrieval_trace.py`、`retrieval_corpus.py`、`auto_indexer.py`（零生产 fan-in，lima-router lifespan 不再调用）。
 
 ## 维护约定
 
