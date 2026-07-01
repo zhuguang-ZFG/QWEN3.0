@@ -5,7 +5,7 @@ from __future__ import annotations
 from routes import images as img
 from routes import images_backends as backends
 from routes import images_cache as image_cache
-from conftest import auth_header
+from .conftest import auth_header
 
 
 class _FakeFreeTheAIResponse:

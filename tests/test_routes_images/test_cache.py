@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from routes import images as img
 from routes import images_cache as image_cache
-from conftest import auth_header
+from .conftest import auth_header
 
 
 def test_cache_returns_same_result_without_second_backend_call(client, monkeypatch):

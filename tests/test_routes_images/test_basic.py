@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from routes import images as img
-from conftest import auth_header
+from .conftest import auth_header
 
 
 def test_missing_auth_returns_401(client):
