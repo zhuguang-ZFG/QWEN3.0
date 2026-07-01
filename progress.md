@@ -1,5 +1,28 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-02 U8 固件改 PCM 解决音频协议矛盾（BACKLOG-P0-2）
+
+- **背景**：U8 固件 `audio_service.cc` 的麦克风输入走 OPUS 编码后发送，但 `websocket_protocol.cc` 的 hello 帧已声明 `"format":"pcm"`，后端 `device_voice_ws_helpers.py` / `voice_pipeline_ws.py` 均假设 PCM 输入，导致设备实时语音/TTS 无法互通。
+- **方向**：用户选择方案 A——固件改 PCM，后端零改动。
+- **实现**（U8 固件侧，路径 `esp32S_XYZ/firmware/u8-xiaozhi/main/`）：
+  - `protocols/protocol.h`：
+    - `AudioStreamPacket` 新增 `std::string format = "opus"` 字段；
+    - `Protocol` 基类新增 `virtual bool UsesPcm() const { return false; }`。
+  - `protocols/websocket_protocol.h`：覆写 `UsesPcm()` 返回 `true`。
+  - `protocols/websocket_protocol.cc`：对下行音频包（v1/v2/v3）统一设置 `format = "pcm"`。
+  - `protocols/mqtt_protocol.cc`：对下行音频包显式设置 `format = "opus"`（保持 MQTT 默认行为）。
+  - `audio/audio_service.h`：新增 `bool send_pcm_` 成员与 `SetSendPcm(bool)` 方法。
+  - `audio/audio_service.cc`：
+    - `OpusCodecTask` 上行分支：按 `send_pcm_` 选择 PCM 透传或 OPUS 编码；
+    - `OpusCodecTask` 下行分支：按 `packet->format` 选择 PCM 透传或 OPUS 解码；
+    - `PlaySound` 保持 `format = "opus"`，本地 Ogg 提示音继续走 OPUS 解码路径；
+  - `application.cc`：协议初始化后调用 `audio_service_.SetSendPcm(protocol_->UsesPcm())`，使 Websocket/LiMa 路径启用 PCM 上行。
+- **验证**：
+  - 代码审查确认下行/上行/提示音三条路径格式区分清晰；MQTT 路径未破坏；PlaySound 路径未破坏。
+  - 未执行 ESP32 编译/烧录（当前环境无工具链），需你本地 `idf.py build` + 烧录 U8 后验证实时语音与 TTS 回放。
+- **风险**：固件中 OPUS 编码器/解码器仍初始化但 Websocket 路径不再使用，会占用少量 RAM/CPU；后续如需彻底清理，可再拆一轮移除 OPUS 依赖。
+- **文档**：更新 `findings.md` 关闭 P0-2。
+
 ## 2026-07-02 deploy_unified.py 支持京东云主生产节点（BACKLOG-P0-1）
 
 - **背景**：2026-07-02 部署小程序语音端点时，`deploy_unified.py` 默认连接阿里云（`LIMA_SERVER=47.112.162.80`），而公网入口 `chat.donglicao.com` 实际走 Cloudflare Tunnel → 京东云（`117.72.118.95`）。误部署导致公网端点返回 404。

@@ -9,9 +9,14 @@
   - **直接删除会导致生产崩溃**。真实情况是「coding 能力退役，但模块本身未退役」。
 - **处理**：已修正两个文件的顶部注释，明确区分「coding 退役」与「模块退役」。`routes/eval_internal.py` 确为退役态（返回 410，测试断言），保持原状。
 - **教训**：「DEPRECATED」标记的语义必须精确 —— 标记某个能力的退役 ≠ 标记整个文件可删。删前必须 grep 调用方 + codegraph impact 双重确认。
-- **其他 P0 已完成**：修 AGENTS.md 3 处断链（reference/ECC→.claude/ecc、reference/ponytail/ 不存在）；修 STATUS.md Telegram 措辞矛盾（通知通道退役 vs gallery 存储 API 复用，两者不同）；删 `.claude/skills/gitnexus/`（与 AGENTS.md「禁止 GitNexus」冲突）。
-- **U8 音频协议矛盾（P0-3，暂不改，需硬件决策）**：U8 固件 `audio_service.cc:406-421` 对麦克风输入做 OPUS 编码后发送（`kAudioTaskTypeEncodeToSendQueue`），但 hello 帧声明 `"format":"pcm"`（`websocket_protocol.cc:233`），后端无 OPUS 解码能力（`device_voice_ws_helpers.py:_ensure_wav` 对 opus 返回 None；`voice_pipeline_ws.py` 假设 PCM）。**结果**：设备实时语音/声纹若走 OPUS 路径，后端无法解码，静默失败。两种修法待定：① 改固件发 PCM（带宽增加 ~10x）；② 后端加 OPUS 解码依赖（opuslib/pyogg）。涉及硬件音频管线决策，不在瘦身 round 内改，单独排期。
-- **待办**：固件瘦身（98MB node_modules + U1 WiFi 开关 + U8 音频协议矛盾）、文档去重（progress.md 截断、5 份战略文档归档）、P1/P2 见设计文档。
+- **其他 P0 已完成**：修 AGENTS.md 3 处断链（reference/ECC→.claude/ecc、reference/ponytail/ 不存在）；修 STATUS.md Telegram 措辞矛盾（通知通道退役 vs gallery 存储 API 复用，两者不同）；删 `.claude/skills/gitnexus/`（与 AGENTS.md「禁止 GitNexus」冲突）；P0-2 U8 音频协议已选方案 A 并改代码。
+- **U8 音频协议矛盾（P0-2，已选方案 A，代码已改）**：用户选择方案 A「固件改 PCM」。已在 U8 固件实现上下行 PCM 透传，同时保留 MQTT/Xiaozhi 的 OPUS 编解码路径不破坏：
+  - `AudioStreamPacket` 新增 `format` 字段（默认 `"opus"`）；
+  - `protocol.h` 新增 `UsesPcm()` 接口，`WebsocketProtocol` 返回 `true`，`MqttProtocol` 继承默认 `false`；
+  - `application.cc` 在协议初始化后调用 `audio_service_.SetSendPcm(protocol_->UsesPcm())`；
+  - `websocket_protocol.cc` 对下行音频包设置 `format="pcm"`；
+  - `audio_service.cc` 的 `OpusCodecTask` 中：上行按 `send_pcm_` 选择 PCM 透传或 OPUS 编码；下行按 `packet->format` 选择 PCM 透传或 OPUS 解码；`PlaySound` 保持 `format="opus"`。
+  - **结果**：U8 连接 LiMa 时，hello 帧 `format="pcm"` 与实际发送格式一致；后端无需新增 OPUS 解码依赖。待实际烧录 U8 后验证实时语音/TTS 回放的端到端效果。
 - **BACKLOG-P0-1 已关闭**：`deploy_unified.py` 已支持 `--target {aliyun,jdcloud}`，默认 `jdcloud`，避免默认部署到旧 Aliyun pilot 而生产入口在 JDCloud 的错误。详见 `progress.md` 同日期条目。
 
 ## 2026-07-01 前端匿名聊天请求已分流至阿里云 pilot
