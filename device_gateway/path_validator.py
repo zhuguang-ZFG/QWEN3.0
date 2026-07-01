@@ -8,6 +8,7 @@ MotionErrorCode enum in protocol_families.py.
 from __future__ import annotations
 
 import math
+from typing import Any
 
 from device_gateway.model_routing import CONTROL_CAPABILITIES
 from device_gateway.protocol_families import MotionErrorCode
@@ -32,6 +33,10 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
     "estop": frozenset(),
     "get_device_info": frozenset(),
 }
+
+# Capabilities that compute their own motion path from other inputs (text/image).
+# For these, `path` is not required at validation time; feed still gets clamped.
+_PATH_GENERATING_CAPABILITIES = frozenset({"write_text", "draw_generated", "handwriting"})
 
 # Valid route_policy values per Edge-C schema
 VALID_ROUTE_ROLES = frozenset({"device_control", "device_write", "device_draw", "device_vector", "device_unknown"})
@@ -106,17 +111,25 @@ def validate_capability_params(
             "source_capability": str(params.get("source_capability", capability)),
         }, None
 
-    sanitized, error = validate_run_path_params(params, profile=profile)
-    if error:
-        return {}, error
+    if capability in _PATH_GENERATING_CAPABILITIES:
+        sanitized: dict[str, Any] = {
+            "feed": _clamp_feed_value(params.get("feed")),
+            "source_capability": str(params.get("source_capability", capability)),
+        }
+    else:
+        sanitized, error = validate_run_path_params(params, profile=profile)
+        if error:
+            return {}, error
 
     for field in required:
         if field in ("path", "feed"):
-            continue  # validated by validate_run_path_params
+            continue  # path may be generated later; feed already clamped
         if field not in params or not params[field]:
             return {}, MotionErrorCode.E_BAD_PARAMS.value
 
     for key, value in params.items():
+        if key in ("path", "feed"):
+            continue  # path preserved only when explicitly validated above
         if isinstance(value, str):
             limit = 8192 if key == "preview_svg" else 120
             sanitized[key] = value[:limit]
@@ -124,6 +137,15 @@ def validate_capability_params(
             sanitized[key] = value
 
     return sanitized, None
+
+
+def _clamp_feed_value(raw_feed: Any) -> float:
+    """Clamp feed to [MIN_FEED, MAX_FEED] with a safe default."""
+    try:
+        feed = float(raw_feed) if raw_feed is not None else 500.0
+    except (TypeError, ValueError):
+        feed = 500.0
+    return max(MIN_FEED, min(MAX_FEED, feed))
 
 
 def validate_route_policy(route_policy: dict, capability: str = "") -> tuple[dict, str | None]:

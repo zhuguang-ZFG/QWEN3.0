@@ -14,20 +14,17 @@ from .device_draw_handler import handle_device_draw
 _log = logging.getLogger(__name__)
 from .model_routing import CONTROL_CAPABILITIES, looks_like_svg_path
 from .path_pipeline import render_svg_task, render_text_task, text_to_svg_path
+from .path_validator import MAX_FEED, MIN_FEED
 from .safety import DEFAULT_FEED, safe_point
-
-# Feed rate bounds (mm/min), aligned with path_validator.MAX_FEED/MIN_FEED
-_FEED_MIN = 1
-_FEED_MAX = 2000
 
 
 def _clamp_feed(raw: Any, default: int = DEFAULT_FEED) -> int:
-    """Clamp user-supplied feed to the safe range [1, 2000] mm/min."""
+    """Clamp user-supplied feed to the safe range [MIN_FEED, MAX_FEED] mm/min."""
     try:
-        val = int(raw)
+        val = float(raw)
     except (TypeError, ValueError):
         return default
-    return max(_FEED_MIN, min(_FEED_MAX, val))
+    return int(max(MIN_FEED, min(MAX_FEED, val)))
 
 
 def _handwriting_options(params: dict[str, Any]) -> dict[str, Any]:
@@ -80,10 +77,10 @@ async def _vectorize_handwriting_png(png_bytes: bytes) -> dict[str, Any]:
     )
 
 
-def _build_local_fallback_params(text: str) -> dict[str, Any]:
+def _build_local_fallback_params(text: str, feed: int = DEFAULT_FEED) -> dict[str, Any]:
     rendered = text_to_svg_path(text)
     return {
-        "feed": DEFAULT_FEED,
+        "feed": feed,
         "path": rendered["path"],
         "source_capability": "handwriting",
         "text": text[:80],
@@ -120,7 +117,7 @@ async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> t
         _log.warning("autohanding failed for task mode, trying local fallback: %s", exc)
         if _is_ascii(text):
             _record_handwriting("fallback", start_ms, fallback=True)
-            return _build_local_fallback_params(text), None
+            return _build_local_fallback_params(text, _clamp_feed(params.get("feed"))), None
         _record_handwriting("failed", start_ms)
         return {}, f"autohanding error: {exc}"
 

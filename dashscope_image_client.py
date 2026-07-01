@@ -25,19 +25,22 @@ class DashScopeImageClient:
         negative_prompt: Optional[str] = None,
         size: str = "1024*1024",
         n: int = 1,
+        base_image_url: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
         """生成图片（同步）"""
         try:
-            rsp = ImageSynthesis.call(
-                model=model,
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                n=n,
-                size=size,
-                api_key=self.api_key,
-                **kwargs,
-            )
+            call_kwargs = {
+                "model": model,
+                "prompt": prompt,
+                "negative_prompt": negative_prompt,
+                "n": n,
+                "size": size,
+                "api_key": self.api_key,
+            }
+            if base_image_url:
+                call_kwargs["base_image_url"] = base_image_url
+            rsp = ImageSynthesis.call(**call_kwargs, **kwargs)
             return self._parse_response(rsp)
         except Exception as e:
             logger.error(f"DashScope 图生失败: {e}")
@@ -48,9 +51,15 @@ class DashScopeImageClient:
         if rsp.status_code == 200:
             output = rsp.output
             results = output.get("results", [])
+            if not isinstance(results, list):
+                results = []
+            images: list[Dict[str, Any]] = []
+            for r in results:
+                if isinstance(r, dict) and "url" in r:
+                    images.append({"url": r["url"]})
             return {
                 "status": "success",
-                "images": [{"url": r["url"]} for r in results],
+                "images": images,
                 "task_id": output.get("task_id", ""),
                 "error": None,
             }
@@ -80,9 +89,15 @@ class DashScopeImageClient:
 
                 if task_status == "SUCCEEDED":
                     results = output.get("results", [])
+                    if not isinstance(results, list):
+                        results = []
+                    images: list[Dict[str, Any]] = []
+                    for r in results:
+                        if isinstance(r, dict) and "url" in r:
+                            images.append({"url": r["url"]})
                     return {
                         "status": "success",
-                        "images": [{"url": r["url"]} for r in results],
+                        "images": images,
                         "task_id": task_id,
                         "error": None,
                     }

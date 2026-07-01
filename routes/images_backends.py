@@ -248,3 +248,38 @@ async def _generate_via_xmiaom(prompt: str, size: str) -> list[dict]:
 
     duration_ms = int((time.time() - started) * 1000)
     return [{"url": image_url, "backend": IMAGE_BACKEND, "latency_ms": duration_ms}]
+
+
+async def _generate_via_dashscope_i2i(prompt: str, image_url: str, size: str, n: int) -> list[dict]:
+    """DashScope Wanx image-to-image stylization using a reference image.
+
+    Falls back to an empty list if ALIYUN_API_KEY is missing or the call fails,
+    so the upstream chain can retry with text-to-image backends.
+    """
+    if not backend_config.ALIYUN_API_KEY:
+        return []
+    try:
+        from dashscope_image_client import DashScopeImageClient
+    except ImportError as exc:
+        _log.warning("dashscope_image_client not available; i2i disabled: %s", exc)
+        return []
+
+    try:
+        client = DashScopeImageClient()
+        result = client.generate(
+            prompt=prompt,
+            model="wanx2.1-imageedit",
+            function="stylization_all",
+            base_image_url=image_url,
+            n=n,
+            size=size.replace("x", "*"),
+        )
+    except Exception as exc:
+        _log.warning("DashScope i2i failed: %s", exc)
+        return []
+
+    if result.get("status") != "success" or not result.get("images"):
+        _log.warning("DashScope i2i returned no images: %s", result.get("error"))
+        return []
+
+    return [{"url": item["url"], "backend": "dashscope_i2i"} for item in result["images"]]

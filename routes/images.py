@@ -23,6 +23,7 @@ from routes.images_backends import (
     IMAGE_BACKEND,
     _generate_via_agnes,
     _generate_via_baidu,
+    _generate_via_dashscope_i2i,
     _generate_via_freetheai,
     _generate_via_siliconflow,
     _generate_via_tencent,
@@ -58,6 +59,7 @@ class ImageRequest(BaseModel):
     n: int = Field(default=1, ge=1, le=10)
     seed: int | None = Field(default=None, ge=-1, le=2147483647)
     negative_prompt: str | None = None
+    image_url: str | None = Field(default=None, description="Optional reference image for image-to-image generation")
     nologo: bool = True
     private: bool = False
     enhance: bool = False
@@ -117,12 +119,13 @@ async def _generate_image_urls(
     options: dict,
     *,
     skip_cache: bool = False,
+    image_url: str | None = None,
 ) -> tuple[list[dict], str, int]:
     """Generate image URLs and return (items, backend, duration_ms)."""
     enhanced_prompt = _apply_default_enhancement(prompt)
     variant = build_variant(options)
 
-    if not skip_cache:
+    if not skip_cache and not image_url:
         cached = get_cached_image(enhanced_prompt, size, n, variant)
         if cached is not None:
             data_items, backend = cached
@@ -132,11 +135,19 @@ async def _generate_image_urls(
     started = time.time()
     data_items: list[dict] = []
     backend = ""
+
+    # Image-to-image: try a dedicated backend first when a reference image is provided.
+    if image_url:
+        data_items = await _generate_via_dashscope_i2i(enhanced_prompt, image_url, size, n)
+        if data_items:
+            backend = "dashscope_i2i"
+
     for backend_name, generator in _IMAGE_BACKENDS:
-        data_items = await generator(enhanced_prompt, size, n)
-        backend = backend_name
         if data_items:
             break
+        data_items = await generator(enhanced_prompt, size, n)
+        backend = backend_name
+
     if not data_items:
         data_items = await generate_pollinations_urls(enhanced_prompt, size, n, options)
         backend = "pollinations"
@@ -172,7 +183,12 @@ async def image_generations(request: Request):
 
     options = _build_pollinations_options(img_req)
     data_items, backend, duration_ms = await _generate_image_urls(
-        prompt, img_req.size, img_req.n, options, skip_cache=should_skip_cache(request)
+        prompt,
+        img_req.size,
+        img_req.n,
+        options,
+        skip_cache=should_skip_cache(request),
+        image_url=img_req.image_url,
     )
     urls = [{"url": item["url"]} for item in data_items]
     _record_image_request(img_req.prompt[:80], backend, duration_ms, client_ip)

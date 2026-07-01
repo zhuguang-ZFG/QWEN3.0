@@ -200,3 +200,35 @@ def test_device_app_reject_pending_voice_task(tmp_path, monkeypatch):
     assert rejected.status_code == 200, rejected.text
     assert rejected.json()["status"] == "rejected"
     assert rejected.json()["reason"] == "no"
+
+
+def test_device_app_draw_generated_image_url(tmp_path, monkeypatch):
+    """draw_generated with imageUrl creates a task that converts the image to a motion path."""
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    seed_binding()
+
+    async def fake_handle_device_draw(prompt: str, device_id: str, **kwargs: object):
+        return {
+            "status": "success",
+            "svg_path": "M0,0 L10,0 L10,10",
+            "image_url": "https://example.com/input.jpg",
+            "model": "mock",
+        }
+
+    monkeypatch.setattr("device_gateway.task_draw_params.handle_device_draw", fake_handle_device_draw)
+
+    created = client.post(
+        "/device/v1/app/devices/dev-1/tasks",
+        headers=headers("a-owner"),
+        json={
+            "capability": "draw_generated",
+            "source": "client",
+            "params": {"imageUrl": "https://example.com/input.jpg", "feed": 500},
+        },
+    )
+    assert created.status_code == 200, created.text
+    data = created.json()
+    assert data["task"]["app_capability"] == "draw_generated"
+    assert data["task"]["params"]["feed"] == 500
+    assert data["task"]["params"]["source_capability"] == "draw_generated"

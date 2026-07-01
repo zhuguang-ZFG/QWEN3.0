@@ -1,5 +1,29 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-01 设备 App 图片绘画与图生图能力闭环（Phase 4 完成）
+
+- **目标**：小程序「AI 创作」简化为绘画-only；新增 Telegram 素材库存储参考图；支持文生图、图生图、图片直绘。
+- **后端实现**：
+  - `integrations/telegram_bot/client.py`：Telegram Bot 发送图片 + 获取公开 URL。
+  - `device_gateway/gallery_store.py`：用户级素材库 SQLite 存储。
+  - `routes/device_app_gallery.py`：`/device/v1/app/gallery` CURD 与下载 URL 刷新。
+  - `routes/device_app_images.py`：`/device/v1/app/images/generations` 支持 `image_url` 图生图。
+  - 复用 `/device/v1/app/devices/{id}/tasks` 的 `draw_generated` capability 处理图片绘画。
+- **前端实现（manager-mobile）**：
+  - `pages/create/create.vue` 重写为「AI 绘画 / 图片绘画」两模式。
+  - `pages/create/components/image-picker.vue` 支持相册上传与素材库选择。
+  - `api/gallery` 新增，`api/images` 扩展 `image_url`。
+  - `pages/index/index.vue` 入口第二卡改为「图片绘画」。
+- **部署与验证（京东云 117.72.118.95）**：
+  - 部署 Cloudflare Worker 代理 `https://telegram-proxy.donglicao.com` 转发 Telegram Bot API。
+  - VPS `.env` 追加 `TELEGRAM_BOT_TOKEN` 与 `TELEGRAM_GALLERY_CHAT_ID`（已安全配置）。
+  - 修复 `httpx.AsyncClient` 被系统代理 `HTTP_PROXY=127.0.0.1:7890` 拦截的问题：所有 Telegram 请求使用 `trust_env=False`。
+  - 端到端验证：
+    - `POST /device/v1/app/gallery` 上传成功，返回 `fileId` 与 `thumbUrl`。
+    - `POST /device/v1/app/images/generations` 带 `image_url` 图生图成功。
+    - `POST /device/v1/app/devices/{id}/tasks` `capability=draw_image` 图片绘画任务创建成功。
+- **门禁**：后端聚焦测试 56 passed；ruff clean；pyright 0 errors。完整 pytest 仍有 5 个预存在失败，与本次改动无关。
+
 ## 2026-07-01 第二轮修复批次（6 项后端 + 3 项前端 + 6 项安全依赖）
 
 - **质量门禁（全绿）**：pytest **4246 passed / 0 failed**；ruff clean；code size PASS。

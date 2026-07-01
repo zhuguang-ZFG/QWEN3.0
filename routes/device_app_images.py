@@ -49,7 +49,9 @@ async def device_app_image_generations(request: Request, authorization: str = He
         "safe": img_req.safe,
     }
     data_items, backend, _duration_ms = await _generate_image_urls(
-        prompt, img_req.size, img_req.n, options, skip_cache=should_skip_cache(request)
+        prompt, img_req.size, img_req.n, options,
+        image_url=img_req.image_url,
+        skip_cache=should_skip_cache(request),
     )
     urls = [{"url": item["url"]} for item in data_items]
 

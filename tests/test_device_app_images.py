@@ -41,7 +41,7 @@ def test_image_generation_rejects_invalid_size(image_client):
 def test_image_generation_returns_urls(image_client, monkeypatch):
     from routes import device_app_images as app_images_mod
 
-    async def _fake_generate(prompt: str, size: str, n: int, options: dict, *, skip_cache: bool = False):
+    async def _fake_generate(prompt: str, size: str, n: int, options: dict, *, image_url: str | None = None, skip_cache: bool = False):
         return [{"url": "https://example.com/img.png", "backend": "xmiaom"}], "xmiaom", 100
 
     monkeypatch.setattr(app_images_mod, "_generate_image_urls", _fake_generate)
@@ -57,3 +57,27 @@ def test_image_generation_returns_urls(image_client, monkeypatch):
     # 对外统一返回品牌标签「LiMa 生图」，真实后端名（xmiaom 等）不外泄。
     assert data["backend"] == "LiMa 生图"
     assert "created" in data
+
+
+def test_image_generation_with_image_url(image_client, monkeypatch):
+    """图生图：提供 image_url 时原样透传给生成函数。"""
+    from routes import device_app_images as app_images_mod
+
+    captured = {}
+
+    async def _fake_generate(prompt: str, size: str, n: int, options: dict, *, image_url: str | None = None, skip_cache: bool = False):
+        captured["options"] = options
+        captured["image_url"] = image_url
+        return [{"url": "https://example.com/generated.png", "backend": "xmiaom"}], "xmiaom", 100
+
+    monkeypatch.setattr(app_images_mod, "_generate_image_urls", _fake_generate)
+
+    response = image_client.post(
+        "/device/v1/app/images/generations",
+        json={"prompt": "a cat", "size": "1024x1024", "n": 1, "image_url": "https://example.com/input.jpg"},
+        headers=headers("a-owner"),
+    )
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["data"] == [{"url": "https://example.com/generated.png"}]
+    assert captured.get("image_url") == "https://example.com/input.jpg"

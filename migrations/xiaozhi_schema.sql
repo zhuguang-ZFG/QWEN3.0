@@ -493,3 +493,32 @@ CREATE INDEX IF NOT EXISTS idx_v2_asset_category ON v2_asset_library(category);
 CREATE INDEX IF NOT EXISTS idx_v2_asset_difficulty ON v2_asset_library(difficulty);
 CREATE INDEX IF NOT EXISTS idx_v2_asset_status ON v2_asset_library(status);
 CREATE INDEX IF NOT EXISTS idx_v2_asset_use_count ON v2_asset_library(use_count DESC);
+
+-- ============================================================
+-- 18a. v2_gallery_image - Telegram-backed user image gallery
+-- ============================================================
+CREATE TABLE IF NOT EXISTS v2_gallery_image (
+    id              TEXT PRIMARY KEY,                   -- UUID
+    account_id      TEXT NOT NULL REFERENCES v2_account(id),
+    file_id         TEXT NOT NULL,                      -- Telegram file_id
+    filename        TEXT NOT NULL,
+    mime_type       TEXT DEFAULT 'image/jpeg',
+    size_bytes      INTEGER NOT NULL,
+    thumb_url       TEXT,                               -- optional preview URL
+    tags            TEXT,                               -- JSON array
+    status          TEXT DEFAULT 'active'               -- active / deleted
+        CHECK (status IN ('active', 'deleted')),
+    created_at      TEXT DEFAULT (datetime('now', 'subsec')),
+    updated_at      TEXT DEFAULT (datetime('now', 'subsec'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_v2_gallery_image_account ON v2_gallery_image(account_id);
+CREATE INDEX IF NOT EXISTS idx_v2_gallery_image_status ON v2_gallery_image(status);
+CREATE INDEX IF NOT EXISTS idx_v2_gallery_image_created ON v2_gallery_image(created_at DESC);
+
+CREATE TRIGGER IF NOT EXISTS trg_v2_gallery_image_updated
+    AFTER UPDATE ON v2_gallery_image
+    FOR EACH ROW
+    BEGIN
+        UPDATE v2_gallery_image SET updated_at = datetime('now', 'subsec') WHERE id = NEW.id;
+    END;

@@ -5,7 +5,7 @@
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
 > **部署**: 主计算与公网入口均已迁移至 JDCloud (`117.72.118.95`)；通过 Cloudflare Tunnel (`lima-jdcloud`) 直连京东云，不再依赖 Alibaba Cloud 反向代理。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
 
-> Updated: 2026-06-30
+> Updated: 2026-07-01
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
 > Tests: 全量 **4249 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
@@ -18,6 +18,28 @@
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+
+### 最近完成（2026-07-01）设备 App 图片绘画与图生图能力闭环
+
+- **目标**：把小程序「AI 创作」页面简化为绘画-only，支持文生图、图生图和图片直绘；参考图统一存到 Telegram 素材库。
+- **后端**：
+  - 新增 `integrations/telegram_bot/client.py`：封装 Telegram Bot 发送图片、获取公开 URL、健康检查；所有请求使用 `trust_env=False` 避免被系统代理干扰。
+  - 新增 `device_gateway/gallery_store.py`：SQLite 记录用户素材库（account_id、file_id、thumb_url）。
+  - 新增 `routes/device_app_gallery.py`：`/device/v1/app/gallery` 上传/列表/删除/刷新 URL。
+  - 扩展 `routes/device_app_images.py`：`/device/v1/app/images/generations` 支持 `image_url` 图生图；复用 `/device/v1/app/devices/{id}/tasks` 的 `draw_generated` capability 下发图片绘画任务。
+  - 新增/更新单测：`tests/test_device_app_gallery_*.py`、`tests/test_device_app_images.py`、`tests/test_device_app_tasks.py`；相关测试 56 passed。
+- **前端（manager-mobile）**：
+  - 重写 `pages/create/create.vue`：移除写字/仿手写，仅保留「AI 绘画」（文生图/图生图）和「图片绘画」。
+  - 新增 `pages/create/components/image-picker.vue`：支持相册上传（自动进素材库）和素材库选择。
+  - 新增 `api/gallery` 封装；扩展 `api/images` 支持 `image_url`。
+  - `pages/index/index.vue` 入口同步调整：第二卡由「AI 写字」改为「图片绘画」。
+  - `pnpm run type-check` 通过。
+- **部署与验证（京东云 117.72.118.95）**：
+  - 部署 Cloudflare Worker 代理 `https://telegram-proxy.donglicao.com` 转发 Telegram Bot API。
+  - VPS `.env` 追加 `TELEGRAM_BOT_TOKEN` 与 `TELEGRAM_GALLERY_CHAT_ID`。
+  - 端到端验证通过：gallery 上传返回 `fileId`/`thumbUrl`、图生图、图片绘画任务创建均成功。
+- **配置**：`.env.example` 新增 `TELEGRAM_BOT_TOKEN` 与 `TELEGRAM_GALLERY_CHAT_ID`。
+- **门禁**：聚焦测试 56 passed；ruff clean；pyright 0 errors。
 
 ### 最近完成（2026-06-30）LiMa 主计算与公网入口完全迁移到京东云（Cloudflare Tunnel）
 

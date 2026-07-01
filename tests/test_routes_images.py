@@ -295,3 +295,41 @@ def test_no_freetheai_key_falls_back_to_pollinations(client, monkeypatch):
     )
     assert response.status_code == 200
     assert "image.pollinations.ai" in response.json()["data"][0]["url"]
+
+
+def test_image_url_triggers_i2i_backend(client, monkeypatch):
+    image_cache.clear_cache()
+    i2i_called = {"n": 0}
+
+    async def fake_i2i(prompt: str, image_url: str, size: str, n: int) -> list[dict]:
+        i2i_called["n"] += 1
+        assert image_url == "https://example.com/input.jpg"
+        return [{"url": "https://example.com/i2i.png", "backend": "dashscope_i2i"}]
+
+    monkeypatch.setattr(img, "_generate_via_dashscope_i2i", fake_i2i)
+
+    response = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "stylize this", "image_url": "https://example.com/input.jpg", "size": "1024x1024", "n": 1},
+    )
+    assert response.status_code == 200
+    assert response.json()["data"][0]["url"] == "https://example.com/i2i.png"
+    assert i2i_called["n"] == 1
+
+
+def test_image_url_i2i_failure_falls_back_to_text_to_image(client, monkeypatch):
+    image_cache.clear_cache()
+
+    async def fake_i2i(prompt: str, image_url: str, size: str, n: int) -> list[dict]:
+        return []
+
+    monkeypatch.setattr(img, "_generate_via_dashscope_i2i", fake_i2i)
+
+    response = client.post(
+        "/v1/images/generations",
+        headers=_auth_header(),
+        json={"prompt": "stylize this", "image_url": "https://example.com/input.jpg", "size": "1024x1024", "n": 1},
+    )
+    assert response.status_code == 200
+    assert "image.pollinations.ai" in response.json()["data"][0]["url"]

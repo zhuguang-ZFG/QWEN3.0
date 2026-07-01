@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 
 
-LIMA_SERVER: str = "47.112.162.80"
+LIMA_SERVER: str = os.environ.get("LIMA_SERVER", "47.112.162.80")
 REMOTE_PATH: str = "/opt/lima-router"
 JDCLOUD_REMOTE_PROBE_PATH: str = "/opt/lima-probe"
 
