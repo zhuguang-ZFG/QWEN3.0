@@ -1,5 +1,22 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-01 第二轮修复批次（6 项后端 + 3 项前端 + 6 项安全依赖）
+
+- **质量门禁（全绿）**：pytest **4246 passed / 0 failed**；ruff clean；code size PASS。
+- **后端修复**（6 项审计遗留 MEDIUM/LOW）：
+  1. `client_keys/storage.py`：`update_usage()` 不再静默吞 sqlite3.Error（改为 raise ClientKeyStorageError）；`import json` 提到模块级。
+  2. `access_guard.py`：`_dynamic_auth_configured` 从 bare `Exception` 收窄为 `(ImportError, AttributeError)`。
+  3. `device_logic/wechat_gateway.py`：`response.json()` 移入 try/except（捕获 ValueError/JSON 解析异常）；`import time` 提到模块级。
+  4. `routes/client_keys.py`：4 个 mutation 端点返回 typed `KeyMutationResponse`（+ `response_model_exclude_none`），不再用裸 `-> dict`。
+  5. `client_keys/validation.py`：新增 `KeyMutationResponse` model。
+  6. 合并重复 `test_security_headers.py` → `test_routes_security_headers.py`（保留 csp_is_strict 测试）。
+- **前端安全修复**（3 项）：
+  1. `donglicao-site-v2/public/_headers`：补 CSP / HSTS / X-Frame-Options / Permissions-Policy。
+  2. `chat-web/_headers`：补 HSTS。
+  3. `chat-web/scripts/hash-assets.mjs`：扩展哈希范围覆盖根级 `chat-*.js`（之前 immutable 缓存无 bust）。
+- **安全依赖更新**（6 个 SAFE PR）：fastapi >=0.138.2、python-multipart >=0.0.32、pyright >=1.1.411、pytest-timeout ~=2.4、httpx >=0.28.1、websockets >=16.0。
+- **提交**：`49f55b61`。
+
 ## 2026-07-01 全栈深度质量检查 + 3 项修复
 
 - **检查范围**：LiMa 后端 + donglicao-site-v2 + chat-web + 小程序 manager-mobile + 固件 esp32S_XYZ。

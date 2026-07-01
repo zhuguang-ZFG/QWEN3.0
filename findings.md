@@ -18,11 +18,22 @@
 
 ### 待跟进项（需独立排期）
 
-- **donglicao-site-v2 `_headers`**：将 CSP/HSTS/X-Frame-Options/Permissions-Policy 从 `nginx-headers.conf.example` 回填到 `public/_headers`。
-- **chat-web `hash-assets.mjs`**：扩展哈希范围覆盖根级 `chat-*.js`，避免 immutable 缓存无 bust。
+- ~~**donglicao-site-v2 `_headers`**~~：✅ 已完成（2026-07-01 第二轮修复：补 CSP/HSTS/X-Frame-Options/Permissions-Policy）。
+- ~~**chat-web `hash-assets.mjs`**~~：✅ 已完成（2026-07-01 第二轮修复：扩展哈希覆盖根级 `chat-*.js`）。
+- ~~**chat-web `_headers`**~~：✅ 已完成（2026-07-01 第二轮修复：补 HSTS）。
+- ~~**6 个 SAFE dependabot PR**~~：✅ 已手动应用（fastapi 0.138.2、python-multipart 0.0.32、pyright 1.1.411、pytest-timeout 2.4、httpx 0.28.1、websockets 16.0）。
 - **小程序设备转移 `toPhone` 字段**：核实后端契约是否期望 unionid。
 - **固件 `DoToolCall` user_only 门禁**：在执行路径增加 `user_only` 检查。
-- **18 个 dependabot PR**：6 SAFE（httpx/fastapi/python-multipart/pytest-timeout/pyright/websockets）可手动应用；5 RISKY（torch/torchaudio/dashscope/onnxruntime）建议关闭；7 需独立审查（eslint-10/typescript-6/types-node-26/react/tailwindcss/vue/wrangler-action/setup-node）。
+- **4 个 RISKY dependabot PR**（torch/torchaudio/dashscope/onnxruntime）建议关闭。
+- **7 个需独立审查 PR**（eslint-10/typescript-6/types-node-26/react/tailwindcss/vue/wrangler-action/setup-node）。
+
+### 第二轮修复（2026-07-01，commit 49f55b61）
+
+- **`client_keys/storage.py`**：`update_usage()` 改为 raise `ClientKeyStorageError`（不再静默吞 sqlite3.Error）；`import json` 提到模块级。
+- **`access_guard.py`**：`_dynamic_auth_configured` 从 bare `Exception` 收窄为 `(ImportError, AttributeError)`。
+- **`device_logic/wechat_gateway.py`**：`response.json()` 移入 try/except（ValueError 捕获）；`import time` 提到模块级。
+- **`routes/client_keys.py`**：4 个 mutation 端点返回 typed `KeyMutationResponse`（`response_model_exclude_none=True`）。
+- **合并重复测试**：`test_security_headers.py` 删除，唯一 `csp_is_strict` 测试并入 `test_routes_security_headers.py`。
 
 ## 2026-07-01 Dependabot / pip-audit 依赖漏洞修复
 
