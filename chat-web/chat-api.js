@@ -94,21 +94,46 @@ async function sendMessage() {
   messages.push({ role: 'user', content: text });
   showTyping('思考中');
 
+  const chatBody = {
+    model: window.getSelectedModel ? window.getSelectedModel() : 'lima',
+    messages: messages,
+    stream: true,
+  };
+  const chatPath = '/v1/chat/completions';
+  const pilotAttempt = window.LiMaConfig.shouldUsePilot(chatPath, chatBody);
+  const chatOptions = {
+    method: 'POST',
+    signal: abortController.signal,
+    headers: authHeaders(),
+    body: JSON.stringify(chatBody),
+  };
+
+  async function tryChatFetch(url) {
+    return fetch(url, chatOptions);
+  }
+
+  async function fallbackIfNeeded(response) {
+    const needsFallback = response.status === 429 || response.status === 503 || response.status >= 500;
+    if (pilotAttempt && needsFallback) {
+      console.warn('Aliyun pilot returned', response.status, '; falling back to primary node');
+      return tryChatFetch(window.LiMaConfig.PRIMARY_ORIGIN + chatPath);
+    }
+    return response;
+  }
+
   try {
-    const response = await fetch(window.LiMaConfig.getApiUrl('/v1/chat/completions', {
-      model: window.getSelectedModel ? window.getSelectedModel() : 'lima',
-      messages: messages,
-      stream: true,
-    }), {
-      method: 'POST',
-      signal: abortController.signal,
-      headers: authHeaders(),
-      body: JSON.stringify({
-        model: window.getSelectedModel ? window.getSelectedModel() : 'lima',
-        messages: messages,
-        stream: true,
-      }),
-    });
+    let response;
+    try {
+      response = await tryChatFetch(window.LiMaConfig.getApiUrl(chatPath, chatBody));
+    } catch (err) {
+      if (pilotAttempt && err.name !== 'AbortError') {
+        console.warn('Aliyun pilot network error;', err.message, '; falling back to primary node');
+        response = await tryChatFetch(window.LiMaConfig.PRIMARY_ORIGIN + chatPath);
+      } else {
+        throw err;
+      }
+    }
+    response = await fallbackIfNeeded(response);
 
     hideTyping();
 
