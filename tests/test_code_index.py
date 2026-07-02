@@ -1,6 +1,6 @@
 """Tests for the in-memory code index."""
 
-from code_context.index_store import InMemoryCodeIndex, CodeSymbol, build_code_index
+from code_context.index_store import InMemoryCodeIndex, CodeSymbol
 
 
 # ---------------------------------------------------------------------------

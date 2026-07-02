@@ -11,9 +11,7 @@ from device_gateway.tasks import (
     task_snapshot,
 )
 from device_gateway.store import InMemoryDeviceTaskStore
-from device_gateway import tasks as tasks_mod
 from device_gateway import store as store_mod
-from device_intelligence.recovery import recovery_action
 
 
 @pytest.fixture(autouse=True)

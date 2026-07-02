@@ -2,7 +2,6 @@
 
 from code_context.graph_index import (
     InMemoryGraphIndex,
-    build_graph_index,
 )
 
 

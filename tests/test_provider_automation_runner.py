@@ -4,8 +4,6 @@ from provider_automation.catalog import ModelAdmissionStatus, ProviderModelEntry
 from provider_automation.probe import ProbeLevel
 from provider_automation.runner import ProbeRunner, ProbeRunnerConfig, format_batch_results
 
-from provider_automation_helpers import entry
-
 
 def test_probe_runner_metadata_only():
     cfg = ProbeRunnerConfig(run_completion_smoke=False)

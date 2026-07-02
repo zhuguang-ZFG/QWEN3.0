@@ -7,8 +7,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from device_voice.exceptions import AuthenticationError, ConfigurationError
-
 
 class TestAliyunTTSProvider:
     def test_missing_credentials_raises(self, monkeypatch):

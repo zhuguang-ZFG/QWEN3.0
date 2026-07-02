@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import sqlite3
 
 import pytest
 
-from client_keys.models import ClientKey
-from client_keys.storage import ClientKeyStorage, ClientKeyStorageError, _mask_key, _new_key_id
+from client_keys.storage import ClientKeyStorage, ClientKeyStorageError, _mask_key
 
 
 @pytest.fixture

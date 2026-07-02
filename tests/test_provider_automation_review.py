@@ -1,10 +1,8 @@
 """build_review_bundle tests."""
 
 from provider_automation.catalog import (
-    ModelAdmissionStatus,
     ProviderModelEntry,
     ProviderModelSnapshot,
-    compute_delta,
 )
 from provider_automation.review import build_review_bundle
 

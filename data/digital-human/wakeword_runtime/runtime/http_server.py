@@ -8,8 +8,14 @@ from pathlib import Path
 from typing import Callable
 
 from ..bridge import WakewordEventBridge
+from . import bridge_request_handler
 from .frame_codec import compute_accept, read_exact, receive_message, send_frame, send_text
 from .wakeword_config import build_wakeword_config_message, save_wakeword_config
+
+# 把纯模块 bridge_request_handler 的 save_wakeword_config 链入真实实现
+# （保留兼容性：bridge_request_handler.save_wakeword_config 默认为 None，
+# 运行时通过 _resolve_save() 走延迟相对导入兜底；这里显式注入可省一次延迟导入）。
+bridge_request_handler.save_wakeword_config = save_wakeword_config
 
 
 class TestRuntimeHttpServer:
@@ -148,49 +154,7 @@ class TestRuntimeHttpServer:
                 return build_wakeword_config_message(bridge, test_root)
 
             def _handle_bridge_request(self, bridge: WakewordEventBridge, raw_message: str) -> str | None:
-                try:
-                    message = json.loads(raw_message)
-                except json.JSONDecodeError:
-                    return None
-
-                message_type = str(message.get("type", "")).strip()
-                request_id = message.get("requestId")
-                payload = message.get("payload") or {}
-                result_type = f"{message_type}_result" if message_type else "bridge_request_result"
-
-                if message_type == "set_wakeword_config":
-                    try:
-                        result_payload = self._save_wakeword_config(payload)
-                        bridge.publish("wakeword_config", result_payload)
-                        return bridge.build_message(
-                            "set_wakeword_config_result",
-                            result_payload,
-                            request_id=request_id,
-                        )
-                    except Exception as exc:
-                        return bridge.build_message(
-                            "set_wakeword_config_result",
-                            {},
-                            request_id=request_id,
-                            success=False,
-                            error=f"保存唤醒词配置失败: {exc}",
-                        )
-
-                if message_type == "restart_wakeword_service":
-                    schedule_restart()
-                    return bridge.build_message(
-                        "restart_wakeword_service_result",
-                        {"restarting": True},
-                        request_id=request_id,
-                    )
-
-                return bridge.build_message(
-                    result_type,
-                    {},
-                    request_id=request_id,
-                    success=False,
-                    error=f"unsupported message type: {message_type}",
-                )
+                return bridge_request_handler.handle_bridge_request(bridge, raw_message, test_root, schedule_restart)
 
             def _save_wakeword_config(self, payload: dict) -> dict:
                 return save_wakeword_config(payload, test_root)

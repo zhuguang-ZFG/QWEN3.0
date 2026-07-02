@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from device_voice.exceptions import AuthenticationError, ConfigurationError, NetworkError, VoiceProviderError
+from device_voice.exceptions import ConfigurationError, NetworkError
 
 
 class TestAliyunFallbackASRProvider:

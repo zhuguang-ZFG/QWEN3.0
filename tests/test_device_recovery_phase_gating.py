@@ -5,15 +5,11 @@ from __future__ import annotations
 import pytest
 
 from device_gateway.tasks import (
-    create_task_from_transcript,
     execute_recovery,
     reset_tasks_for_tests,
-    task_snapshot,
 )
 from device_gateway.store import InMemoryDeviceTaskStore
-from device_gateway import tasks as tasks_mod
 from device_gateway import store as store_mod
-from device_intelligence.recovery import recovery_action
 
 
 @pytest.fixture(autouse=True)

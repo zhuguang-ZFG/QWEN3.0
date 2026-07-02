@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sqlite3
-import tempfile
 from pathlib import Path
 
 from device_logic.db_migrations import apply_migrations

@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi.routing import APIRoute
 
 import server
-from scripts.guardian_test_index import ROUTES_CONTRACT_TEST, find_test_file
+from scripts.guardian_test_index import find_test_file
 from scripts.lima_guardian import CodeScanner, _check_route_registration
 
 

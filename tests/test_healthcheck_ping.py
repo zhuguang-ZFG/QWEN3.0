@@ -1,6 +1,6 @@
 """Tests for healthcheck_ping.py — dead-man ping helpers."""
 
-from healthcheck_ping import is_healthcheck_enabled, _normalize_url, ping_healthcheck
+from healthcheck_ping import is_healthcheck_enabled, _normalize_url
 
 
 class TestIsHealthcheckEnabled:

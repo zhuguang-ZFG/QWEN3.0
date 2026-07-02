@@ -7,10 +7,7 @@ import pytest
 from device_artifacts.store import artifact_store
 from device_gateway.tasks import (
     create_task_from_transcript,
-    execute_recovery,
-    mark_task_dispatched,
     project_to_motion_task,
-    record_motion_event,
     reset_tasks_for_tests,
 )
 import device_gateway.task_creation as task_creation

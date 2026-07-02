@@ -5,11 +5,10 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from config.settings import SESSION_MEMORY
-from session_memory.store import get_recent_memories, save_memory
+from session_memory.store import save_memory
 from session_memory.store_admin import (
     can_delete_memories,
     can_export_memories,
-    count_memories,
     delete_memories_by_type,
     delete_memory,
     export_session_json,

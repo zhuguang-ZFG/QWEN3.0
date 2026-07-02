@@ -19,7 +19,7 @@ _ESP32_TOOLS = Path(__file__).resolve().parent.parent / "esp32S_XYZ" / "tools"
 sys.path.insert(0, str(_ESP32_TOOLS))
 
 from fake_device_server.app import FakeDeviceServerHandler  # noqa: E402
-from fake_device_server.app import motion_task_to_u1_commands  # noqa: E402
+from fake_device_server.app import motion_task_to_u1_commands  # noqa: E402,F401  re-export imported by test_fake_u1_protocol_translation
 from fake_u1.app import FakeU1Simulator, FakeU1TCPServer  # noqa: E402
 
 

@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.coverage.analyzer import CORE_MODULES, PROJECT, analyze
+from scripts.coverage.analyzer import PROJECT, analyze
 from scripts.coverage.skeleton import generate_tests
 
 

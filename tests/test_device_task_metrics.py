@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import device_gateway.tasks as tasks_mod
-import device_logic.gateway as gw_mod
 import routes.device_gateway_dispatch as dispatch_mod
 from device_gateway.tasks import DeviceTaskRequest, create_and_route_task
 from device_logic.gateway import build_gateway_task, dispatch_or_enqueue

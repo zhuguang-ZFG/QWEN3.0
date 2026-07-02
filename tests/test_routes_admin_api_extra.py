@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 from routes import admin_api_extra
 

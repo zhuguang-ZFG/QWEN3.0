@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from device_gateway.device_profile.models import DeviceCapability, DeviceProfile
+from device_gateway.device_profile.models import DeviceProfile
 from device_gateway.device_profile.registry import register_device_profile, reset_device_profiles_for_tests
 from device_gateway.draw_prompt_enhancer import (
     get_failed_draw_prompts,

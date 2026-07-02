@@ -28,7 +28,6 @@ def _patch_integrations(monkeypatch):
 @pytest.fixture()
 def _patch_record_event(monkeypatch):
     """Patch routes.agent_events.record_event used by _record_routing_event."""
-    import routing_engine.post as mod
 
     calls = []
 

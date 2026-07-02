@@ -2,6 +2,40 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 G1+G2 批次完成（台账销账 + 测试侧 F401 精选 + 唤醒词桥接请求抽离）
+
+- **范围**：G1 台账销账 + 测试侧 F401 精选（仅 domain dead imports，KEEP port-target infra，沿用 F1 双向别名安全审计教训但因属于 test/side 这边再加一层 sys.path 根基名前缀校验）；G2 TDD 抽离 wakeword `_handle_bridge_request` 到 `bridge_request_handler.py`。
+
+### G1a — PONYTAIL-DEBT 销账陈旧条目
+
+- `check_code_size.py 残留 12 个 51-54 行函数`条目经独立 AST 扫描（51-55 行范围全仓非排除目录 0 命中）确认陈旧，从「当前标记」区删除并补「已结清」记录。无代码改动。
+
+### G1b — 测试侧 F401 精选清理
+
+- **基线**：测试侧 ~202 处 F401（多为 `pytest`/`os`/`time`/`unittest.mock`/`patch` 等 patch-target / 隐式 fixture 用法，曾导致 85 收集错误）+ scripts/lima_mcp_stdio 数处。本批**只删 STYPE_CLEAN 文件中 AST 与 ruff 双确认的 domain dead imports**（`device_voice.exceptions.{AuthenticationError,ConfigurationError,VoiceProviderError}`、`device_gateway.attestation.*`、`client_keys.models.ClientKey`、`chat_models.{ChatRequest,Message}` 等业务符号），**保留** port-target infra（`pytest/os/patch/MagicMock/...`）。
+- **STYPE 分类**：49 个 STYPE_CLEAN 文件（safe-only）经 F1 别名感知审计全过 0 danger，逐文件 `ruff check --fix` 移除共 84 处 domain dead imports，剩余 143 处为 KEEP-infra + mixed 文件，留待后续单独批逐文件人工核对。
+- **二轮审计盲点 + 修复**：审计脚本默认 `module == file_dotted_path` 严格相等（`tests.fake_u1_helpers`），但 pytest 通过 `conftest.py` 把 `tests/` 加到 `sys.path`，消费者写 `from fake_u1_helpers import motion_task_to_u1_commands`（前缀基名）。`tests/fake_u1_helpers.py` 经 `--fix` 误删了 `motion_task_to_u1_commands` 后，下游 `test_fake_u1_protocol_translation.py` 收集失败。修复：恢复该 import 并附 `# noqa: E402,F401` 说明 re-export。教训：F2 提炼的「别名访问」具名失效风险 + 加上「pytest 测试间 sys.path 根基名引用」更隐蔽，下一轮测试侧 F401 批必须同时考虑这两类前缀。
+- **附带收益**：scripts/、lima_mcp_stdio/、packages/ 内 4 处清理后整体整洁度小幅提升。
+
+### G2 — wakeword 桥接请求 handler 抽离（TDD）
+
+- **目标**：把 `http_server.py` 嵌套类 `_handle_bridge_request`（44 行内联、捕获 `test_root`/`schedule_restart` 闭包）抽出为纯函数模块，便于单测。
+- **RED 先行**：新建 `tests/test_wakeword_bridge_request.py`（importlib.spec_from_file_location 加载），6 个测试覆盖：`invalid_json_returns_None`、`set_wakeword_config_success_publishes_and_returns_result`（含 fake save_wakeword_config 注入验证 publish + build_message 契约）、`set_wakeword_config_save_exception_returns_failure_result`（成功即降级路径 success=False + error 描述）、`restart_wakeword_service_invokes_schedule_restart`、`unknown_message_type_returns_failure_result`、`empty_message_type_uses_fallback_result_type`。RED：FileNotFoundError（bridge_request_handler.py 不存在）。
+- **GREEN：新建 `data/digital-human/wakeword_runtime/runtime/bridge_request_handler.py`（121 行纯函数模块）**实现 `handle_bridge_request(bridge, raw_message, test_root, schedule_restart)` + 2 个 helper (`_handle_set_wakeword_config`、`_handle_restart`)。**关键解耦**：`save_wakeword_config` 不在模块顶层 from-import（否则 importlib 加载本模块因无父包相对导入失败），改为顶层 `save_wakeword_config: Any = None` + `_resolve_save()` 延迟相对导入兜底；http_server.py 在 import 后 `bridge_request_handler.save_wakeword_config = save_wakeword_config` 显式链入真实实现，测试用 `monkeypatch` / `setattr` 注入 fake。`WakewordEventBridge` 类型注解改 `Any`（duck-typed，契合 docstring），避开 F821。
+- **REFACTOR：`http_server.py` 213 → 178 行**：`_handle_bridge_request` 改 1 行委托到 `bridge_request_handler.handle_bridge_request(bridge, raw_message, test_root, schedule_restart)`；`_handle_websocket` 事件循环与 `_build_wakeword_config_message`/`_save_wakeword_config` 简单委托不动。**闭包依赖 `test_root`/`event_bridge`/`schedule_restart` 与事件循环主逻辑仍保留在 `_build_server` 嵌套类中**（46 行 `_handle_websocket` 仍 tight coupling with `client_queue`，需先补端到端集成测试再考虑拆分）。
+- **新增 ponytail 标记条目**：`bridge_request_handler.py:3` —— 顶层属性而非 from-import 避开 importlib 无父包相对导入失败；上限是测试必须改本属性才生效（生产代码也走同一通路）；升级路径待后续 bridge 内部状态机复杂化时改为依赖注入。连同 G1 已结清的 codec 上限，wakeword runtime 三个抽离粒度（codec / config / bridge_request）均与 Ponytail 阶梯一致。
+
+### 门禁（全绿）
+
+- `ruff check .` clean；`ruff format --check` clean（仅格式化本批新增/修改的 4 个 G2 文件 + 7 个 G1b 测试文件因 --fix 后 ruff format 建议合并括号）。
+- `scripts/check_code_size.py` PASS（0 文件 >300、0 函数 >50）。
+- `pyright` 对 `bridge_request_handler.py`、`http_server.py`、`tests/fake_u1_helpers.py` 0 errors 0 warnings。
+- 全量 `pytest --tb=short -q` → **4410 passed / 3 skipped / 2 deselected / 0 failed**（较 F1+F2 的 4404 +6 = G2 新增 6 个 bridge_request 测试）。
+
+### 下次
+
+VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEBT，本条已落 progress）→ 仅暂存里程碑文件 → conventional commit → push `origin/main`。可选后续：测试侧剩余 ~143 mixed/keep-infra F401 处逐文件人工核对；wakeword `_handle_websocket` 事件循环抽离（需先补端到端 WebSocket 集成测试）；F401 全局门禁。
+
 ## 2026-07-03 深度瘦身 F1+F2 批次完成（死导入清理 + 唤醒词 WebSocket 帧编解码抽离）
 
 - **计划基线**：接续 E6-E9，本批经两轮实施修正后闭环。范围：F1 生产路径 F401 死导入清理（低风险）+ F2 wakeword WebSocket 帧编解码抽离（中风险，TDD: RED→GREEN→REFACTOR）。F3（test_jdcloud_push_probe.py 贴顶下移）经尝试后回退，跳过。

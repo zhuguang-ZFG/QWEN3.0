@@ -6,8 +6,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from device_voice.exceptions import AuthenticationError, ConfigurationError
-
 
 class TestDoubaoASRProvider:
     def test_missing_credentials_raises(self, monkeypatch):

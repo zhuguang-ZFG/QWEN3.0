@@ -8,7 +8,6 @@ import pytest
 from fastapi import WebSocket
 
 from device_gateway.attestation import AttestationVerifier
-from device_gateway.protocol import ProtocolError
 from device_gateway.sessions import DeviceSession
 from routes import device_gateway_ws_handlers as handlers
 from routes import device_gateway_ws_motion as motion_handlers

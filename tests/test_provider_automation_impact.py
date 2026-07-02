@@ -3,8 +3,6 @@
 from provider_automation.catalog import ProviderModelEntry
 from provider_automation.impact import check_impact, check_removal_impact, format_impact_smoke
 
-from provider_automation_helpers import entry
-
 
 def test_check_impact_new_free_model():
     models = [ProviderModelEntry(model_id="new_free", provider="x", pricing="free", endpoint_count=1)]

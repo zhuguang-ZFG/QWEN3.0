@@ -15,8 +15,8 @@
 | `device_gateway/tasks.py:33` | 33 | `routes.device_gateway_dispatch` 改为 lazy import 避免模块加载循环依赖 | 运行时反向依赖仍存在（device_gateway → routes） | 引入 `TaskDispatcher` 协议抽象后消除 |
 | `wakeword_runtime/runtime/wakeword_config.py:3` | 3 | 配置读/写/拼音转换抽离为无 socket 单测模块；上限：pypinyin 依赖 | 拼音转换依赖 pypinyin 外部库 | 换用更轻量拼音方案或上游统一 i18n 时重评 |
 | `wakeword_runtime/runtime/frame_codec.py:3` | 3 | WebSocket 帧编解码纯函数模块；上限：仅实现 RFC6455 最小帧子集（无分片/RSV），覆盖唤醒词 runtime 实际用到的 text/ping/pong/close 帧 | 仅最小帧子集，不支持分片/RSV 压缩 | 需要分片/合规审计时换用 wsproto；首轮安全审计教训另见 findings.md F1 结项 |
-| `ruff.toml` | — | F401 未加入全局门禁，仅豁免已知 re-export 文件 | ~115 个生产 F401 残留为整洁度噪音 | F1 批次已清理生产侧 91 真死导入（+ 17 numpy 保留 re-export）；剩余仅测试侧 ~253 处，逐文件人工核对后启用 F401 门禁 |
-| `check_code_size.py` 残留 | — | 12 个 51-54 行函数未拆分（scripts/tests/MCP/xiaozhi） | 单函数轻微超标 1-4 行，非核心生产路径 | 触发下一个生产函数超 50 行时一并清理 |
+| `wakeword_runtime/runtime/bridge_request_handler.py:3` | 3 | 桥接请求处理纯函数模块；上限：顶层 `save_wakeword_config: Any = None` 属性而非 from-import（避 importlib 无父包相对导入失败）；测试必须改本属性才生效 | 生产代码也走同一 `_resolve_save()` 通路；测试与生产等价 | bridge 内部状态机复杂化时改为依赖注入 |
+| `ruff.toml` | — | F401 未加入全局门禁，仅豁免已知 re-export 文件 | ~115 个生产 F401 残留为整洁度噪音 | F1 批次已清理生产侧 91 真死导入（+ 17 numpy 保留 re-export）；剩余仅测试侧 ~202 处，逐文件人工核对后启用 F401 门禁 |
 
 ## 待处理项
 
@@ -24,6 +24,8 @@
 
 ## 已结清
 
+- [x] 2026-07-03：G1+G2 深度瘦身——G1a 台账销账 `check_code_size.py 残留 12 个 51-54 行函数`条目（AST 扫描确认实际 0 个超限函数）；G1b 测试侧 F401 精选清理（49 个 STYPE_CLEAN 文件 `ruff --fix` 移除 84 处 domain dead imports，保留 patch-target/fixture 等不动；修复 `motion_task_to_u1_commands` re-export 因 pytest sys.path 根基名引用模式漏检而误删；详见 findings.md G1b 结项 + F1 教训）；G2 TDD 抽离 wakeword `_handle_bridge_request` 到 `bridge_request_handler.py`（121 行纯函数模块，6 个新测试 RED→GREEN→REFACTOR，http_server 213→178，闭包依赖不动，关键解耦是 `save_wakeword_config` 改顶层属性 + `_resolve_save()` 兜底）。新增 `ponytail:` 标记条目 bridge_request_handler.py:3。门禁全程绿：ruff/format/check_code_size PASS、pyright 0 errors、全量 pytest 4410 passed（较 F1+F2 +6 = G2 新增 6 个 bridge_request 测试）。
+- [x] 2026-07-03：G1a 台账销账——`check_code_size.py 残留 12 个 51-54 行函数`条目经独立 AST 扫描（51-55 行范围全仓非排除目录）确认实际已 **0 个超限函数**，条目陈旧，移除当前标记区，原始记入已结清。
 - [x] 2026-07-03：F1+F2 深度瘦身——F1 生产路径 F401 死导入清理（精选策略 + 17 个 re-export 用 `# noqa: F401` 保留 + 别名感知两轮审计，详见 findings.md）；F2 TDD 抽离 wakeword WebSocket 帧编解码到 `data/digital-human/wakeword_runtime/runtime/frame_codec.py`（118 行纯函数模块，16 个新测试 RED→GREEN→REFACTOR，http_server 274→212，闭包依赖不动）；F3 test_jdcloud_push_probe.py 贴顶下移尝试后回退（fixture 反而增行），跳过保持 300 行现状。门禁全程绿：ruff/format/check_code_size PASS、pyright 0 errors、全量 pytest 4404 passed（较 E6-E9 +16 = F2 新增）。新增 `ponytail:` 标记条目 frame_codec.py:3 并更新 ruff.toml F401 条目说明。
 - [x] 2026-07-02：E6-E9 深度瘦身——E6-1 提取 `lima_codegraph_tools` 3 个长函数子辅助（298 行）；E6-2 device_app_misc provision 端点抽到 `device_app_provision.py`（misc 296→199）；E6-3/E6-4/E6-5 经核验已在行限额内（profiles 295 / routing_intent 294 / lima_feature_planner 293，函数 ≤41）跳过；E7 删除 DEPRECATED `routes/eval_internal.py`（410 Gone 桩）+ 路由注册 + 退役测试；E8 从 wakeword `http_server.py` 抽 `wakeword_config.py`（http_server 347→274，配置读/写/拼音无 socket 依赖，新增 `ponytail:` 标记）；E9 同步本台账行号，删除 6 个已在源码中移除的失效标记条目（capability_matrix:132 / task_creation:32 / task_events:182 / mqtt_client:81 / quota:33 / chat-web config.js:9），修正 3 个偏移行号（activation 25→26、54→55；tasks 31→33）。
 - [x] 2026-06-26：极致瘦身——删除 19 个 DEPRECATED v3.0 退役 shim（orchestrate*、eval_*、context_pipeline/{code_scanner,semantic_code_retrieval,code_context_injection,graph_retrieval,reranking} 等）+ 4 测试；本地磁盘清理 ~2.1GB（.worktrees + reference + donglicao-site-backup）；冗余 IDE 配置删除（.codex/.qoder/.trae/.roo）；部署排除清单补全（donglicao-site*、docs-site、chat-web）。Python 文件 2471→1177(-52%)，行数 273827→130913(-52%)。

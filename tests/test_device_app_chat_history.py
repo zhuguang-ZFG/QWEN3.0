@@ -10,7 +10,6 @@ from device_app_helpers import client as make_client, headers, seed_account_and_
 from device_logic.chat_store import (
     create_session,
     insert_message,
-    list_audio_history,
     list_sessions,
 )
 from device_logic.db import connect

@@ -1,7 +1,6 @@
 """routing_engine __all__ / re-export tests."""
 
 from routing_engine import (
-    RouteResult,
     classify,
     classify_scenario,
     inject_skills,

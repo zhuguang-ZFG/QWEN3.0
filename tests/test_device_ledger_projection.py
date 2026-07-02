@@ -7,7 +7,7 @@ import pytest
 from device_app_helpers import client as make_client
 from device_app_helpers import headers, seed_account_and_device, seed_binding
 from device_ledger.events import new_event
-from device_ledger.projection import device_projection, task_projection
+from device_ledger.projection import task_projection
 from device_ledger.store import ledger_store
 from device_gateway.tasks import reset_tasks_for_tests
 

@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from .shared import uuid
-
 
 def _resp_chat_completions() -> Any:
     return {

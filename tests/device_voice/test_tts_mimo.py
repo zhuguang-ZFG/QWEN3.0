@@ -9,8 +9,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from device_voice.exceptions import AuthenticationError, ConfigurationError, VoiceProviderError
-
 
 def _make_wav_bytes(pcm: bytes, sample_rate: int = 24000) -> bytes:
     """Build a minimal WAV file from raw PCM s16le mono bytes."""

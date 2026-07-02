@@ -36,7 +36,6 @@ if str(_PROJECT_ROOT) not in sys.path:
 from config.deploy_config import (
     ALIYUN_PASSWORD,
     ALIYUN_SERVER,
-    DEPLOY_KEY_PATH,
     expanded_key_path,
 )
 

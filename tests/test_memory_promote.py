@@ -1,6 +1,5 @@
 """Tests for session_memory/store_promote.py — typed memory and promotion."""
 
-from session_memory.store import save_memory
 from session_memory.store_promote import save_typed_memory, query_by_type, auto_promote_candidates
 
 
