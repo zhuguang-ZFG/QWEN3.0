@@ -2,6 +2,33 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 H1+H2 批次完成（F401 安全门工具化 + 唤醒词 WebSocket 会话抽离 + 端到端集成测试）
+
+- **范围**：H2 把 G1b 四型态 lesson learned 永久固化为 pre-commit 安全门；H1 以 TDD 方式补 wakeword HTTP/WebSocket 端到端集成测试，再抽离 `_handle_websocket` 事件循环。
+
+### H2 — 测试侧 F401 安全门工具化（pre-commit 集成）
+
+- **新建 `scripts/testside_f401_safety_gate.py`**：当 staged 文件含 `tests/*.py` 时触发 `python -m pytest --collect-only -q`，收集失败按 ERROR 行解析失败文件、跳过 `--baseline-skip-from` 已知旧债后打印四型态提示 + 收集尾 30 行 triage + 返回非零阻止提交。设计要点：(1) tests/ 子树前缀判定；(2) `--baseline-skip-from` 渐进清理豁免旧债；(3) main() 经 `_build_argparser()` + `_print_blocked()` 拆分每函数 ≤50 行通过 check_code_size；(4) 集成入 `run_pre_commit_check.py` 的 `run_testside_f401_safety_gate()`，置于其他快速检查后、`--full` pytest 前。
+- **10 个 gate 单测验证纯 helper 行为**（path 过滤 / ERROR 行解析 / baseline 过滤 / main 早早返回路径），不调用 pytest 本身避免依赖。
+
+### H1 — wakeword WebSocket 会话抽离 + 端到端集成测试（TDD）
+
+- **新建 `tests/test_wakeword_session_integration.py`**（193 行）+ 辅助 `tests/_wakeword_integration_support.py`（191 行，`_` 前缀导致 pytest 不收集）：用 importlib + sys.modules alias package（`wakeword_runtime_pkg.{runtime,bridge}` 合成包）让 hyphen 路径 `data/digital-human/...` 可导入；fixture 在 ephemeral port 0 起 TestRuntimeHttpServer + seed `wakeword_runtime/{config.json,models/keywords.txt}`；测试驱动 raw socket + http.client + 手写 RFC6455 client handshake 跑 `/health`、握手 Ready 帧、`set_wakeword_config` round-trip、restart、unknown type fallback 五例，全端到端验证 codec + bridge_request_handler + wakeword_config + websocket_session 真实运行时路径。`pytest.importorskip("pypinyin")` 保证外部依赖缺失环境跳过集测不挂 suite。
+- **REFACTOR：新建 `data/digital-human/wakeword_runtime/runtime/websocket_session.py`**（99 行纯函数模块）`serve_websocket_session(reader, writer, bridge, test_root, schedule_restart, send_text_writer, receive_reader_writer)`——把 `_handle_websocket` 内嵌 46 行事件循环体（post-handshake 的 client_queue.add → greeting → 双向轮询 → finally remove）抽出。http_server 仅保留 HTTP/WebSocket 握手（强 self.send_response/headers 依赖），178→164 行。沿用 frame_codec/bridge_request_handler 模式：`handle_bridge_request` 与 `build_wakeword_config_message` 顶层属性链入由 http_server.py import 后 setattr 真实实现，测试可 setattr fake。**集成测试在抽离前后全过**，证明运行时行为不变；了结 G2「`_handle_websocket` 仍需先补端到端测试」遗留。
+- **新增 ponytail 标记条目**：`wakeword_runtime/runtime/websocket_session.py:3`——不依赖 self/Handler instance，仅覆盖唤醒词 runtime 实际两段交互（greeting + 双向消息循环），未做 per-message 流控/重试扩展；升级路径为换用 wsproto 的 frame iterator + asyncio queue 实现更复杂流控。
+- **环境寄存**：`pypinyin==0.55.0` 已 `pip install` 入 `.venv310`（与 `wakeword_runtime/requirements.txt` pin 一致）使 H1 集成测试可正常运行；后续 CI 环境（京东云 / 别处执行器）需同步 pin pypinyin 才能让 H1 集测可跑。
+
+### 门禁（全绿）
+
+- `ruff check .` clean；`ruff format --check` clean（仅格式化本批新增/修改的 H1/H2 6 文件）。
+- `scripts/check_code_size.py` PASS（0 文件 >300、0 函数 >50；H2 脚本 main() 73 行经 `_build_argparser` + `_print_blocked` 拆分后通过；新集测首版 383 行超 300 经拆 `tests/_wakeword_integration_support.py` 191 行后双双 ≤300）。
+- `pyright` 本批 4 个相关文件 0 errors 0 warnings。
+- 全量 `pytest --tb=short -q` → **4425 passed / 3 skipped / 2 deselected / 0 failed**（较 G1+G2 的 4410 +15 = H2 +10 gate 单测 + H1 +5 集测）。
+
+### 下次
+
+VPS 部署 + 公网冒烟 + commit/push（本批已落 progress）→ 仅暂存里程碑文件 → conventional commit。后可选：测试侧剩余 ~143 mixed/keep-infa F401 逐文件人工核对（现可借助本批 H2 安全门验证）；wakeword `http_server._build_server` 整体嵌套类抽离（仍需更端到端 WebSocket 集测锚点 + swing 测试）；F401 全局门禁启用（待测试侧 mixed 清理完）。
+
 ## 2026-07-03 深度瘦身 G1+G2 批次完成（台账销账 + 测试侧 F401 精选 + 唤醒词桥接请求抽离）
 
 - **范围**：G1 台账销账 + 测试侧 F401 精选（仅 domain dead imports，KEEP port-target infra，沿用 F1 双向别名安全审计教训但因属于 test/side 这边再加一层 sys.path 根基名前缀校验）；G2 TDD 抽离 wakeword `_handle_bridge_request` 到 `bridge_request_handler.py`。

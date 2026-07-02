@@ -139,6 +139,29 @@ def run_code_size_check(paths: Sequence[str], *, python: str = sys.executable) -
         )
 
 
+def run_testside_f401_safety_gate(paths: Sequence[str], *, python: str = sys.executable) -> int:
+    """Run the test-side F401 safety gate (pytest --collect-only).
+
+    Triggered when any staged file is under ``tests/``. Detects the (a)/(b)/(c)/(d)
+    failure types documented in findings.md G1b lesson learned that ruff static
+    analysis cannot see when `ruff --fix` removes test imports used by pytest
+    string-matched fixture injection / module aliasing.
+
+    Returns non-zero to BLOCK the commit when collection yields ERRORs.
+    """
+    test_paths = [p for p in paths if p.startswith("tests/") and p.endswith((".py", ".pyi"))]
+    if not test_paths:
+        # No test-side staged files → no safety gate needed.
+        return 0
+    # argparse action="append" expects one --paths per file, not --paths a b c.
+    args_for_gate: list[str] = []
+    for p in test_paths:
+        args_for_gate.extend(["--paths", p])
+    command = [python, "scripts/testside_f401_safety_gate.py", *args_for_gate]
+    print("+ " + " ".join(command), flush=True)
+    return subprocess.run(command, cwd=ROOT, check=False).returncode
+
+
 def full_pytest_command(*, python: str = sys.executable, basetemp: str | None = None) -> list[str]:
     """Build the documented CI-style pytest command."""
     command = [python, "-m", "pytest", "-p", "no:cacheprovider", "tests", "-q"]
@@ -199,6 +222,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         returncode = run_command(command)
         if returncode != 0:
             return returncode
+
+    # The test-side F401 safety gate runs pytest --collect-only (takes ~3min),
+    # so it's only invoked under --full to avoid slowing every local commit.
+    if args.full:
+        gate_rc = run_testside_f401_safety_gate(changed_paths)
+        if gate_rc != 0:
+            return gate_rc
     return 0
 
 

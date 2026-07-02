@@ -9,6 +9,7 @@ from typing import Callable
 
 from ..bridge import WakewordEventBridge
 from . import bridge_request_handler
+from . import websocket_session
 from .frame_codec import compute_accept, read_exact, receive_message, send_frame, send_text
 from .wakeword_config import build_wakeword_config_message, save_wakeword_config
 
@@ -16,6 +17,9 @@ from .wakeword_config import build_wakeword_config_message, save_wakeword_config
 # （保留兼容性：bridge_request_handler.save_wakeword_config 默认为 None，
 # 运行时通过 _resolve_save() 走延迟相对导入兜底；这里显式注入可省一次延迟导入）。
 bridge_request_handler.save_wakeword_config = save_wakeword_config
+# 同样链入 websocket_session 用的两个回调，让它走真实实现而非延迟相对导入。
+websocket_session.handle_bridge_request = bridge_request_handler.handle_bridge_request
+websocket_session.build_wakeword_config_message = build_wakeword_config_message
 
 
 class TestRuntimeHttpServer:
@@ -115,40 +119,24 @@ class TestRuntimeHttpServer:
 
                 accept_value = compute_accept(websocket_key)
 
-                client_queue = bridge.add_client()
                 self.send_response(HTTPStatus.SWITCHING_PROTOCOLS)
                 self.send_header("Upgrade", "websocket")
                 self.send_header("Connection", "Upgrade")
                 self.send_header("Sec-WebSocket-Accept", accept_value)
                 self.end_headers()
 
-                try:
-                    self.connection.settimeout(0.2)
-                    self._send_websocket_text(bridge.build_ready_message())
-                    self._send_websocket_text(self._build_wakeword_config_message(bridge))
-
-                    while bridge.is_running:
-                        inbound_message = self._receive_websocket_message()
-                        if inbound_message is not None:
-                            response_message = self._handle_bridge_request(bridge, inbound_message)
-                            if response_message:
-                                self._send_websocket_text(response_message)
-
-                        try:
-                            message = client_queue.get(timeout=0.2)
-                            if message == "__bridge_closed__":
-                                break
-                            self._send_websocket_text(message)
-                        except queue.Empty:
-                            if not bridge.is_running:
-                                break
-                            continue
-                except socket.timeout:
-                    pass
-                except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-                    pass
-                finally:
-                    bridge.remove_client(client_queue)
+                # 把帧编解码 + 桥接事件循环 + 幽灵桥客户端管理委托给纯函数模块。
+                # http_server.py 这里只保留 HTTP/WebSocket 握手（强 self 依赖），
+                # 之后的会话期 socket 已不再依赖 SimpleHTTPRequestHandler API。
+                websocket_session.serve_websocket_session(
+                    reader=self.connection,
+                    writer=self.wfile,
+                    bridge=bridge,
+                    test_root=test_root,
+                    schedule_restart=schedule_restart,
+                    send_text_writer=send_text,
+                    receive_reader_writer=receive_message,
+                )
 
             def _build_wakeword_config_message(self, bridge: WakewordEventBridge) -> str:
                 return build_wakeword_config_message(bridge, test_root)
