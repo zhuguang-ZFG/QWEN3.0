@@ -1,5 +1,14 @@
 # LiMa Findings
 
+## 2026-07-02 小程序 UI 审查配合核实纠偏：三项指控两项伪判一项属实（BACKLOG-P2-1）
+
+- **背景**：瘦身审查报告提三项 UI 指控（create 937 行嵌套两层 tab、3 首页重叠、settings 744 行杂物），并附「chat 与 create 重叠」隐含问题。逐项核实源码后真伪分明。
+- **属实项**：`create.vue` 937 行嵌套两层 tab — **属实**。`mode`(ai-draw/image-draw) + `aiSubMode`(text/image) 两层切换，且两路走不同 API（`generateImage` 云生图 vs `v2SubmitTask` 设备任务），合成 937 行（script 254 + template 240 + style 430，style 占 46% 大头）。应拆两页，已拆（M2）。
+- **部分属实项**：3 首页重叠 — **部分属实**。mine 统计卡（设备/在线/任务 3 数字）与 index 智能体页 Hero 设备卡的数据重复；mine「设备管理」「设备配网」两菜单跳底栏已有的 tab（多 1 步冗余跳转）。已去重（M3：mine 删统计+删冗余菜单，转纯账号页；index Hero「设备 X 台」改为「在线 X/总 Y 台」吸收在线统计）。
+- **伪判项 1：settings 744 行「杂物」** — **不属实**。逐区块核实，全部是设置页职责（网络设置/缓存管理/隐私权限/通知订阅/注销账号/关于我们/语言设置），无一非设置功能混入。臃肿源于 7 个 section 的标题+卡片壳样式重复未抽组件，加 `useConfigStore`/`systemInfo` 2 处死代码。已抽 `SectionCard` 组件去样式重复 + 删死代码（M1），744→655 行。
+- **伪判项 2：chat 与 create 重叠** — **不属实**。chat 用 `chatCompletionStream`(文本流式 LLM)、create 用 `generateImage`+`v2SubmitTask`(生图/设备任务)，零交叉导入，入口逻辑不重复。不动。
+- **教训**：审查「行数/嵌套层数」计数可信，但「杂物/重叠」定性不可信。改 UI 前必须逐区块核实每个功能点的归属（是否真在该页职责范围、是否真与它页重复），不能按行数或审查措辞盲改。
+
 ## 2026-07-02 agent 配置树合并纠偏：审查「8 棵树 9300 行重复」多数被 gitignore 不入库（BACKLOG-P1-4）
 
 - **背景**：瘦身审查报告称「~9300 行 agent 指令跨 8 棵配置树（`.agent`/`.claude`/`.kimi-code`/`.cursor`/`.joycode`/`andrej-karpathy-skills`/根），Ponytail 规则重复 6 处」，建议合并。

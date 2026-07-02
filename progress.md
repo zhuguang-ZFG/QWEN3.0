@@ -1,5 +1,20 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-02 小程序 UI 深度重构（BACKLOG-P2-1）
+
+- **背景**：瘦身审查报告三项 UI 指控，逐项核实后真伪分明，按「真问题改、伪指控纠偏」执行。
+- **核实纠偏**：
+  - `create.vue` 937 行嵌套两层 tab（`mode`+`aiSubMode`，两路不同 API）— **属实**。
+  - 3 首页重叠（mine 统计与 index Hero 重复；mine 跳底栏已有 tab）— **部分属实**。
+  - `settings` 744 行「杂物」— **不属实**（全是设置页职责，仅样式重复+2 死代码）。
+  - `chat` 与 `create` 重叠 — **不属实**（零交叉导入）。
+- **M1 抽公共组件 + settings 死代码**（子模块 `a6e1e60`）：新增 `section-card.vue`（≤30行）、`stat-pill.vue`（≤80行）；settings 7 个重复 section 壳 → `<SectionCard>` 组件调用，744→655 行；删 `useConfigStore`/`systemInfo` 2 处死代码。视觉零变化。
+- **M2 create.vue 拆两页**（子模块 `9110792`）：新增 `useCreateShared.ts` composable 抽共享逻辑；`ai-draw.vue`(322行) 承载云生图、`image-draw.vue`(264行) 承载设备绘图；抽 `create-shared.scss` 共享样式；删 create.vue 937 行；index.goDraw/goImageDraw 改跳新页去 `?mode=`；pages.json 路由更新。
+- **M3 mine 转纯账号页 + index 去重**（子模块 `c78edc1`）：mine 418→305 行，删 3 统计卡 + 设备数据获取、删「设备管理/配网」冗余菜单（底栏已直达）、新增「声纹」入口；index Hero sub-item「设备 X 台」改为「在线 X/总 Y 台」吸收在线统计；i18n zh/en 加 `mine.voiceprint/voiceprintDesc`。
+- **M4 验收 + 文档**：`npx vue-tsc --noEmit` 0 errors（每里程碑均验证）；`npx uni build --platform mp-weixin` 编译通过（exit 0，dist/build/mp-weixin 生成）；设计文档见 `docs/superpowers/specs/2026-07-02-miniprogram-ui-refactor-design.md`（中文）。
+- **未做**：微信上传/审核（BACKLOG-P0-4 单独触发）；真机端到端（BACKLOG-P0-3，需硬件）。
+- **教训**：审查「行数/嵌套层数」可信，但「杂物/重叠」严重度判定不可信。改 UI 前必须逐区块核实职责归属，不能按行数盲改。
+
 ## 2026-07-02 retired 文件删除 + 冗余 Cursor rules 清理（BACKLOG-P1-3/P1-4）
 
 - **BACKLOG-P1-3 删除退役代码**：`docs/archive/retired/` 下 7 个 Gitee 镜像/双推退役文件（`gitee_mirror*.py`、`gitee_mirror_urls.py`、`push_dual_remotes.{ps1,py,sh}`、`test_gitee_mirror.py`）。全仓 grep 确认**零引用**，Gitee 镜像已彻底退役，git 历史可恢复。代码文件不应残留在 `docs/` 树，直接 `git rm` 删除（含 `__pycache__` 物理清理）。
