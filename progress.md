@@ -2,6 +2,45 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 F1+F2 批次完成（死导入清理 + 唤醒词 WebSocket 帧编解码抽离）
+
+- **计划基线**：接续 E6-E9，本批经两轮实施修正后闭环。范围：F1 生产路径 F401 死导入清理（低风险）+ F2 wakeword WebSocket 帧编解码抽离（中风险，TDD: RED→GREEN→REFACTOR）。F3（test_jdcloud_push_probe.py 贴顶下移）经尝试后回退，跳过。
+
+### F1 — 生产路径 F401 死导入清理（精选策略，非盲跑 `--fix`）
+
+- **基线**：`ruff --select F401` 全库 341 处，其中测试侧 ~253 处多为 patch-target 导入（曾导致 85 个收集错误），本批**只动生产侧**，不动测试侧。
+- **两轮安全审计**：
+  - **第一轮（仅扫测试 `from <module> import <name>` 与点号 `<module>.<name>`）**：识别出 9 个 re-export 必须保留：`http_stream.StreamIdentitySanitizer`、`health_state.{save_health_state,load_health_state,save_on_change}`、`budget_manager.reset_token_usage`、`device_gateway.path_pipeline.MAX_PATH_POINTS`、`device_voice.providers.asr_composite.{AliyunASRProvider,DashScopeASRProvider,WhisperASRProvider}`。
+  - 针对上述 9 项标注 `# noqa: F401` 后，对每个生产文件单独 `ruff check --fix <file>`，清除真正无用导入。
+  - **首跑 pytest 出现 12 failed / 22 errors**：根因是 `server_bootstrap.MODEL_ID`（被 `server.py` 生产侧 `from server_bootstrap import MODEL_ID` 重新引用）与 `routes/device_gateway.{_reset_for_tests,start_device_gateway_runtime,stop_device_gateway_runtime}`、`routes/admin_api.{BACKENDS,add_backend,has_backend,remove_backend,_is_safe_backend_url,test_backend_sync}`、`health_state.flush_pending_save`、`xiaozhi_drawing.text_to_path.list_handwriting_fonts` 这些 re-export 是经**模块别名访问**（`from routes import device_gateway as dg` → `dg._reset_for_tests()`；`import routes.admin_api as _a` → `_a.BACKENDS`；`import health_state as hs` → `hs.flush_pending_save()`；`from xiaozhi_drawing import text_to_path` → `text_to_path.list_handwriting_fonts()`），第一轮纯文本扫描漏检。
+  - **第二轮（别名感知 AST 审计，覆盖未改文件）**：补出 9 个 must-keep re-export，全部用 `# noqa: F401` 标注恢复后门禁转绿。
+- **教训**：模块别名（`import M.sub as A` / `from pkg import sub` 类）会把 re-export 的使用方从源模块的全名变成短别名，纯文本 `<module>.<name>` 正则无法覆盖。安全审计必须包含「别名绑定 → 别名点号访问」双向解析，且要扫全仓未改文件，不只 `tests/`。单测「import 一次 = 可被 patch」不是高危机型态；「re-export 被下游模块别名访问」才是更高危型态且更隐蔽。
+- **统计**：本批共清理生产路径 F401 ~97 处（91 真死导入删除 + 17 用 noqa 保留的 re-export）。剩余 F401 仅测试侧 ~253 处，留待后续单独批逐文件人工核对。
+- **近顶文件收益**：`routes/device_gateway.py` 291 → 283 行（远离 300 上限）；`routes/admin_api.py` 167 → 175 行（恢复 re-export）；`health_state.py` 115 → 119 行；`http_stream.py` 行数微降；`server_bootstrap.py`、`budget_manager.py`、`xiaozhi_drawing/text_to_path.py` 行数稳定。
+
+### F2 — wakeword WebSocket 帧编解码抽离（TDD）
+
+- **目标**：把 `data/digital-human/wakeword_runtime/runtime/http_server.py` 中 210 行嵌套类 `_build_server.TestRuntimeHandler` 内嵌的手写 WebSocket 帧函数抽出为纯函数模块，便于单测。
+- **RED 先行**：新建 `tests/test_wakeword_frame_codec.py`（importlib.spec_from_file_location 加载，避开 `digital-human` 连字符路径不可直接 import 的问题），16 个测试覆盖 `compute_accept`（RFC6455 范例向量）、`read_exact`（短 EOF 抛 ConnectionResetError / 0 长度）、`receive_message`（unmasked/masked 解掩码 / ping 自动 pong / close 抛 ConnectionAbortedError / pong 忽略 / 未知 opcode 忽略 / 126 扩展长度 / 空载荷）/ `send_frame` + `send_text`（<126 / 126 / 127 三种长度编码）/ round-trip。RED 阶段：FileNotFoundError（frame_codec.py 不存在）。
+- **GREEN：新建 `data/digital-human/wakeword_runtime/runtime/frame_codec.py`（118 行，纯 stdlib，无 relative import，避免 hyphen 路径）**，实现 `compute_accept`/`read_exact`/`receive_message`/`send_frame`/`send_text` 五个纯函数，新增模块头 ponytail 注释说明上限（仅 RFC6455 最小帧子集，无分片/RSV）与升级路径（换用 wsproto）。16 个测试全过。
+- **REFACTOR：`http_server.py` 274 → 212 行**：导入改为 `from .frame_codec import compute_accept, read_exact, receive_message, send_frame, send_text`，移除 `base64`/`hashlib` 顶层导入；嵌套 `_handle_websocket` 内的 accept 计算改为 `compute_accept(websocket_key)`；嵌套类内 4 个方法 (`_receive_websocket_message`/`_read_exact`/`_send_websocket_text`/`_send_websocket_frame`) 委托 frame_codec。**闭包依赖 `test_root`/`event_bridge`/`schedule_restart` 与 `_handle_websocket` 事件循环主逻辑不动**，仅 codec 抽离；WebSocket 帧读写仍由 `self.connection`（reader）/`self.wfile`（writer）传递，运行时行为不变。
+- **新增 ponytail 标记条目**：`wakeword_runtime/runtime/frame_codec.py:3` —— pypinyin 上限已于 E8 记录；本 codec 上限「仅实现 RFC6455 最小帧子集（无分片/无 RSV）」于模块头记录，升级路径为换用 wsproto。
+
+### F3 — test_jdcloud_push_probe.py 贴顶下移（跳过）
+
+- 300 行贴顶的测试文件，尝试提取 `monkeypatch_post` shared-fixture 把 3 处 `monkeypatch.setattr(push_probe_results, "_post_payload", ...)` 合并：实测反而增至 305 行（fixture 定义净增 11 行，仅每个 test 删 3 行），未达瘦身目标。**回退**保持 300 行现状（贴顶但未破门禁，符合 ≤300 限额）。下次若需进一步降行，可用更紧凑的 fixture + 函数尾部断言合并，或重排测试以合并相似前缀，但收益微小，优先级低。
+
+### 门禁
+
+- `ruff check .` clean；`ruff format --check` clean（仅格式化本批改动的 4 个 routes 文件，不触碰既有 10 个 pre-existing format-dirty 文件如 `device_gateway/device_draw_config.py`、`provider_inventory/mcp_registries.py`、`xiaozhi_drawing` 三件套等，避免污染 diff）。
+- `scripts/check_code_size.py` PASS（0 个 >300 行文件、0 个 >50 行函数）。
+- `pyright` 对本批改动的 8 个生产文件 0 errors（仅 `routes/device_gateway.py` 2 个与 F1 无关的既有 JSONResponse.get 误警，与 HEAD 相同）。
+- 全量 `python -m pytest --tb=short -q` → **4404 passed / 3 skipped / 2 deselected / 0 failed**（较 E6-E9 的 4388 +16，与 F2 新增 16 个 frame codec 测试一致）。
+
+### 下次
+
+VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEBT，本条已落 progress）→ 仅暂存里程碑文件 → conventional commit → push `origin/main`（Gitee 已退役，不双推）。后可选提案：测试侧 F401 ~253 处单独批逐文件人工核对、PONYTAIL-DEBT `check_code_size.py` 残留 12 个 51-54 行函数 consolidate、wakeword http_server 内 `_build_server` 嵌套类整体抽离（需先补端到端集成测试）。
+
 ## 2026-07-02 深度清理：未跟踪源文件入库 + .gitignore 补全 + 临时文件清理
 
 ### 执行内容

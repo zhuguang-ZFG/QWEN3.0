@@ -12,18 +12,13 @@ from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
 from device_intelligence.shadow import shadow_store
-from device_gateway.auth import token_configured, validate_device_token
+from device_gateway.auth import validate_device_token
 from device_gateway.protocol import (
-    PROTOCOL_VERSION,
     ProtocolError,
     ack_frame,
     error_frame,
     validate_uplink,
 )
-from device_gateway.sessions import registry
-from device_gateway.store import configure_task_store_from_env, task_store_health
-from device_ledger.store import configure_ledger_store_from_env, ledger_store_health
-from device_memory.store import configure_memory_store_from_env, memory_store_health
 from device_artifacts.store import artifact_store
 from device_gateway.tasks import DeviceTaskRequest, create_and_route_task
 from device_gateway.health import build_device_gateway_health
@@ -35,9 +30,9 @@ from routes.device_gateway_dispatch import (
 )
 from routes.device_gateway_helpers import (
     _record_device_task_evidence,
-    _reset_for_tests,
-    start_device_gateway_runtime,
-    stop_device_gateway_runtime,
+    _reset_for_tests,  # noqa: F401  re-export used by test fixture via dg._reset_for_tests()
+    start_device_gateway_runtime,  # noqa: F401  re-export used via dg.start_device_gateway_runtime()
+    stop_device_gateway_runtime,  # noqa: F401  re-export used via dg.stop_device_gateway_runtime()
 )
 from routes.device_gateway_ws import handle_device_ws
 from routes.json_body import read_json_object

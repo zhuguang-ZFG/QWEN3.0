@@ -10,17 +10,12 @@ import httpx
 from backends_registry import BACKENDS
 from http_errors import BackendError
 from http_stream_core import (
-    _clean_chunk,
-    _flush_initial_buffer,
-    _flush_sanitizer_tail,
-    _handle_empty_or_unflushed_buffer,
-    _maybe_raise_backend_error,
     _record_stream_error,
     _record_stream_success,
     _stream_parse_lines,
     _stream_parse_lines_async,
 )
-from response_cleaner import StreamIdentitySanitizer
+from response_cleaner import StreamIdentitySanitizer  # noqa: F401  re-export imported by tests
 from http_sync import _enforce_https_scheme
 
 

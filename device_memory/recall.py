@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from device_memory.schemas import MemoryEntry, MemoryType
+from device_memory.schemas import MemoryType
 
 _log = logging.getLogger(__name__)
 from device_memory.quality_gates import is_hard_safety, is_safe_for_recall

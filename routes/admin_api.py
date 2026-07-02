@@ -9,7 +9,9 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from routes.facade import (
+# Re-exports used by ``routes.admin_backends_routes`` via ``import routes.admin_api as _a``
+# lazy access (see comment in that module). Kept with noqa to allow patch.setattr on the alias.
+from routes.facade import (  # noqa: F401
     BACKENDS,
     add_backend,
     has_backend,
@@ -22,7 +24,7 @@ from device_gateway.family_approval_store import (
     revoke_family,
 )
 from routes.admin_auth import verify_admin, verify_csrf
-from routes.admin_backends import (
+from routes.admin_backends import (  # noqa: F401
     _is_safe_backend_url,
     describe_backend,
     test_backend_sync,
@@ -86,7 +88,9 @@ async def admin_logs():
 
 
 from routes.admin_backends_routes import router as backends_router
+
 router.include_router(backends_router)
+
 
 @router.get("/api/model-status", dependencies=[Depends(verify_admin)])
 async def admin_model_status():

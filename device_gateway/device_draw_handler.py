@@ -13,11 +13,8 @@ from xiaozhi_drawing.preset_shapes import get_preset_svg
 from device_gateway.device_profile.registry import get_device_profile
 from device_gateway.draw_prompt_enhancer import (
     enhance_drawing_prompt,
-    get_draw_conversation_context,
-    get_failed_draw_prompts,
     record_device_draw_turn,
     record_failed_draw_prompt,
-    resolve_device_type,
     screen_drawing_request,
 )
 from device_gateway.path_pipeline import precheck_draw_motion_path

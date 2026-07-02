@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sqlite3
 
-from session_memory.store_db import get_db_path, _get_conn
+from session_memory.store_db import _get_conn
 
 _log = logging.getLogger(__name__)
 

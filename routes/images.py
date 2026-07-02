@@ -8,7 +8,6 @@ Final fallback: Pollinations.ai URL builder (zero-config).
 from __future__ import annotations
 
 import logging
-import os
 import re
 import time
 from collections.abc import Awaitable, Callable

@@ -8,7 +8,6 @@ from typing import Any
 from fastapi import WebSocket
 
 from device_gateway.protocol import ack_frame, build_voiceprint_sample_ack
-from device_gateway.sessions import registry
 from device_intelligence.shadow import shadow_store
 
 _log = logging.getLogger(__name__)

@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from device_ledger.events import EVENT_TYPES
 from device_ledger.store import ledger_store
 
 

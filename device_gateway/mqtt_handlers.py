@@ -58,7 +58,6 @@ def _forward_motion_event(device_id: str, message: dict) -> None:
 def _handle_mqtt_message(client, topic: str, payload: dict, _json, _time_mod) -> None:
     """Process a single MQTT uplink message (hello / heartbeat / motion_event)."""
     from device_gateway.auth import validate_device_token
-    from device_gateway.mqtt_client import _mqtt_devices
     from device_gateway.protocol import ProtocolError, validate_uplink
 
     parts = topic.split("/")

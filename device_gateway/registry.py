@@ -107,7 +107,6 @@ async def restart_device(device_id: str) -> dict[str, Any]:
     # Fallback: enqueue a restart task for next connect.
     try:
         from device_gateway.tasks import enqueue_pending_task
-        from device_gateway.store import task_store
 
         task = {
             "task_id": f"restart-{device_id}-{now()}",

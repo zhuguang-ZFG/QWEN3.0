@@ -12,7 +12,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from routes.admin_auth import verify_admin, verify_csrf
-from routes.admin_backends import describe_backend, test_backend_sync
+from routes.admin_backends import describe_backend
 from routes.admin_state import stats_context
 
 router = APIRouter()

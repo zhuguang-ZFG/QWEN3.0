@@ -12,8 +12,6 @@ from fastapi.responses import JSONResponse
 from starlette.websockets import WebSocketState
 
 import app_status_ws_ticket
-from device_gateway.sessions import registry
-from device_gateway.tasks import active_tasks_for_device
 from device_logic.access import require_device_access
 from device_logic.auth import authorize
 from device_logic.db import connect

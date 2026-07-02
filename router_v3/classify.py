@@ -1,7 +1,5 @@
 """Request classification for LiMa Router V3."""
 
-from backends_constants import _IDE_FINGERPRINTS
-
 from router_v3.ide import detect_ide_by_fingerprints
 
 

@@ -13,29 +13,20 @@ from device_gateway.protocol import (
     attestation_failed_frame,
     attestation_warning_frame,
     hello_ack,
-    voice_status_frame,
 )
 from device_gateway.protocol_negotiator import ProtocolNegotiator
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.task_events import record_device_connected
 from device_gateway.tasks import (
-    ack_processing_task,
     active_tasks_for_device,
     create_task_from_transcript_async,
     enqueue_pending_task,
-    mark_task_dispatched,
-    remove_pending_task,
 )
 from device_intelligence.shadow import shadow_store
-from device_ledger.events import new_event
-from device_ledger.store import ledger_store
-from device_workflow.orchestrator import workflow
-from device_workflow.state import TaskState, WorkflowTransitionError
 from routes.device_gateway_dispatch import (
     dispatch_task_to_session,
     drain_pending_tasks,
     extract_ws_token,
-    record_motion_event_observability,
     send_ws_error,
     ticket_device_id,
 )

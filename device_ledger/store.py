@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Protocol
 
-from device_gateway.store_utils import DeviceStoreBase, StoreConfigMixin, StoreManager
+from device_gateway.store_utils import StoreConfigMixin, StoreManager
 
 from .events import DuplicateLedgerEvent, LedgerEvent
 

@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from device_logic.access import require_device_access
 from device_logic.auth import authorize
 from device_logic.db import connect
-from device_logic.http import err, ok
+from device_logic.http import ok
 from routes import device_app_usage
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-stats"])

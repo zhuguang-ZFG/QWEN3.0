@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
 
 from device_gateway.device_profile.models import DeviceProfile
 from device_gateway.device_profile.registry import get_device_profile

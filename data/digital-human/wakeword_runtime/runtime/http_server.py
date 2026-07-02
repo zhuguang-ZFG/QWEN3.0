@@ -1,5 +1,3 @@
-import base64
-import hashlib
 import json
 import queue
 import socket
@@ -10,6 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from ..bridge import WakewordEventBridge
+from .frame_codec import compute_accept, read_exact, receive_message, send_frame, send_text
 from .wakeword_config import build_wakeword_config_message, save_wakeword_config
 
 
@@ -108,8 +107,7 @@ class TestRuntimeHttpServer:
                     self.send_error(HTTPStatus.BAD_REQUEST, "missing Sec-WebSocket-Key")
                     return
 
-                accept_source = websocket_key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-                accept_value = base64.b64encode(hashlib.sha1(accept_source.encode("utf-8")).digest()).decode("ascii")
+                accept_value = compute_accept(websocket_key)
 
                 client_queue = bridge.add_client()
                 self.send_response(HTTPStatus.SWITCHING_PROTOCOLS)
@@ -198,76 +196,16 @@ class TestRuntimeHttpServer:
                 return save_wakeword_config(payload, test_root)
 
             def _receive_websocket_message(self) -> str | None:
-                try:
-                    header = self._read_exact(2)
-                except socket.timeout:
-                    return None
-
-                if not header:
-                    return None
-
-                first_byte, second_byte = header[0], header[1]
-                opcode = first_byte & 0x0F
-                masked = (second_byte & 0x80) != 0
-                payload_length = second_byte & 0x7F
-
-                if payload_length == 126:
-                    payload_length = int.from_bytes(self._read_exact(2), "big")
-                elif payload_length == 127:
-                    payload_length = int.from_bytes(self._read_exact(8), "big")
-
-                masking_key = self._read_exact(4) if masked else b""
-                payload = self._read_exact(payload_length) if payload_length else b""
-
-                if masked and payload:
-                    payload = bytes(byte ^ masking_key[index % 4] for index, byte in enumerate(payload))
-
-                if opcode == 0x8:
-                    raise ConnectionAbortedError("websocket closed by client")
-
-                if opcode == 0x9:
-                    self._send_websocket_frame(0xA, payload)
-                    return None
-
-                if opcode == 0xA:
-                    return None
-
-                if opcode != 0x1:
-                    return None
-
-                return payload.decode("utf-8")
+                return receive_message(self.connection, self.wfile)
 
             def _read_exact(self, size: int) -> bytes:
-                if size <= 0:
-                    return b""
-
-                chunks = bytearray()
-                while len(chunks) < size:
-                    chunk = self.connection.recv(size - len(chunks))
-                    if not chunk:
-                        raise ConnectionResetError("websocket connection closed")
-                    chunks.extend(chunk)
-                return bytes(chunks)
+                return read_exact(self.connection, size)
 
             def _send_websocket_text(self, message: str) -> None:
-                self._send_websocket_frame(0x1, message.encode("utf-8"))
+                send_text(self.wfile, message)
 
             def _send_websocket_frame(self, opcode: int, payload: bytes) -> None:
-                header = bytearray()
-                header.append(0x80 | opcode)
-
-                payload_length = len(payload)
-                if payload_length < 126:
-                    header.append(payload_length)
-                elif payload_length < 65536:
-                    header.append(126)
-                    header.extend(payload_length.to_bytes(2, "big"))
-                else:
-                    header.append(127)
-                    header.extend(payload_length.to_bytes(8, "big"))
-
-                self.wfile.write(bytes(header) + payload)
-                self.wfile.flush()
+                send_frame(self.wfile, opcode, payload)
 
         server = ThreadingHTTPServer((self.host, self.port), TestRuntimeHandler)
         server.daemon_threads = True

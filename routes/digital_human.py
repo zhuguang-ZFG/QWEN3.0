@@ -13,7 +13,7 @@ import logging
 import re
 from pathlib import Path
 
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from config.env import digital_human_config
 from fastapi.responses import FileResponse, HTMLResponse

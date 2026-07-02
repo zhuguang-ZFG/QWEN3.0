@@ -5,14 +5,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi.responses import JSONResponse
 
 from device_gateway.tasks import record_motion_event, task_snapshot
 from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState, WorkflowTransitionError
 from routes.device_app_task_payloads import require_device_owner
 from device_logic.gateway import dispatch_or_enqueue
-from device_logic.access import is_owner
 from device_logic.db import connect
 from device_logic.http import err, json_params, now, str_field
 

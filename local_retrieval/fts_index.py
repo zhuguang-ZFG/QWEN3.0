@@ -9,9 +9,8 @@ from __future__ import annotations
 import os
 import sqlite3
 import time
-from typing import Any
 
-from local_retrieval.chunking import SimpleTextChunker, TextChunk
+from local_retrieval.chunking import SimpleTextChunker
 from local_retrieval.index import LocalRetrievalIndex, RetrievalHit
 from local_retrieval.manifest import (
     ChunkRecord,

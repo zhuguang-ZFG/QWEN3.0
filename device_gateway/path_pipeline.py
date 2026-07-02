@@ -23,7 +23,7 @@ import html
 
 from device_gateway.path_data import (
     FONT_CHAR_W,
-    MAX_PATH_POINTS,
+    MAX_PATH_POINTS,  # noqa: F401  re-export imported by tests
     _FONT_GLYPHS,
     clamp_path,
 )

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
 
 import key_pool
 from backend_utils import infer_key_pool_provider

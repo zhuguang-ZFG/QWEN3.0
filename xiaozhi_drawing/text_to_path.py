@@ -11,7 +11,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-from xiaozhi_drawing.font_registry import list_handwriting_fonts, resolve_font_path
+from xiaozhi_drawing.font_registry import (  # noqa: F401  re-export used by tests via text_to_path.list_handwriting_fonts
+    list_handwriting_fonts,
+    resolve_font_path,
+)
 
 logger = logging.getLogger(__name__)
 

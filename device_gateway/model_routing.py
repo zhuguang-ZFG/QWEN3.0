@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from device_gateway.device_profile import DeviceProfile
 from device_gateway.profiles import ResolvedProfile, enrich_route_policy_with_profile, resolve_profile
 
 from .task_recorder import record_route_evidence

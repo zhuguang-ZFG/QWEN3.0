@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from device_gateway.sessions import DeviceSession
-from device_gateway.tasks import ack_processing_task
 from device_ledger.events import new_event
 from device_ledger.store import ledger_store
 from device_workflow.orchestrator import workflow

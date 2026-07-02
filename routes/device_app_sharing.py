@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
-from device_logic.access import check_share_permission, is_owner
+from device_logic.access import is_owner
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, expires_at, new_id, now, read_body, str_field

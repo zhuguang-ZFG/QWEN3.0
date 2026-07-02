@@ -19,9 +19,9 @@ from collections.abc import AsyncIterator
 
 from device_voice.asr import ASRProvider
 from device_voice.exceptions import ConfigurationError, VoiceProviderError
-from device_voice.providers.asr_aliyun import AliyunASRProvider
-from device_voice.providers.asr_dashscope import DashScopeASRProvider
-from device_voice.providers.asr_whisper import WhisperASRProvider
+from device_voice.providers.asr_aliyun import AliyunASRProvider  # noqa: F401  patch target for tests
+from device_voice.providers.asr_dashscope import DashScopeASRProvider  # noqa: F401  patch target
+from device_voice.providers.asr_whisper import WhisperASRProvider  # noqa: F401  patch target
 
 _log = logging.getLogger(__name__)
 

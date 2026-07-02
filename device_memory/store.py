@@ -6,7 +6,7 @@ import json
 import time
 from typing import Any, List, Optional, Protocol
 
-from device_gateway.store_utils import DeviceStoreBase, StoreConfigMixin, StoreManager
+from device_gateway.store_utils import StoreConfigMixin, StoreManager
 from device_memory.schemas import MemoryEntry, MemoryType
 
 

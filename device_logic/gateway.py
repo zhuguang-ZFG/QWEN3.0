@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from fastapi.responses import JSONResponse
 
-from device_gateway.model_routing import resolve_device_route_policy
 from device_gateway.path_validator import validate_capability_params
 from device_gateway.store import task_store
 from device_intelligence.schemas import TaskPlan

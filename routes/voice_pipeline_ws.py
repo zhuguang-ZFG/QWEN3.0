@@ -28,7 +28,6 @@ from access_guard import (
 )
 import ws_ticket
 from device_voice.dialogue import process_text_utterance, process_voice_utterance
-from device_voice.exceptions import VoiceProviderError
 from device_voice.vad import VADState, create_vad_provider
 
 _log = logging.getLogger(__name__)

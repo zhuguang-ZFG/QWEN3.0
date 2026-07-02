@@ -22,7 +22,6 @@ from device_gateway.tasks import (
 from device_ws_ticket import consume as consume_device_ws_ticket
 
 # Re-exported from task_lifecycle to keep consumers on a single import path.
-from device_gateway.task_lifecycle import record_motion_event_observability
 from observability import prometheus_metrics
 
 _log = logging.getLogger(__name__)
@@ -191,6 +190,3 @@ async def publish_task_available_safe(device_id: str, task_id: str = "") -> None
             task_id,
             type(exc).__name__,
         )
-
-
-from device_gateway.task_lifecycle import record_motion_event_observability

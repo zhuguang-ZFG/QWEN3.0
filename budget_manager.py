@@ -17,7 +17,7 @@ from budget_cost_class import get_cost_class, should_track_cost
 from budget_token_telemetry import (
     get_token_usage,
     record_token_usage,
-    reset_token_usage,
+    reset_token_usage,  # noqa: F401  re-export used by tests via budget_manager.reset_token_usage
 )
 
 _log = logging.getLogger(__name__)

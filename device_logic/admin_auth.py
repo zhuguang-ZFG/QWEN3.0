@@ -14,7 +14,7 @@ from typing import Any
 
 from config import settings
 from device_logic.db import connect
-from device_logic.http import err, new_id, now
+from device_logic.http import new_id
 
 try:
     import jwt

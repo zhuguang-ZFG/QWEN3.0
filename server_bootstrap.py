@@ -9,7 +9,7 @@ import time
 import urllib.request
 
 from config.backend_config import CLOUDFLARE
-from lima_constants import MODEL_ID
+from lima_constants import MODEL_ID  # noqa: F401  re-export used by server.py
 
 MODEL_CREATED = int(time.time())
 MAX_BODY_SIZE = 32 * 1024 * 1024  # 32MB — Claude Code sends large contexts

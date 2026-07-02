@@ -9,7 +9,6 @@ import os
 import re
 import threading
 from dataclasses import dataclass
-from typing import Any
 
 _log = logging.getLogger(__name__)
 

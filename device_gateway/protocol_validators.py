@@ -6,7 +6,6 @@ from typing import Any
 
 from device_gateway.protocol import (
     ProtocolError,
-    PROTOCOL_VERSION,
     _non_empty_string,
     _optional_request_id,
     ensure_object,

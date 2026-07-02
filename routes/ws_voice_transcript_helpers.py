@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from device_gateway.protocol import ProtocolError, audio_reply_frame, voice_status_frame
 from device_gateway.sessions import DeviceSession

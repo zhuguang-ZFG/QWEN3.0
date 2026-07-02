@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
 from device_gateway.health_score import DeviceHealthScore

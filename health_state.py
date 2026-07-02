@@ -9,17 +9,12 @@ Modules:
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import time
-from collections import deque
 
-from config.db_config import HEALTH_STATE_DB as _DB_PATH
 
 from health_models import (
     BASE_COOLDOWN,
-    LATENCY_WINDOW_SIZE,
     CooldownState,
     QualityState,
     _cooldown_states,
@@ -27,17 +22,16 @@ from health_models import (
     _lock,
     _quality_penalties,
     _quality_states,
-    calc_cooldown,
 )
 
 logger = logging.getLogger(__name__)
 
 # Re-export persistence functions so existing callers keep working.
 from health_state_persistence import (
-    flush_pending_save,
-    load_health_state,
-    save_health_state,
-    save_on_change,
+    flush_pending_save,  # noqa: F401  re-export imported by tests (hs.flush_pending_save)
+    load_health_state,  # noqa: F401  re-export imported by tests
+    save_health_state,  # noqa: F401  re-export imported by tests
+    save_on_change,  # noqa: F401  re-export imported by tests
 )
 
 

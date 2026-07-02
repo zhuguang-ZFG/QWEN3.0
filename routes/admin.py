@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Cookie, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from config.settings import SECURITY
 from routes.admin_api import router as admin_api_router

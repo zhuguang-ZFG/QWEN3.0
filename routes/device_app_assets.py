@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from device_gateway.task_creation import project_to_motion_task_async
 from device_workflow.state import TaskState
-from device_logic.access import require_device_access, require_device_control
+from device_logic.access import require_device_control
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, ok, read_body, str_field
