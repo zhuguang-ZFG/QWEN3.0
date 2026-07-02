@@ -112,29 +112,8 @@ def tool_dependency_analysis(symbol_name: str) -> str:
 
     results = []
     for nid, name, qname, fpath in node:
-        deps = conn.execute(
-            "SELECT target, kind FROM edges WHERE source=? AND (kind='calls' OR kind='imports')", (nid,)
-        ).fetchall()
-
-        dep_list = []
-        for tgt, kind in deps[:30]:
-            tgt_row = conn.execute("SELECT name, file_path FROM nodes WHERE id=?", (tgt,)).fetchone()
-            if tgt_row:
-                dep_list.append(
-                    {
-                        "name": tgt_row[0],
-                        "file": tgt_row[1],
-                        "relation": kind,
-                    }
-                )
-
-        results.append(
-            {
-                "symbol": name,
-                "file": fpath,
-                "dependencies": dep_list,
-            }
-        )
+        dep_list = _fetch_symbol_dependencies(conn, nid)
+        results.append({"symbol": name, "file": fpath, "dependencies": dep_list})
 
     conn.close()
     return json.dumps({"query": symbol_name, "results": results}, ensure_ascii=False, indent=2)
@@ -148,9 +127,7 @@ def tool_search_symbols(query: str, limit: int = 15) -> str:
     """
     conn = db()
 
-    # FTS5 搜索
-    words = query.replace(" ", " AND ")
-    fts_query = f'"{words}"' if len(query.split()) == 1 else f"({words})"
+    fts_query = _build_fts_query(query)
 
     rows = conn.execute(
         "SELECT n.id, n.name, n.qualified_name, n.file_path, n.kind, n.docstring "
@@ -175,18 +152,7 @@ def tool_search_symbols(query: str, limit: int = 15) -> str:
     else:
         method = "fts5"
 
-    results = []
-    for nid, name, qname, fpath, kind, doc in rows:
-        results.append(
-            {
-                "symbol": name,
-                "qualified": qname,
-                "file": fpath,
-                "kind": kind,
-                "doc": (doc or "")[:100],
-            }
-        )
-
+    results = _format_symbol_rows(rows)
     conn.close()
     return json.dumps({"method": method, "query": query, "results": results}, ensure_ascii=False, indent=2)
 
@@ -209,25 +175,7 @@ def tool_module_structure(module_path: str) -> str:
 
     # 模块间依赖
     file_list = [f[0] for f in files]
-    dependencies = defaultdict(int)
-
-    for f1_id in file_list[:20]:
-        f1_node = conn.execute("SELECT id FROM nodes WHERE file_path=? AND kind='file' LIMIT 1", (f1_id,)).fetchone()
-        if not f1_node:
-            continue
-        for f2_id in file_list[:20]:
-            if f1_id == f2_id:
-                continue
-            f2_node = conn.execute(
-                "SELECT id FROM nodes WHERE file_path=? AND kind='file' LIMIT 1", (f2_id,)
-            ).fetchone()
-            if not f2_node:
-                continue
-            cnt = conn.execute(
-                "SELECT COUNT(*) FROM edges WHERE source=? AND target=?", (f1_node[0], f2_node[0])
-            ).fetchone()[0]
-            if cnt > 0:
-                dependencies[f"{os.path.basename(f1_id)} → {os.path.basename(f2_id)}"] = cnt
+    dependencies = _compute_module_dependencies(conn, file_list)
 
     conn.close()
 
@@ -246,6 +194,62 @@ def _suggest_symbols(conn, partial: str) -> list:
     """建议相似符号名"""
     rows = conn.execute("SELECT name, file_path FROM nodes WHERE name LIKE ? LIMIT 10", (f"%{partial}%",)).fetchall()
     return [{"name": r[0], "file": r[1]} for r in rows]
+
+
+def _fetch_symbol_dependencies(conn, nid) -> list[dict]:
+    """获取符号的依赖列表（调用/导入边），限 30 条。"""
+    deps = conn.execute(
+        "SELECT target, kind FROM edges WHERE source=? AND (kind='calls' OR kind='imports')", (nid,)
+    ).fetchall()
+    dep_list: list[dict] = []
+    for tgt, kind in deps[:30]:
+        tgt_row = conn.execute("SELECT name, file_path FROM nodes WHERE id=?", (tgt,)).fetchone()
+        if tgt_row:
+            dep_list.append({"name": tgt_row[0], "file": tgt_row[1], "relation": kind})
+    return dep_list
+
+
+def _build_fts_query(query: str) -> str:
+    """将用户查询转换为 FTS5 MATCH 表达式。"""
+    words = query.replace(" ", " AND ")
+    return f'"{words}"' if len(query.split()) == 1 else f"({words})"
+
+
+def _format_symbol_rows(rows) -> list[dict]:
+    """将 nodes 行格式化为搜索结果字典列表。"""
+    return [
+        {
+            "symbol": name,
+            "qualified": qname,
+            "file": fpath,
+            "kind": kind,
+            "doc": (doc or "")[:100],
+        }
+        for nid, name, qname, fpath, kind, doc in rows
+    ]
+
+
+def _compute_module_dependencies(conn, file_list: list[str]) -> dict:
+    """计算模块内文件间依赖计数，返回 {“f1 → f2”: count}。"""
+    dependencies: dict[str, int] = defaultdict(int)
+    for f1_id in file_list[:20]:
+        f1_node = conn.execute("SELECT id FROM nodes WHERE file_path=? AND kind='file' LIMIT 1", (f1_id,)).fetchone()
+        if not f1_node:
+            continue
+        for f2_id in file_list[:20]:
+            if f1_id == f2_id:
+                continue
+            f2_node = conn.execute(
+                "SELECT id FROM nodes WHERE file_path=? AND kind='file' LIMIT 1", (f2_id,)
+            ).fetchone()
+            if not f2_node:
+                continue
+            cnt = conn.execute(
+                "SELECT COUNT(*) FROM edges WHERE source=? AND target=?", (f1_node[0], f2_node[0])
+            ).fetchone()[0]
+            if cnt > 0:
+                dependencies[f"{os.path.basename(f1_id)} → {os.path.basename(f2_id)}"] = cnt
+    return dependencies
 
 
 # ========== 工具注册表 ==========
