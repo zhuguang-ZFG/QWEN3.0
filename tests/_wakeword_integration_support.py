@@ -158,20 +158,32 @@ def ws_recv_text(sock: socket.socket) -> str | None:
     return payload.decode("utf-8")
 
 
-def ws_handshake(host: str, port: int, path: str = "/wakeword-ws") -> socket.socket:
-    """Perform RFC6455 client handshake and return the upgraded socket."""
+def ws_handshake(
+    host: str,
+    port: int,
+    path: str = "/wakeword-ws",
+    include_version: bool = True,
+) -> socket.socket:
+    """Perform RFC6455 client handshake and return the upgraded socket.
+
+    ``include_version=False`` omits the ``Sec-WebSocket-Version: 13`` header,
+    letting callers characterize the server's tolerance for its absence
+    (current http_server contract: NOT validated → upgrade still succeeds).
+    """
     key = base64.b64encode(os.urandom(16)).decode("ascii")
     accept = base64.b64encode(
         hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode("ascii")).digest()
     ).decode("ascii")
     sock = socket.create_connection((host, port), timeout=5.0)
+    version_line = "Sec-WebSocket-Version: 13\r\n" if include_version else ""
     req = (
         f"GET {path} HTTP/1.1\r\n"
         f"Host: {host}:{port}\r\n"
         "Upgrade: websocket\r\n"
         "Connection: Upgrade\r\n"
         f"Sec-WebSocket-Key: {key}\r\n"
-        "Sec-WebSocket-Version: 13\r\n\r\n"
+        f"{version_line}"
+        "\r\n"
     )
     sock.sendall(req.encode("ascii"))
     buf = bytearray()

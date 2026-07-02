@@ -2,6 +2,30 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 J 批次完成（唤醒词握手层抽离到 accept_websocket_upgrade 纯函数）
+
+- **范围**：继 I 批次把 `TestRuntimeHandler` 闭包类抽到模块级 `build_handler_class` 工厂后，本批进一步把 `_handle_websocket` 内紧耦合到 `SimpleHTTPRequestHandler` 实例 API 的 RFC6455 握手协议（Upgrade 头校验 → send_error / Sec-WebSocket-Key 校验 → compute_accept → 101 + 3 响应头 → end_headers）抽到模块级 `accept_websocket_upgrade(handler) -> tuple[Any, Any] | None` 纯函数接缝。`_handle_websocket` 收缩到 ~9 行「调 accept → None 则 return → 委托 websocket_session」三行接缝。同时兑现 I 批次 plan 遗留：补一个 Sec-WebSocket-Version 不校验的契约特征化测试。
+
+### J-1 RED — Sec-WebSocket-Version 不校验契约特征化测试
+
+- **`tests/_wakeword_integration_support.py::ws_handshake` 加 `include_version: bool = True` 参数**：默认 True 行为不变（既有 5 个 happy-path 调用方不动）；False 时跳过 `Sec-WebSocket-Version: 13` 头的发送，模拟「无 Version 头」的客户端。
+- **`tests/test_wakeword_session_integration.py` 234→249 行**：追加 `test_websocket_handshake_succeeds_without_sec_websocket_version`——用 `ws_handshake(port, include_version=False)` 触发握手，断言仍能 101 + drain greeting 等于 bridge_connected ready frame。把潜在改进点「未来引入 Version 13 严校验」显式化为契约——若将来收紧校验，此测试会变红，由改 PR 显式决策契约方向。全套 8 passed（7 原有 + 1 新增）。
+
+### J-2 REFACTOR — 模块级 accept_websocket_upgrade 抽离
+
+- **`data/digital-human/wakeword_runtime/runtime/http_server.py` 170→187 行**：新增模块级 `accept_websocket_upgrade(handler)`——duck-typed 用 handler 的 `.headers.get / .send_response / .send_header / .end_headers / .send_error / .connection / .wfile` 七个实例 API；`_handle_websocket` 原本 >20 行的握手协议就压缩到 ~9 行接缝（`upgraded = accept_websocket_upgrade(self)` → `None 则 return` → `reader, writer = upgraded` → `serve_websocket_session(...)`）。顶部 ponytail docstring 更新为「握手协议已抽到模块级 accept_websocket_upgrade 接缝函数；升级路径 = wsproto 上握手层一并下沉」。
+
+### 门禁结果
+
+| 门 | 结果 |
+|---|---|
+| focused pytest（3 文件） | 30 passed（I 批 29 + J 新增 1）|
+| full pytest | 4428 passed, 3 skipped, 2 deselected, 1 warning（恰好 +1 = 4427→4428）|
+| ruff check | All checks passed |
+| ruff format | 3 files already formatted |
+| check_code_size.py | PASS |
+| pyright（修改文件） | 0 errors |
+
 ## 2026-07-03 深度瘦身 I 批次完成（唤醒词 http_server 类工厂抽离 + 握手错误路径特征化测试）
 
 - **范围**：继 F2/G2/H1 唤醒词 runtime 渐进抽离后，本批做两件事 —— (1) RED 特征化：补 `_handle_websocket` 握手 BAD_REQUEST 两分支（无 Upgrade、无 Sec-WebSocket-Key）的端到端覆盖，前者此前完全未测；(2) REFACTOR：删除 F2/G2/H1 抽离后残留的 7 个死 wrapper 方法（`_build_wakeword_config_message`/`_handle_bridge_request`/`_save_wakeword_config`/`_receive_websocket_message`/`_read_exact`/`_send_websocket_text`/`_send_websocket_frame`，全仓零调用方，已 Explore `self._<method>` 审计确认），并把 `_build_server` 内嵌 `TestRuntimeHandler` 闭包类抽出到模块级工厂函数 `build_handler_class(test_root, event_bridge, schedule_restart) -> type[SimpleHTTPRequestHandler]`，与三个姐妹模块（`frame_codec` / `bridge_request_handler` / `websocket_session`）「模块级纯函数」风格对齐；`_build_server` 收缩为调用工厂构造 handler 类。顺带精简 `frame_codec` from-import 为只引入实际使用的 `compute_accept / receive_message / send_text`（删了 `read_exact / send_frame` 两个仅由已删 wrapper 引用的名字）。

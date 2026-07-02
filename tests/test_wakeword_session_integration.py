@@ -232,3 +232,22 @@ def test_websocket_handshake_rejected_without_sec_websocket_key(runtime_server) 
         assert "missing Sec-WebSocket-Key" in body
     finally:
         conn.close()
+
+
+def test_websocket_handshake_succeeds_without_sec_websocket_version(runtime_server) -> None:
+    """Characterize the server's current contract: Sec-WebSocket-Version is NOT validated.
+
+    A real browser always sends Sec-WebSocket-Version: 13, but the production code
+    never checks it. Lock that behavior so a future tightening (validate Version)
+    becomes a deliberate, reviewer-visible contract change rather than a silent
+    regression. Uses ws_handshake(include_version=False) to omit the header.
+    """
+    _, port = runtime_server
+    sock = ws_handshake("127.0.0.1", port, include_version=False)
+    try:
+        # The bridge_connected greeting must still arrive — the upgrade succeeded.
+        ready = ws_recv_text(sock)
+        assert ready is not None
+        assert "bridge_connected" in ready
+    finally:
+        sock.close()

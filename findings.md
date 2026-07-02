@@ -3,6 +3,12 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 深度瘦身 J 批次结项：唤醒词握手层抽离到 accept_websocket_upgrade 纯函数
+
+- **J 批次 accept_websocket_upgrade 接缝设计结论**：抽离不另起新模块（Ponytail YAGNI：能不拆就不拆）——握手协议就放在 http_server.py 顶部模块层级，与 `build_handler_class` 工厂并列；接受 duck-typed `handler` 参数注入 `.headers.get / .send_response / .send_header / .end_headers / .send_error / .connection / .wfile` 七个实例 API，返回 `(reader, writer)` 或 `None`（已 send_error 后）。**关键设计点**：_RDONLY 直引 `SimpleHTTPRequestHandler` 类型注解就够（不需要顶层属性 + lazy `_resolve_*()` 兜底链模式，因为 handler 是从类外部注入而不是要在 importlib 无父包环境里相对导入），相比 `websocket_session / bridge_request_handler` 的 callback 注入模式更简单。`_handle_websocket` 从 >20 行收紧到 ~9 行接缝（`upgraded = accept_websocket_upgrade(self)` → `None 则 return` → `reader, writer = upgraded` → `serve_websocket_session(...)`）。
+- **J 批次契约特征化测试 lesson learned**：I 批次 plan 在候选清单里提到「Sec-WebSocket-Version 不校验」是潜在改进点，本批 TDD RED-first 把它显式化为特征化测试 `test_websocket_handshake_succeeds_without_sec_websocket_version`——用 `ws_handshake(include_version=False)` 触发握手，断言还能 101 + 收到 bridge_connected ready frame。**教训**：纯结构重构步骤里若有「未来可改进 X」的契约盲点，先把现状显式写成特征化测试，是把隐性契约转成显式契约、避免将来悄悄收紧校验时 silent break 浏览器/客户端的最廉价手段。本测试若将来引入 Version 13 严校验会变红，由改 PR 显式决策契约方向，而非静默回归。
+- **J 批次进度同 I 批次一致**：full 4427 → 4428 passed（恰好 +1）、check_code_size PASS、ruff + pyright 全过、http_server.py 170 → 187 行（结构 +17 行新函数 / -9 行 _handle_websocket，净 +1 行，远低于 300 限）。
+
 ## 2026-07-03 深度瘦身 I 批次结项：唤醒词 http_server 类工厂抽离 + 握手错误路径特征化测试
 
 - **I 批次死代码诊断结论**：F2 抽离 `frame_codec`、G2 抽离 `bridge_request_handler`、H1 抽离 `websocket_session` 后，`data/digital-human/wakeword_runtime/runtime/http_server.py` 的 `_build_server` 内嵌 `TestRuntimeHandler` 类残留 **7 个一行 delegator wrapper 方法**（`_build_wakeword_config_message` / `_handle_bridge_request` / `_save_wakeword_config` / `_receive_websocket_message` / `_read_exact` / `_send_websocket_text` / `_send_websocket_frame`），方法体都只是 `return <已抽离模块的顶层函数>(...)`，但因 `_handle_websocket` 改成直接调 `websocket_session.serve_websocket_session(...) / bridge_request_handler.handle_bridge_request(...)` 等顶层函数，**全仓 ripgrep `self._<method>` 0 命中**，确认是纯死代码。**教训**：每一次「抽离纯函数模块 + 把调用点委托到顶层」的重构收尾必须 grep `self._<method>` 审计遗留 delegator，否则会静默残留无消费者的一行包装直至下次人工巡察——本批 7 个 wrapper 累积已 ~6 月（跨越 F2/G2/H1 三批，每批抽离后未立即清 delegator，全部留到本批一次性销账）。**改进**：未来抽离批次步骤应固化「5 解析调用点 → 6 调用点委托到顶层函数 → 7 grep `self._<原wrapper>` 删 delegator」三步成链条。
