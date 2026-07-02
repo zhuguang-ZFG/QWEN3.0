@@ -2,6 +2,31 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 I 批次完成（唤醒词 http_server 类工厂抽离 + 握手错误路径特征化测试）
+
+- **范围**：继 F2/G2/H1 唤醒词 runtime 渐进抽离后，本批做两件事 —— (1) RED 特征化：补 `_handle_websocket` 握手 BAD_REQUEST 两分支（无 Upgrade、无 Sec-WebSocket-Key）的端到端覆盖，前者此前完全未测；(2) REFACTOR：删除 F2/G2/H1 抽离后残留的 7 个死 wrapper 方法（`_build_wakeword_config_message`/`_handle_bridge_request`/`_save_wakeword_config`/`_receive_websocket_message`/`_read_exact`/`_send_websocket_text`/`_send_websocket_frame`，全仓零调用方，已 Explore `self._<method>` 审计确认），并把 `_build_server` 内嵌 `TestRuntimeHandler` 闭包类抽出到模块级工厂函数 `build_handler_class(test_root, event_bridge, schedule_restart) -> type[SimpleHTTPRequestHandler]`，与三个姐妹模块（`frame_codec` / `bridge_request_handler` / `websocket_session`）「模块级纯函数」风格对齐；`_build_server` 收缩为调用工厂构造 handler 类。顺带精简 `frame_codec` from-import 为只引入实际使用的 `compute_accept / receive_message / send_text`（删了 `read_exact / send_frame` 两个仅由已删 wrapper 引用的名字）。
+
+### I-1 RED — 握手错误路径特征化测试
+
+- **`tests/test_wakeword_session_integration.py` 196→234 行**：追加 2 个 http.client 直发测试 —— `test_websocket_handshake_rejected_without_upgrade_header`（裸 GET /wakeword-ws 无 Upgrade → 400 + `expected websocket upgrade`）、`test_websocket_handshake_rejected_without_sec_websocket_key`（有 Upgrade 无 Sec-WebSocket-Key → 400 + `missing Sec-WebSocket-Key`）。特征化测试（非新功能），立即全过锁定现有契约，为下一步类工厂抽离提供回归网。
+- 全套 7 passed（5 原有 + 2 新增）。
+
+### I-2 REFACTOR — 死代码清除 + 类工厂抽离
+
+- **`data/digital-human/wakeword_runtime/runtime/http_server.py` 164→170 行**：结构维度看是「微增」（类工厂从闭包抽到模块级多了 `return TestRuntimeHandler` 与签名 6 行），但删除了 18 行死 wrapper（7 个 delegator 方法），净行为代码 ↓。模块顶部新增 ponytail docstring：上限 = 握手仍强依赖 SimpleHTTPRequestHandler 实例 API；升级路径 = 换 wsproto/starlette 后握手层一并下沉。
+- **行为不变性证据**：focused 29 passed（7 集测 + 16 frame_codec + 6 bridge_request），full `4427 passed, 3 skipped, 2 deselected`（恰好 +2 = 4425→4427），check_code_size PASS（无 >300 文件、无 >50 函数），ruff check + format 全过，pyright 待跑。
+
+### 门禁结果
+
+| 门 | 结果 |
+|---|---|
+| focused pytest（3 文件） | 29 passed |
+| full pytest | 4427 passed, 3 skipped, 2 deselected, 1 warning（仅 PytestCollectionWarning 不影响）|
+| ruff check | All checks passed |
+| ruff format | 2 files already formatted |
+| check_code_size.py | PASS |
+| 公网冒烟（待部署后跑） | 见下文 |
+
 ## 2026-07-03 深度瘦身 H1+H2 批次完成（F401 安全门工具化 + 唤醒词 WebSocket 会话抽离 + 端到端集成测试）
 
 - **范围**：H2 把 G1b 四型态 lesson learned 永久固化为 pre-commit 安全门；H1 以 TDD 方式补 wakeword HTTP/WebSocket 端到端集成测试，再抽离 `_handle_websocket` 事件循环。

@@ -194,3 +194,41 @@ def test_unknown_type_returns_failure_result(runtime_server) -> None:
         assert "unsupported message type: frobnicate" in parsed["error"]
     finally:
         sock.close()
+
+
+# --- WebSocket handshake error-path characterization tests ---
+#
+# These are RED-before-REFACTOR *characterization* tests for the BAD_REQUEST
+# branches of _handle_websocket (missing Upgrade header, missing
+# Sec-WebSocket-Key). They lock the current HTTP 400 contract before the
+# imminent http_server class-factory extraction so the refactor can't silently
+# regress the error path. They use plain http.client — no WebSocket upgrade —
+# to assert the server refuses before any session work runs.
+
+
+def test_websocket_handshake_rejected_without_upgrade_header(runtime_server) -> None:
+    """A GET /wakeword-ws with no Upgrade header returns HTTP 400."""
+    _, port = runtime_server
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5.0)
+    try:
+        conn.request("GET", "/wakeword-ws")
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8", errors="replace")
+        assert resp.status == 400
+        assert "expected websocket upgrade" in body
+    finally:
+        conn.close()
+
+
+def test_websocket_handshake_rejected_without_sec_websocket_key(runtime_server) -> None:
+    """Upgrade: websocket but no Sec-WebSocket-Key returns HTTP 400."""
+    _, port = runtime_server
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5.0)
+    try:
+        conn.request("GET", "/wakeword-ws", headers={"Upgrade": "websocket", "Connection": "Upgrade"})
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8", errors="replace")
+        assert resp.status == 400
+        assert "missing Sec-WebSocket-Key" in body
+    finally:
+        conn.close()
