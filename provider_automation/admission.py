@@ -81,6 +81,54 @@ def merge_patch_plans(*plans: PatchPlan) -> PatchPlan:
     return merged
 
 
+def _format_additions_section(plan: PatchPlan) -> list[str]:
+    """Render the "Proposed Additions" markdown section (or empty if none)."""
+    if not plan.additions:
+        return []
+    lines = ["## Proposed Additions", "| Model | Reason |", "|-------|--------|"]
+    for model, reason in plan.additions:
+        caps = ", ".join(model.capabilities) if model.capabilities else "none"
+        lines.append(
+            f"| {redact_provider_text(model.model_id)} | "
+            f"{redact_provider_text(reason)} (caps={redact_provider_text(caps)}) |"
+        )
+    lines.append("")
+    return lines
+
+
+def _format_cool_disable_section(plan: PatchPlan) -> list[str]:
+    """Render the "Cool/Disable" markdown section (or empty if none)."""
+    if not plan.cool_disable:
+        return []
+    lines = ["## Cool/Disable (removed from catalog, was in routing)"]
+    for model in plan.cool_disable:
+        lines.append(f"  - {redact_provider_text(model.model_id)}: disable in backends.py, do NOT delete")
+    lines.append("")
+    return lines
+
+
+def _format_removals_section(plan: PatchPlan) -> list[str]:
+    """Render the "Removals" markdown section (or empty if none)."""
+    if not plan.removals:
+        return []
+    lines = ["## Removals (not in routing)"]
+    for model in plan.removals:
+        lines.append(f"  - {redact_provider_text(model.model_id)}")
+    lines.append("")
+    return lines
+
+
+def _format_watchlist_section(plan: PatchPlan) -> list[str]:
+    """Render the "Watchlist" markdown section (or empty if none)."""
+    if not plan.watchlist:
+        return []
+    lines = ["## Watchlist (needs evidence)"]
+    for model, reason in plan.watchlist:
+        lines.append(f"  ? {redact_provider_text(model.model_id)}: {redact_provider_text(reason)}")
+    lines.append("")
+    return lines
+
+
 def format_patch_plan(plan: PatchPlan) -> str:
     """Format a patch plan as safe markdown for human review."""
     lines = [
@@ -94,35 +142,10 @@ def format_patch_plan(plan: PatchPlan) -> str:
         lines.append("No changes proposed.")
         return "\n".join(lines)
 
-    if plan.additions:
-        lines.append("## Proposed Additions")
-        lines.append("| Model | Reason |")
-        lines.append("|-------|--------|")
-        for model, reason in plan.additions:
-            caps = ", ".join(model.capabilities) if model.capabilities else "none"
-            lines.append(
-                f"| {redact_provider_text(model.model_id)} | "
-                f"{redact_provider_text(reason)} (caps={redact_provider_text(caps)}) |"
-            )
-        lines.append("")
-
-    if plan.cool_disable:
-        lines.append("## Cool/Disable (removed from catalog, was in routing)")
-        for model in plan.cool_disable:
-            lines.append(f"  - {redact_provider_text(model.model_id)}: disable in backends.py, do NOT delete")
-        lines.append("")
-
-    if plan.removals:
-        lines.append("## Removals (not in routing)")
-        for model in plan.removals:
-            lines.append(f"  - {redact_provider_text(model.model_id)}")
-        lines.append("")
-
-    if plan.watchlist:
-        lines.append("## Watchlist (needs evidence)")
-        for model, reason in plan.watchlist:
-            lines.append(f"  ? {redact_provider_text(model.model_id)}: {redact_provider_text(reason)}")
-        lines.append("")
+    lines.extend(_format_additions_section(plan))
+    lines.extend(_format_cool_disable_section(plan))
+    lines.extend(_format_removals_section(plan))
+    lines.extend(_format_watchlist_section(plan))
 
     lines.append("## Actions Required")
     lines.append("1. Human reviewer: check each proposed addition against probe evidence")

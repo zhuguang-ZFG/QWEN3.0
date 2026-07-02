@@ -118,6 +118,47 @@ async def _receive_with_idle_timeout(websocket: WebSocket, authenticated: bool):
         return None, True
 
 
+async def _process_one_inbound_frame(
+    websocket: WebSocket,
+    data: dict,
+    device_id: str | None,
+    session: DeviceSession | None,
+    authenticated: bool,
+) -> tuple[str | None, DeviceSession | None, bool, bool]:
+    """Handle a single inbound WS frame. Returns (device_id, session, authenticated, keep_open)."""
+    if data.get("type") == "websocket.disconnect":
+        return device_id, session, authenticated, False
+    if "bytes" in data:
+        if authenticated and device_id:
+            await _feed_audio_to_pipeline(websocket, device_id, data["bytes"])
+        return device_id, session, authenticated, True
+    if "text" not in data:
+        return device_id, session, authenticated, True
+    try:
+        raw = json.loads(data["text"])
+    except JSONDecodeError:
+        await send_ws_error(
+            websocket,
+            ProtocolError("E_INVALID_JSON", "text frame must contain a JSON object", None),
+        )
+        return device_id, session, authenticated, True
+    device_id, session, authenticated, keep_open = await _handle_text_frame(
+        websocket, raw, device_id, session, authenticated
+    )
+    return device_id, session, authenticated, keep_open
+
+
+def _teardown_ws_session(websocket: WebSocket, device_id: str | None, session: DeviceSession | None) -> str | None:
+    """Finalize bookkeeping for a closing websocket connection; returns device_id (for offline push)."""
+    if session is not None:
+        requeue_session_outstanding(session)
+    if device_id:
+        _cleanup_audio_registry(device_id)
+        registry.unregister(device_id, websocket)
+        record_device_disconnected(device_id)
+    return device_id
+
+
 async def handle_device_ws(websocket: WebSocket) -> None:
     await websocket.accept()
     device_id: str | None = None
@@ -133,41 +174,19 @@ async def handle_device_ws(websocket: WebSocket) -> None:
                     ProtocolError("E_IDLE_TIMEOUT", "connection idle too long", None),
                 )
                 break
-
             if data is None:
                 break
-
-            if data.get("type") == "websocket.disconnect":
-                break
-
-            if "bytes" in data:
-                # Binary frame → raw PCM audio chunk
-                if authenticated and device_id:
-                    await _feed_audio_to_pipeline(websocket, device_id, data["bytes"])
-            elif "text" in data:
-                try:
-                    raw = json.loads(data["text"])
-                except JSONDecodeError:
-                    await send_ws_error(
-                        websocket,
-                        ProtocolError("E_INVALID_JSON", "text frame must contain a JSON object", None),
-                    )
-                    continue
-                device_id, session, authenticated, keep_open = await _handle_text_frame(
-                    websocket, raw, device_id, session, authenticated
-                )
-                if not keep_open:
-                    return
+            device_id, session, authenticated, keep_open = await _process_one_inbound_frame(
+                websocket, data, device_id, session, authenticated
+            )
+            if not keep_open:
+                return
     except WebSocketDisconnect:
         _log.debug("device websocket disconnected device=%s", device_id or "unknown")
     finally:
-        if session is not None:
-            requeue_session_outstanding(session)
-        if device_id:
-            _cleanup_audio_registry(device_id)
-            registry.unregister(device_id, websocket)
-            record_device_disconnected(device_id)
-            await _try_dispatch_offline_notification(device_id)
+        closed_id = _teardown_ws_session(websocket, device_id, session)
+        if closed_id:
+            await _try_dispatch_offline_notification(closed_id)
 
 
 async def _try_dispatch_offline_notification(device_id: str) -> None:

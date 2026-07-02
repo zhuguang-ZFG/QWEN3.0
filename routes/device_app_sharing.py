@@ -126,53 +126,64 @@ async def revoke_share(device_id: str, request: Request, authorization: str = He
     return share_payload(row)
 
 
+def _accept_share_lookup(conn: Any, share_token: str, account: dict[str, Any]) -> dict[str, Any] | JSONResponse:
+    """Validate share token & expiry; returns share row dict on success, else JSONResponse error."""
+    row = conn.execute(
+        "SELECT * FROM v2_device_share WHERE share_token=? AND status='pending'",
+        (share_token,),
+    ).fetchone()
+    if row is None:
+        return err(404, "share not found or already accepted/revoked", 404)
+    if row["expires_at"] <= now():
+        conn.execute("UPDATE v2_device_share SET status='expired' WHERE id=?", (row["id"],))
+        conn.commit()
+        return err(400, "share token expired", 400)
+    if row["owner_account_id"] == account["id"]:
+        return err(400, "owner cannot accept their own share", 400)
+    return row
+
+
+def _apply_share_accept_binding(conn: Any, row: dict[str, Any], account: dict[str, Any]) -> str:
+    """Insert/refresh device binding for the guest and mark share as accepted; returns device_id."""
+    device_id = row["device_id"]
+    existing = conn.execute(
+        "SELECT id FROM v2_device_binding WHERE device_id=? AND account_id=?",
+        (device_id, account["id"]),
+    ).fetchone()
+    if existing:
+        conn.execute(
+            "UPDATE v2_device_binding SET status='active', bind_mode='shared', unbound_at=NULL WHERE id=?",
+            (existing["id"],),
+        )
+    else:
+        conn.execute(
+            """
+            INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status)
+            VALUES (?, ?, ?, 'shared', 'active')
+            """,
+            (new_id(), device_id, account["id"]),
+        )
+    conn.execute(
+        """
+        UPDATE v2_device_share
+        SET status='accepted', guest_account_id=?, accepted_at=?
+        WHERE id=?
+        """,
+        (account["id"], now(), row["id"]),
+    )
+    return device_id
+
+
 @router.post("/shares/{share_token}/accept")
 async def accept_share(share_token: str, authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
     with connect() as conn:
-        row = conn.execute(
-            "SELECT * FROM v2_device_share WHERE share_token=? AND status='pending'",
-            (share_token,),
-        ).fetchone()
-        if row is None:
-            return err(404, "share not found or already accepted/revoked", 404)
-        if row["expires_at"] <= now():
-            conn.execute(
-                "UPDATE v2_device_share SET status='expired' WHERE id=?",
-                (row["id"],),
-            )
-            conn.commit()
-            return err(400, "share token expired", 400)
-        if row["owner_account_id"] == account["id"]:
-            return err(400, "owner cannot accept their own share", 400)
-        device_id = row["device_id"]
-        existing = conn.execute(
-            "SELECT id FROM v2_device_binding WHERE device_id=? AND account_id=?",
-            (device_id, account["id"]),
-        ).fetchone()
-        if existing:
-            conn.execute(
-                "UPDATE v2_device_binding SET status='active', bind_mode='shared', unbound_at=NULL WHERE id=?",
-                (existing["id"],),
-            )
-        else:
-            conn.execute(
-                """
-                INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status)
-                VALUES (?, ?, ?, 'shared', 'active')
-                """,
-                (new_id(), device_id, account["id"]),
-            )
-        conn.execute(
-            """
-            UPDATE v2_device_share
-            SET status='accepted', guest_account_id=?, accepted_at=?
-            WHERE id=?
-            """,
-            (account["id"], now(), row["id"]),
-        )
+        row = _accept_share_lookup(conn, share_token, account)
+        if isinstance(row, JSONResponse):
+            return row
+        device_id = _apply_share_accept_binding(conn, row, account)
         conn.commit()
         device = conn.execute("SELECT * FROM v2_device WHERE id=?", (device_id,)).fetchone()
         share = conn.execute("SELECT * FROM v2_device_share WHERE id=?", (row["id"],)).fetchone()

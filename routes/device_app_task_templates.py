@@ -120,6 +120,27 @@ async def list_task_templates(
     return ok([_template_payload(row) for row in rows])
 
 
+def _resolve_template_target(body: dict[str, Any], row) -> tuple[str | JSONResponse, str | None]:
+    """Resolve device_id + source from template body; returns (device_id_OR_err, source_or_None)."""
+    device_id = str_field(body, "deviceId", "device_id") or row["device_id"]
+    if not device_id:
+        return err(400, "device_id is required", 400), None
+    source = str_field(body, "source") or "api"
+    if source not in APP_TASK_SOURCES:
+        return err(400, "invalid source", 400), None
+    return device_id, source
+
+
+def _bump_template_use_count(template_id: str) -> None:
+    """Increment a template's use_count and updated_at."""
+    with connect() as conn:
+        conn.execute(
+            "UPDATE v2_task_template SET use_count = use_count + 1, updated_at = ? WHERE id = ?",
+            (now(), template_id),
+        )
+        conn.commit()
+
+
 @router.post("/tasks/templates/{template_id}/execute")
 async def execute_task_template(template_id: str, request: Request, authorization: str = Header(default="")):
     account = authorize(authorization)
@@ -137,13 +158,9 @@ async def execute_task_template(template_id: str, request: Request, authorizatio
     if denied:
         return denied
 
-    device_id = str_field(body, "deviceId", "device_id") or row["device_id"]
-    if not device_id:
-        return err(400, "device_id is required", 400)
-
-    source = str_field(body, "source") or "api"
-    if source not in APP_TASK_SOURCES:
-        return err(400, "invalid source", 400)
+    device_id, source = _resolve_template_target(body, row)
+    if isinstance(device_id, JSONResponse):
+        return device_id
 
     with connect() as conn:
         denied = require_device_control(conn, account, device_id)
@@ -159,13 +176,7 @@ async def execute_task_template(template_id: str, request: Request, authorizatio
 
     dispatch, status = await _dispatch_or_wait(device_id, task, source, params)
     db_row = insert_task_row(device_id, account, task, source, status, body, params)
-
-    with connect() as conn:
-        conn.execute(
-            "UPDATE v2_task_template SET use_count = use_count + 1, updated_at = ? WHERE id = ?",
-            (now(), template_id),
-        )
-        conn.commit()
+    _bump_template_use_count(template_id)
 
     data = task_row_payload(db_row)
     data.update(dispatch)

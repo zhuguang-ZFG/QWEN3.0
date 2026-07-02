@@ -95,46 +95,55 @@ class ProbeRunner:
             return _batch_result(model, results)
 
         if self.config.run_completion_smoke:
-            if self._smoke_fn is None:
-                results.append(_missing_callable_result(model, ProbeLevel.COMPLETION_SMOKE))
-            else:
-                try:
-                    text = self._smoke_fn(model, [{"role": "user", "content": "hi"}], 64)
-                    results.append(probe_completion_smoke(text, model))
-                except Exception as exc:
-                    results.append(_exception_result(model, ProbeLevel.COMPLETION_SMOKE, exc))
-
+            results.append(self._run_completion_smoke(model))
         if self.config.run_stream_smoke:
-            if self._stream_fn is None:
-                results.append(_missing_callable_result(model, ProbeLevel.STREAM_SMOKE))
-            else:
-                try:
-                    chunks = self._stream_fn(model, [{"role": "user", "content": "hi"}], 64)
-                    results.append(probe_stream_smoke(chunks, model))
-                except Exception as exc:
-                    results.append(_exception_result(model, ProbeLevel.STREAM_SMOKE, exc))
-
+            results.append(self._run_stream_smoke(model))
         if self.config.run_coding_fixture:
-            if self._coding_fn is None:
-                results.append(_missing_callable_result(model, ProbeLevel.CODING_FIXTURE))
-            else:
-                try:
-                    passed, total = self._coding_fn(model, [])
-                    results.append(probe_coding_fixture(passed, total, model))
-                except Exception as exc:
-                    results.append(_exception_result(model, ProbeLevel.CODING_FIXTURE, exc))
-
+            results.append(self._run_coding_fixture(model))
         if self.config.run_quality_gate:
-            if self._quality_fn is None:
-                results.append(_missing_callable_result(model, ProbeLevel.QUALITY_GATE))
-            else:
-                try:
-                    score = self._quality_fn(model)
-                    results.append(probe_quality_gate(score, model))
-                except Exception as exc:
-                    results.append(_exception_result(model, ProbeLevel.QUALITY_GATE, exc))
+            results.append(self._run_quality_gate(model))
 
         return _batch_result(model, results)
+
+    def _run_completion_smoke(self, model: ProviderModelEntry) -> ProbeResult:
+        """Run the completion smoke check, guarding against missing or failing callables."""
+        if self._smoke_fn is None:
+            return _missing_callable_result(model, ProbeLevel.COMPLETION_SMOKE)
+        try:
+            text = self._smoke_fn(model, [{"role": "user", "content": "hi"}], 64)
+            return probe_completion_smoke(text, model)
+        except Exception as exc:
+            return _exception_result(model, ProbeLevel.COMPLETION_SMOKE, exc)
+
+    def _run_stream_smoke(self, model: ProviderModelEntry) -> ProbeResult:
+        """Run the streaming smoke check, guarding against missing or failing callables."""
+        if self._stream_fn is None:
+            return _missing_callable_result(model, ProbeLevel.STREAM_SMOKE)
+        try:
+            chunks = self._stream_fn(model, [{"role": "user", "content": "hi"}], 64)
+            return probe_stream_smoke(chunks, model)
+        except Exception as exc:
+            return _exception_result(model, ProbeLevel.STREAM_SMOKE, exc)
+
+    def _run_coding_fixture(self, model: ProviderModelEntry) -> ProbeResult:
+        """Run the coding fixture check, guarding against missing or failing callables."""
+        if self._coding_fn is None:
+            return _missing_callable_result(model, ProbeLevel.CODING_FIXTURE)
+        try:
+            passed, total = self._coding_fn(model, [])
+            return probe_coding_fixture(passed, total, model)
+        except Exception as exc:
+            return _exception_result(model, ProbeLevel.CODING_FIXTURE, exc)
+
+    def _run_quality_gate(self, model: ProviderModelEntry) -> ProbeResult:
+        """Run the quality gate check, guarding against missing or failing callables."""
+        if self._quality_fn is None:
+            return _missing_callable_result(model, ProbeLevel.QUALITY_GATE)
+        try:
+            score = self._quality_fn(model)
+            return probe_quality_gate(score, model)
+        except Exception as exc:
+            return _exception_result(model, ProbeLevel.QUALITY_GATE, exc)
 
 
 def _missing_callable_result(model: ProviderModelEntry, level: ProbeLevel) -> ProbeResult:
