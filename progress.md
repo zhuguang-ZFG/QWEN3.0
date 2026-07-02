@@ -2,6 +2,56 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-02 瘦身计划 P0-1/P0-5/P1-11 批量清理
+
+### 背景
+
+瘦身设计文档中 P0/P1/P2 项大部分已完成。本轮清理剩余 3 项。
+
+### 改动
+
+1. **P0-1: 删除 U1 固件 85MB node_modules**：`esp32S_XYZ/firmware/u1-grbl/embedded/node_modules/` 未被 git 跟踪（0 tracked files），物理删除 85MB 并在子模块 `.gitignore` 中添加排除规则。
+2. **P0-5: 标记 Telegram bot DEPRECATED**：`integrations/telegram_bot/client.py` 和 `__init__.py` 顶部添加 DEPRECATED 标记，明确通知通道已退役、仅 gallery 存储仍依赖。不删除代码（gallery 活跃依赖）。
+3. **P1-11: 添加 docs/archive/ README**：新建 `docs/archive/README.md`，说明归档规则（仅文档、不修改内容、定期审查）和目录索引。archive 中已无 .py 文件（BACKLOG-P1-3 已清理）。
+
+### 验证
+
+- gallery/telegram 相关 30 tests passed
+- `ruff check` clean；pre-commit 全绿
+- `check_code_size.py` PASS
+
+### Git
+
+- 子模块 `esp32S_XYZ`：`3381e19..891869e`（.gitignore +3 行）
+- 根仓库：`18f52e93..90e50a08`（4 files, +49/-2）
+
+### 瘦身计划完成状态总览
+
+| 项 | 状态 |
+|----|------|
+| P0-1 U1 node_modules | ✅ 已删除 + gitignore |
+| P0-2 U1 WiFi/BT 编译开关 | ✅ 已完成 |
+| P0-3 U8 音频协议矛盾 | ✅ 已修复（PCM） |
+| P0-4 DEPRECATED 标记修正 | ✅ 已完成 |
+| P0-5 Telegram DEPRECATED | ✅ 已标记 |
+| P0-6 AGENTS.md 断链 | ✅ 已修复 |
+| P0-7 STATUS.md 矛盾 | ✅ 已修复 |
+| P0-8 gitnexus skills | ✅ 已删除 |
+| P1-9 战略文档归档 | ✅ 已归档 |
+| P1-10 progress.md 截断 | ✅ 343 行 |
+| P1-11 docs/archive 清理 | ✅ README + 无 .py |
+| P1-12 agent 配置树 | ✅ 已纠偏 |
+| P1-13 routing_engine 归包 | ✅ 已完成 |
+| P1-14 routing_executor 归包 | ✅ 已完成 |
+| P1-15 模块数修正 | ✅ 17 模块 |
+| P2-16 死鉴权端点 | ✅ 已删除 |
+| P2-17 create.vue 合并 | ✅ 决定保留 |
+| P2-18 tabbar 5→3 | ✅ 已完成 |
+| P2-19 settings 瘦身 | ✅ 已完成 |
+| P2-20 except:pass 审查 | ✅ 已完成 |
+
+**全部 20 项已完成。**
+
 ## 2026-07-02 代码尺寸门禁清零 + 小程序死页面清理
 
 ### 背景
