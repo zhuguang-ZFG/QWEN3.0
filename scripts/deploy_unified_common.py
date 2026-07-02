@@ -216,7 +216,11 @@ def capacity_result(capacity: dict[str, int], *, min_free_mb: int, min_mem_mb: i
 
 
 def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
-    """Open an SSH connection to the chosen deploy target using key or password fallback."""
+    """Open an SSH connection to the chosen deploy target using key or password fallback.
+
+    启用 transport keepalive（每 15 秒发心跳），避免 SFTP 大批量传输时
+    因网络空闲超时被中间设备/服务端断开（曾出现 `Socket is closed`）。
+    """
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
@@ -226,6 +230,9 @@ def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
         if not target.password:
             raise
         ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
+    transport = getattr(ssh, "get_transport", lambda: None)()
+    if transport is not None:
+        transport.set_keepalive(15)
     return ssh
 
 
