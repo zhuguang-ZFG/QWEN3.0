@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from config.env import semantic_router_enabled, semantic_router_threshold
 from routing.semantic_router import classify as semantic_classify
-from routing_engine_trace import trace_span
+from .trace import trace_span
 from routing_intent import analyze_intent
 
 

@@ -10,11 +10,11 @@ from routing_engine import (
     route,
 )
 from routing_engine import __all__ as routing_engine_all
-from routing_engine_post import get_injected_ids
+from routing_engine.post import get_injected_ids
 
 
 def test_route_reexports_are_correct():
-    """测试 route() 函数的正确 re-export
+    """测试 route() 函数的正�?re-export
 
     验证路由引擎正确 re-export 所有必要的函数
     """
@@ -34,7 +34,7 @@ def test_route_reexports_are_correct():
 
 
 def test_route_reexports_include_all_functions():
-    """测试 route() 函数的完整 re-export 验证
+    """测试 route() 函数的完�?re-export 验证
 
     验证路由引擎 re-export 的函数列表完整且正确
     """

@@ -217,7 +217,9 @@ def test_main_dry_run_does_not_open_remote_preflight(monkeypatch):
     monkeypatch.setattr(
         deploy_unified,
         "deploy_files",
-        lambda files, target, dry_run=False: calls.append(f"dry={dry_run}") or {"uploaded": 0, "failed": [], "skipped": []},
+        lambda files, target, dry_run=False: (
+            calls.append(f"dry={dry_run}") or {"uploaded": 0, "failed": [], "skipped": []}
+        ),
     )
 
     assert deploy_unified.main() == 0
@@ -293,7 +295,9 @@ def test_restore_remote_backup_extracts_tar(monkeypatch):
     monkeypatch.setattr(common_mod.paramiko, "SSHClient", lambda: ssh)
     monkeypatch.setattr(common_mod, "configure_ssh_host_keys", lambda client: None)
 
-    ok = preflight_mod.restore_remote_backup("/opt/lima-router/backups/unit/runtime-before.tgz", target=get_deploy_target("jdcloud"))
+    ok = preflight_mod.restore_remote_backup(
+        "/opt/lima-router/backups/unit/runtime-before.tgz", target=get_deploy_target("jdcloud")
+    )
 
     assert ok is True
     assert any("tar -xzf" in command for command in ssh.commands)

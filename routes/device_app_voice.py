@@ -78,6 +78,4 @@ async def voice_ticket(authorization: str = Header(default="")) -> JSONResponse:
     if isinstance(account, JSONResponse):
         return account
 
-    return JSONResponse(
-        {"code": 0, "data": {"ticket": ws_ticket.issue(), "expires_in": ws_ticket.TTL_SECONDS}}
-    )
+    return JSONResponse({"code": 0, "data": {"ticket": ws_ticket.issue(), "expires_in": ws_ticket.TTL_SECONDS}})

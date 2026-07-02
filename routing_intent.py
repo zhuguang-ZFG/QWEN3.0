@@ -10,6 +10,7 @@ from models.structured_outputs import IntentResult
 from models.structured_outputs.validator import validate_value
 from routing_intent_instructor import maybe_instructor_intent
 from routing_intent_modal import detect_image_intent, detect_thinking_intent
+from routing_semantic import semantic_classify
 
 __all__ = [
     "detect_image_intent",
@@ -107,19 +108,9 @@ _SIGNALS: dict[str, dict[str, list[str]]] = {
     },
 }
 
-_SIGNAL_WEIGHTS = {
-    "identity": 3.0,
-    "tools": 2.0,
-    "action": 2.0,
-    "complexity": 1.5,
-    "context": 1.5,
-    "config": 1.0,
-}
+_SIGNAL_WEIGHTS = {"identity": 3.0, "tools": 2.0, "action": 2.0, "complexity": 1.5, "context": 1.5, "config": 1.0}
 
-_CODE_BLOCK_RE = re.compile(
-    r"```|^\s{4,}\S|def\s+\w+|class\s+\w+|import\s+\w+|from\s+\w+\s+import",
-    re.MULTILINE,
-)
+_CODE_BLOCK_RE = re.compile(r"```|^\s{4,}\S|def\s+\w+|class\s+\w+|import\s+\w+|from\s+\w+\s+import", re.MULTILINE)
 _ENGLISH_TECH_RE = re.compile(
     r"\b(function|variable|array|object|string|integer|boolean|async|await|promise|callback|interface|generic|type|enum)\b",
     re.IGNORECASE,
@@ -237,6 +228,10 @@ def _enhanced_classify(query: str, system_prompt: str = "", ide: str = "unknown"
     signal_result = _signal_classify(query)
     if signal_result and signal_result.get("confidence", 0) >= 0.70:
         return signal_result
+
+    semantic_result = semantic_classify(query)
+    if semantic_result and semantic_result.get("confidence", 0) >= 0.40:
+        return semantic_result
 
     ctx_result = _context_signals(query, system_prompt, ide)
     if ctx_result:

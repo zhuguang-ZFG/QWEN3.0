@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
 
 import budget_manager
-from routing_executor_telemetry import (
+from .telemetry import (
     _record_backend_attempt,
     extract_error_code,
 )

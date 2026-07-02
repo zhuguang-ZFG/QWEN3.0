@@ -1,4 +1,4 @@
-"""Tests for routing_engine_post.py — all branches."""
+"""Tests for routing_engine_post.py �?all branches."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import pytest
 @pytest.fixture(autouse=True)
 def _patch_integrations(monkeypatch):
     """Stub apply_post_route_integrations so we don't need real dependencies."""
-    import routing_engine_post as mod
+    import routing_engine.post as mod
 
     calls = []
     monkeypatch.setattr(
@@ -28,7 +28,7 @@ def _patch_integrations(monkeypatch):
 @pytest.fixture()
 def _patch_record_event(monkeypatch):
     """Patch routes.agent_events.record_event used by _record_routing_event."""
-    import routing_engine_post as mod
+    import routing_engine.post as mod
 
     calls = []
 
@@ -48,7 +48,7 @@ def _patch_record_event(monkeypatch):
 @pytest.fixture()
 def _patch_feedback_bridge(monkeypatch):
     """Patch routing_loop.feedback_bridge.on_request_complete."""
-    import routing_engine_post as mod
+    import routing_engine.post as mod
     import sys
 
     calls = []
@@ -76,10 +76,10 @@ def _patch_feedback_bridge(monkeypatch):
 
 
 class TestPostRoute:
-    """post_route() — integrations, fallback detection, success flag."""
+    """post_route() �?integrations, fallback detection, success flag."""
 
     def test_happy_path_no_fallback(self, _patch_integrations, _patch_record_event, _patch_feedback_bridge):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         mod.post_route(
             answer="This is a long enough answer",
@@ -103,7 +103,7 @@ class TestPostRoute:
         assert fb["request_id"] == "test-chat-id"
 
     def test_fallback_path(self, _patch_integrations, _patch_record_event, _patch_feedback_bridge):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         mod.post_route(
             answer="Another long answer",
@@ -120,7 +120,7 @@ class TestPostRoute:
         assert rec[1]["fallback_used"] is True
 
     def test_exhausted_backend_not_fallback(self, _patch_integrations, _patch_record_event, _patch_feedback_bridge):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         mod.post_route(
             answer="",
@@ -137,7 +137,7 @@ class TestPostRoute:
         assert rec[1]["fallback_used"] is False  # exhausted is special-cased
 
     def test_success_false_short_answer(self, _patch_integrations, _patch_record_event, _patch_feedback_bridge):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         mod.post_route(
             answer="hi",
@@ -154,7 +154,7 @@ class TestPostRoute:
         assert rec[1]["success"] is False
 
     def test_success_false_none_answer(self, _patch_integrations, _patch_record_event, _patch_feedback_bridge):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         mod.post_route(
             answer=None,
@@ -173,7 +173,7 @@ class TestPostRoute:
     def test_integrations_called_with_correct_args(
         self, _patch_integrations, _patch_record_event, _patch_feedback_bridge
     ):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         msgs = [{"role": "user", "content": "test"}]
         mod.post_route(
@@ -196,7 +196,7 @@ class TestPostRoute:
         assert kw["ms"] == 300
 
     def test_none_answer_coerced_to_empty(self, _patch_integrations, _patch_record_event, _patch_feedback_bridge):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         mod.post_route(
             answer=None,
@@ -219,7 +219,7 @@ class TestPostRoute:
 
 class TestRecordRoutingEvent:
     def test_happy_path(self, _patch_record_event):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         mod._record_routing_event("groq", "chat", "chat", 100, True, False)
         assert len(_patch_record_event) == 1
@@ -228,7 +228,7 @@ class TestRecordRoutingEvent:
     def test_exception_does_not_raise(self, monkeypatch, caplog):
         """When record_event import/invocation fails, we log at debug and continue."""
         import sys
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         # Remove the cached module so the lazy import inside _record_routing_event fires
         sys.modules.pop("routes.agent_events", None)

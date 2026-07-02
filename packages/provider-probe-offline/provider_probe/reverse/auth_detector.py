@@ -61,7 +61,8 @@ async def detect_auth(base_url: str) -> dict:
                         result["auth_header_name"] = "Authorization"
                         result["evidence"] = f"401 with www-authenticate: {www_auth[:80]}"
                         return result
-        except Exception:
+        except Exception as exc:
+            logging.debug("auth probe failed for %s: %s", url, exc)
             continue
 
     # If we got 401/403 with test keys, auth is required but mechanism unclear

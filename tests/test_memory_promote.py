@@ -36,5 +36,7 @@ class TestAutoPromoteCandidates:
         try:
             results = auto_promote_candidates()
             assert isinstance(results, list)
-        except Exception:
-            pass  # May depend on DB state, non-critical
+        except Exception as exc:
+            import logging
+
+            logging.debug("auto_promote_candidates failed (DB state): %s", exc)  # May depend on DB state

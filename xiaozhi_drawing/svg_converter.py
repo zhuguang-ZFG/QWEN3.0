@@ -1,6 +1,7 @@
-"""图像转 SVG 路径转换器 - OpenCV 矢量化
+"""图像转 SVG 路径转换器 — 公共 API + 管道封装。
 
-改造记录（2026-06-22）：新增骨架化链路，使绘图机输出单笔开放路径而非双线闭合轮廓。
+处理逻辑已拆分至 :mod:`xiaozhi_drawing.pipeline`，本模块保留公共 API
+（:class:`SVGConverter`）和向后兼容的私有函数接口。
 """
 
 from io import BytesIO
@@ -9,97 +10,52 @@ from typing import Any
 
 import httpx
 import numpy as np
-from PIL import Image
 
 try:
     import cv2  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover - local environments may omit OpenCV
     cv2 = None
 
-from xiaozhi_drawing.binarize import binarize as _binarize
-from xiaozhi_drawing.path_ordering import reorder_polylines_nearest_neighbor
-from xiaozhi_drawing.skeleton_prune import prune_skeleton_spurs
-from xiaozhi_drawing.skeleton_tracer import polylines_to_svg_paths, trace_skeleton_polylines
+from xiaozhi_drawing.binarize import binarize as _binarize  # noqa: F401 — re-export for tests
+from xiaozhi_drawing.pipeline import (
+    PipelineConfig,
+    PipelineContext,
+    order_stage,
+    preprocess_stage,
+    run_pipeline,
+    simplify_stage,
+    thin_binary as _thin_binary,  # noqa: F401 — re-export for tests
+    thin_morphological as _thin_morphological,  # noqa: F401 — re-export for tests
+    trace_stage,
+)
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["SVGConverter"]
 
-async def _download_image(image_url: str) -> BytesIO:
-    """Download image from URL."""
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(image_url)
-        resp.raise_for_status()
-        return BytesIO(resp.content)
+
+# --------------------------------------------------------------------------- #
+#  向后兼容的私有函数（委托至管道阶段）
+# --------------------------------------------------------------------------- #
 
 
 def _preprocess_image(image_data: BytesIO, threshold_mode: str = "auto") -> tuple:
-    """Load, resize, gray, blur, and threshold the image.
-
-    Returns (gray, binary, threshold_method).
-    """
-    if cv2 is None:
-        raise RuntimeError("OpenCV is not installed")
-    img = Image.open(image_data).convert("RGB")
-    img.thumbnail((512, 512), Image.Resampling.LANCZOS)
-    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    binary, threshold_method = _binarize(gray, blurred, threshold_mode)
-    return gray, binary, threshold_method
-
-
-def _thin_morphological(binary: np.ndarray) -> np.ndarray:
-    """Pure-OpenCV iterative morphological thinning fallback.
-
-    Iteratively erodes blobs toward their centerline until convergence (≤50 passes).
-    """
-    if cv2 is None:  # pragma: no cover
-        logger.warning("OpenCV not installed; skeletonize disabled, returning input as-is")
-        return binary
-    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-    thinned = binary.copy()
-    for _ in range(50):
-        prev = thinned.copy()
-        eroded = cv2.erode(thinned, kernel)
-        diff = cv2.subtract(thinned, cv2.dilate(eroded, kernel))
-        thinned = cv2.bitwise_or(eroded, diff)
-        if cv2.countNonZero(cv2.subtract(prev, thinned)) == 0:
-            break
-    return thinned
-
-
-def _thin_binary(binary: np.ndarray) -> tuple[np.ndarray, str]:
-    """Thin binary image to a single-pixel-wide skeleton.
-
-    Degradation chain (no silent failure):
-      skimage.morphology.skeletonize  →  cv2.ximgproc.thinning  →  _thin_morphological
-
-    Returns:
-        (thinned array, method name: skimage | ximgproc | morphological)
-    """
-    try:
-        from skimage.morphology import skeletonize as sk_thin  # type: ignore[import-not-found]
-
-        return (sk_thin(binary > 0) * 255).astype(np.uint8), "skimage"
-    except Exception as exc:
-        # skimage is an optional dependency; failure falls back to cv2 or morphological thinning.
-        logger.warning("skimage skeletonize unavailable (%s); trying cv2.ximgproc.thinning", exc)
-    if cv2 is not None:
-        try:
-            return cv2.ximgproc.thinning(binary), "ximgproc"
-        except Exception as exc:
-            # cv2.ximgproc is an optional submodule; failure falls back to morphological thinning.
-            logger.warning("cv2.ximgproc.thinning unavailable (%s); using morphological fallback", exc)
-    logger.info("Using morphological thinning fallback for skeletonization")
-    return _thin_morphological(binary), "morphological"
+    """加载、缩放、灰度、模糊、二值化。向后兼容包装器。"""
+    ctx = PipelineContext(
+        image_data=image_data,
+        config=PipelineConfig(threshold_mode=threshold_mode),
+    )
+    ctx = preprocess_stage(ctx)
+    return ctx.gray, ctx.binary, ctx.threshold_method
 
 
 def _contour_to_svg_path(contour: np.ndarray, *, closed: bool = True) -> str:
-    """Convert an OpenCV contour to SVG path string.
+    """OpenCV 轮廓数组 → SVG path 字符串。
 
     Args:
-        contour: OpenCV contour array (N, 1, 2).
-        closed: True → append Z (outline/fill mode).
-                False → open path (single-stroke pen-plotter mode, no Z).
+        contour: OpenCV contour array (N, 1, 2)。
+        closed: True → 追加 Z（轮廓/填充模式）。
+                False → 开放路径（单笔画笔绘模式，无 Z）。
     """
     points = contour.reshape(-1, 2)
     if len(points) == 0:
@@ -122,41 +78,27 @@ def _extract_svg_paths(
     min_stroke_length: float = 5.0,
     reorder_strokes: bool = False,
 ) -> tuple[list[str], str | None]:
-    """Find contours, filter, simplify, and convert to SVG paths.
+    """提取 SVG 路径。向后兼容包装器 — 委托至管道阶段。
 
-    skeletonize=True (pen-plotter mode): thin binary to single-pixel skeleton,
-    prune short spurs, then trace open paths — prevents the drawing machine
-    from retracing the same line as a double-edge closed outline.
-
-    skeletonize=False (legacy mode): original RETR_EXTERNAL + closed-path behavior,
-    fully backward-compatible.
+    skeletonize=True (笔绘模式): 细化→修剪→追踪开放路径
+    skeletonize=False (legacy 模式): 外轮廓→闭合路径
     """
-    if cv2 is None:
-        raise RuntimeError("OpenCV is not installed")
-    svg_paths: list[str] = []
-    thinning_method: str | None = None
-    if skeletonize:
-        src, thinning_method = _thin_binary(binary)
-        src = prune_skeleton_spurs(src, spur_length_threshold=spur_length_threshold)
-        polylines = trace_skeleton_polylines(src)
-        if reorder_strokes:
-            polylines = reorder_polylines_nearest_neighbor(polylines)
-        svg_paths = polylines_to_svg_paths(
-            polylines,
-            simplify_epsilon=simplify_epsilon,
-            min_arc_length=max(min_stroke_length, simplify_epsilon * 2),
-        )
-    else:
-        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        for contour in contours:
-            if cv2.contourArea(contour) < min_contour_area:
-                continue
-            approx = cv2.approxPolyDP(contour, simplify_epsilon, True)
-            if len(approx) >= 3:
-                path = _contour_to_svg_path(approx, closed=True)
-                if path:
-                    svg_paths.append(path)
-    return svg_paths, thinning_method
+    cfg = PipelineConfig(
+        simplify_epsilon=simplify_epsilon,
+        min_contour_area=min_contour_area,
+        skeletonize=skeletonize,
+        spur_length_threshold=spur_length_threshold,
+        min_stroke_length=min_stroke_length,
+        reorder_strokes=reorder_strokes,
+    )
+    ctx = PipelineContext(binary=binary, config=cfg)
+    ctx = run_pipeline(ctx, [trace_stage, order_stage, simplify_stage])
+    return ctx.svg_paths, ctx.thinning_method
+
+
+# --------------------------------------------------------------------------- #
+#  结果构建
+# --------------------------------------------------------------------------- #
 
 
 def _legacy_fallback_path(width: int, height: int) -> str:
@@ -186,6 +128,19 @@ def _svg_payload(
         "threshold_method": threshold_method,
         "error": error,
     }
+
+
+# --------------------------------------------------------------------------- #
+#  核心转换
+# --------------------------------------------------------------------------- #
+
+
+async def _download_image(image_url: str) -> BytesIO:
+    """Download image from URL."""
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.get(image_url)
+        resp.raise_for_status()
+        return BytesIO(resp.content)
 
 
 async def _convert_image_bytes(

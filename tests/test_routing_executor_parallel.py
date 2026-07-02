@@ -3,7 +3,7 @@
 import time
 from unittest.mock import MagicMock
 
-from routing_executor_parallel import _try_one_parallel, _parallel_fallback
+from routing_executor.parallel import _try_one_parallel, _parallel_fallback
 
 
 def _make_call_fn(success=True, answer="the_long_ok", delay=0):

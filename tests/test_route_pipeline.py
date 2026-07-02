@@ -10,7 +10,7 @@ def test_route_identity_detection_path():
 
     验证 route 函数正确处理身份检测的特殊路径
     """
-    with patch("routing_engine_helpers.identity_guard") as mock_identity_guard:
+    with patch("routing_engine.helpers.identity_guard") as mock_identity_guard:
         mock_identity_guard.detect_identity_question.return_value = "You are an assistant"
 
         result = route(
@@ -26,14 +26,14 @@ def test_route_identity_detection_path():
         assert result.request_type == "identity"
 
 
-@patch("routing_engine_helpers.identity_guard")
-@patch("routing_engine_execute_strategy.health_tracker")
-@patch("routing_engine_execute_strategy.budget_manager")
-@patch("routing_engine_execute_strategy.speculative")
+@patch("routing_engine.helpers.identity_guard")
+@patch("routing_engine.execute_strategy.health_tracker")
+@patch("routing_engine.execute_strategy.budget_manager")
+@patch("routing_engine.execute_strategy.speculative")
 @patch("routing_engine.classify")
 @patch("routing_engine.classify_scenario")
 @patch("routing_engine.select")
-@patch("routing_engine_execute_strategy.execute")
+@patch("routing_engine.execute_strategy.execute")
 def test_route_full_pipeline_with_call_fn_mock(
     mock_execute,
     mock_select,
@@ -59,7 +59,7 @@ def test_route_full_pipeline_with_call_fn_mock(
 
     mock_call_fn = MagicMock(return_value="backend1 response")
 
-    with patch("routing_engine_intent.analyze_intent") as mock_analyze_intent:
+    with patch("routing_engine.intent.analyze_intent") as mock_analyze_intent:
         mock_analyze_intent.return_value = {"intent": "device_stop"}
         result = route(
             query="test query",
@@ -81,10 +81,10 @@ def test_route_full_pipeline_with_call_fn_mock(
 
 @patch("routing_engine.classify")
 @patch("routing_engine.classify_scenario")
-@patch("routing_engine_execute_strategy.health_tracker")
-@patch("routing_engine_execute_strategy.budget_manager")
-@patch("routing_engine_execute_strategy.speculative")
-@patch("routing_engine_execute_strategy.execute")
+@patch("routing_engine.execute_strategy.health_tracker")
+@patch("routing_engine.execute_strategy.budget_manager")
+@patch("routing_engine.execute_strategy.speculative")
+@patch("routing_engine.execute_strategy.execute")
 @patch("routing_engine.select")
 def test_route_speculative_execution_fallback_on_runtimeerror(
     mock_select,
@@ -127,7 +127,7 @@ def test_route_speculative_execution_fallback_on_runtimeerror(
     assert result.backend == "fallback_backend"
 
 
-@patch("routing_engine_execute_strategy.sticky_session")
+@patch("routing_engine.execute_strategy.sticky_session")
 @patch("routing_engine.sticky_session")
 def test_route_sticky_session_integration(mock_sticky_session, mock_exec_sticky):
     """测试 route() 函数的 sticky_session 集成
@@ -158,7 +158,7 @@ def test_route_identity_question_with_empty_answer():
     mock_identity_guard = MagicMock()
     mock_identity_guard.detect_identity_question.return_value = "Test identity"
 
-    with patch("routing_engine_helpers.identity_guard", mock_identity_guard):
+    with patch("routing_engine.helpers.identity_guard", mock_identity_guard):
         result = route(
             query="Who are you?",
             messages=[{"role": "user", "content": "test"}],
@@ -183,8 +183,8 @@ def test_route_semantic_cache_hits_on_second_identical_query(monkeypatch, tmp_pa
 
     # Use a deterministic fake embedder so identical queries always hit.
     cache = SemanticCache()
-    with patch("routing_engine_cache.get_cache", return_value=cache):
-        with patch("routing_engine_helpers.identity_guard") as mock_identity:
+    with patch("routing_engine.cache.get_cache", return_value=cache):
+        with patch("routing_engine.helpers.identity_guard") as mock_identity:
             mock_identity.detect_identity_question.return_value = ""
             first = route(
                 query="hello",

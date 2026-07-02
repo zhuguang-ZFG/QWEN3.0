@@ -6,7 +6,7 @@ import pytest
 MOCK_NOW = 2_000_000_000.0  # fixed deterministic timestamp for stable tests
 from unittest.mock import MagicMock
 
-from routing_executor_fallback import (
+from routing_executor.fallback import (
     _select_fallback_candidates,
     _serial_fallback_attempt,
     _fallback_phase,

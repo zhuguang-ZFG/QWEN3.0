@@ -8,8 +8,8 @@ from typing import Callable
 
 import budget_manager
 import health_tracker
-from routing_executor_parallel import _parallel_fallback
-from routing_executor_telemetry import (
+from .parallel import _parallel_fallback
+from .telemetry import (
     _record_backend_attempt,
     extract_error_code,
 )

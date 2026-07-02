@@ -25,11 +25,11 @@ def test_route_generates_required_spans(monkeypatch):
         patch("routing_engine.auto_compress", side_effect=lambda msgs, *a, **kw: msgs),
         patch("routing_engine.try_recall_backend", return_value=None),
         patch("routing_engine.inject_retrieval_context", return_value=([], "")),
-        patch("routing_engine_cache.lookup_cached_response", return_value=None),
+        patch("routing_engine.cache.lookup_cached_response", return_value=None),
         patch("routing_engine.store_cached_response"),
-        patch("routing_engine_execute_strategy.speculative.classify_complexity", return_value="complex"),
+        patch("routing_engine.execute_strategy.speculative.classify_complexity", return_value="complex"),
         patch(
-            "routing_engine_execute_strategy.execute", return_value=("longcat_chat", "answer-from-longcat_chat", None)
+            "routing_engine.execute_strategy.execute", return_value=("longcat_chat", "answer-from-longcat_chat", None)
         ),
     ):
         result = route(

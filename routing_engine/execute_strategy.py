@@ -9,7 +9,7 @@ import budget_manager
 import health_tracker
 import speculative
 import sticky_session
-from routing_engine_trace import trace_span
+from .trace import trace_span
 from routing_executor import execute
 
 _log = logging.getLogger(__name__)

@@ -6,8 +6,8 @@ import logging
 import time
 from typing import Callable
 
-from routing_executor_fallback import _fallback_phase
-from routing_executor_serial import _serial_attempt
+from .fallback import _fallback_phase
+from .serial import _serial_attempt
 
 MAX_FALLBACKS = 10
 MAX_FALLBACKS_TOOLS = 20

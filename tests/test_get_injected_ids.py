@@ -1,12 +1,12 @@
 """get_injected_ids helper tests."""
 
-from routing_engine_post import get_injected_ids
+from routing_engine.post import get_injected_ids
 
 
 def testget_injected_ids_helper_basic():
-    """测试 get_injected_ids helper 的基本功能
+    """测试 get_injected_ids helper 的基本功�?
 
-    验证 get_injected_ids 函数正确处理基本的情况
+    验证 get_injected_ids 函数正确处理基本的情�?
     """
     original = [{"role": "user", "content": "test"}]
     modified = [
@@ -21,9 +21,9 @@ def testget_injected_ids_helper_basic():
 
 
 def testget_injected_ids_helper_no_skills():
-    """测试 get_injected_ids helper 的无技能情况
+    """测试 get_injected_ids helper 的无技能情�?
 
-    验证 get_injected_ids 函数当没有找到技能时返回空列表
+    验证 get_injected_ids 函数当没有找到技能时返回空列�?
     """
     original = [{"role": "user", "content": "test"}]
     modified = [{"role": "user", "content": "test"}]
@@ -34,7 +34,7 @@ def testget_injected_ids_helper_no_skills():
 
 
 def testget_injected_ids_helper_injected_skills():
-    """测试 get_injected_ids helper 的注入技能情况
+    """测试 get_injected_ids helper 的注入技能情�?
 
     验证 get_injected_ids 函数当有注入的技能时返回正确的ID
     """
@@ -50,9 +50,9 @@ def testget_injected_ids_helper_injected_skills():
 
 
 def testget_injected_ids_helper_with_unicode_skills():
-    """测试 get_injected_ids helper 的 Unicode 技能名称
+    """测试 get_injected_ids helper �?Unicode 技能名�?
 
-    验证 get_injected_ids 函数可以正确处理 Unicode 编码的技能名称
+    验证 get_injected_ids 函数可以正确处理 Unicode 编码的技能名�?
     """
     original = [{"role": "user", "content": "test"}]
     modified = [
@@ -66,9 +66,9 @@ def testget_injected_ids_helper_with_unicode_skills():
 
 
 def testget_injected_ids_helper_mixed_roles():
-    """测试 get_injected_ids helper 的混合角色消息
+    """测试 get_injected_ids helper 的混合角色消�?
 
-    验证 get_injected_ids 函数可以正确处理包含多种角色的消息
+    验证 get_injected_ids 函数可以正确处理包含多种角色的消�?
     """
     original = [
         {"role": "system", "content": "initial system"},

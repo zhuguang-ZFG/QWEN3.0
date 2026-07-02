@@ -71,7 +71,8 @@ async def probe_pricing(base_url: str) -> dict:
                     if _FREE_TIER.search(text):
                         result["has_free_tier"] = True
                         result["evidence"] = f"Free tier found on {pricing_url}"
-        except Exception:
+        except Exception as exc:
+            logging.debug("pricing probe failed for %s: %s", pricing_url, exc)
             continue
 
     return result

@@ -1,4 +1,4 @@
-"""Tests for routing_engine_post.py — notification bridge & injected IDs."""
+"""Tests for routing_engine_post.py �?notification bridge & injected IDs."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import pytest
 @pytest.fixture()
 def _patch_feedback_bridge(monkeypatch):
     """Patch routing_loop.feedback_bridge.on_request_complete."""
-    import routing_engine_post as mod
+    import routing_engine.post as mod
     import sys
 
     calls = []
@@ -43,7 +43,7 @@ def _patch_feedback_bridge(monkeypatch):
 
 class TestNotifyFeedbackBridge:
     def test_happy_path(self, _patch_feedback_bridge):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         mod._notify_feedback_bridge("chat", [], "groq", True, 100, False)
         assert len(_patch_feedback_bridge) == 1
@@ -51,7 +51,7 @@ class TestNotifyFeedbackBridge:
 
     def test_exception_does_not_raise(self, monkeypatch, caplog):
         import sys
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         sys.modules.pop("routing_loop.feedback_bridge", None)
 
@@ -79,20 +79,20 @@ class TestNotifyFeedbackBridge:
 
 class TestGetInjectedIds:
     def test_no_injection_same_length(self):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         msgs = [{"role": "user", "content": "hi"}]
         assert mod.get_injected_ids(msgs, msgs) == []
 
     def test_no_injection_shorter_modified(self):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         original = [{"role": "user", "content": "a"}, {"role": "user", "content": "b"}]
         modified = [{"role": "user", "content": "a"}]
         assert mod.get_injected_ids(original, modified) == []
 
     def test_skill_injection_detected(self):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         original = [{"role": "user", "content": "hi"}]
         modified = [
@@ -103,7 +103,7 @@ class TestGetInjectedIds:
         assert result == ["dir:foo", "dir:bar"]
 
     def test_skill_injection_strips_whitespace(self):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         original = [{"role": "user", "content": "hi"}]
         modified = [
@@ -114,7 +114,7 @@ class TestGetInjectedIds:
         assert result == ["dir:alpha", "dir:beta", "dir:gamma"]
 
     def test_extra_skills_fallback(self):
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
         original = [{"role": "user", "content": "hi"}]
         modified = [
@@ -126,7 +126,7 @@ class TestGetInjectedIds:
 
     def test_empty_extra_returns_empty(self):
         """If modified is longer but extra count would be <= 0 (edge)."""
-        import routing_engine_post as mod
+        import routing_engine.post as mod
 
-        # Both empty — same length, no injection
+        # Both empty �?same length, no injection
         assert mod.get_injected_ids([], []) == []

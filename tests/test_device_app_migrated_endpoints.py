@@ -46,7 +46,6 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-
 class TestChangePassword:
     def _seed_account(self, account_id: str, role: str, password_hash: str | None = None):
         with connect() as conn:

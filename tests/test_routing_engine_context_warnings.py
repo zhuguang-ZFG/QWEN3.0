@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-import routing_engine_context as rec
+import routing_engine.context as rec
 
 
 @pytest.fixture(autouse=True)

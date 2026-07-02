@@ -7,7 +7,7 @@ import time
 
 from observability.events import semantic_cache_event
 from observability.metrics import record as _record_metric
-from routing_engine_trace import trace_span
+from .trace import trace_span
 from semantic_cache.cache import get_cache
 
 logger = logging.getLogger(__name__)

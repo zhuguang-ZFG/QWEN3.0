@@ -8,7 +8,7 @@
     "lima_mcp_stdio/",
     "tool_gateway/",
     "chat_models.py",
-    "routing_engine.py",
+    "routing_engine/",
     "routing_intent.py",
     "http_caller.py",
     "server.py",

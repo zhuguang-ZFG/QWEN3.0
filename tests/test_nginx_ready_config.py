@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-_SOURCE_CONF = Path("_nginx_chat_temp.conf")
+_SOURCE_CONF = Path("deploy/nginx/chat.donglicao.com.conf")
 _VPS_CONF = Path("infra/vps/nginx/chat.donglicao.com.conf")
 
 

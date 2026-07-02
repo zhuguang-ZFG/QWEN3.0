@@ -76,8 +76,8 @@ class TestRoutingExecutorAuthority:
     def test_executor_records_health(self):
         src = (
             _read_module_source("routing_executor")
-            + _read_module_source("routing_executor_serial")
-            + _read_module_source("routing_executor_fallback")
+            + _read_module_source("routing_executor.serial")
+            + _read_module_source("routing_executor.fallback")
         )
         assert "health_tracker.record" in src or "re.health_tracker.record" in src, (
             "routing_executor should record health success/failure"
@@ -102,7 +102,7 @@ class TestRoutingEngineAuthority:
         for module in [
             "routing_classifier",
             "routing_selector",
-            "routing_engine_execute_strategy",
+            "execute_strategy",
             "health_tracker",
             "skills_injector",
         ]:

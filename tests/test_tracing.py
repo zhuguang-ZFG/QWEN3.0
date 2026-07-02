@@ -6,7 +6,7 @@ import pytest
 
 from context_pipeline.tracing import new_trace, RequestTrace, reset_current_trace, Span
 from routing_engine import route
-from routing_engine_intent import resolve_intent
+from routing_engine.intent import resolve_intent
 
 
 @pytest.fixture(autouse=True)
@@ -115,9 +115,9 @@ class TestTracingSemanticCache:
             patch("routing_engine.auto_compress", side_effect=lambda msgs, *a, **kw: msgs),
             patch("routing_engine.try_recall_backend", return_value=None),
             patch("routing_engine.inject_retrieval_context", return_value=([], "")),
-            patch("routing_engine_cache.lookup_cached_response", return_value=lookup_return),
-            patch("routing_engine_cache.get_cache", return_value=fake_cache),
-            patch("routing_engine_helpers.post_route"),
+            patch("routing_engine.cache.lookup_cached_response", return_value=lookup_return),
+            patch("routing_engine.cache.get_cache", return_value=fake_cache),
+            patch("routing_engine.helpers.post_route"),
             patch("routing_engine.get_injected_ids", return_value=[]),
         ):
             return route(
@@ -153,11 +153,11 @@ class TestTracingSemanticCache:
             patch("routing_engine.auto_compress", side_effect=lambda msgs, *a, **kw: msgs),
             patch("routing_engine.try_recall_backend", return_value=None),
             patch("routing_engine.inject_retrieval_context", return_value=([], "")),
-            patch("routing_engine_cache.lookup_cached_response", return_value=None),
-            patch("routing_engine_cache.get_cache", return_value=fake_cache),
+            patch("routing_engine.cache.lookup_cached_response", return_value=None),
+            patch("routing_engine.cache.get_cache", return_value=fake_cache),
             patch("routing_engine.execute_with_strategy", return_value=("longcat_chat", "generated answer")),
             patch("routing_engine.store_cached_response"),
-            patch("routing_engine_helpers.post_route"),
+            patch("routing_engine.helpers.post_route"),
             patch("routing_engine.get_injected_ids", return_value=[]),
         ):
             result = route(
@@ -181,9 +181,9 @@ class TestTracingIntent:
         trace = new_trace()
 
         with (
-            patch("routing_engine_intent.semantic_router_enabled", return_value=False),
+            patch("routing_engine.intent.semantic_router_enabled", return_value=False),
             patch(
-                "routing_engine_intent.analyze_intent",
+                "routing_engine.intent.analyze_intent",
                 return_value={
                     "intent": "code_generation",
                     "source": "signal_v2",

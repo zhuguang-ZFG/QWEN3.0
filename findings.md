@@ -1,5 +1,15 @@
 # LiMa Findings
 
+## 2026-07-02 系统瘦身 P2-17/18/19/20 + 参考改善 T1/T2 全部闭环
+
+- **范围**：P2-17/18（UI 合并）、P2-19（settings 瘦身）、P2-20（except:pass 审查）+ T1-1（语义分类器）、T1-2（管道架构）、T1-3（Hershey 字体）、T2-2（健康探针）、T2-3（任务时间线）、T2-1（FluidNC 迁移准备）
+- **P2-20 发现**：83 处 `except:pass/continue` 中仅 3 处是真正的宽泛异常静默吞掉（违反硬规则 #1），其余 80 处是特定异常类型（`json.JSONDecodeError`、`KeyError` 等）的合法控制流。审查脚本需区分 `except Exception:` 与 `except SpecificError:` 才能准确识别违规。
+- **P2-19 发现**：6 种语言中 4 种（de/vi/pt_BR/zh_TW）是臆测添加——无实际用户、翻译不完整、i18n 键覆盖率低。裁到 zh_CN+en 后无任何功能损失。
+- **P2-17/18 发现**：mine 页面本质是「设置页的子集」——声纹入口、退出登录、关于、设置跳转，全部可合并进 settings。WorkshopHome 与 device-list 数据源相同（`v2GetDevices`），Hero 卡片设计相似，合并为零信息损失。write-draw-panel 已是 2 步简化流，create/ 是高级模式，两者并存合理。
+- **T1-1 发现**：n-gram TF-IDF 方案在不引入 sentence-transformers 重型依赖的前提下实现了毫秒级语义匹配（< 1ms），准确率覆盖核心意图（coding/chat/explanation/translation）。比正则规则维护成本低一个量级。
+- **T2-3 发现**：Ledger 事件流已天然支持时间线查询，无需 schema 变更——`events_for_task` 已有事件记录，只需聚合视图层。
+- **验证**：Python 4391 passed / 0 failed；ruff check clean；pyright 0 errors；vue-tsc 0 errors；mp-weixin 编译成功。
+
 ## 2026-07-02 小程序 UI 审查配合核实纠偏：三项指控两项伪判一项属实（BACKLOG-P2-1）
 
 - **背景**：瘦身审查报告提三项 UI 指控（create 937 行嵌套两层 tab、3 首页重叠、settings 744 行杂物），并附「chat 与 create 重叠」隐含问题。逐项核实源码后真伪分明。

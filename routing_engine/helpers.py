@@ -5,9 +5,9 @@ from __future__ import annotations
 import time
 
 import identity_guard
-from routing_engine_post import post_route
-from routing_engine_trace import trace_span
-from routing_engine_types import PickResult, RouteResult
+from .post import post_route
+from .trace import trace_span
+from .types import PickResult, RouteResult
 
 
 def identity_shortcut(query: str, channel_role: str, t0: float) -> RouteResult | None:

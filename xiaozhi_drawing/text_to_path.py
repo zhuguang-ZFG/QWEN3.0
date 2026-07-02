@@ -175,14 +175,23 @@ def text_to_svg_path(
     *,
     font_path: Path | str | None = None,
     font_name: str | None = None,
+    font_type: str = "ttf",
 ) -> dict[str, Any]:
     """文字 → 手写体字形 → SVG path（无损）。
+
+    Args:
+        font_type: "ttf" 使用 fonttools 从 TTF 提取字形轮廓（默认）；
+                   "hershey" 使用 Hershey 单笔画字体（适合绘图机，无双线）。
 
     字体缺失/文字空/字形未覆盖时返回 failed + 明确错误（不静默）。
     """
     text = (text or "").strip()
     if not text:
         return _payload("failed", error="empty text")
+    if font_type == "hershey":
+        from xiaozhi_drawing.hershey_font import hershey_text_to_svg_path
+
+        return hershey_text_to_svg_path(text)
     path = resolve_font_path(font_name=font_name, font_path=font_path)
     if not path.exists():
         logger.warning("手写体字体缺失: %s", path)

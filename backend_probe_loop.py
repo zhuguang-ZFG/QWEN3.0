@@ -12,6 +12,7 @@ import threading
 import time
 
 from config.settings import BACKEND_OPS
+from health_probe import classify_probe_error
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ def probe_backend(backend: str, *, ignore_cooldown: bool = False) -> dict:
                 return {"backend": backend, "status": "empty", "latency_ms": latency_ms}
         except Exception as exc:
             latency_ms = int((time.time() - t0) * 1000)
-            error_class = _classify_error(str(exc))
+            error_class = classify_probe_error(str(exc))
             return {
                 "backend": backend,
                 "status": "failed",
@@ -244,20 +245,6 @@ def get_probe_schedule() -> list[list[str]]:
     for i in range(0, len(all_backends), batch_size):
         batches.append(all_backends[i : i + batch_size])
     return batches
-
-
-def _classify_error(error_msg: str) -> str:
-    """Classify error type from message."""
-    msg = error_msg.lower()
-    if "401" in msg or "unauthorized" in msg or "invalid_api_key" in msg:
-        return "auth_error"
-    if "429" in msg or "rate" in msg or "too many" in msg:
-        return "rate_limited"
-    if "timeout" in msg or "timed out" in msg:
-        return "timeout"
-    if "connection" in msg or "network" in msg or "dns" in msg:
-        return "network_error"
-    return "provider_error"
 
 
 def _probe_loop() -> None:

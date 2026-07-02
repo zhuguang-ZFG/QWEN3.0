@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from routing_executor_telemetry import _record_backend_attempt, extract_error_code
+from routing_executor.telemetry import _record_backend_attempt, extract_error_code
 
 
 class FakeExceptionWithStatusCode(Exception):

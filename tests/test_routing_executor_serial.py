@@ -3,7 +3,7 @@
 import time
 from unittest.mock import MagicMock
 
-from routing_executor_serial import _call_one_backend_serial, _serial_attempt
+from routing_executor.serial import _call_one_backend_serial, _serial_attempt
 
 
 def _make_call_fn(success: bool = True, answer: str = "ok_yes_success", delay: float = 0):
