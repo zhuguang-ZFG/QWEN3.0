@@ -1,4 +1,3 @@
-import json
 import logging
 
 from observability.jsonl_store import append_jsonl_record, read_recent_jsonl_records

@@ -1,5 +1,6 @@
 from device_app_helpers import headers, seed_account_and_device, seed_binding
-from device_app_sharing_helpers import accept_share, client, seed_guest
+from device_app_sharing_helpers import client  # noqa: F401  pytest fixture injected via parameter name (d)
+from device_app_sharing_helpers import seed_guest
 from device_logic.db import connect
 
 

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 from device_gateway.handwriting_path import (
     _extract_text_from_prompt,

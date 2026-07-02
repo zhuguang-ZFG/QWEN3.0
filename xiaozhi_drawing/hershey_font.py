@@ -21,9 +21,7 @@ _CAP_HEIGHT = 21
 _SPACE_WIDTH = 12
 
 
-def _stroke_to_svg_path(
-    stroke: list[tuple[int, int]], *, scale: float, x_offset: float, y_offset: float
-) -> str:
+def _stroke_to_svg_path(stroke: list[tuple[int, int]], *, scale: float, x_offset: float, y_offset: float) -> str:
     """将一条折线转换为 SVG path data（开放路径，无 Z）。"""
     if not stroke:
         return ""
@@ -41,9 +39,7 @@ def _resolve_char(ch: str) -> tuple[int, list[list[tuple[int, int]]]] | None:
     return _GLYPHS.get(ch)
 
 
-def _layout_text(
-    text: str, *, scale: float, max_width: float
-) -> list[list[tuple[str, int]]]:
+def _layout_text(text: str, *, scale: float, max_width: float) -> list[list[tuple[str, int]]]:
     """将文本按行排版，返回每行的 (char, x_offset) 列表。"""
     lines: list[list[tuple[str, int]]] = []
     for raw_line in text.split("\n"):
@@ -61,9 +57,7 @@ def _layout_text(
     return lines
 
 
-def _render_lines(
-    lines: list[list[tuple[str, int]]], *, font_px: float
-) -> tuple[list[str], float, float]:
+def _render_lines(lines: list[list[tuple[str, int]]], *, font_px: float) -> tuple[list[str], float, float]:
     """渲染所有行为 SVG 路径列表，返回 (paths, content_w, content_h)。"""
     scale = font_px / _CAP_HEIGHT
     all_paths: list[str] = []
@@ -78,9 +72,7 @@ def _render_lines(
                 continue
             _, strokes = glyph
             for stroke in strokes:
-                path = _stroke_to_svg_path(
-                    stroke, scale=scale, x_offset=float(x_offset), y_offset=y_base
-                )
+                path = _stroke_to_svg_path(stroke, scale=scale, x_offset=float(x_offset), y_offset=y_base)
                 if path:
                     all_paths.append(path)
             advance = glyph[0]
@@ -92,9 +84,7 @@ def _render_lines(
     return all_paths, max_w, content_h
 
 
-def _fit_to_workspace(
-    paths: list[str], content_w: float, content_h: float
-) -> list[str]:
+def _fit_to_workspace(paths: list[str], content_w: float, content_h: float) -> list[str]:
     """缩放路径以适应工作区，保持居中。"""
     if not paths:
         return paths
@@ -112,6 +102,7 @@ def _fit_to_workspace(
 
 def _rescale_path(path_d: str, scale: float, dx: float, dy: float) -> str:
     """对 SVG path data 应用缩放和平移。"""
+
     def replace_coords(match: re.Match[str]) -> str:
         cmd = match.group(1)
         x = float(match.group(2))

@@ -2,6 +2,33 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 K2+L+M+N 四批合一完成（F401 全局门禁启用 + 闭环 + CI 同步）
+
+- **范围**：K2 完成测试侧 fixture-(d) 注入型态文件的真死清理与自豁免释明；L 用 ruff --fix 一次性删除 tests/ 残留 86 个真死 F401；M 启用 ruff.toml 全局 F401 gate 同步删生产侧 17 个真死并 exclude 参考仓库；N 给 GitHub Actions test.yml 加 pin `pypinyin==0.55.0` 让 CI 也能跑 H1/I/J 集测。这四批本属同一主线，合并做一次 commit/import/push 避免分批文档碎化。
+- **K2 细项**：
+  - `test_device_app_sharing.py`：删 `accept_share`（body 内 0 调用，真死），保留 `client`（fixture）/`seed_guest`（活跃函数）→ `client` 加 `# noqa: F401  pytest fixture injected via parameter name (d)`。
+  - `test_device_app_sharing_permissions.py`：删 `seed_guest`（body 0 调用），保留 `accept_share`（活跃函数 `accept_share(client, "view")`）+ `client`（fixture）→ `client` 加同样 noqa。
+  - `test_fake_u1_cloud_home.py`：先误删 `fake_u1`（pytest 错：`fixture 'fake_u1' not found`，证明 `fake_device_server` fixture 在 helper 中**依赖 `fake_u1` 作为 fixture 参数**——fixture 间接依赖链式发现，import 名即使不显式标注也必须存在）；回滚补回 `fake_u1`，3 个 fixture 名都加 noqa + 注释「transitively required (fake_device_server depends on fake_u1)」。
+  - `test_fake_u1_cloud_draw_svg.py`/`rejection.py`/`write_text.py` 三文件 fixture 链路保持，3 个 fixture 名加 noqa 自豁免释明。
+  - **新教训**：F401 fixture (d) 注入型态不止「直接 fixture 参数名注入」一种，还有「fixture 间接依赖 fixture 链」型态 —— 即 `import fake_u1` 即使测试函数签名没用到，只要 helper 模块下别的 fixture `def fake_device_server(fake_u1)` 依赖 `fake_u1`，import 名仍必须保留以让 pytest resolve fixture 依赖图。这是 G1b 四型态之外的第 (e) 型态。
+- **L 细项**：写一次性审计脚本 `_tmp_f401_audit.py`（已删）逐 F401 名 grep body 是否真用，发现 86 个 ruff F401 中 80 安全 + 6「risky」实际都是误报假活——`pytest` 在 `"pytest"` 字符串字面量/`command[:6] == ["py", "-m", "pytest"]` 比较里命中，`json` 在 httpx keyword argument `json={...}` 命中，`asyncio` 在 `@pytest.mark.asyncio` 装饰器里命中（**不是 asyncio 模块本身用法**），`http.client` 在 docstring "WebSocket client" 里命中注释字符串，`sys` 在 `via sys.modules` 注释里命中。全部可 `ruff --fix` 安全清理。focused 7 文件（risky 集中所在的）跑 64 passed，全量 4428 passed 恒定不变。
+- **M 细项**：
+  - `ruff.toml` `select` 加入 `"F401"`；`exclude` 加入 `"reference/**"`（按 AGENTS.md「禁止暂存参考仓库」原则，reference/grbl_fix/ 5 个 F401 故意不动）。
+  - 生产侧剩余 17 真死（lima_mcp_stdio 3 + packages/browser_lifecycle 1 + scripts 12 + reference 排除后 1）由 `ruff --fix` 安全删除。
+  - `ruff --fix --select F401 .` 副作用：ruff format 顺手规范化了 23 个生产 / tests 文件（EOL 缺尾 newline / 二空行 / Optional[X]→X|None 等早已该过的格式化），与 G1b 后周期 format 应该早已做过，本批一并清掉。这是合理的 silent 升级，无运行时影响。
+- **N 细项**：`.github/workflows/test.yml` install 步加 `pip install pypinyin==0.55.0`，与 `data/digital-human/wakeword_runtime/requirements.txt` 同 pin。让 CI executor 跑 H1/I/J 的 wakeword 集成测试时不再被 `pytest.importorskip("pypinyin")` 跳过。
+- **门禁结果**：
+  | 门 | 结果 |
+  |---|---|
+  | ruff check . | All checks passed |
+  | ruff format --check | 1350 files already formatted |
+  | --select F401 全 repo | All checks passed（gate 启用后立刻验证）|
+  | check_code_size | PASS |
+  | pyright（修改的 lima_mcp / packages / scripts 文件） | 0 errors（8 pre-existing warnings 与本批无关）|
+  | focused pytest（risky 集中所在 7 文件）| 64 passed |
+  | full pytest | 4428 passed, 3 skipped, 2 deselected, 1 warning（恒定）|
+- **里程碑**：F401 全局门禁启用，从 G1b 提出的「四型态具名失效」原则到现在 K2+L+M+N 的全主线闭环（剩 ~6 个文件 fixture (d)/(e) 注入型态靠 `# noqa: F401` 自豁免释明），下一步 TDD 抽离批次会有 ruff 全 repo F401 0 报告做 baseline 守护，不再有 F401 静默死代码潜逃空间。
+
 ## 2026-07-03 深度瘦身 K 批次完成（测试侧 mixed 桶 10 文件 39 个真死 imported-name 逐文件清理）
 
 - **范围**：继 G1b 测试侧 F401 STYPE_CLEAN 全过清理后，本批推进 mixed 桶 —— 即单文件内同时含 port-target 保留名 + domain 死名的混合型，需逐名判定。审计 agent 报告 mixed 桶 10 文件 / 39 imported-name，但 agent 归桶不可全信（fake_u1_cloud 4 文件的 `fake_device_server`/`fake_u1`/`lima_client` 被其归为「domain dead」实则是 G1b 已记录的 pytest fixture 字符串匹配注入 (d) 型态 —— 在测试函数签名作为参数名出现的 fixture，pytest 收集期注入、ruff 看不见，删了会 18 ERROR 复现）。**本批改用每文件 Read+grep 亲自验证每个 imported-name 的真实使用**，最终锁定 10 文件 / 39 个真死 + 2 个补漏（test_device_attestation.py 的 `os` 与 `verifier as attestation_verifier`）：  - 注：`attestation_verifier` 字符串出现在 `monkeypatch.setattr(handlers, "attestation_verifier", ...)` 但这是属性名字符串而非模块别名引用，handlers 自己有该 attr，本文件 import 不被引用，删安全。

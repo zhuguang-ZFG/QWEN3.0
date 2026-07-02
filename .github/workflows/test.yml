@@ -35,6 +35,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements_server.txt
           pip install pytest pytest-asyncio pytest-mock pytest-timeout httpx2 ruff bandit pyright freezegun hypothesis pip-audit
+          # wakeword_runtime 集成测试依赖 pypinyin（与 data/digital-human/wakeword_runtime/requirements.txt 同 pin）
+          pip install pypinyin==0.55.0
 
       - name: Ruff lint and format check
         run: |

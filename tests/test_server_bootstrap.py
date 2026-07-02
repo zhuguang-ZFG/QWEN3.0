@@ -7,7 +7,6 @@ from http import HTTPStatus
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 
-import pytest
 
 import server_bootstrap as sb
 

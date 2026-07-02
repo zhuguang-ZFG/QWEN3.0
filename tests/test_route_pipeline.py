@@ -171,8 +171,6 @@ def test_route_identity_question_with_empty_answer():
 
 def test_route_semantic_cache_hits_on_second_identical_query(monkeypatch, tmp_path):
     """测试 route() 在启用语义缓存时，第二次相同查询命中缓存。"""
-    import os
-    import tempfile
 
     from semantic_cache.cache import SemanticCache
 

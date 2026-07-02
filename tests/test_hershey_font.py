@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from xiaozhi_drawing.hershey_font import (
     _stroke_to_svg_path,

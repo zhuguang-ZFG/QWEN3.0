@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
-import time
 
 from device_support.snapshot import (
     build_support_snapshot,

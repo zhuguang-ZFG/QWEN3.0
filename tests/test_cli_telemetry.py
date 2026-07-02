@@ -1,7 +1,5 @@
 """Tests for observability/cli_telemetry.py — sanitized CLI telemetry."""
 
-from unittest.mock import patch
-
 from observability.cli_telemetry import _short, _int, _error_class
 
 

@@ -1,7 +1,5 @@
 """Tests for context_pipeline/guardrails.py — input/output safety validation."""
 
-import pytest
-
 from context_pipeline.guardrails import (
     check_injection,
     check_input_length,

@@ -1,7 +1,5 @@
 """Tests for observability/correlation.py — cross-system event tracing."""
 
-import time
-
 from observability.correlation import (
     record_request_correlation,
     record_worker_task_correlation,

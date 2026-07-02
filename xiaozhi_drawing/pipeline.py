@@ -116,6 +116,7 @@ def thin_binary(binary: np.ndarray) -> tuple[np.ndarray, str]:
     """细化二值图像，返回 (thinned, method)。"""
     try:
         from skimage.morphology import skeletonize as sk_skeletonize
+
         thinned = sk_skeletonize(binary > 0).astype(np.uint8) * 255
         return thinned, "skimage"
     except ImportError:
@@ -151,11 +152,7 @@ def trace_stage(ctx: PipelineContext) -> PipelineContext:
             return ctx
         contours, _ = cv2.findContours(ctx.binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
         min_area = ctx.config.min_contour_area
-        ctx.polylines = [
-            [(int(p[0][0]), int(p[0][1])) for p in c]
-            for c in contours
-            if cv2.contourArea(c) >= min_area
-        ]
+        ctx.polylines = [[(int(p[0][0]), int(p[0][1])) for p in c] for c in contours if cv2.contourArea(c) >= min_area]
     return ctx
 
 
@@ -179,16 +176,12 @@ def simplify_stage(ctx: PipelineContext) -> PipelineContext:
         )
     else:
         ctx.svg_paths = [
-            _points_to_closed_svg_path(pl, ctx.config.simplify_epsilon)
-            for pl in ctx.polylines
-            if len(pl) >= 2
+            _points_to_closed_svg_path(pl, ctx.config.simplify_epsilon) for pl in ctx.polylines if len(pl) >= 2
         ]
     return ctx
 
 
-def _points_to_closed_svg_path(
-    points: list[tuple[int, int]], epsilon: float = 2.0
-) -> str:
+def _points_to_closed_svg_path(points: list[tuple[int, int]], epsilon: float = 2.0) -> str:
     """将点列表转换为闭合 SVG 路径。"""
     if len(points) < 2:
         return ""

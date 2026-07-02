@@ -5,7 +5,6 @@ import sys
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any
 
 # Guard: LiMa is validated on Python 3.10 only. Running on 3.11+ or 3.9- produces
 # false positives (e.g. missing freezegun, incorrect code-size counts) and is

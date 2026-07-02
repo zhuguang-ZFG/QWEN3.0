@@ -1,7 +1,5 @@
 """Task creation and sticky routing with profile tests."""
 
-from unittest.mock import AsyncMock
-
 from device_artifacts.store import artifact_store
 from device_gateway.device_route_memory import reset_route_memory_for_tests
 from device_gateway.profiles import (

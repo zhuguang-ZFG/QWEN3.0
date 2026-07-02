@@ -110,9 +110,7 @@ async def create_provision(request: Request, authorization: str = Header(default
         )
         conn.commit()
 
-    return _build_provision_response(
-        provision_id, provision_token, device_sn, server_url, wifi_ssid, wifi_password
-    )
+    return _build_provision_response(provision_id, provision_token, device_sn, server_url, wifi_ssid, wifi_password)
 
 
 @router.post("/devices/provision/confirm")

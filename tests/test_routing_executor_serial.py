@@ -1,7 +1,6 @@
 """Tests for routing_executor_serial.py — serial backend execution."""
 
 import time
-from unittest.mock import MagicMock
 
 from routing_executor.serial import _call_one_backend_serial, _serial_attempt
 

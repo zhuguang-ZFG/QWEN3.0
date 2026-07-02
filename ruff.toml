@@ -12,11 +12,15 @@ exclude = [
     ".continue",
     ".roo",
     ".trae",
+    # 参考仓库，按 AGENTS.md「禁止暂存参考仓库」原则不审计/不修改
+    "reference/**",
 ]
 
 [lint]
 # Gate real defects first; broaden cleanup-only rules in later slices.
-select = ["E9", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507"]
+# F401 (unused imports) enabled M 批 — 测试侧/生产侧真死已闭环清理；
+# 仍豁免的 re-export 文件见 [lint.per-file-ignores]。
+select = ["E9", "F401", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507"]
 
 [lint.per-file-ignores]
 "**/__init__.py" = ["F401"]

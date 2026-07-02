@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 
 from routes.chat_post_closeout import (
     _extract_observations,

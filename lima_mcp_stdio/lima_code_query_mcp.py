@@ -14,10 +14,8 @@ LiMa Code Query MCP Server — 实时代码检索工具
 
 import json
 import logging
-import os
 import sys
 from pathlib import Path
-from typing import Any
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

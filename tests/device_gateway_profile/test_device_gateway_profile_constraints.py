@@ -1,7 +1,5 @@
 """Profile constraint tests."""
 
-from unittest.mock import AsyncMock
-
 from device_gateway.device_route_memory import reset_route_memory_for_tests
 from device_gateway.device_write_handler import record_simplification
 from device_gateway.profiles import (

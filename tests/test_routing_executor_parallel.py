@@ -1,7 +1,6 @@
 """Tests for routing_executor_parallel.py — parallel backend execution."""
 
 import time
-from unittest.mock import MagicMock
 
 from routing_executor.parallel import _try_one_parallel, _parallel_fallback
 

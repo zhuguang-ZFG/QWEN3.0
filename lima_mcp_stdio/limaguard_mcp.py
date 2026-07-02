@@ -11,7 +11,6 @@ Cursor/Kimi 直接调 MCP 工具获取项目当前发现，
 """
 
 import json
-import os
 import sys
 from pathlib import Path
 

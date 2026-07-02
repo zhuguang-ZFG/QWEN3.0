@@ -1,6 +1,5 @@
 """Tests for session_memory/store_db.py — SQLite memory persistence."""
 
-import os
 import tempfile
 
 from session_memory.store_db import (

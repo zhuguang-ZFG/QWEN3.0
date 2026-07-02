@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
-
 
 class TestVoiceprintProvider:
     """Tests for voiceprint.py stub."""

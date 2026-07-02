@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import subprocess
 from datetime import datetime
-from typing import Any
 
 from scripts.mcp_health.config import MCPHealth, TOAST_SCRIPT
 

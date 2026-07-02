@@ -13,7 +13,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
 
 CODEC_PATH = (
     Path(__file__).resolve().parent.parent
@@ -37,8 +36,8 @@ handle_bridge_request = bridge_request_handler.handle_bridge_request
 def _wrapped_bridge() -> MagicMock:
     """Return a stub bridge whose build_message echoes its arguments as JSON."""
     bridge = MagicMock()
-    bridge.build_message.side_effect = (
-        lambda event_type, payload=None, request_id=None, success=True, error=None: json.dumps(
+    bridge.build_message.side_effect = lambda event_type, payload=None, request_id=None, success=True, error=None: (
+        json.dumps(
             {
                 "type": event_type,
                 "requestId": request_id,

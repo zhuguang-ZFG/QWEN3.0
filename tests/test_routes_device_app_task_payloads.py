@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
 
 from routes.device_app_task_payloads import (
     merge_task_lists,

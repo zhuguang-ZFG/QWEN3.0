@@ -1,7 +1,6 @@
 """Tests for image-intent chat streaming response metadata."""
 
 import asyncio
-import time
 
 from chat_models import ChatRequest, Message
 from routes.chat_handler_dispatch import ChatRunContext, RoutePrefs, maybe_image_response

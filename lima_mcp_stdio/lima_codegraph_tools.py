@@ -7,7 +7,6 @@ LiMa CodeGraph Impact Analysis — 工具函数和 DB 层。
 import json
 import os
 from collections import defaultdict
-from pathlib import Path
 
 from config.sqlite_pool import get_pooled_connection
 

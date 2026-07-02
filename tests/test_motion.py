@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from device_gateway.path_data import (
     MotionCommandKind,

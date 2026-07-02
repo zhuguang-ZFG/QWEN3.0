@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from http_errors import _extract_code
 from http_response import _extract_answer, _parse_sse_chunk

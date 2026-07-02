@@ -1,7 +1,8 @@
 """Permission tests for device app sharing (split from test_device_app_sharing)."""
 
 from device_app_helpers import headers
-from device_app_sharing_helpers import accept_share, client, seed_guest
+from device_app_sharing_helpers import accept_share
+from device_app_sharing_helpers import client  # noqa: F401  pytest fixture injected via parameter name (d)
 from device_logic.db import connect
 
 

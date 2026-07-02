@@ -1,7 +1,5 @@
 """Sticky route memory tests."""
 
-from unittest.mock import AsyncMock
-
 from device_gateway.device_route_memory import (
     get_route_memory,
     record_route_decision,

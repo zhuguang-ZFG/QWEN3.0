@@ -12,8 +12,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 
 def _run_in_tmp(tmp_path: Path, script: str, env_overrides: dict[str, str]) -> subprocess.CompletedProcess:
     env = os.environ.copy()

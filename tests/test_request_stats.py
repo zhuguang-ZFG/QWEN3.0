@@ -1,8 +1,5 @@
 import time
 
-from fastapi.testclient import TestClient
-
-import pytest
 
 import server
 import routes.request_tracking as request_tracking

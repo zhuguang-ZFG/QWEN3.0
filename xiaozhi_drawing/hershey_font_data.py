@@ -18,6 +18,5 @@ with open(_DATA_PATH, encoding="utf-8") as _f:
     _raw: dict[str, list] = json.load(_f)
 
 GLYPHS: dict[str, tuple[int, list[list[tuple[int, int]]]]] = {
-    ch: (entry[0], [[tuple(p) for p in stroke] for stroke in entry[1]])
-    for ch, entry in _raw.items()
+    ch: (entry[0], [[tuple(p) for p in stroke] for stroke in entry[1]]) for ch, entry in _raw.items()
 }

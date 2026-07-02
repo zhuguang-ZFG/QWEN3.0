@@ -151,6 +151,7 @@ def pick_backend(
 
 from .route_pipeline import _classify_and_recall, _select_backends
 
+
 def _execute_route_call(
     call_fn: Callable | None,
     picked: PickResult,

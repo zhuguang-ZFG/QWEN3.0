@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import AsyncIterator
 
-import pytest
 
 from streaming import _async_fallback_to_api, bridge_stream_async
 

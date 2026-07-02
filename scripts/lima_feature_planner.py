@@ -10,15 +10,10 @@ LiMa 特性生成规划器。
 使用: python scripts/lima_feature_planner.py "添加 OTA 分段升级端点"
 """
 
-import ast
-import json
 import logging
-import os
 import re
 import sys
-from collections import defaultdict
 from pathlib import Path
-from typing import Optional
 
 from lima_feature_planner_patterns import PATTERNS
 

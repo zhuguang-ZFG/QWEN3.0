@@ -1,7 +1,5 @@
 """Tests for context_pipeline/skill_store.py — route caching as skills."""
 
-import time
-
 from context_pipeline.skill_store import SkillStore, RoutingSkill
 
 MOCK_NOW = 1719043200.0

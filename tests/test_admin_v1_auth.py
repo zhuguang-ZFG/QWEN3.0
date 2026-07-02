@@ -1,6 +1,5 @@
 """Tests for routes/admin_v1_auth.py — admin email/password JWT login."""
 
-import os
 import uuid
 
 import pytest

@@ -1,7 +1,5 @@
 """Tests for context_pipeline/response_validator.py — code validation."""
 
-import pytest
-
 from context_pipeline.response_validator import (
     validate_response,
     _extract_code_blocks,

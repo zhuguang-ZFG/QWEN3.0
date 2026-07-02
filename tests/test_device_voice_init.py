@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestDeviceVoiceInit:
     """Tests for device_voice.__init__ module-level config and lazy loading."""

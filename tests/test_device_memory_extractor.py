@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import json
-import time
 
-import pytest
 
 from device_ledger.events import new_event
 from device_memory.extractor import extract_episode_from_terminal, extract_device_failure_from_event

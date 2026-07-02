@@ -1,7 +1,5 @@
 """Identity guard and response cleaner hardening tests."""
 
-import pytest
-
 import brand_config
 from response_cleaner import (
     StreamIdentitySanitizer,

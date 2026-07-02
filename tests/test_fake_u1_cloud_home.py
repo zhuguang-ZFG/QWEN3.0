@@ -7,9 +7,9 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from fake_u1_helpers import (
-    fake_device_server,
-    fake_u1,
-    lima_client,
+    fake_device_server,  # noqa: F401  pytest fixture, transitively required (fake_device_server depends on fake_u1)
+    fake_u1,  # noqa: F401  pytest fixture, transitively required (fake_device_server depends on fake_u1)
+    lima_client,  # noqa: F401  pytest fixture injected via parameter name (d)
     _post_to_fake_device_server,
     _send_motion_event,
 )

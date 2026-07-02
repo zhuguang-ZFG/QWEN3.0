@@ -24,6 +24,7 @@ def fetch_safemcp_index() -> dict[str, Any]:
     """Wrapper injecting _fetch_text for monkeypatch compatibility."""
     return _fetch_safemcp_raw(_fetch_text)
 
+
 _TAG_RULES: list[tuple[str, tuple[str, ...]]] = [
     ("coding", ("git", "code", "github", "semgrep", "eslint", "compiler")),
     ("ops", ("grafana", "netdata", "cloudflare", "aws", "sentry", "datadog", "kubernetes")),

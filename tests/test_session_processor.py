@@ -1,7 +1,5 @@
 """Tests for session_memory/processor.py — session memory pipeline."""
 
-from unittest.mock import patch
-
 from session_memory.processor import _session_id_from_headers
 
 

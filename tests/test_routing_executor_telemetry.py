@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 
 from routing_executor.telemetry import _record_backend_attempt, extract_error_code
 

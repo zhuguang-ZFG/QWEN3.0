@@ -1,7 +1,5 @@
 """Tests for health_state.py — persistence functionality."""
 
-import time
-
 import health_state as hs
 
 MOCK_NOW = 1719043200.0

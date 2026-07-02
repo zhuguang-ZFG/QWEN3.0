@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import http.client
 import importlib.util
 import os
 import socket

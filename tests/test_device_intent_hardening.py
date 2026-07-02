@@ -8,7 +8,6 @@ Covers:
 
 import json
 
-import pytest
 
 import http_caller
 import device_gateway.intent as dgi

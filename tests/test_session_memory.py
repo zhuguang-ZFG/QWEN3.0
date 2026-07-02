@@ -1,5 +1,3 @@
-import os
-
 from session_memory.store import (
     save_memory,
     get_recent_memories,

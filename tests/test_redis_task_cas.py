@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
-from typing import Any
-
-import pytest
 
 from device_gateway.redis_cas import (
     VERSION_FIELD,

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import io
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from device_gateway.store import InMemoryDeviceTaskStore

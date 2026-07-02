@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 
 from routes.health_dashboard import (
     _build_backend_row,

@@ -1,7 +1,5 @@
 """Device intelligence profile schema tests."""
 
-from unittest.mock import AsyncMock
-
 from device_gateway.device_route_memory import reset_route_memory_for_tests
 from device_gateway.profiles import reset_profiles_for_tests
 from device_intelligence.schemas import DeviceProfile

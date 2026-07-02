@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from pathlib import Path
 
 from scripts.guardian_scanner import CodeScanner, PROJECT
 

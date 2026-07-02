@@ -1,7 +1,5 @@
 """Tests for routing_intent.py — intent detection and classification."""
 
-import pytest
-
 from routing_intent import (
     analyze_intent,
     intent_to_prompt_scenario,

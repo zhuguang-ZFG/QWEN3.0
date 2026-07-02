@@ -1,7 +1,5 @@
 """Tests for session_memory/learning_loop/eval_channel.py — eval candidate channel."""
 
-from unittest.mock import patch
-
 from session_memory.learning_loop.eval_channel import _feed_eval, _test_pass_rate, get_eval_candidates
 from session_memory.learning_loop.models import TaskOutcome
 

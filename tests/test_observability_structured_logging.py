@@ -10,8 +10,6 @@ import os
 import subprocess
 import sys
 
-import pytest
-
 
 def _run_default_check(env_overrides: dict[str, str] | None = None) -> str:
     env = os.environ.copy()

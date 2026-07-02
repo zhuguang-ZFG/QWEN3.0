@@ -1,7 +1,5 @@
 """ModelAdmissionStatus/ProbeLevel/catalog tests."""
 
-import pytest
-
 from provider_automation.catalog import (
     ModelAdmissionStatus,
     ProbeLevel,
