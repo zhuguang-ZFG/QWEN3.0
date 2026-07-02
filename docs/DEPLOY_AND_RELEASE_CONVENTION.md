@@ -168,7 +168,7 @@ Gitee 镜像同步已不再是强制 closeout 步骤。`findings.md` OPS-022 已
 | 切片 | 部署脚本 | 说明 |
 |------|----------|------|
 | 标准部署 | `scripts/deploy_unified.py --slice core` | 容量检查 + 备份 + tar/scp 上传 + 重启 + health/ready 等待 |
-| 同步 nginx | `scripts/deploy_unified.py --slice core --sync-nginx` | 额外同步 `_nginx_chat_temp.conf` 并 reload nginx |
+| 同步 nginx | `scripts/deploy_unified.py --slice core --sync-nginx` | 额外同步 `deploy/nginx/chat.donglicao.com.conf` 并 reload nginx |
 | 指定切片 | `scripts/deploy_unified.py --slice phase_a/phase_b/all` | 按切片部署 |
 | 指定文件 | `scripts/deploy_unified.py --files a.py b.py` | 仅上传指定文件 |
 | JDCloud 探测 | `scripts/check_jdcloud_node.py` | 只读烟雾，不部署 |

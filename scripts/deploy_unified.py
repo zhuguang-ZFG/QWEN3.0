@@ -119,7 +119,7 @@ def main() -> int:
     parser.add_argument(
         "--sync-nginx",
         action="store_true",
-        help="Sync _nginx_chat_temp.conf to the target VPS and reload nginx (default: off)",
+        help="Sync deploy/nginx/chat.donglicao.com.conf to the target VPS and reload nginx (default: off)",
     )
     args = parser.parse_args()
 

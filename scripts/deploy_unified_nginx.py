@@ -12,7 +12,7 @@ from scripts.deploy_common import configure_ssh_host_keys
 from scripts.deploy_unified_common import DeployTarget
 
 _REMOTE_CONF_PATH = "/etc/nginx/conf.d/chat.donglicao.com.conf"
-_SOURCE_CONF_NAME = "_nginx_chat_temp.conf"
+_SOURCE_CONF_NAME = "deploy/nginx/chat.donglicao.com.conf"
 
 
 def _ssh_exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
