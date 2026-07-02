@@ -165,7 +165,7 @@ python scripts/deploy_unified.py --dry-run
 | [`docs/REQUEST_PIPELINE_AUTHORITY_CN.md`](docs/REQUEST_PIPELINE_AUTHORITY_CN.md) | 18 步请求处理管线 |
 | [`docs/DEPLOY_AND_RELEASE_CONVENTION.md`](docs/DEPLOY_AND_RELEASE_CONVENTION.md) | 部署与发布约定 |
 | [`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) | 设备开发、联调、验证入口 |
-| [`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md) | 当前活跃路线图 |
+| [`docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md) | 历史路线图（已归档） |
 
 ---
 

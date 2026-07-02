@@ -1547,7 +1547,7 @@ ruff check: clean（触及文件）
 |------|------|--------|
 | `docs/README.md` | 文档唯一入口与权威规则 | 必读 |
 | `STATUS.md` | 当前项目状态（本文件） | 必读 |
-| `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 当前活跃路线图 | 必读 |
+| `docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 历史战略路线图（已归档） | 参考 |
 | `docs/DEVICE_DEVELOPER_GUIDE_CN.md` | 设备开发、联调、验证入口 | 必读 |
 | `docs/CODEBASE_SUBSYSTEM_TIER_CN.md` | 子系统 hot/warm/cold 分层 | 推荐 |
 | `AGENTS.md` | 开发约定与命令 | 必读 |

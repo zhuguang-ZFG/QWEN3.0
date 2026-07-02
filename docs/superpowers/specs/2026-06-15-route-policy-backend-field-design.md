@@ -2,7 +2,7 @@
 
 > 日期: 2026-06-15
 > 范围: 阶段 2 子项目 #5——修复 route_policy 缺 backend 字段的断点
-> 关联路线图: `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 2 + 阶段 3
+> 关联路线图: `docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 2 + 阶段 3
 > 策略: route_policy 携带单 backend 字符串，向后兼容（schema 可选）
 
 ## 背景与动机

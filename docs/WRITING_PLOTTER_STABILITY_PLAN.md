@@ -1,7 +1,7 @@
 # LiMa AI 写字/绘图机稳定后端改进计划
 
 > 制定时间：2026-06-29
-> 依据：当前代码审查 + `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` + `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`
+> 依据：当前代码审查 + `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` + `docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md`
 > 目标：让 LiMa 从"功能可用"演进为写字/绘图机可长期依赖的稳定云端后端。
 
 ---

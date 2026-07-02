@@ -128,7 +128,7 @@ packages/provider-probe-offline/provider_probe/
 
 ### 7.2 原则对齐
 
-与 `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 一致：**提供商准入基于证据，而非可用性**。自动化流水线产出的是 **candidate / watchlist**，不得自动 `ROUTING_ENABLED`。
+与 [`docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md) 一致：**提供商准入基于证据，而非可用性**。自动化流水线产出的是 **candidate / watchlist**，不得自动 `ROUTING_ENABLED`。
 
 ### 7.3 建议
 
@@ -188,7 +188,7 @@ python -m pytest tests/test_provider_automation_admission.py -q
 
 | 文档 | 关系 |
 |------|------|
-| [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | 设备路由与准入战略 |
+| [`docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md) | 设备路由与准入战略（已归档） |
 | [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) | 聊天热路径 18 步 |
 | [`archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md`](archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md) | Q0–Q7 治理计划（已关闭） |
 | [`../tests/README.md`](../tests/README.md) | 聚焦门 / 全量门 |

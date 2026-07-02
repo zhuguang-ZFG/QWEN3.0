@@ -117,5 +117,5 @@ sequenceDiagram
 ## 相关文档
 
 - `docs/archive/ROUTING_ENGINE_DESIGN.md`（已归档）
-- `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`
+- `docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md`（已归档）
 - `docs/CODEBASE_SUBSYSTEM_TIER_CN.md`

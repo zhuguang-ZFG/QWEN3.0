@@ -2,7 +2,7 @@
 
 > 日期: 2026-06-15
 > 范围: 设备路由契约阶段 1 收尾——缺口 A（schema 硬约束 route_policy）
-> 关联路线图: `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 1
+> 关联路线图: `docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 1
 > 策略: 仅云端严格化（edge_c 硬约束，edge_b 保留软约束）
 
 > **2026-06-26 更新**：`routes/xiaozhi_compat/` 与 `xiaozhi_v1_compat.py` 已按 `DEPRECATED v3.0` 物理删除。本 spec 中涉及的 `xiaozhi_compat` 云端补 route_policy 逻辑已由原生设备管理面 `device_gateway/model_routing.py` 承担；Edge-C 硬契约本身继续有效。
