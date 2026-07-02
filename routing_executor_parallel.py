@@ -133,6 +133,9 @@ def _parallel_fallback(
                     for f in futures:
                         f.cancel()
                     return result
-            except Exception:
+            except Exception as exc:
+                # _try_one_parallel already logs/records per-backend failures; this
+                # only fires if the worker itself raised unexpectedly. Log and move on.
+                _log.warning("parallel fallback backend=%s worker raised: %s", futures[future], exc)
                 continue
     return None

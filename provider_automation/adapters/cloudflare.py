@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from pathlib import Path
@@ -13,6 +14,8 @@ import httpx
 from config.backend_config import CLOUDFLARE
 from provider_automation.catalog import ModelAdmissionStatus, ProviderModelEntry, ProviderModelSnapshot
 from provider_inventory.compare import registered_model_ids
+
+_log = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INVENTORY = ROOT / "data" / "cf_model_inventory.json"
@@ -266,7 +269,10 @@ def run_coding_fixture(entry: ProviderModelEntry) -> tuple[int, int]:
             lower = text.lower()
             if all(marker.lower() in lower for marker in markers):
                 passed += 1
-        except Exception:
+        except Exception as exc:
+            # A failed coding probe just means this case does not count toward the
+            # score; log so a systematically failing model is visible in probe logs.
+            _log.warning("coding fixture case failed for %s: %s", entry.model_id, exc)
             continue
     return passed, len(_CODING_CASES)
 

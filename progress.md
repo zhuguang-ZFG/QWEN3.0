@@ -1,5 +1,18 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-02 code-review 修复 + 静默降级修复（BACKLOG-P1-2/P1-1）
+
+- **code-review 死导入清理**：`DeployTarget` 重构（P0-1）留下 9 处死导入/重定义（`shlex`、`time`×2、重复 `from config import deploy_config`×2、`CORE_FILES`、`DEFAULT_MIN_FREE_MB`、`DEFAULT_MIN_MEM_MB`、未用 `deploy_config`×2）。这些因 `ruff.toml` 只 select `E9/F821/...` 不含 `F401`/`F811` 而漏过 pre-commit。已全部移除，提交 `refactor(deploy): remove dead imports left by DeployTarget refactor`（`7b2b7140`）。
+- **BACKLOG-P1-2 静默降级修复（纠偏后精准执行）**：审查报告称「16 处 / voice_pipeline_ws·mqtt_client·store_voiceprint 各 2 处」。用 Explore 子代理实地核查后**证伪**——那 6 处全是 `asyncio.TimeoutError` / `CancelledError` / `sqlite3.OperationalError` 幂等迁移，属正常控制流，**0 违规**。真正违反 AGENTS.md「禁止静默降级」的是 **4 处**一等生产路径的 `except Exception:` 裸吞：
+  - `routing_executor_parallel.py`：并行降级执行器逐 future 吞 worker 异常 → 补 `_log.warning`（`_try_one_parallel` 已记录 per-backend 失败，此处仅 worker 本身异常）。
+  - `speculative_execution.py`：推测竞速内层 `future.result()` 吞异常 → 补 `logger.debug`（`_spec_worker` 已 warning+exc_info 记录真实后端失败并返回 ""，到此仅 future 本身取消/executor 错误，debug 避免每次推测落败刷屏）。
+  - `observability/jsonl_store.py`：读遥测文件吞异常 → 窄化为 `(OSError, UnicodeDecodeError)` + `_log.warning`；顺手删预存死导入 `os`。
+  - `provider_automation/adapters/cloudflare.py`：编码评分循环吞调用失败 → 补 `_log.warning`（新增 `logging` import + `_log`）。
+- **边界项（不改，仅记录）**：`packages/provider-probe-offline/provider_probe/reverse/auth_detector.py:64`、`pricing_probe.py:74` 各 1 处 `except Exception: continue`——属冷离线探测工具，不在生产请求路径，本轮不改，记入 findings 供后续排期。
+- **BACKLOG-P1-1**：语音设计文档 `2026-07-02-mini-program-voice-draw-design.md` 状态标记经查已在前序会话更新为「已完成（M0+M1+M2）」，无残留「待审批」标记，无需再改。
+- **验证**：受影响模块聚焦测试 176 passed；全量 `pytest` **4288 passed, 3 skipped**；`ruff check .`（项目配置）+ 全量 `F401/F811` 复查 + `scripts/check_code_size.py` 全通过。
+- **教训**：审查报告的「计数」可信，但「严重度判定」不可信——同一批 6 个 `except: pass` 计数准确却 0 违规。修静默降级前必须逐点区分「裸 `except Exception` 无日志」（违规）与「窄化异常做控制流」（合规），不能按 pattern 计数盲改。
+
 ## 2026-07-02 U8 固件改 PCM 解决音频协议矛盾（BACKLOG-P0-2）
 
 - **背景**：U8 固件 `audio_service.cc` 的麦克风输入走 OPUS 编码后发送，但 `websocket_protocol.cc` 的 hello 帧已声明 `"format":"pcm"`，后端 `device_voice_ws_helpers.py` / `voice_pipeline_ws.py` 均假设 PCM 输入，导致设备实时语音/TTS 无法互通。

@@ -1,5 +1,17 @@
 # LiMa Findings
 
+## 2026-07-02 静默降级审查纠偏：审查报告「16 处」实际一等生产路径仅 4 处（BACKLOG-P1-2）
+
+- **背景**：瘦身审查报告称生产路径有 16 处 `except: pass/continue` 静默降级，点名 `voice_pipeline_ws.py`/`mqtt_client.py`/`store_voiceprint.py` 各 2 处。用 Explore 子代理逐点实地核查。
+- **纠偏结论**：审查的「计数」准确（这些文件确各有 2 处 pure-swallow），但「严重度」错误——被点名的 6 处**全部合规**：
+  - `voice_pipeline_ws.py`：`asyncio.TimeoutError`→continue（队列轮询超时，正常循环）、`asyncio.CancelledError`→pass（关闭时等待已取消 worker）；两处广义 `except Exception`（L123/L131）不是吞——它们 `_send_error` 后 return，worker 广义 handler（L169）有 `warning(exc_info=True)`。
+  - `mqtt_client.py`：`asyncio.CancelledError`→pass（stop 时任务取消，兄弟 `except Exception`（L105）有 warning）、`asyncio.TimeoutError`→pass（消息泵 `wait_for` 超时后 drain，惯用法）；`except ImportError`（L187）不是静默——前面有两条 `_log.info`。
+  - `store_voiceprint.py`：两处 `sqlite3.OperationalError`→pass 均是 schema 迁移幂等（`# column may not exist yet` / `# Column already exists`），有注释；所有广义 `except Exception`（L51/L150/L185/L208）都有 warning。
+- **真正违反 AGENTS.md「禁止静默降级」的一等生产路径 = 4 处**（广义 `except Exception` 裸吞、零日志），本轮已全部修复补日志：
+  - `routing_executor_parallel.py`（并行降级执行器）、`speculative_execution.py`（推测竞速内层 future）、`observability/jsonl_store.py`（读遥测文件）、`provider_automation/adapters/cloudflare.py`（编码评分循环）。
+- **边界项（本轮不改，记录待排期）**：`packages/provider-probe-offline/provider_probe/reverse/auth_detector.py:64`、`pricing_probe.py:74` 各 1 处——冷离线提供商探测工具，不在生产请求路径，风险低。若后续要求「全仓零裸吞」再统一处理。
+- **教训**：修静默降级不能按 grep pattern 计数盲改。窄化异常（`asyncio.TimeoutError`/`sqlite3.OperationalError`/`json.JSONDecodeError`）做控制流是合规的；只有「广义 `except Exception` + 无日志 + 无重抛」才是违规。审查报告的计数可作线索，严重度判定必须逐点复核。
+
 ## 2026-07-02 系统瘦身审查：四维度过度设计诊断 + DEPRECATED 标记误标发现
 
 - **背景**：用户质疑「小程序交互复杂化」+「后端过度设计」。对固件/后端/文档/小程序四维度做了量化审查，确认过度设计系统性存在。详见 `docs/superpowers/specs/2026-07-02-system-slimdown-design.md`。

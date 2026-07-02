@@ -181,7 +181,12 @@ def _spec_race(
             backend = futures[future]
             try:
                 answer = future.result()
-            except Exception:
+            except Exception as exc:
+                # _spec_worker catches and logs all backend failures (warning+exc_info)
+                # then returns ""; reaching here means the future itself raised
+                # (cancellation/executor error). Debug-log to avoid duplicating the
+                # worker's warning on every speculative loss.
+                logger.debug("speculative future for %s raised: %s", backend, exc)
                 continue
             if answer and len(answer.strip()) >= MIN_VALID_LENGTH:
                 winner_backend = backend

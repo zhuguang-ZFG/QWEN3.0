@@ -7,11 +7,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Any
 
 from config import settings
+
+_log = logging.getLogger(__name__)
 
 DEFAULT_MAX_BYTES = 1024 * 1024
 DEFAULT_BACKUP_COUNT = 5
@@ -110,7 +111,8 @@ def read_recent_jsonl_records(
             continue
         try:
             lines.extend(source.read_text(encoding="utf-8").splitlines())
-        except Exception:
+        except (OSError, UnicodeDecodeError) as exc:
+            _log.warning("skipping unreadable telemetry file %s: %s", source, exc)
             continue
 
     records: list[dict[str, Any]] = []
