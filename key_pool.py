@@ -246,7 +246,3 @@ def is_exhausted(provider: str) -> bool:
     if not pool:
         return True
     return pool.get_active_count() == 0
-
-
-def provider_snapshot(provider: str) -> dict:
-    return pool_snapshot(provider)

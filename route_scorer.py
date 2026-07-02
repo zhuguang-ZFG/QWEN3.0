@@ -94,16 +94,6 @@ def stability_score(state: dict | None) -> float:
     return 0.0 if current in TERMINAL_STATES else 0.6
 
 
-def task_fit_score(backend: str, request_type: str, scenario: str = "") -> float:
-    if request_type == "ide":
-        if backend in UNPROVEN_WEB_ADAPTERS:
-            return 0.0
-        return 1.0 if backend in CODING_BACKENDS else 0.7
-    if request_type in ("chat", "chat_fast"):
-        return 1.0 if backend in FAST_CHAT_BACKENDS else 0.7
-    return 0.6
-
-
 def _apply_penalty(
     base_score: float,
     reputation: float,

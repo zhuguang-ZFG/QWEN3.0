@@ -116,33 +116,3 @@ def _fallback_summarize(summaries: list[str]) -> str:
     """Simple fallback: extract key terms from summaries."""
     all_text = " | ".join(s[:50] for s in summaries)
     return all_text[:200]
-
-
-def llm_summarizer_factory(call_fn):
-    """Create an LLM-based summarizer using LiMa's own backends.
-
-    Args:
-        call_fn: async callable(messages) -> str that calls a LiMa backend
-
-    Returns:
-        A synchronous summarizer function for compact_session()
-    """
-    import asyncio
-
-    def summarizer(summaries: list[str]) -> str:
-        prompt = "将以下对话摘要压缩为一句话（中文，不超过100字）：\n" + "\n".join(f"- {s}" for s in summaries)
-        messages = [{"role": "user", "content": prompt}]
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    result = pool.submit(asyncio.run, call_fn(messages)).result()
-            else:
-                result = asyncio.run(call_fn(messages))
-            return result[:200] if result else _fallback_summarize(summaries)
-        except Exception:
-            return _fallback_summarize(summaries)
-
-    return summarizer

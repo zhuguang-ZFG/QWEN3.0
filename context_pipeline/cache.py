@@ -69,24 +69,3 @@ def compute_stable_prefix(ide: str, scenario: str) -> str:
 def compute_prefix_hash(stable_prefix: str) -> str:
     """Hash the stable prefix for cache tracking."""
     return hashlib.sha256(stable_prefix.encode()).hexdigest()[:12]
-
-
-def build_cached_prompt(
-    ide: str,
-    scenario: str,
-    variable_content: str = "",
-) -> tuple[str, str]:
-    """Build prompt with stable prefix + variable suffix.
-
-    Returns (full_prompt, prefix_hash) for cache tracking.
-    """
-    stable = compute_stable_prefix(ide, scenario)
-    prefix_hash = compute_prefix_hash(stable)
-    _metrics.record(prefix_hash)
-
-    if variable_content:
-        full = stable + "\n\n" + variable_content
-    else:
-        full = stable
-
-    return full, prefix_hash

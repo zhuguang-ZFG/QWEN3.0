@@ -63,17 +63,6 @@ def get_lessons(session_id: str, domain: str = "") -> list[Lesson]:
     return lessons
 
 
-def apply_lesson(session_id: str, domain: str) -> Lesson | None:
-    """Find and mark a lesson as applied. Returns the most relevant lesson."""
-    lessons = get_lessons(session_id, domain=domain)
-    if not lessons:
-        return None
-    lesson = lessons[-1]
-    lesson.times_applied += 1
-    _save_lessons(session_id, get_lessons(session_id))
-    return lesson
-
-
 def get_routing_lessons(session_id: str) -> list[Lesson]:
     """Get lessons specifically about routing failures."""
     return get_lessons(session_id, domain="routing")

@@ -169,3 +169,35 @@
 - `external_enrichment/providers/nager_date.py` 与 `open_meteo.py` 方法体仅返回硬编码 mock（`# TODO: Actual API call would go here`）。
 - 确认：两文件被 `tests/test_external_enrichment.py` 明确用作离线测试 mock（docstring 标注 "offline tests with mock"）。
 - 结论：保留，不为瘦身删除测试依赖。真实 API 接入留待功能驱动时再做（YAGNI）。
+
+## 2026-07-02 CodeGraph 死函数复审（13 个候选）
+
+> 候选来自瘦身审查「疑似 0 调用点函数」清单。用 CodeGraph `edges.target` fan-in + 全库 grep 双重确认。
+
+### 删除（12 个，CodeGraph fan-in=0 且 grep 全库无调用点、无装饰器、无同文件引用）
+
+| 文件:行 | 函数 | 说明 |
+|---------|------|------|
+| token_health.py:110 | `alert_expired_tokens` | 疑似未接 cron，无调用方 |
+| model_registry.py:108 | `get_active` | 与 key_pool.get_active_count 名字近但无关联 |
+| backends_registry/__init__.py:85 | `get_backend` | 与 health_state.get_backend_* 名字近但无关联 |
+| device_gateway/mqtt_client.py:34 | `is_mqtt_enabled` | 调用方直接读 DEVICE.mqtt_enabled |
+| device_gateway/mqtt_client.py:46 | `mqtt_send_to_device` | async 投递函数，无调用方 |
+| context_pipeline/cache.py:74 | `build_cached_prompt` | 仅改 _metrics 统计，无调用方 |
+| route_scorer.py:97 | `task_fit_score` | 编码退役后纯函数无调用方 |
+| user_identity/lessons.py:66 | `apply_lesson` | 有文件写副作用但无任何调用方 |
+| context_compressor.py:165 | `estimate_context_usage` | 纯计算，无调用方 |
+| session_memory/compactor.py:121 | `llm_summarizer_factory` | 工厂函数，无注入式调用方 |
+| channel_retirement.py:17 | `is_retired_route_path` | 纯函数，无调用方 |
+| key_pool.py:251 | `provider_snapshot` | 委托 pool_snapshot，无调用方（与 provider_automation/snapshot_store 模块名近但无关联） |
+
+### 保留（1 个）
+
+| 文件:行 | 函数 | 保留原因 |
+|---------|------|----------|
+| observability/prometheus_metrics.py:199 | `record_backend_error` | 有测试覆盖（test_observability_metrics.py:90），疑似预留 prometheus 调度入口，YAGNI 保守保留 |
+
+### 验证
+- ruff check 11 个文件 clean
+- check_code_size PASS
+- 聚焦测试 64 passed（test_token_health/test_model_registry/test_backend_registry/test_route_scorer/test_channel_retirement/test_key_pool）

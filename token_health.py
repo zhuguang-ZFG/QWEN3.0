@@ -105,20 +105,3 @@ def save_token_status(results: list[dict]) -> None:
                 )
     except Exception as exc:
         logger.warning("Failed to save token health: %s", exc)
-
-
-def alert_expired_tokens() -> None:
-    """Log expired tokens for operator follow-up."""
-    expired = get_expired_tokens()
-    if not expired:
-        return
-
-    names = [r["backend"] for r in expired]
-    message = f"Token expired: {', '.join(names[:5])}"
-    if len(names) > 5:
-        message += f" (+{len(names) - 5} more)"
-
-    for r in expired:
-        logger.warning("token expired backend=%s", r["backend"])
-
-    logger.warning("Expired tokens: %s", message)

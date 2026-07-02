@@ -160,26 +160,3 @@ def _compress_with_summary(messages: list[dict], keep_count: int) -> list[dict]:
     compressed = [{"role": "system", "content": summary}] + recent
     _log.info("Compressed %d→%d messages (saved %d tokens)", len(messages), len(compressed), early_tokens)
     return compressed
-
-
-def estimate_context_usage(messages: list[dict], system_prompt: str = "") -> dict:
-    """Estimate current context usage for monitoring."""
-    tokens = estimate_tokens(system_prompt)
-    per_msg = []
-    for i, m in enumerate(messages):
-        content = m.get("content", "")
-        if isinstance(content, str):
-            t = estimate_tokens(content)
-        elif isinstance(content, list):
-            t = sum(estimate_tokens(str(b.get("text", ""))) for b in content if isinstance(b, dict))
-        else:
-            t = 0
-        tokens += t
-        per_msg.append({"index": i, "role": m.get("role", "?"), "tokens": t})
-
-    return {
-        "total_tokens": tokens,
-        "total_chars": tokens * CHARS_PER_TOKEN,
-        "message_count": len(messages),
-        "per_message": per_msg,
-    }

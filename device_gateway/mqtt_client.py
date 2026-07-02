@@ -31,26 +31,12 @@ _main_loop: Optional[asyncio.AbstractEventLoop] = None
 _mqtt_loop_task: Optional[asyncio.Task] = None
 
 
-def is_mqtt_enabled() -> bool:
-    return DEVICE.mqtt_enabled
-
-
 def get_broker_config() -> dict:
     return {
         "broker": DEVICE.mqtt_broker,
         "port": DEVICE.mqtt_port,
         "client_id": DEVICE.mqtt_client_id,
     }
-
-
-async def mqtt_send_to_device(device_id: str, message: dict) -> bool:
-    """Queue a message for delivery to an MQTT-connected device."""
-    queue = _mqtt_devices.get(device_id)
-    if queue is None:
-        _log.debug("MQTT device %s not connected", device_id)
-        return False
-    await queue.put(message)
-    return True
 
 
 def register_mqtt_device(device_id: str) -> asyncio.Queue[dict]:

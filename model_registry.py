@@ -105,20 +105,6 @@ def register(
     return record
 
 
-def get_active() -> dict | None:
-    """
-    返回当前激活的模型记录。
-
-    Returns:
-        active=True 的 ModelRecord，无则返回 None
-    """
-    data = _load()
-    for record in data["versions"]:
-        if record.get("active", False):
-            return record
-    return None
-
-
 def _find_version_record(data: dict, version: str) -> dict | None:
     """Return the registry record matching *version*, or None."""
     for record in data["versions"]:
