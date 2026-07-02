@@ -15,11 +15,12 @@ from device_gateway.redis_store_helpers import (
     encode_redis_json,
 )
 from device_gateway.store_utils import DeviceStoreBase
+from device_gateway.redis_store_recover import RedisStoreRecoverMixin
 
 _log = logging.getLogger(__name__)
 
 
-class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
+class RedisDeviceTaskStore(RedisStoreHelpers, RedisStoreRecoverMixin, DeviceStoreBase):
     backend_name = "redis"
     shared_across_processes = True
 
@@ -248,51 +249,3 @@ class RedisDeviceTaskStore(RedisStoreHelpers, DeviceStoreBase):
                 ),
             )
         return removed
-
-    def recover_stale_processing(self, device_id: str, timeout_sec: float = 120.0) -> int:
-        """Re-queue tasks stuck in processing queue for longer than timeout_sec.
-
-        Returns count of tasks re-queued. Call periodically from a background
-        task or health check to recover from process crashes.
-        """
-        proc_key = self._processing_key(device_id)
-        pending_key = self._queue_key(device_id)
-        now = self._redis.time()[0]  # Redis server time in seconds
-        count = 0
-        # Peek all processing items
-        items = self._redis.lrange(proc_key, 0, -1)
-        for item in items:
-            try:
-                data = decode_redis_json(item)
-                task_id = data.get("task_id", "")
-                state = self._read_task_state(task_id)
-                processing_started_at = 0
-                if state:
-                    processing_started_at = float(state.get("processing_started_at") or 0)
-                processing_started_at = processing_started_at or float(
-                    data.get("_processing_at") or data.get("_enqueued_at") or 0
-                )
-                if processing_started_at > 0 and now - processing_started_at > timeout_sec:
-                    # Atomically move from processing back to pending
-                    removed = self._redis.lrem(proc_key, 0, item)
-                    if removed:
-                        self._redis.lpush(pending_key, item)
-                        self._ensure_queue_ttl(device_id)
-                        if state:
-                            # AUDIT-9-S4: CAS-protected status update.
-                            self._cas_update(
-                                task_id,
-                                lambda s: (
-                                    s.__setitem__("status", "queued"),
-                                    s.pop("processing_started_at", None),
-                                ),
-                            )
-                        count += 1
-            except Exception as exc:
-                _log.warning(
-                    "recover_stale_processing device=%s: failed to recover item: %s",
-                    device_id,
-                    exc,
-                )
-                continue
-        return count
