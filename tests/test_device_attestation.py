@@ -3,19 +3,15 @@
 from __future__ import annotations
 
 import json
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import WebSocket
 
 from device_gateway.attestation import (
-    AttestationResult,
     AttestationVerifier,
     compute_firmware_hash,
-    verifier as attestation_verifier,
 )
-from device_gateway.protocol import attestation_failed_frame, attestation_warning_frame
 from device_gateway.sessions import DeviceSession
 from routes import device_ota
 from routes import device_gateway_ws_handlers as handlers

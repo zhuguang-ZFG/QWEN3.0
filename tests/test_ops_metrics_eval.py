@@ -1,17 +1,9 @@
 """Ops eval approve/apply tests."""
 
-import builtins
-import importlib
-import threading
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import pytest
 
-import server
 from routes.ops_metrics import router
-
-from ops_metrics_helpers import reload_prometheus_metrics
 
 
 def test_eval_approve_marks_candidate_manual_approved(monkeypatch, tmp_path):

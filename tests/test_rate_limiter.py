@@ -1,14 +1,11 @@
 """Tests for rate_limiter.py — sliding-window IP rate limiter."""
 
-import time
-
 from rate_limiter import (
     check_rate_limit,
     check_keyed_rate_limit,
     get_usage,
     reset,
     _requests,
-    _keyed_requests,
 )
 
 

@@ -1,13 +1,10 @@
 """ProviderModelEntry tests."""
 
-import pytest
-
 from provider_automation.catalog import (
     ModelAdmissionStatus,
     ProbeLevel,
     ProviderModelEntry,
 )
-from provider_automation_helpers import entry
 
 
 def test_model_entry_key():

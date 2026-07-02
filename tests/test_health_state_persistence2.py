@@ -1,10 +1,6 @@
 """Additional tests for health_state.py — save/load/on_change."""
 
-import os
-import tempfile
-from unittest.mock import patch
-
-from health_state import reset_all_state, _health_map, _cooldown_states
+from health_state import reset_all_state, _health_map
 from health_state import save_health_state, load_health_state, save_on_change
 
 

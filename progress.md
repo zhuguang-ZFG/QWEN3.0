@@ -2,6 +2,32 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 K 批次完成（测试侧 mixed 桶 10 文件 39 个真死 imported-name 逐文件清理）
+
+- **范围**：继 G1b 测试侧 F401 STYPE_CLEAN 全过清理后，本批推进 mixed 桶 —— 即单文件内同时含 port-target 保留名 + domain 死名的混合型，需逐名判定。审计 agent 报告 mixed 桶 10 文件 / 39 imported-name，但 agent 归桶不可全信（fake_u1_cloud 4 文件的 `fake_device_server`/`fake_u1`/`lima_client` 被其归为「domain dead」实则是 G1b 已记录的 pytest fixture 字符串匹配注入 (d) 型态 —— 在测试函数签名作为参数名出现的 fixture，pytest 收集期注入、ruff 看不见，删了会 18 ERROR 复现）。**本批改用每文件 Read+grep 亲自验证每个 imported-name 的真实使用**，最终锁定 10 文件 / 39 个真死 + 2 个补漏（test_device_attestation.py 的 `os` 与 `verifier as attestation_verifier`）：  - 注：`attestation_verifier` 字符串出现在 `monkeypatch.setattr(handlers, "attestation_verifier", ...)` 但这是属性名字符串而非模块别名引用，handlers 自己有该 attr，本文件 import 不被引用，删安全。
+- **逐文件结果**：
+  - `test_chat_ide_golden_path.py`：删 `asyncio/json/ChatRequest/Message`（保留 `tempfile/Path/pytest` + `@pytest.fixture`）
+  - `test_device_attestation.py`：删 `AttestationResult`、`attestation_failed_frame`、`attestation_warning_frame`、`os`、`verifier as attestation_verifier`（共 5 — 比 plan 多 2 个补漏）
+  - `test_health_state_persistence2.py`：删 `os/tempfile/patch/_cooldown_states`（4）
+  - `test_ops_metrics_backends.py` / `test_ops_metrics_eval.py` / `test_ops_metrics_payload.py` 三文件同模式删 `builtins/importlib/threading/pytest/server/reload_prometheus_metrics`（共 18）
+  - `test_provider_automation_model_entry.py`：删 `pytest`，删 `from provider_automation_helpers import entry` —— 因文件内 `entry = ProviderModelEntry(...)` 局部变量 100% 遮蔽 import 模块，从未引用模块，属「局部变量遮蔽 import」新形态（2）
+  - `test_provider_automation_snapshot_store.py`：删 `pytest` + `entry`（2）
+  - `test_rate_limiter.py`：删 `time` + `_keyed_requests`（2）
+  - `test_routes_admin_api.py`：删 `MagicMock` + `admin_auth`（2，保留 `patch`/`@pytest.fixture`/`json` 等活跃名）
+  - 合计 39 个真死 imported-name 删除（37 plan + 2 补漏）
+- **不动文件**：fake_u1_cloud 4 文件 + test_device_app_sharing 2 文件 = 共 6 文件的「domain dead」bucket — 它们实为 (d) pytest fixture 字符串匹配注入型态，删了会复现 18 ERROR，留待 K2 批（或永久保留 `# noqa: F401` 自豁免）。
+
+### 门禁结果
+
+| 门 | 结果 |
+|---|---|
+| focused pytest（10 修改文件） | 78 passed, 0 ERROR / 0 fail（明确证明 fixture 注入 + @pytest.mark 都未被误删）|
+| full pytest | 4428 passed, 3 skipped, 2 deselected（不变，删死代码不动运行时）|
+| ruff check --select F401（10 文件）| 0 报告 |
+| ruff check + format | clean |
+| check_code_size.py | PASS |
+| pyright（10 文件） | 0 errors |
+
 ## 2026-07-03 深度瘦身 J 批次完成（唤醒词握手层抽离到 accept_websocket_upgrade 纯函数）
 
 - **范围**：继 I 批次把 `TestRuntimeHandler` 闭包类抽到模块级 `build_handler_class` 工厂后，本批进一步把 `_handle_websocket` 内紧耦合到 `SimpleHTTPRequestHandler` 实例 API 的 RFC6455 握手协议（Upgrade 头校验 → send_error / Sec-WebSocket-Key 校验 → compute_accept → 101 + 3 响应头 → end_headers）抽到模块级 `accept_websocket_upgrade(handler) -> tuple[Any, Any] | None` 纯函数接缝。`_handle_websocket` 收缩到 ~9 行「调 accept → None 则 return → 委托 websocket_session」三行接缝。同时兑现 I 批次 plan 遗留：补一个 Sec-WebSocket-Version 不校验的契约特征化测试。

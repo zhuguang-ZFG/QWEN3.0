@@ -18,7 +18,7 @@
 | `wakeword_runtime/runtime/bridge_request_handler.py:3` | 3 | 桥接请求处理纯函数模块；上限：顶层 `save_wakeword_config: Any = None` 属性而非 from-import（避 importlib 无父包相对导入失败）；测试必须改本属性才生效 | 生产代码也走同一 `_resolve_save()` 通路；测试与生产等价 | bridge 内部状态机复杂化时改为依赖注入 |
 | `wakeword_runtime/runtime/websocket_session.py:3` | 3 | WebSocket 会话主循环纯函数；上限：仅覆盖 greeting + 双向消息循环，未做 per-message 流控/背压/重试 | 单一无流控循环，性能足够唤醒词 runtime 低带宽场景 | 需更复杂流控或背压时换用 wsproto frame iterator + asyncio queue |
 | `wakeword_runtime/runtime/http_server.py:35` | 35 | `accept_websocket_upgrade` RFC6455 握手协议接缝函数；上限：仅校验 Upgrade + Sec-WebSocket-Key，不校验 Sec-WebSocket-Version / Origin | 仅两步校验，不兼容未来 RFC6455 严合规或浏览器 origin 白名单需求 | 需版本协商/origin 校验时换用 wsproto handshake |
-| `ruff.toml` | — | F401 未加入全局门禁，仅豁免已知 re-export 文件 | ~115 个生产 F401 残留为整洁度噪音 | F1 批次已清理生产侧 91 真死导入（+ 17 numpy 保留 re-export）；剩余仅测试侧 ~202 处，逐文件人工核对后启用 F401 门禁 |
+| `ruff.toml` | — | F401 未加入全局门禁，仅豁免已知 re-export 文件 | ~115 个生产 F401 残留为整洁度噪音 | F1 批次已清生产侧 91 真死导入（+ 17 numpy 保留 re-export）；G1b 删测试侧 84 处 STYPE_CLEAN；K 批删测试侧 mixed 桶 10 文件 39 真死；测试侧剩 ~102 处（其中 ~6 文件 fixture (d) 注入需 `# noqa: F401` 自豁免），逐文件人工核对后启用 F401 门禁 |
 
 ## 待处理项
 

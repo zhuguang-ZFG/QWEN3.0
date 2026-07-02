@@ -1,17 +1,9 @@
 """Ops metrics payload and telemetry snapshots."""
 
-import builtins
-import importlib
-import threading
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import pytest
 
-import server
 from routes.ops_metrics import router
-
-from ops_metrics_helpers import reload_prometheus_metrics
 
 
 def test_ops_metrics_includes_learning_loop_stats(monkeypatch):

@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import json
 import threading
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routes import admin_api
-from routes import admin_auth
 from routes import admin_state
 
 

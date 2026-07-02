@@ -2,8 +2,6 @@
 
 import os
 
-import pytest
-
 from provider_automation.catalog import ProviderModelEntry, ProviderModelSnapshot
 from provider_automation.snapshot_store import (
     count_snapshots,
@@ -13,7 +11,6 @@ from provider_automation.snapshot_store import (
     reset_snapshots,
     save_snapshot,
 )
-from provider_automation_helpers import entry
 
 
 def test_save_and_load_snapshot(tmp_path, monkeypatch):
