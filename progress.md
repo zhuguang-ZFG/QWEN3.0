@@ -1,5 +1,32 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-02 GitHub 参考项目实测核实 + 文档更新
+
+- **背景**：项目文档 `docs/superpowers/plans/LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 附录中收录了 30+ 个 GitHub 参考项目，星数和活跃度数据写于 2026-06-24，用户要求重新到 GitHub 核实。
+- **核实方式**：逐个用浏览器访问 GitHub 仓库页面，提取实时星数、最后提交时间、是否归档。
+- **核实结果**：
+  - **核心参考全部真实活跃**：LiteLLM 52.3k（原标 20k+，今日仍在更新）、Ponytail 70.8k（昨日更新）、FluidNC 2.5k（上月更新）、Semantic Router 3.7k（原标 2k+）、vpype 917（原标 500+）、bCNC 1.7k（原标 1.5k+）、eventsourcing 1.7k（原标 1.5k+）。
+  - **5 个项目已死或低价值**，已附替代推荐：
+    - `IoTThinks/esp32FOTA`（1 星，2021 停更）→ 替代 [espressif/esp_https_ota](https://github.com/espressif/esp-idf/tree/master/components/esp_https_ota)
+    - `barfittc/gcode-optimizer`（0 星，2023 停更）→ 替代 vpype 的 `optimize` 命令
+    - `DrivenIdeaLab/openstatus`（0 星，URL 可能有误）→ 替代 [upstash/openstatus](https://github.com/upstash/openstatus)
+    - `PufferFinance/rave`（35 星，SGX 场景不匹配）→ 替代 ESP-IDF Secure Boot v2 官方实现
+    - `SebKuzminsky/svg2gcode`（25 星，功能简单）→ 替代 vpype 的 SVG→GCode 管道
+  - 其余项目（esp_ghota 446 星、GRBL-Plotter 865 星、BrachioGraph 745 星、ModelCache 941 星、GPTCache 8.1k 星、THiNX 24 星但活跃）均真实存在，已更新精确星数和活跃度标记。
+- **文档更新**：`docs/superpowers/plans/LiMa_QWEN3_系统增强细化方案_v3_20260624.md` 附录 A.1–A.9 共 19 处编辑——更新星数、添加活跃度标记（🟢/🟡/🔴）、为 5 个死掉/低价值项目添加替代推荐、末尾添加核实说明。
+- **教训**：文档中的第三方项目数据会随时间漂移，星数只增不减但活跃度会变化。建议每季度核实一次参考项目清单，及时标记死链和替代推荐。
+
+## 2026-07-02 全量门禁 + 京东云生产部署 + 公网冒烟验证
+
+- **本地全量门禁**：`scripts/run_pre_commit_check.py --full` → **4278 passed, 3 skipped, 2 deselected**；ruff check clean。（测试数较上次 4285 少 7 个，因小程序 UI 重构删除了死鉴权端点相关测试。）
+- **VPS 部署**：`deploy_unified.py --target jdcloud --slice core` → 883 文件上传，0 失败。tar/scp 因 SSH key 认证失败自动回退 SFTP（密码认证）成功。备份 `/opt/lima-router/backups/unified-core-20260702_141038/runtime-before.tgz`。服务重启健康检查 OK。
+- **公网冒烟验证**：
+  - `GET /health` → `{"status":"ok","version":"2.0","model":"lima-1.3","startup":{"status":"ready"}}` ✅
+  - `GET /health/ready` → `{"status":"ready","startup_status":"ready","pending_warm":[],"error_count":0}` ✅
+  - `POST /v1/chat/completions`（匿名）→ 200，后端 `cfai_qwen_coder`，记忆召回 `memory_ids:[33,7]` ✅
+  - `/device/v1/app/voice/ticket` → 405（GET 不支持，端点可达）✅
+- **结论**：最新代码（含小程序 UI 重构、静默降级修复、retired 代码清理、deploy_unified 京东云支持）已部署到京东云生产节点并验证通过。
+
 ## 2026-07-02 小程序 UI 深度重构（BACKLOG-P2-1）
 
 - **背景**：瘦身审查报告三项 UI 指控，逐项核实后真伪分明，按「真问题改、伪指控纠偏」执行。

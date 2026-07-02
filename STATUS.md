@@ -10,7 +10,7 @@
 > Updated: 2026-07-02
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4285 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
+> Tests: 全量 **4278 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。
 > 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout` 与 `httpx2`，pytest warnings 已清零。
 > 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
 > ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **67%**（40G 中 25G 已用，释放约 5G），`litestream` 已纳入 systemd 管理并设置 `MemoryMax=512M`，内存可用约 420M~850M（随负载波动），load average 4~5。京东云节点已完成深度清理（磁盘 33% → **30%**，59G 中 17G 已用，释放约 2G）。登录超时风险显著降低。
@@ -20,6 +20,12 @@
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+
+### 最近完成（2026-07-02）全量门禁 + 京东云生产部署 + 公网冒烟验证
+
+- **本地全量门禁**：`run_pre_commit_check.py --full` → 4278 passed / 3 skipped / 2 deselected；ruff clean。
+- **VPS 部署**：`deploy_unified.py --target jdcloud --slice core` → 883 文件上传 / 0 失败。tar/scp 回退 SFTP 成功。服务重启 Health OK。
+- **公网冒烟**：`/health` ok ✅、`/health/ready` ready ✅、`POST /v1/chat/completions`（匿名）→ 200 `cfai_qwen_coder` + 记忆召回 ✅、`/device/v1/app/voice/ticket` → 405 端点可达 ✅。
 
 ### 最近完成（2026-07-02）语音端点部署到京东云主生产节点
 
