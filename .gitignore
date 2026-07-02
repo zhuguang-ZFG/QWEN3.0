@@ -378,3 +378,10 @@ test_ws*.py
 .guardian/
 ARCHITECTURE_KNOWLEDGE.md
 .worktrees/
+
+# === Agent tooling artifacts (auto-generated, not source) ===
+.omk/
+.hypothesis/
+
+# === Temp CI logs ===
+.tmp_ci_*.log

@@ -2,6 +2,36 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-02 深度清理：未跟踪源文件入库 + .gitignore 补全 + 临时文件清理
+
+### 执行内容
+
+1. **恢复未跟踪但被引用的源文件**：
+   - `xiaozhi_drawing/pipeline.py` — 从 `__pycache__/*.pyc` bytecode 重建；绘图管道架构（PipelineConfig / PipelineContext / 5 阶段）
+   - `xiaozhi_drawing/hershey_font.py` — Hershey 单笔画字体渲染器，从 bytecode 签名 + 测试契约重建
+   - `xiaozhi_drawing/hershey_font_data.py` — 85 字符的 GLYPHS 字典，从 .pyc 导出为 JSON 并改为运行时加载（.py 仅 22 行）
+   - `xiaozhi_drawing/hershey_font_data.json` — 字体数据 JSON 文件
+
+2. **.gitignore 补全**：
+   - 新增 `.omk/`、`.hypothesis/`（Agent 工具产物，2685 文件 / 1MB）
+   - 新增 `.tmp_ci_*.log`（临时 CI 日志模式）
+   - 清理已存在的 `.tmp_ci_after_fix.log`、`.tmp_ci_repro.log`、`.coverage`
+
+3. **归档文件入库**：
+   - `docs/archive/progress-2026-06.md` — progress.md 截断迁移的历史归档
+   - `docs/archive/status-log-2026-06.md` — STATUS.md 截断迁移的历史归档
+
+4. **F401 评估结论**：
+   - ruff F401（未使用导入）全局扫描发现 330 个；自动修复导致 85 个测试收集错误
+   - 原因：代码库大量使用 re-export 模式（facade 模块导入后供其他模块引用）
+   - 结论：F401 需逐文件手动审查，不适合自动批量修复；保持当前 ruff select 不含 F401
+
+### 验证
+
+- `pytest --tb=short -q` → **4391 passed, 3 skipped, 0 failed**
+- `ruff check .` → All checks passed
+- `scripts/check_code_size.py` → PASS
+
 ## 2026-07-02 瘦身计划 P0-1/P0-5/P1-11 批量清理
 
 ### 背景
