@@ -2,6 +2,32 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-02 代码尺寸门禁清零 + 小程序死页面清理
+
+### 背景
+
+`check_code_size.py` 报告 2 个文件超过 300 行（`test_drawing_pipeline.py` 366 行、`test_deploy_unified.py` 304 行），且小程序中残留已退役的 mine.vue 页面和 4 个未引用的语言文件。
+
+### 改动
+
+1. **拆分 `test_drawing_pipeline.py`（366→293 行）**：将 `TestRunPipeline` 端到端测试拆到 `test_drawing_pipeline_e2e.py`（105 行），原文件保留 stage 独立测试。
+2. **拆分 `test_deploy_unified.py`（304→183 行）**：将 6 个 mock 类提取到 `tests/_deploy_mocks.py`（126 行），消除重复 setup 代码。
+3. **删除 4 个残留语言文件**：`de.ts`/`vi.ts`/`pt_BR.ts`/`zh_TW.ts`（已在上一轮从 import 移除但物理文件残留，共 ~117K）。
+4. **删除 mine.vue 死页面**：功能已完全被 settings 吸收（退出登录、声纹、关于），tabbar 已无 mine 入口；从 `pages.json` 移除注册，清理 `tabBar.mine` i18n 键。
+5. **小程序 P2 瘦身变更入库**：4 个 composables（useServerUrl/useCacheManager/useNotifications/useAccountDeletion）、tabbar 5→3、alova.ts langMap 裁剪等。
+
+### 验证
+
+- `check_code_size.py`：**0 个 >300 行文件、0 个 >50 行函数**（首次全绿）
+- 全量 pytest：**4391 passed / 3 skipped / 2 deselected / 0 failed**
+- `ruff check` clean；pre-commit 全绿
+- `vue-tsc --noEmit` 0 errors
+
+### Git
+
+- 子模块 `esp32S_XYZ`：`db1a118..3381e19`（19 files, +423/-2796）
+- 根仓库：`55d135ca..7ca69fe4`（测试拆分 + 子模块指针）
+
 ## 2026-07-02 系统瘦身 P2-17/18：小程序 UI 合并完成
 
 ### P2-18: 合并 3 个首页 → tabbar 5→3（已完成）
