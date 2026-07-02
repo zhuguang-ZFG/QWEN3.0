@@ -1,4 +1,8 @@
-"""Telegram Bot integration for LiMa gallery storage."""
+"""Telegram Bot integration for LiMa gallery storage.
+
+DEPRECATED (notification channel retired 2026-06): Only gallery image storage
+remains active. See client.py for details.
+"""
 
 from .client import (
     TelegramBotClient,

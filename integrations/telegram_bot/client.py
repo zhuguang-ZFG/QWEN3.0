@@ -1,5 +1,10 @@
 """Async Telegram Bot API client for image storage.
 
+DEPRECATED (notification channel retired 2026-06): Telegram Bot API is no longer
+used for outbound notifications. This module survives solely as the gallery image
+storage backend (see routes/device_app_gallery.py). Do NOT add new notification
+features here; migrate gallery storage to a proper object store when feasible.
+
 Used by the device app gallery to avoid storing images on the LiMa server.
 Only file IDs and metadata are kept locally; actual image bytes live on
 Telegram's servers.
