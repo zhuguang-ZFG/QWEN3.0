@@ -1,5 +1,16 @@
 # Personal Coding Assistant Progress
 
+## 2026-07-02 retired 文件删除 + 冗余 Cursor rules 清理（BACKLOG-P1-3/P1-4）
+
+- **BACKLOG-P1-3 删除退役代码**：`docs/archive/retired/` 下 7 个 Gitee 镜像/双推退役文件（`gitee_mirror*.py`、`gitee_mirror_urls.py`、`push_dual_remotes.{ps1,py,sh}`、`test_gitee_mirror.py`）。全仓 grep 确认**零引用**，Gitee 镜像已彻底退役，git 历史可恢复。代码文件不应残留在 `docs/` 树，直接 `git rm` 删除（含 `__pycache__` 物理清理）。
+- **BACKLOG-P1-4 agent 配置树纠偏**：审查报告称「8 棵树 / ~9300 行 / Ponytail 重复 6 处」。逐树核实后**纠偏**：
+  - 8 棵树中 **5 棵被 `.gitignore` 忽略不入库**（`.agent`、`.claude`、`.kimi-code`、`.continue`、`andrej-karpathy-skills`）——本地 IDE 私有副本，重复无害，无需处理。
+  - 入库的 agent 树仅 `.cursor`（2 rules）、`.joycode`（2 memory）、`skills`（14）、`AGENTS.md`、`CLAUDE.md`。
+  - 真正可统一项仅 `.cursor/rules/` 两份：`ponytail.mdc`（与 `docs/AGENTS_PONYTAIL.md`，被 `AGENTS.md` 引用为权威源）重复、`ecc-workflow.mdc`（与 `docs/ECC_WORKFLOW_CN.md`，被 `AGENTS.md` 引用）重复。两份均 `alwaysApply: true`，删后 Cursor 失去自动注入但 `AGENTS.md` 仍是权威源。
+  - 删除 `.cursor/rules/ponytail.mdc` + `ecc-workflow.mdc`，保留 `.cursor/rules/lima-*.mdc`（未入库的本地 Cursor 私有 rules）不动。
+- **验证**：`ruff check .` + `scripts/check_code_size.py` 全通过；删除项不影响测试（`docs/`、`.cursor/rules` 不在 import 路径）。
+- **教训**：审查「8 棵树 / 9300 行 / 重复 6 处」口径来自把「被 gitignore 的本地私有配置」也计入重复——合并前必须区分「入库」与「本地工具私有」，否则会去清理一堆本就不该入库的副本。
+
 ## 2026-07-02 code-review 修复 + 静默降级修复（BACKLOG-P1-2/P1-1）
 
 - **code-review 死导入清理**：`DeployTarget` 重构（P0-1）留下 9 处死导入/重定义（`shlex`、`time`×2、重复 `from config import deploy_config`×2、`CORE_FILES`、`DEFAULT_MIN_FREE_MB`、`DEFAULT_MIN_MEM_MB`、未用 `deploy_config`×2）。这些因 `ruff.toml` 只 select `E9/F821/...` 不含 `F401`/`F811` 而漏过 pre-commit。已全部移除，提交 `refactor(deploy): remove dead imports left by DeployTarget refactor`（`7b2b7140`）。

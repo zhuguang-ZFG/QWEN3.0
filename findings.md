@@ -1,5 +1,15 @@
 # LiMa Findings
 
+## 2026-07-02 agent 配置树合并纠偏：审查「8 棵树 9300 行重复」多数被 gitignore 不入库（BACKLOG-P1-4）
+
+- **背景**：瘦身审查报告称「~9300 行 agent 指令跨 8 棵配置树（`.agent`/`.claude`/`.kimi-code`/`.cursor`/`.joycode`/`andrej-karpathy-skills`/根），Ponytail 规则重复 6 处」，建议合并。
+- **纠偏结论**：8 棵树中 **5 棵被 `.gitignore` 忽略、不入库**（`.agent`=行361、`.claude`=行130、`.kimi-code`=行28、`.continue`=行363、`andrej-karpathy-skills`=行47）——这些是各 IDE/Agent 工具的**本地私有配置**，重复是工具生态正常现象，不应也不能「合并」。
+- **真正入库的 agent 树**仅 5 个：`.cursor`(2 rules)、`.joycode`(2 memory)、`skills`(14)、`AGENTS.md`、`CLAUDE.md`。其中真正冗余的只有 `.cursor/rules/` 两份：
+  - `ponytail.mdc`（`alwaysApply:true`）与 `docs/AGENTS_PONYTAIL.md`（被 `AGENTS.md` 引用为权威 Ponytail 顾问规则源）内容重复。
+  - `ecc-workflow.mdc`（`alwaysApply:true`）与 `docs/ECC_WORKFLOW_CN.md`（被 `AGENTS.md` 引用为权威 ECC 流程源）内容重复。
+- **处置**：删除 `.cursor/rules/ponytail.mdc` + `ecc-workflow.mdc`，`AGENTS.md` 保持单一权威源；保留 `.cursor/rules/lima-*.mdc`（未入库的本地 Cursor 私有 rules，不影响入库面）。
+- **教训**：审查把「本地工具私有配置」也算入「跨树重复」是口径错误。合并前必须 `git ls-files <tree>` 区分入库与本地私有——后者重复无害、前者才是可统一项。
+
 ## 2026-07-02 静默降级审查纠偏：审查报告「16 处」实际一等生产路径仅 4 处（BACKLOG-P1-2）
 
 - **背景**：瘦身审查报告称生产路径有 16 处 `except: pass/continue` 静默降级，点名 `voice_pipeline_ws.py`/`mqtt_client.py`/`store_voiceprint.py` 各 2 处。用 Explore 子代理逐点实地核查。
