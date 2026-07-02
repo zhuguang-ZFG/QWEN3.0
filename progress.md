@@ -511,3 +511,29 @@
   - `https://app.donglicao.com/` 与 `https://www.donglicao.com/developer/playground/` 均包含 `aliyun.donglicao.com` 相关引用。
   - `https://chat.donglicao.com/mobile/index.html` 返回 H5 入口，资源路径以 `/mobile/assets/` 开头。
   - `/health`、`/v1/chat/completions` 仍正常。
+
+## 2026-07-02 深度瘦身 E1-E5 批次完成（低风险高收益）
+
+- **计划基线**：`docs/superpowers/specs/2026-07-02-system-slimdown-design.md`。采用「低风险高收益」范围 + 恢复 30-50 行缓冲，逐批 TDD 执行并在每批后跑 focused → full 门禁。
+- **E1 归档**：
+  - `findings.md` 3204 行 → 拆分为主体指针 + 两个归档档（`docs/archive/findings-2026-06-CN.md` ~2300 行、`docs/archive/findings-2026-06-audit-CN.md` ~750 行），主文 171 行仅留指针。
+  - 7 个已落地 specs `git mv` 至 `docs/archive/superpowers-specs-2026-06/`。
+  - `scripts/archive/openclaw_retired/` 7 个文件 `git rm`。
+- **E2 测试合并**：`test_route_result_dataclass.py` 并入 `test_route_result.py`（~124 行，统一 base_result fixture）；`test_routing_engine_trace_spans.py` 并入 `test_routing_engine_trace.py`（~94 行）。
+- **E3 死函数删除**：CodeGraph fan-in + ripgrep 复审 13 候选 → 12 个 0-fan-in / 0-grep / 无装饰器 / 无同文件引用 → AST 删除（保留有测试的 `record_backend_error`）。删除项：`alert_expired_tokens`、`get_active`、`backends_registry/__init__.get_backend`、`is_mqtt_enabled`、`mqtt_send_to_device`、`build_cached_prompt`、`task_fit_score`、`apply_lesson`、`estimate_context_usage`、`llm_summarizer_factory`、`is_retired_route_path`、`provider_snapshot`。
+- **E4 贴顶文件拆分（6 个）**：所有新子模块统一用「父模块懒属性」模式（`import parent_module as _m; _m.SYM` 于函数体内调用而非导入期绑定），保证 `patch.object(parent_module, …)` / `monkeypatch.setattr(parent_module, attr, …)` 仍生效。
+  - `routing_engine/__init__.py` 295 → 234：抽出 `route_pipeline.py`（`_classify_and_recall` + `_select_backends`）。（commit 66aa2ea7）
+  - `routes/admin_api.py` 297 → 167：抽出 `routes/admin_backends_routes.py`（6 个后端 routes + `_backend_status_info` + `_admin_actor`，`import routes.admin_api as _a` 懒访问 `BACKENDS` 等）。（commit 42b1f86c）
+  - `device_gateway/task_recorder.py` 300 → 161：抽出 `device_gateway/route_evidence_builder.py`（5 个 evidence 函数；`_persist_route_evidence` 用 `import device_gateway.task_recorder as _t` 破环）。（commit 0d02d53f）
+  - `device_gateway/device_draw_handler.py` 299 → 276：抽出 `device_gateway/device_draw_config.py`（仅 `_resolve_draw_request` 24 行；未抽 `_generate_image` 因测试直接 `from … import _generate_image`）。（commit 2d4eb4f0）
+  - `device_gateway/redis_store.py` 298 → 252：抽出 `device_gateway/redis_store_recover.py`（`RedisStoreRecoverMixin.recover_stale_processing`，`# type: ignore[attr-defined]` 处理 mixin 的 `self._redis`/`self._task_*`）。（commit dacbe563）
+  - `provider_inventory/mcp_registries.py` 297 → 255：抽出 `provider_inventory/safemcp_scraper.py`（`SAFEMCP_URLS` + `_safemcp_entry` + `fetch_safemcp_index(fetch_text)`，`fetch_text` 注入为参数兼容 monkeypatch）。（commit 4a1a1860）
+- **E5 贴顶函数抽 helper（6 个）**：所有原 50 行贴顶函数降为 < 50 行，恢复 30-50 缓冲，保持单一职责。
+  - `routes/device_app_sharing.py::accept_share` → `_accept_share_lookup` + `_apply_share_accept_binding`。
+  - `routes/device_app_task_templates.py::execute_task_template` → `_resolve_template_target` + `_bump_template_use_count`。
+  - `routes/device_gateway_ws.py::handle_device_ws` → `_process_one_inbound_frame` + `_teardown_ws_session`。
+  - `device_gateway/intent.py::_llm_replan` → `_build_llm_planner_prompt` + `_strip_code_fence` + `_interpret_llm_plan`。
+  - `provider_automation/runner.py::_probe_one` → `_run_completion_smoke`/`_run_stream_smoke`/`_run_coding_fixture`/`_run_quality_gate`。
+  - `provider_automation/admission.py::format_patch_plan` → `_format_additions_section` 等 4 个 section 渲染 helper。（commit d728f29d）
+- **门禁**：`ruff check .` clean；`scripts/check_code_size.py` PASS（0 个 >300 行文件、0 个 >50 行函数）；全量 `pytest -q` → **4390 passed / 3 skipped / 2 deselected**（较瘦身前 +112，因 E3/E2 增删后测试结构调整）。
+- **下次**：VPS 部署 + 公网冒烟 + 提交推送至 `origin/main`。
