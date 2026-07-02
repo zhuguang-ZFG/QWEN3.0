@@ -1,13 +1,27 @@
-"""RouteResult dataclass tests."""
+"""RouteResult / PickResult dataclass tests."""
 
-from routing_engine import RouteResult
+from __future__ import annotations
+
+from unittest.mock import MagicMock
+
+import pytest
+
+from routing_engine import PickResult, RouteResult
 
 
-def test_route_result_dataclass_creation_and_default_values():
-    """测试 RouteResult 数据类创建和默认值
+@pytest.fixture
+def base_result():
+    return RouteResult(
+        backend="test_backend",
+        answer="test answer",
+        request_type="chat",
+        scenario="general",
+        ms=100,
+        skills_injected=[],
+    )
 
-    验证 RouteResult 数据类的默认属性和默认值设置正确
-    """
+
+def test_route_result_default_values():
     result = RouteResult()
     assert result.backend == ""
     assert result.answer == ""
@@ -20,10 +34,6 @@ def test_route_result_dataclass_creation_and_default_values():
 
 
 def test_route_result_custom_values():
-    """测试 RouteResult 数据类自定义值
-
-    验证 RouteResult 数据类可以接受自定义参数
-    """
     result = RouteResult(
         backend="custom_backend",
         answer="custom answer",
@@ -45,10 +55,6 @@ def test_route_result_custom_values():
 
 
 def test_route_result_with_none_values():
-    """测试 RouteResult 数据类 None 值处理
-
-    验证 RouteResult 数据类可以正确处理 None 值
-    """
     result = RouteResult(
         backend=None,
         answer=None,
@@ -70,10 +76,6 @@ def test_route_result_with_none_values():
 
 
 def test_route_result_with_special_characters():
-    """测试 RouteResult 数据类特殊字符处理
-
-    验证 RouteResult 数据类可以正确处理包含特殊字符的字符串
-    """
     result = RouteResult(
         backend="backend_with_special_chars",
         answer="answer with special chars: @#$%^&*()",
@@ -90,13 +92,84 @@ def test_route_result_with_special_characters():
 
 
 def test_route_result_equality():
-    """测试 RouteResult 数据类相等性
-
-    验证 RouteResult 数据类可以正确比较相等性和不相等性
-    """
     result1 = RouteResult(backend="test", answer="answer", request_type="chat")
     result2 = RouteResult(backend="test", answer="answer", request_type="chat")
     result3 = RouteResult(backend="different", answer="answer", request_type="chat")
 
     assert result1 == result2
     assert result1 != result3
+
+
+def test_route_result_stores_retrieval_context():
+    retrieval_context = "This is the retrieved context"
+    skills = ["skill1", "skill2"]
+    result = RouteResult(
+        backend="test_backend",
+        answer="test answer",
+        request_type="chat",
+        scenario="general",
+        ms=100,
+        skills_injected=skills,
+        retrieval_context=retrieval_context,
+    )
+    assert result.retrieval_context == retrieval_context
+    assert result.skills_injected == skills
+    assert result.backend == "test_backend"
+
+
+def test_route_result_handles_code_context():
+    code_context = "# Generated code\nimport os\nimport sys"
+    result = RouteResult(
+        backend="test_backend",
+        answer="test answer",
+        request_type="code",
+        scenario="coding",
+        ms=100,
+        retrieval_context=code_context,
+    )
+    assert result.scenario == "coding"
+    assert "import os" in result.retrieval_context
+    assert "import sys" in result.retrieval_context
+
+
+def test_route_result_stores_skills_injected():
+    result = RouteResult(
+        backend="test_backend",
+        answer="test answer",
+        request_type="chat",
+        scenario="coding",
+        ms=100,
+        skills_injected=["code_fact", "routing_lesson"],
+    )
+    assert result.scenario == "coding"
+    assert len(result.skills_injected) == 2
+
+
+def test_route_result_base_fixture(base_result):
+    assert base_result.request_type == "chat"
+    assert base_result.scenario == "general"
+    assert base_result.skills_injected == []
+    assert base_result.backend == "test_backend"
+    assert base_result.ms == 100
+
+
+def test_pick_result_dataclass():
+    result = PickResult(
+        backend="groq",
+        backends=["groq", "nvidia"],
+        messages=[{"role": "user", "content": "hi"}],
+        scenario="coding",
+        request_type="code",
+    )
+    assert result.backend == "groq"
+    assert result.scenario == "coding"
+    assert result.request_type == "code"
+
+
+def test_route_result_with_validation_mock(base_result):
+    validation = MagicMock()
+    validation.passed = True
+    validation.score = 0.9
+    validation.issues = []
+    assert validation.passed is True
+    assert base_result.request_type == "chat"
