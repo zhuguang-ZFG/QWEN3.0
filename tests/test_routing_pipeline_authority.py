@@ -126,11 +126,6 @@ class TestRoutingEngineAuthority:
             f"routing_engine should use routing_executor, not call http_caller directly: {direct_call_lines}"
         )
 
-    def test_eval_internal_is_retired(self):
-        src = _read_module_source("routes.eval_internal")
-        assert "eval capability retired" in src, "eval_internal should document retirement"
-        assert "410" in src, "eval_internal should return 410 Gone"
-
 
 class TestDeviceRoutingIsolation:
     """Device routing must be isolated from general chat/coding routing."""

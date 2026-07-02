@@ -3,6 +3,14 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-02 深度瘦身 E6-E9 批次结项：长函数/退役端点/唤醒词抽离/台账同步
+
+- **E7 eval_internal 退役端点移除结论**：`routes/eval_internal.py` 自 v3.0 起为 410 Gone 桩（`/internal/v1/eval/call`，原用于 FRP 本地代理直连后端评估，编码能力退役后保留作占位）。经全库 grep 核实，生产代码与测试中仅路由注册 + 退役测试两处引用，**无任何运行时调用方**。确认安全删除：文件删除 + `route_registry.py` 注册行移除 + `test_eval_internal_is_retired` 测试移除。删除后 `route_registry` import OK，23 个 routing authority 测试全过（删除前 23→删除后 22，与移除单测一致）。
+- **E8 唤醒词运行时抽离结论**：`data/digital-human/wakeword_runtime/runtime/http_server.py` 是独立运行的唤醒词本地 HTTP 服务（含内嵌 `TestRuntimeHandler` + WebSocket 帧实现）。该文件位于 `data/` 目录（被 `check_code_size.py` 排除审计）且**无任何测试覆盖**。本次仅抽离「无 socket/self 依赖的纯逻辑」（配置读/写/拼音转换）到 `wakeword_config.py`，保留强依赖 `self.connection` 的 WebSocket 帧逻辑在内嵌 handler 中以免破坏未经测试的闭包语义。http_server 347→274，新模块 96 行并附 `ponytail:` 标记记录 pypinyin 依赖上限。**遗留**：WebSocket 帧实现仍为内嵌 284 行函数，未来需补测后再考虑拆分。
+- **E9 PONYTAIL-DEBT 台账同步结论**：核对源码后发现台账中 6 条标记对应代码已物理移除（capability_matrix/task_creation/task_events/mqtt_client/quota 的 lazy-import 解耦已落地、chat-web config.js 文件已不存），属「已结清但台账未销账」的脱节。同步删除 6 条失效条目、修正 3 条偏移行号、补录 1 条新标记。**教训**：台账应与每次解耦落地同步销账，否则会累积失真。
+- **门禁**：ruff/format clean；pyright 0 errors（pypinyin 可选依赖 warning 与抽离前一致）；check_code_size PASS；全量 pytest **4388 passed / 3 skipped / 2 deselected**（exit 0，149.56s）。
+- **下一步**：commit/push origin → VPS 部署 + 公网冒烟。
+
 ## 2026-07-02 系统瘦身 P2-17/18/19/20 + 参考改善 T1/T2 全部闭环
 
 - **范围**：P2-17/18（UI 合并）、P2-19（settings 瘦身）、P2-20（except:pass 审查）+ T1-1（语义分类器）、T1-2（管道架构）、T1-3（Hershey 字体）、T2-2（健康探针）、T2-3（任务时间线）、T2-1（FluidNC 迁移准备）

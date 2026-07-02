@@ -537,3 +537,18 @@
   - `provider_automation/admission.py::format_patch_plan` → `_format_additions_section` 等 4 个 section 渲染 helper。（commit d728f29d）
 - **门禁**：`ruff check .` clean；`scripts/check_code_size.py` PASS（0 个 >300 行文件、0 个 >50 行函数）；全量 `pytest -q` → **4390 passed / 3 skipped / 2 deselected**（较瘦身前 +112，因 E3/E2 增删后测试结构调整）。
 - **下次**：VPS 部署 + 公网冒烟 + 提交推送至 `origin/main`。
+
+## 2026-07-02 深度瘦身 E6-E9 批次完成（长函数/退役端点/唤醒词抽离/台账同步）
+
+- **背景**：E1-E5 已闭环（commit d728f29d + 51962676）。本轮继续按 `docs/superpowers/specs/2026-07-02-system-slimdown-design.md` 推进剩余长函数提取、DEPRECATED 退役端点删除、唤醒词运行时抽离与 Ponytail 台账同步。
+- **E6-1 长函数子辅助提取**：`lima_mcp_stdio/lima_codegraph_tools.py` 3 个 50 行贴顶函数（`tool_dependency_analysis` / `tool_search_symbols` / `tool_module_structure`）抽出 `_fetch_symbol_dependencies` / `_build_fts_query` / `_format_symbol_rows` / `_compute_module_dependencies`，文件降至 298 行。（commit 030f285e）
+- **E6-2 provision 端点抽离**：`routes/device_app_misc.py` 296 → 199 行，两个 provision 端点（`/device/v1/app/devices/provision` + `/confirm`）连同 `_build_provision_response` / `_validate_provision_token` / `_complete_provision_binding` 抽到新模块 `routes/device_app_provision.py`（138 行，相同前缀）；`route_registry.py` 注册新模块；测试 `test_device_app_self_check.py` 同步 include provision_router 并将 `routes.device_app_misc.now` monkeypatch 改指 `routes.device_app_provision.now`。（commit f28ac745）
+- **E6-3/E6-4/E6-5 经核验跳过**：`device_gateway/profiles.py` 295 行 / `routing_intent.py` 294 行（fn ≤41）/ `scripts/lima_feature_planner.py` 293 行 —— 三者本就在行/函数限额内，无需提取；E6-3 一次误拆导致 `profiles.py` 反增到 304 行（超标）已 `git checkout` 回退。
+- **E7 退役端点删除**：移除 DEPRECATED v3.0 `routes/eval_internal.py`（`/internal/v1/eval/call` 410 Gone 桩）、`route_registry.py` 中 `_try_include` 注册行，以及 `test_routing_pipeline_authority.py::TestRoutingEngineAuthority::test_eval_internal_is_retired` 测试。全仓库（排除独立 worktree）已无 `eval_internal` 引用。
+- **E8 唤醒词运行时抽离**：`data/digital-human/wakeword_runtime/runtime/http_server.py` 347 → 274 行；配置读/写/拼音转换（`build_wakeword_config_message` / `save_wakeword_config` / `build_keyword_line`，纯逻辑无 socket/self 依赖）抽到新模块 `wakeword_config.py`（96 行，带 `ponytail:` 标记说明 pypinyin 上限与升级路径）。`http_server.py` 内嵌 `TestRuntimeHandler` 保留闭包语义，仅改为委托新模块。WebSocket 帧逻辑因强依赖 `self.connection` 未抽（避免破坏未经测试的闭包）。
+- **E9 PONYTAIL-DEBT.md 台账同步**：
+  - 删除 6 个已在源码中移除的失效标记条目：`capability_matrix.py:132` / `device_gateway/task_creation.py:32` / `device_gateway/task_events.py:182` / `device_gateway/mqtt_client.py:81` / `client_keys/quota.py:33` / `chat-web/js/config.js:9`（文件已不存在）。
+  - 修正 3 个偏移行号：`device_logic/activation.py` 25→26、54→55；`device_gateway/tasks.py` 31→33。
+  - 补录 1 个新标记：`wakeword_runtime/runtime/wakeword_config.py:3`（pypinyin 依赖上限）。
+- **门禁**：`ruff check` 改动文件 clean；`ruff format --check` 全过；`pyright` 改动文件 0 errors（1 warning：wakeword_config 的 `pypinyin` 可选依赖未解析，与 E8 前行为一致）；`scripts/check_code_size.py` PASS（0 个 >300 行文件、0 个 >50 行函数）；全量 `pytest -q` → **4388 passed / 3 skipped / 2 deselected**（较 E1-E5 收尾的 4390 −2：E7 删除退役端点测试 −1，E2 测试合并计数口径微调 −1；无新增失败）。
+- **下次**：文档同步 + git commit/push origin + VPS 部署 + 公网冒烟。
