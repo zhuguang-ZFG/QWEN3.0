@@ -168,6 +168,7 @@ _DEVICE_APP_ROUTERS = [
     ("routes.handwriting", "handwriting"),
     ("routes.device_app_members", "device_app_members"),
     ("routes.device_app_misc", "device_app_misc"),
+    ("routes.device_app_provision", "device_app_provision"),
     ("routes.device_app_notifications", "device_app_notifications"),
     ("routes.device_app_auth", "device_app_auth"),
     ("routes.device_app_stats", "device_app_stats"),

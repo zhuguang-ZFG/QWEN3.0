@@ -44,11 +44,13 @@ def client(tmp_path, monkeypatch):
     from routes.device_app_api import router as api_router
     from routes.device_app_auth import router as auth_router
     from routes.device_app_misc import router as misc_router
+    from routes.device_app_provision import router as provision_router
 
     app = FastAPI()
     app.include_router(api_router)
     app.include_router(auth_router)
     app.include_router(misc_router)
+    app.include_router(provision_router)
     return TestClient(app)
 
 
@@ -133,7 +135,7 @@ class TestDeviceProvision:
 
         # Move time forward so the token is expired when confirm runs.
         monkeypatch.setattr(
-            "routes.device_app_misc.now",
+            "routes.device_app_provision.now",
             lambda: "2099-01-01T00:00:00+00:00",
         )
         resp = client.post(
