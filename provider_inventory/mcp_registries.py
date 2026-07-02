@@ -17,10 +17,12 @@ logger = logging.getLogger(__name__)
 
 OFFICIAL_REGISTRY_URL = "https://registry.modelcontextprotocol.io/v0/servers"
 GLAMA_SERVERS_URL = "https://glama.ai/api/mcp/v1/servers"
-SAFEMCP_URLS = (
-    "https://safemcp.com/",
-    "https://www.safemcp.com/",
-)
+from provider_inventory.safemcp_scraper import SAFEMCP_URLS, fetch_safemcp_index as _fetch_safemcp_raw
+
+
+def fetch_safemcp_index() -> dict[str, Any]:
+    """Wrapper injecting _fetch_text for monkeypatch compatibility."""
+    return _fetch_safemcp_raw(_fetch_text)
 
 _TAG_RULES: list[tuple[str, tuple[str, ...]]] = [
     ("coding", ("git", "code", "github", "semgrep", "eslint", "compiler")),
@@ -190,50 +192,6 @@ def fetch_glama_servers(*, page_limit: int = 50) -> dict[str, Any]:
         if not cursor:
             break
     return {"entries": entries, "pages_fetched": pages, "error": error}
-
-
-def _safemcp_entry(link: str) -> dict[str, Any]:
-    return {
-        "key": _normalize_key(link),
-        "name": link.rsplit("/", 1)[-1][:80] or link,
-        "title": link,
-        "description": "SafeMCP index link (HTML extract)",
-        "source": "safemcp",
-        "source_url": link,
-        "repository_url": "",
-        "tags": ["general"],
-    }
-
-
-def fetch_safemcp_index() -> dict[str, Any]:
-    """Best-effort SafeMCP scrape across known hostnames."""
-    entries: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    errors: list[str] = []
-    patterns = (
-        r'href="(https?://[^"]+/mcp[^"]*)"',
-        r'href="(https?://[^"]*safemcp[^"]*)"',
-        r'href="(https?://glama\.ai/mcp/servers/[^"]+)"',
-    )
-    for base_url in SAFEMCP_URLS:
-        try:
-            html = _fetch_text(base_url, timeout=20, accept_json=False)
-        except (HTTPError, URLError, TimeoutError) as exc:
-            errors.append(f"{base_url}:{type(exc).__name__}")
-            continue
-        if "lander" in html[:500].lower() and len(html) < 2000:
-            errors.append(f"{base_url}:lander_redirect")
-            continue
-        for pattern in patterns:
-            for link in re.findall(pattern, html, flags=re.I):
-                if link in seen:
-                    continue
-                seen.add(link)
-                entries.append(_safemcp_entry(link))
-    return {
-        "entries": entries[:300],
-        "error": ";".join(errors) if errors and not entries else "",
-    }
 
 
 def merge_registry_entries(*sources: dict[str, Any]) -> list[dict[str, Any]]:
