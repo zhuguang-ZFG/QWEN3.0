@@ -1,9 +1,16 @@
 (function () {
   "use strict";
 
+  // 优先使用 app-config.js 暴露的统一配置点；若尚未加载则回退到默认值。
+  const fallbackOrigin = "https://chat.donglicao.com";
+  const config = window.LiMaConfig || {};
+  const primaryOrigin = config.PRIMARY_ORIGIN || fallbackOrigin;
+  const pilotOrigin = config.PILOT_ORIGIN || "https://aliyun.donglicao.com";
+
   window.LIMA_CONFIG = {
-    apiOrigin: "https://chat.donglicao.com",
-    wsOrigin: "wss://chat.donglicao.com",
+    apiOrigin: primaryOrigin,
+    wsOrigin: primaryOrigin.replace(/^http/, "wss"),
+    pilotOrigin,
     turnstileSiteKey: "0x4AAAAAADte5jOdkXGwfJIh",
   };
 
