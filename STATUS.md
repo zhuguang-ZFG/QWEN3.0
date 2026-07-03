@@ -10,9 +10,9 @@
 > Updated: 2026-07-03
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4428 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean（含 F401 全局 gate 已启用，K2+L+M+N 批闭环）；ruff format clean；pyright 目标文件 0 errors；Next.js 官网 `npm run build` 静态生成 25 个页面。测试侧 F401 0 报告 / 生产侧 0 报告 / 仍豁免：1 个 helper re-export（routing_engine / http_caller / device_gateway.tasks / task_creation）+ ~6 个 fixture (d)/(e) 注入型态靠 `# noqa: F401` 自豁免释明。
+> Tests: 全量 **4433 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean（含 F401 全局 gate 已启用）；ruff format clean；pyright 目标文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；manager-mobile `vitest` 用例 GREEN。
 > 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout` 与 `httpx2`，pytest warnings 已清零。
-> 英文站：`/en/` 首页、`/en/pricing/`、`/en/product-write/`、`/en/product-human/`、`/en/privacy/`、`/en/terms/` 已上线；中英文法律页均已配置 `canonical` + `hreflang` alternate。
+> 英文站：...（保持不变）
 > ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **67%**（40G 中 25G 已用，释放约 5G），`litestream` 已纳入 systemd 管理并设置 `MemoryMax=512M`，内存可用约 420M~850M（随负载波动），load average 4~5。京东云节点已完成深度清理（磁盘 33% → **30%**，59G 中 17G 已用，释放约 2G）。登录超时风险显著降低。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
 > pyright 目标文件 0 errors（sandbox 下仅历史 warning）
@@ -20,6 +20,16 @@
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+
+### 最近完成（2026-07-03）M2 全项目 P1 MEDIUM 质量/文档/测试改进
+
+- **范围**：承接 M1，完成后端（Python/FastAPI）、Chat Web、微信小程序、ESP32 固件（U1/U8）共 15 项 P1 MEDIUM 改进。
+- **P1 已修复**：后端静默降级日志级别提升；Chat Web 域名配置收敛 + `deploy_chat_web.py` 远程目录自动创建；小程序类型债务/死代码/alova 统一/urlCheck；U8/U1 固件清理与 schema 版本管理；manager-mobile 引入 vitest 纯函数测试。
+- **门禁**：`pytest -q` → **4433 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check` / `ruff format --check` clean；`check_code_size.py` PASS；`pyright` 改动文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；vitest `deepClone` 测试通过。
+- **VPS**：主后端 `deploy_unified.py --target aliyun --slice core` 成功，Health OK；Chat Web `deploy_chat_web.py` 修复后成功，nginx reload OK。
+- **小程序**：版本 `3.8.2` → `3.8.3`，微信开发者工具 CLI 上传成功（989.2 KB）。
+- **提交**：子模块 `esp32S_XYZ` 已 push origin main；LiMa 主仓库将更新子模块指针并提交 `scripts/deploy_chat_web.py` 修复。
+- **计划**：M3（P2 LOW）待推进，见 `docs/superpowers/specs/2026-07-03-full-project-improvement-plan.md`。
 
 ### 最近完成（2026-07-03）M1 全项目安全/正确性修复 + Aliyun 部署
 

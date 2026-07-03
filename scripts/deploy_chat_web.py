@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import paramiko
 from dotenv import load_dotenv
@@ -111,9 +111,13 @@ def deploy(dry_run: bool = False) -> int:
     try:
         sftp = ssh.open_sftp()
         try:
+            # Ensure remote directory exists before uploading (new VPS may not have /var/www/chat)
+            _exec(ssh, f"mkdir -p {REMOTE_DIR}")
             for remote_name in FILES:
                 local = CHAT_WEB_DIR / remote_name
                 remote_path = f"{REMOTE_DIR}/{remote_name}"
+                # Ensure parent directory exists for nested files like js/api.js
+                _exec(ssh, f"mkdir -p {PurePosixPath(remote_path).parent}")
                 backup_cmd = f"cp {remote_path} {remote_path}.bak.$(date +%Y%m%d%H%M%S) 2>/dev/null || true"
                 _exec(ssh, backup_cmd)
                 print(f"uploading {remote_name}...")

@@ -2,6 +2,41 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 M2 里程碑完成（P1 MEDIUM 全项目质量/文档/测试改进）
+
+- **审计闭环**：承接 M1 安全修复，完成全项目 P1 MEDIUM 质量改进与文档同步，覆盖后端、Chat Web、小程序（uni-app）、固件（ESP32 U1/U8）四个端。
+- **P1 改进项**（15 项全部完成并提交）：
+  - P1.1 `session_memory` 幂等迁移：静默 `INSERT` 失败路径改 `logger.debug` 并说明原因。
+  - P1.2 `observability/jsonl_store` 审计日志轮转：IO 异常路径改 `logger.warning`。
+  - P1.3 文档同步：更新 `AGENTS.md` 与 `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` 的模块归属、流水线步骤与 Chat Web 入口。
+  - P1.4 `code_context/chroma_vector_store` 降级：ChromaDB 不可用路径改 `logger.warning`。
+  - P1.5 小程序类型债务收敛：`utils/index.ts` 减少 `any` 使用、增加 `SubPackage` 类型、清理 `deepClone` 类型；`utils/platform.ts` 增加 `__UNI_PLATFORM__` 运行时回退。
+  - P1.6 删除死代码：`store/config.ts` 删除并清理 `store/index.ts` 导出；`store/user.ts` 移除冗余 `uni.removeStorageSync('userInfo')`。
+  - P1.7 小程序 API 层统一：`chatCompletion` 迁移到 alova；非 mp-weixin 流式 `chatCompletionStream` 保持 fail-loud。
+  - P1.8 修复路由悬空：`/pages/mine/mine` 相关残留引用清理。
+  - P1.9 `manifest.config.ts` 与 `src/manifest.json` 的 `urlCheck` 生产环境改为 `true`。
+  - P1.10 Chat Web 域名配置统一：`index.html` 与 `js/app-boot.js` 通过 `window.LiMaConfig` 单点配置。
+  - P1.11 U8 固件死代码清理：`main/CMakeLists.txt` 移除非目标板（ml307/nt26/dual_network/rndis/esp_video）源码。
+  - P1.12 协议版本管理：`docs/schemas/edge_*/*.schema.json` 增加 `schema_version: "1.0.0"`。
+  - P1.13 U1 固件平台配置注释：`platformio.ini` 补充 `[env]` 默认配置被 `release_esp32s3` 覆盖的说明。
+  - P1.14 边缘协议文档：`docs/schemas/edge_a/b/c/README.md` 增加迁移至 LiMa `device_gateway` 的提示横幅。
+  - P1.15 前端测试基建：`vitest` 3.2.6 + `jsdom` + `tests/utils/deepClone.test.ts`，补充 `package.json` 测试脚本。
+- **M1 遗留 Chat Web 部署修复**：`scripts/deploy_chat_web.py` 在 SFTP 上传前增加 `mkdir -p`（支持远程 `/var/www/chat` 及子目录 `js/`），修复新 VPS 首次部署缺失远程目录问题。
+- **门禁验证**：
+  - 主仓库 `pytest -q` → **4433 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `ruff check .` clean；`ruff format --check` clean；`pyright` 改动文件 0 errors。
+  - 小程序 `npx vue-tsc --noEmit` 0 errors + `npx uni build --platform mp-weixin` 通过。
+  - 新增 vitest 用例：`npx vitest run`（manager-mobile）GREEN。
+- **VPS 部署**：
+  - 主后端 `deploy_unified.py --target aliyun --slice core` → 893 文件上传成功，健康检查 OK。
+  - Chat Web `deploy_chat_web.py` → 修复后成功，nginx reload OK。
+- **小程序上传**：版本号 `3.8.2` → `3.8.3`，已通过微信开发者工具 CLI 上传成功，AppID `wxbf3c1e0013b46343`，提交大小 989.2 KB。
+- **Git 提交与推送**：
+  - 子模块 `esp32S_XYZ`：M2 批量修复提交（`f74da07..5c1408f`）+ 版本 bump 提交。
+  - LiMa 主仓库：将更新 esp32S_XYZ 子模块指针到 `5c1408f`，并提交 `scripts/deploy_chat_web.py` 修复。
+- **文档同步**：更新 `progress.md`（本条目）、`findings.md`（M2 补充发现）、`STATUS.md`（当前状态）。
+- **下一步**：M3 里程碑（P2 LOW 技术债/体验打磨），具体计划见 `docs/superpowers/specs/2026-07-03-full-project-improvement-plan.md`。
+
 ## 2026-07-03 M1 里程碑完成（P0 全项目安全/正确性修复）
 
 - **审计入口**：通读后端（Python/FastAPI）、Chat Web、小程序（uni-app）、固件（ESP32 U1/U8），识别 3 CRITICAL + 11 HIGH + ~20 MEDIUM + ~15 LOW 问题，制定并落盘 `docs/superpowers/specs/2026-07-03-full-project-improvement-plan.md`（P0→P3 四阶段）。

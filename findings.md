@@ -27,6 +27,29 @@
   - 前端构建日志是 secret 泄露面；`vite.config.ts` 的 `console.log` 会被 CI 完整记录，且不受 `esbuild.drop` 约束。
   - 固件服务端迁移后，必须同步删除 Dockerfile 并更新历史 README，否则新成员会按错误文档操作。
 
+## 2026-07-03 M2 全项目审计：P1 质量/文档/测试发现与修复
+
+- **后端质量**：
+  - `session_memory` 迁移重试、`observability/jsonl_store` 日志轮转、`context_pipeline/chroma_vector_store` 降级等路径原先只 `logger.debug` 或无日志，AGENTS.md 硬规则要求「禁止静默降级」至少 `logger.warning`；已统一改为 warning 并说明 fallback 原因。
+- **Chat Web**：
+  - 域名配置分散在 `index.html` 与 `js/app-boot.js` 两处，运维切换 Chat Web 入口时需改两处，易遗漏；已收敛到 `window.LiMaConfig` 单点配置。
+  - 部署脚本 `deploy_chat_web.py` 未处理远程目标目录缺失，新 VPS 首次部署即失败；已加 `mkdir -p` 支持多级目录（`js/` 子目录）。
+- **小程序（uni-app）**：
+  - 类型债务：`utils/index.ts` 大量 `any`、无 `SubPackage` 类型、`deepClone` 类型不精确；已收敛类型。
+  - 死代码：`store/config.ts` 无引用、`store/user.ts` 重复清除 `userInfo`、`utils/platform.ts` 依赖未定义宏；已删除/清理。
+  - API 层不统一：`chatCompletion` 仍使用原生 `uni.request`，与项目整体 alova 封装不一致；已迁移到 `http.Post`。
+  - 安全开关：`manifest.config.ts` 与 `src/manifest.json` 的 `urlCheck` 在真机/生产环境为 `false`，可能放行未校验 URL；已改为 `true`。
+  - 测试覆盖：manager-mobile 无单元测试；已引入 `vitest` 3.2.6 + `jsdom` 并覆盖 `deepClone` 纯函数。
+- **固件**：
+  - U8 `main/CMakeLists.txt` 包含 ml307/nt26/dual_network/rndis/esp_video 等非目标板源码，增加构建面与误触发风险；已移除。
+  - U1 `platformio.ini` 的 `[env]` 默认 `board = esp32` 与下方 `release_esp32s3` 覆盖关系未注释，新成员易误读默认配置；已补充说明。
+  - 边缘协议 schema 文件无版本号，向后兼容难追踪；已统一加 `schema_version: "1.0.0"`。
+  - `docs/schemas/edge_*` README 仍指向旧固件服务端，未说明已迁移至 LiMa `device_gateway`；已加迁移横幅。
+- **教训**：
+  - 小程序 manifest 双文件（`manifest.config.ts` + `src/manifest.json`）需同步维护，否则版本 bump 或安全开关会丢失。
+  - 子模块内嵌套目录若含独立 git 仓库，提交前要确认当前 working tree 属于哪个仓库，避免把指针提交错仓库。
+  - 前端引入测试框架时需注意与现有 vite 大版本兼容（vitest 4.x 与 vite 5 冲突），应锁定小版本。
+
 
 ## 2026-07-03 U 批：routes/device_gateway_ws_handlers.py hello 握手机制抽到 device_gateway_hello_helpers.py
 
