@@ -2,6 +2,16 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 CI 修复 O 批（pyright authority-files 过时路径 + 工具清单同步）
+
+- **背景**：N 批把 `pypinyin==0.55.0` 加进 CI test.yml 后，push commit `0b3aeec6` 触发的 GitHub Actions **Tests workflow 失败**。经查 CI 日志根因**不是** F401 门禁或 pypinyin——F401 安全门（`pytest --collect-only OK`）与 `4395 passed, 17 skipped` 全绿，pypinyin 也让集测正常跑（skip 数下降），说明 K2+L+M+N 主体在远端 CI 全部通过。失败根因是 test.yml「Type check authority files」步骤硬编码 `pyright server.py routing_engine.py routes/chat_endpoints.py`，而 `routing_engine.py` 早已被抽离重构为 `routing_engine/` 包（`__init__.py` 为权威路由入口），CI 报 `File or directory "routing_engine.py" does not exist` exit code 4。
+- **修复**：
+  - `.github/workflows/test.yml`：`routing_engine.py` → `routing_engine/__init__.py`（本地 `pyright server.py routing_engine/__init__.py routes/chat_endpoints.py` 验证 0 errors）。
+  - `scripts/repo_stats.py` KEY_FILES：`routing_engine.py` → `routing_engine/__init__.py`（原有 `path.exists()` 守护使其静默跳过，仅统计缺一行，非致命，但更正以恢复统计准确）。
+  - `scripts/deploy_unified_common.py`：CORE_FILES + SLICE_FILES["phase_a"] 两处 `routing_engine.py` → `routing_engine/__init__.py`（注：core slice 实际用 `_collect_runtime_files()` 动态收集，不读这两个静态清单，故此前部署 888 files 一直成功不受影响；phase_a slice 极少用，更正防止将来误用）。
+- **教训**：重构抽离单文件为包目录（`routing_engine.py` → `routing_engine/`）时，除代码 import 外还需 grep 全仓「裸文件名字符串引用」——CI workflow step、部署清单、统计脚本等把文件名当字符串硬编码的位置不会被 import 分析或 ruff 覆盖，只有真到 CI 才暴露。CodeGraph/ruff 都只追踪 import 级依赖，字符串级引用需 ripgrep 兜底。
+- **验证**：本地 pyright authority 三文件 0 errors；ruff check clean；check_code_size PASS；全仓已无 `routing_engine.py` 裸字符串引用。
+
 ## 2026-07-03 深度瘦身 K2+L+M+N 四批合一完成（F401 全局门禁启用 + 闭环 + CI 同步）
 
 - **范围**：K2 完成测试侧 fixture-(d) 注入型态文件的真死清理与自豁免释明；L 用 ruff --fix 一次性删除 tests/ 残留 86 个真死 F401；M 启用 ruff.toml 全局 F401 gate 同步删生产侧 17 个真死并 exclude 参考仓库；N 给 GitHub Actions test.yml 加 pin `pypinyin==0.55.0` 让 CI 也能跑 H1/I/J 集测。这四批本属同一主线，合并做一次 commit/import/push 避免分批文档碎化。

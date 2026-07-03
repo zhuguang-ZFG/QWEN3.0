@@ -25,7 +25,7 @@ SKIP_PARTS = {
 
 KEY_FILES = (
     "server.py",
-    "routing_engine.py",
+    "routing_engine/__init__.py",
     "http_body_limit.py",
     "routes/chat_handler_dispatch.py",
     "routes/system_endpoints.py",

@@ -63,7 +63,7 @@ def get_deploy_target(target: str | None = None) -> DeployTarget:
 
 CORE_FILES = [
     "server.py",
-    "routing_engine.py",
+    "routing_engine/__init__.py",
     "routing_selector/__init__.py",
     "router_v3/__init__.py",
     "routing_intent.py",
@@ -91,7 +91,7 @@ CORE_DIRS = [
 
 SLICE_FILES = {
     "phase_a": [
-        "routing_engine.py",
+        "routing_engine/__init__.py",
         "routing_selector/__init__.py",
     ],
     "phase_b": [

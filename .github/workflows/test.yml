@@ -47,7 +47,7 @@ jobs:
         run: python scripts/run_pre_commit_check.py --ci --full
 
       - name: Type check authority files
-        run: pyright server.py routing_engine.py routes/chat_endpoints.py
+        run: pyright server.py routing_engine/__init__.py routes/chat_endpoints.py
 
       - name: Type check changed Python files
         run: |

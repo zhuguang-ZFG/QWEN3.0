@@ -3,6 +3,13 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 O 批 CI 修复：pyright authority-files 步骤指向已迁移的 routing_engine 包
+
+- **根因**：K2+L+M+N 推 push 后 GitHub Actions Tests workflow 失败。逐步定位到 `Type check authority files` 步骤 `pyright server.py routing_engine.py routes/chat_endpoints.py` 报 `File or directory "routing_engine.py" does not exist`（exit 4）。`routing_engine.py` 早已在历次抽离中拆成 `routing_engine/` 包（`__init__.py` 为权威 `route()` 入口 + `route_pipeline.py`/`execute_strategy.py`/`intent.py`/`post.py` 等子模块），但 CI 的 authority-files pyright 步骤硬编码了旧单文件路径。
+- **关键澄清**：CI 的 pytest / F401 安全门 / testside_f401_safety_gate 全部通过（`4395 passed, 17 skipped`；`pytest --collect-only OK`）—— 即 K2+L+M+N 的 F401 全局门禁与 N 批 pypinyin pin 在 CI 上真实生效（H1/I/J 集测在 CI 上因新装 pypinyin 不再被 importorskip 跳过，skipped 数下降）。失败**仅**在 pyright authority 步骤的过时路径，与瘦身改动无关。
+- **修复**：`.github/workflows/test.yml` authority 步骤 `routing_engine.py` → `routing_engine/__init__.py`；顺带更正 3 处其它过时引用 —— `scripts/repo_stats.py` KEY_FILES、`scripts/deploy_unified_common.py` CORE_FILES + phase_a SLICE_FILES。core slice 部署用 `_collect_runtime_files()` 动态收集不受影响（888 files 一直成功），过时引用仅影响 repo stats 显示与极少用的 phase_a slice，非阻塞但一并更正保工具准确。
+- **教训**：模块从单文件拆成包时，必须全仓 grep `<旧模块>.py` 字面量引用（CI workflow、部署清单、stats 脚本、文档），而非只改 import。`--diff-filter=ACMRT` 已使 changed-files pyright 步骤天然排除删除文件，但硬编码 authority 清单是盲点——authority 清单应改用包路径或 glob。
+
 ## 2026-07-03 深度瘦身 K2+L+M+N 合批结项：F401 全局门禁启用 + 闭环 + CI 同步
 
 - **K2 教训 (e) 型态「fixture 间接依赖链」新发现**：G1b 记录的 F401 失败四型态 (a)(b)(c)(d) 之外，本批又发现第 (e) 型态 —— 「pytest fixture 间接依赖 fixture 链」。`import fake_u1` 在测试函数签名 (`test_xxx(lima_client, fake_device_server)`) 没出现，但 helper 模块下 `@pytest.fixture\ndef fake_device_server(fake_u1: dict)` 依赖 `fake_u1` 作为 fixture 参数；pytest 收集 test 时通过 fixture 依赖图 resolve `fake_device_server` 又递归 resolve 它的 `fake_u1` 参数，需要 `fake_u1` 名字在 helper 模块的 namespace 里可见，而 import 就是为了让 helper 模块加载到 sys.modules 完成 fixture 注册。删了立即 `fixture 'fake_u1' not found`。修复：尽管理论上 import 不必保留（pytest 应自行发现 fixture），实证删 import 即错——保留 import + `# noqa: F401  pytest fixture, transitively required` 注释释明。
