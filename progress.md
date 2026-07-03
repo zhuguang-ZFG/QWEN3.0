@@ -2,6 +2,25 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 P 批完成（本地 pre-commit 加 ruff format --check 守护 + 副 `_run` cwd 透传真 bug 修复）
+
+- **范围**：O-3 暴露本地守护与 CI 不对称（CI 跑 `ruff format --check` 而本地只 `ruff check`），本批把 `ruff format --check` 加进本地 pre-commit 入口，并顺手清理首个守护启用即抓出的 2 处历史 format 漂移。
+- **P-1 守护加固**：`scripts/run_ruff_check.py::run_ruff` 改为聚合 `ruff check` + `ruff format --check` 两次 subprocess，任一非零即阻塞、stdout/stderr 透传组合；docstring 说明来历（O-3 lesson）。commit `c16a4f9d` 含三条改动：(1) 守护脚本；(2) `deploy/jdcloud/deploy_jd.py` 长 URL 单行折多行（O-3 一样的长行漂移）；(3) `tests/device_gateway/test_ws_lifecycle.py` 长函数签名折多行参数。
+- **P-2 副带 `_run` cwd 透传真 bug 修复**：P-1 push 后 CI 在新 commit 跑 `Type check changed Python files` 步骤，因 `deploy_jd.py` 被 diff 命中触发 pyright，发现 `deploy_jd.py:34 _run("sha256sum -c prometheus.sha256", cwd=INSTALL_DIR)` 传 `cwd=` 但 `_run` 函数签名只有 `check`、**`cwd` 被静默忽略**——`sha256sum -c` 实际是在错误工作目录跑，校验可能误判。这是潜伏已久的真 bug，CI pyright 才能暴露。commit `addee045` 给 `_run` 加 `cwd: Path | None = None` 参数并透传 `subprocess.run(..., cwd=cwd)`，pyright 0 errors。
+- **意外教训**：CI pyright 步骤在「全 repo authority 文件」+「changed-files」双管齐下——authority 验证稳定模块，changed-files 兜底无 anchor 的零散工具脚本。本地没有 changed-files pyright，每次只在大改时一次检查；CI 是新改动后所有 touched 文件 pyright 跑一遍——是隐藏的"宽覆盖"扫描。今后工具脚本改动应本地手动跑 pyright（不只是 commits 守护范围）。
+- **CI 实证**：
+  - `c16a4f9d`：Tests workflow 失败（pyright on changed deploy_jd.py 抓出 cwd bug）。
+  - `addee045`：Tests workflow success ✓、CodeQL success ✓；Deploy 仅失败（与本机本地部署环境有关，与代码无关，历次一直失败）。
+- **门禁结果**：
+  | 门 | 结果 |
+  |---|---|
+  | ruff check + ruff format --check 全 repo | clean |
+  | 全量本地 pytest | 4428 passed 恒定 |
+  | check_code_size | PASS |
+  | pyright deploy_jd.py | 0 errors |
+  | CI Tests workflow (commit addee045) | **complete success** ✓ |
+  | CI CodeQL workflow (commit addee045) | success ✓ |
+
 ## 2026-07-03 深度瘦身 P 批完成（本地 pre-commit 加 ruff format --check 守护）
 
 - **背景**：O-3 修复 CI 失败时 push commit `3fb7b145` 后再次失败，根因是本地 pre-commit 入口 `scripts/run_ruff_check.py` 只跑 `ruff check`，没跑 `ruff format --check`，本地 commit 时切片 spacing 漂移不被守门，要等 CI 才暴露。本批直接补这个缺口——避免下次再有 `ruff check` 全绿但 `ruff format --check` 失败、需要补 fix commit 的 retry 浪费。

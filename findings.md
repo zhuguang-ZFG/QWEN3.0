@@ -3,6 +3,15 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 P 批：本地 pre-commit 加 ruff format --check 守护 + 副 `_run` cwd 透传真 bug 修复
+
+- **根因**：O-3 调试历程暴露本地 pre-commit 入口 `scripts/run_ruff_check.py` 只跑 `ruff check`，CI 跑 `ruff check` + `ruff format --check` 两步——两端命令集合不对称，切片 spacing 漂移、Optional[X]→X|None 整理、EOL newline 等只破 format 不破 check 的差异在本地静默放行、到 CI 才暴露，每次都要补 fix commit + push retry。
+- **修复**：`run_ruff_check.py::run_ruff` 改为聚合 `ruff check` + `ruff format --check` 两次 subprocess，第一非零 returncode 即阻塞，stdout/stderr 透传组合；docstring 解释来历 + lesson learned O-3 链接。
+- **首次启用即实证价值**：本地空 staging 跑 pre-commit 立即抓出 2 处早已该 format 的长行漂移（`deploy/jdcloud/deploy_jd.py` 长 URL、`tests/device_gateway/test_ws_lifecycle.py` 长函数签名），P 批顺手 format 清掉。
+- **副带 P-1 → 抓出 `_run` cwd 透传真 bug (P-2)**：P-1 push commit `c16a4f9d` 触发 CI `Type check changed Python files` 步骤，因 `deploy_jd.py` 被 diff 命中触发 pyright，发现 line 34 `_run("sha256sum -c prometheus.sha256", cwd=INSTALL_DIR)` 传 `cwd=` 但 `_run` 函数签名只有 `check`、`cwd` 被静默忽略——`sha256sum -c` 实际在错误工作目录跑。这是**潜伏已久的真 bug**，校验在错误目录跑可能误判通过。给 `_run` 加 `cwd: Path | None = None` 参数透传 `subprocess.run(..., cwd=cwd)`，pyright 0 errors。
+- **教训 (CI 「Type check changed Python files」 是隐式宽覆盖扫描)**：本地只在 `--full` pre-commit 或 user-changed 时跑 pyright 在指定文件，CI 的 `Type check changed Python files` 是 `git diff --name-only HEAD~1..HEAD --diff-filter=ACMRT` 每次自动扫**所有动过的 .py** —— 单一文件可能即使不是改动核心，只要被 diff 命中就 pyright。这是隐藏的"宽覆盖 pyright 扫描"。今后涉及工具脚本（不在权威文件清单）改动应本地手动跑 `pyright <改动文件>` 与 CI 同步，否则 pyright 失败往往伪装成「CI 又红了」回环 retry 浪费。
+- **教训 (CI/本地守护对称原则)**：CI workflow 与本地守护脚本必须跑 **同一套** 命令集合（ruff check + ruff format --check），否则本地绿 CI 红会反复发生。重构 grep 双方文件 `.github/workflows/test.yml` 与 `scripts/run_ruff_check.py` 比对 ruff 命令是审守护对称的最简方法。
+
 ## 2026-07-03 P 批：本地 pre-commit 加 ruff format --check 守护（CI 与本地守护对称）
 
 - **根因**：O-3 调试历程暴露本地 pre-commit 入口 `scripts/run_ruff_check.py` 只跑 `ruff check`，CI 跑 `ruff check` + `ruff format --check` 两步——两端命令集合不对称，切片 spacing 漂移、Optional[X]→X|None 整理、EOL newline 等只破 format 不破 check 的差异在本地静默放行、到 CI 才暴露，每次都要补 fix commit + push retry。
