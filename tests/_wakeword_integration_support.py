@@ -23,6 +23,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# socket.socket uses __slots__ (no dynamic attrs), so leftover bytes the Linux
+# recv() pulls past the HTTP handshake separator are stashed here keyed by
+# id(sock) instead of as a sock attribute. Drained by ws_read_exact.
+_WS_LEFTOVER: dict[int, bytes] = {}
+
 WAKEWORD_PKG_ROOT = ROOT / "data" / "digital-human" / "wakeword_runtime"
 RUNTIME_DIR = WAKEWORD_PKG_ROOT / "runtime"
 BRIDGE_DIR = WAKEWORD_PKG_ROOT / "bridge"
@@ -133,11 +138,12 @@ def ws_read_exact(sock: socket.socket, n: int) -> bytes:
     buf = bytearray()
     # Drain any bytes the handshake recv() pulled past the HTTP header separator
     # (a single recv(1024) on Linux can bundle the 101 response + first WS frame).
-    leftover = getattr(sock, "_wakeword_leftover", b"")
+    leftover = _WS_LEFTOVER.pop(id(sock), b"")
     if leftover:
         take = leftover[: n - len(buf)]
         buf.extend(take)
-        sock._wakeword_leftover = leftover[len(take) :]  # type: ignore[attr-defined]
+        if leftover[len(take):]:
+            _WS_LEFTOVER[id(sock)] = leftover[len(take):]
     while len(buf) < n:
         chunk = sock.recv(n - len(buf))
         if not chunk:
@@ -166,12 +172,16 @@ def ws_recv_text(sock: socket.socket) -> str | None:
 
 def _read_upgrade_response(sock: socket.socket, expected_accept: str) -> None:
     """Read the 101 Upgrade response; validate status + Accept; stash any
-    trailing bytes (first WS frame) onto ``sock._wakeword_leftover`` for
-    ``ws_read_exact`` to drain before its first recv().
+    trailing bytes (first WS frame) into the ``_WS_LEFTOVER`` dict (keyed by
+    ``id(sock)``) for ``ws_read_exact`` to drain before its first recv().
 
     Linux ``recv(1024)`` commonly bundles the HTTP response and the first WS
     frame into one chunk; truncating at the ``\\r\\n\\r\\n`` separator would
     silently drop the first frame, breaking the test client.
+
+    A module-level dict is used instead of a socket attribute because
+    ``socket.socket`` has ``__slots__`` and rejects dynamic attribute setting
+    (AttributeError on Linux/CI).
     """
     buf = bytearray()
     sep = b"\r\n\r\n"
@@ -185,7 +195,7 @@ def _read_upgrade_response(sock: socket.socket, expected_accept: str) -> None:
     resp = bytes(buf[: sep_idx + len(sep)])
     leftover = bytes(buf[sep_idx + len(sep) :])
     if leftover:
-        sock._wakeword_leftover = leftover  # type: ignore[attr-defined]
+        _WS_LEFTOVER[id(sock)] = leftover
     status_line = resp.split(b"\r\n", 1)[0].decode("ascii")
     if "101" not in status_line:
         sock.close()
