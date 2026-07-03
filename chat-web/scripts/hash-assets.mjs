@@ -1,5 +1,5 @@
 // Build chat-web with hashed JS/CSS filenames for immutable caching.
-// Copies everything to chat-web/dist/, renames js/*.js and styles.css with
+// Copies everything to chat-web/dist/, renames js/*.js and css/*.css with
 // content hashes, and rewrites HTML references accordingly.
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
@@ -93,11 +93,18 @@ async function minifyAssets(distDir) {
     count += 1;
   }
 
-  // styles.css
+  // root-level styles.css (legacy) + split css/*.css
   const stylesUrl = new URL("styles.css", distDir);
   if (await exists(stylesUrl)) {
     await minifyInPlace(stylesUrl, "css");
     count += 1;
+  }
+  const cssDir = new URL("css/", distDir);
+  if (await exists(cssDir)) {
+    for (const name of (await readdir(cssDir)).filter((n) => n.endsWith(".css"))) {
+      await minifyInPlace(new URL(name, cssDir), "css");
+      count += 1;
+    }
   }
 
   console.log(`Minified ${count} assets with esbuild`);
@@ -146,8 +153,8 @@ async function main() {
     console.log(`Hashed ${name} -> ${newName}`);
   }
 
+  const cssMap = new Map();
   const stylesUrl = new URL("styles.css", DIST);
-  let cssMap = new Map();
   if (await exists(stylesUrl)) {
     const { hash } = await hashFile(stylesUrl);
     const newName = hashedName("styles.css", hash);
@@ -156,6 +163,20 @@ async function main() {
     await rm(stylesUrl);
     cssMap.set("styles.css", newName);
     console.log(`Hashed styles.css -> ${newName}`);
+  }
+
+  const cssDir = new URL("css/", DIST);
+  if (await exists(cssDir)) {
+    for (const name of (await readdir(cssDir)).filter((n) => n.endsWith(".css"))) {
+      const srcUrl = new URL(name, cssDir);
+      const { hash } = await hashFile(srcUrl);
+      const newName = hashedName(name, hash);
+      const destUrl = new URL(newName, cssDir);
+      await copyFile(srcUrl, destUrl);
+      await rm(srcUrl);
+      cssMap.set(`css/${name}`, `css/${newName}`);
+      console.log(`Hashed css/${name} -> css/${newName}`);
+    }
   }
 
   // Rewrite HTML references.

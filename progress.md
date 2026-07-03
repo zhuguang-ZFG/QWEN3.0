@@ -2,6 +2,19 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-04 M4 延后债务清理（D1~D4）
+
+- **范围**：清理 M4 结项时明确延后的 4 项债务，覆盖小程序、Chat Web、固件 CI 三端。
+- **D4 固件 native 单测 CI 首跑验证**：核查 `esp32S_XYZ` CI `firmware-native-tests` job 首跑结果为 **success**（含 `test_u8_ota_allowlist` + `test_u8_mqtt_hex_decode`）。但发现 `manager-mobile-tests` job 因 P3.1 composable 提取 + P3.3 timeout 常量化后，`tests/ci/test_manager_mobile_device_info.py` 仍只读 `index.vue` 且断言旧字符串而整体失败。修复：将设备详情相关断言指向新的 `useDeviceEvents.ts`/`useDeviceActions.ts`（读取 DEVICE_DETAIL + composable 文件拼接），SoftAP 断言 `timeout: 15000` → `timeout: SOFTAP_SUBMIT_TIMEOUT_MS`，移除已不存在的 `connectXiaozhiHotspot` 断言。本地 pytest **23/23 passed**。
+- **D1 `chat/chat.vue` 拆分**：635 → 130 行。提取 `useChatMessages`（历史加载/保存/清空 + genMsgId）、`useChatStream`（流式发送/中断/regenerate）、`useChatHelpers`（滚动/时间格式化/markdown 渲染/长按/复制）三个 composable + 独立 `chat.scss`。模板 byte-identical（diff 验证），仅 `<script>` 与 `<style src>` 变更。
+- **D2 `index/index.vue` 拆分**：604 → 238 行。提取 `useHomeData`（设备/任务加载 + primaryDevice/onlineCount 派生）、`useHomeNavigation`（8 个跳转入口）、`useTaskFormatters`（任务状态 label/color/progress 三态）+ 独立 `index.scss`。模板 + 样式 byte-identical（diff 验证）。
+- **D3 Chat Web `styles.css` 按页面拆分**：2060 行单文件 → 5 个 `css/*.css`：`common.css`（重置/变量/滚动条/焦点/媒体查询/全局微交互）、`chat.css`（sidebar/main/topbar/messages/input/toast/modal/mobile + welcome orb）、`playground.css`、`auth.css`（login/register）、`pages.css`（keys/usage/devices/handwriting + P4 页面级项）。8 个 HTML 页面按需加载对应组合；`hash-assets.mjs` 适配 `css/` 目录 minify + 哈希；`deploy_chat_web.py` FILES 移除 `styles.css` 改为 5 个 `css/*.css`。
+- **门禁**：小程序 `vue-tsc` 0 errors + `uni build -p mp-weixin` 通过；`vitest` 4 passed；`check-i18n-keys.mjs` 803 keys OK；主仓库 `pytest tests/ci/test_manager_mobile_device_info.py` 23 passed；Chat Web `node scripts/hash-assets.mjs` 构建通过（23 assets minified，5 CSS + 18 JS 哈希，9 HTML 重写）。
+- **部署**：Chat Web 经 `deploy_chat_web.py` 部署到主 VPS，origin 5 个 `css/*.css` + 拆分后 HTML 全部 200（`--resolve` 绕 CDN 验证），nginx reload OK。旧 `styles.css`（68KB）保留在 origin 作为 CDN 缓存 HTML 的兜底，过渡期两态均可用。CDN 对新 `css/*` 路径的负缓存随 4h TTL 自然失效（`common.css` 已 `Cf-Cache-Status: HIT`）。
+- **小程序上传**：版本 `3.8.6` → `3.8.7`，微信开发者工具 CLI 上传成功（1.2 MB / 1289312 字节）。
+- **Git**：子模块 `esp32S_XYZ` `f785da5` 已 push origin main；主仓库更新子模块指针 + Chat Web/脚本/文档改动。
+- **结论**：M4 全部延后债务清理完毕，全项目改善计划 P0→P3 无剩余债务。
+
 ## 2026-07-04 M4 里程碑完成（P3 重构/技术债）
 
 - **审计收尾**：承接 M3（P2 LOW），完成全项目 P3 重构/技术债，覆盖小程序、Chat Web、固件三端。后端 P3 项在 M2/M3 已提前闭环。

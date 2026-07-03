@@ -1,0 +1,382 @@
+/* ─── Device tile enhancements ─── */
+.device-tile {
+  position: relative;
+  transition: border-color var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+}
+.device-tile:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Running gradient border for busy devices */
+.device-tile.busy {
+  border-image: linear-gradient(135deg, var(--accent), var(--violet), var(--accent)) 1;
+  border-image-slice: 1;
+  animation: busyGlow 2s ease-in-out infinite alternate;
+}
+@keyframes busyGlow {
+  0%   { box-shadow: 0 0 12px rgba(6, 182, 212, 0.08); }
+  100% { box-shadow: 0 0 24px rgba(139, 92, 246, 0.12); }
+}
+
+/* Online pulse badge */
+.status-badge.on .status-dot {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+/* Device empty state illustration */
+.device-empty-illust {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px 24px; color: var(--text-muted); text-align: center;
+}
+.device-empty-illust svg {
+  width: 64px; height: 64px; color: var(--text-faint);
+  margin-bottom: 16px; opacity: 0.5;
+}
+.device-empty-illust p { font-size: 0.92rem; line-height: 1.6; max-width: 280px; }
+
+/* Drawer section divider */
+.drawer-section + .drawer-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding-top: 20px;
+}
+
+/* ─── Key page card layout ─── */
+.key-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 16px;
+  transition: all var(--duration-normal) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.key-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, var(--accent), var(--violet));
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+.key-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(2px);
+}
+.key-card:hover::before { opacity: 1; }
+
+.key-card-info { flex: 1; min-width: 0; }
+.key-card-name { font-weight: 600; font-size: 0.92rem; margin-bottom: 4px; }
+.key-card-meta { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--text-muted); }
+.key-card-prefix {
+  font-family: 'SF Mono', SFMono-Regular, ui-monospace, monospace;
+  color: var(--accent-light); font-size: 0.82rem;
+}
+.key-card-status {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 980px;
+  font-size: 0.72rem; font-weight: 600;
+}
+.key-card-status.active { background: var(--green-dim); color: var(--green); }
+.key-card-status.revoked { background: rgba(248, 113, 113, 0.1); color: var(--red); }
+
+.key-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* Key mask/reveal toggle */
+.key-toggle-vis {
+  width: 32px; height: 32px;
+  border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.key-toggle-vis:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  color: var(--accent-light);
+  background: rgba(6, 182, 212, 0.08);
+}
+.key-toggle-vis svg { width: 16px; height: 16px; }
+
+/* Copy button with feedback */
+.key-copy-btn {
+  height: 32px; padding: 0 12px;
+  border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim); font-size: 0.8rem; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.key-copy-btn:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  color: var(--accent-light);
+  background: rgba(6, 182, 212, 0.08);
+}
+.key-copy-btn.copied {
+  border-color: rgba(52, 211, 153, 0.3);
+  color: var(--green);
+  background: var(--green-dim);
+}
+.key-copy-btn svg { width: 14px; height: 14px; }
+
+/* Key delete button */
+.key-del-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px; border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-faint); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.key-del-btn:hover {
+  background: rgba(244, 63, 94, 0.1);
+  border-color: rgba(244, 63, 94, 0.2);
+  color: var(--rose-light);
+}
+.key-del-btn svg { width: 16px; height: 16px; }
+
+/* Key empty state */
+.key-empty-illust {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 56px 24px; color: var(--text-muted); text-align: center;
+}
+.key-empty-illust svg {
+  width: 56px; height: 56px; color: var(--text-faint);
+  margin-bottom: 14px; opacity: 0.4;
+}
+.key-empty-illust p { font-size: 0.9rem; line-height: 1.6; }
+
+/* ─── Usage page summary card color bar ─── */
+.summary-card {
+  position: relative;
+  overflow: hidden;
+}
+.summary-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  border-radius: 0 3px 3px 0;
+}
+.summary-card.card-tokens::before { background: var(--accent); }
+.summary-card.card-requests::before { background: var(--violet); }
+.summary-card.card-cost::before { background: var(--amber); }
+
+/* Chart card subtle divider */
+.chart-card {
+  position: relative;
+}
+.chart-card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 20px; right: 20px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+}
+
+/* ─── Global empty state illustration ─── */
+.empty-illust {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px 24px; color: var(--text-muted); text-align: center;
+}
+.empty-illust svg {
+  width: 56px; height: 56px; color: var(--text-faint);
+  margin-bottom: 14px; opacity: 0.4;
+}
+.empty-illust p { font-size: 0.9rem; line-height: 1.6; max-width: 280px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   P3 — HANDWRITING + USAGE + DETAILS POLISH
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Handwriting form card ─── */
+.handwriting-form {
+  position: relative;
+  overflow: hidden;
+}
+.handwriting-form::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.3), rgba(139, 92, 246, 0.3), transparent);
+}
+
+/* Form controls — unified dark inputs */
+.form-group textarea,
+.form-group select {
+  transition: border-color var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out),
+              background var(--duration-normal) var(--ease-out);
+}
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08), 0 0 20px rgba(245, 158, 11, 0.05) !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  outline: none;
+}
+
+/* Range slider accent */
+.form-group input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: 980px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none; cursor: pointer;
+}
+.form-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring);
+}
+.form-group input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Generate button — warm gradient */
+.handwriting-form .btn-primary {
+  position: relative;
+  padding: 12px 24px !important;
+  border-radius: var(--radius-sm) !important;
+  background: linear-gradient(135deg, var(--amber) 0%, var(--violet) 100%) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+.handwriting-form .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  filter: brightness(1.08);
+}
+.handwriting-form .btn-primary:active { transform: translateY(0) scale(0.98); }
+.handwriting-form .btn-primary:disabled {
+  opacity: 0.5 !important; cursor: not-allowed;
+  transform: none !important; filter: none !important;
+  box-shadow: none !important;
+}
+
+/* Result area — decorative border glow */
+.result-area {
+  position: relative;
+}
+.result-area::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.25), transparent);
+}
+
+/* SVG preview container */
+.svg-preview {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ─── Usage page enhancements ─── */
+.usage-main .summary-card .value {
+  letter-spacing: -0.02em;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.summary-card.card-tokens .value { color: var(--accent-light); }
+.summary-card.card-requests .value { color: var(--violet-light); }
+.summary-card.card-cost .value { color: var(--amber-light); }
+
+/* Chart card subtle top accent */
+.chart-card {
+  position: relative;
+}
+.chart-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+/* Usage table row hover */
+.usage-table tr {
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.usage-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Pager button polish */
+.pager button {
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.pager button:hover:not(:disabled) {
+  border-color: rgba(6, 182, 212, 0.3);
+  color: var(--accent-light);
+  background: rgba(6, 182, 212, 0.06);
+}
+
+/* Period select focus */
+.period-select:focus {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+  outline: none;
+}
+
+/* ─── Handwriting page mobile ─── */
+@media (max-width: 640px) {
+  .handwriting-main { padding: 20px; }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+
+/* ─── Usage empty state ─── */
+.usage-empty-illust {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 56px 24px; color: var(--text-muted); text-align: center;
+  grid-column: 1 / -1;
+}
+.usage-empty-illust svg {
+  width: 56px; height: 56px; color: var(--text-faint);
+  margin-bottom: 14px; opacity: 0.4;
+}
+.usage-empty-illust p { font-size: 0.9rem; line-height: 1.6; }
+
+/* ─── Unbind confirmation enhancement ─── */
+.unbind-warning {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.15);
+  margin-bottom: 18px;
+}
+.unbind-warning svg {
+  width: 20px; height: 20px; flex-shrink: 0;
+  color: var(--rose-light); margin-top: 1px;
+}
+.unbind-warning-text { font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; }
+.unbind-warning-text strong { color: var(--text); font-weight: 600; }
+.unbind-device-name {
+  font-family: 'SF Mono', SFMono-Regular, ui-monospace, monospace;
+  color: var(--accent-light); font-size: 0.82rem;
+  background: rgba(6, 182, 212, 0.08);
+  padding: 2px 8px; border-radius: 6px;
+  margin-top: 4px; display: inline-block;
+}
+
+/* Danger button — enhanced */
+.btn-danger.confirm {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.2), rgba(244, 63, 94, 0.12));
+  border-color: rgba(244, 63, 94, 0.4);
+  color: var(--rose-light);
+  font-weight: 600;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+.btn-danger.confirm:hover {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.3), rgba(244, 63, 94, 0.18));
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.15);
+  transform: translateY(-1px);
+}
+.btn-danger.confirm:active { transform: scale(0.97); }

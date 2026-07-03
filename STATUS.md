@@ -21,13 +21,25 @@
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
+### 最近完成（2026-07-04）D1~D4 延后债务清理（M4 尾款）
+
+- **范围**：清理 M4 遗留的 4 项延后债务，全部闭环。
+- **D4 固件 native 单测 CI 首跑验证**：修复因 P3.1 composable 提取 + P3.3 timeout 常量化导致的 `tests/ci/test_manager_mobile_device_info.py` 断言失效（旧断言只读 `index.vue`，逻辑已迁至 composable；`timeout: 15000` → `SOFTAP_SUBMIT_TIMEOUT_MS`）。测试改为读取 `index.vue` + composable 文件拼接串校验，本地 pytest **23/23 PASS**；确认 CI `firmware-native-tests` job 历史绿灯（U8 OTA/MQTT native 单测已跑通）。
+- **D1 `chat/chat.vue` 拆分**：635 → **130 行**，提取 `useChatMessages`（历史/存储）+ `useChatStream`（流式+中断+重生成）+ `useChatHelpers`（滚动/时间/markdown/长按/复制）+ 独立 `chat.scss`。模板/样式与原始逐字节一致（diff 验证）。
+- **D2 `index/index.vue` 拆分**：604 → **238 行**，提取 `useHomeData`（设备/任务加载+派生）+ `useHomeNavigation`（8 个跳转）+ `useTaskFormatters`（任务状态 label/color/progress）+ 独立 `index.scss`。模板/样式逐字节一致。
+- **D3 Chat Web `styles.css` 按页面拆分**：2060 行 → 5 文件（`css/common.css` 全局重置/滚动条/焦点/微交互、`css/chat.css` 聊天页、`css/playground.css`、`css/auth.css` 登录/注册、`css/pages.css` keys/usage/devices/handwriting）。`hash-assets.mjs` 适配 `css/` 目录哈希；`deploy_chat_web.py` FILES 换为 5 个 CSS。9 个 HTML 按需引用（common + 页面专属）。
+- **门禁**：小程序 `vue-tsc` + `uni build` + `vitest`(4) + `check-i18n`(803) 全绿；后端 CI 镜像测试 23/23 PASS；Chat Web esbuild 构建通过（23 assets minified）。
+- **小程序**：版本 `3.8.6` → `3.8.7`，微信开发者工具 CLI 上传成功（1.2 MB）。
+- **部署**：Chat Web `deploy_chat_web.py` 成功，origin 5 个 CSS + 新 HTML 全 200（`--resolve` 绕 CDN 验证）；旧 `styles.css`(68KB) 保留在 origin 作为 CDN 缓存 HTML 的兜底，Cloudflare ~4h 缓存窗口内新旧两态均可用，无断链。
+- **提交**：子模块 `esp32S_XYZ` `f785da5` 已 push；主仓库更新子模块指针 + Chat Web CSS 拆分 + 构建/部署脚本 + 文档同步。
+
 ### 最近完成（2026-07-04）M4 全项目 P3 重构/技术债
 
-- **范围**：承接 M3，完成小程序、Chat Web、固件共 6 项 P3 重构/技术债（+2 项延后为债务）。
+- **范围**：承接 M3，完成小程序、Chat Web、固件共 6 项 P3 重构/技术债（+2 项延后为债务，已由上方 D1~D4 清理）。
 - **P3 已修复**：小程序超时魔法数字统一到 `src/config/timeouts.ts`（8 常量）；非微信端流式完整实现（`fetch` + `getReader` + `AbortController`，替换 P0.4 fail-loud 占位）；3 个超大组件拆分（`device-detail` 761→331、`voiceprint` 691→399、`ultrasonic-config` 667→266，提取 7 个 composable + 1 个纯函数模块）；Chat Web `escapeHtml`/`escapeAttr`/`isAllowedImageUrl` 7 处重复收敛到 `js/utils.js` + esbuild 0.25.12 压缩（styles.css 68KB→49KB）；固件新增 U8 OTA 白名单 + MQTT hex 解码 native 单测（35 用例）并接入 CI；i18n 校验 + vitest 接入 CI `manager-mobile-tests` job。
 - **门禁**：`pytest -q` → **4463 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check .` clean；小程序 `vue-tsc` + `uni build` + `vitest`(4) + `check-i18n`(803) 全绿；Chat Web esbuild 构建通过（19 assets minified）。固件 native 单测未本地编译（按决策「只加代码不本地验证」，依赖 CI 首跑）。
 - **小程序**：版本 `3.8.5` → `3.8.6`，微信开发者工具 CLI 上传成功（1.2 MB）。
-- **延后债务**：`chat/chat.vue`(635) 与 `index/index.vue`(604) 模板/样式拆分；Chat Web `styles.css`(2060 行) 按页面拆分；固件 native 单测 CI 首跑验证。
+- **延后债务**（均已在 2026-07-04 D1~D4 清理完成）：`chat/chat.vue`(635) 与 `index/index.vue`(604) 拆分；Chat Web `styles.css`(2060 行) 按页面拆分；固件 native 单测 CI 首跑验证。
 - **提交**：子模块 `esp32S_XYZ` `223bef7` 已 push；LiMa 主仓库更新子模块指针 + Chat Web 改动 + 文档同步。
 
 ### 最近完成（2026-07-03）M3 全项目 P2 LOW 技术债/体验打磨
