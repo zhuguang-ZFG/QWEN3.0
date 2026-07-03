@@ -1,5 +1,20 @@
 // P3.2: isAllowedImageUrl / escapeAttr come from js/utils.js (window.LiMaUtils),
 // aliased at global scope in chat-messages.js which loads before this script.
+// Fallbacks guard against partial CDN cache purges.
+var isAllowedImageUrl = (typeof isAllowedImageUrl !== 'undefined' && isAllowedImageUrl)
+  || (window.LiMaUtils && window.LiMaUtils.isAllowedImageUrl)
+  || function (url) {
+    try {
+      var u = new URL(url);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+      return ['image.pollinations.ai', 'chat.donglicao.com', 'api.donglicao.com'].some(function (d) { return u.hostname === d; });
+    } catch (e) { return false; }
+  };
+var escapeAttr = (typeof escapeAttr !== 'undefined' && escapeAttr)
+  || (window.LiMaUtils && window.LiMaUtils.escapeAttr)
+  || function (str) {
+    return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  };
 
 // ─── SEND ───
 function authHeaders() {

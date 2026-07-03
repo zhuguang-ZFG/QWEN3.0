@@ -41,10 +41,22 @@ function addMessage(role, content, meta) {
 }
 
 // P3.2: canonical implementations live in js/utils.js (window.LiMaUtils),
-// which must load before this script. Local aliases keep call sites unchanged.
-const escapeHtml = window.LiMaUtils.escapeHtml;
-const escapeAttr = window.LiMaUtils.escapeAttr;
-const isAllowedImageUrl = window.LiMaUtils.isAllowedImageUrl;
+// which must load before this script. Fallback to inline impls guards against
+// partial CDN cache purges where chat-messages.js updates but utils.js / index.html don't.
+const escapeHtml = (window.LiMaUtils && window.LiMaUtils.escapeHtml) || function (str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+};
+const escapeAttr = (window.LiMaUtils && window.LiMaUtils.escapeAttr) || function (str) {
+  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+};
+const isAllowedImageUrl = (window.LiMaUtils && window.LiMaUtils.isAllowedImageUrl) || function (url) {
+  try {
+    var u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    return ['image.pollinations.ai', 'chat.donglicao.com', 'api.donglicao.com'].some(function (d) { return u.hostname === d; });
+  } catch (e) { return false; }
+};
 
 function formatContent(text) {
   // Extract fenced code blocks first so their content is escaped exactly once.
