@@ -131,6 +131,13 @@ def ws_send_masked_text(sock: socket.socket, message: str) -> None:
 
 def ws_read_exact(sock: socket.socket, n: int) -> bytes:
     buf = bytearray()
+    # Drain any bytes the handshake recv() pulled past the HTTP header separator
+    # (a single recv(1024) on Linux can bundle the 101 response + first WS frame).
+    leftover = getattr(sock, "_wakeword_leftover", b"")
+    if leftover:
+        take = leftover[: n - len(buf)]
+        buf.extend(take)
+        sock._wakeword_leftover = leftover[len(take) :]  # type: ignore[attr-defined]
     while len(buf) < n:
         chunk = sock.recv(n - len(buf))
         if not chunk:
@@ -155,6 +162,38 @@ def ws_recv_text(sock: socket.socket) -> str | None:
     if opcode != 0x1:
         return None
     return payload.decode("utf-8")
+
+
+def _read_upgrade_response(sock: socket.socket, expected_accept: str) -> None:
+    """Read the 101 Upgrade response; validate status + Accept; stash any
+    trailing bytes (first WS frame) onto ``sock._wakeword_leftover`` for
+    ``ws_read_exact`` to drain before its first recv().
+
+    Linux ``recv(1024)`` commonly bundles the HTTP response and the first WS
+    frame into one chunk; truncating at the ``\\r\\n\\r\\n`` separator would
+    silently drop the first frame, breaking the test client.
+    """
+    buf = bytearray()
+    sep = b"\r\n\r\n"
+    while sep not in buf:
+        chunk = sock.recv(1024)
+        if not chunk:
+            sock.close()
+            raise ConnectionError("handshake closed before completion")
+        buf.extend(chunk)
+    sep_idx = buf.find(sep)
+    resp = bytes(buf[: sep_idx + len(sep)])
+    leftover = bytes(buf[sep_idx + len(sep) :])
+    if leftover:
+        sock._wakeword_leftover = leftover  # type: ignore[attr-defined]
+    status_line = resp.split(b"\r\n", 1)[0].decode("ascii")
+    if "101" not in status_line:
+        sock.close()
+        raise ConnectionError(f"unexpected handshake response: {status_line!r}")
+    accept_marker = f"sec-websocket-accept: {expected_accept}".encode("ascii").lower()
+    if accept_marker not in resp.lower():
+        sock.close()
+        raise ConnectionError("Sec-WebSocket-Accept mismatch")
 
 
 def ws_handshake(
@@ -185,19 +224,5 @@ def ws_handshake(
         "\r\n"
     )
     sock.sendall(req.encode("ascii"))
-    buf = bytearray()
-    while b"\r\n\r\n" not in buf:
-        chunk = sock.recv(1024)
-        if not chunk:
-            sock.close()
-            raise ConnectionError("handshake closed before completion")
-        buf.extend(chunk)
-    resp = bytes(buf)
-    status_line = resp.split(b"\r\n", 1)[0].decode("ascii")
-    if "101" not in status_line:
-        sock.close()
-        raise ConnectionError(f"unexpected handshake response: {status_line!r}")
-    if f"sec-websocket-accept: {accept}".encode("ascii").lower() not in resp.lower():
-        sock.close()
-        raise ConnectionError("Sec-WebSocket-Accept mismatch")
+    _read_upgrade_response(sock, accept)
     return sock

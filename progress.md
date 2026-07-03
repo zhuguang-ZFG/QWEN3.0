@@ -4,6 +4,12 @@
 
 ## 2026-07-03 CI 修复 O 批（pyright authority-files 过时路径 + 工具清单同步）
 
+- **O-1 修正 CI pyright authority-files 步骤**：见下方 O 批主条目（`routing_engine.py` → `routing_engine/__init__.py`）。
+- **O-2 修隐藏的 ws_handshake Linux recv 丢首帧 bug**：O-1 push commit `9bfabae9` 后 CI 仍失败，但根因已从 pyright 转为 `test_websocket_handshake_succeeds_without_sec_websocket_version` 在 CI 上 assert `'bridge_connected' in '{"type": "wakeword_config", ...}'` 失败。排查发现 `_wakeword_integration_support.py::ws_handshake` 的 HTTP 响应读取 `sock.recv(1024)` 在 Linux 上会把 101 响应 + 后续 WebSocket 首帧（ready frame）合并到一个 recv 返回，buf 截取 `\r\n\r\n` 之前的字节只留 HTTP 头，**\r\n\r\n 之后的 ready 帧字节被静默丢弃**——之后 `ws_recv_text(sock)` 读到的是第二帧（wakeword_config）。本地 Windows 上 recv 不合并 chunk 不暴露此 bug；CI Linux 暴露。修复：`ws_handshake` 找到 `\r\n\r\n` 分隔符后，把 buf 中之后的所有 trailing bytes 挂到 `sock._wakeword_leftover` 属性；`ws_read_exact` 在 recv 前先 drain `_wakeword_leftover`。本地 8 focused + full 4428 passed 恒定；之后 CI 应转绿。
+- **教训**：跨平台 recv 边界差异 —— Linux `recv(N)` 可以一次返回 N 字节（含尾部 frame），Windows 上 chunk 化更碎。手写 WebSocket/HTTP-over-socket 测试客户端在 `\r\n\r\n` 之后必须 drain leftover 到 WS read 层，否则会丢首帧。RFC6455 库自带处理但手写支持模块要自觉处理。
+
+## 2026-07-03 CI 修复 O 批（pyright authority-files 过时路径 + 工具清单同步）
+
 - **背景**：N 批把 `pypinyin==0.55.0` 加进 CI test.yml 后，push commit `0b3aeec6` 触发的 GitHub Actions **Tests workflow 失败**。经查 CI 日志根因**不是** F401 门禁或 pypinyin——F401 安全门（`pytest --collect-only OK`）与 `4395 passed, 17 skipped` 全绿，pypinyin 也让集测正常跑（skip 数下降），说明 K2+L+M+N 主体在远端 CI 全部通过。失败根因是 test.yml「Type check authority files」步骤硬编码 `pyright server.py routing_engine.py routes/chat_endpoints.py`，而 `routing_engine.py` 早已被抽离重构为 `routing_engine/` 包（`__init__.py` 为权威路由入口），CI 报 `File or directory "routing_engine.py" does not exist` exit code 4。
 - **修复**：
   - `.github/workflows/test.yml`：`routing_engine.py` → `routing_engine/__init__.py`（本地 `pyright server.py routing_engine/__init__.py routes/chat_endpoints.py` 验证 0 errors）。
