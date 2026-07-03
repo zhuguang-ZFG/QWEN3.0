@@ -163,31 +163,20 @@ _P13_SKIP_DIRS = frozenset(
         ".venv310",
         "data",
         ".agents",
-        ".codegraph",
+        ".worktrees",
     }
 )
 
 
 def _p13_scan_paths() -> list[Path]:
     paths: list[Path] = []
-    for rel in ("device_gateway", "routes"):
-        base = ROOT / rel
-        if base.is_dir():
-            paths.extend(sorted(base.rglob("*.py")))
-    for pattern in ("routing_*.py", "http_*.py", "server*.py"):
-        paths.extend(sorted(ROOT.glob(pattern)))
-    deduped: list[Path] = []
-    seen: set[Path] = set()
-    for path in paths:
-        if not path.is_file():
+    for p in sorted(ROOT.rglob("*.py")):
+        if not p.is_file():
             continue
-        if any(part in _P13_SKIP_DIRS or part.startswith(".venv") for part in path.parts):
+        if any(part in _P13_SKIP_DIRS or part.startswith(".venv") for part in p.parts):
             continue
-        if path in seen:
-            continue
-        seen.add(path)
-        deduped.append(path)
-    return deduped
+        paths.append(p)
+    return paths
 
 
 def test_p13_no_silent_exception_pass_in_active_paths():

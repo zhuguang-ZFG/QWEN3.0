@@ -1,3 +1,18 @@
+function isAllowedImageUrl(url) {
+  const allowedImageDomains = [
+    'image.pollinations.ai',
+    'chat.donglicao.com',
+    'api.donglicao.com'
+  ];
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    return allowedImageDomains.some(domain => u.hostname === domain);
+  } catch (e) {
+    return false;
+  }
+}
+
 // ─── SEND ───
 function authHeaders() {
   const headers = { 'Content-Type': 'application/json' };
@@ -46,6 +61,7 @@ async function generateImage(prompt) {
     const json = await response.json();
     const url = json.data && json.data[0] && json.data[0].url;
     if (!url) throw new Error('返回结果中没有图片地址');
+    if (!isAllowedImageUrl(url)) throw new Error('图片地址来源不在白名单');
     try {
       const u = new URL(url);
       if (u.protocol !== 'http:' && u.protocol !== 'https:') {
