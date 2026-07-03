@@ -3,6 +3,12 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 Q 批：device_gateway profiles.py 约束施加抽离到 profile_constraints.py
+
+- **粗粒度尺寸目标耗尽后的发现手段**：P 批闭环后 `check_code_size.py` 全过（0 个 >300 行文件、0 个 >50 行函数），需换更细发现手段。CodeGraph 孤儿审计（`codegraph_orphans.py --fanin`）标 `context_compressor.py` 为 ORPHAN，但 `find` + `grep` 全库核实磁盘已不存在——是 CodeGraph 数据库陈旧，非真死代码目标。教训：**CodeGraph 孤儿标记必须 ripgrep 二次核实**（与 G1b F401 审计 agent 不可信同一原则），图数据库可能滞后于磁盘。最终用"行数逼近上限扫描"定位 `profiles.py` 295 行（距 300 仅 5 行）为最值得抽离目标。
+- **TYPE_CHECKING 规避循环引用**：`profile_constraints` 需引用 `profiles.ResolvedProfile` 做类型注解，但 `profiles` → `device_profile` 链若 `profile_constraints` 运行时导入 `profiles` 会形成 `profile_constraints → profiles → device_profile` 与 `task_creation → profile_constraints → profiles` 的潜在环。解法：`ResolvedProfile` 仅在 `if TYPE_CHECKING:` 块下导入，运行时不导入、pyright 仍解析类型。pyright 0 errors 实证规避成功——此模式适用于"纯函数模块需引用上游 dataclass 类型但不需运行时调用"的抽离场景。
+- **F401 全局门禁副带收益**：抽离 3 函数后 `profiles.py` 的 `import json` 和 `from device_gateway.device_write_handler import record_simplification` 随之变死（K2+L+M+N 批启用的 F401 全局门禁会拦），第一时间清理——证明 F401 门禁在重构时主动暴露死导入，而非等到 CI 报错。
+
 ## 2026-07-03 P 批：本地 pre-commit 加 ruff format --check 守护 + 副 `_run` cwd 透传真 bug 修复
 
 - **根因**：O-3 调试历程暴露本地 pre-commit 入口 `scripts/run_ruff_check.py` 只跑 `ruff check`，CI 跑 `ruff check` + `ruff format --check` 两步——两端命令集合不对称，切片 spacing 漂移、Optional[X]→X|None 整理、EOL newline 等只破 format 不破 check 的差异在本地静默放行、到 CI 才暴露，每次都要补 fix commit + push retry。

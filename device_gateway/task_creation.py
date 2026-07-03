@@ -13,7 +13,8 @@ from .device_route_memory import record_route_decision
 from .intent import resolve_voice_task
 from .model_routing import resolve_device_route_policy
 from .path_validator import validate_capability_params, validate_route_policy
-from .profiles import apply_profile_constraints, resolve_profile
+from .profile_constraints import apply_profile_constraints
+from .profiles import resolve_profile
 from .task_creation_builders import (
     _resolve_route_context,
     _handle_policy_error,

@@ -2,8 +2,8 @@
 
 from device_artifacts.store import artifact_store
 from device_gateway.device_route_memory import reset_route_memory_for_tests
+from device_gateway.profile_constraints import apply_profile_constraints
 from device_gateway.profiles import (
-    apply_profile_constraints,
     register_profile,
     reset_profiles_for_tests,
     resolve_profile,

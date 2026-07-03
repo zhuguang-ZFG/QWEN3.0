@@ -2,9 +2,9 @@
 
 from device_gateway.device_route_memory import reset_route_memory_for_tests
 from device_gateway.device_write_handler import record_simplification
+from device_gateway.profile_constraints import apply_profile_constraints
 from device_gateway.profiles import (
     CONSERVATIVE_MAX_PATH_POINTS,
-    apply_profile_constraints,
     register_profile,
     reset_profiles_for_tests,
     resolve_profile,
@@ -93,7 +93,8 @@ def test_record_simplification():
 
 
 def test_apply_profile_constraints_records_simplification():
-    from device_gateway.profiles import apply_profile_constraints, resolve_profile
+    from device_gateway.profile_constraints import apply_profile_constraints
+    from device_gateway.profiles import resolve_profile
 
     resolved = resolve_profile(device_id="dev-1")
     task = {
@@ -125,3 +126,16 @@ def test_apply_profile_constraints_no_simplification_for_complete_profile():
     result = apply_profile_constraints(task, resolved)
 
     assert result["route_policy"].get("approval_required") is None
+
+
+def test_apply_profile_constraints_lives_in_profile_constraints_module():
+    """Lock the Q-batch extraction: ``apply_profile_constraints`` is sourced from
+    ``device_gateway.profile_constraints`` (constraint application), while
+    ``profiles`` now owns resolution only. Guards against accidental re-coupling
+    or revert.
+    """
+    from device_gateway import profile_constraints
+    from device_gateway.profile_constraints import apply_profile_constraints as via_new_module
+
+    assert callable(via_new_module)
+    assert via_new_module is profile_constraints.apply_profile_constraints

@@ -2,6 +2,16 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 Q 批完成（device_gateway profiles.py 约束施加抽离到 profile_constraints.py）
+
+- **背景**：P 批闭环后代码尺寸门禁全过（0 个 >300 行文件、0 个 >50 行函数），粗粒度尺寸目标耗尽。换用更细发现手段：CodeGraph 孤儿审计（`context_compressor.py` 标 ORPHAN 但磁盘已不存在，数据库陈旧非真目标）+ Ponytail 台账（待处理项空）+ 行数逼近上限扫描。定位 `device_gateway/profiles.py` 295 行（距 300 上限仅 5 行）为最值得抽离目标——职责清晰分两层："profile 解析"（registry + `resolve_profile` + routing hints）与"约束施加到 task"（`apply_profile_constraints` + `_apply_approval_gate` + `_cap_param`）。
+- **接缝核实**：`_apply_approval_gate`/`_cap_param` 零外部引用（纯私有，仅被 `apply_profile_constraints` 内部调用）；`apply_profile_constraints` 生产调用方 `task_creation.py` + `tasks.py`（后者从 `.task_creation` 再导出作 monkeypatch 面，无需改动），测试 2 文件；无 `getattr` 动态引用；唯一外部运行时依赖 `record_simplification`。7+1 个现有约束测试构成 REFACTOR 安全网。
+- **抽离**：新建 `device_gateway/profile_constraints.py`（90 行纯函数模块），搬入 `apply_profile_constraints` + `_apply_approval_gate` + `_cap_param`；`ResolvedProfile` 仅在 `TYPE_CHECKING` 下导入规避循环引用（`profile_constraints` → `profiles` → `device_profile`，运行时无环）。从 `profiles.py` 删除 3 函数 + 2 个随之变死的导入（`json`、`record_simplification`，F401 全局门禁会拦），profiles.py 295→222（-73 行）。
+- **调用方同步**：`task_creation.py` 导入源 `.profiles import apply_profile_constraints, resolve_profile` 拆为 `.profile_constraints import apply_profile_constraints` + `.profiles import resolve_profile`；2 个测试文件（`test_device_gateway_profile_constraints.py`、`test_device_gateway_profile_tasks.py`）同步导入源。
+- **特征化测试**：新增 `test_apply_profile_constraints_lives_in_profile_constraints_module` 锁定新模块公开 API（`via_new_module is profile_constraints.apply_profile_constraints`），防回退。
+- **门禁**：`ruff check` + `ruff format --check` 改动 5 文件 clean；`check_code_size.py` PASS（0 个 >300 行文件、0 个 >50 行函数）；`pyright` 改动 3 生产文件 0 errors（TYPE_CHECKING 循环引用规避成功）；聚焦 51 测试 GREEN（device_gateway_profile/ + route_policy_validation + route_resolution）；全量 `pytest -q` → **4429 passed / 3 skipped / 2 deselected**（较 P 批 4428 +1 = 新增特征化测试）。
+- **下次**：git add/commit/push origin + VPS 部署 + 公网 4 测试冒烟。
+
 ## 2026-07-03 深度瘦身 P 批完成（本地 pre-commit 加 ruff format --check 守护 + 副 `_run` cwd 透传真 bug 修复）
 
 - **范围**：O-3 暴露本地守护与 CI 不对称（CI 跑 `ruff format --check` 而本地只 `ruff check`），本批把 `ruff format --check` 加进本地 pre-commit 入口，并顺手清理首个守护启用即抓出的 2 处历史 format 漂移。
