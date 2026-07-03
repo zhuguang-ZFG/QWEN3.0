@@ -2,6 +2,27 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 M1 里程碑完成（P0 全项目安全/正确性修复）
+
+- **审计入口**：通读后端（Python/FastAPI）、Chat Web、小程序（uni-app）、固件（ESP32 U1/U8），识别 3 CRITICAL + 11 HIGH + ~20 MEDIUM + ~15 LOW 问题，制定并落盘 `docs/superpowers/specs/2026-07-03-full-project-improvement-plan.md`（P0→P3 四阶段）。
+- **P0 修复项**（全部提交）：
+  - CRI-F1：小程序上传私钥 `git log --all` 核实无历史提交，README 加「密钥保管」段落；`.gitignore` 已覆盖 `secrets/` 与 `*.key`。
+  - CRI-F2：小程序 `env/.env.production` / `env/.env.test` 的 `NODE_ENV` 从 `development` 修正为 `production` / `test`。
+  - CRI-F3：移除 `vite.config.ts` 三处 `console.log`（含打印全量 env），避免构建日志泄露 token 来源。
+  - HIGH-F1：非微信端流式 `chatCompletionStream` 由「pollTimer=null 静默失败」改为 fail-loud，抛明确错误；完整 SSE 实现推迟至 P3.6。
+  - HIGH-F6：Chat Web `chat-api.js` 图片生成路径增加 `isAllowedImageUrl` 域名白名单（`image.pollinations.ai` / `chat.donglicao.com` / `api.donglicao.com`），防止 XSS 通过恶意图片 URL 注入。
+  - HIGH-B1：修复 `xiaozhi_drawing/pipeline.py` 的 `except ImportError: pass` 静默降级，改为 `logger.warning` 并说明 fallback。
+  - HIGH-B2：扩展 `tests/test_ci_gates.py` 的 `_p13_scan_paths()` 为排除式扫描（排除 `tests/scripts/data/.worktrees/reference/esp32S_XYZ/...` 后扫全部生产 `.py`），覆盖 `xiaozhi_drawing/`、`context_pipeline/`、`session_memory/` 等原盲区；新增 `.worktrees` 到 `_P13_SKIP_DIRS`。
+  - HIGH-W1：U1 默认禁用 WebUI OTA（`OTA_DISABLED_BY_DEFAULT`），`/updatefw` 与 `WebUpdateUpload` 直接返回 403，注释说明启用前置条件。
+  - HIGH-W2：U8 OTA 服务器下发的 `mqtt`/`websocket` 端点加 `IsAllowedEndpointUrl` 白名单（`chat.donglicao.com` / `donglicao.com` / `localhost` / `127.0.0.1`），非白名单 host 拒绝写入 NVS 并 `ESP_LOGE`。
+  - HIGH-W3：清理固件服务端残留基础设施（删除 `Dockerfile-server`、README/getting-started/Makefile 加「已迁移至 LiMa 主项目 device_gateway」标注、移除已删服务运行命令）。
+- **提交与推送**：主仓库 2 提交（M1 安全 batch + 子模块指针）；子模块 `esp32S_XYZ` 4 提交；均已 push origin main。
+- **门禁验证**：主仓库 `pytest -q` → **4433 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check` / `ruff format --check` clean；`check_code_size.py` PASS；`pyright` 改动文件 0 errors（仅既有 cv2/skimage warning）。小程序 `npx vue-tsc --noEmit` + `npx uni build --platform mp-weixin` 通过。
+- **VPS 部署**：`deploy_unified.py --target aliyun --slice core` → 893 文件上传成功，健康检查 OK；`deploy_chat_web.py` 因远程 `/var/www/chat` 目录缺失失败，已记录为 M1 遗留项，需运维手动 `mkdir -p /var/www/chat` 后重试或后续加入脚本自动创建。
+- **文档同步**：更新 `progress.md`（本条目）、`findings.md`（M1 审计发现）、`STATUS.md`（M1 状态）。
+- **下一步**：M2 里程碑（P1 MEDIUM 质量门禁 + 文档同步），或继续处理 M1 遗留的 Chat Web 部署目录问题。
+
+
 ## 2026-07-03 深度瘦身 U 批完成（routes/device_gateway_ws_handlers.py hello 握手机制抽到 device_gateway_hello_helpers.py）
 
 - **背景**：T 批闭环后继续扫描抽离候选。`check_code_size` PASS（无 >300 行文件、无 >50 行函数），转入细粒度接缝发现。对比两候选：`routes/device_gateway_ws_handlers.py`（269 行）与 `device_gateway/device_draw_handler.py`（273 行）。

@@ -21,6 +21,14 @@
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
 
+### 最近完成（2026-07-03）M1 全项目安全/正确性修复 + Aliyun 部署
+
+- **审计范围**：后端 Python/FastAPI + Chat Web + 微信小程序 + ESP32 固件（U1/U8），落盘 `docs/superpowers/specs/2026-07-03-full-project-improvement-plan.md`。
+- **P0 已修复**：小程序 NODE_ENV / vite env 泄露 / 非微信流式 fail-loud；Chat Web 图片 URL 白名单；后端 `xiaozhi_drawing/pipeline.py` 静默降级；CI 静默降级门禁扩展；U1 默认禁用 WebUI OTA；U8 端点白名单；固件服务端残留文档清理。
+- **门禁**：`pytest -q` → **4433 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check` / `ruff format --check` clean；`check_code_size.py` PASS；`pyright` 改动文件 0 errors；小程序 `vue-tsc` + `uni build` 通过。
+- **VPS**：`deploy_unified.py --target aliyun --slice core` 成功，Health OK；`deploy_chat_web.py` 因远程 `/var/www/chat` 目录缺失失败，已记录为 M1 遗留项。
+- **提交**：主仓库 + 子模块 `esp32S_XYZ` 均已 push origin main。
+
 ### 最近完成（2026-07-02）全量门禁 + 京东云生产部署 + 公网冒烟验证
 
 - **本地全量门禁**：`run_pre_commit_check.py --full` → 4388 passed / 3 skipped / 2 deselected；ruff clean。

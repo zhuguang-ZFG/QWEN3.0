@@ -2,6 +2,31 @@
 
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
+>
+> ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
+
+## 2026-07-03 M1 全项目审计：P0 安全/正确性发现与修复
+
+- **CRITICAL 级（小程序/固件侧）**：
+  - 上传私钥 `private.wxbf3c1e0013b46343.key` 存在于工作区，但 `git log --all` 确认**未进入 git 历史**。风险：本地泄露；已加 README 保管提示。
+  - 生产 `NODE_ENV = 'development'` 导致 vite 压缩/tree-shake 失效；已修正为 `production`。
+  - `vite.config.ts` 裸 `console.log` 打印全量 env；已移除。
+- **HIGH 级**：
+  - 后端静默降级：`xiaozhi_drawing/pipeline.py` 存在 `except ImportError: pass`（AGENTS.md 硬规则精确禁止模式）；已改为 `logger.warning`。
+  - CI 门禁盲区：`tests/test_ci_gates.py` 仅扫 `device_gateway/` + `routes/` + 根路由文件，遗漏 `xiaozhi_drawing/`、`context_pipeline/`、`session_memory/` 等；已改为排除式扫描，并补 `.worktrees` 到 skip 集合。
+  - 小程序非微信端流式静默失败：无轮询实现却假装支持；已改为 fail-loud。
+  - Chat Web 图片生成 XSS 面：只校验协议未校验域名；已加白名单。
+  - U1 OTA 无签名/弱认证：默认禁用 WebUI OTA 入口（403）。
+  - U8 端点无签名下发：OTA 服务器可推送任意 mqtt/websocket 端点；已加白名单。
+  - 固件文档滞后：服务端组件已删除但 Dockerfile/README 仍指向；已清理。
+- **M1 遗留项**：
+  - `deploy_chat_web.py` 因远程 `/var/www/chat` 目录不存在而失败。根因：脚本未在部署前 `mkdir -p`。建议：要么运维手动创建，要么在 P2 阶段把 `mkdir -p {REMOTE_DIR}` 加进 `deploy_chat_web.py` 并重新部署。
+  - `.worktrees/` 中 `feat-device-task-metrics` 与 `feat-handwriting-resilience` 分支仍含静默降级，但当前未进入主分支；这些 worktree 未来合并前需清理。
+- **教训**：
+  - 排除式 CI 扫描比包含式更健壮；但需把 `.worktrees` 明确加入 skip 集合，避免把特性分支未完成债务误判为 main 回归。
+  - 前端构建日志是 secret 泄露面；`vite.config.ts` 的 `console.log` 会被 CI 完整记录，且不受 `esbuild.drop` 约束。
+  - 固件服务端迁移后，必须同步删除 Dockerfile 并更新历史 README，否则新成员会按错误文档操作。
+
 
 ## 2026-07-03 U 批：routes/device_gateway_ws_handlers.py hello 握手机制抽到 device_gateway_hello_helpers.py
 
