@@ -142,8 +142,8 @@ def ws_read_exact(sock: socket.socket, n: int) -> bytes:
     if leftover:
         take = leftover[: n - len(buf)]
         buf.extend(take)
-        if leftover[len(take):]:
-            _WS_LEFTOVER[id(sock)] = leftover[len(take):]
+        if leftover[len(take) :]:
+            _WS_LEFTOVER[id(sock)] = leftover[len(take) :]
     while len(buf) < n:
         chunk = sock.recv(n - len(buf))
         if not chunk:
