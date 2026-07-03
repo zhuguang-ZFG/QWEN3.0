@@ -2,6 +2,25 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-04 M4 里程碑完成（P3 重构/技术债）
+
+- **审计收尾**：承接 M3（P2 LOW），完成全项目 P3 重构/技术债，覆盖小程序、Chat Web、固件三端。后端 P3 项在 M2/M3 已提前闭环。
+- **P3 改进项**（6 项完成 + 2 项延后）：
+  - P3.3 超时魔法数字统一：散落在 alova/chat/v2/useServerUrl/wifi-config/blufi-config/wifi-selector 的 8 处 timeout 数字收敛到 `src/config/timeouts.ts`（8 个语义命名常量），全部引用替换为常量。
+  - P3.5 i18n CI 强制校验：`check-i18n-keys.mjs`（803 keys）与 vitest 接入 `esp32S_XYZ/.github/workflows/ci.yml` 的 `manager-mobile-tests` job，CI 强制一致。
+  - P3.6 非微信端流式完整实现：`chat.ts` 抽公共 `parseSSEBuffer`，微信端走 `uni.request(enableChunked)`，非微信端走 `fetch` + `response.body.getReader()` + `AbortController`，保持 `{ abort }` 接口；替换 P0.4 的 fail-loud 占位。
+  - P3.2 Chat Web 去重 + esbuild：`escapeHtml`/`escapeAttr`/`isAllowedImageUrl` 7 处重复收敛到 `js/utils.js`（`window.LiMaUtils`，含 backtick 转义补全），8 个 HTML 页面加载顺序调整；引入 esbuild 0.25.12 压缩 pass（styles.css 68KB→49KB，JS 全部 minify），`chat-web/package.json` + `hash-assets.mjs` 集成。CSS 按页面拆分（2060 行）作为债务延后（终端环境无法视觉验证）。
+  - P3.1 小程序超大组件拆分：3 个逻辑臃肿组件提取 composable — `device-detail/index.vue` 761→331（`useDeviceEvents` + `useDeviceActions`）、`voiceprint/index.vue` 691→399（`useVoicePrintCrud` + `useAudioPlayer`）、`ultrasonic-config.vue` 667→266（`afskAudio` 纯函数 + `useUltrasonicAudio`）；模板/样式逐字节不变（git diff 验证）。`chat/chat.vue`(635) 与 `index/index.vue`(604) 以模板/样式为主、脚本已精简，盲拆风险高于收益，延后为债务。
+  - P3.4 固件 native 单测 + CI 编译矩阵：新增 `test_u8_ota_allowlist.cpp`（25 用例：OTA 主机白名单/SHA-256 hex 校验/base64 形状）与 `test_u8_mqtt_hex_decode.cpp`（10 用例：hex 解码），接入 CI `firmware-native-tests` job；U1/U8 编译矩阵（`pio run` / `espressif/esp-idf-ci-action`）已存在。本机工具链损坏未本地验证，依赖 CI 首跑。
+- **门禁验证**：
+  - 主仓库 `pytest -q` → **4463 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check .` clean。
+  - 小程序 `vue-tsc --noEmit` 0 errors + `uni build -p mp-weixin` 通过；`pnpm test`（vitest）4 passed；`check-i18n-keys.mjs` OK（803 keys）。
+  - Chat Web `node scripts/hash-assets.mjs` esbuild 压缩 + 哈希构建通过（19 assets minified，9 HTML 重写）。
+  - 固件 native 单测未本地编译（g++ 可用但按用户决策「只加代码不本地验证」），CI 首跑验证。
+- **小程序上传**：版本 `3.8.5` → `3.8.6`，微信开发者工具 CLI 上传成功（1.2 MB / 1285697 字节），AppID `wxbf3c1e0013b46343`。
+- **Git 提交与推送**：子模块 `esp32S_XYZ` `223bef7` 已 push；LiMa 主仓库更新子模块指针 + Chat Web 改动 + 文档同步。
+- **下一步**：全项目改善计划 P0→P3 全部闭环。剩余债务：chat/index .vue 模板/样式拆分、Chat Web styles.css 按页面拆分、固件 native 单测 CI 首跑验证。
+
 ## 2026-07-03 M3 里程碑完成（P2 LOW 技术债/体验打磨）
 
 - **审计收尾**：承接 M1（P0 安全）+ M2（P1 质量），完成全项目 P2 LOW 技术债与体验打磨，覆盖后端、Chat Web、小程序、固件（U1/U8）四端。

@@ -12,9 +12,9 @@
   let statuses = {};
   let poller = null;
 
-  function escapeHtml(str) {
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  }
+  // P3.2: canonical escapeHtml lives in js/utils.js (window.LiMaUtils),
+  // loaded before this script in index.html.
+  const escapeHtml = window.LiMaUtils.escapeHtml;
 
   function deviceName(device) {
     const meta = device.metadata || {};

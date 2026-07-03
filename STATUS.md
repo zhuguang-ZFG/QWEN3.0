@@ -7,7 +7,7 @@
 > **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
 > **部署**: 主计算与公网入口在 JDCloud (`117.72.118.95`)；Cloudflare Tunnel 指向京东云本地 nginx（`https://127.0.0.1:443`），由 nginx 路由 API/静态资源。阿里云 `47.112.162.80` 已部署 `lima-router-pilot` 作为辅助节点，仅处理免费/低价后端流量（`aliyun.donglicao.com`）。chat-web、官网 playground、manager-mobile H5 的匿名简单聊天请求已分流到阿里云 pilot。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
 
-> Updated: 2026-07-03
+> Updated: 2026-07-04
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
 > Tests: 全量 **4463 passed / 3 skipped / 2 deselected / 0 failed / 2 warnings**（`.venv310` Python 3.10.20）；ruff check clean（含 F401 全局 gate 已启用）；ruff format clean；pyright 目标文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；manager-mobile `vitest` 用例 GREEN。
@@ -20,6 +20,15 @@
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+
+### 最近完成（2026-07-04）M4 全项目 P3 重构/技术债
+
+- **范围**：承接 M3，完成小程序、Chat Web、固件共 6 项 P3 重构/技术债（+2 项延后为债务）。
+- **P3 已修复**：小程序超时魔法数字统一到 `src/config/timeouts.ts`（8 常量）；非微信端流式完整实现（`fetch` + `getReader` + `AbortController`，替换 P0.4 fail-loud 占位）；3 个超大组件拆分（`device-detail` 761→331、`voiceprint` 691→399、`ultrasonic-config` 667→266，提取 7 个 composable + 1 个纯函数模块）；Chat Web `escapeHtml`/`escapeAttr`/`isAllowedImageUrl` 7 处重复收敛到 `js/utils.js` + esbuild 0.25.12 压缩（styles.css 68KB→49KB）；固件新增 U8 OTA 白名单 + MQTT hex 解码 native 单测（35 用例）并接入 CI；i18n 校验 + vitest 接入 CI `manager-mobile-tests` job。
+- **门禁**：`pytest -q` → **4463 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check .` clean；小程序 `vue-tsc` + `uni build` + `vitest`(4) + `check-i18n`(803) 全绿；Chat Web esbuild 构建通过（19 assets minified）。固件 native 单测未本地编译（按决策「只加代码不本地验证」，依赖 CI 首跑）。
+- **小程序**：版本 `3.8.5` → `3.8.6`，微信开发者工具 CLI 上传成功（1.2 MB）。
+- **延后债务**：`chat/chat.vue`(635) 与 `index/index.vue`(604) 模板/样式拆分；Chat Web `styles.css`(2060 行) 按页面拆分；固件 native 单测 CI 首跑验证。
+- **提交**：子模块 `esp32S_XYZ` `223bef7` 已 push；LiMa 主仓库更新子模块指针 + Chat Web 改动 + 文档同步。
 
 ### 最近完成（2026-07-03）M3 全项目 P2 LOW 技术债/体验打磨
 

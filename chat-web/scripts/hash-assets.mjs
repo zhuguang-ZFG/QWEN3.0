@@ -4,6 +4,7 @@
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { transform } from "esbuild";
 
 const ROOT = new URL("../", import.meta.url);
 const DIST = new URL("../dist/", import.meta.url);
@@ -58,12 +59,59 @@ function hashedName(filePath, hash) {
   return `${base}.${hash}${ext}`;
 }
 
+// P3.2: esbuild minification pass. Runs in dist/ before hashing so the content
+// hash reflects the minified bytes. Each file is minified in place (classic
+// script semantics preserved — no bundling/module rewrite, matching chat-web's
+// IIFE + script-tag model). Minify failures are fatal, never a silent fallthrough.
+async function minifyInPlace(url, loader) {
+  const source = await readFile(url, "utf8");
+  const result = await transform(source, {
+    loader,
+    minify: true,
+    legalComments: "none",
+  });
+  await writeFile(url, result.code);
+}
+
+async function minifyAssets(distDir) {
+  let count = 0;
+
+  // js/ subdirectory
+  const jsDir = new URL("js/", distDir);
+  if (await exists(jsDir)) {
+    for (const name of (await readdir(jsDir)).filter((n) => n.endsWith(".js"))) {
+      await minifyInPlace(new URL(name, jsDir), "js");
+      count += 1;
+    }
+  }
+
+  // root-level chat-*.js
+  for (const name of (await readdir(distDir)).filter(
+    (n) => n.startsWith("chat-") && n.endsWith(".js"),
+  )) {
+    await minifyInPlace(new URL(name, distDir), "js");
+    count += 1;
+  }
+
+  // styles.css
+  const stylesUrl = new URL("styles.css", distDir);
+  if (await exists(stylesUrl)) {
+    await minifyInPlace(stylesUrl, "css");
+    count += 1;
+  }
+
+  console.log(`Minified ${count} assets with esbuild`);
+}
+
 async function main() {
   console.log("Cleaning dist...");
   await emptyDir(DIST);
 
   console.log("Copying source files...");
   await copyRecursive(ROOT, DIST);
+
+  console.log("Minifying assets with esbuild...");
+  await minifyAssets(DIST);
 
   // Compute hashes for JS/CSS assets.
   // Hash js/*.js (subdirectory) AND root-level chat-*.js files.

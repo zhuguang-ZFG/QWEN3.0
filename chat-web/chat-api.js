@@ -1,17 +1,5 @@
-function isAllowedImageUrl(url) {
-  const allowedImageDomains = [
-    'image.pollinations.ai',
-    'chat.donglicao.com',
-    'api.donglicao.com'
-  ];
-  try {
-    const u = new URL(url);
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-    return allowedImageDomains.some(domain => u.hostname === domain);
-  } catch (e) {
-    return false;
-  }
-}
+// P3.2: isAllowedImageUrl / escapeAttr come from js/utils.js (window.LiMaUtils),
+// aliased at global scope in chat-messages.js which loads before this script.
 
 // ─── SEND ───
 function authHeaders() {

@@ -107,9 +107,8 @@
       `<button ${page >= totalPages ? "disabled" : ""} data-page="${page + 1}">下一页</button>`;
   }
 
-  function escapeHtml(str) {
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  }
+  // P3.2: canonical escaping lives in js/utils.js (window.LiMaUtils).
+  const escapeHtml = window.LiMaUtils.escapeHtml;
 
   async function loadUsage() {
     try {

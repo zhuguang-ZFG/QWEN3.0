@@ -39,9 +39,8 @@
   let statusPoller = null;
   let activeTaskPollers = [];
 
-  function escapeHtml(str) {
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  }
+  // P3.2: canonical escaping lives in js/utils.js (window.LiMaUtils).
+  const escapeHtml = window.LiMaUtils.escapeHtml;
 
   function formatTime(iso) {
     if (!iso) return "—";

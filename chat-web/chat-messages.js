@@ -40,37 +40,11 @@ function addMessage(role, content, meta) {
   return msg;
 }
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function escapeAttr(str) {
-  // HTML-attribute context escaping for URL values.
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function isAllowedImageUrl(url) {
-  const allowedImageDomains = [
-    'image.pollinations.ai',
-    'chat.donglicao.com',
-    'api.donglicao.com'
-  ];
-  try {
-    const u = new URL(url);
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-    return allowedImageDomains.some(domain => u.hostname === domain);
-  } catch (e) {
-    return false;
-  }
-}
+// P3.2: canonical implementations live in js/utils.js (window.LiMaUtils),
+// which must load before this script. Local aliases keep call sites unchanged.
+const escapeHtml = window.LiMaUtils.escapeHtml;
+const escapeAttr = window.LiMaUtils.escapeAttr;
+const isAllowedImageUrl = window.LiMaUtils.isAllowedImageUrl;
 
 function formatContent(text) {
   // Extract fenced code blocks first so their content is escaped exactly once.

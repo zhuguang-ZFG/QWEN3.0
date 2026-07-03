@@ -1,0 +1,13 @@
+{
+  "name": "lima-chat-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LiMa 星云 Chat Web 静态站点构建（esbuild 压缩 + 内容哈希缓存）",
+  "scripts": {
+    "build": "node scripts/hash-assets.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
+}

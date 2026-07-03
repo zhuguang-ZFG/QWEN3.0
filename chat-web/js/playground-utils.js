@@ -47,15 +47,10 @@
     }
   }
 
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/'/g, "&#39;")
-      .replace(/"/g, "&quot;")
-      .replace(/`/g, "&#96;");
-  }
+  // P3.2: canonical escapeHtml lives in js/utils.js (window.LiMaUtils),
+  // which must load before this script in playground.html. Re-exported via
+  // PgUtils below so existing playground call sites stay unchanged.
+  const escapeHtml = global.LiMaUtils.escapeHtml;
 
   function showToast(ctx, message, opts = {}) {
     const { duration = 3500, error = false } = opts;

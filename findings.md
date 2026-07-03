@@ -5,7 +5,24 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
-## 2026-07-03 M3 全项目审计：P2 LOW 技术债/体验打磨
+## 2026-07-04 M4 全项目重构：P3 技术债发现与修复
+
+- **小程序**：
+  - 超时魔法数字散落 8 处（alova 15000、chat 120000、login 30000、health 3000、BLE 10000、SoftAP 3000/15000），数值靠上下文推断、调优需逐一 grep。抽 `src/config/timeouts.ts`（8 个 `*_TIMEOUT_MS` / `*_COOLDOWN_MS` 常量）后单点引用，`rg "timeout: [0-9]"` 归零。
+  - 非微信端流式自 P0.4 起为 fail-loud 占位（`throw new Error('...only on mp-weixin...')`）。完整实现：`fetch` + `response.body.getReader()` 读取 SSE，`AbortController` 支持 abort，与微信端共用 `parseSSEBuffer` 避免分叉。H5/App 现在可真实流式对话。
+  - 三个超大组件（761/691/667 行）脚本逻辑密集，拆分后模板/样式逐字节不变（`git show HEAD:./path | sed -n '/<template>/,$p'` 与工作区 diff 为空验证）。`device-detail` 拆 `useDeviceEvents`（WS 事件+进度+自检）+ `useDeviceActions`（任务派发+耗材+转移+分享+解绑），通过 setter 共享 `latestPhase`/`infoLoading` 避免状态二份。`voiceprint` 拆 CRUD + 音频试听两个 composable。`ultrasonic-config` 把 AFSK DSP 抽成纯函数 `afskAudio.ts`（可单测）+ `useUltrasonicAudio`（播放生命周期）。
+  - `chat/chat.vue`(635) 与 `index/index.vue`(604) 超标但脚本已精简（244/130 行），臃肿来自模板+样式。终端环境无法视觉验证模板拆分，延后为债务（记录在 progress.md）。
+- **Chat Web**：
+  - `escapeHtml` 在 7 个文件有本地拷贝，实现不一致（playground-utils 转义 backtick、devices/keys/usage 不转义、chat-messages 转义 `'`）—— XSS 面不一致。收敛到 `js/utils.js`（`window.LiMaUtils`，覆盖 `& < > " ' \``）后 8 个 HTML 页面加载顺序调整，所有消费点 alias 到 `LiMaUtils`。
+  - 引入 esbuild 0.25.12（避开 0.24.x dev-server 漏洞 GHSA-67mh-4wv8-2f99）做 minify pass：`hash-assets.mjs` 在复制后、哈希前对每个 JS/CSS `transform({minify:true})`，styles.css 68KB→49KB。`chat-web/package.json` + `node_modules`/`package-lock.json` 加入 `.gitignore`。
+  - `styles.css` 2060 行按页面拆分作为债务延后——esbuild minify 已解决 payload 体积，盲拆共享 CSS 风险高于收益。
+- **固件**：
+  - `ota.cc` 的 `IsAllowedOtaHost`/`IsAllowedEndpointUrl`/`IsLowerHexSha256`/`IsLikelyBase64` 是安全关键纯函数（P0.9 端点白名单），但无单测。新增 `test_u8_ota_allowlist.cpp`（25 用例，含 evil-suffix 绕过 `chat.donglicao.com.evil.com` 必须被拒）。`mqtt_protocol.cc` 的 `DecodeHexString`/`CharToHex` 新增 `test_u8_mqtt_hex_decode.cpp`（10 用例）。两者接入 CI `firmware-native-tests` job。
+- **教训**：
+  - composable 提取时，跨 composable 共享的状态（如 `latestPhase`、`infoLoading`）必须由「拥有」方暴露 setter，消费方通过 setter 写入，不能各存一份 ref——否则事件流更新的是 events 的 ref，actions 读的是自己的 ref，UI 不刷新。
+  - 经典脚本（IIFE + script-tag）去重时，`const` 在全局作用域会与后续脚本的 `function` 同名声明冲突；去重后必须删除所有重复声明，只留一处 alias。
+  - 纯 DSP 逻辑（AFSK 调制/WAV 编码）抽成 framework-free 模块后可独立单测，比留在 Vue 组件里更安全——`afskAudio.ts` 的输出是确定性的 base64，可直接断言。
+  - 固件 native 单测采用「纯逻辑重实现」模式（不 include ESP-IDF 头），代价是双份代码；若 ota.cc 逻辑变更需同步更新测试拷贝。权衡：可原生编译 vs 维护双份。
 
 - **后端**：
   - `http_caller.py` 为 thin re-export 门面，若下游子模块（`http_sync`/`http_async`/`http_stream` 等）改名或删符号，历史 `from http_caller import X` 会在运行时才 `ImportError`。新增 `tests/test_http_caller_reexports.py` 参数化断言全部公开符号仍可导入，把回归提前到测试期。
