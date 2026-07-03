@@ -3,6 +3,12 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 R 批：routes/device_gateway.py 查询端点抽离到 device_gateway_query_routes.py
+
+- **Python 模块级 `from import` 绑定陷阱**：新模块 `device_gateway_query_routes` 初版用顶层 `from device_gateway.store import task_store` 绑定模块级单例。但 `install_task_store_for_tests()` / `set_task_store_for_tests()` 用 `global task_store` 替换 `device_gateway.store` 模块的 `task_store` 属性指向**新对象**——已顶层 `from import` 的模块仍持有**旧对象引用**，导致测试 `test_sessions.py::test_registry_remove_zombies_requeues_outstanding_tasks` 调 `install_task_store_for_tests()` 后，后续 `test_task_list_returns_tasks` 的 `create_task_from_transcript` 写入新实例、`device_gateway_query_routes` 读旧实例，`count=0` 回归。修正：4 个运行时单例（`task_store`/`task_snapshot`/`artifact_store`/`artifacts_for_device`）改回**函数内延迟导入**，每次调用重新解析模块属性拿当前实例——与原 `routes/device_gateway.py` 行为一致。教训：**涉及 `set_*_for_tests` 可替换单例的导入，必须用延迟导入（函数内 `from ... import ...`），不能用顶层 `from import`**，否则测试隔离回归。
+- **局部 app 测试需同步 include 新 router**：5 个测试文件用 `app = FastAPI(); app.include_router(dg.router)` 构造局部客户端（不走 `server.app` 完整注册），抽离新 router 后这些测试需手动加 `app.include_router(query_router)`。用 `server.app` 的测试（`test_registration.py`、`test_json_body_contract.py`）自动获得新路由无需改。POST-only 测试无需改。教训：**FastAPI 路由抽离时，必须审计所有局部 `app.include_router()` 测试客户端**，不只是 `server.app` 集成测试。
+- **`APIRoute.path` 含 prefix 拼接**：特征化测试断言新模块 router 路径时，`APIRoute.path` 返回完整路径（含 `prefix="/device/v1"` 拼接），不是相对路径 `/tasks/{task_id}` 而是 `/device/v1/tasks/{task_id}`。断言须用完整路径。
+
 ## 2026-07-03 Q 批：device_gateway profiles.py 约束施加抽离到 profile_constraints.py
 
 - **粗粒度尺寸目标耗尽后的发现手段**：P 批闭环后 `check_code_size.py` 全过（0 个 >300 行文件、0 个 >50 行函数），需换更细发现手段。CodeGraph 孤儿审计（`codegraph_orphans.py --fanin`）标 `context_compressor.py` 为 ORPHAN，但 `find` + `grep` 全库核实磁盘已不存在——是 CodeGraph 数据库陈旧，非真死代码目标。教训：**CodeGraph 孤儿标记必须 ripgrep 二次核实**（与 G1b F401 审计 agent 不可信同一原则），图数据库可能滞后于磁盘。最终用"行数逼近上限扫描"定位 `profiles.py` 295 行（距 300 仅 5 行）为最值得抽离目标。

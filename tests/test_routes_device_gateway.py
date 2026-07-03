@@ -22,8 +22,11 @@ def _reset_state():
 def client(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-key")
     monkeypatch.setenv("LIMA_DEVICE_TOKENS", "dev-1=token-1")
+    from routes.device_gateway_query_routes import router as query_router
+
     app = FastAPI()
     app.include_router(dg.router)
+    app.include_router(query_router)
     return TestClient(app)
 
 

@@ -160,6 +160,7 @@ def _register_system_routes(app: FastAPI, deps: RouteRegistryDeps):
 _DEVICE_APP_ROUTERS = [
     ("routes.device_admin", "device_admin"),
     ("routes.device_gateway", "device_gateway"),
+    ("routes.device_gateway_query_routes", "device_gateway_query_routes"),
     ("routes.device_app_api", "device_app_api"),
     ("routes.device_app_assets", "device_app_assets"),
     ("routes.device_app_chat", "device_app_chat"),

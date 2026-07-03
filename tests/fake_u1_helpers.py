@@ -65,11 +65,13 @@ def lima_client(monkeypatch: Any, tmp_path: Path) -> TestClient:
     monkeypatch.setenv("LIMA_OUTCOME_DB", str(tmp_path / "outcome.db"))
 
     from routes.device_gateway import router
+    from routes.device_gateway_query_routes import router as query_router
     from routes.device_gateway_helpers import _reset_for_tests
 
     _reset_for_tests()
     app = FastAPI()
     app.include_router(router)
+    app.include_router(query_router)
     client = TestClient(app)
     yield client
     _reset_for_tests()

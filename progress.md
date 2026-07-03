@@ -2,6 +2,16 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 R 批完成（routes/device_gateway.py 查询端点抽离到 device_gateway_query_routes.py）
+
+- **背景**：Q 批闭环后继续扫描抽离候选。`store.py`（289 行）是状态封装类（17 方法 + `self._lock`/`self._tasks` 耦合），非纯函数抽离目标；`family_approval_store.py`（273 行）CRUD 方法体不可避免，可抽纯函数仅 ~40 行且切断同模块调用，收益有限。AST 全仓扫描确认主代码库函数已全部 ≤50 行（check_code_size 实证），长函数空间耗尽。转回 `routes/device_gateway.py`（286 行）——3 个 GET 查询端点（`device_task_status`、`device_task_list`、`device_drawing_history`）与写端点天然分组，HTTP 测试覆盖充分。
+- **抽离**：新建 `routes/device_gateway_query_routes.py`（125 行），搬入 3 个 GET 查询端点 + 独立 `APIRouter(prefix="/device/v1")`（FastAPI 合并同 prefix router 无冲突）。从 `routes/device_gateway.py` 删除 3 端点 + 2 个随之变死的导入（`Query`、`artifact_store`），主文件 286→186（-100 行）。`route_registry.py` 用 `("routes.device_gateway_query_routes", "device_gateway_query_routes")` 元组注册新模块。
+- **延迟导入修正测试隔离**：初版新模块用顶层 `from device_gateway.store import task_store` 等，触发测试隔离回归——`test_sessions.py::test_registry_remove_zombies_requeues_outstanding_tasks` 调 `install_task_store_for_tests()` 替换 `device_gateway.store.task_store` 模块属性指向新对象，但已顶层导入的 `device_gateway_query_routes` 仍持有旧对象引用（Python 模块级 `from import` 绑定陷阱）。修正：4 个运行时单例（`task_store`、`task_snapshot`、`artifact_store`、`artifacts_for_device`）改回函数内延迟导入，与原 `routes/device_gateway.py` 行为一致。模块 docstring 记录此 lesson。
+- **测试侧同步**：5 个测试文件用局部 `FastAPI()` app + `app.include_router(dg.router)` 构造客户端，需加 `app.include_router(query_router)`：`tests/device_gateway/test_task_queries.py`、`test_drawing_history.py`、`test_ai_to_motion_gate.py`、`tests/test_routes_device_gateway.py`、`tests/fake_u1_helpers.py`（后者覆盖 4 个 `test_fake_u1_cloud_*`）。用 `server.app` 完整注册的测试（`test_registration.py`、`test_json_body_contract.py`）无需改。POST-only 测试（`test_tasks_http.py`、`test_p1_4_device_stability_gate*.py`）无需改。
+- **特征化测试**：新增 `test_server_registers_device_gateway_query_routes_after_extraction` 锁定 3 个查询端点路径在 `server.app` 注册 + 新模块 router prefix 与路径完整（`APIRoute.path` 含 prefix 拼接，断言用完整路径 `/device/v1/tasks/{task_id}` 等）。
+- **门禁**：`ruff check` + `ruff format --check` 7 改动文件 clean；`check_code_size.py` PASS；`pyright` 改动 3 生产文件 0 errors（2 warnings 在 `create_device_ws_ticket` 的 `body.get` 是既有问题，R 批前就存在，行号偏移非新引入）；聚焦 device_gateway 套件 47 passed；全量 `pytest -q` → **4430 passed / 3 skipped / 2 deselected**（较 Q 批 4429 +1 = 新增特征化测试）。
+- **下次**：git add/commit/push origin + CI Tests 实证 + 公网 4 测试冒烟。
+
 ## 2026-07-03 深度瘦身 Q 批完成（device_gateway profiles.py 约束施加抽离到 profile_constraints.py）
 
 - **背景**：P 批闭环后代码尺寸门禁全过（0 个 >300 行文件、0 个 >50 行函数），粗粒度尺寸目标耗尽。换用更细发现手段：CodeGraph 孤儿审计（`context_compressor.py` 标 ORPHAN 但磁盘已不存在，数据库陈旧非真目标）+ Ponytail 台账（待处理项空）+ 行数逼近上限扫描。定位 `device_gateway/profiles.py` 295 行（距 300 上限仅 5 行）为最值得抽离目标——职责清晰分两层："profile 解析"（registry + `resolve_profile` + routing hints）与"约束施加到 task"（`apply_profile_constraints` + `_apply_approval_gate` + `_cap_param`）。

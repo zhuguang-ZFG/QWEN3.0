@@ -20,6 +20,7 @@ from device_gateway.tasks import (
 )
 from device_ledger.store import ledger_store
 from routes.device_gateway import router
+from routes.device_gateway_query_routes import router as query_router
 
 
 @pytest.fixture(autouse=True)
@@ -38,6 +39,7 @@ def _reset_state():
 def _client() -> TestClient:
     app = FastAPI()
     app.include_router(router)
+    app.include_router(query_router)
     return TestClient(app)
 
 
