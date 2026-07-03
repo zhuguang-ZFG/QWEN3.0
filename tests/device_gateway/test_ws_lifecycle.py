@@ -55,7 +55,9 @@ def test_fake_u8_hello_heartbeat_transcript_motion_event_loop():
 
 
 def test_websocket_transcript_failed_task_is_not_dispatched(monkeypatch):
-    async def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None, **kwargs: Any) -> dict:
+    async def fake_create_task_from_transcript(
+        device_id: str, text: str, request_id: str | None = None, **kwargs: Any
+    ) -> dict:
         return {
             "type": "motion_task",
             "task_id": "task-ws-invalid",

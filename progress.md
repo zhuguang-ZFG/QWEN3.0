@@ -2,6 +2,22 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 P 批完成（本地 pre-commit 加 ruff format --check 守护）
+
+- **背景**：O-3 修复 CI 失败时 push commit `3fb7b145` 后再次失败，根因是本地 pre-commit 入口 `scripts/run_ruff_check.py` 只跑 `ruff check`，没跑 `ruff format --check`，本地 commit 时切片 spacing 漂移不被守门，要等 CI 才暴露。本批直接补这个缺口——避免下次再有 `ruff check` 全绿但 `ruff format --check` 失败、需要补 fix commit 的 retry 浪费。
+- **改动**：`scripts/run_ruff_check.py::run_ruff` 在 `ruff check` 之后追加 `ruff format --check`，聚合两次结果（第一非零 returncode 即阻塞），stdout/stderr 透传。
+- **立即价值实证**：加守护后第一次本地空 staging 跑 pre-commit，立即抓出 2 处早已该 format 的过时长行折行漂移：
+  - `deploy/jdcloud/deploy_jd.py`：单行长 URL 折成括号多行。
+  - `tests/device_gateway/test_ws_lifecycle.py`：长函数签名折成多行参数。
+  本批顺手 ruff format 这 2 文件清掉历史 format 债。
+- **门禁结果**：
+  | 门 | 结果 |
+  |---|---|
+  | `ruff format --check .` 全 repo | 1361 files already formatted |
+  | `scripts/run_pre_commit_check.py` 空 staging 模拟 | 全过（All checks passed + 1361 already formatted + git diff --cached --check）|
+  | check_code_size | PASS |
+- **教训**：CI workflow 与本地守护应该对称——同一套 ruff 命令在两端都跑，否则「本地绿 CI 红」会反复发生。O-3 是这一原则的反射案例：CI 跑 `ruff format --check` 但本地只跑 `ruff check`，本地看不见 spacing 漂移，每次破绿都需补 fix commit。守护脚本与 CI 步骤的命令集合应对齐 grep 验证。
+
 ## 2026-07-03 CI 修复 O 批（pyright authority-files 过时路径 + 工具清单同步）
 
 - **O-1 修正 CI pyright authority-files 步骤**：见下方 O 批主条目（`routing_engine.py` → `routing_engine/__init__.py`）。

@@ -8,7 +8,9 @@ from pathlib import Path
 
 PROMETHEUS_VERSION = "2.52.0"
 PROMETHEUS_TARBALL = "prometheus-2.52.0.linux-amd64.tar.gz"
-PROMETHEUS_URL = "https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz"
+PROMETHEUS_URL = (
+    "https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz"
+)
 PROMETHEUS_SHA256 = "7f31c5d6474bbff3e514e627e0b7a7fbbd4e5cea3f315fd0b76cad50be4c1ba3"
 INSTALL_DIR = Path("/opt/lima-monitor")
 

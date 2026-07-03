@@ -3,6 +3,13 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 P 批：本地 pre-commit 加 ruff format --check 守护（CI 与本地守护对称）
+
+- **根因**：O-3 调试历程暴露本地 pre-commit 入口 `scripts/run_ruff_check.py` 只跑 `ruff check`，CI 跑 `ruff check` + `ruff format --check` 两步——两端命令集合不对称，切片 spacing 漂移、Optional[X]→X|None 整理、EOL newline 等只破 format 不破 check 的差异在本地静默放行、到 CI 才暴露，每次都要补 fix commit + push retry。
+- **修复**：`run_ruff_check.py::run_ruff` 改为聚合 `ruff check` + `ruff format --check` 两次 subprocess，第一非零 returncode 即阻塞，stdout/stderr 透传组合；docstring 解释来历 + lesson learned O-3 链接。
+- **首次启用即实证价值**：本地空 staging 跑 pre-commit 立即抓出 2 处早已该 format 的长行漂移（`deploy/jdcloud/deploy_jd.py` 长 URL、`tests/device_gateway/test_ws_lifecycle.py` 长函数签名），P 批顺手 format 清掉。
+- **教训 (CI/本地守护对称原则)**：CI workflow 与本地守护脚本必须跑 **同一套** 命令集合，否则「本地绿 CI 红」将反复发生，每次测试 CI 来确认 commit 行为是慢反馈。重构 grep 双方文件 `.github/workflows/test.yml` 与 `scripts/run_ruff_check.py` 比对 ruff 命令是审守护对称的最简方法。今后若 CI 加新 lint rule（如 Ruff 更新带新 rule），同步加进本地守护。
+
 ## 2026-07-03 O 批 CI 修复：pyright authority-files 步骤指向已迁移的 routing_engine 包
 
 - **根因**：K2+L+M+N 推 push 后 GitHub Actions Tests workflow 失败。逐步定位到 `Type check authority files` 步骤 `pyright server.py routing_engine.py routes/chat_endpoints.py` 报 `File or directory "routing_engine.py" does not exist`（exit 4）。`routing_engine.py` 早已在历次抽离中拆成 `routing_engine/` 包（`__init__.py` 为权威 `route()` 入口 + `route_pipeline.py`/`execute_strategy.py`/`intent.py`/`post.py` 等子模块），但 CI 的 authority-files pyright 步骤硬编码了旧单文件路径。
