@@ -11,7 +11,7 @@
   - `http_caller.py` 为 thin re-export 门面，若下游子模块（`http_sync`/`http_async`/`http_stream` 等）改名或删符号，历史 `from http_caller import X` 会在运行时才 `ImportError`。新增 `tests/test_http_caller_reexports.py` 参数化断言全部公开符号仍可导入，把回归提前到测试期。
   - `probe_loop.py`（对 dead/suspicious 主动探活）与 `backend_probe_loop.py`（全量批次周期探活）职责相近、命名相似，易混淆。已在两者 docstring 顶部加交叉引用说明各自触发条件与区别。
   - `requirements_dev.txt` 强制 `httpx2~=2.5` 只为消 starlette testclient 弃用警告，却引入第二套 httpx 实现、增大依赖面。评估后移除；testclient 在 httpx 0.28 下功能正常，仅保留一条弃用 warning（无害）。
-  - `.env.example` 的 Turnstile 占位符 `0x4AAAAAA...` 形似真实 key 片段，去敏化为 `your-turnstile-*-key`，避免误导/误提交。
+  - `.env.example` 的 `LIMA_ADMIN_TOKEN`/`LIMA_API_KEY` 占位符形似真实密钥，去敏化为 `<set-your-*>` 格式，降低误提交/误用面。
 - **Chat Web**：
   - `chat-web/_headers`（含 HSTS/nosniff/缓存策略）已存在，但 `deploy_chat_web.py` 的 `FILES` 未包含它，导致部署后 nginx 不下发这些头。已把 `_headers` 加入上传列表。
 - **小程序**：
@@ -20,10 +20,18 @@
   - `src/static/app/icons/1024x1024.png`（458KB）用 Pillow `optimize=True` 压缩到 433KB（RGBA PNG 无损压缩上限有限；进一步需转格式或降分辨率，暂不激进处理）。
   - `src/i18n/{zh_CN,en}.ts` 各 800+ 行手工维护，key 容易漂移。新增 `scripts/check-i18n-keys.mjs` 校验中英 key 集合一致（当前 803 keys 对齐），挂到 `package.json` 脚本。
   - `tabbarList.ts` 遗留 TODO 与 `utils/index.ts` 大量注释掉的 `console.log` 调试残留，已清理。
+  - 依赖冗余：未使用的 `@tanstack/vue-query`（`main.ts` 已移除 `VueQueryPlugin`）及 8 个非目标平台 `@dcloudio/uni-mp-*`（alipay/baidu/jd/kuaishou/lark/qq/toutiao/xhs）已移除；macOS 专用 `@esbuild/darwin-*` / `@rollup/rollup-darwin-x64` 也移除，减少安装体积与锁冲突。
+  - **miniprogram-ci 上传失败（`TypeError: _lruCache is not a constructor`）**：现象——清理依赖并 `pnpm install` 后，`upload:mp-weixin` 在编译阶段抛此错。复现——`node -e "require('@babel/helper-compilation-targets')"`。根因——依赖清理触发 pnpm 重解析，`@babel/helper-compilation-targets`（要求 `lru-cache@^5` 的具名默认导出）被提升到 `lru-cache@11`（v11 无默认导出、构造签名变更）。修复——在 `pnpm-workspace.yaml` 加 `overrides: '@babel/helper-compilation-targets>lru-cache': ^5.1.1`（注意 pnpm 10 已不再读 `package.json` 的 `pnpm.overrides` 字段），`pnpm install` 后锁定 `lru-cache@5.1.1`。预防——依赖清理后必须重跑一次 `build`+`upload` 冒烟；传递依赖版本漂移用 workspace `overrides` 钉死，不要依赖提升顺序。
+- **固件**：
+  - U1 `platformio.ini` 引用 `board_build.partitions = min_spiffs.csv`，但该文件依赖 Arduino-ESP32 框架内置路径，在跨机器/CI 环境可能解析失败。已将标准 `min_spiffs.csv` 入库到 `firmware/u1-grbl/extra/min_spiffs.csv` 并改本地引用。
+  - U8 默认日志级别在 `sdkconfig.defaults` 未显式设置，默认可能是 VERBOSE/DEBUG，生产串口日志冗余。新增 `CONFIG_LOG_DEFAULT_LEVEL_INFO=y` 统一裁剪。
+- **文档**：
+  - `docs/getting-started.md` 前置条件表仍写「Java JDK | 21 | manager-api 编译」，CI 章节仍列「Java 测试 — manager-api 76+ 测试」。实际上 manager-api 已迁移至 LiMa 主项目，已清理避免误导新成员。
 - **教训**：
   - re-export 门面模块必须配「符号完整性测试」，否则重构子模块时门面会静默腐化，只有生产导入才暴露。
   - 静态资源头文件（`_headers`）与部署脚本 `FILES` 列表是两处易脱节的配置，任何新增静态策略文件都要同步进部署清单。
   - i18n 多语言文件适合用「key 一致性」脚本做 CI 门禁，比人工 review 可靠。
+  - 固件构建工具链（PlatformIO/ESP-IDF）与 Python 版本强绑定，本地环境损坏时无法即时验证，应在 CI 中固化编译矩阵。
 
 ## 2026-07-03 M1 全项目审计：P0 安全/正确性发现与修复
 

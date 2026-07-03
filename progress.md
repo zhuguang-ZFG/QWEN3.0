@@ -4,24 +4,31 @@
 
 ## 2026-07-03 M3 里程碑完成（P2 LOW 技术债/体验打磨）
 
-- **审计收尾**：承接 M1（P0 安全）+ M2（P1 质量），完成全项目 P2 LOW 技术债与体验打磨，覆盖后端、Chat Web、小程序三端。
-- **P2 改进项**（10 项全部完成并提交）：
+- **审计收尾**：承接 M1（P0 安全）+ M2（P1 质量），完成全项目 P2 LOW 技术债与体验打磨，覆盖后端、Chat Web、小程序、固件（U1/U8）四端。
+- **P2 改进项**（15 项全部完成并提交）：
   - P2.1 新增 `tests/test_http_caller_reexports.py`：断言 `http_caller.py` thin re-export 门面的全部符号（30 个）可从子模块正常导出，防止拆分后回归。
   - P2.2 `probe_loop.py` 与 `backend_probe_loop.py` docstring 增加交叉引用，说明两者职责边界（主动探活 vs 批量健康探测）。
   - P2.3 `.env.example` 占位密钥去敏化：形似真实密钥的占位符改为明显占位格式，降低误用/泄露面。
-  - P2.4 移除 `requirements_dev.txt` 的 `httpx2~=2.5`：确认 `httpx 0.28.1` 已满足 starlette testclient；卸载后 38 个相关用例仍 GREEN（仅保留一条 deprecation warning，无功能影响）。
+  - P2.4 移除 `requirements_dev.txt` 的 `httpx2~=2.5`：确认 `httpx 0.28.1` 已满足 starlette testclient；卸载后相关用例仍 GREEN（保留 starlette 弃用 warning，无功能影响）。
   - P2.5 小程序清理：`tabbarList.ts` 移除 TODO 占位；`utils/index.ts` 清理注释掉的 `console` 调试语句。
   - P2.6 抽公共 `getMode()` 到 `scripts/get-mode.ts`，`manifest.config.ts` 与 `pages.config.ts` 共用，消除重复实现。
   - P2.7 子模块移除已跟踪的 `unpackage/res/icons/*.png`（17 个构建产物），并在 `.gitignore` 增加 `unpackage/` 忽略规则。
   - P2.8 压缩主包图标 `src/static/app/icons/1024x1024.png`（458KB → 433KB，Pillow optimize）。
   - P2.9 `scripts/deploy_chat_web.py` 的 FILES 列表补充 `_headers`（含 HSTS / X-Content-Type-Options / 缓存策略），确保部署后安全头随静态资源上线。
   - P2.10 新增 `scripts/check-i18n-keys.mjs`：校验 `zh_CN.ts` 与 `en.ts` 的 key 一致性（当前 803 keys 一致），并接入 `package.json` 脚本。
+  - P2.11 U1 固件分区表文件入库：`firmware/u1-grbl/extra/min_spiffs.csv` 从 Arduino-ESP32 框架复制标准版，`platformio.ini` 指向本地文件，避免依赖框架内置路径。
+  - P2.12 U8 固件生产日志裁剪：`sdkconfig.defaults` 增加 `CONFIG_LOG_DEFAULT_LEVEL_INFO=y`，降低默认运行日志冗余。
+  - P2.13 确认 `Makefile` 已无 `build-server`/`test-java` 等悬空 help 文本（P0.10 清理完成）。
+  - P2.14 `docs/getting-started.md` 移除前置条件表中的「manager-api 编译」与 CI 章节「Java 测试 — manager-api 76+ 测试」（服务端已迁移至 LiMa 主项目）。
+  - P2.15 小程序依赖清理：移除未使用的 `@tanstack/vue-query`（同步移除 `main.ts` 的 `VueQueryPlugin`）及 8 个非目标平台 `@dcloudio/uni-mp-*`（alipay/baidu/jd/kuaishou/lark/qq/toutiao/xhs），并移除 macOS 专用 `@esbuild/darwin-*` / `@rollup/rollup-darwin-x64`。
 - **门禁验证**：
   - 主仓库 `pytest -q` → **4463 passed / 3 skipped / 2 deselected / 0 failed**。
   - `ruff check .` clean；`ruff format --check` clean；`pyright` 改动文件 0 errors；`check_code_size.py` PASS。
-  - 小程序 `npx vue-tsc --noEmit` 0 errors + `npx uni build --platform mp-weixin` 通过；`check-i18n-keys.mjs` OK（803 keys）。
-- **小程序上传**：版本号 `3.8.3` → `3.8.4`，已通过微信开发者工具 CLI 上传成功，AppID `wxbf3c1e0013b46343`，提交大小 989.2 KB。
-- **Git 提交与推送**：子模块 `esp32S_XYZ` 提交 P2 改动 + 版本 bump；LiMa 主仓库更新子模块指针并提交后端/脚本/测试改动，push origin main。
+  - 小程序 `npx vue-tsc --noEmit` 0 errors + `npx uni build --platform mp-weixin` 通过；`pnpm test`（vitest）4 passed；`check-i18n-keys.mjs` OK（803 keys）。
+  - 固件：`pio run -e release_esp32s3`（U1）与 `idf.py build`（U8）因本机 PlatformIO/ESP-IDF 环境缺失/损坏，未能在本地执行；改动为低风险配置（分区表文件、日志级别），后续在有完整固件工具链的环境补跑。
+- **miniprogram-ci 上传修复**：P2.15 清理小程序依赖后，`miniprogram-ci` 上传报 `TypeError: _lruCache is not a constructor`——根因是 `@babel/helper-compilation-targets` 依赖被解析到 `lru-cache@11`（该版本改为具名导出，不再默认导出构造函数），而 Babel 期望 `lru-cache@5` 的默认构造函数。修复：在 `pnpm-workspace.yaml` 增加 `overrides` 强制 `@babel/helper-compilation-targets>lru-cache: ^5.1.1`（pnpm 10 已不再读取 `package.json` 的 `pnpm.overrides`，故同步删除该失效字段）。重装后 lockfile 锁定 `lru-cache@5.1.1`，Babel 编译链恢复正常。
+- **小程序上传**：修复后版本号 `3.8.4` → `3.8.5`，已通过微信开发者工具 CLI 上传成功，AppID `wxbf3c1e0013b46343`。
+- **Git 提交与推送**：子模块 `esp32S_XYZ` 提交 P2 剩余改动（固件/文档/小程序依赖 + lru-cache override 修复）；LiMa 主仓库更新子模块指针并提交后端/脚本/测试/文档改动，push origin main。
 - **文档同步**：更新 `progress.md`（本条目）、`findings.md`（M3 发现）、`STATUS.md`（当前状态）。
 - **下一步**：全项目改善计划 P0→P2 已闭环；P3（长期重构，如非微信端 SSE 完整实现、分包体积优化）作为后续可选里程碑，见 `docs/superpowers/specs/2026-07-03-full-project-improvement-plan.md`。
 

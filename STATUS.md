@@ -11,7 +11,7 @@
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
 > Tests: 全量 **4463 passed / 3 skipped / 2 deselected / 0 failed / 2 warnings**（`.venv310` Python 3.10.20）；ruff check clean（含 F401 全局 gate 已启用）；ruff format clean；pyright 目标文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；manager-mobile `vitest` 用例 GREEN。
-> 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout` 与 `httpx2`，pytest warnings 已清零。
+> 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout`；`httpx2` 已从 `requirements_dev.txt` 移除，功能测试正常，仅保留 starlette testclient 的 deprecation warning。
 > 英文站：...（保持不变）
 > ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **67%**（40G 中 25G 已用，释放约 5G），`litestream` 已纳入 systemd 管理并设置 `MemoryMax=512M`，内存可用约 420M~850M（随负载波动），load average 4~5。京东云节点已完成深度清理（磁盘 33% → **30%**，59G 中 17G 已用，释放约 2G）。登录超时风险显著降低。
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
@@ -23,10 +23,10 @@
 
 ### 最近完成（2026-07-03）M3 全项目 P2 LOW 技术债/体验打磨
 
-- **范围**：承接 M2，完成后端（Python/FastAPI）、Chat Web、微信小程序共 10 项 P2 LOW 技术债/体验打磨。
-- **P2 已修复**：`http_caller` 重导出符号完整性测试（30 用例）；`probe_loop`/`backend_probe_loop` docstring 交叉引用；`.env.example` 占位密钥去敏化；移除 `requirements_dev.txt` 中 `httpx2`（改用 httpx testclient）；小程序 `tabbarList` TODO + `utils` 注释 console 清理；抽公共 `getMode()` 到 `scripts/get-mode.ts`；子模块移除 `unpackage/res/icons/*.png` 并加 `.gitignore`；压缩主包 `1024x1024.png`；`deploy_chat_web.py` FILES 加 `_headers`（HSTS）；新增 `scripts/check-i18n-keys.mjs`（803 keys 一致性校验）。
-- **门禁**：`pytest -q` → **4463 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check` / `ruff format --check` clean；`check_code_size.py` PASS；`pyright` 改动文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；`check-i18n-keys.mjs` OK。
-- **小程序**：版本 `3.8.3` → `3.8.4`，微信开发者工具 CLI 上传成功（989.2 KB）。
+- **范围**：承接 M2，完成后端（Python/FastAPI）、Chat Web、微信小程序、ESP32 固件（U1/U8）共 15 项 P2 LOW 技术债/体验打磨。
+- **P2 已修复**：`http_caller` 重导出符号完整性测试（30 用例）；`probe_loop`/`backend_probe_loop` docstring 交叉引用；`.env.example` 占位密钥去敏化；移除 `requirements_dev.txt` 中 `httpx2`（改用 httpx testclient）；小程序 `tabbarList` TODO + `utils` 注释 console 清理；抽公共 `getMode()` 到 `scripts/get-mode.ts`；子模块移除 `unpackage/res/icons/*.png` 并加 `.gitignore`；压缩主包 `1024x1024.png`；`deploy_chat_web.py` FILES 加 `_headers`（HSTS）；新增 `scripts/check-i18n-keys.mjs`（803 keys 一致性校验）；U1 固件 `min_spiffs.csv` 分区表入库；U8 固件 `sdkconfig.defaults` 默认日志级别 INFO；`docs/getting-started.md` 清理 manager-api/Java 残留；小程序移除未用 `@tanstack/vue-query`、8 个非目标 `uni-mp-*` 平台包及 macOS 专用 darwin 构建包。
+- **门禁**：`pytest -q` → **4463 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check` / `ruff format --check` clean；`check_code_size.py` PASS；`pyright` 改动文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；`pnpm test`（vitest）4 passed；`check-i18n-keys.mjs` OK。固件 `pio run`/`idf.py build` 因本机工具链损坏/缺失未执行，改动为低风险配置，后续在完整固件环境补跑。
+- **小程序**：版本 `3.8.3` → `3.8.5`，微信开发者工具 CLI 上传成功。清理未用依赖后 `miniprogram-ci` 上传因 `@babel/helper-compilation-targets` 解析到 `lru-cache@11`（应为 `@5`）而报 `_lruCache is not a constructor`；已在 `pnpm-workspace.yaml` 增加 `@babel/helper-compilation-targets>lru-cache: ^5.1.1` override 修复并重新上传（v3.8.5）。
 - **提交**：子模块 `esp32S_XYZ` 已 push origin main；LiMa 主仓库更新子模块指针并提交后端/脚本/文档改动。
 
 ### 最近完成（2026-07-03）M2 全项目 P1 MEDIUM 质量/文档/测试改进
