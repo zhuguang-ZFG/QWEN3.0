@@ -15,8 +15,8 @@ PROMETHEUS_SHA256 = "7f31c5d6474bbff3e514e627e0b7a7fbbd4e5cea3f315fd0b76cad50be4
 INSTALL_DIR = Path("/opt/lima-monitor")
 
 
-def _run(cmd: str, *, check: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, shell=True, check=check, text=True, capture_output=True)
+def _run(cmd: str, *, check: bool = True, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(cmd, shell=True, check=check, text=True, capture_output=True, cwd=cwd)
 
 
 def install_prometheus() -> None:
