@@ -3,6 +3,11 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 U 批：routes/device_gateway_ws_handlers.py hello 握手机制抽到 device_gateway_hello_helpers.py
+
+- **稳定单例顶层导入安全，但「属性替换」patch 仍须迁移目标模块**：`attestation_verifier` 经 ripgrep 确认无 `set_*_for_tests`/`install_*_for_tests` 接口——是稳定单例（S 批稳定 vs 可替换单例判定法），新模块顶层 `from device_gateway.attestation import verifier as attestation_verifier` 安全。但 8 处测试用 `monkeypatch.setattr(handlers, "attestation_verifier", isolated_verifier)` / `patch.object(handlers, "attestation_verifier", ...)` **替换模块属性为隔离 verifier**——`_check_attestation` 抽到 `hello_helpers` 后从 `hello_helpers` 查 `attestation_verifier`，patch 若仍指 `handlers` 则替换了旧模块的属性、新模块读到的还是全局 verifier，测试隔离失效。教训：**稳定单例的「顶层导入」只解决 R 批 from-import 绑定陷阱（swap 接口）；「属性替换式 patch」（monkeypatch.setattr 模块属性）仍须随符号迁移重指目标模块**。两类风险独立，判定法互补：ripgrep `set_*_for_tests` 判 swap 接口（决定导入方式），ripgrep `monkeypatch.setattr\|patch.object` 判属性替换（决定 patch 目标迁移）。
+- **公共入口留守 + 私有 helper 抽离的零调用方改动模式**：`handle_hello` 作为公共入口留在 ws_handlers，5 个私有 `_` helper 搬到 `hello_helpers`。`test_routes_device_gateway_ws.py` 的 `patch.object(dgws, "handle_hello", ...)` 绑定 WS 路由模块 `device_gateway_ws`（从 `hello_handlers` 导入 `handle_hello` 的下游），patch 的是路由模块的绑定名而非 handlers 模块——抽离 helper 不动 `handle_hello` 自身的定义位置，此类 patch 不受影响。对比 R/S 批整端点搬迁需修局部 app `include_router` + 路由模块 patch 目标，**「公共入口留守 + helper 抽离」是路由/状态模块的低风险拆分姿势**：调用方（含 patch 调用方的测试）零改动，仅需迁移 patch helper 内部依赖的测试。
+
 ## 2026-07-03 T 批：device_gateway intent.py LLM planner 子域抽到 intent_llm_planner.py
 
 - **re-export 保持 backward compatibility**：LLM planner 子域搬走后，`DANGEROUS_CAPABILITIES`（生产 `prompt_engineering/layers.py` 导入）和 `_llm_replan`（测试 `dgi._llm_replan(...)` 调用）必须仍可从 `device_gateway.intent` 访问。用 `from device_gateway.intent_llm_planner import DANGEROUS_CAPABILITIES, _llm_replan  # noqa: F401  re-export` 保持——`is` 同一对象身份（非拷贝），特征化测试用 `assert dgi.DANGEROUS_CAPABILITIES is planner.DANGEROUS_CAPABILITIES` 锁定。教训：**抽离被外部依赖的符号时，re-export + noqa: F401 + 特征化测试三件套保证 backward compatibility 不破**。F401 全局门禁会拦未标注的 re-export，`# noqa: F401  re-export` 注释是必需的。

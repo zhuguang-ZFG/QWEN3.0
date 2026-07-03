@@ -2,6 +2,18 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 U 批完成（routes/device_gateway_ws_handlers.py hello 握手机制抽到 device_gateway_hello_helpers.py）
+
+- **背景**：T 批闭环后继续扫描抽离候选。`check_code_size` PASS（无 >300 行文件、无 >50 行函数），转入细粒度接缝发现。对比两候选：`routes/device_gateway_ws_handlers.py`（269 行）与 `device_gateway/device_draw_handler.py`（273 行）。
+  - ws_handlers：hello 握手机制子域（`_authenticate_hello`/`_negotiate_hello_protocol`/`_create_hello_session`/`_check_attestation`/`_reject_too_many_connections` 5 个私有 helper，约 94 行）内聚清晰，`handle_hello` 留作公共入口委托调用。
+  - device_draw_handler：SVG 子域被 5 测试文件密集 `patch`（`SVGConverter`/`validate_svg_path`/`optimize_svg_path`/`precheck_draw_motion_path`），且 `precheck_draw_motion_path` 在搬迁与保留部分都用到——S 批式 patch 迁移 ×5 文件，风险高。
+  - 选 ws_handlers hello 子域为最优目标。
+- **迁移面精确核实**：`attestation_verifier` 是稳定单例（ripgrep 确认无 `set_*_for_tests`/`install_*_for_tests`/`monkeypatch` 替换接口——S 批稳定 vs 可替换单例判定法），顶层导入安全。但 8 处测试经 `monkeypatch.setattr(handlers, "attestation_verifier", ...)`/`patch.object(handlers, "attestation_verifier", ...)` **替换模块属性**（conftest 3 + test_device_attestation 4 + test_handle_hello_success 1），`_check_attestation` 抽走后从 `hello_helpers` 查 `attestation_verifier`，必须把这 8 处重指到 `hello_helpers`。`handle_hello`/`registry`/`shadow_store`/`drain_pending_tasks` 留在 ws_handlers，对应 patch 不动。`test_routes_device_gateway_ws.py` 的 `patch.object(dgws, "handle_hello", ...)` 绑定 WS 路由模块而非 handlers，不受影响。
+- **抽离**：新建 `routes/device_gateway_hello_helpers.py`（133 行），搬入 5 helper + 各自所需导入（`validate_device_token`/`ProtocolNegotiator`/`attestation_verifier`/`attestation_failed_frame`/`attestation_warning_frame`/`extract_ws_token`/`send_ws_error`/`ticket_device_id`）。ws_handlers 删除 5 helper + 6 个死导入（`ProtocolError`/`attestation_failed_frame`/`attestation_warning_frame`/`ProtocolNegotiator`/`AttestationResult`/`attestation_verifier`/`validate_device_token`/`extract_ws_token`/`send_ws_error`/`ticket_device_id`），加 `from routes.device_gateway_hello_helpers import _authenticate_hello, ...`。269→175 行（-94）。
+- **特征化测试**：新增 `test_hello_helpers_lives_in_dedicated_module` 锁定 5 helper 在 `hello_helpers` 模块可调用。
+- **门禁**：`ruff check` + `ruff format --check` 5 改动文件 clean；`check_code_size.py` PASS；`pyright` 2 生产文件 0 errors；聚焦 53 测试 GREEN（ws_handlers/attestation/protocol_negotiation/ws_routes/ws_lifecycle/mqtt）；全量 `pytest -q` → **4433 passed / 3 skipped / 2 deselected**（较 T 批 4432 +1 = 新增特征化测试）。
+- **下次**：git add/commit/push origin + CI Tests 实证 + 公网 4 测试冒烟。
+
 ## 2026-07-03 深度瘦身 T 批完成（device_gateway intent.py LLM planner 子域抽到 intent_llm_planner.py）
 
 - **背景**：S 批闭环后 `routes/device_gateway.py` 已降至 146 行（远低于上限），继续拆 ws/ticket（~20 行）是过度碎片化（违反 Ponytail YAGNI）。转向其他逼近上限模块：对比 `routes/device_gateway_ws_handlers.py`（269 行，8 测试文件 + 既有导入排序违规，风险高）与 `device_gateway/intent.py`（262 行，纯函数解析器，4 测试文件，零 router/monkeypatch 风险）——选 intent.py 的 LLM planner 子域抽离为最优目标。

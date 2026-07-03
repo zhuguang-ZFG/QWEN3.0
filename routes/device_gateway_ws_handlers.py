@@ -7,14 +7,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from device_gateway.protocol import (
-    ProtocolError,
-    ack_frame,
-    attestation_failed_frame,
-    attestation_warning_frame,
-    hello_ack,
-)
-from device_gateway.protocol_negotiator import ProtocolNegotiator
+from device_gateway.protocol import ack_frame, hello_ack
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.task_events import record_device_connected
 from device_gateway.tasks import (
@@ -26,9 +19,13 @@ from device_intelligence.shadow import shadow_store
 from routes.device_gateway_dispatch import (
     dispatch_task_to_session,
     drain_pending_tasks,
-    extract_ws_token,
-    send_ws_error,
-    ticket_device_id,
+)
+from routes.device_gateway_hello_helpers import (
+    _authenticate_hello,
+    _check_attestation,
+    _create_hello_session,
+    _negotiate_hello_protocol,
+    _reject_too_many_connections,
 )
 from routes.device_gateway_ws_motion import handle_motion_event
 from routes.device_voice_ws_helpers import (
@@ -39,8 +36,7 @@ from routes.device_voice_ws_helpers import (
 from routes.ws_lifecycle_helpers import reattach_tasks
 from routes.ws_voice_transcript_helpers import handle_voice_transcript
 from routes.ws_voiceprint_helpers import handle_voiceprint_sample
-from device_gateway.attestation import ACTION_READ_ONLY, AttestationResult, verifier as attestation_verifier
-from device_gateway.auth import validate_device_token
+from device_gateway.attestation import ACTION_READ_ONLY
 
 _log = logging.getLogger(__name__)
 
@@ -56,96 +52,6 @@ __all__ = [
     "_feed_audio_to_pipeline",
     "_cleanup_audio_registry",
 ]
-
-
-async def _authenticate_hello(
-    websocket: WebSocket,
-    device_id: str,
-    request_id: str | None,
-) -> bool:
-    """Validate device ticket and token; send error and close on failure."""
-    bound_device_id = ticket_device_id(websocket)
-    if bound_device_id and bound_device_id != device_id:
-        _log.warning("device hello ticket device mismatch expected=%r got=%r", bound_device_id, device_id)
-        await send_ws_error(
-            websocket,
-            ProtocolError("E_UNAUTHORIZED_DEVICE", "device ticket does not match device_id", request_id),
-        )
-        await websocket.close(code=1008)
-        return False
-    token = extract_ws_token(websocket)
-    if not validate_device_token(device_id, token):
-        _log.warning("device hello auth failed device=%r token_len=%d", device_id, len(token))
-        await send_ws_error(
-            websocket,
-            ProtocolError("E_UNAUTHORIZED_DEVICE", "device token is invalid", request_id),
-        )
-        await websocket.close(code=1008)
-        return False
-    return True
-
-
-def _negotiate_hello_protocol(message: dict[str, Any]) -> tuple[str, frozenset[str]]:
-    """Negotiate protocol version and return (protocol, capabilities)."""
-    fw_rev = message.get("fw_rev", "")
-    device_protocol = message.get("protocol", "lima-device-v1")
-    negotiator = ProtocolNegotiator()
-    protocol = negotiator.negotiate(device_protocol, fw_rev)
-    return protocol, negotiator.capabilities_for_version(protocol)
-
-
-def _create_hello_session(
-    websocket: WebSocket,
-    device_id: str,
-    message: dict[str, Any],
-    protocol: str,
-    capabilities: frozenset[str],
-    attestation_action: str,
-) -> DeviceSession:
-    return DeviceSession(
-        device_id=device_id,
-        websocket=websocket,
-        fw_rev=message.get("fw_rev", ""),
-        capabilities=message.get("capabilities", []),
-        protocol_version=protocol,
-        negotiated_capabilities=capabilities,
-        attestation_action=attestation_action,
-    )
-
-
-async def _check_attestation(
-    websocket: WebSocket,
-    device_id: str,
-    message: dict[str, Any],
-    request_id: str | None,
-) -> AttestationResult | None:
-    """Verify firmware attestation; send frame and return None on quarantine."""
-    version = message.get("firmwareVersion") or message.get("fw_rev", "")
-    firmware_hash = message.get("firmwareHash", "")
-    result = attestation_verifier.verify(device_id, firmware_hash, version)
-    if result.action == "quarantine":
-        _log.warning(
-            "device attestation quarantined device=%s version=%r reason=%s", device_id, result.version, result.reason
-        )
-        await websocket.send_json(attestation_failed_frame(device_id, result.reason, request_id))
-        await websocket.close(code=1008)
-        return None
-    if result.action == "read_only":
-        _log.warning(
-            "device attestation warning device=%s version=%r reason=%s", device_id, result.version, result.reason
-        )
-        await websocket.send_json(attestation_warning_frame(device_id, result.reason, request_id))
-    return result
-
-
-async def _reject_too_many_connections(websocket: WebSocket, device_id: str, request_id: str | None) -> None:
-    """AUDIT-11-W1：连接数达上限时拒绝新设备。"""
-    _log.warning("device connection limit reached, rejecting device=%s", device_id)
-    await send_ws_error(
-        websocket,
-        ProtocolError("E_TOO_MANY_CONNECTIONS", "server connection limit reached", request_id),
-    )
-    await websocket.close(code=1013)
 
 
 async def handle_hello(

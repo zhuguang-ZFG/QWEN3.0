@@ -14,6 +14,7 @@ from device_gateway.attestation import (
 )
 from device_gateway.sessions import DeviceSession
 from routes import device_ota
+from routes import device_gateway_hello_helpers as hello_handlers
 from routes import device_gateway_ws_handlers as handlers
 
 
@@ -94,7 +95,7 @@ def test_compute_firmware_hash():
 
 @pytest.mark.asyncio
 async def test_hello_quarantine_unknown_version(websocket, monkeypatch):
-    monkeypatch.setattr(handlers, "attestation_verifier", _isolated_verifier())
+    monkeypatch.setattr(hello_handlers, "attestation_verifier", _isolated_verifier())
     message = {
         "type": "hello",
         "protocol": "lima-device-v1",
@@ -113,7 +114,7 @@ async def test_hello_quarantine_unknown_version(websocket, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_hello_read_only_hash_mismatch(websocket, monkeypatch):
-    monkeypatch.setattr(handlers, "attestation_verifier", _isolated_verifier())
+    monkeypatch.setattr(hello_handlers, "attestation_verifier", _isolated_verifier())
     message = {
         "type": "hello",
         "protocol": "lima-device-v1",
@@ -133,7 +134,7 @@ async def test_hello_read_only_hash_mismatch(websocket, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_hello_full_access_known_hash(websocket, monkeypatch):
-    monkeypatch.setattr(handlers, "attestation_verifier", _isolated_verifier())
+    monkeypatch.setattr(hello_handlers, "attestation_verifier", _isolated_verifier())
     message = {
         "type": "hello",
         "protocol": "lima-device-v1",
@@ -151,7 +152,7 @@ async def test_hello_full_access_known_hash(websocket, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_hello_without_attestation_fields_quarantine(websocket, monkeypatch):
-    monkeypatch.setattr(handlers, "attestation_verifier", _isolated_verifier())
+    monkeypatch.setattr(hello_handlers, "attestation_verifier", _isolated_verifier())
     message = {
         "type": "hello",
         "protocol": "lima-device-v1",

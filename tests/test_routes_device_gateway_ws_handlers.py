@@ -10,6 +10,7 @@ from fastapi import WebSocket
 from device_gateway.attestation import AttestationVerifier
 from device_gateway.sessions import DeviceSession
 from routes import device_gateway_ws_handlers as handlers
+from routes import device_gateway_hello_helpers as hello_handlers
 from routes import device_gateway_ws_motion as motion_handlers
 
 
@@ -52,7 +53,7 @@ async def test_handle_hello_success(websocket, monkeypatch):
     }
     with (
         patch.object(handlers, "drain_pending_tasks", new_callable=AsyncMock, return_value=True) as mock_drain,
-        patch.object(handlers, "attestation_verifier", _isolated_verifier()),
+        patch.object(hello_handlers, "attestation_verifier", _isolated_verifier()),
     ):
         device_id, session, keep_open = await handlers.handle_hello(websocket, message, request_id="r1")
     assert device_id == "dev-1"
@@ -217,3 +218,20 @@ def test_module_exports():
     assert "handle_hello" in handlers.__all__
     assert "handle_heartbeat" in handlers.__all__
     assert "handle_transcript" in handlers.__all__
+
+
+# ── hello handshake mechanics extraction (U batch) ────────────────────────
+
+
+def test_hello_helpers_lives_in_dedicated_module():
+    """Hello handshake mechanics (auth/negotiate/session/attestation/conn-limit)
+    are extracted to routes.device_gateway_hello_helpers; handle_hello stays in
+    ws_handlers as the public entry and delegates to these helpers.
+    """
+    from routes import device_gateway_hello_helpers as hello_helpers
+
+    assert callable(hello_helpers._authenticate_hello)
+    assert callable(hello_helpers._negotiate_hello_protocol)
+    assert callable(hello_helpers._create_hello_session)
+    assert callable(hello_helpers._check_attestation)
+    assert callable(hello_helpers._reject_too_many_connections)

@@ -130,13 +130,13 @@ def bypass_default_attestation_in_legacy_tests(request, monkeypatch):
         return
 
     from device_gateway.attestation import ACTION_FULL_ACCESS, AttestationResult
-    from routes import device_gateway_ws_handlers as handlers
+    from routes import device_gateway_hello_helpers as hello_handlers
 
-    original_verify = handlers.attestation_verifier.verify
+    original_verify = hello_handlers.attestation_verifier.verify
 
     def _test_verify(device_id: str, firmware_hash: str, firmware_version: str):
         version = (firmware_version or "").strip()
-        hashes = handlers.attestation_verifier.list_hashes()
+        hashes = hello_handlers.attestation_verifier.list_hashes()
         actual = (firmware_hash or "").strip()
         # Legacy tests do not provide a firmwareHash. If the device reports a
         # missing hash or a version that is NOT in the current verifier's
@@ -153,7 +153,7 @@ def bypass_default_attestation_in_legacy_tests(request, monkeypatch):
             )
         return original_verify(device_id, firmware_hash, firmware_version)
 
-    monkeypatch.setattr(handlers.attestation_verifier, "verify", _test_verify)
+    monkeypatch.setattr(hello_handlers.attestation_verifier, "verify", _test_verify)
 
 
 def pytest_sessionfinish(session, exitstatus):
