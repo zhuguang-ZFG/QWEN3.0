@@ -92,3 +92,26 @@ def test_llm_replan_accepts_allowed_capability(monkeypatch):
     result = dgi._llm_replan("stop now", {"capability": "unknown"})
     assert result is not None
     assert result["capability"] == "stop"
+
+
+def test_llm_planner_lives_in_dedicated_module_and_is_re_exported():
+    """Lock the T-batch extraction: the LLM planner sub-domain (4 functions +
+    2 capability sets) lives in ``device_gateway.intent_llm_planner`` yet stays
+    importable from ``device_gateway.intent`` for prod (prompt_engineering.layers
+    reads DANGEROUS_CAPABILITIES) and tests (dgi._llm_replan is patched/called).
+    Guards against accidental re-export loss during the split.
+    """
+    from device_gateway import intent_llm_planner as planner
+
+    # The planner sub-domain owns the four functions and both capability sets.
+    assert callable(planner._llm_replan)
+    assert callable(planner._interpret_llm_plan)
+    assert callable(planner._build_llm_planner_prompt)
+    assert callable(planner._strip_code_fence)
+    assert "spindle_on" in planner.DANGEROUS_CAPABILITIES
+    assert "write_text" in planner._ALLOWED_CAPABILITIES
+
+    # intent.py re-exports the prod-facing set and the test-facing function
+    # (same object identity — a re-export, not a copy).
+    assert dgi.DANGEROUS_CAPABILITIES is planner.DANGEROUS_CAPABILITIES
+    assert dgi._llm_replan is planner._llm_replan

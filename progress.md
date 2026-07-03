@@ -2,6 +2,15 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 T 批完成（device_gateway intent.py LLM planner 子域抽到 intent_llm_planner.py）
+
+- **背景**：S 批闭环后 `routes/device_gateway.py` 已降至 146 行（远低于上限），继续拆 ws/ticket（~20 行）是过度碎片化（违反 Ponytail YAGNI）。转向其他逼近上限模块：对比 `routes/device_gateway_ws_handlers.py`（269 行，8 测试文件 + 既有导入排序违规，风险高）与 `device_gateway/intent.py`（262 行，纯函数解析器，4 测试文件，零 router/monkeypatch 风险）——选 intent.py 的 LLM planner 子域抽离为最优目标。
+- **接缝核实**：LLM replanning 子域（`_build_llm_planner_prompt`/`_strip_code_fence`/`_interpret_llm_plan`/`_llm_replan` 4 函数 + `_ALLOWED_CAPABILITIES`/`DANGEROUS_CAPABILITIES` 2 常量，约 82 行）是内聚子域，仅被 `resolve_voice_task` 内部经 `_llm_replan` 调用。外部约束：`DANGEROUS_CAPABILITIES` 被 `prompt_engineering/layers.py`（生产）+ `test_prompt_registry.py` 从 `device_gateway.intent` 导入；`_llm_replan` 被 `test_device_intent_hardening.py` 用 `dgi._llm_replan(...)` 调用。两者必须经 intent.py re-export 保持可访问。
+- **抽离**：新建 `device_gateway/intent_llm_planner.py`（110 行），搬入 4 函数 + 2 常量。intent.py 用 `from device_gateway.intent_llm_planner import DANGEROUS_CAPABILITIES, _llm_replan  # noqa: F401  re-export` 保持 backward compatibility（`is` 同一对象，非拷贝）。从 intent.py 删除 4 函数 + 2 常量，262→178（-84 行）。`resolve_voice_task` 的 `_llm_replan(text, result)` 调用通过 re-export 仍指向新模块函数，无需改动调用方。
+- **特征化测试**：新增 `test_llm_planner_lives_in_dedicated_module_and_is_re_exported` 锁定 4 函数 + 2 常量在新模块 + `dgi.DANGEROUS_CAPABILITIES is planner.DANGEROUS_CAPABILITIES` / `dgi._llm_replan is planner._llm_replan` 同一对象身份（防 re-export 丢失）。
+- **门禁**：`ruff check` + `ruff format --check` 3 改动文件 clean；`check_code_size.py` PASS；`pyright` 改动 2 生产文件 0 errors（re-export 无循环引用）；聚焦 67 测试 GREEN（intent 4 文件）；全量 `pytest -q` → **4432 passed / 3 skipped / 2 deselected**（较 S 批 4431 +1 = 新增特征化测试）。
+- **下次**：git add/commit/push origin + CI Tests 实证 + 公网 4 测试冒烟。
+
 ## 2026-07-03 深度瘦身 S 批完成（routes/device_gateway.py events 端点抽离到 device_gateway_events_routes.py）
 
 - **背景**：R 批把 3 个 GET 查询端点抽到 `device_gateway_query_routes.py` 后，`routes/device_gateway.py` 降至 186 行。继续按"写端点分组"思路评估 events 端点（POST /events，motion_event/device_info/self_check uplink 处理）——接缝干净，依赖中 `shadow_store`/`process_motion_event_core`/`validate_uplink`/`ack_frame` 仅 events 端点用，抽离后主文件这 4 个导入变死。

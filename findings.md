@@ -3,6 +3,11 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 T 批：device_gateway intent.py LLM planner 子域抽到 intent_llm_planner.py
+
+- **re-export 保持 backward compatibility**：LLM planner 子域搬走后，`DANGEROUS_CAPABILITIES`（生产 `prompt_engineering/layers.py` 导入）和 `_llm_replan`（测试 `dgi._llm_replan(...)` 调用）必须仍可从 `device_gateway.intent` 访问。用 `from device_gateway.intent_llm_planner import DANGEROUS_CAPABILITIES, _llm_replan  # noqa: F401  re-export` 保持——`is` 同一对象身份（非拷贝），特征化测试用 `assert dgi.DANGEROUS_CAPABILITIES is planner.DANGEROUS_CAPABILITIES` 锁定。教训：**抽离被外部依赖的符号时，re-export + noqa: F401 + 特征化测试三件套保证 backward compatibility 不破**。F401 全局门禁会拦未标注的 re-export，`# noqa: F401  re-export` 注释是必需的。
+- **纯函数子域抽离 vs 路由/状态类抽离风险对比**：T 批（intent.py 纯函数）零 router/monkeypatch 风险——4 测试文件只 patch 全局 `http_caller.call_api`（抽离后仍生效，因 `_llm_replan` 内部仍 `import http_caller` 调 `call_api`）。对比 R/S 批路由抽离需修局部 app `include_router` + `patch.object` 目标迁移，纯函数抽离只需 re-export + 改导入源。教训：**优先选纯函数子域抽离（零 router 风险），路由/状态类抽离留到纯函数空间耗尽后**。
+
 ## 2026-07-03 S 批：routes/device_gateway.py events 端点抽离到 device_gateway_events_routes.py
 
 - **稳定单例 vs 可替换单例的导入策略**：R 批 lesson 是"`set_*_for_tests` 可替换单例必须延迟导入"。S 批验证了反面：`shadow_store` 和 `process_motion_event_core` 是稳定模块级单例（ripgrep 确认无 `set_*_for_tests` / `install_*_for_tests` / `monkeypatch` swap），顶层导入安全。模块 docstring 显式记录此区别，避免未来误把稳定单例也改延迟导入（增加无谓复杂度）或误把可替换单例用顶层导入（重蹈 R 批回归）。判断法：ripgrep `set_<name>_for_tests\|install_<name>_for_tests\|monkeypatch.*<name>` 全库无命中 → 稳定单例可顶层导入；有命中 → 必须延迟导入。

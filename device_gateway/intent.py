@@ -16,38 +16,16 @@ from typing import Any
 
 from config.settings import FLAGS
 
+# LLM replanning subdomain lives in intent_llm_planner (deep-slim T batch).
+# Re-exported here for backward compatibility: production prompt_engineering/
+# layers.py and tests import DANGEROUS_CAPABILITIES from device_gateway.intent,
+# and tests call device_gateway.intent._llm_replan directly.
+from device_gateway.intent_llm_planner import (  # noqa: F401  re-export (prod + tests import from here)
+    DANGEROUS_CAPABILITIES,
+    _llm_replan,
+)
+
 _log = logging.getLogger(__name__)
-
-# ── Safety: capabilities whitelist and dangerous blacklist ────────────────────
-_ALLOWED_CAPABILITIES = frozenset(
-    {
-        "home",
-        "pause",
-        "resume",
-        "stop",
-        "get_device_info",
-        "write_text",
-        "draw_generated",
-        "run_path",
-        "move_abs",
-        "move_rel",
-        "rejected",
-    }
-)
-
-DANGEROUS_CAPABILITIES = frozenset(
-    {
-        "spindle_on",
-        "laser_on",
-        "heater_on",
-        "gpio_high",
-        "m3",
-        "m4",
-        "m8",
-        "spindle_cw",
-        "spindle_ccw",
-    }
-)
 
 # ── Command patterns ─────────────────────────────────────────────────────────
 # Each pattern is (regex, capability, param_map_fn)
@@ -198,65 +176,3 @@ def resolve_voice_task(text: str) -> dict[str, Any]:
         "source": "voice",
         "explanation": result.get("explanation", ""),
     }
-
-
-def _build_llm_planner_prompt(text: str) -> str:
-    """Build the system/user prompt instructing the LLM to output a capability JSON."""
-    return (
-        "You are a device command parser for a CNC writing machine. "
-        "Given a user command, output ONLY a JSON object with keys: "
-        "capability (one of: run_path, write_text, draw_generated, "
-        "home, pause, resume, stop, get_device_info, move_abs, move_rel, rejected), "
-        "params (object with text/prompt/x/y/z as needed). "
-        "If the command doesn't make sense for a CNC machine, set "
-        "capability to 'rejected' and include a 'reason' key.\n\n"
-        f"NEVER output any of these dangerous capabilities: "
-        f"{', '.join(sorted(DANGEROUS_CAPABILITIES))}.\n\n"
-        f"Command: {text}\n\nJSON:"
-    )
-
-
-def _strip_code_fence(text: str) -> str:
-    """Strip a leading/trailing markdown code fence (```json or ```) from a string."""
-    s = text.strip()
-    if s.startswith("```json"):
-        s = s.removeprefix("```json").strip()
-    elif s.startswith("```"):
-        s = s.removeprefix("```").strip()
-    if s.endswith("```"):
-        s = s.removesuffix("```").strip()
-    return s
-
-
-def _interpret_llm_plan(parsed: Any) -> dict[str, Any] | None:
-    """Validate a parsed LLM plan dict against the whitelist; returns normalized result or None."""
-    if not (isinstance(parsed, dict) and "capability" in parsed):
-        return None
-    capability = parsed["capability"]
-    if capability not in _ALLOWED_CAPABILITIES:
-        _log.warning("device llm planner returned unapproved capability: %s", capability)
-        return None
-    return {
-        "capability": capability,
-        "params": parsed.get("params", {}),
-        "source": "llm",
-        "explanation": f"LLM planned: {parsed.get('reason', capability)}",
-    }
-
-
-def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
-    """Gated LLM replanning for ambiguous commands. Returns None if unavailable."""
-    try:
-        import http_caller
-        import json as _json
-
-        answer = http_caller.call_api(
-            "longcat_lite",
-            [{"role": "user", "content": _build_llm_planner_prompt(text)}],
-            max_tokens=200,
-        )
-        parsed = _json.loads(_strip_code_fence(answer))
-        return _interpret_llm_plan(parsed)
-    except Exception as exc:
-        _log.warning("device llm planner parse failed: %s", exc, exc_info=True)
-    return None
