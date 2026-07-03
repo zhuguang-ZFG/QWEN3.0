@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routes import device_gateway as dg
+from routes import device_gateway_events_routes as events_routes
 
 
 @pytest.fixture(autouse=True)
@@ -22,10 +23,12 @@ def _reset_state():
 def client(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-key")
     monkeypatch.setenv("LIMA_DEVICE_TOKENS", "dev-1=token-1")
+    from routes.device_gateway_events_routes import router as events_router
     from routes.device_gateway_query_routes import router as query_router
 
     app = FastAPI()
     app.include_router(dg.router)
+    app.include_router(events_router)
     app.include_router(query_router)
     return TestClient(app)
 
@@ -60,7 +63,9 @@ def test_device_gateway_events_invalid_json(client):
 
 
 def test_device_gateway_events_invalid_protocol(client):
-    with patch.object(dg, "validate_uplink", side_effect=dg.ProtocolError("E_PROTOCOL_VERSION", "bad")):
+    with patch.object(
+        events_routes, "validate_uplink", side_effect=events_routes.ProtocolError("E_PROTOCOL_VERSION", "bad")
+    ):
         response = client.post(
             "/device/v1/events",
             json={"type": "hello"},
@@ -73,8 +78,8 @@ def test_device_gateway_events_invalid_protocol(client):
 def test_device_gateway_events_motion_event(client):
     message = {"type": "motion_event", "device_id": "dev-1", "task_id": "t1", "phase": "done"}
     with (
-        patch.object(dg, "validate_uplink", return_value=message),
-        patch.object(dg, "process_motion_event_core", return_value={"phase": "done"}) as mock_process,
+        patch.object(events_routes, "validate_uplink", return_value=message),
+        patch.object(events_routes, "process_motion_event_core", return_value={"phase": "done"}) as mock_process,
     ):
         response = client.post(
             "/device/v1/events",
@@ -89,8 +94,8 @@ def test_device_gateway_events_motion_event(client):
 def test_device_gateway_events_device_info(client):
     message = {"type": "device_info", "device_id": "dev-1"}
     with (
-        patch.object(dg, "validate_uplink", return_value=message),
-        patch.object(dg.shadow_store, "update_device_info") as mock_update,
+        patch.object(events_routes, "validate_uplink", return_value=message),
+        patch.object(events_routes.shadow_store, "update_device_info") as mock_update,
     ):
         response = client.post(
             "/device/v1/events",
@@ -105,8 +110,8 @@ def test_device_gateway_events_device_info(client):
 def test_device_gateway_events_self_check(client):
     message = {"type": "self_check", "device_id": "dev-1", "status": "ok"}
     with (
-        patch.object(dg, "validate_uplink", return_value=message),
-        patch.object(dg.shadow_store, "update_self_check") as mock_update,
+        patch.object(events_routes, "validate_uplink", return_value=message),
+        patch.object(events_routes.shadow_store, "update_self_check") as mock_update,
     ):
         response = client.post(
             "/device/v1/events",
@@ -120,7 +125,7 @@ def test_device_gateway_events_self_check(client):
 
 def test_device_gateway_events_unsupported_type(client):
     message = {"type": "unsupported", "device_id": "dev-1"}
-    with patch.object(dg, "validate_uplink", return_value=message):
+    with patch.object(events_routes, "validate_uplink", return_value=message):
         response = client.post(
             "/device/v1/events",
             json=message,

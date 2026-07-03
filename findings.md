@@ -3,6 +3,11 @@
 > 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
 > AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
 
+## 2026-07-03 S 批：routes/device_gateway.py events 端点抽离到 device_gateway_events_routes.py
+
+- **稳定单例 vs 可替换单例的导入策略**：R 批 lesson 是"`set_*_for_tests` 可替换单例必须延迟导入"。S 批验证了反面：`shadow_store` 和 `process_motion_event_core` 是稳定模块级单例（ripgrep 确认无 `set_*_for_tests` / `install_*_for_tests` / `monkeypatch` swap），顶层导入安全。模块 docstring 显式记录此区别，避免未来误把稳定单例也改延迟导入（增加无谓复杂度）或误把可替换单例用顶层导入（重蹈 R 批回归）。判断法：ripgrep `set_<name>_for_tests\|install_<name>_for_tests\|monkeypatch.*<name>` 全库无命中 → 稳定单例可顶层导入；有命中 → 必须延迟导入。
+- **patch.object 目标随模块迁移**：`test_routes_device_gateway.py` 的 5 个 events 测试用 `patch.object(dg, "validate_uplink", ...)` patch `routes.device_gateway` 模块属性。events 端点移到 `device_gateway_events_routes` 后，`validate_uplink`/`process_motion_event_core`/`shadow_store`/`ProtocolError` 不在 `dg` 上——`AttributeError: <module 'routes.device_gateway'> does not have the attribute 'validate_uplink'`。修正：patch 目标改指 `events_routes` 模块（`from routes import device_gateway_events_routes as events_routes` + `patch.object(events_routes, "validate_uplink", ...)`）。教训：**路由端点迁移到新模块时，所有 `patch.object(旧模块, "依赖名", ...)` 必须同步改指新模块**，否则 AttributeError。
+
 ## 2026-07-03 R 批：routes/device_gateway.py 查询端点抽离到 device_gateway_query_routes.py
 
 - **Python 模块级 `from import` 绑定陷阱**：新模块 `device_gateway_query_routes` 初版用顶层 `from device_gateway.store import task_store` 绑定模块级单例。但 `install_task_store_for_tests()` / `set_task_store_for_tests()` 用 `global task_store` 替换 `device_gateway.store` 模块的 `task_store` 属性指向**新对象**——已顶层 `from import` 的模块仍持有**旧对象引用**，导致测试 `test_sessions.py::test_registry_remove_zombies_requeues_outstanding_tasks` 调 `install_task_store_for_tests()` 后，后续 `test_task_list_returns_tasks` 的 `create_task_from_transcript` 写入新实例、`device_gateway_query_routes` 读旧实例，`count=0` 回归。修正：4 个运行时单例（`task_store`/`task_snapshot`/`artifact_store`/`artifacts_for_device`）改回**函数内延迟导入**，每次调用重新解析模块属性拿当前实例——与原 `routes/device_gateway.py` 行为一致。教训：**涉及 `set_*_for_tests` 可替换单例的导入，必须用延迟导入（函数内 `from ... import ...`），不能用顶层 `from import`**，否则测试隔离回归。

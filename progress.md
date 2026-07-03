@@ -2,6 +2,15 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 深度瘦身 S 批完成（routes/device_gateway.py events 端点抽离到 device_gateway_events_routes.py）
+
+- **背景**：R 批把 3 个 GET 查询端点抽到 `device_gateway_query_routes.py` 后，`routes/device_gateway.py` 降至 186 行。继续按"写端点分组"思路评估 events 端点（POST /events，motion_event/device_info/self_check uplink 处理）——接缝干净，依赖中 `shadow_store`/`process_motion_event_core`/`validate_uplink`/`ack_frame` 仅 events 端点用，抽离后主文件这 4 个导入变死。
+- **抽离**：新建 `routes/device_gateway_events_routes.py`（62 行），搬入 POST /events 端点 + 独立 `APIRouter(prefix="/device/v1")`。`shadow_store` 和 `process_motion_event_core` 是稳定模块级单例（无 `set_*_for_tests` swap 接口，ripgrep 确认），顶层导入安全——与 R 批 `task_store` 需延迟导入不同（R 批 lesson：`set_*_for_tests` 可替换单例必须延迟导入）。模块 docstring 记录此区别。从 `routes/device_gateway.py` 删除 events 端点 + 4 个变死导入，主文件 186→146（-40 行）。`route_registry.py` 注册新模块。
+- **测试侧同步**：3 个局部 app 测试需加 `app.include_router(events_router)`：`test_events_http.py`、`test_ai_to_motion_gate.py`、`test_routes_device_gateway.py`。`test_routes_device_gateway.py` 的 5 个 events 测试用 `patch.object(dg, "validate_uplink", ...)` 等 patch `dg` 模块属性——events 端点移走后这些属性不在 `dg` 上，改指 `events_routes` 模块（`patch.object(events_routes, "validate_uplink", ...)` + `events_routes.ProtocolError` + `events_routes.shadow_store`）。用 `server.app` 完整注册的测试（`test_registration.py`、`test_json_body_contract.py`）自动获得新路由无需改。
+- **特征化测试**：新增 `test_server_registers_device_gateway_events_routes_after_extraction` 锁定 POST /events 在 `server.app` 注册 + 新模块 router prefix 与路径完整。
+- **门禁**：`ruff check` + `ruff format --check` 7 改动文件 clean（`test_routes_device_gateway.py` patch 行变长经 `ruff format` 自动折行）；`check_code_size.py` PASS；`pyright` 改动 3 生产文件 0 errors（2 warnings 是既有 `body.get` 问题，行号偏移非新引入）；聚焦 77 测试 GREEN；全量 `pytest -q` → **4431 passed / 3 skipped / 2 deselected**（较 R 批 4430 +1 = 新增特征化测试）。
+- **下次**：git add/commit/push origin + CI Tests 实证 + 公网 4 测试冒烟。
+
 ## 2026-07-03 深度瘦身 R 批完成（routes/device_gateway.py 查询端点抽离到 device_gateway_query_routes.py）
 
 - **背景**：Q 批闭环后继续扫描抽离候选。`store.py`（289 行）是状态封装类（17 方法 + `self._lock`/`self._tasks` 耦合），非纯函数抽离目标；`family_approval_store.py`（273 行）CRUD 方法体不可避免，可抽纯函数仅 ~40 行且切断同模块调用，收益有限。AST 全仓扫描确认主代码库函数已全部 ≤50 行（check_code_size 实证），长函数空间耗尽。转回 `routes/device_gateway.py`（286 行）——3 个 GET 查询端点（`device_task_status`、`device_task_list`、`device_drawing_history`）与写端点天然分组，HTTP 测试覆盖充分。

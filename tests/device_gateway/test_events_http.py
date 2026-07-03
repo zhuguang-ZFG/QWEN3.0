@@ -3,11 +3,13 @@ from fastapi.testclient import TestClient
 
 from device_gateway.tasks import task_snapshot
 from routes.device_gateway import router
+from routes.device_gateway_events_routes import router as events_router
 
 
 def _client() -> TestClient:
     app = FastAPI()
     app.include_router(router)
+    app.include_router(events_router)
     return TestClient(app)
 
 
