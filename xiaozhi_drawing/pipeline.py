@@ -119,8 +119,11 @@ def thin_binary(binary: np.ndarray) -> tuple[np.ndarray, str]:
 
         thinned = sk_skeletonize(binary > 0).astype(np.uint8) * 255
         return thinned, "skimage"
-    except ImportError:
-        pass
+    except ImportError as exc:
+        logger.warning(
+            "scikit-image unavailable, falling back to ximgproc/morphological thinning: %s",
+            exc,
+        )
 
     if cv2 is not None and hasattr(cv2, "ximgproc"):
         thinned = cv2.ximgproc.thinning(binary, thinningType=cv2.ximgproc.THINNING_ZHANG_SUEN)
