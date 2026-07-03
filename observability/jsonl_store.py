@@ -35,8 +35,8 @@ def _rotate_jsonl(path: Path, keep_backups: int = DEFAULT_BACKUP_COUNT) -> None:
     if oldest.exists():
         try:
             oldest.unlink()
-        except OSError:
-            pass
+        except OSError as exc:
+            _log.warning("audit log rotation: failed to remove oldest backup: %s", exc)
     # Shift existing backups upward.
     for i in range(keep_backups - 1, 0, -1):
         src = path.parent / f"{path.name}.{i}"
@@ -44,14 +44,14 @@ def _rotate_jsonl(path: Path, keep_backups: int = DEFAULT_BACKUP_COUNT) -> None:
         if src.exists():
             try:
                 src.rename(dst)
-            except OSError:
-                pass
+            except OSError as exc:
+                _log.warning("audit log rotation: failed to shift backup %s: %s", src, exc)
     # Rotate current file to .1
     if path.exists():
         try:
             path.rename(path.parent / f"{path.name}.1")
-        except OSError:
-            pass
+        except OSError as exc:
+            _log.warning("audit log rotation: failed to rotate current file %s: %s", path, exc)
 
 
 def append_jsonl_record(
@@ -74,8 +74,8 @@ def append_jsonl_record(
             try:
                 if path.stat().st_size > limit:
                     _rotate_jsonl(path)
-            except FileNotFoundError:
-                pass
+            except FileNotFoundError as exc:
+                _log.warning("audit log rotation: current file disappeared before rotation: %s", exc)
         return True
     except Exception as exc:
         logger.warning("failed to append jsonl telemetry: %s", type(exc).__name__)
