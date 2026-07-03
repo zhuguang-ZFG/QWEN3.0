@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import sqlite3
 import time
@@ -9,6 +10,9 @@ import uuid
 
 from config.sqlite_pool import get_pooled_connection
 from session_memory.outcome_ledger.config import get_db_path
+
+
+logger = logging.getLogger(__name__)
 
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
@@ -55,7 +59,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         try:
             conn.execute(f"ALTER TABLE outcomes ADD COLUMN {col} {col_type}")
         except sqlite3.OperationalError:
-            pass  # column already exists
+            logger.debug("outcome column already exists, skipping migration: %s", col)
 
 
 def _ensure_indexes(conn: sqlite3.Connection) -> None:

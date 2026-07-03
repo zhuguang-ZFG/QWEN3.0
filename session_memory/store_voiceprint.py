@@ -170,7 +170,7 @@ def get_voiceprint_embeddings(device_id: str) -> list[dict]:
             if rows:
                 return [_row_to_entry(row) for row in rows]
         except sqlite3.OperationalError:
-            pass  # embedding_vec column may not exist yet
+            _log.debug("embedding_vec column not available yet, falling back to base64 embedding")
 
         # Fallback: use base64 embedding field
         rows = conn.execute(
@@ -254,7 +254,7 @@ def _ensure_voiceprint_table(conn: sqlite3.Connection) -> None:
         try:
             conn.execute(f"ALTER TABLE v2_voiceprint ADD COLUMN {col} {col_type}")
         except sqlite3.OperationalError:
-            pass  # Column already exists
+            _log.debug("voiceprint column already exists, skipping migration: %s", col)
     conn.commit()
 
 
