@@ -32,6 +32,7 @@ CHAT_WEB_DIR = PROJECT_ROOT / "chat-web"
 REMOTE_HOST = deploy_config.deploy_host()
 REMOTE_DIR = "/var/www/chat"
 FILES = [
+    "_headers",
     "index.html",
     "voice-call.html",
     "login.html",

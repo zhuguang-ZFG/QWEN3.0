@@ -10,7 +10,7 @@
 > Updated: 2026-07-03
 > Branch: `main`
 > Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4433 passed / 3 skipped / 2 deselected / 0 failed / 0 warnings**（`.venv310` Python 3.10.20）；ruff check clean（含 F401 全局 gate 已启用）；ruff format clean；pyright 目标文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；manager-mobile `vitest` 用例 GREEN。
+> Tests: 全量 **4463 passed / 3 skipped / 2 deselected / 0 failed / 2 warnings**（`.venv310` Python 3.10.20）；ruff check clean（含 F401 全局 gate 已启用）；ruff format clean；pyright 目标文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；manager-mobile `vitest` 用例 GREEN。
 > 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout` 与 `httpx2`，pytest warnings 已清零。
 > 英文站：...（保持不变）
 > ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **67%**（40G 中 25G 已用，释放约 5G），`litestream` 已纳入 systemd 管理并设置 `MemoryMax=512M`，内存可用约 420M~850M（随负载波动），load average 4~5。京东云节点已完成深度清理（磁盘 33% → **30%**，59G 中 17G 已用，释放约 2G）。登录超时风险显著降低。
@@ -20,6 +20,14 @@
 > Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
 > 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
 > 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+
+### 最近完成（2026-07-03）M3 全项目 P2 LOW 技术债/体验打磨
+
+- **范围**：承接 M2，完成后端（Python/FastAPI）、Chat Web、微信小程序共 10 项 P2 LOW 技术债/体验打磨。
+- **P2 已修复**：`http_caller` 重导出符号完整性测试（30 用例）；`probe_loop`/`backend_probe_loop` docstring 交叉引用；`.env.example` 占位密钥去敏化；移除 `requirements_dev.txt` 中 `httpx2`（改用 httpx testclient）；小程序 `tabbarList` TODO + `utils` 注释 console 清理；抽公共 `getMode()` 到 `scripts/get-mode.ts`；子模块移除 `unpackage/res/icons/*.png` 并加 `.gitignore`；压缩主包 `1024x1024.png`；`deploy_chat_web.py` FILES 加 `_headers`（HSTS）；新增 `scripts/check-i18n-keys.mjs`（803 keys 一致性校验）。
+- **门禁**：`pytest -q` → **4463 passed / 3 skipped / 2 deselected / 0 failed**；`ruff check` / `ruff format --check` clean；`check_code_size.py` PASS；`pyright` 改动文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；`check-i18n-keys.mjs` OK。
+- **小程序**：版本 `3.8.3` → `3.8.4`，微信开发者工具 CLI 上传成功（989.2 KB）。
+- **提交**：子模块 `esp32S_XYZ` 已 push origin main；LiMa 主仓库更新子模块指针并提交后端/脚本/文档改动。
 
 ### 最近完成（2026-07-03）M2 全项目 P1 MEDIUM 质量/文档/测试改进
 

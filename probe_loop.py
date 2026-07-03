@@ -7,6 +7,10 @@ LiMa Probe Loop — 主动探活后台线程
 - suspicious: 每 5 分钟探一次
 - dead: 每 15 分钟探一次
 - 探针: max_tokens=1 的最小请求
+
+See Also:
+    health_probe.py: 标准化健康探针接口与 ProbeResult 协议。
+    backend_probe_loop.py: 全量后端定期批量探测循环。
 """
 
 import time

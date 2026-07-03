@@ -5,6 +5,26 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
+## 2026-07-03 M3 全项目审计：P2 LOW 技术债/体验打磨
+
+- **后端**：
+  - `http_caller.py` 为 thin re-export 门面，若下游子模块（`http_sync`/`http_async`/`http_stream` 等）改名或删符号，历史 `from http_caller import X` 会在运行时才 `ImportError`。新增 `tests/test_http_caller_reexports.py` 参数化断言全部公开符号仍可导入，把回归提前到测试期。
+  - `probe_loop.py`（对 dead/suspicious 主动探活）与 `backend_probe_loop.py`（全量批次周期探活）职责相近、命名相似，易混淆。已在两者 docstring 顶部加交叉引用说明各自触发条件与区别。
+  - `requirements_dev.txt` 强制 `httpx2~=2.5` 只为消 starlette testclient 弃用警告，却引入第二套 httpx 实现、增大依赖面。评估后移除；testclient 在 httpx 0.28 下功能正常，仅保留一条弃用 warning（无害）。
+  - `.env.example` 的 Turnstile 占位符 `0x4AAAAAA...` 形似真实 key 片段，去敏化为 `your-turnstile-*-key`，避免误导/误提交。
+- **Chat Web**：
+  - `chat-web/_headers`（含 HSTS/nosniff/缓存策略）已存在，但 `deploy_chat_web.py` 的 `FILES` 未包含它，导致部署后 nginx 不下发这些头。已把 `_headers` 加入上传列表。
+- **小程序**：
+  - `manifest.config.ts` 与 `pages.config.ts` 各自复制了一份 `getMode()`（解析 `--mode` 命令行参数），重复逻辑。抽到 `scripts/get-mode.ts` 单点导出，两处引用。
+  - `unpackage/res/icons/*.png`（17 个 App 打包图标，仅 5+App 端用）被 git 跟踪，污染仓库；`git rm` 后 `.gitignore` 增加 `unpackage/` 忽略。
+  - `src/static/app/icons/1024x1024.png`（458KB）用 Pillow `optimize=True` 压缩到 433KB（RGBA PNG 无损压缩上限有限；进一步需转格式或降分辨率，暂不激进处理）。
+  - `src/i18n/{zh_CN,en}.ts` 各 800+ 行手工维护，key 容易漂移。新增 `scripts/check-i18n-keys.mjs` 校验中英 key 集合一致（当前 803 keys 对齐），挂到 `package.json` 脚本。
+  - `tabbarList.ts` 遗留 TODO 与 `utils/index.ts` 大量注释掉的 `console.log` 调试残留，已清理。
+- **教训**：
+  - re-export 门面模块必须配「符号完整性测试」，否则重构子模块时门面会静默腐化，只有生产导入才暴露。
+  - 静态资源头文件（`_headers`）与部署脚本 `FILES` 列表是两处易脱节的配置，任何新增静态策略文件都要同步进部署清单。
+  - i18n 多语言文件适合用「key 一致性」脚本做 CI 门禁，比人工 review 可靠。
+
 ## 2026-07-03 M1 全项目审计：P0 安全/正确性发现与修复
 
 - **CRITICAL 级（小程序/固件侧）**：

@@ -2,6 +2,10 @@
 
 Runs as a background thread, probing backends in batches every N minutes.
 Updates health_tracker and backend_profile with probe results.
+
+See Also:
+    health_probe.py: standardized ProbeResult dataclass and classify_probe_error.
+    probe_loop.py: lightweight on-demand probing for dead/suspicious backends.
 """
 
 from __future__ import annotations

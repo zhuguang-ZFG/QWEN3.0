@@ -2,6 +2,29 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-03 M3 里程碑完成（P2 LOW 技术债/体验打磨）
+
+- **审计收尾**：承接 M1（P0 安全）+ M2（P1 质量），完成全项目 P2 LOW 技术债与体验打磨，覆盖后端、Chat Web、小程序三端。
+- **P2 改进项**（10 项全部完成并提交）：
+  - P2.1 新增 `tests/test_http_caller_reexports.py`：断言 `http_caller.py` thin re-export 门面的全部符号（30 个）可从子模块正常导出，防止拆分后回归。
+  - P2.2 `probe_loop.py` 与 `backend_probe_loop.py` docstring 增加交叉引用，说明两者职责边界（主动探活 vs 批量健康探测）。
+  - P2.3 `.env.example` 占位密钥去敏化：形似真实密钥的占位符改为明显占位格式，降低误用/泄露面。
+  - P2.4 移除 `requirements_dev.txt` 的 `httpx2~=2.5`：确认 `httpx 0.28.1` 已满足 starlette testclient；卸载后 38 个相关用例仍 GREEN（仅保留一条 deprecation warning，无功能影响）。
+  - P2.5 小程序清理：`tabbarList.ts` 移除 TODO 占位；`utils/index.ts` 清理注释掉的 `console` 调试语句。
+  - P2.6 抽公共 `getMode()` 到 `scripts/get-mode.ts`，`manifest.config.ts` 与 `pages.config.ts` 共用，消除重复实现。
+  - P2.7 子模块移除已跟踪的 `unpackage/res/icons/*.png`（17 个构建产物），并在 `.gitignore` 增加 `unpackage/` 忽略规则。
+  - P2.8 压缩主包图标 `src/static/app/icons/1024x1024.png`（458KB → 433KB，Pillow optimize）。
+  - P2.9 `scripts/deploy_chat_web.py` 的 FILES 列表补充 `_headers`（含 HSTS / X-Content-Type-Options / 缓存策略），确保部署后安全头随静态资源上线。
+  - P2.10 新增 `scripts/check-i18n-keys.mjs`：校验 `zh_CN.ts` 与 `en.ts` 的 key 一致性（当前 803 keys 一致），并接入 `package.json` 脚本。
+- **门禁验证**：
+  - 主仓库 `pytest -q` → **4463 passed / 3 skipped / 2 deselected / 0 failed**。
+  - `ruff check .` clean；`ruff format --check` clean；`pyright` 改动文件 0 errors；`check_code_size.py` PASS。
+  - 小程序 `npx vue-tsc --noEmit` 0 errors + `npx uni build --platform mp-weixin` 通过；`check-i18n-keys.mjs` OK（803 keys）。
+- **小程序上传**：版本号 `3.8.3` → `3.8.4`，已通过微信开发者工具 CLI 上传成功，AppID `wxbf3c1e0013b46343`，提交大小 989.2 KB。
+- **Git 提交与推送**：子模块 `esp32S_XYZ` 提交 P2 改动 + 版本 bump；LiMa 主仓库更新子模块指针并提交后端/脚本/测试改动，push origin main。
+- **文档同步**：更新 `progress.md`（本条目）、`findings.md`（M3 发现）、`STATUS.md`（当前状态）。
+- **下一步**：全项目改善计划 P0→P2 已闭环；P3（长期重构，如非微信端 SSE 完整实现、分包体积优化）作为后续可选里程碑，见 `docs/superpowers/specs/2026-07-03-full-project-improvement-plan.md`。
+
 ## 2026-07-03 M2 里程碑完成（P1 MEDIUM 全项目质量/文档/测试改进）
 
 - **审计闭环**：承接 M1 安全修复，完成全项目 P1 MEDIUM 质量改进与文档同步，覆盖后端、Chat Web、小程序（uni-app）、固件（ESP32 U1/U8）四个端。
