@@ -37,7 +37,7 @@
 | 路由评分 | `route_scorer.py` | — | 质量/稳定性/延迟/任务适配评分 |
 | 流桥接 | `streaming.py`, `routes/stream_handlers.py` | — | 工具原生 vs 模拟 SSE |
 | 检索注入 | `context_pipeline/retrieval_injection.py` | `local_retrieval` | 知识图谱/向量检索 |
-| 代码上下文注入 | `context_pipeline/code_context_injection.py` | 已标记 `DEPRECATED v3.0` | tree-sitter 扫描（编码能力退役后不再在热路径使用） |
+| 代码上下文注入 | 已物理删除（v3.0 退役） | tree-sitter 扫描能力随编码能力退役已移除 |
 | 技能注入 | `skills_injector.py` | — | 温度门控 |
 | 会话内存写入 | `session_memory/store*.py` | — | 拆分: db/crud/promote/admin |
 | 响应验证 | `context_pipeline/response_validator.py` | 已标记 `DEPRECATED v3.0` | 编码响应质量检查（编码能力退役后不再在热路径使用） |

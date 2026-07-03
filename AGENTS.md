@@ -35,7 +35,7 @@ ruff format --check
 ruff format .
 
 # 类型检查（指定文件）
-pyright server.py routing_engine.py
+pyright server.py routing_engine/
 
 # 本地启动服务
 python -m uvicorn server:app --host 0.0.0.0 --port 8080
@@ -104,7 +104,7 @@ git push origin main
 Client → server.py (BodySizeLimitMiddleware, access_guard)
       → routes/chat_endpoints.py
       → routes/chat_preflight.py (guardrails, budget, identity)
-      → routing_engine.route()          ← 权威路由入口
+      → routing_engine.route()          ← 权威路由入口（`routing_engine/` 包）
          ├─ identity_guard              (身份短路)
          ├─ routing_classifier.classify (request_type: ide/chat/vision)
          ├─ routing_classifier.classify_scenario (scenario: coding/chat)
@@ -113,9 +113,9 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
          ├─ router_v3.select_backends → routing_selector.select (后端排序)
          ├─ skills_injector             (向消息注入技能)
          ├─ speculative                 (简单请求：并行推测调用)
-         ├─ routing_executor.execute    (串行/并行 + 降级)
+         ├─ routing_executor.execute    (串行/并行 + 降级，`routing_executor/` 包)
          └─ route_post_process          (关联/证据/反馈)
-      → http_caller → backend pool (httpx sync/async/stream)
+      → http_caller → backend pool (httpx sync/async/stream，`http_caller.py` 为 thin re-export)
       → routes/chat_post_closeout.py (记忆、指标、蒸馏队列)
       → Client (JSON 或 SSE)
 ```
@@ -138,7 +138,7 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
 | 粘性会话 | `sticky_session.py` | — |
 | 流桥接 | `streaming.py`, `routes/stream_handlers.py` | — |
 | 检索注入 | `context_pipeline/retrieval_injection.py` | — |
-| 代码上下文 | `context_pipeline/code_context_injection.py` | 已标记 `DEPRECATED v3.0`（编码能力退役） |
+| 代码上下文 | 已物理删除（v3.0 退役） | 编码能力退役，原模块已移除 |
 | 技能注入 | `skills_injector.py` | — |
 | 会话记忆 | `session_memory/store*.py` (拆分：db/crud/promote/admin) | — |
 | 运维指标 | `routes/ops_metrics.py` | — |
