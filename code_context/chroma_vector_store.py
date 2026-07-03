@@ -26,7 +26,7 @@ def _is_chromadb_available() -> bool:
         return _CHROMADB_AVAILABLE
     _CHROMADB_AVAILABLE = importlib.util.find_spec("chromadb") is not None
     if not _CHROMADB_AVAILABLE:
-        _log.debug("chromadb not installed, using in-memory fallback")
+        _log.warning("chromadb not installed, using in-memory fallback")
     return _CHROMADB_AVAILABLE
 
 
