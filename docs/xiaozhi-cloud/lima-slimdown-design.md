@@ -300,7 +300,7 @@ Tool(
 **默认部署（P2）：**
 
 ```text
-阿里云 47.112.162.80：2+ dlc_api 实例（nginx 轮询）
+阿里云 47.112.162.80：1 个 dlc_api 实例（nginx 反代到 127.0.0.1:8080）
 JDCloud 117.72.118.95：Redis + MySQL + Prometheus
 ```
 
@@ -361,7 +361,7 @@ queued → dispatching → dispatched → accepted → running → done / failed
 
 ### 1.6.6 设备运行中防呆机制（anti-foolhardiness）
 
-> **场景：** 用户对正在画画的小智说"再画一颗星星"或"写字你好"——设备正在执行任务 A，此时 LLM 又调用了 `dlc.write_text` 或 `self.plotter.run_path` 下发任务 B。会发生什么？
+> **场景：** 用户对正在画画的小智说"再画一颗星星"或"写字你好"——设备正在执行任务 A，此时 LLM 又调用了 `dlc.write_text` 或 `self.motor.run_path` 下发任务 B。会发生什么？
 
 **当前代码的多层防呆分析：**
 
@@ -379,7 +379,7 @@ queued → dispatching → dispatched → accepted → running → done / failed
 
 | 可能场景 | 用户体验 | 后果 |
 |---------|---------|------|
-| 小智 LLM 在设备执行 A 时调用 `self.plotter.run_path(B)` | 任务 B 的 PATH_BEGIN 指令直接发到 UART，与 A 的指令交错 | **U1 乱序执行或报错**——`uart_mutex_` 只保证单条原子性，不保证路径序列完整性 |
+| 小智 LLM 在设备执行 A 时调用 `self.motor.run_path(B)` | 任务 B 的 PATH_BEGIN 指令直接发到 UART，与 A 的指令交错 | **U1 乱序执行或报错**——`uart_mutex_` 只保证单条原子性，不保证路径序列完整性 |
 | 小智 LLM 调用 `self.plotter.write_text(B)` | 同上，`PostDlcApi` 不阻塞，`RunPath` 立即执行 | **同上** |
 | 小程序按下"一键写字" | HTTP `/dlc/tasks/dispatch` → `send_json(task)` → 设备 WS 收到→ 直接处理 | **同上** |
 | 设备掉线时小智说"写字你好" | `dlc_api` 生路径成功，`dispatch_task_to_session` 检查 `registry.get(device_id)` 返回 None → 重入队，等设备重连后下发 | ✅ 安全（已有 FIFO 队列保护） |
@@ -418,10 +418,10 @@ ReturnValue MotionExecutor::RunPathWithTaskId(...) {
 
 `ExecutePauseCapability`、`ExecuteResumeCapability`、`ExecuteStopCapability` **不加** busy 检查（pause/resume/stop 可以在运动中调用）。
 
-#### 层 2：服务端 pre-check + LLM 角色 prompt 指令（推荐，P1）
+#### 层 2：服务端 pre-check + LLM 角色 prompt 指令（推荐，P1，仅覆盖 dispatch 路径）
 
 ```python
-# dlc_core/dispatch.py — 下发前检查
+# dlc_core/dispatch.py — 下发前检查（仅 HTTP dispatch / task_store 路径生效）
 async def dispatch_task(device_id: str, task: dict, *, channel: str = "mqtt") -> dict:
     # 防呆：检查设备是否已有活跃任务
     active = task_store.active_tasks_for_device(device_id)
@@ -432,7 +432,7 @@ async def dispatch_task(device_id: str, task: dict, *, channel: str = "mqtt") ->
 ```
 
 ```python
-# dlc_mcp/server.py — dlc.write_text / dlc.draw_generated 返回中包含建议
+# dlc_mcp/server.py — dispatch 类返回中包含建议
 # 如果设备忙，返回 {status: "device_busy", active_task_id: "task-xxx", suggestion: "请先等待当前任务完成"}
 # LLM 看到 device_busy 后自然对用户说"绘图机正在忙，请稍等"
 ```
@@ -443,27 +443,36 @@ async def dispatch_task(device_id: str, task: dict, *, channel: str = "mqtt") ->
 注意：如果用户发出的写字/绘图请求被返回 device_busy，请告知用户"绘图机正在执行上一个任务，请稍等"，不要重复尝试下发。
 ```
 
-#### 层 3：固件端 MCP tool 拒绝响应（可选，P2+）
+#### 层 3：固件端 MCP tool 拒绝响应（可选，P2+，覆盖本地高层 tool / 低层执行 tool）
 
-当固件端 `self.plotter.write_text` / `self.plotter.run_path` 因 motion_busy 返回错误时：
+当固件端 `self.plotter.write_text` / `self.plotter.draw_generated` / `self.motor.run_path` 因 motion_busy 返回错误时：
 - 小智云 LLM 收到 `"device is busy: a motion task is already running"` → 生成 TTS"绘图机正在忙，请稍等"
 - 角色 prompt 确保 LLM 不立即重试（见层 2 prompt 补充）
 
-**防呆流程闭环图：**
+**防呆流程闭环图（按入口区分）：**
 
 ```text
-用户说话 "再画一颗星星"
-  ↓
-小智云 LLM → dlc.write_text(text="星星")  或  self.plotter.write_text(text="星星")
-  ↓
-[服务端 pre-check]                [固件 motion_busy_]
-  设备忙 → 返回 device_busy     ←  运动中 → 返回 "device is busy"
-  ↓                                    ↓
-小智云 LLM 看到 device_busy    ←  小智云 LLM 收到 busy 错误
-  ↓
-LLM 生成 TTS: "绘图机正在执行上一个任务，请稍等"
-  ↓
-用户听到语音提示，无运动安全风险
+入口 A：小程序 / HTTP dispatch
+  用户点击一键写字 / 画图
+    ↓
+  dlc_core.dispatch_task
+    ↓
+  [服务端 pre-check]
+    设备忙 → 返回 device_busy → 小程序提示稍后重试
+    空闲   → 正常下发到设备
+
+入口 B：小智云调用固件高层 tool
+  用户说话 "再画一颗星星"
+    ↓
+  小智云 LLM → self.plotter.write_text(text="星星")
+    ↓
+  固件内部调 dlc_api 生成路径
+    ↓
+  [固件 motion_busy_]
+    运动中 → 返回 "device is busy"
+    空闲   → 正常执行
+    ↓
+  小智云 LLM 生成 TTS: "绘图机正在执行上一个任务，请稍等"
 ```
 
 **拒绝时的错误返回（非运动安全拒绝，是排队拒绝）：**
@@ -537,7 +546,7 @@ LLM 生成 TTS: "绘图机正在执行上一个任务，请稍等"
                    ▼
         ┌──────────────────────────────────────────────┐
         │           dlc_dispatch                        │
-        │  方式A: MCP → 设备端 self.plotter.run_path    │
+        │  方式A: MCP → 设备端 self.motor.run_path    │
         │  方式B: HTTP  → dlc_api → U8 WS/MQTT          │
         │  方式C: 小程序  → v2SubmitTask → LiMa → U8     │
         └──────────────────────────────────────────────┘
@@ -546,7 +555,7 @@ LLM 生成 TTS: "绘图机正在执行上一个任务，请稍等"
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    ESP32 U8 固件                                     │
 │  MCP Server（mcp_server.cc）                                         │
-│  注册 self.plotter.run_path 工具                                      │
+│  注册 self.motor.run_path 工具                                      │
 │  接收 path JSON → U1 Protocol Client → UART                         │
 └───────────────────────────┬─────────────────────────────────────────┘
                             │ Edge-D UART (@JSON\n)
@@ -581,12 +590,12 @@ dlc_mcp（dlc_mcp_server + mcp_pipe 接入器）
   → 收到 dlc.write_text 结果
   → LLM 生成回复: "好的，我帮你写'你好'两个字"
   → TTS 语音播报
-  → 通过 MCP 调用 self.plotter.run_path(path_json)
+  → 通过 MCP 调用 self.motor.run_path(path_json)
      （自托管服务器架构支持多轮 tool call：MAX_DEPTH=5 + chat(depth+1)；
       官方云大概率一致，但 LLM 实际行为仍需 P0 实测确认）
 
 ESP32 U8
-  → mcp_server 收到 tools/call: self.plotter.run_path
+  → mcp_server 收到 tools/call: self.motor.run_path
   → motion_executor.RunPath(path_json, feed)
   → u1_protocol_client.SendU1ProtocolJson(PATH_BEGIN + PATH_SEG + PATH_END)
   → U1 执行运动
@@ -605,7 +614,7 @@ U8
 
 | 路径 | 来源 | 通道 | 优势 | 劣势 |
 |------|------|------|------|------|
-| **A. 纯 MCP** | 小智云语音 | MCP → dlc.write_text → 返回 path → 小智云调 self.plotter.run_path | 全语音闭环，无需小程序 | 依赖 LLM 理解两个 tool 的因果关系并主动连续调用；自托管服务器代码已支持多轮 tool call，官方云大概率一致，但 P0 仍需实测确认 |
+| **A. 纯 MCP** | 小智云语音 | MCP → dlc.write_text → 返回 path → 小智云调 self.motor.run_path | 全语音闭环，无需小程序 | 依赖 LLM 理解两个 tool 的因果关系并主动连续调用；自托管服务器代码已支持多轮 tool call，官方云大概率一致，但 P0 仍需实测确认 |
 | **B. 小程序 HTTP** | 小程序按钮 | HTTPS → dlc_api/dlc/tasks/dispatch → U8 WS/MQTT | 不依赖小智云 LLM 链式行为，直接控制 | 需要用户打开小程序 |
 | **C. 混合** | 小智云语音 | MCP → dlc.write_text 返回 path → 小智云回复"已生成" + 小程序展示预览 → 用户确认后小程序 dispatch | 语音 + 手动确认，规避 LLM 理解偏差风险 | 多一步交互 |
 
@@ -616,7 +625,7 @@ U8
   1. `MAX_DEPTH = 5`：服务器允许最多 5 层工具调用递归。
   2. `_handle_function_result()` 将 `Action.REQLLM` 的工具结果以 `role="tool"` 写回对话历史。
   3. 随后调用 `self.chat(None, depth=depth + 1)`，让 LLM 基于工具结果再次决策。
-  4. 这意味着：只要 `dlc.write_text` 返回 `{path: [...]}`，LLM 在下一轮中**可以**调用 `self.plotter.run_path(path_json=...)`。
+  4. 这意味着：只要 `dlc.write_text` 返回 `{path: [...]}`，LLM 在下一轮中**可以**调用 `self.motor.run_path(path_json=...)`。
 
 **结论：** 自托管 `xiaozhi-esp32-server` 的架构原生支持多轮 tool call 链式调用；`xiaozhi.me` 官方云作为同一团队运营的闭源服务，大概率复用同一架构，但仍需在 P0 用真实官方云账号实测确认（因为无法直接读取官方云代码）。若路径 A 实测失败，则默认采用路径 B 或 C。
 
@@ -631,26 +640,26 @@ U8
 | REQLLM 触发递归 | `connection.py:1270,1357` | `elif result.action == Action.REQLLM:` → 写入 `role="tool"` 消息 → `self.chat(None, depth=depth + 1)` |
 | tool_call 检测 | `connection.py:1095,1183` | `if tool_call_flag:` → 并行调度 `func_handler.handle_llm_function_call` → 收集 results → `_handle_function_result(tool_results, depth=depth)` |
 
-**平台能力已确认：** 服务端 MCP tool（`dlc.write_text` 返回 `Action.REQLLM`）→ `_handle_function_result` 写入 `role="tool"` → `chat(depth+1)` → LLM 在下一轮看到路径数据 → **可以**调用设备端 MCP tool（`self.plotter.run_path`，同样返回 `Action.REQLLM`）→ 再次 `chat(depth+1)` → LLM 生成最终语音回复。
+**平台能力已确认：** 服务端 MCP tool（`dlc.write_text` 返回 `Action.REQLLM`）→ `_handle_function_result` 写入 `role="tool"` → `chat(depth+1)` → LLM 在下一轮看到路径数据 → **可以**调用设备端 MCP tool（`self.motor.run_path`，同样返回 `Action.REQLLM`）→ 再次 `chat(depth+1)` → LLM 生成最终语音回复。
 
-**唯一剩余不确定项（已从"平台能力不确定"降级为"模型行为不确定"）：** 具体 LLM 模型（如 GLM/Qwen/GPT）是否会在拿到 `dlc.write_text` 返回的路径 JSON 后**主动决定**调用 `self.plotter.run_path`，取决于模型的 function-calling 推理能力，而非平台是否支持。P0 实测验证的是模型行为，而非平台能力。
+**唯一剩余不确定项（已从"平台能力不确定"降级为"模型行为不确定"）：** 具体 LLM 模型（如 GLM/Qwen/GPT）是否会在拿到 `dlc.write_text` 返回的路径 JSON 后**主动决定**调用 `self.motor.run_path`，取决于模型的 function-calling 推理能力，而非平台是否支持。P0 实测验证的是模型行为，而非平台能力。
 
 固件端必须实现 `self.plotter.write_text` / `self.plotter.draw_generated`：
 - 路径 A（纯 MCP）+ 实现策略二（云端链式调用）：由小智云 LLM 直接调用 `self.plotter.write_text` / `self.plotter.draw_generated`，固件内部调 dlc_api 生成并执行路径；
-- 路径 A（纯 MCP）+ 实现策略一（设备端调 dlc_api）：它们是 `self.plotter.run_path` 的替代调用入口；
-- 路径 B/C：小智云 LLM 或小程序直接调用它们，固件内部调 dlc_api 生成并执行路径。
+- 路径 A（纯 MCP）+ 实现策略一（设备端调 dlc_api）：`self.plotter.write_text` / `self.plotter.draw_generated` 是对低层执行 tool `self.motor.run_path` 的高层封装；
+- 路径 B/C：小程序走 HTTP dispatch，不调用固件 MCP 高层 tool。
 
 **图库图片矢量化（`draw_from_image`）的固件端处理：**
 
-`dlc.draw_from_image` 是服务端 MCP tool，返回路径 JSON 后由 LLM 通过 `self.plotter.run_path` 执行（实现策略二），或由 LLM 通过 `self.plotter.draw_generated` 的类似路径执行。但考虑到图片矢量化需要传入 `image_url` 参数，且固件端不需要新增 `self.plotter.draw_from_image` 工具（因为路径已在服务端生成），执行路径如下：
+`dlc.draw_from_image` 是服务端 MCP tool，返回路径 JSON 后由 LLM 通过 `self.motor.run_path` 执行（实现策略二）。由于图片矢量化需要传入 `image_url` 参数，固件端**不新增** `self.plotter.draw_from_image` 或其它高层图片 tool，执行路径如下：
 
 | 实现策略 | 固件端 tool | 执行链 |
 |---------|-----------|--------|
-| 策略一（设备端调 dlc_api） | `self.plotter.draw_generated` 接受 `prompt` 参数 | 不适用于 draw_from_image（需要 image_url） |
-| 策略二（云端链式调用） | `self.plotter.run_path` 接受 path_json | LLM 调 `dlc.draw_from_image` → 返回 path → LLM 调 `self.plotter.run_path(path_json)` |
+| 策略一（设备端调 dlc_api） | 无 | 不适用于 draw_from_image（需要 image_url） |
+| 策略二（云端链式调用） | `self.motor.run_path` 接受 path_json | LLM 调 `dlc.draw_from_image` → 返回 path → LLM 调 `self.motor.run_path(path_json)` |
 | 路径 B/C（小程序） | 不涉及固件 MCP tool | 小程序直接调 `/dlc/tasks/dispatch` `type=draw_from_image` → dlc_api 生成路径 → 下发到设备 |
 
-> **结论：** `draw_from_image` 的语音路径走策略二（LLM 链式调用 `dlc.draw_from_image` → `self.plotter.run_path`），固件端无需新增 `self.plotter.draw_from_image` 工具。小程序路径走 HTTP dispatch，不经过 LLM。
+> **结论：** `draw_from_image` 的语音路径走策略二（LLM 链式调用 `dlc.draw_from_image` → `self.motor.run_path`），固件端无需新增图片类高层 tool。小程序路径走 HTTP dispatch，不经过 LLM。
 
 ---
 
@@ -758,7 +767,16 @@ def text_to_path(text: str, origin_x: float = 5, origin_y: float = 20, scale: fl
 
 # dlc_core/svg_parser.py（从 device_gateway/svg_parser.py 迁移）
 def svg_path_to_motion(d_string: str, *, max_points: int = 2000) -> list[dict]:
-    """SVG d-string → 运动路径点列表。"""
+    """SVG d-string → 原始运动路径点列表。
+
+    `max_points=2000` 是解析/采样阶段上限，不是最终设备下发上限。
+    真正允许单次下发到设备的安全上限由 `MAX_PATH_POINTS = 200` 决定。
+    若解析结果 >200 点，必须在 `path_optimizer` / `dispatch` 前做压缩、抽稀或分片，保证单 task ≤200 点。
+    `draw_from_image` 若超出 200 点，不得直接下发，必须：
+    1. 压缩到 ≤200 点；或
+    2. 分片为多个 sequential tasks；或
+    3. 直接返回 422 / timeout，提示用户换更简单图片。
+    """
 
 # dlc_core/path_pipeline.py
 def precheck_draw_motion_path(d_string: str) -> str | None:
@@ -875,17 +893,17 @@ async def get_plotter_knowledge(topic: str, query: str, token: str = Depends(ver
 | 端点 | 调用方 | 鉴权依赖 | device_id 校验 |
 |------|--------|----------|----------------|
 | `/health` | 运维/负载均衡 | 无 | 无 |
-| `/dlc/tasks/preview` | 固件/MCP 内部 | `verify_dlc_api_token` | token 有效即可 |
-| `/dlc/tasks/validate` | 固件 | `verify_dlc_api_token` | token 有效即可 |
+| `/dlc/tasks/preview` | 固件/MCP 内部 | `verify_dlc_api_token` | token 有效即可（仅生成/预览路径，不下发运动；配合 rate limit） |
+| `/dlc/tasks/validate` | 固件 | `verify_dlc_api_token` | token 有效即可（仅做路径校验，不下发运动；配合 rate limit） |
 | `/dlc/tasks/dispatch` | 固件/MCP 内部 | `verify_dlc_api_token` | `caller_device_id == body.device_id` |
 | `/dlc/tasks/{task_id}` | 固件/MCP 内部 | `verify_dlc_api_token` | 校验 task 归属该 device_id |
 | `/dlc/devices/{device_id}/status` | MCP 内部 | `verify_dlc_api_token` | `caller_device_id == path.device_id` |
-| `/dlc/knowledge` | MCP 内部 | `verify_dlc_api_token` | token 有效即可 |
+| `/dlc/knowledge` | MCP 内部 | `verify_dlc_api_token` | token 有效即可（只读查询；配合 rate limit） |
 | `/device/v1/app/devices/{id}/tasks` | 小程序 | `authorize(JWT)` + `require_device_control` | JWT 账户拥有/共享控制该设备 |
 | `/device/v1/app/devices/{id}/status` | 小程序 | `authorize(JWT)` + `require_device_access` | JWT 账户拥有/共享查看该设备 |
 
 说明：
-- `verify_dlc_api_token` 复用 `device_gateway/auth.configured_device_tokens()`（`LIMA_DEVICE_TOKENS` 环境变量，格式 `device_id=token`）。
+- `verify_dlc_api_token` 生产环境优先查询数据库表 `v2_device_token`；`device_gateway/auth.configured_device_tokens()`（`LIMA_DEVICE_TOKENS`）仅作为开发/应急 fallback。
 - 每台固件在激活/配网时由服务端下发独立的 per-device token，写入固件 NVS，避免全 fleet 共享单一 token（§13.1 S7）。
 - 小程序路径保留现有 JWT + per-device 所有权校验，不改为共享 token。
 
@@ -978,7 +996,7 @@ async def list_tools() -> list[Tool]:
             },
         ),
         # dlc.dispatch_task 已从 MCP tool 列表移除
-        # 理由：LLM 已有 dlc.write_text → 自行调 self.plotter.run_path 的链式路径，
+        # 理由：LLM 已有 dlc.write_text → 自行调 self.motor.run_path 的链式路径，
         #       以及 dlc.get_device_status 查询设备。暴露 dispatch_task 会引入
         #       LLM 选择复杂度（判断何时先调 write_text 再 dispatch vs 直接 dispatch），
         #       实际增加幻觉风险。dispatch 能力保留在 HTTP API（/dlc/tasks/dispatch）
@@ -1032,7 +1050,7 @@ app.include_router(dlc_router)
 
 if __name__ == "__main__":
     import uvicorn
-    # SEC-009：仅监听 127.0.0.1，公网流量必须经 nginx TLS 终止
+    # S9：仅监听 127.0.0.1，公网流量必须经 nginx TLS 终止
     uvicorn.run(app, host="127.0.0.1", port=8080)
 ```
 
@@ -1084,7 +1102,7 @@ if __name__ == "__main__":
 | `routes/device_app_api.py` | `GET /devices/{device_id}/status` | `_build_device_status`（registry + active_tasks_for_device） | 保留；内部聚合改为 `dlc_core.device_status.get_device_status`，复用同一来源 | 供小程序设备详情页 |
 | `routes/device_app_status_ws.py` | `WS /devices/{device_id}/ws` | 轮询 `_build_device_status` 并推送 transition | 保留；调用 `routes/device_app_api._build_device_status`，后者再调 `dlc_core.device_status` | 小程序实时状态推送 |
 | `routes/device_app_gallery.py` | `POST /gallery` / `GET /gallery` / `DELETE /gallery/{id}` / `GET /gallery/{id}/download` | Telegram 图库存储 + `gallery_store` | 保留；下载 URL 作为 `image_url` 供 `dlc_core.draw.handle_draw_from_image` 使用 | 用户上传/系统图片绘图必备 |
-| `routes/device_app_provision.py` | `POST /devices/provision` / `POST /devices/provision/confirm` | `v2_pair_request` 表 + `bind_device` | **保留为唯一配网绑定端点**；P1 决策是否把 `pair_token` 经 SoftAP 写入设备 NVS（§5.2.6） | 一键配网账户绑定 |
+| `routes/device_app_provision.py` | `POST /devices/provision` / `POST /devices/provision/confirm` | `v2_pair_request` 表 + `bind_device` | **保留为唯一配网绑定端点**；P1 默认采用 pair_token 预绑定，经 SoftAP 写入设备 NVS（§5.2.6） | 一键配网账户绑定 |
 | `routes/device_app_api.py` | `POST /devices/register` / `POST /devices/bind` / `GET /devices` / `GET/PUT /devices/{id}` / `POST /devices/{id}/unbind` | 现有 CRUD | 保留；绑定/解绑与绘图核心无关，但设备所有权校验是 `dlc_core.dispatch` 安全前提 | |
 | `routes/device_app_api.py` | `GET /devices/{device_id}/tasks` | （若存在）统一合并到 `routes/device_app_tasks.py` | P3 去重：如有重复端点，归并到 `device_app_tasks.py` | 避免同功能多入口 |
 | `routes/device_app_discovery.py` | 配网发现相关 | 与 `device_app_provision.py` 重复 | **P3 删除**；`device_app_provision.py` 成为唯一配网绑定端点 | |
@@ -1360,14 +1378,24 @@ std::string DlcMotorControlP1AiBoard::PostDlcApi(const std::string& path, const 
     }
 
     int status = http->GetStatusCode();
-    std::string response = http->ReadAll();
-    http->Close();
 
-    // SEC-005：限制响应体大小，防止恶意响应 OOM
-    if (response.size() > 128 * 1024) {
-        ESP_LOGE(TAG, "dlc_api response too large: %zu", response.size());
-        return "";
+    // SEC-005：不能先 ReadAll 再判大小；必须分块读取并在超限时中断
+    constexpr size_t kMaxResponseBytes = 128 * 1024;
+    std::string response;
+    response.reserve(4096);
+    while (true) {
+        std::string chunk = http->ReadSome();  // 若抽象层无 ReadSome，则需改造 Network/Http 接口
+        if (chunk.empty()) {
+            break;
+        }
+        response.append(chunk);
+        if (response.size() > kMaxResponseBytes) {
+            ESP_LOGE(TAG, "dlc_api response too large: %zu", response.size());
+            http->Close();
+            return "";
+        }
     }
+    http->Close();
     return (status == 200) ? response : "";
 }
 
@@ -1814,7 +1842,7 @@ void OnNetworkConnectedAndReady() {
 }
 ```
 
-`dlc_api_token` 生成方式：复用 `device_gateway/auth.configured_device_tokens()` 的 per-device 模式，首次 confirm 时若该 device_sn 尚无 token，则生成 `secrets.token_urlsafe(32)` 并追加到 `LIMA_DEVICE_TOKENS`（或写入数据库 `v2_device.dlc_api_token` 字段）。
+`dlc_api_token` 生成方式：首次 confirm 时若该设备尚无 token，则生成 `secrets.token_urlsafe(32)`，计算 `sha256(token)` 后写入数据库表 `v2_device_token(device_id, token_hash, created_at, rotated_at)`；明文 token 仅在这一次 confirm 响应中返回给固件写入 NVS。`device_gateway/auth.configured_device_tokens()` 仅保留为开发/应急 fallback，不再作为生产 token 主存储。
 
 **扩展 `/submit` 以透传 pair_token（必须 fork `78/esp-wifi-connect`）：**
 
@@ -1911,7 +1939,7 @@ npx uni build --platform mp-weixin
    export DLC_API_URL="http://127.0.0.1:8080"
    python dlc_mcp/mcp_pipe.py dlc_mcp/server.py
    ```
-4. 启动 `dlc_api`（生产环境仅 bind 127.0.0.1，见 §13.1 SEC-009；公网经 nginx TLS 终止反代）：
+4. 启动 `dlc_api`（生产环境仅 bind 127.0.0.1，见 §13.1 S9；公网经 nginx TLS 终止反代）：
    ```bash
    python -m uvicorn dlc_api.app:app --host 127.0.0.1 --port 8080
    ```
@@ -1983,7 +2011,7 @@ npx uni build --platform mp-weixin
    ```
    若使用自托管 `xiaozhi-esp32-server`，则在该服务器配置接入点 URL。
 
-5. 启动 `dlc_api`（SEC-009：仅监听 127.0.0.1，公网经 nginx TLS 终止）：
+5. 启动 `dlc_api`（S9：仅监听 127.0.0.1，公网经 nginx TLS 终止）：
    ```bash
    python -m uvicorn dlc_api.app:app --host 127.0.0.1 --port 8080
    ```
@@ -2039,8 +2067,8 @@ npx uni build --platform mp-weixin
 1. 小智官方云 `xiaozhi.me` 控制台能正常生成 MCP endpoint（`wss://api.xiaozhi.me/mcp/?token=...`）。
 2. `dlc_mcp` 通过 `mcp_pipe.py` 以客户端身份连上官方云 MCP endpoint。
 3. 小智云 LLM 能发现并调用 `dlc.write_text` / `dlc.draw_generated`。
-4. 确认 LLM 在拿到服务端 tool 结果后，是否会继续调用设备端 tool
-   （`self.plotter.run_path` 或 `self.plotter.write_text`）。
+4. 确认 LLM 在拿到服务端 tool 结果后，是否会继续调用设备端低层执行 tool
+   （`self.motor.run_path`），或改走固件高层 tool（`self.plotter.write_text` / `self.plotter.draw_generated`）。
    - **代码层面**：官方自托管服务器 `xinnan-tech/xiaozhi-esp32-server/main/xiaozhi-server/core/connection.py` 已支持多轮 tool call（`MAX_DEPTH=5`，`chat(depth+1)`），架构上无障碍。
    - **实测层面**：官方云为闭源服务，需用真实账号验证 LLM 在真实 prompt/模型下的实际行为。
 5. （仅在模式 B 时）`mcp-endpoint-server` 能转发外部 Python MCP 服务。
@@ -2055,12 +2083,13 @@ npx uni build --platform mp-weixin
 7. 替换为真实 `dlc.write_text` / `dlc.draw_generated`，验证 LLM 调用路径。
 
 **链式调用实测步骤：**
-1. 注册 `dlc.write_text` 和 `self.plotter.run_path`（或 `self.plotter.write_text`）两个 tool。
+1. 注册 `dlc.write_text` 和 `self.motor.run_path` 两个 tool；`self.plotter.write_text` 作为策略一的独立对照入口。
 2. 对设备说"写你好"。
 3. 查看日志：
-   - 若出现 `dlc.write_text` → `self.plotter.run_path` 两次 tool call → 路径 A（纯 MCP）可用，可采用实现策略二（§4.2 备选，依赖云端链式调用）。
-   - 若只出现一次 tool call → 必须采用实现策略一（固件端 `self.plotter.write_text` 内部调 dlc_api）。
-4. 无论实测结果如何，**默认先实现实现策略一**（对 LLM 行为不敏感），路径 A 实测成功并确认稳定后再评估是否切换到实现策略二。
+   - 若出现 `dlc.write_text` → `self.motor.run_path` 两次 tool call → 路径 A（纯 MCP）可用，可采用实现策略二（§4.2 备选，依赖云端链式调用）。
+   - 若只出现一次 tool call，且 LLM 转而调用 `self.plotter.write_text` → 仍可完成任务，但说明模型偏好策略一。
+   - 若只出现一次 tool call，且未触发任何设备端执行 tool → 必须采用实现策略一（固件端 `self.plotter.write_text` / `self.plotter.draw_generated` 内部调 dlc_api）。
+4. 无论实测结果如何，**默认先实现策略一**（对 LLM 行为不敏感），路径 A 实测成功并确认稳定后再评估是否切换到实现策略二。
 
 **验证步骤（模式 B：自托管 mcp-endpoint-server）：**
 1. 克隆 `xinnan-tech/mcp-endpoint-server`。
@@ -2285,7 +2314,8 @@ python scripts/codegraph_orphans.py --fanin
 - [ ] `dlc_mcp` 可被 MCP 客户端调用 `dlc.get_device_status`（`dlc.get_plotter_knowledge` 可选）
 - [ ] 生产入口不再注册 chat/admin/voice/provider 路由
 - [ ] 任务失败自动重试/死信/通知链路可验证
-- [ ] 多 `dlc_api` 实例 + Redis 任务队列并发场景可验证（至少 2 实例 + 2 设备）
+- [ ] P2 单实例 `dlc_api` + Redis 任务队列场景可稳定运行
+- [ ] P4（或后续扩展阶段）完成 `shadow_store` Redis 化后，多 `dlc_api` 实例 + Redis 任务队列并发场景可验证（至少 2 实例 + 2 设备）
 - [ ] 聚焦测试 107 个全绿
 - [ ] `python -m pytest --tb=short -q` 无 ImportError
 - [ ] repo stats 文件数下降 40%+
@@ -2294,7 +2324,7 @@ python scripts/codegraph_orphans.py --fanin
 
 - [ ] `self.plotter.write_text` 工具已注册
 - [ ] `self.plotter.draw_generated` 工具已注册
-- [ ] `self.plotter.draw_from_image` 工具已注册（可选，主要入口在小程序）
+- [ ] 低层执行 tool `self.motor.run_path` 保持可用，并与链式调用路径兼容
 - [ ] 假 dlc_api mock 测试通过
 - [ ] CI `firmware-dlc-tools` job 绿灯
 - [ ] 真机验证：语音"写你好"→ 设备执行写字
@@ -2415,7 +2445,7 @@ python scripts/codegraph_orphans.py --fanin
 | D6 | 🔴 | B10 链式调用证据不完整，缺少 `Action.REQLLM` 代码证据 | §2.3 补充完整代码证据链表格（6 行证据），引用具体文件和行 | `unified_tool_handler.py`:53, `mcp_endpoint_executor.py`:53, `mcp_executor.py`:53, `connection.py`:941,1270,1357 |
 | D7 | 🟠 | `dlc.dispatch_task` MCP tool 对 LLM 暴露增加幻觉风险 | 从 MCP tool 列表和 `call_tool` 移除；保留在 HTTP API（`/dlc/tasks/dispatch`）供小程序/外部调用 | AI 痛点：tool 越多模型越容易选错 |
 | D8 | 🟠 | 错误码表混用现有和设计新增，未区分来源 | 补充"来源"列：现有 ✅ / 设计新增 | `device_intelligence/recovery.py` 现有错误码清单 |
-| D9 | 🟡 | `draw_from_image` 固件端处理路径不清晰 | 新增表格说明 `draw_from_image` 语音路径走策略二（LLM 链式调 `dlc.draw_from_image` → `self.plotter.run_path`），固件端无需新增 tool | Ponytail 最小实现 |
+| D9 | 🟡 | `draw_from_image` 固件端处理路径不清晰 | 新增表格说明 `draw_from_image` 语音路径走策略二（LLM 链式调 `dlc.draw_from_image` → `self.motor.run_path`），固件端无需新增 tool | Ponytail 最小实现 |
 
 > 第二轮复核已消除的不确定性：
 > - **平台能力链式调用**：已从官方源码确认完整调用链 `Action.REQLLM` → `_handle_function_result` → `role="tool"` → `chat(depth+1)` → LLM 二次决策。不再有平台能力不确定性。
@@ -2477,19 +2507,49 @@ python scripts/codegraph_orphans.py --fanin
 
 **生产对照：** 当前 `routes/device_app_tasks.py` 每个任务端点走 `authorize(JWT)` + `require_device_control(conn, account, device_id)` 两层鉴权。新设计若使用单一共享 token，是安全降级。
 
-**修正方案：** `/dlc/*` 端点使用 **per-device Bearer token**，复用已有的 `device_gateway/auth.py` `configured_device_tokens()`（格式 `device_id=token`）。`verify_dlc_api_token` 校验 token 并返回对应的 `device_id`，各端点再校验调用方是否有权操作目标设备。
+**修正方案：** `/dlc/*` 端点使用 **per-device Bearer token**。生产实现不再依赖运行时可变的 `LIMA_DEVICE_TOKENS` 环境变量，而是使用数据库表持久化 token 映射；`device_gateway/auth.py` 的 `configured_device_tokens()` 仅保留为开发/应急 fallback。`verify_dlc_api_token` 校验 Bearer token 后返回其对应的 `device_id`，各端点再校验调用方是否有权操作目标设备。
+
+**推荐表结构：**
+
+```sql
+CREATE TABLE IF NOT EXISTS v2_device_token (
+  device_id TEXT PRIMARY KEY,
+  token_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  rotated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_v2_device_token_hash ON v2_device_token(token_hash);
+```
 
 ```python
 # dlc_api/auth.py — 必须显式定义
+import hashlib
 import secrets
 from fastapi import Depends, HTTPException, Header
-from device_gateway.auth import configured_device_tokens
+from device_logic.db import connect
+from device_gateway.auth import configured_device_tokens  # 仅 dev fallback
 
-async def verify_dlc_api_token(authorization: str = Header(...)) -> str:
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+async def verify_dlc_api_token(authorization: str | None = Header(default=None)) -> str:
     """校验 Bearer token，返回其对应的 device_id。"""
-    if not authorization.startswith("Bearer "):
+    if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "missing bearer token")
     token = authorization[7:]
+    token_hash = _token_hash(token)
+
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT device_id FROM v2_device_token WHERE token_hash=? LIMIT 1",
+            (token_hash,),
+        ).fetchone()
+    if row is not None:
+        return str(row["device_id"])
+
+    # 开发/应急 fallback：允许从环境变量读固定 token
     for device_id, expected in configured_device_tokens().items():
         if secrets.compare_digest(token, expected):
             return device_id
@@ -2801,14 +2861,14 @@ for i in $(seq 1 10); do curl -sf -o /dev/null -w "%{http_code}\n" -H "Authoriza
 # 期望: 前 5 个 200，后续 429
 ```
 
-#### T4 — 配置清单汇总（新 §13.7）
+### 13.7 配置清单汇总
 
 **服务端环境变量（`.env` 追加）：**
 
 ```ini
-# dlc_api 鉴权（per-device token，格式：device_id=token,device_id=token）
-# 每台设备首次 confirm 绑定时生成，写入数据库或追加到此变量
-LIMA_DEVICE_TOKENS=device_001=<secrets.token_urlsafe(32)>,device_002=<secrets.token_urlsafe(32)>
+# 生产环境：per-device token 主存储在数据库表 v2_device_token
+# 开发/应急 fallback：允许用环境变量注入少量固定 token
+LIMA_DEVICE_TOKENS=device_001=<dev-token>,device_002=<dev-token>
 
 # Redis（安全审计 S6）
 REDIS_URL=redis://:<password>@127.0.0.1:6379/0
