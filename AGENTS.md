@@ -6,9 +6,11 @@
 
 ## 项目概述
 
-LiMa 是一个多后端 AI 路由服务器（Python 3.10 + FastAPI），提供兼容 OpenAI 的 API。它根据请求类型、健康状态、预算和质量评分，智能路由到 170+ 个 AI 后端（Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare 等）。同时作为 AI 绘画/写作/数字人设备（基于 ESP32 的智能硬件）的云平台。
+DLC 绘图服务（Python 3.10 + FastAPI），为 ESP32 绘图机/写字机提供云端路径生成、任务下发和设备管理能力。通过 MCP 协议与小智官方云（xiaozhi.me）集成，支持语音控制绘图/写字。
 
-**公网入口：** `https://chat.donglicao.com`（VPS nginx → :8080）
+旧系统（多后端 AI 路由、Chat、Admin、Voice、Provider 探测）已在 P4/P5 瘦身中物理删除。
+
+**公网入口：** `https://chat.donglicao.com/dlc/*`（nginx → :8081）
 
 ---
 

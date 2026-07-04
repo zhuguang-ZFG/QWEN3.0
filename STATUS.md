@@ -2,24 +2,35 @@
 
 > **导航**：2026-07-02 起，旧的 5 份战略规划文档（PROJECT_DEFECTS_AND_IMPROVEMENT_PLAN_CN / LIMA_IMPROVEMENT_PLAN_20260625_V2 / PROJECT_OPTIMIZATION_ROADMAP_CN / DEEP_QUALITY_AUDIT_CN / OPTIMIZATION_ANALYSIS_2026-06-23）已归档至 `docs/archive/strategic-plans-2026-06/`。当前活动瘦身/优化计划见 `docs/superpowers/specs/2026-07-02-system-slimdown-design.md`。本文件历史日志中出现的旧文档名仍指向其归档位置（文件名未变，仅路径前缀变更）。
 
-> **项目定位**: AI 智能设备统一云端服务（2026-06-09 战略转型完成）
+> **项目定位**: DLC 绘图服务（小智云 + ESP32 绘图机/写字机云端核心）
 > **技术栈**: Python 3.10 + FastAPI + SQLite + Redis
-> **公网端点**: chat.donglicao.com（主入口）；api.donglicao.com 为京东云 NewAPI 反代，非 LiMa Server 直接入口
-> **部署**: 主计算与公网入口在 JDCloud (`117.72.118.95`)；Cloudflare Tunnel 指向京东云本地 nginx（`https://127.0.0.1:443`），由 nginx 路由 API/静态资源。阿里云 `47.112.162.80` 已部署 `lima-router-pilot` 作为辅助节点，仅处理免费/低价后端流量（`aliyun.donglicao.com`）。chat-web、官网 playground、manager-mobile H5 的匿名简单聊天请求已分流到阿里云 pilot。`api.donglicao.com` 为京东云 NewAPI 反代，非 LiMa Server 直接入口。
+> **公网端点**: `chat.donglicao.com/dlc/*`（DLC API）
+> **部署**: Aliyun (`47.112.162.80`) + JDCloud (`117.72.118.95`) 双节点，`dlc-drawing` systemd 服务（端口 8081），nginx 反代 `/dlc/` 路由
 
-> Updated: 2026-07-04
+> Updated: 2026-07-05
 > Branch: `main`
-> Scale: 约 1180 个 Python 文件 / 130,950 行（2026-06-28 图片模块拆分后）
-> Tests: 全量 **4463 passed / 3 skipped / 2 deselected / 0 failed / 2 warnings**（`.venv310` Python 3.10.20）；ruff check clean（含 F401 全局 gate 已启用）；ruff format clean；pyright 目标文件 0 errors；小程序 `vue-tsc` + `uni build` 通过；manager-mobile `vitest` 用例 GREEN。
-> 注意：使用系统 Python 3.14 直接运行 `python -m pytest` 会被 `tests/conftest.py` 的 Python 版本 guard 拒绝，这不是 FastAPI/Pydantic 兼容问题，而是 LiMa 仅支持 Python 3.10。已安装 `pytest-timeout`；`httpx2` 已从 `requirements_dev.txt` 移除，功能测试正常，仅保留 starlette testclient 的 deprecation warning。
-> 英文站：...（保持不变）
-> ⚠️ 运维警示：主 VPS 磁盘已从 98% 降至 **67%**（40G 中 25G 已用，释放约 5G），`litestream` 已纳入 systemd 管理并设置 `MemoryMax=512M`，内存可用约 420M~850M（随负载波动），load average 4~5。京东云节点已完成深度清理（磁盘 33% → **30%**，59G 中 17G 已用，释放约 2G）。登录超时风险显著降低。
-> Code Size: **0 个 >300 行文件、0 个 >50 行函数**；`scripts/check_code_size.py` PASS。
-> pyright 目标文件 0 errors（sandbox 下仅历史 warning）
-> CI/CD：`.github/workflows/test.yml` ✅、`.github/workflows/deploy.yml` ✅、`.github/workflows/deploy-site-v2.yml` ✅、`.github/workflows/deploy-docs-site.yml` ✅（全部绿灯）；自动部署 Aliyun + chat-web + JDCloud + 官网/docs 站流程已就绪（secrets 待配置）。
-> Git 镜像：Gitee 镜像已退役，仅维护 GitHub `origin`。
-> 安全审计：`findings.md` AUDIT-1 CRITICAL + HIGH 批次已修复部署（C1/C2/C3 + H1~H6）；2026-06-25 全量 pytest 修复项已 Closed；历史 2026-06-18 全量审计安全项已全部 Closed / Accepted。
-> 匿名访问：生产环境已允许 `LIMA_ALLOW_ANONYMOUS=1`，`https://chat.donglicao.com/` 无需 API Key 即可聊天。
+> Scale: P5 瘦身后约 280 个 Python 文件 / ~18,000 行（删除 903 文件 / 171,000 行旧代码）
+> Tests: **1548 passed / 3 skipped / 0 failed**；ruff check clean；check_code_size PASS
+> Code Size: **0 个 >300 行文件、0 个 >50 行函数**
+> 入口: `server_dlc.py`（DLC 专用，不再注册 Chat/Admin/Voice 路由）
+> 架构: `server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/ → routes/device_app_*`
+
+### 最近完成（2026-07-05）P4+P5 系统瘦身 — 物理删除旧系统 + 深度死代码清理
+
+- **P4 残留导入修复**：删除 `routes/device_app_chat.py`、`observability/capability_evidence.py` 等残留模块；stub `session_memory.outcome_ledger` 和 `capability_evidence` 引用；清理 12 个失效测试文件。门禁：1696 passed。
+- **P5 深度死代码清理**：删除 903 个文件 / 171,081 行代码。包括：
+  - 根目录 26 个死文件（pipeline_graph、chat_models、http_caller 传输链等）
+  - routes/ 19 个死文件（全部 admin_*、facade、system_endpoints）
+  - 22 个死代码目录（agent_*、routing*、session_memory、context_pipeline、semantic_cache、device_voice 等）
+  - 300+ 关联测试文件
+- **门禁验证**：pytest 1548 passed / 0 failed；ruff check clean；check_code_size PASS
+- **VPS 部署验证**：JDCloud + Aliyun `dlc-drawing` 均 active，`/health` 返回 200
+- **依赖清理**：`requirements_server.txt` 更新为 DLC 专用依赖清单
+- **提交**：`992afa0f`（P4）+ `89f59be7`（P5）已 push origin main
+
+### 历史归档
+
+> 2026-07-04 及更早的「最近完成」条目已归档。项目从多后端 AI 路由服务器瘦身為 DLC 绘图核心服务。旧 Chat/Routing/Admin/Voice/Provider 系统已全部物理删除。
 
 ### 最近完成（2026-07-04）D1~D4 延后债务清理（M4 尾款）
 
