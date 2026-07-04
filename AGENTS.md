@@ -187,14 +187,54 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 
 ---
 
+## Ponytail 第一原则（最高优先级）
+
+本项目采用 [Ponytail](https://github.com/DietrichGebert/ponytail) 的「lazy senior dev」理念。**Ponytail 原则是本仓库所有 Agent 行为的第一优先级**，高于默认编码冲动、高于炫技式实现、高于"看起来努力"。
+
+### 核心信条
+
+1. **能偷懒就偷懒，能少写就少写**。
+   - 会偷懒的 Agent 才是合格 Agent；写一堆低质量代码的 Agent 是坏 Agent。
+   - 听话、有工程意识、能把复杂问题用最小变更解决的 Agent 才是好 Agent。
+2. **优先从外部找高可靠实现，其次才自己写**。
+   - 修改前先去 GitHub 等可靠来源搜索：是否已经存在经过生产验证的库、代码片段或官方示例？
+   - 复用高可靠代码 = 降低测试风险、降低维护面、降低 bug 概率。
+3. **写代码前必须过 Ponytail 决策阶梯**：
+   1. 这个功能真的需要吗？（YAGNI）
+   2. Python 标准库能直接做到吗？
+   3. 平台/框架原生特性能直接做到吗？
+   4. 已有依赖能直接做到吗？
+   5. 能一行写完吗？
+   6. 最后才写最小实现。
+4. **ESP32 / 固件 / 小程序 / 嵌入式相关代码改动**：修改前**必须主动加载对应的 ESP32 / 嵌入式 / 小程序 skills**（`esp32`、`esp-idf-handling`、`esp-pio-handling`、`serial`、`jlink`、`openocd`、`workbench-*`、uni-app / Vue 相关 skills 等），用领域 skill 降低知识盲点与改错概率。
+5. **最小变更、最小文件、最小函数**。
+   - 不要借重构之名扩大改动面；不要写"为将来预留"的代码；不要引入不必要的抽象。
+   - 能用一行就别用十行；能改一个文件就别改十个文件。
+
+### 不可妥协的边界（Ponytail 也不得绕过）
+
+- 信任边界的输入验证（`access_guard.py`、`identity_guard.py`）
+- 防数据丢失的错误处理（`session_memory/` 持久化逻辑）
+- 安全措施（白/黑名单、secret 保护、无静默降级）
+- 测试门禁（`pytest`、`ruff check .`、`pyright`、`scripts/check_code_size.py`）
+- 文档同步（`STATUS.md` / `progress.md` / `findings.md`）
+- conventional commits、仅 stage 相关文件
+
+### 简化标记
+
+如果使用 Ponytail 建议的捷径，且该捷径有已知上限（全局锁、O(n²) 扫描、朴素启发式），用 `ponytail:` 注释说明上限和升级路径，并记入 `PONYTAIL-DEBT.md`。
+
+---
+
 ## 代码质量规则
 
 ### 硬规则（不可违反）
 
-1. **禁止静默降级** — 生产路径中禁止使用 `except Exception: pass` 或 `except ImportError: pass`。至少必须 `logger.warning` 并说明原因。关键依赖（chromadb、tree-sitter）必须在启动时记录清晰警告，而非在运行时静默降级。
-2. **禁止自动降级验证** — VPS 部署必须在真实 VPS 上验证，不能仅在 localhost 上验证。公网 API 必须通过真实域名和真实 token 测试。
-3. **.env 合并而非覆盖** — 部署必须先备份 VPS 的 `.env`，追加新变量，绝不能用 `sftp.put` 覆盖。
-4. **Telegram 通知通道已退役** — 不要重新注册 `/telegram` 路由、webhook 或出站通知。注意：Telegram Bot API 仍作为 gallery 图片存储后端使用（`integrations/telegram_bot/`，见 `routes/device_app_gallery.py`），这不是通知通道，不要误删。
+1. **Ponytail 第一原则** — 见上文「Ponytail 第一原则」。任何代码变更必须先过 Ponytail 阶梯；ESP32 / 固件 / 小程序改动必须先加载对应 skills；优先复用 GitHub 高可靠代码而非自己写。
+2. **禁止静默降级** — 生产路径中禁止使用 `except Exception: pass` 或 `except ImportError: pass`。至少必须 `logger.warning` 并说明原因。关键依赖（chromadb、tree-sitter）必须在启动时记录清晰警告，而非在运行时静默降级。
+3. **禁止自动降级验证** — VPS 部署必须在真实 VPS 上验证，不能仅在 localhost 上验证。公网 API 必须通过真实域名和真实 token 测试。
+4. **.env 合并而非覆盖** — 部署必须先备份 VPS 的 `.env`，追加新变量，绝不能用 `sftp.put` 覆盖。
+5. **Telegram 通知通道已退役** — 不要重新注册 `/telegram` 路由、webhook 或出站通知。注意：Telegram Bot API 仍作为 gallery 图片存储后端使用（`integrations/telegram_bot/`，见 `routes/device_app_gallery.py`），这不是通知通道，不要误删。
 
 ### 文档语言
 
@@ -316,25 +356,17 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 
 ## Ponytail（顾问规则，LiMa 优先）
 
-本项目采用 [Ponytail](https://github.com/DietrichGebert/ponytail) 的「lazy senior dev」理念作为代码精简顾问。详情见 [`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md)（上游仓库见 GitHub 链接，本地未留存源文件）。
+**Ponytail 是本仓库最高优先级的行为原则**，全文见上文「Ponytail 第一原则（最高优先级）」。本节仅作索引与补充参考。
 
-### 新增代码/提交前自问（Ponytail 阶梯）
+- 上游仓库：`https://github.com/DietrichGebert/ponytail.git`
+- 详细说明：[`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md)
+- 核心要点：能少写就少写、优先复用 GitHub 高可靠代码、ESP32/固件/小程序改动先加载对应 skills、最小实现。
 
-1. 这个功能真的需要吗？（YAGNI）
-2. Python 标准库能直接做到吗？
-3. 平台/框架原生特性能直接做到吗？
-4. 已有依赖能直接做到吗？
-5. 能一行写完吗？
-6. 最后才写最小实现。
+## 设计第二原则
 
-### 不可删除的边界
+> 次于 Ponytail 第一原则，但高于一般编码习惯。
 
-- 信任边界的输入验证（`access_guard.py`、`identity_guard.py`）
-- 防数据丢失的错误处理（`session_memory/` 持久化逻辑）
-- 安全措施（白/黑名单、secret 保护、无静默降级）
-- 测试门禁（`pytest`、`ruff check .`、`pyright`、`scripts/check_code_size.py`）
-- 文档同步（`STATUS.md` / `progress.md` / `findings.md`）
+本仓库遵循 SOLID、迪米特法则、合成复用原则，以及清晰指令、精简上下文、健壮工具接口、自动化验证循环等工程原则。
 
-### 简化标记
-
-如果使用 Ponytail 建议的捷径，且该捷径有已知上限（全局锁、O(n²) 扫描、朴素启发式），用 `ponytail:` 注释说明上限和升级路径，并记入 `PONYTAIL-DEBT.md`。
+- 详细说明：[`docs/AGENTS_DESIGN_PRINCIPLES.md`](docs/AGENTS_DESIGN_PRINCIPLES.md)
+- 核心要点：SRP / OCP / LSP / ISP / DIP / LoD / CRP；接口清晰、上下文精简、工具幂等可观测、改动必过测试/静态检查闭环。

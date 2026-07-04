@@ -1,8 +1,11 @@
 # 阿里云 LiMa Router Pilot 部署 Runbook
 
-> 状态：已上线（2026-07-01）
-> 目标：京东云 `117.72.118.95` 为主力节点；阿里云 `47.112.162.80` 作为只处理免费/低价后端流量的辅助节点。
-> 关联：`docs/ops/JDCLOUD_RUNTIME_STATUS.md`、`STATUS.md`
+> 状态：**已归档（2026-07-05）** — 本 runbook 描述的是旧版 lima-router-pilot 架构。
+> 小智云 + DLC 瘦身后，阿里云 `47.112.162.80` 的角色已调整为 `dlc_api` / `dlc_mcp` 公网入口。
+> 新 runbook：[`docs/ops/ALIYUN_DLC_ENTRY.md`](ALIYUN_DLC_ENTRY.md)
+>
+> 历史目标：京东云 `117.72.118.95` 为主力节点；阿里云 `47.112.162.80` 作为只处理免费/低价后端流量的辅助节点。
+> 关联：`docs/ops/JDCLOUD_RUNTIME_STATUS.md`、`STATUS.md`、`docs/ops/ALIYUN_DLC_ENTRY.md`
 
 ---
 

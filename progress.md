@@ -2,6 +2,40 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-05 仓库规则升级：Ponytail 第一原则 + ESP32 skills 强制加载
+
+- **范围**：按用户要求把 Ponytail 原则写入仓库原则，强调"能去 GitHub 找高可靠代码就尽量不要写代码"、"降低测试风险"、"会偷懒的 agent 才是合格 agent"。
+- **修改文件**：
+  - `AGENTS.md`：新增「Ponytail 第一原则（最高优先级）」章节，放在「代码质量规则」之前；硬规则第 1 条改为 Ponytail 第一原则；底部 Ponytail 章节改为索引。
+  - `docs/AGENTS_PONYTAIL.md`：完全重写，详述核心信条、决策阶梯、ESP32/固件/小程序改动必须加载对应 skills、不可妥协边界、自检问题。
+- **新增硬规则**：
+  - ESP32 / 固件 / 小程序 / 嵌入式相关代码改动前，必须主动加载对应领域 skills（`esp32`、`esp-idf-handling`、`jlink`、`openocd`、`serial`、`workbench-*`、uni-app / Vue 相关 skills 等）。
+  - 不加载对应 skill 就动手改固件/小程序是禁止的。
+- **核心信条落地**：
+  - Ponytail 是第一原则，优先级高于编码冲动与炫技式实现。
+  - 优先复用 GitHub 高可靠代码，降低测试风险与维护面。
+  - 最小变更、最小文件、最小函数。
+
+## 2026-07-05 LiMa 瘦身设计文档复核与证据补全
+
+- **范围**：按用户要求消除 `docs/xiaozhi-cloud/lima-slimdown-design.md` 中的架构不确定性，通过权威仓库/官方资料补充证据链。
+- **关键查证结论**：
+  - 小智官方控制台为 `https://xiaozhi.me`（非 `xiaozhi.dev`）；官方云原生 MCP endpoint 为 `wss://api.xiaozhi.me/mcp/?token=<JWT>`，自定义 MCP 服务以客户端身份直连，无需强制部署 `mcp-endpoint-server`。
+  - `mcp-endpoint-server` 配置文件为 `data/.mcp-endpoint-server.cfg`，INI 格式，固定 section：`[server]`、`[websocket]`、`[security]`、`[logging]`；自定义 MCP 服务同样以客户端连 `/mcp_endpoint/mcp/`。
+  - U8 固件已存在稳定的 outbound HTTP/HTTPS 先例：`ota.cc:211`、`mcp_server.cc:209`、`assets.cc:436`、`boards/common/esp_video.cc:945`、`boards/common/esp32_camera.cc:237` 均使用 `Board::GetInstance().GetNetwork()->CreateHttp()`。
+- **文档修改**：
+  - §1/§2 架构图中所有 `xiaozhi.dev` 控制台引用改为 `xiaozhi.me`，并补充模式 A/B 双部署模式。
+  - §4.2 固件示例改为复用现有 `CreateHttp()` 抽象，删除"无 outbound HTTP 先例"警告，给出 `PostDlcApi()` 帮助函数与配置项。
+  - §6 重写为「模式 A：官方云直连」和「模式 B：自托管 mcp-endpoint-server」两种确定部署方式，含配置示例、决策表、证据来源清单。
+  - §7 P0 验证项更新为模式 A/B 实测步骤；§9 风险表更新；§10.4 小智云验收标准更新；§12 复核记录新增 B8/B9/W12 修正项并删除"待验证"尾巴。
+- **链式调用代码证据补充**：用户指出 LLM 链式调用应可通过官方代码确定。已读取 `xinnan-tech/xiaozhi-esp32-server/main/xiaozhi-server/core/connection.py`：
+  - `MAX_DEPTH = 5` 设置最大工具调用递归深度；
+  - `_handle_function_result()` 将 `Action.REQLLM` 结果以 `role="tool"` 写回对话历史；
+  - `self.chat(None, depth=depth + 1)` 让 LLM 基于工具结果再次决策。
+  - **结论**：自托管服务器架构原生支持多轮 tool call 链式调用；官方云大概率复用同一机制，但闭源官方云仍需 P0 实测确认真实 LLM 行为。§2.3/§4.2/§6.5/§7/§12 已据此更新。
+- **剩余 intentional 不确定性**：仅剩下官方云真实 prompt/模型下的 LLM 实际行为，属于 P0 实测项而不再是不确定性；文档默认仍按方案 A（固件端 tool 直接调 dlc_api）实现以规避风险。
+- **配置校验**：`~/.kimi-code/config.toml` 已存在 `labs100x` Anthropic provider（url/key 与用户给定一致），注释说明 `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` 需作为环境变量设置；TOML 校验通过。
+
 ## 2026-07-04 M4 延后债务清理（D1~D4）
 
 - **范围**：清理 M4 结项时明确延后的 4 项债务，覆盖小程序、Chat Web、固件 CI 三端。

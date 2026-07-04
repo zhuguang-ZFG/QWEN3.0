@@ -266,3 +266,35 @@ probe 结果回写与异地观测：
 - Root `.gitignore` now protects the known JDCloud scratch/report files.
 - `.codegraph/daemon.pid` is removed from the Git index and PID files are
   ignored as local runtime state.
+
+---
+
+## 小智云 + DLC 瘦身后的职责定位
+
+> 关联设计文档：`docs/xiaozhi-cloud/lima-slimdown-design.md` §1.5
+
+LiMa 瘦身为 **DLC 核心服务**（`dlc_api` + `dlc_mcp` + `dlc_core`）后，JDCloud 节点从 primary `lima-router` compute 转为 **backend / data / observability** 节点。
+
+| 职责 | 瘦身后 | 说明 |
+|------|--------|------|
+| 主 LiMa Router | ❌ 退役 | 对话/LLM 路由交给小智官方云 |
+| MySQL / Redis | ✅ 保留 | 供 `dlc_api` 持久化/缓存 |
+| Prometheus + Grafana | ✅ 保留 | 统一观测 |
+| Probe / browser / worker | ✅ 保留 | 后台探测与 keyless 代理 |
+| `dlc_api` hot-standby | ⚪ 可选 | 按可用性需求决定 |
+
+### 与阿里云的协作
+
+```text
+阿里云 47.112.162.80（public entry）
+   chat.donglicao.com :443 → /dlc/* → dlc_api
+   Tailscale
+JDCloud 117.72.118.95（backend/data/observability）
+   MySQL / Redis / Prometheus / Grafana / probe / worker
+   optional dlc_api hot-standby
+```
+
+### 迁移提示
+
+- 关闭 `lima-router` 前确认阿里云 `dlc_api` 稳定。
+- JDCloud MySQL/Redis 配置同步到阿里云 `dlc_api` `.env`；Prometheus 切换到 `dlc_api` `/metrics`。
