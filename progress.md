@@ -2,6 +2,59 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-06 固件端改造 U8：新增 plotter MCP 工具 + 配网 SSID 前缀变更
+
+## 2026-07-06 小程序端改造：删除 chat 页面 + 配网主路径切换 SoftAP + 版本号 3.9.0
+
+- **范围**：按设计文档 `docs/xiaozhi-cloud/lima-slimdown-design.md` §5 实施小程序端改造，删除对话相关页面/API，简化配网为 SoftAP 主路径，版本号升级。
+- **删除的文件/目录**：
+  - `src/pages/chat/`（chat.vue + 3 个 composables）
+  - `src/pages/chat-history/`（index.vue + detail.vue）
+  - `src/api/chat/`（chat.ts）
+  - `src/api/chat-history/`（chat-history.ts + index.ts + types.ts）
+- **修改的文件**：
+  - `src/pages.json`：移除 chat/chat-history 的 3 条页面注册项
+  - `src/pages/index/composables/useHomeNavigation.ts`：删除 `goChat` / `goDigitalHuman`，移除 `@/i18n` 导入
+  - `src/pages/index/index.vue`：删除 AI 对话和数字人两个创建入口卡片，解构中移除 `goChat` / `goDigitalHuman`
+  - `src/utils/index.ts`：简化 `getChatBaseUrl` — 删除 `aliyun.donglicao.com` 分流逻辑，统一返回 `getEnvBaseUrl()`
+  - `src/pages/device-config/provisioning-contract.ts`：`primaryChannel` 从 `ble_blufi` 改为 `softap_http`；`submitPayloadFields` 简化为 `['ssid', 'password']`
+  - `manifest.config.ts`：`versionName` 3.8.7 → 3.9.0，`versionCode` 387 → 390
+- **设计决策**：
+  - API 前缀方案 1（保持 `/device/v1/app`）：`dlc_api` 保持旧前缀，小程序端 API 路径不变
+  - SoftAP 为主配网路径：不需要蓝牙权限，步骤更少，固件已有稳定实现
+  - `submitPayloadFields` 简化为仅 `ssid` + `password`：与 `78/esp-wifi-connect` 组件 `/submit` 端点实际解析逻辑对齐
+- **验证**：
+  - `npx vue-tsc --noEmit`：0 errors
+  - `npx uni build --platform mp-weixin`：Build complete ✓
+- **待执行**：微信开发者工具 CLI 上传 + 版本号 bump 提交（需用户确认后执行）
+
+## 2026-07-06 固件端改造 U8：新增 plotter MCP 工具 + 配网 SSID 前缀变更
+
+- **范围**：按设计文档 `docs/xiaozhi-cloud/lima-slimdown-design.md` §4 实施固件端改造，新增两个高层 MCP 工具让小智云 LLM 可以直接调用写字/绘图，并更新配网 SSID 前缀。
+- **修改的文件**：
+  - `esp32S_XYZ/firmware/u8-xiaozhi/main/boards/zhuguang/dlc-motor-control-p1-ai/config.h`：新增 `DLC_API_BASE_URL` 宏 + `DLC_API_MAX_RESPONSE_BYTES` 安全限制
+  - `esp32S_XYZ/firmware/u8-xiaozhi/main/Kconfig.projbuild`：新增 `CONFIG_DLC_API_BASE_URL` Kconfig 项（默认 `https://chat.donglicao.com`）
+  - `esp32S_XYZ/firmware/u8-xiaozhi/sdkconfig.defaults`：追加 `CONFIG_DLC_API_BASE_URL` 配置
+  - `esp32S_XYZ/firmware/u8-xiaozhi/main/boards/zhuguang/dlc-motor-control-p1-ai/dlc_motor_control_p1_ai_board.cc`：
+    - 新增 `#include "system_info.h"` 和 `#include <nvs.h>`
+    - 新增私有方法 `GetDlcApiToken()`：从 NVS namespace `dlc` key `api_token` 读取 per-device token（SEC-007：token 不烧录进镜像）
+    - 新增私有方法 `PostDlcApi()`：HTTPS POST 到 dlc_api，强制 https://（SEC-007），响应大小限制 128KB（SEC-005）
+    - 注册 MCP tool `self.plotter.write_text`：设备端先调 dlc_api `/dlc/tasks/preview` 生成路径，再本地 `RunPathWithTaskId` 执行
+    - 注册 MCP tool `self.plotter.draw_generated`：同上流程，用于 AI 绘图
+  - `esp32S_XYZ/firmware/u8-xiaozhi/main/provisioning_contract.h`：`kSoftApSsidPrefix` 从 `"Xiaozhi"` 改为 `"DLC"`；`kBlufiDeviceName` 从 `"Xiaozhi-Blufi"` 改为 `"DLC-Blufi"`
+- **设计决策**：
+  - 实现策略一（推荐）：设备端 tool 调用服务端 dlc_api 生成路径 → 再本地执行。对 LLM 行为不敏感，最稳健。
+  - 使用 cJSON（固件已有依赖）而非 nlohmann::json（设计文档建议但固件未引入）
+  - `Property` 构造函数无 description 参数，工具描述放在 `AddTool` 第二参数
+  - device_id 使用 `SystemInfo::GetMacAddress()` 与 dlc_api token 验证对齐
+- **安全审计对应**：
+  - SEC-007：token 从 NVS 读取，不编译进镜像；强制 HTTPS
+  - SEC-005：响应体大小限制 128KB，防止 OOM
+  - SEC-004：使用 cJSON_Parse 安全解析，解析失败返回错误字符串
+  - 防呆机制：`MotionExecutor` 已有 `motion_busy_` 原子锁 + RAII guard（P3 已实现）
+- **服务端测试验证**：`pytest tests/test_dlc_*.py` — 55 passed, 0 failed
+- **待验证**：固件需在 ESP32 硬件上编译和功能测试（本地无 ESP-IDF 编译环境）
+
 ## 2026-07-05 小智云瘦身 P5 深度死代码清理
 
 - **范围**：P4 修复残留导入后，深度扫描并删除所有未被 `server_dlc.py` 生产路径引用的死代码。
