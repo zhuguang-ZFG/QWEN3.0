@@ -5,6 +5,23 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
+## 2026-07-06 §13 安全审计续：S3 限流 + S10 幂等去重（dlc_api）
+
+- **S3（`/dlc/tasks/*` 无速率限制，🟠 中等）**
+  - **现象**：`/dlc/tasks/preview` 与 `/dlc/tasks/dispatch` 无任何限流；`draw_from_image` 高 CPU/费用，可被单设备刷爆做 DoS。
+  - **复现**：同一 Bearer token 高频调 `/dlc/tasks/preview`（type=draw_from_image），服务端无节流全部受理。
+  - **根因**：dlc_api 是瘦身后新入口，未接入主 `server.py` 上的限流中间件；`dlc_api/app.py` 无任何全局中间件。
+  - **修复**：复用现成 `routes/rate_limit_helper.check_key_limit`（内存滑动窗口，Redis 自动切换），按 `caller_device_id` 限流。配额加到 `config/settings_core.py::DeviceConfig`：`dlc_task_per_min`（默认 30）、`dlc_image_per_min`（默认 8，`draw_from_image` 专用低配额）。`_quota_for(task_type)` 按类型选配额。超限返回 429 `rate_limit_error`。
+  - **预防**：新增公网端点必须显式接入 `check_key_limit`/`check_ip_limit`；重 CPU 操作单列低配额。测试用 autouse fixture `rate_limiter.reset()` 防止限流状态跨用例泄漏（否则同 device_id 多次调用会耗尽配额致 KeyError）。
+
+- **S10（dispatch 无重放保护，🟠 中等）**
+  - **现象**：静态 Bearer token 无 nonce/timestamp，重放同一 dispatch 请求可重复下发运动指令。
+  - **复现**：同一请求体 POST 两次 `/dlc/tasks/dispatch`，设备执行两次。
+  - **根因**：dispatch 端点未做幂等去重；`task_id` 由 `next_task_id()` 自增生成，非幂等键。
+  - **修复**：dispatch 端点读 `Idempotency-Key` header，`_claim_idempotency_key` 用 Redis `SET NX EX`（TTL 600s，key 前缀 `lima:dlc:idem`）原子首次占用；重放返回 `status="duplicate"`。无 header 时保持旧行为（向后兼容）。
+  - **降级决策**：Redis 不可用时 **fail-open**（放行 + `logger.warning`），理由：重复派发比丢失合法指令危害小，且 warning 显式暴露降级状态（遵守「禁止静默降级」硬规则）。
+  - **预防**：固件/MCP 侧下发运动指令时应带 `Idempotency-Key`；幂等 key 由 `caller_device_id` + header 值组合，防跨设备碰撞。
+
 ## 2026-07-06 §13 安全审计闭环：SEC-06 队列投毒 + SEC-04 SSRF 加固 + v2_device_token 建表
 
 - **SEC-06（Redis 任务队列投毒，🔴 严重）**

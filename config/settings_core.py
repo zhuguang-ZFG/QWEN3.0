@@ -175,6 +175,10 @@ class DeviceConfig:
     auth_register_per_min: int = int(os.environ.get("LIMA_DEVICE_AUTH_REGISTER_PER_MIN", "5") or "5")
     auth_login_per_min: int = int(os.environ.get("LIMA_DEVICE_AUTH_LOGIN_PER_MIN", "20") or "20")
     auth_sms_per_min: int = int(os.environ.get("LIMA_DEVICE_AUTH_SMS_PER_MIN", "10") or "10")
+    dlc_task_per_min: int = int(os.environ.get("LIMA_DLC_TASK_PER_MIN", "30") or "30")
+    dlc_image_per_min: int = int(os.environ.get("LIMA_DLC_IMAGE_PER_MIN", "5") or "5")
+    dlc_image_task_per_min: int = int(os.environ.get("LIMA_DLC_IMAGE_TASK_PER_MIN", "6") or "6")
+    dlc_idempotency_ttl: int = int(os.environ.get("LIMA_DLC_IDEMPOTENCY_TTL", "600") or "600")
     activation_code: str = os.environ.get("LIMA_XIAOZHI_ACTIVATION_CODE", "").strip()
     login_code: str = os.environ.get("LIMA_XIAOZHI_LOGIN_CODE", "").strip()
     captcha_required: bool = os.environ.get("LIMA_XIAOZHI_CAPTCHA_REQUIRED", "").strip().lower() in {"1", "true", "yes"}

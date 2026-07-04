@@ -8,10 +8,19 @@ import socket
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, Header, HTTPException
 
+from config.settings import DEVICE, REDIS
 from dlc_api.deps import verify_dlc_api_token
+from dlc_api.schemas import (
+    DeviceStatusResponse,
+    TaskDispatchRequest,
+    TaskDispatchResponse,
+    TaskPreviewRequest,
+    TaskPreviewResponse,
+    TaskValidateRequest,
+    TaskValidateResponse,
+)
 from dlc_core import (
     dispatch_task,
     get_device_status,
@@ -20,75 +29,42 @@ from dlc_core import (
     handle_write,
     validate_path,
 )
+from routes.rate_limit_helper import check_key_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# S3: per-caller rate quotas. draw_from_image is CPU/cost heavy → lower quota.
+_TASK_QUOTA_PER_MIN = 30
+_IMAGE_TASK_QUOTA_PER_MIN = 6
 
-class TaskPreviewRequest(BaseModel):
-    """Request to generate a path preview without dispatching."""
-
-    type: str = Field(..., pattern=r"^(write_text|draw_generated|draw_from_image)$")
-    device_id: str = Field(..., min_length=1)
-    payload: dict[str, Any] = Field(default_factory=dict)
-
-
-class TaskDispatchRequest(BaseModel):
-    """Request to generate a path and dispatch it to the device."""
-
-    type: str = Field(..., pattern=r"^(write_text|draw_generated|draw_from_image)$")
-    device_id: str = Field(..., min_length=1)
-    payload: dict[str, Any] = Field(default_factory=dict)
-    request_id: str = Field(default="")
+# S10: idempotency dedupe. Redis SET NX EX; TTL from settings when available.
+_IDEMPOTENCY_TTL = 600
 
 
-class TaskPreviewResponse(BaseModel):
-    """Result of a preview request."""
-
-    status: str
-    path_data: list[dict[str, Any]] | None = None
-    svg_path: str | None = None
-    preview_svg: str | None = None
-    width: int | None = None
-    height: int | None = None
-    model: str | None = None
-    error: str | None = None
+def _quota_for(task_type: str) -> int:
+    """Return the per-minute quota for a task type (draw_from_image is lower)."""
+    return _IMAGE_TASK_QUOTA_PER_MIN if task_type == "draw_from_image" else _TASK_QUOTA_PER_MIN
 
 
-class TaskDispatchResponse(BaseModel):
-    """Result of a dispatch request."""
+def _claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = _IDEMPOTENCY_TTL) -> bool:
+    """S10: atomically claim an idempotency key. Return True if first-seen.
 
-    status: str
-    task_id: str | None = None
-    queue_depth: int = 0
-    error: str | None = None
+    Uses Redis SET NX EX for cross-worker dedupe. When Redis is unavailable we
+    log a warning and allow the request (fail-open): dedupe is a replay-safety
+    optimization, not an authorization gate, and the device-side motion_busy
+    lock (§1.6.6) is the physical backstop against double execution.
+    """
+    try:
+        from config.settings import REDIS
+        from device_gateway.redis_store_helpers import connect_redis
 
-
-class DeviceStatusResponse(BaseModel):
-    """Canonical device status payload for DLC MCP callers."""
-
-    device_id: str
-    online: bool
-    working: bool
-    active_task_id: str | None = None
-    firmware_version: str | None = None
-    last_seen_at: str | None = None
-    shadow: dict[str, Any] = Field(default_factory=dict)
-
-
-class TaskValidateRequest(BaseModel):
-    """Request to validate a motion path against safety rules."""
-
-    path: list[dict[str, Any]] = Field(..., min_length=1)
-    workspace: dict[str, float] | None = None
-
-
-class TaskValidateResponse(BaseModel):
-    """Result of a path validation request."""
-
-    ok: bool
-    errors: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
+        client, prefix = connect_redis(REDIS.device_redis_url, "dlc_idempotency", key_prefix="lima:dlc:idem")
+        claimed = client.set(f"{prefix}:{idem_key}", task_id, nx=True, ex=ttl)
+        return bool(claimed)
+    except Exception as exc:  # noqa: BLE001 - fail-open with explicit warning
+        logger.warning("dlc idempotency check unavailable (%s); allowing request", type(exc).__name__)
+        return True
 
 
 def _preview_from_result(result: dict[str, Any]) -> TaskPreviewResponse:
@@ -162,6 +138,37 @@ def _motion_task(text: str, request_id: str, entrypoint: str) -> dict[str, Any]:
     return {"text": text, "request_id": request_id, "source": "dlc_api", "entrypoint": entrypoint}
 
 
+def _quota_for(task_type: str) -> int:
+    """S3: per-minute quota for a task type. draw_from_image is CPU/cost heavy → lower."""
+    if task_type == "draw_from_image":
+        return DEVICE.dlc_image_per_min
+    return DEVICE.dlc_task_per_min
+
+
+def _claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = 600) -> bool:
+    """S10: atomically claim an idempotency key. Returns True on first use, False on replay.
+
+    Uses Redis SET NX EX for cross-worker dedupe. When Redis is unavailable we
+    log a warning and allow the request through (fail-open) rather than blocking
+    a legitimate dispatch on infra failure — a duplicate is less harmful than a
+    dropped command, and the warning surfaces the degraded state (no silent
+    degradation).
+    """
+    try:
+        from device_gateway.redis_store_helpers import connect_redis
+
+        client, prefix = connect_redis(REDIS.device_redis_url, "dlc_idempotency", key_prefix="lima:dlc:idem")
+    except Exception as exc:
+        logger.warning("S10: idempotency Redis unavailable (%s); allowing dispatch without dedupe", exc)
+        return True
+    try:
+        claimed = client.set(f"{prefix}:{idem_key}", task_id or "1", nx=True, ex=ttl)
+    except Exception as exc:
+        logger.warning("S10: idempotency SET NX failed (%s); allowing dispatch without dedupe", exc)
+        return True
+    return bool(claimed)
+
+
 @router.get("/health")
 async def health() -> dict[str, str]:
     """Lightweight health endpoint for load balancers and smoke tests."""
@@ -187,6 +194,10 @@ async def preview_task(
     """Generate a motion path preview without dispatching to the device."""
     if body.device_id != caller_device_id:
         return TaskPreviewResponse(status="rejected", error="device_id mismatch")
+
+    limited = check_key_limit(f"dlc_preview:{caller_device_id}", _quota_for(body.type))
+    if limited is not None:
+        return limited
 
     if body.type == "write_text":
         text = str(body.payload.get("text", "")).strip()
@@ -215,10 +226,19 @@ async def preview_task(
 async def dispatch_task_endpoint(
     body: TaskDispatchRequest,
     caller_device_id: str = Depends(verify_dlc_api_token),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> TaskDispatchResponse:
     """Generate a motion path and dispatch it to the target device."""
     if body.device_id != caller_device_id:
         return TaskDispatchResponse(status="rejected", error="device_id mismatch")
+
+    limited = check_key_limit(f"dlc_dispatch:{caller_device_id}", _quota_for(body.type))
+    if limited is not None:
+        return limited
+
+    # S10: dedupe replays — a repeated Idempotency-Key must not dispatch twice.
+    if idempotency_key and not _claim_idempotency_key(f"{caller_device_id}:{idempotency_key}", body.request_id):
+        return TaskDispatchResponse(status="duplicate", error="idempotency key already used")
 
     result, motion_task = await _build_dispatch_payload(body)
     if result.get("status") != "success":

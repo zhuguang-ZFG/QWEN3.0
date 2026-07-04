@@ -15,10 +15,21 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
+import rate_limiter
 from dlc_api.app import app
 from dlc_api.deps import verify_dlc_api_token
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Isolate the module-level sliding-window state so repeated dev-1 calls
+    across cases in this file do not exhaust the per-minute quota (S3)."""
+    rate_limiter.reset()
+    yield
+    rate_limiter.reset()
 
 
 def _override_token() -> str:

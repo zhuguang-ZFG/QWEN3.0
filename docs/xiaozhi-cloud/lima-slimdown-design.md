@@ -2692,10 +2692,10 @@ def _validate_task_schema(task: dict) -> bool:
 
 | 编号 | 问题 | 修正 |
 |------|------|------|
-| S3 | `/dlc/tasks/preview` 无速率限制，`draw_from_image` 高 CPU/费用 DoS | 叠加 `RateLimiter(5/60s per-caller)`；`draw_from_image` 单独更低配额 |
+| S3 ✅ | `/dlc/tasks/preview` 无速率限制，`draw_from_image` 高 CPU/费用 DoS | 已修复：preview/dispatch 复用 `routes.rate_limit_helper.check_key_limit`（per-device key）；`draw_from_image` 走 `DEVICE.dlc_image_per_min` 更低配额（默认 5/min），其余任务 `dlc_task_per_min`（默认 30/min） |
 | S4 | `/dlc/devices/{id}/status` 无 per-device 鉴权，可枚举全舰队设备 | 复用 `require_device_access` 校验调用方对该 device_id 的所有权 |
 | S8 | 固件静态 token 无轮换机制 | 采用短期 JWT（设备激活签发，定期刷新）；或 HMAC 签名请求（timestamp+nonce+HMAC） |
-| S10 | 静态 Bearer 无重放保护（无 nonce/timestamp/HMAC） | dispatch 叠加幂等键（`Idempotency-Key` header + Redis 去重 TTL） |
+| S10 ✅ | 静态 Bearer 无重放保护（无 nonce/timestamp/HMAC） | 已修复：dispatch 支持 `Idempotency-Key` header，`_claim_idempotency_key` 用 Redis `SET NX EX`（TTL 600s）去重，重放返回 `status="duplicate"`；Redis 不可用时 fail-open + `logger.warning`（不静默降级） |
 | S11 | 设计注释"复用 access_guard 的 device token 机制"机制错引 | 修正为 `device_gateway/auth.validate_device_token`（per-device=token）+ `device_logic.access.require_device_control` |
 | SEC-04 | Telegram `download_file` 信任任意 https URL（SSRF 旁路） | `download_file` 强制重建 URL 从 `_api_base`+file_path，移除 https 短路分支；`trust_env=False` |
 | SEC-07 | `task_id` 为 `task-{incr:06d}` 可枚举，`/dlc/tasks/{task_id}` 可跨设备读取 | task_id 改用 UUIDv4；`/dlc/tasks/{task_id}` 增加 task→caller 归属校验 |
