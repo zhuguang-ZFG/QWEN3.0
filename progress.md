@@ -4,6 +4,26 @@
 
 ## 2026-07-06 固件端改造 U8：新增 plotter MCP 工具 + 配网 SSID 前缀变更
 
+## 2026-07-06 MCP 接入部署 + 小程序上传 + Git 提交推送
+
+- **范围**：§6 MCP 接入部署（模式 A 官方云直连），小程序一键上传，子模块和父仓库提交推送。
+- **创建的部署文件**：
+  - `deploy/aliyun/dlc-mcp.service`：systemd 服务模板，`dlc_mcp/mcp_pipe.py` 作为持久 WebSocket 客户端连接小智云 MCP endpoint
+  - `deploy/aliyun/install_dlc_mcp.sh`：一键安装脚本，检查 `.env` 中 `MCP_ENDPOINT` / `DLC_API_URL`，安装 systemd 服务
+- **小程序上传**：
+  - 微信开发者工具 CLI 上传成功
+  - AppID: `wxbf3c1e0013b46343`，版本 `3.9.0`，大小 1.2MB
+  - 提交说明：「LiMa瘦身版：对话走小智云，绘图走DLC」
+- **Git 提交推送**：
+  - 子模块 `esp32S_XYZ`：commit `bf1152c`，23 files changed (+197 / -2086)
+  - 父仓库 `QWEN3.0`：commit `9143e90c`，4 files changed (+114 / -1)
+  - 均已推送到 GitHub `origin/main`
+- **MCP 部署待操作**（需用户手动）：
+  1. 登录 `https://xiaozhi.me` → 智能体 → 配置角色 → MCP 接入点，复制 endpoint URL
+  2. 在 VPS `.env` 中添加 `MCP_ENDPOINT=wss://api.xiaozhi.me/mcp/?token=<JWT>` 和 `DLC_API_URL=http://127.0.0.1:8080`
+  3. 在 VPS 执行 `sudo bash deploy/aliyun/install_dlc_mcp.sh`
+  4. 验证：`systemctl status dlc-mcp` + 对小智设备说"写你好"测试链式调用
+
 ## 2026-07-06 小程序端改造：删除 chat 页面 + 配网主路径切换 SoftAP + 版本号 3.9.0
 
 - **范围**：按设计文档 `docs/xiaozhi-cloud/lima-slimdown-design.md` §5 实施小程序端改造，删除对话相关页面/API，简化配网为 SoftAP 主路径，版本号升级。
