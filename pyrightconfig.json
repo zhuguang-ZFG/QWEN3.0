@@ -2,17 +2,11 @@
   "typeCheckingMode": "basic",
   "pythonVersion": "3.10",
   "include": [
+    "dlc_api/",
+    "dlc_core/",
+    "dlc_mcp/",
     "routes/",
-    "context_pipeline/",
-    "session_memory/",
-    "lima_mcp_stdio/",
-    "tool_gateway/",
-    "chat_models.py",
-    "routing_engine/",
-    "routing_intent.py",
-    "http_caller.py",
-    "server.py",
-    "speculative.py"
+    "http_caller.py"
   ],
   "exclude": [
     "**/__pycache__",

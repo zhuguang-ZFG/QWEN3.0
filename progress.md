@@ -2,6 +2,33 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-05 小智云瘦身 P4 物理删除旧系统代码 + 残留导入修复
+
+- **范围**：P4 物理删除 LiMa 旧系统冗余代码后，修复所有残留的 `ModuleNotFoundError` 和 `ImportError`，清理失效测试文件，确保全量测试通过。
+- **删除的模块**：
+  - `routes/device_app_chat.py` — 聊天路由（依赖已删除的 `routes.upload`）
+  - `observability/capability_evidence.py` — 能力证据记录（依赖 `session_memory`）
+  - `session_memory/outcome_ledger.py` — 会话记忆 outcome 分类账
+  - `lima_mcp_stdio/lima_ops_mcp.py` — 运维 MCP（已失效）
+  - 150+ 个引用已删除模块的测试文件
+- **修复的残留引用**：
+  - `routes/device_gateway_helpers.py`：`_record_device_task_evidence()` 中 `observability.capability_evidence` → stub（debug 日志）
+  - `routes/ws_task_helpers.py`：`record_outcome_ledger()` 中 `session_memory.outcome_ledger` → stub（debug 日志）
+  - `routes/device_gateway_ws_handlers.py`：语音相关函数 stub 处理
+  - `device_gateway/device_draw_handler.py`：移除 `image_fallback` 导入
+  - `tests/device_app_helpers.py`：移除 `chat_router`/`images_router`/`voice_router` 导入
+  - `pyrightconfig.json`：清理已删除路径（`context_pipeline/`、`session_memory/`、`routing_engine/` 等），替换为 `dlc_api/`、`dlc_core/`、`dlc_mcp/`
+  - `tests/test_testside_f401_safety_gate.py`：更新引用从 `test_routing_bridge.py` → `test_dlc_deps.py`
+- **门禁验证**：
+  - `pytest`：1696 passed, 3 skipped, 0 failed（84s）
+  - `ruff check .`：All checks passed
+  - `ruff format --check`：All checks passed
+  - `scripts/check_code_size.py`：PASS — all size constraints satisfied
+- **VPS 部署验证**：
+  - JDCloud (117.72.118.95)：`dlc-drawing` active，`/health` 返回 200
+  - Aliyun (47.112.162.80)：`dlc-drawing` active，`/health` 返回 200
+  - 公网 `https://chat.donglicao.com/dlc/` 路由正常（403 = Cloudflare WAF 对无 token 请求的预期行为）
+
 ## 2026-07-05 小智云瘦身 P3 VPS 部署与验证
 
 - **范围**：将 P3 安全加固代码部署到 VPS，创建独立 systemd 服务，配置 nginx 路由。

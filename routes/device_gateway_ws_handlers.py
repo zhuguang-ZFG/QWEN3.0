@@ -28,14 +28,36 @@ from routes.device_gateway_hello_helpers import (
     _reject_too_many_connections,
 )
 from routes.device_gateway_ws_motion import handle_motion_event
-from routes.device_voice_ws_helpers import (
-    _cleanup_audio_registry,
-    _feed_audio_to_pipeline,
-    handle_audio_chunk,
-)
+
+# P4 瘦身：voice helpers 已删除，voice 相关功能由小智官方云负责
 from routes.ws_lifecycle_helpers import reattach_tasks
-from routes.ws_voice_transcript_helpers import handle_voice_transcript
-from routes.ws_voiceprint_helpers import handle_voiceprint_sample
+
+
+def handle_audio_chunk(*args, **kwargs):
+    """Stub: voice pipeline retired in P4."""
+    pass
+
+
+def handle_voice_transcript(*args, **kwargs):
+    """Stub: voice transcript retired in P4."""
+    pass
+
+
+def handle_voiceprint_sample(*args, **kwargs):
+    """Stub: voiceprint retired in P4."""
+    pass
+
+
+def _cleanup_audio_registry(*args, **kwargs):
+    """Stub: audio registry retired in P4."""
+    pass
+
+
+def _feed_audio_to_pipeline(*args, **kwargs):
+    """Stub: audio pipeline retired in P4."""
+    pass
+
+
 from device_gateway.attestation import ACTION_READ_ONLY
 
 _log = logging.getLogger(__name__)

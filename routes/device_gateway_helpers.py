@@ -43,18 +43,8 @@ def _record_device_task_evidence(
     status: str,
     request_id: str = "",
 ) -> None:
-    from observability.capability_evidence import record_evidence_safe
-
-    record_evidence_safe(
-        loop="device_gateway",
-        request_id=request_id or str(task.get("request_id", "")),
-        task_id=str(task.get("task_id", "")),
-        device_id=device_id,
-        entrypoint="/device/v1/tasks",
-        status=status,
-        evidence=["device_task_created"],
-        rollback="delete pending task queue for test device if smoke-generated",
-    )
+    # P4 瘦身：capability_evidence/session_memory 已删除，evidence 记录退役
+    logger.debug("task evidence (retired): device=%s task=%s status=%s", device_id, task.get("task_id", ""), status)
 
 
 async def _stale_task_reaper_loop() -> None:

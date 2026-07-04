@@ -52,17 +52,5 @@ async def send_recovery_ack(
 
 
 def record_outcome_ledger(device_id: str, message: dict[str, Any], phase: str) -> None:
-    try:
-        from session_memory.outcome_ledger import record as ledger_record
-
-        ledger_record(
-            source="device_gateway",
-            event_type="device_task",
-            outcome="success" if phase == "done" else "failure",
-            task_id=str(message.get("task_id", "")),
-            scenario="device",
-            summary=f"{phase}: {message.get('capability', message.get('source_capability', ''))}",
-            tags=["device", phase, str(message.get("capability", ""))],
-        )
-    except Exception as exc:
-        _log.warning("outcome ledger record failed: %s", exc)
+    # P4 瘦身：session_memory.outcome_ledger 已删除，outcome 记录退役
+    _log.debug("outcome ledger (retired): device=%s phase=%s task=%s", device_id, phase, message.get("task_id", ""))

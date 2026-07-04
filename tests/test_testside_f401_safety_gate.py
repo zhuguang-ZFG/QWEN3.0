@@ -30,14 +30,14 @@ ROOT = gate.ROOT
 def test_staged_test_files_filters_non_py_and_non_tests() -> None:
     """Files outside tests/ or non-.py are dropped; only existing tests/*.py kept."""
     paths = [
-        ROOT / "tests" / "test_routing_bridge.py",  # existing
+        ROOT / "tests" / "test_dlc_deps.py",  # existing
         ROOT / "scripts" / "run_pre_commit_check.py",  # not tests/
         ROOT / "tests" / "__init__.py",  # existing
         ROOT / "tests" / "does_not_exist.py",  # missing
         ROOT / "data" / "digital-human" / "wakeword_runtime" / "runtime" / "http_server.py",  # not tests/
     ]
     kept = gate._staged_test_files(paths)
-    expected = {ROOT / "tests" / "test_routing_bridge.py", ROOT / "tests" / "__init__.py"}
+    expected = {ROOT / "tests" / "test_dlc_deps.py", ROOT / "tests" / "__init__.py"}
     assert set(kept) == expected
 
 
@@ -107,9 +107,9 @@ def test_load_baseline_skip_empty_returns_empty() -> None:
 
 def test_normalize_paths_resolves_against_repo_root() -> None:
     """--paths 'tests/test_a.py' becomes an absolute path under the repo root."""
-    rel = "tests/test_routing_bridge.py"
+    rel = "tests/test_dlc_deps.py"
     paths = gate._normalize_paths([rel])
-    assert paths == [ROOT / "tests" / "test_routing_bridge.py"]
+    assert paths == [ROOT / "tests" / "test_dlc_deps.py"]
 
 
 def test_main_returns_zero_when_no_paths_and_tty(monkeypatch: pytest.MonkeyPatch) -> None:
