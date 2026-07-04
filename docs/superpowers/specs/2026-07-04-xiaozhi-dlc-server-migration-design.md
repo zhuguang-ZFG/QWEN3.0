@@ -1,8 +1,11 @@
 # 小智服务端精简迁移设计
 
 > 日期：2026-07-04
-> 状态：设计已确认，等待实现计划
+> 状态：历史/备选路线（当前默认路线已切换为 `D:/QWEN3.0` 内瘦身：`dlc_core / dlc_api / dlc_mcp`）
 > 目标工作区：`D:\xiaozhi-dlc-server`
+>
+> 说明：本文档记录的是早期“独立新仓 `D:\xiaozhi-dlc-server`”迁移思路，现保留作历史对照与备选方案。
+> 当前权威主路线请以 `docs/xiaozhi-cloud/README.md`、`docs/xiaozhi-cloud/00-roadmap.md`、`docs/xiaozhi-cloud/lima-slimdown-design.md` 为准。
 
 ## 背景
 

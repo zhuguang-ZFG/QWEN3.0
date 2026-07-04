@@ -2,6 +2,33 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-05 小智云瘦身 P2 实施（S1~S4 + M + T）
+
+- **范围**：按已批准的 P2 路线图完成 `dlc_api` / `dlc_core` 服务收口、小程序 busy 防呆与配网入口补丁，并补足验证证据。
+- **服务端实现**：
+  - `dlc_core/draw.py` 新增 `handle_draw_from_image(image_url, device_id)`，把 `device_gateway.device_draw_handler.handle_device_draw(..., image_url=...)` 统一封装为 `{status, svg_path, preview_svg, width, height, model, error}`。
+  - `dlc_api/routes.py` 新增 `draw_from_image` preview/dispatch 分支；新增 `GET /dlc/devices/{device_id}/status`，复用 `dlc_core.device_status.get_device_status` 返回在线/工作/当前任务/影子状态。
+  - `dlc_core/device_status.py` 新增 facade，复用 `routes.device_app_api._build_device_status` + `device_intelligence.shadow_store.snapshot()` 聚合状态。
+  - `dlc_api/deps.py` 新增 P2 per-device token 占位：优先查 `v2_device_token(token_hash)`，失败时回退到 `LIMA_DEVICE_TOKENS`。
+- **小程序实现**：
+  - `useDeviceEvents.ts` 暴露 `isDeviceBusy`（`running/accepted/progress`）。
+  - `useDeviceActions.ts` 在 `home`/`write_text`/`draw_generated`/`run_path` 前增加 busy 早退 toast，避免重复下发。
+  - `write-draw-panel.vue` / `voice-command.vue` 接入 `deviceBusy`，写字/画图/语音按钮在设备忙时禁用并显示提示。
+  - `device-list/index.vue` 新增「配置网络 / 一键配网」入口，直达 `/pages/device-config/index`。
+  - `i18n/en.ts`、`i18n/zh_CN.ts` 补充 `deviceBusy` / `deviceBusyHint` / `provisionDevice` 文案。
+- **测试新增**：
+  - `tests/test_dlc_core_draw.py`：补 `handle_draw_from_image` 成功/失败/非法 URL。
+  - `tests/test_dlc_core_status.py`：补 `get_device_status` 聚合/空 shadow。
+  - `tests/test_dlc_api.py`：补 `draw_from_image` preview/dispatch 与 `/dlc/devices/{device_id}/status`。
+  - `tests/test_dlc_deps.py`：补 DB token 命中/缺失/异常/环境变量回退。
+- **验证结果**：
+  - `.venv310/Scripts/python -m pytest tests/test_dlc_*.py tests/test_dlc_deps.py -v --tb=short` → **48 passed**
+  - `ruff check dlc_api dlc_core tests/test_dlc_api.py tests/test_dlc_core_draw.py tests/test_dlc_core_status.py tests/test_dlc_deps.py --fix` → **All checks passed**
+  - `npx pyright dlc_api/routes.py dlc_api/deps.py dlc_core/draw.py dlc_core/device_status.py dlc_core/__init__.py` → **0 errors, 0 warnings**
+  - `pnpm exec vue-tsc --noEmit`（`manager-mobile/`）→ **0 errors**
+  - `pnpm exec eslint ...`（变更前端文件）→ **0 errors，剩余 UnoCSS 排序 warning 4 条，未阻塞**
+- **文档同步**：`docs/xiaozhi-cloud/lima-slimdown-design.md` 已勾选 `/dlc/tasks/preview`、`/dlc/tasks/dispatch`、`/dlc/devices/{device_id}/status`、`vue-tsc --noEmit` 验收项。
+
 ## 2026-07-05 仓库规则升级：Ponytail 第一原则 + ESP32 skills 强制加载
 
 - **范围**：按用户要求把 Ponytail 原则写入仓库原则，强调"能去 GitHub 找高可靠代码就尽量不要写代码"、"降低测试风险"、"会偷懒的 agent 才是合格 agent"。

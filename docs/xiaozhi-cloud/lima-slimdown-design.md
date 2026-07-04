@@ -2307,9 +2307,9 @@ python scripts/codegraph_orphans.py --fanin
 ### 10.1 服务端
 
 - [ ] `dlc_api` 可独立启动，`/health` 返回 200
-- [ ] `dlc_api` `/dlc/tasks/preview` 正确返回写字/绘图/图片矢量化预览
-- [ ] `dlc_api` `/dlc/tasks/dispatch` 正确下发任务
-- [ ] `dlc_api` `/dlc/devices/{device_id}/status` 返回正确在线/工作/任务状态
+- [x] `dlc_api` `/dlc/tasks/preview` 正确返回写字/绘图/图片矢量化预览
+- [x] `dlc_api` `/dlc/tasks/dispatch` 正确下发任务
+- [x] `dlc_api` `/dlc/devices/{device_id}/status` 返回正确在线/工作/任务状态
 - [ ] `dlc_mcp` 可被 MCP 客户端调用 `dlc.write_text` / `dlc.draw_generated` / `dlc.draw_from_image`
 - [ ] `dlc_mcp` 可被 MCP 客户端调用 `dlc.get_device_status`（`dlc.get_plotter_knowledge` 可选）
 - [ ] 生产入口不再注册 chat/admin/voice/provider 路由
@@ -2336,7 +2336,7 @@ python scripts/codegraph_orphans.py --fanin
 
 ### 10.3 小程序
 
-- [ ] `vue-tsc --noEmit` 0 errors
+- [x] `vue-tsc --noEmit` 0 errors
 - [ ] `uni build --platform mp-weixin` 成功
 - [ ] `vitest` 全绿
 - [ ] `check-i18n-keys.mjs` 通过
