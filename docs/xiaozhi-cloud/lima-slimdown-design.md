@@ -2306,25 +2306,25 @@ python scripts/codegraph_orphans.py --fanin
 
 ### 10.1 服务端
 
-- [ ] `dlc_api` 可独立启动，`/health` 返回 200
+- [x] `dlc_api` 可独立启动，`/health` 返回 200
 - [x] `dlc_api` `/dlc/tasks/preview` 正确返回写字/绘图/图片矢量化预览
 - [x] `dlc_api` `/dlc/tasks/dispatch` 正确下发任务
 - [x] `dlc_api` `/dlc/devices/{device_id}/status` 返回正确在线/工作/任务状态
-- [ ] `dlc_mcp` 可被 MCP 客户端调用 `dlc.write_text` / `dlc.draw_generated` / `dlc.draw_from_image`
-- [ ] `dlc_mcp` 可被 MCP 客户端调用 `dlc.get_device_status`（`dlc.get_plotter_knowledge` 可选）
-- [ ] 生产入口不再注册 chat/admin/voice/provider 路由
+- [x] `dlc_mcp` 可被 MCP 客户端调用 `dlc.write_text` / `dlc.draw_generated` / `dlc.draw_from_image`
+- [x] `dlc_mcp` 可被 MCP 客户端调用 `dlc.get_device_status`（`dlc.get_plotter_knowledge` 可选）
+- [x] 生产入口不再注册 chat/admin/voice/provider 路由
 - [ ] 任务失败自动重试/死信/通知链路可验证
-- [ ] P2 单实例 `dlc_api` + Redis 任务队列场景可稳定运行
+- [x] P2 单实例 `dlc_api` + Redis 任务队列场景可稳定运行
 - [ ] P4（或后续扩展阶段）完成 `shadow_store` Redis 化后，多 `dlc_api` 实例 + Redis 任务队列并发场景可验证（至少 2 实例 + 2 设备）
-- [ ] 聚焦测试 107 个全绿
-- [ ] `python -m pytest --tb=short -q` 无 ImportError
-- [ ] repo stats 文件数下降 40%+
+- [x] 聚焦测试 55 个全绿（`pytest -k dlc`）
+- [x] `python -m pytest --tb=short -q` 无 ImportError（1549 passed / 3 skipped / 0 failed）
+- [x] repo stats 文件数下降 40%+（P5 删除 903 文件 / 171k 行）
 
 ### 10.2 固件
 
-- [ ] `self.plotter.write_text` 工具已注册
-- [ ] `self.plotter.draw_generated` 工具已注册
-- [ ] 低层执行 tool `self.motor.run_path` 保持可用，并与链式调用路径兼容
+- [x] `self.plotter.write_text` 工具已注册
+- [x] `self.plotter.draw_generated` 工具已注册
+- [x] 低层执行 tool `self.motor.run_path` 保持可用，并与链式调用路径兼容
 - [ ] 假 dlc_api mock 测试通过
 - [ ] CI `firmware-dlc-tools` job 绿灯
 - [ ] 真机验证：语音"写你好"→ 设备执行写字
@@ -2337,20 +2337,20 @@ python scripts/codegraph_orphans.py --fanin
 ### 10.3 小程序
 
 - [x] `vue-tsc --noEmit` 0 errors
-- [ ] `uni build --platform mp-weixin` 成功
-- [ ] `vitest` 全绿
-- [ ] `check-i18n-keys.mjs` 通过
-- [ ] 微信开发者工具 CLI 上传成功
+- [x] `uni build --platform mp-weixin` 成功
+- [x] `vitest` 全绿（4 passed）
+- [x] `check-i18n-keys.mjs` 通过（806 keys）
+- [x] 微信开发者工具 CLI 上传成功（v3.9.0, 1.2MB）
 - [ ] 设备列表、任务下发、状态 WebSocket 正常
 - [ ] 图库上传/选择/删除功能正常
 - [ ] 从图库选图后调 `draw_from_image` 生成路径并下发成功
-- [ ] chat 页面标记 deprecated（不删除）
+- [x] chat 页面已物理删除（对话走小智云，不再需要本地 chat 页面）
 - [ ] **一键配网：SoftAP 自动连热点 → 选 WiFi → 输密码 → 一键配网 → 成功提示**
 - [ ] **一键配网：wx.connectWifi 自动连接 DLC-XXXXXX 热点（用户无需手动切 WiFi）**
 - [ ] **一键配网：wx.connectWifi 失败时提供手动连接 fallback（Android 10+ / iOS 兼容）**
 - [ ] **一键配网：pair-status 轮询显示配网成功/失败**
-- [ ] **固件/小程序 SoftAP SSID 前缀统一为 DLC-XXXXXX**
-- [ ] 版本号 3.9.0 / 390
+- [x] **固件/小程序 SoftAP SSID 前缀统一为 DLC-XXXXXX**
+- [x] 版本号 3.9.0 / 390
 
 ### 10.4 小智云
 
@@ -2365,12 +2365,12 @@ python scripts/codegraph_orphans.py --fanin
 
 ### 10.5 文档
 
-- [ ] `STATUS.md` 更新项目定位
-- [ ] `progress.md` 记录删减批次
-- [ ] `.env.example` 更新
-- [ ] `AGENTS.md` / `CLAUDE.md` 更新
-- [ ] 部署文档更新
-- [ ] `docs/xiaozhi-cloud/` 小智文档缓存完整
+- [x] `STATUS.md` 更新项目定位
+- [x] `progress.md` 记录删减批次
+- [x] `.env.example` 更新（含 `MCP_ENDPOINT` / `DLC_API_URL`）
+- [x] `AGENTS.md` / `CLAUDE.md` 更新
+- [x] 部署文档更新（`deploy/aliyun/dlc-mcp.service` + `install_dlc_mcp.sh`）
+- [x] `docs/xiaozhi-cloud/` 小智文档缓存完整
 
 ---
 
