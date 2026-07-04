@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from device_gateway.device_draw_handler import handle_device_draw as _handle_device_draw
@@ -105,35 +106,27 @@ async def handle_draw(
     return await _generate_image(prompt, device_id=device_id)
 
 
-async def handle_draw_from_image(
-    image_url: str,
-    *,
-    device_id: str | None = None,
-) -> dict[str, Any]:
-    """Convert a caller-provided image URL into a drawing path.
+def _failed_result(error: str, *, status: str = "failed") -> dict[str, Any]:
+    """Build a standard failure/timeout result dict."""
+    return {
+        "status": status,
+        "svg_path": "",
+        "preview_svg": "",
+        "width": 0,
+        "height": 0,
+        "model": "disabled",
+        "error": error,
+    }
 
-    Returns the same field shape as :func:`handle_draw`.
-    """
-    if not image_url or not image_url.startswith(("https://", "http://")):
-        return {
-            "status": "failed",
-            "svg_path": "",
-            "preview_svg": "",
-            "width": 0,
-            "height": 0,
-            "model": "disabled",
-            "error": "image_url is required and must be an http(s) URL",
-        }
 
-    raw = await _handle_device_draw("", device_id=device_id, image_url=image_url)
+def _image_result_from_raw(raw: dict[str, Any]) -> dict[str, Any]:
+    """Convert raw _handle_device_draw output to the standard result shape."""
     status = raw.get("status")
     svg_path = raw.get("svg_path") or ""
     width = raw.get("width") or 0
     height = raw.get("height") or 0
     preview_svg = _build_preview_svg(svg_path, width, height) if status == "success" and svg_path else ""
-    error = raw.get("error")
-    if status != "success" and not error:
-        error = "image conversion failed"
+    error = raw.get("error") or ("image conversion failed" if status != "success" else None)
     return {
         "status": "success" if status == "success" else "failed",
         "svg_path": svg_path,
@@ -143,3 +136,27 @@ async def handle_draw_from_image(
         "model": raw.get("model") or "provided_image",
         "error": error,
     }
+
+
+async def handle_draw_from_image(
+    image_url: str,
+    *,
+    device_id: str | None = None,
+    timeout: float = 25.0,
+) -> dict[str, Any]:
+    """Convert a caller-provided image URL into a drawing path.
+
+    Includes a 25s timeout (T1) to stay within MCP tool_call_timeout (30s).
+    Returns the same field shape as :func:`handle_draw`.
+    """
+    if not image_url or not image_url.startswith(("https://", "http://")):
+        return _failed_result("image_url is required and must be an http(s) URL")
+
+    try:
+        raw = await asyncio.wait_for(
+            _handle_device_draw("", device_id=device_id, image_url=image_url),
+            timeout=timeout,
+        )
+    except asyncio.TimeoutError:
+        return _failed_result("image vectorization timed out", status="timeout")
+    return _image_result_from_raw(raw)

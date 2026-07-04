@@ -26,6 +26,8 @@ def test_tools_list_exposes_write_and_draw() -> None:
     names = {tool["name"] for tool in tools}
     assert "dlc.write_text" in names
     assert "dlc.draw_generated" in names
+    assert "dlc.draw_from_image" in names
+    assert "dlc.get_device_status" in names
 
 
 def test_tools_call_write_text_validates_args() -> None:
@@ -63,6 +65,36 @@ def test_tools_call_unknown_method() -> None:
     response = handle_request(client, {"jsonrpc": "2.0", "id": 5, "method": "foo/bar"})
     assert "error" in response
     assert response["error"]["code"] == -32601
+
+
+def test_tools_call_draw_from_image_validates_args() -> None:
+    client = httpx.Client()
+    response = handle_request(
+        client,
+        {
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": "tools/call",
+            "params": {"name": "dlc.draw_from_image", "arguments": {"device_id": "", "image_url": "x"}},
+        },
+    )
+    assert "error" in response
+    assert response["error"]["code"] == -32602
+
+
+def test_tools_call_get_device_status_validates_args() -> None:
+    client = httpx.Client()
+    response = handle_request(
+        client,
+        {
+            "jsonrpc": "2.0",
+            "id": 11,
+            "method": "tools/call",
+            "params": {"name": "dlc.get_device_status", "arguments": {"device_id": ""}},
+        },
+    )
+    assert "error" in response
+    assert response["error"]["code"] == -32602
 
 
 def test_tools_call_write_text_submits_to_api() -> None:

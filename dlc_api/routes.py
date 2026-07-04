@@ -2,14 +2,23 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from dlc_api.deps import verify_dlc_api_token
-from dlc_core import dispatch_task, get_device_status, handle_draw, handle_draw_from_image, handle_write
+from dlc_core import (
+    dispatch_task,
+    get_device_status,
+    handle_draw,
+    handle_draw_from_image,
+    handle_write,
+    validate_path,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -66,6 +75,21 @@ class DeviceStatusResponse(BaseModel):
     shadow: dict[str, Any] = Field(default_factory=dict)
 
 
+class TaskValidateRequest(BaseModel):
+    """Request to validate a motion path against safety rules."""
+
+    path: list[dict[str, Any]] = Field(..., min_length=1)
+    workspace: dict[str, float] | None = None
+
+
+class TaskValidateResponse(BaseModel):
+    """Result of a path validation request."""
+
+    ok: bool
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 def _preview_from_result(result: dict[str, Any]) -> TaskPreviewResponse:
     """Build a TaskPreviewResponse from a dlc_core result dict."""
     return TaskPreviewResponse(
@@ -80,13 +104,25 @@ def _preview_from_result(result: dict[str, Any]) -> TaskPreviewResponse:
     )
 
 
+def _is_ssrf_host(hostname: str) -> bool:
+    """Return True if hostname is a private/loopback/link-local address."""
+    try:
+        ip = ipaddress.ip_address(hostname)
+    except ValueError:
+        return hostname in {"localhost", "metadata.google.internal"}
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+
+
 def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None]:
-    """Return (image_url, error_msg). Exactly one is non-None."""
+    """Return (image_url, error_msg). Exactly one is non-None. Includes SSRF protection."""
     image_url = str(payload.get("image_url", "")).strip()
     if not image_url:
         return None, "image_url is required"
     if not image_url.startswith(("https://", "http://")):
         return None, "image_url must be an http(s) URL"
+    hostname = urlparse(image_url).hostname or ""
+    if _is_ssrf_host(hostname):
+        return None, "image_url hostname is blocked (private/loopback/link-local)"
     return image_url, None
 
 
@@ -197,3 +233,13 @@ async def _build_dispatch_payload(
         return result, _motion_task("描图", body.request_id, "draw_from_image")
 
     return {"status": "failed", "error": "unsupported type"}, None
+
+
+@router.post("/dlc/tasks/validate", response_model=TaskValidateResponse)
+async def validate_task(
+    body: TaskValidateRequest,
+    caller_device_id: str = Depends(verify_dlc_api_token),
+) -> TaskValidateResponse:
+    """Validate a motion path against workspace bounds and safety rules."""
+    result = validate_path(body.path, workspace=body.workspace)
+    return TaskValidateResponse(**result)

@@ -36,6 +36,27 @@ TOOLS = {
             "required": ["device_id", "prompt"],
         },
     },
+    "dlc.draw_from_image": {
+        "description": "将指定图片 URL 矢量化并在绘图机上绘制。需要 device_id 和 image_url。",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "device_id": {"type": "string", "description": "目标绘图机设备 ID"},
+                "image_url": {"type": "string", "description": "图片 URL（http/https）"},
+            },
+            "required": ["device_id", "image_url"],
+        },
+    },
+    "dlc.get_device_status": {
+        "description": "查询绘图机当前状态（在线/工作/任务/影子）。需要 device_id。",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "device_id": {"type": "string", "description": "目标绘图机设备 ID"},
+            },
+            "required": ["device_id"],
+        },
+    },
 }
 
 
@@ -69,6 +90,21 @@ def _submit(client: httpx.Client, endpoint: str, payload: dict) -> dict:
         return {"status": "failed", "error": f"invalid response: {exc}"}
 
 
+def _get_json(client: httpx.Client, endpoint: str) -> dict:
+    """GET JSON from dlc_api; returns {"error": ...} on failure."""
+    url = f"{DLC_API_URL}{endpoint}"
+    try:
+        resp = client.get(url)
+    except Exception as exc:
+        logger.warning("dlc_api GET failed: %s", exc)
+        return {"error": f"dlc_api unreachable: {exc}"}
+    try:
+        return resp.json()
+    except Exception as exc:
+        logger.warning("dlc_api invalid response: %s", exc)
+        return {"error": f"invalid response: {exc}"}
+
+
 def _format_submission(client: httpx.Client, req_id: object, endpoint: str, payload: dict) -> dict:
     result = _submit(client, endpoint, payload)
     if result.get("error"):
@@ -80,35 +116,74 @@ def _format_submission(client: httpx.Client, req_id: object, endpoint: str, payl
     return _tool_result(req_id, summary)
 
 
+def _handle_write_text(client: httpx.Client, req_id: object, args: dict) -> dict:
+    device_id = str(args.get("device_id", "")).strip()
+    text = str(args.get("text", "")).strip()
+    if not device_id or not text:
+        return _tool_error(req_id, -32602, "device_id and text are required")
+    return _format_submission(
+        client,
+        req_id,
+        "/dlc/tasks/dispatch",
+        {"type": "write_text", "device_id": device_id, "payload": {"text": text}},
+    )
+
+
+def _handle_draw_generated(client: httpx.Client, req_id: object, args: dict) -> dict:
+    device_id = str(args.get("device_id", "")).strip()
+    prompt = str(args.get("prompt", "")).strip()
+    if not device_id or not prompt:
+        return _tool_error(req_id, -32602, "device_id and prompt are required")
+    return _format_submission(
+        client,
+        req_id,
+        "/dlc/tasks/dispatch",
+        {"type": "draw_generated", "device_id": device_id, "payload": {"prompt": prompt}},
+    )
+
+
+def _handle_draw_from_image(client: httpx.Client, req_id: object, args: dict) -> dict:
+    device_id = str(args.get("device_id", "")).strip()
+    image_url = str(args.get("image_url", "")).strip()
+    if not device_id or not image_url:
+        return _tool_error(req_id, -32602, "device_id and image_url are required")
+    return _format_submission(
+        client,
+        req_id,
+        "/dlc/tasks/dispatch",
+        {"type": "draw_from_image", "device_id": device_id, "payload": {"image_url": image_url}},
+    )
+
+
+def _handle_get_device_status(client: httpx.Client, req_id: object, args: dict) -> dict:
+    device_id = str(args.get("device_id", "")).strip()
+    if not device_id:
+        return _tool_error(req_id, -32602, "device_id is required")
+    result = _get_json(client, f"/dlc/devices/{device_id}/status")
+    if result.get("error"):
+        return _tool_error(req_id, -32603, result["error"])
+    summary = (
+        f"设备状态: online={result.get('online')}, working={result.get('working')}, "
+        f"task={result.get('active_task_id') or '无'}, fw={result.get('firmware_version') or '未知'}"
+    )
+    return _tool_result(req_id, summary)
+
+
+TOOL_HANDLERS = {
+    "dlc.write_text": _handle_write_text,
+    "dlc.draw_generated": _handle_draw_generated,
+    "dlc.draw_from_image": _handle_draw_from_image,
+    "dlc.get_device_status": _handle_get_device_status,
+}
+
+
 def _handle_tools_call(client: httpx.Client, req_id: object, params: dict) -> dict:
     """Dispatch a tools/call request to the appropriate DLC tool."""
     name = params.get("name")
     args = params.get("arguments", {})
-
-    if name == "dlc.write_text":
-        device_id = str(args.get("device_id", "")).strip()
-        text = str(args.get("text", "")).strip()
-        if not device_id or not text:
-            return _tool_error(req_id, -32602, "device_id and text are required")
-        return _format_submission(
-            client,
-            req_id,
-            "/dlc/tasks/dispatch",
-            {"type": "write_text", "device_id": device_id, "payload": {"text": text}},
-        )
-
-    if name == "dlc.draw_generated":
-        device_id = str(args.get("device_id", "")).strip()
-        prompt = str(args.get("prompt", "")).strip()
-        if not device_id or not prompt:
-            return _tool_error(req_id, -32602, "device_id and prompt are required")
-        return _format_submission(
-            client,
-            req_id,
-            "/dlc/tasks/dispatch",
-            {"type": "draw_generated", "device_id": device_id, "payload": {"prompt": prompt}},
-        )
-
+    handler = TOOL_HANDLERS.get(name)
+    if handler:
+        return handler(client, req_id, args)
     return _tool_error(req_id, -32601, "unknown tool")
 
 

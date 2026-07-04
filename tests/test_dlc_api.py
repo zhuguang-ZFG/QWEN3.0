@@ -244,3 +244,51 @@ def test_get_device_status_rejects_device_mismatch() -> None:
     )
     assert response.status_code == 403
     assert response.json()["detail"] == "device_id mismatch"
+
+
+def test_preview_draw_from_image_ssrf_private_ip() -> None:
+    """SSRF protection: private IP addresses must be rejected."""
+    client = TestClient(app)
+    for bad_url in [
+        "https://10.0.0.1/img.png",
+        "https://192.168.1.1/img.png",
+        "https://127.0.0.1/img.png",
+        "https://169.254.169.254/latest/meta-data/",
+        "https://localhost/img.png",
+    ]:
+        response = client.post(
+            "/dlc/tasks/preview",
+            json={"type": "draw_from_image", "device_id": "dev-1", "payload": {"image_url": bad_url}},
+            headers={"Authorization": "Bearer test-token"},
+        )
+        data = response.json()
+        assert data["status"] == "failed", f"{bad_url} should be blocked"
+        assert "blocked" in data["error"].lower() or "private" in data["error"].lower()
+
+
+def test_validate_path_valid() -> None:
+    """POST /dlc/tasks/validate with a valid path returns ok=True."""
+    client = TestClient(app)
+    response = client.post(
+        "/dlc/tasks/validate",
+        json={"path": [{"x": 10, "y": 20}, {"x": 50, "y": 60}]},
+        headers={"Authorization": "Bearer test-token"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["errors"] == []
+
+
+def test_validate_path_out_of_bounds() -> None:
+    """POST /dlc/tasks/validate with out-of-bounds points returns errors."""
+    client = TestClient(app)
+    response = client.post(
+        "/dlc/tasks/validate",
+        json={"path": [{"x": 999, "y": 0}]},
+        headers={"Authorization": "Bearer test-token"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is False
+    assert len(data["errors"]) > 0

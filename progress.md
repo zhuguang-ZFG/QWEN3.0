@@ -2,6 +2,31 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-05 小智云瘦身 P3 安全与可运维实施
+
+- **范围**：按 P3 路线图实施服务端安全加固、MCP tool 扩展、生产入口与超时保护。
+- **安全加固**：
+  - `dlc_api/routes.py` 新增 SSRF 防护：`_is_ssrf_host()` 使用 `ipaddress` 标准库拒绝私网/回环/链路本地地址（含 `169.254.169.254` 云元数据端点）和 `localhost`。
+  - `dlc_api/routes.py` 新增 `POST /dlc/tasks/validate` 端点：接收 path 数组，调用 `dlc_core.validate_path` 做工作区边界 + 点数上限校验。
+  - `dlc_core/draw.py` 新增 T1 超时保护：`handle_draw_from_image` 内部用 `asyncio.wait_for(timeout=25.0)` 包裹图片矢量化，超时返回 `{"status":"timeout"}`。
+- **MCP tool 扩展**：
+  - `dlc_mcp/server.py` 新增 `dlc.draw_from_image` 和 `dlc.get_device_status` 两个 tool，tool 列表从 2 扩展到 4。
+  - 重构为 `TOOL_HANDLERS` 字典分发模式，每个 tool 有独立 handler 函数，`_handle_tools_call` 只做路由。
+  - 新增 `_get_json()` 辅助函数支持 GET 请求（设备状态查询）。
+- **生产入口**：
+  - 新增 `server_dlc.py`：精简 FastAPI 入口，只注册 `dlc_router`，不含 chat/admin/voice/provider 路由。版本 `0.3.0-p3`。
+- **测试新增**（5 个）：
+  - `test_preview_draw_from_image_ssrf_private_ip`：5 种私网/元数据 URL 全部被拒绝。
+  - `test_validate_path_valid`：合法路径返回 `ok=True`。
+  - `test_validate_path_out_of_bounds`：越界点返回 `ok=False` + errors。
+  - `test_tools_call_draw_from_image_validates_args`：MCP tool 参数校验。
+  - `test_tools_call_get_device_status_validates_args`：MCP tool 参数校验。
+- **验证结果**：
+  - `pytest tests/test_dlc_*.py` → **53 passed**（+5 新增）
+  - `ruff check` → All checks passed
+  - `ruff format` → 全部已格式化
+  - `check_code_size.py` → PASS（所有文件 ≤300 行，所有函数 ≤50 行）
+
 ## 2026-07-05 小智云瘦身 P2 实施（S1~S4 + M + T）
 
 - **范围**：按已批准的 P2 路线图完成 `dlc_api` / `dlc_core` 服务收口、小程序 busy 防呆与配网入口补丁，并补足验证证据。
