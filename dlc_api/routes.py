@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import socket
 from typing import Any
 from urllib.parse import urlparse
 
@@ -104,25 +105,55 @@ def _preview_from_result(result: dict[str, Any]) -> TaskPreviewResponse:
     )
 
 
-def _is_ssrf_host(hostname: str) -> bool:
-    """Return True if hostname is a private/loopback/link-local address."""
+# SEC-04: only the gallery image source is permitted for server-side download.
+ALLOWED_IMAGE_HOSTS = frozenset({"api.telegram.org"})
+
+
+def _is_private_ip(value: str) -> bool:
+    """Return True if *value* is a private/loopback/link-local/reserved IP literal."""
     try:
-        ip = ipaddress.ip_address(hostname)
+        ip = ipaddress.ip_address(value)
     except ValueError:
-        return hostname in {"localhost", "metadata.google.internal"}
+        return False
     return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
 
 
+def _resolve_hostname(hostname: str) -> list[str]:
+    """Resolve *hostname* to a list of IP strings (patched in tests)."""
+    return [info[4][0] for info in socket.getaddrinfo(hostname, None)]
+
+
 def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None]:
-    """Return (image_url, error_msg). Exactly one is non-None. Includes SSRF protection."""
+    """Return (image_url, error_msg). Exactly one is non-None.
+
+    SEC-04 SSRF hardening, in order:
+      1. literal private/loopback/link-local IP → blocked (private)
+      2. host not on ALLOWED_IMAGE_HOSTS → rejected (not allowed)
+      3. DNS resolves to a private IP (rebinding) → blocked (private)
+    """
     image_url = str(payload.get("image_url", "")).strip()
     if not image_url:
         return None, "image_url is required"
     if not image_url.startswith(("https://", "http://")):
         return None, "image_url must be an http(s) URL"
     hostname = urlparse(image_url).hostname or ""
-    if _is_ssrf_host(hostname):
+
+    # 1. Literal private IP address → blocked regardless of allowlist.
+    if _is_private_ip(hostname):
         return None, "image_url hostname is blocked (private/loopback/link-local)"
+
+    # 2. Host allowlist: only the gallery source may be fetched server-side.
+    if hostname not in ALLOWED_IMAGE_HOSTS:
+        return None, f"image_url host not allowed: {hostname}"
+
+    # 3. DNS rebinding guard: reject when the host resolves to a private IP.
+    try:
+        addrs = _resolve_hostname(hostname)
+    except OSError:
+        return None, f"image_url host could not be resolved: {hostname}"
+    if any(_is_private_ip(addr) for addr in addrs):
+        return None, "image_url resolves to a blocked (private) address"
+
     return image_url, None
 
 

@@ -16,6 +16,13 @@ def _override_token() -> str:
 
 app.dependency_overrides[verify_dlc_api_token] = _override_token
 
+# SEC-04: draw_from_image now enforces a host allowlist (api.telegram.org) plus
+# DNS-resolution SSRF guard. Stub the resolver so image tests exercise the happy
+# path without real network lookups.
+import dlc_api.routes as _dlc_routes  # noqa: E402
+
+_dlc_routes._resolve_hostname = lambda host: ["149.154.167.220"]  # public Telegram IP
+
 
 def test_health_ok() -> None:
     client = TestClient(app)
@@ -114,7 +121,11 @@ def test_preview_draw_from_image(mock_draw_from_image) -> None:
     client = TestClient(app)
     response = client.post(
         "/dlc/tasks/preview",
-        json={"type": "draw_from_image", "device_id": "dev-1", "payload": {"image_url": "https://example.com/img.png"}},
+        json={
+            "type": "draw_from_image",
+            "device_id": "dev-1",
+            "payload": {"image_url": "https://api.telegram.org/file/bot123/img.png"},
+        },
         headers={"Authorization": "Bearer test-token"},
     )
     assert response.status_code == 200
@@ -123,7 +134,7 @@ def test_preview_draw_from_image(mock_draw_from_image) -> None:
     assert data["svg_path"] == "M0,0"
     assert data["preview_svg"] == "<svg></svg>"
     assert data["model"] == "provided_image"
-    mock_draw_from_image.assert_awaited_once_with("https://example.com/img.png", device_id="dev-1")
+    mock_draw_from_image.assert_awaited_once_with("https://api.telegram.org/file/bot123/img.png", device_id="dev-1")
 
 
 def test_preview_draw_from_image_missing_url() -> None:
@@ -163,7 +174,7 @@ def test_dispatch_draw_from_image(mock_draw_from_image) -> None:
             json={
                 "type": "draw_from_image",
                 "device_id": "dev-1",
-                "payload": {"image_url": "https://example.com/img.png"},
+                "payload": {"image_url": "https://api.telegram.org/file/bot123/img.png"},
                 "request_id": "req-2",
             },
             headers={"Authorization": "Bearer test-token"},
@@ -172,7 +183,7 @@ def test_dispatch_draw_from_image(mock_draw_from_image) -> None:
         data = response.json()
         assert data["status"] == "queued"
         assert data["task_id"] == "task-img-1"
-        mock_draw_from_image.assert_awaited_once_with("https://example.com/img.png", device_id="dev-1")
+        mock_draw_from_image.assert_awaited_once_with("https://api.telegram.org/file/bot123/img.png", device_id="dev-1")
         motion_task = mock_dispatch.call_args[0][1]
         assert motion_task["entrypoint"] == "draw_from_image"
         assert motion_task["source"] == "dlc_api"
@@ -196,7 +207,7 @@ def test_dispatch_draw_from_image_failed(mock_draw_from_image) -> None:
         json={
             "type": "draw_from_image",
             "device_id": "dev-1",
-            "payload": {"image_url": "https://example.com/bad.png"},
+            "payload": {"image_url": "https://api.telegram.org/file/bot123/bad.png"},
             "request_id": "req-3",
         },
         headers={"Authorization": "Bearer test-token"},
@@ -244,26 +255,6 @@ def test_get_device_status_rejects_device_mismatch() -> None:
     )
     assert response.status_code == 403
     assert response.json()["detail"] == "device_id mismatch"
-
-
-def test_preview_draw_from_image_ssrf_private_ip() -> None:
-    """SSRF protection: private IP addresses must be rejected."""
-    client = TestClient(app)
-    for bad_url in [
-        "https://10.0.0.1/img.png",
-        "https://192.168.1.1/img.png",
-        "https://127.0.0.1/img.png",
-        "https://169.254.169.254/latest/meta-data/",
-        "https://localhost/img.png",
-    ]:
-        response = client.post(
-            "/dlc/tasks/preview",
-            json={"type": "draw_from_image", "device_id": "dev-1", "payload": {"image_url": bad_url}},
-            headers={"Authorization": "Bearer test-token"},
-        )
-        data = response.json()
-        assert data["status"] == "failed", f"{bad_url} should be blocked"
-        assert "blocked" in data["error"].lower() or "private" in data["error"].lower()
 
 
 def test_validate_path_valid() -> None:

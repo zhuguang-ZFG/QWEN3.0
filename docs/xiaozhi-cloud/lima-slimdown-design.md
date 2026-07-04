@@ -2501,7 +2501,9 @@ python scripts/codegraph_orphans.py --fanin
 
 ### 13.1 🔴 严重漏洞（7 项，物理安全防线，P1 必须修复）
 
-#### S1 — `verify_dlc_api_token` 未定义且共享 token 无法做 per-device 校验
+#### S1 — `verify_dlc_api_token` 未定义且共享 token 无法做 per-device 校验 ✅ 部分修复（2026-07-06）
+
+> **状态**：`dlc_api/deps.py::verify_dlc_api_token` 已实现，DB 表 `v2_device_token` 优先、`LIMA_DEVICE_TOKENS` env 为 dev/应急 fallback。**2026-07-06 补齐**：`v2_device_token` DDL（表 + `token_hash` 唯一索引）已加入 `device_logic/db_migrations.py::_DDL_STATEMENTS`，每次 bootstrap 幂等创建，生产不再永远回退 env。测试：`tests/test_v2_device_token_migration.py`。**待办**：per-device token 首次激活签发 + 轮换（Q-07，P2/P3）。
 
 **问题：** 设计文档 §3.3 全部 6 个 `dlc_api` 端点用 `Depends(verify_dlc_api_token)` 鉴权，但该函数**从未在文档或代码中定义**。实现者若退化为全局静态 token（例如单一 `DLC_API_TOKEN` 环境变量），会导致**运动指令下发端点无 per-device 所有权校验**。
 
@@ -2628,7 +2630,9 @@ iptables -A INPUT -p tcp --dport 8080 -s ! 127.0.0.1 -j DROP
 
 **修正方案（Ponytail 最小变更）：** 小程序**不改动**现有 API 调用路径，继续走 `/device/v1/app/*` 端点。`dlc_api` 的 `/dlc/tasks/*` 仅服务固件 + MCP 内部调用，不暴露给小程序。
 
-#### SEC-04 — `dlc.draw_from_image` image_url SSRF
+#### SEC-04 — `dlc.draw_from_image` image_url SSRF ✅ 已修复（2026-07-06）
+
+> **状态**：已实现。`dlc_api/routes.py::_validate_image_url` 三层防护：①字面量私网 IP 拒绝 ②`ALLOWED_IMAGE_HOSTS={"api.telegram.org"}` 主机白名单 ③`_resolve_hostname` DNS 解析后私网 IP 拒绝（防 DNS rebinding）。测试：`tests/test_sec04_ssrf_hardening.py`。
 
 **问题：** `handle_draw_from_image(image_url)` 接收任意 HTTPS URL 并发起服务端下载做矢量化。攻击者可注入内网 URL（`169.254.169.254` 云元数据、`127.0.0.1:6379` Redis）做 SSRF 探针。
 
@@ -2654,7 +2658,11 @@ def _validate_image_url(url: str) -> None:
             raise ValueError("image_url resolves to private IP")
 ```
 
-#### SEC-06 — Redis 任务队列投毒
+#### SEC-06 — Redis 任务队列投毒 ✅ 已修复（2026-07-06）
+
+> **状态**：`device_gateway/redis_store_helpers.py::validate_task_schema` 已实现（capability 白名单 + `task_id`/`device_id` 必填校验），`RedisDeviceTaskStore.pop_pending_tasks` 在弹出时对每个任务过滤——不合格任务从 processing 队列 `lrem` 删除并 `logger.warning`，永不下发固件。测试：`tests/test_sec06_redis_schema_gate.py`（8 用例）。**待办**：Redis `requirepass`/ACL 为部署前置（运维层）。 ✅ 已修复（2026-07-06）
+
+> **状态**：已实现。`device_gateway/redis_store_helpers.py::validate_task_schema` + `_ALLOWED_TASK_CAPABILITIES` 允许集；`RedisDeviceTaskStore.pop_pending_tasks` 在 pop 后逐条 gate，拒绝的任务从 processing 队列 `lrem` 移除并 `logger.warning`，绝不转发固件。测试：`tests/test_sec06_redis_schema_gate.py`。
 
 **问题：** 设计文档未提及 Redis `requirepass`/ACL 配置。若 Redis 无密码，攻击者直接 RPUSH 恶意 JSON 到 pending 队列 → `pop_pending_tasks` 透传 → 固件执行恶意运动指令。`enqueue`/`pop` 不做 task schema 校验。
 

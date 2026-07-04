@@ -5,6 +5,27 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
+## 2026-07-06 §13 安全审计闭环：SEC-06 队列投毒 + SEC-04 SSRF 加固 + v2_device_token 建表
+
+- **SEC-06（Redis 任务队列投毒，🔴 严重）**
+  - **现象**：`pop_pending_tasks` 把 Redis pending 队列里的任务 `decode_redis_json` 后直接经 `device_gateway_dispatch.py:154 session.send_json(pending_task)` 透传给固件，全程无 capability/字段校验。
+  - **复现**：任何拥有 Redis 写权限者 `RPUSH lima:device:pending:<id> '{"capability":"delete_everything",...}'` → 固件收到并可能执行恶意运动指令。
+  - **根因**：pop 路径信任 Redis 内容；enqueue 侧的 HTTP 校验（`routes/device_gateway.py::_validate_task_body`、`APP_TASK_CAPABILITIES`）被 Redis 直写绕过。
+  - **修复**：`device_gateway/redis_store_helpers.py` 新增纯函数 `validate_task_schema` + `_ALLOWED_TASK_CAPABILITIES`（对齐 `APP_TASK_CAPABILITIES` 并含 `draw_from_image`）。`redis_store.pop_pending_tasks` 逐条 gate，拒绝的任务从 processing 队列 `lrem` 移除并 `logger.warning`，绝不下发。
+  - **预防**：信任边界原则——任何来自 Redis/外部存储的任务在下发前必须过 allowlist；新增 capability 时同步更新此 allowlist 与 `APP_TASK_CAPABILITIES`。
+- **SEC-04（draw_from_image SSRF，🔴 严重）**
+  - **现象**：`dlc_api/routes.py::_validate_image_url` 只拒绝字面量私网 IP，接受任意 HTTPS 主机；公网域名解析到私网 IP（DNS rebinding）可绕过。
+  - **根因**：无主机白名单 + 无 DNS 解析后二次校验。
+  - **修复**：三层顺序——(1) 字面量私网 IP 拒绝；(2) 主机白名单 `ALLOWED_IMAGE_HOSTS={"api.telegram.org"}`（图库唯一来源）；(3) 新增 `_resolve_hostname`（可测试注入点）解析后若命中私网 IP 则拒绝。
+  - **预防**：服务端下载类接口默认走「白名单 + 解析后私网拒绝」双闸；新增可信图源时只扩白名单，不放开任意主机。
+  - **契约变更**：旧 `test_dlc_api.py` 用 `example.com` 断言 success 的 3 个用例是不安全行为的固化，已改用 `api.telegram.org` + 注入 `_resolve_hostname` 返回公网 IP；重复的 SSRF 用例合并进 `test_sec04_ssrf_hardening.py`。
+- **S1/S7（v2_device_token 表缺失）**
+  - **现象**：`dlc_api/deps.py` 设计为 DB 优先鉴权，但 `v2_device_token` 表从未接入迁移，生产环境 `_lookup_token_from_db` 恒返回 None → 实际只走 `LIMA_DEVICE_TOKENS` env fallback。
+  - **修复**：`device_logic/db_migrations.py::_DDL_STATEMENTS` 末尾追加 `v2_device_token` 建表 + `idx_v2_device_token_hash` 唯一索引，随其他 v2_* 表幂等 bootstrap。
+  - **预防**：设计文档中的 DDL 必须同步落到 `_DDL_STATEMENTS`，否则消费方代码的 DB 分支形同虚设。
+- **门禁**：全量 `pytest` **1565 passed / 3 skipped / 0 failed**；`ruff check` + `ruff format --check` clean；`check_code_size` PASS。新增聚焦测试：`test_sec06_redis_schema_gate.py`（8）、`test_sec04_ssrf_hardening.py`（6）、`test_v2_device_token_migration.py`（4）。
+- **教训**：写 SEC-06 测试时最初用了缺 `capability` 的简化 task fixture，导致 gate 上线后误伤既有 `test_device_gateway_redis_store.py`。核对生产 `_assemble_motion_task` 确认真实任务必带 `capability`（控制能力或 fallback `run_path`）后，修正的是测试 fixture 而非削弱 gate——安全 gate 正确时，应让不真实的旧测试向生产结构对齐。
+
 ## 2026-07-05 DLC VPS 部署：认证格式不兼容 + 公网路由未通
 
 - **现象**：DLC 服务部署到 Aliyun VPS 后，`/dlc/tasks/validate` 带认证仍返回 401 "Not authenticated"；公网 `https://chat.donglicao.com/dlc/*` 返回 405。

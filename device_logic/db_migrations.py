@@ -186,6 +186,18 @@ _DDL_STATEMENTS: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS idx_v2_api_key_account ON v2_api_key(account_id)",
     "CREATE INDEX IF NOT EXISTS idx_v2_api_key_status ON v2_api_key(status)",
     "CREATE INDEX IF NOT EXISTS idx_v2_api_key_hash ON v2_api_key(key_hash)",
+    # SEC-006/S1/S7: per-device DLC API token store. dlc_api/deps.py resolves a
+    # Bearer token to its device_id via v2_device_token before falling back to
+    # the LIMA_DEVICE_TOKENS env var. Token is stored as a SHA-256 hash only.
+    """
+    CREATE TABLE IF NOT EXISTS v2_device_token (
+        device_id       TEXT PRIMARY KEY,
+        token_hash      TEXT NOT NULL,
+        created_at      TEXT NOT NULL,
+        rotated_at      TEXT NOT NULL
+    )
+    """,
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_v2_device_token_hash ON v2_device_token(token_hash)",
 )
 
 # (table, column, sql) for additive ALTER TABLE migrations. Skipped if column exists.

@@ -90,7 +90,13 @@ class _FakeRedis:
 
 
 def _task(task_id, device_id="dev-1"):
-    return {"type": "motion_task", "task_id": task_id, "device_id": device_id, "params": {"path": []}}
+    return {
+        "type": "motion_task",
+        "task_id": task_id,
+        "device_id": device_id,
+        "capability": "run_path",
+        "params": {"path": []},
+    }
 
 
 def test_redis_store_lists_tasks_for_device_with_status_and_limit():
@@ -108,7 +114,7 @@ def test_redis_store_lists_tasks_for_device_with_status_and_limit():
         {
             "task_id": first["task_id"],
             "status": "created",
-            "capability": "",
+            "capability": "run_path",
             "source": "",
         }
     ]
@@ -116,7 +122,7 @@ def test_redis_store_lists_tasks_for_device_with_status_and_limit():
         {
             "task_id": second["task_id"],
             "status": "queued",
-            "capability": "",
+            "capability": "run_path",
             "source": "",
         }
     ]

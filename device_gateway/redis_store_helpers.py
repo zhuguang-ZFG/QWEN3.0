@@ -49,6 +49,46 @@ def decode_redis_json(value: str | bytes) -> dict[str, Any]:
     return data
 
 
+# SEC-06: strict capability allowlist for tasks popped off the Redis queue.
+# A task RPUSHed directly into Redis (bypassing HTTP validation) must still be
+# gated before it is forwarded to firmware. Mirrors the HTTP-layer allowlist in
+# ``routes/device_app_tasks.py::APP_TASK_CAPABILITIES``.
+_ALLOWED_TASK_CAPABILITIES = frozenset(
+    {
+        "run_path",
+        "write_text",
+        "draw_generated",
+        "draw_image",
+        "draw_from_image",
+        "handwriting",
+        "home",
+        "move_abs",
+        "move_rel",
+        "pause",
+        "resume",
+        "stop",
+        "estop",
+        "get_device_info",
+    }
+)
+
+
+def validate_task_schema(task: dict[str, Any]) -> bool:
+    """SEC-06: return True if a popped task is safe to forward to firmware.
+
+    Rejects tasks whose capability is not on the allowlist, or that are
+    missing the ``task_id`` / ``device_id`` fields needed to track and route
+    them. This is the last gate before a Redis-sourced task reaches a device.
+    """
+    if not isinstance(task, dict):
+        return False
+    if task.get("capability") not in _ALLOWED_TASK_CAPABILITIES:
+        return False
+    if not task.get("task_id") or not task.get("device_id"):
+        return False
+    return True
+
+
 class RedisStoreHelpers:
     """Mixin providing low-level Redis key/state/queue helpers."""
 

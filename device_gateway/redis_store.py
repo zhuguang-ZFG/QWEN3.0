@@ -13,6 +13,7 @@ from device_gateway.redis_store_helpers import (
     connect_redis,
     decode_redis_json,
     encode_redis_json,
+    validate_task_schema,
 )
 from device_gateway.store_utils import DeviceStoreBase
 from device_gateway.redis_store_recover import RedisStoreRecoverMixin
@@ -148,7 +149,22 @@ class RedisDeviceTaskStore(RedisStoreHelpers, RedisStoreRecoverMixin, DeviceStor
             self._processing_key(device_id),
             limit,
         )
-        tasks = [decode_redis_json(item) for item in raw_tasks]
+        # SEC-06: gate every popped task against the capability/field allowlist.
+        # A malicious Redis RPUSH bypasses HTTP validation; drop rejected tasks
+        # from the processing queue so they are never forwarded to firmware.
+        tasks: list[dict[str, Any]] = []
+        for item in raw_tasks:
+            task = decode_redis_json(item)
+            if validate_task_schema(task):
+                tasks.append(task)
+                continue
+            _log.warning(
+                "SEC-06: dropped invalid task on pop device=%s capability=%r task_id=%r",
+                device_id,
+                task.get("capability"),
+                task.get("task_id"),
+            )
+            self._redis.lrem(self._processing_key(device_id), 1, item)
         processing_started_at = self._redis.time()[0] if tasks else 0
         for task in tasks:
             default = {"task": deepcopy(task), "status": "queued", "events": []}
