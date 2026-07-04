@@ -2,6 +2,43 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-05 小智云瘦身 P5 深度死代码清理
+
+- **范围**：P4 修复残留导入后，深度扫描并删除所有未被 `server_dlc.py` 生产路径引用的死代码。
+- **删除的根目录文件（26 个）**：
+  - `pipeline_graph.py`、`skills_registry.py`、`speculative_execution.py`、`think_plan_context.py`
+  - `channel_retirement.py`、`health_probe.py`、`server_lifespan_state.py`、`token_health.py`、`device_mode.py`
+  - `chat_models.py`、`chat_request_utils.py`、`healthcheck_ping.py`、`lima_context.py`、`response_builder.py`
+  - `safe_command.py`、`http_body_limit.py`、`lima_constants.py`、`brand_config.py`
+  - HTTP 传输链：`http_caller.py`、`http_async.py`、`http_sync.py`、`http_stream.py`、`http_stream_core.py`、`http_errors.py`、`http_response.py`、`http_retry.py` + `http_request_builder/` 目录
+- **删除的 routes 文件（19 个）**：
+  - 全部 `routes/admin_*.py`（16 个）、`routes/facade.py`、`routes/system_endpoints.py`、`routes/admin_v1_auth.py`
+- **删除的死代码目录（21 个）**：
+  - `agent_contracts/`、`agent_eval/`、`agent_evolution/`、`agent_roles/`、`agent_runtime/`
+  - `channel_gateway/`、`external_enrichment/`、`lima_mcp/`、`lima_fc_tools/`、`local_retrieval/`
+  - `monitor/`、`notify/`、`ops_entrypoint/`、`prompts/`、`routing/`
+  - `routing_loop/`、`routing_ml/`、`tool_gateway/`、`user_identity/`、`deployment/`
+  - `lima_mcp_stdio/`、`fleet/`
+- **删除的关联测试/脚本（16 个）**：
+  - `tests/test_pipeline_graph.py`、`tests/test_chat_models.py`、`tests/test_chat_request_utils.py`
+  - `tests/test_healthcheck_ping.py`、`tests/test_lima_context.py`、`tests/test_response_builder_usage.py`
+  - `tests/test_safe_command.py`、`tests/test_semantic_router.py`
+  - `tests/test_local_retrieval_*.py`（4 个）、`tests/test_safe_math.py`、`tests/test_tool_gateway_governance.py`
+  - `tests/test_user_identity.py`、`tests/test_external_enrichment.py`
+  - `scripts/generate_pipeline_graph.py`、`scripts/healthcheck_ping.py`
+  - `tests/test_fleet_*.py`（3 个）
+- **保留的根目录文件**（经引用分析确认仍被生产路径使用）：
+  - `access_guard.py`、`app_status_ws_ticket.py`、`async_utils.py`
+  - `dashscope_image_client.py`、`device_protocol_registry.py`、`device_ws_ticket.py`
+  - `rate_limiter.py`、`rate_limiter_redis.py`、`runtime_env.py`、`ws_ticket.py`
+- **门禁验证**：
+  - `pytest`：1565 passed, 3 skipped, 0 failed
+  - `ruff check .`：All checks passed
+  - `scripts/check_code_size.py`：PASS
+- **VPS 部署验证**：
+  - JDCloud (117.72.118.95)：`dlc-drawing` active，`/health` 返回 200
+  - Aliyun (47.112.162.80)：`dlc-drawing` active，`/health` 返回 200
+
 ## 2026-07-05 小智云瘦身 P4 物理删除旧系统代码 + 残留导入修复
 
 - **范围**：P4 物理删除 LiMa 旧系统冗余代码后，修复所有残留的 `ModuleNotFoundError` 和 `ImportError`，清理失效测试文件，确保全量测试通过。

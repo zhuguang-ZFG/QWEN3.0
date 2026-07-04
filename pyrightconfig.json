@@ -5,8 +5,7 @@
     "dlc_api/",
     "dlc_core/",
     "dlc_mcp/",
-    "routes/",
-    "http_caller.py"
+    "routes/"
   ],
   "exclude": [
     "**/__pycache__",
