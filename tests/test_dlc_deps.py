@@ -137,6 +137,25 @@ def test_verify_works_with_only_env_when_db_unavailable(monkeypatch):
     assert result == "dev-env"
 
 
+def test_verify_accepts_equals_format_env(monkeypatch):
+    """device_id=token format (VPS device-gateway compatible)."""
+    monkeypatch.setenv("LIMA_DEVICE_TOKENS", "dev-test-1=secret-token-abc")
+
+    with patch("dlc_api.deps._lookup_token_from_db", return_value=None):
+        result = verify_dlc_api_token("Bearer secret-token-abc")
+
+    assert result == "dev-test-1"
+
+
+def test_verify_accepts_mixed_formats_env(monkeypatch):
+    """Both token:device_id and device_id=token in same env var."""
+    monkeypatch.setenv("LIMA_DEVICE_TOKENS", "tok1:dev-a,dev-b=tok2")
+
+    with patch("dlc_api.deps._lookup_token_from_db", return_value=None):
+        assert verify_dlc_api_token("Bearer tok1") == "dev-a"
+        assert verify_dlc_api_token("Bearer tok2") == "dev-b"
+
+
 def test_verify_rejects_when_no_tokens_at_all(monkeypatch):
     """No DB, no env → 401."""
     monkeypatch.delenv("LIMA_DEVICE_TOKENS", raising=False)

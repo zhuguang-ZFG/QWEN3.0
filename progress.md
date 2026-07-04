@@ -2,6 +2,38 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-05 小智云瘦身 P3 VPS 部署与验证
+
+- **范围**：将 P3 安全加固代码部署到 VPS，创建独立 systemd 服务，配置 nginx 路由。
+- **本地冒烟**：
+  - `server_dlc.py` 独立启动成功（端口 18080），`/health` 返回 `{"status":"ok","service":"dlc-drawing","version":"0.2.0-p1"}`。
+  - `/dlc/tasks/validate` 带认证返回 `{"ok":true}`。
+  - SSRF 防护：`169.254.169.254` 被 `_is_ssrf_host` 拦截，返回 `"image_url hostname is blocked"`。
+- **VPS 部署（Aliyun 47.112.162.80）**：
+  - `deploy_unified.py --slice core --target aliyun`：910 文件上传成功，主服务重启健康。
+  - 创建 `/etc/systemd/system/dlc-drawing.service`：独立 systemd unit，端口 8081，`/usr/local/bin/python3.10`。
+  - `dlc-drawing` 服务 `active`，`/health` 返回 200。
+  - nginx `chat.donglicao.com.conf` 新增 `location ^~ /dlc/` → `proxy_pass http://127.0.0.1:8081`。
+  - nginx `-t` 通过，reload 成功。
+- **认证格式修复**：
+  - VPS `.env` 中 `LIMA_DEVICE_TOKENS` 使用 `device_id=token` 格式（device-gateway 兼容），而非 DLC 代码期望的 `token:device_id`。
+  - 更新 `dlc_api/deps.py` 的 `_load_device_tokens()` 同时支持 `:` 和 `=` 分隔符。
+  - 新增 2 个测试：`test_verify_accepts_equals_format_env`、`test_verify_accepts_mixed_formats_env`。
+  - 重新部署 `deps.py` 到 VPS，重启 `dlc-drawing`，认证通过。
+- **VPS 冒烟结果（Aliyun localhost:8081）**：
+  - ✅ `dlc-drawing` active
+  - ✅ `/health` → `{"status":"ok","service":"dlc-drawing","version":"0.2.0-p1"}`
+  - ✅ `/dlc/tasks/validate` 带认证 → `{"ok":true,"errors":[],"warnings":[]}`
+  - ✅ SSRF 阻断 → `"image_url hostname is blocked (private/loopback/link-local)"`
+  - ✅ 无认证 → 401 `"Field required"`
+  - ✅ 主服务 `lima-router` 不受影响 → `{"status":"ok","version":"2.0"}`
+- **公网路由待解决**：
+  - `chat.donglicao.com` DNS 解析到 Cloudflare（198.18.2.214），通过 Cloudflare Tunnel 路由到 JDCloud。
+  - DLC 服务部署在 Aliyun（port 8081），JDCloud 上尚未部署。
+  - JDCloud SSH 认证失败（`deploy_config.jdcloud_password()` 未配置或已过期），无法自动部署。
+  - **解决路径**：用户提供 JDCloud SSH 凭据 → 部署 DLC 到 JDCloud；或配置 Cloudflare 将 `/dlc/*` 路由到 Aliyun。
+- **测试**：`pytest tests/test_dlc_deps.py` → 15 passed（+2 新增格式兼容测试）。
+
 ## 2026-07-05 小智云瘦身 P3 安全与可运维实施
 
 - **范围**：按 P3 路线图实施服务端安全加固、MCP tool 扩展、生产入口与超时保护。

@@ -5,6 +5,15 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
+## 2026-07-05 DLC VPS 部署：认证格式不兼容 + 公网路由未通
+
+- **现象**：DLC 服务部署到 Aliyun VPS 后，`/dlc/tasks/validate` 带认证仍返回 401 "Not authenticated"；公网 `https://chat.donglicao.com/dlc/*` 返回 405。
+- **根因 1（认证）**：VPS `.env` 中 `LIMA_DEVICE_TOKENS=dev-test-1=fRAI52A3...` 使用 `device_id=token` 格式（device-gateway 兼容），但 DLC 代码 `_load_device_tokens()` 只解析 `token:device_id` 格式（`:` 分隔）。`=` 格式的条目被跳过，导致 env 回退为空。
+- **修复**：更新 `_load_device_tokens()` 同时支持 `:` 和 `=` 分隔符。新增 2 个测试覆盖。重新部署后认证通过。
+- **根因 2（公网 405）**：`chat.donglicao.com` DNS 解析到 Cloudflare（198.18.2.214），通过 Cloudflare Tunnel 路由到 JDCloud（117.72.118.95）。DLC 服务部署在 Aliyun（47.112.162.80:8081），JDCloud 上无 DLC 服务和 nginx `/dlc/` 路由。nginx 在 JDCloud 上找不到匹配的 location，返回 405。
+- **修复状态**：未修复。JDCloud SSH 认证失败（`deploy_config.jdcloud_password()` 未配置或已过期）。需用户提供 JDCloud 凭据或配置 Cloudflare 路由。
+- **预防**：部署前检查 VPS `.env` 中变量格式与代码解析逻辑的一致性；多 VPS 架构部署时确认 DNS/CDN 路由路径。
+
 ## 2026-07-04 M4 全项目重构：P3 技术债发现与修复
 
 - **小程序**：

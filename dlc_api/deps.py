@@ -54,15 +54,26 @@ def _lookup_token_from_db(token: str) -> str | None:
 
 
 def _load_device_tokens() -> dict[str, str]:
-    """Load device tokens from LIMA_DEVICE_TOKENS env (comma-separated token:device_id pairs)."""
+    """Load device tokens from LIMA_DEVICE_TOKENS env.
+
+    Supports two formats:
+    - ``token:device_id`` (DLC native)
+    - ``device_id=token`` (device-gateway compatible, used on VPS)
+
+    Multiple entries are comma-separated.
+    """
     raw = os.environ.get("LIMA_DEVICE_TOKENS", "")
     tokens: dict[str, str] = {}
     if not raw:
         return tokens
     for pair in raw.split(","):
-        if ":" not in pair:
+        pair = pair.strip()
+        if ":" in pair:
+            token, device_id = pair.split(":", 1)
+        elif "=" in pair:
+            device_id, token = pair.split("=", 1)
+        else:
             continue
-        token, device_id = pair.split(":", 1)
         token = token.strip()
         device_id = device_id.strip()
         if token and device_id:
