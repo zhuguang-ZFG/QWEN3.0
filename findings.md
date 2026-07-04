@@ -412,3 +412,37 @@
 - ruff check 11 个文件 clean
 - check_code_size PASS
 - 聚焦测试 64 passed（test_token_health/test_model_registry/test_backend_registry/test_route_scorer/test_channel_retirement/test_key_pool）
+
+---
+
+## 2026-07-06：固件 U8 plotter MCP 工具 + 小程序 v3.9.0 + MCP 部署脚本
+
+### 固件端发现
+
+1. **Token 存储方案**：U8 固件原本无 DLC API token 存储机制。采用 NVS（Non-Volatile Storage）存储 `dlc_api_token`，通过 `GetDlcApiToken()` 统一读取（SEC-007）。配网时由小程序下发写入。
+2. **HTTPS 强制**：ESP32 HTTPClient 默认不校验证书。新增 `https://` scheme 检查，非 HTTPS 直接返回错误（SEC-007）。
+3. **响应大小限制**：dlc_api 返回的路径 JSON 可能非常大（复杂图画）。新增 `DLC_API_MAX_RESPONSE_BYTES=131072`（128KB）硬限制，防止 OOM（SEC-005）。
+4. **SoftAP SSID 统一**：原 SSID 前缀 `Xiaozhi` 与 DLC 产品定位不符，统一为 `DLC`。BluFi 设备名同步改为 `DLC-Blufi`。
+5. **MCP 工具注册位置**：`write_text` / `draw_generated` 注册在 `self.plotter` 命名空间下，与小智云 MCP tool schema 对齐（`plotter.write_text` / `plotter.draw_generated`）。
+6. **路径执行防呆**：设备端调 dlc_api `/dlc/tasks/preview` 仅获取路径数据，不触发服务端 dispatch。路径通过 `RunPathWithTaskId` 本地执行，task_id 用于状态追踪。
+
+### 小程序端发现
+
+1. **chat 页面删除范围**：需同步删除 `pages.json` 中的路由注册、`useHomeNavigation.ts` 中的 `goChat`/`goDigitalHuman` 导航函数、`index.vue` 中的 AI 对话/数字人卡片组件。遗漏任何一处都会导致编译错误。
+2. **`getChatBaseUrl` 简化**：原函数含 `aliyun.donglicao.com` 分流逻辑，DLC 定位下对话统一走小智云，分流逻辑已删除。
+3. **配网主路径**：SoftAP 配网更适合 DLC 场景（用户现场无路由器时可直接连设备配网），作为主路径。BluFi 保留为备选。
+4. **版本号递增**：3.8.7 → 3.9.0（minor bump，因功能变更：删除对话 + 配网重构）。
+
+### MCP 部署发现
+
+1. **模式 A（官方云直连）为首选**：小智官方云提供原生 MCP endpoint `wss://api.xiaozhi.me/mcp/?token=<JWT>`，无需自建 mcp-endpoint-server。`dlc_mcp/mcp_pipe.py` 以 WebSocket 客户端身份连入。
+2. **systemd 服务依赖**：`dlc-mcp.service` 依赖 `dlc-drawing.service`（After=），确保 dlc_api 先启动。
+3. **环境变量**：`MCP_ENDPOINT`（WebSocket URL）和 `DLC_API_URL`（内部 HTTP 地址）必须在 `.env` 中配置。已在 `.env.example` 中补入。
+
+### 待验证项
+
+- [ ] 小智云控制台获取 MCP endpoint token
+- [ ] VPS `.env` 配置 `MCP_ENDPOINT`
+- [ ] `install_dlc_mcp.sh` 在 VPS 上执行
+- [ ] 设备端 NVS token 写入流程验证（配网时小程序下发）
+- [ ] 端到端：语音 → 小智云 → MCP → dlc_api → 路径生成 → 设备执行

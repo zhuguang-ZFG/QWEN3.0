@@ -7,13 +7,24 @@
 > **公网端点**: `chat.donglicao.com/dlc/*`（DLC API）
 > **部署**: Aliyun (`47.112.162.80`) + JDCloud (`117.72.118.95`) 双节点，`dlc-drawing` systemd 服务（端口 8081），nginx 反代 `/dlc/` 路由
 
-> Updated: 2026-07-05
+> Updated: 2026-07-06
 > Branch: `main`
 > Scale: P5 瘦身后约 280 个 Python 文件 / ~18,000 行（删除 903 文件 / 171,000 行旧代码）
 > Tests: **1548 passed / 3 skipped / 0 failed**；ruff check clean；check_code_size PASS
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**
 > 入口: `server_dlc.py`（DLC 专用，不再注册 Chat/Admin/Voice 路由）
 > 架构: `server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/ → routes/device_app_*`
+> MCP: `dlc_mcp/mcp_pipe.py` ← systemd `dlc-mcp.service` → 小智云 `wss://api.xiaozhi.me/mcp/`
+> 固件: U8 `self.plotter.write_text` / `self.plotter.draw_generated`（设备端调 dlc_api 生成路径 → 本地执行）
+> 小程序: v3.9.0（对话走小智云，绘图走 DLC；SoftAP 配网主路径）
+
+### 最近完成（2026-07-06）固件 U8 plotter MCP 工具 + 小程序 v3.9.0 + MCP 部署脚本
+
+- **固件端（§4）**：新增 `self.plotter.write_text` / `self.plotter.draw_generated` 两个高层 MCP 工具；设备端调 dlc_api `/dlc/tasks/preview` 生成路径 → 本地 `RunPathWithTaskId` 执行。Token 从 NVS 读取（SEC-007），强制 HTTPS（SEC-007），响应大小限制 128KB（SEC-005）。SoftAP SSID 前缀 `Xiaozhi` → `DLC`。
+- **小程序端（§5）**：删除 chat/chat-history 页面和 API（对话走小智云）；简化 `getChatBaseUrl`（删除 aliyun 分流）；配网主路径切换为 SoftAP；版本号 3.8.7 → 3.9.0。vue-tsc 0 errors；uni build PASS；已上传微信平台。
+- **MCP 部署（§6）**：创建 `deploy/aliyun/dlc-mcp.service` systemd 模板 + `install_dlc_mcp.sh` 安装脚本。模式 A（官方云直连）：`dlc_mcp/mcp_pipe.py` 以 WebSocket 客户端身份连入 `wss://api.xiaozhi.me/mcp/?token=<JWT>`。
+- **Git**：子模块 `esp32S_XYZ` commit `bf1152c`（+197/-2086）；父仓库 commit `9143e90c` + `f58657ab`。均已 push origin main。
+- **待操作**：在小智云控制台获取 MCP endpoint token → VPS `.env` 配置 → `sudo bash deploy/aliyun/install_dlc_mcp.sh`
 
 ### 最近完成（2026-07-05）P4+P5 系统瘦身 — 物理删除旧系统 + 深度死代码清理
 
