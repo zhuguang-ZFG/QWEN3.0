@@ -561,4 +561,11 @@
 - **P1 MCP 异常泄露内网 — 真实，已修**：`dlc_mcp/server.py` 的 `_submit`(line 94)/`_get_json`(line 109) 把 httpx 异常原样拼进返回 `error` 字段，含 `127.0.0.1:8081`，对外暴露内网拓扑。MCP endpoint 经小智云可达外部。**修复**：4 处 `f"...{exc}"` 改为通用文案（"dlc_api unreachable" / "invalid response from dlc_api"），详细 `exc` 仅 `logger.warning` 不返回；新增 2 个测试 mock `httpx.ConnectError` 断言返回文案不含 `127.0.0.1`/`8081`。
 - **P2 MCP 子进程 5s 终止窗口 — 误报**：初查引用 `mcp_pipe._run_session` finally 的 `terminate→wait(5s)→kill`。核查发现 `mcp_pipe.py` 当前仓库**不存在该函数**（审查引用了已删/幻觉路径）。MCP 子进程由 systemd 管理，无硬编码终止窗口。无需修改。
 - **核查通过的既存项**：SQL 注入（全参数化/ORM）、IDOR（account_id 作用域）、静默降级（生产路径无 `except: pass`）、secret 日志（无明文 token 落日志）。
-- **教训**：审查时引用的文件名/行号必须先 `Read` 确认存在，不能凭记忆/旧快照下结论；本次 P0/P2 两个误报都源于引用了不存在的符号。修正流程：先 `grep` 定位真实符号 → `Read` 全文 → 跑既有测试 → 再下结论。
+- **教训**：审查时引用的文件名/行号必须先 `Read` 确认存在，不能凭记忆/旧快照下结论；本次 P0/P2 两个误报都源于引用了不存在的符号。修正流程：先 `grep` 定位真实符号 → `Read` 全文 → 跑既有测试 → 再下结论。\r
+\r
+### 补充纠正（2026-07-07 部署后公网验证）\r
+\r
+- **现象**：部署修复后，`https://chat.donglicao.com/docs` 仍返回 200。\r
+- **核查**：(1) 上游 `curl 127.0.0.1:8081/docs` → 404（FastAPI docs 已正确关闭）；(2) nginx `location /` 是 `try_files $uri $uri/ /index.html`（SPA catch-all），任何未知路径都 fallback 到前端 `index.html` 返回 200。\r
+- **结论**：公网 `/docs` 的 200 **不是** FastAPI 交互文档暴露（响应体是前端 SPA HTML，不是 Swagger UI），是 SPA 路由的正常行为。FastAPI 层的 docs 关闭仍然有价值——防御纵深，即使 nginx 配置变更或直连上游也无法访问交互文档。本次修复有效，但"公网暴露 API surface"的风险评级从 P1 下调为"非漏洞 + 防御纵深保留"。\r
+- **无需额外动作**：SPA fallback 行为是前端路由设计，不应改。
