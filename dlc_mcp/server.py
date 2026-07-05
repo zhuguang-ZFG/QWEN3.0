@@ -91,12 +91,12 @@ def _submit(client: httpx.Client, endpoint: str, payload: dict) -> dict:
         resp = client.post(url, json=payload, headers=_auth_headers())
     except Exception as exc:
         logger.warning("dlc_api request failed: %s", exc)
-        return {"status": "failed", "error": f"dlc_api unreachable: {exc}"}
+        return {"status": "failed", "error": "dlc_api unreachable"}
     try:
         return resp.json()
     except Exception as exc:
         logger.warning("dlc_api invalid response: %s", exc)
-        return {"status": "failed", "error": f"invalid response: {exc}"}
+        return {"status": "failed", "error": "invalid response from dlc_api"}
 
 
 def _get_json(client: httpx.Client, endpoint: str) -> dict:
@@ -106,12 +106,12 @@ def _get_json(client: httpx.Client, endpoint: str) -> dict:
         resp = client.get(url, headers=_auth_headers())
     except Exception as exc:
         logger.warning("dlc_api GET failed: %s", exc)
-        return {"error": f"dlc_api unreachable: {exc}"}
+        return {"error": "dlc_api unreachable"}
     try:
         return resp.json()
     except Exception as exc:
         logger.warning("dlc_api invalid response: %s", exc)
-        return {"error": f"invalid response: {exc}"}
+        return {"error": "invalid response from dlc_api"}
 
 
 def _format_submission(client: httpx.Client, req_id: object, endpoint: str, payload: dict) -> dict:

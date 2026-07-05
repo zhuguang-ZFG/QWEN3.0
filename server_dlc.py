@@ -22,7 +22,14 @@ from routes import images as images_router
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="DLC Drawing Service", version="0.4.0-p3")
+# P1: disable interactive docs on the public entrypoint (SEC-05).
+app = FastAPI(
+    title="DLC Drawing Service",
+    version="0.4.0-p3",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 app.include_router(dlc_router)
 app.include_router(images_router.router)
 register_device_app_routes(app)

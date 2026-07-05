@@ -551,3 +551,14 @@
 - **如何预防**：退役前先做入站流量取证（access log + established conns + journal），用数据而非推测判断服务死活；停服用 unit 改名而非 rm，保留可逆回滚。
 - **连带修复的既存 CI 债**：① `deploy-chat-web.yml` 缺 `npm install`（自 7-03 连续 4 次失败，esbuild ERR_MODULE_NOT_FOUND）；② `test.yml` pyright 仍引用已删的 `server.py`/`routing_engine/__init__.py`/`routes/chat_endpoints.py`（改为 `server_dlc.py`）。
 - **未做**：`/opt/lima-router-pilot`（1.1G）目录仅停服未删；彻底删除属独立任务。
+
+
+## 2026-07-07 GitHub 同类项目对照审查：核查结论与 P1 修复
+
+- **背景**：参考 GitHub 上类似 AI 路由/MCP 服务端项目做一次项目级代码审查，初版列出 4 个发现；逐条核查后纠正前提。
+- **P0 SSRF（draw_from_image 裸 fetch）— 误报，已防护**：初查怀疑 `svg_converter._download_image` 裸 `httpx.get(image_url)` 无内网过滤。核查发现：(1) `svg_converter.py` 在当前仓库**不存在**（审查时引用了幻觉/旧路径）；(2) 真实入口 `dlc_api/routes.py:_validate_image_url`（line 102）已实现三层防护——① 字面私有/loopback/link-local IP 拦截（`_is_private_ip`），② `ALLOWED_IMAGE_HOSTS = {api.telegram.org}` 白名单，③ `_resolve_hostname` DNS rebinding 防护（解析到私有 IP 即拒）；(3) 在 `/dlc/tasks/preview` 与 `/dlc/tasks/dispatch` 两入口的 `draw_from_image` 分支都调用该校验；(4) `tests/test_sec04_ssrf_hardening.py` 5 passed（DNS rebinding、白名单、字面私有 IP、localhost 全覆盖）。**结论：SSRF 防护已完整且正确，无需修改。**
+- **P1 /docs 暴露 — 真实，已修**：`server_dlc.py:25` 与 `dlc_api/app.py:9` 的 `FastAPI(title=...)` 未设 `docs_url/redoc_url/openapi_url=None`，公网入口暴露交互文档，可被枚举 API surface。`tests/test_server_docs_disabled.py` 早期删除后无回归保护。**修复**：两处 `FastAPI(...)` 显式 `docs_url=None, redoc_url=None, openapi_url=None`；新增 `tests/test_p1_security_hardening.py` 断言两个 app 的三个 URL 均为 None。
+- **P1 MCP 异常泄露内网 — 真实，已修**：`dlc_mcp/server.py` 的 `_submit`(line 94)/`_get_json`(line 109) 把 httpx 异常原样拼进返回 `error` 字段，含 `127.0.0.1:8081`，对外暴露内网拓扑。MCP endpoint 经小智云可达外部。**修复**：4 处 `f"...{exc}"` 改为通用文案（"dlc_api unreachable" / "invalid response from dlc_api"），详细 `exc` 仅 `logger.warning` 不返回；新增 2 个测试 mock `httpx.ConnectError` 断言返回文案不含 `127.0.0.1`/`8081`。
+- **P2 MCP 子进程 5s 终止窗口 — 误报**：初查引用 `mcp_pipe._run_session` finally 的 `terminate→wait(5s)→kill`。核查发现 `mcp_pipe.py` 当前仓库**不存在该函数**（审查引用了已删/幻觉路径）。MCP 子进程由 systemd 管理，无硬编码终止窗口。无需修改。
+- **核查通过的既存项**：SQL 注入（全参数化/ORM）、IDOR（account_id 作用域）、静默降级（生产路径无 `except: pass`）、secret 日志（无明文 token 落日志）。
+- **教训**：审查时引用的文件名/行号必须先 `Read` 确认存在，不能凭记忆/旧快照下结论；本次 P0/P2 两个误报都源于引用了不存在的符号。修正流程：先 `grep` 定位真实符号 → `Read` 全文 → 跑既有测试 → 再下结论。
