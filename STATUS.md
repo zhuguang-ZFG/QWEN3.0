@@ -54,7 +54,7 @@
 - **小程序端（§5）**：删除 chat/chat-history 页面和 API（对话走小智云）；简化 `getChatBaseUrl`（删除 aliyun 分流）；配网主路径切换为 SoftAP；版本号 3.8.7 → 3.9.0。vue-tsc 0 errors；uni build PASS；已上传微信平台。
 - **MCP 部署（§6）**：创建 `deploy/aliyun/dlc-mcp.service` systemd 模板 + `install_dlc_mcp.sh` 安装脚本。模式 A（官方云直连）：`dlc_mcp/mcp_pipe.py` 以 WebSocket 客户端身份连入 `wss://api.xiaozhi.me/mcp/?token=<JWT>`。
 - **Git**：子模块 `esp32S_XYZ` commit `bf1152c`（+197/-2086）；父仓库 commit `9143e90c` + `f58657ab`。均已 push origin main。
-- **待操作**：在小智云控制台获取 MCP endpoint token → VPS `.env` 配置 → `sudo bash deploy/aliyun/install_dlc_mcp.sh`
+- **✅ 已闭环（2026-07-06）**：用户提供小智云 MCP endpoint token（有效期至 2027-06），token 已合并进 VPS `/opt/dlc-drawing/.env`（备份 + 600 权限，不入 git）；`dlc-mcp.service` 已装并 enable，稳定连入小智云 MCP 接入点。链路补齐两个 P0 缺口：(1) `server.py` 补 `DLC_API_TOKEN` → dispatch/status 带 `Authorization: Bearer`（否则 401）；(2) `server.py` 补 MCP `ping` keepalive 处理（原缺失导致小智云每 ~24s 判协议违规断连）+ `mcp_pipe.py` 加指数退避重连。验证：MCP 握手全通（initialize/tools/list/ping）、`dev-test-1` dispatch 带 token 返回 `queued`（非 401）、服务连续存活 >3min 零 `ConnectionClosedError`。⚠️ 无真实绘图机硬件，链路验证止于「任务入队」，设备端执行待有硬件接入后验证。
 
 ### 最近完成（2026-07-05）P4+P5 系统瘦身 — 物理删除旧系统 + 深度死代码清理
 

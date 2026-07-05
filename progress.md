@@ -1383,3 +1383,19 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **保留**：`protocol_families.py`（绘图核心校验）、`sessions.py`（registry 被 `device_app_api._build_device_status` 生产引用）、全部绘图/任务/gallery 核心模块。
 - **未动**（最小改动，避免误伤）：`.env.example` 的 `LIMA_DEVICE_REDIS_URL` 仍被 `device_gateway/store.py` 使用不可删；`LIMA_DEVICE_WS_URL`/`session_bus` 字段成未用配置但无害，暂留。
 - **门禁**：基线 1407 passed → 退役后 **1349 passed / 3 skipped**（−58 为删掉的 WS/mqtt/dispatch/protocol 用例）；`ruff check` clean；`check_code_size` PASS；`codegraph_orphans` 清理 `device_ws_ticket` 后无新孤儿（`test_repo_hygiene` 因未跟踪 `.cocoindex_code/`/`.serena/` 失败，与本次无关，基线即存在）。
+
+## 2026-07-06 打通语音 → MCP → 绘图核心链路（dlc-mcp 接入小智云）
+
+- **前提**：用户提供小智云智能体 MCP endpoint token（`wss://api.xiaozhi.me/mcp/?token=<JWT>`，有效期至 2027-06），解除 STATUS.md:57 长期挂着的「待操作」。
+- **调查发现两个 P0 缺口**（读 `dlc_mcp/{mcp_pipe,server}.py` + `dlc_api` 路由 + deps）：
+  1. **鉴权缺口**：`dlc_api` 的 `/dlc/tasks/dispatch`、`/dlc/devices/{id}/status` 都 `Depends(verify_dlc_api_token)`（需 `Authorization: Bearer` + `device_id==token所属设备`），但 `server.py::_submit/_get_json` 是裸请求 → 必 401。
+  2. **MCP ping 缺口**：`handle_request` 不处理 MCP `ping` keepalive，回 `-32601` → 小智云判协议违规每 ~24s 断连，`mcp_pipe` 无重连 → systemd crash-loop。
+- **修复**（TDD，`.venv310`）：
+  - `server.py`：新增 `DLC_API_TOKEN` env → `_auth_headers()` 注入 `Authorization: Bearer`；补 `ping`→空 result、`notifications/*`→不回复；默认 `DLC_API_URL` `18080`→`8081`（对齐生产）。
+  - `mcp_pipe.py`：抽 `_run_session`，`run_bridge` 包指数退避重连循环（1→30s），`CancelledError` 放行以便 systemd 干净停止。
+  - `deploy/aliyun/dlc-mcp.service`：路径 `/opt/lima-router`→`/opt/dlc-drawing`、venv python、`ExecStart` 修正 server_cmd 带解释器前缀（原裸 `server.py` → PermissionError）。
+  - `deploy/aliyun/install_dlc_mcp.sh`：`.env` 路径 + 端口提示对齐。
+- **部署**：token 合并进 VPS `/opt/dlc-drawing/.env`（备份 `.env.bak-20260705-mcp` + chmod 600，token 全程不回显不入 git）；代码经 sftp 同步（md5 校验落地）；`install_dlc_mcp.sh` 装服务 enable。
+- **验证**：MCP 握手全通（initialize / notifications/initialized / tools/list 返回 4 个 dlc.* 工具 / ping）；`dev-test-1` 带 token dispatch → HTTP 200 `{"status":"queued","task_id":...}`（无 token 422）；服务连续存活 >3.5min、`ConnectionClosedError`=0、`NRestarts`=0。
+- **门禁**：`tests/test_dlc_mcp_server.py` 17 passed；ruff + format + check_code_size PASS。提交 `360a413b`（auth+路径）+ 后续 commit（ping+重连）已 push origin main。
+- **诚实边界**：VPS 仅占位设备 `dev-test-1`、无真实绘图机硬件，故链路验证止于「任务入队」；固件端 `HandleMotionTaskJson` 执行 + 语音端到端待有设备接入后验证。
