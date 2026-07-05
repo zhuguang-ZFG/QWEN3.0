@@ -1334,3 +1334,13 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **未动（有引用或风险）**：`logs/`（全部 <7 天，rotation 已生效）、`router_model.pkl`（`local_router.py` 等引用）、`opencode-source/`（`opencode_*.py` 引用）、`data/`（多个 .db 含 litestream 源）、活跃 sidecar 进程。
 - **验证**：裁剪后两节点 `dlc-drawing` + 全部活跃 sidecar（pilot/hermes/tts/mimo/longcat/kimi/voice + litestream）均 active；`:8081/health` 正常。
 - **后续更大决策（需用户拍板）**：彻底退役 `lima-router-pilot`(:8080) 可连带下线 mimo/longcat/kimi/hermes/tts sidecar 并再回收数百 MB，但会影响 chat-web/playground/manager-mobile H5 的匿名免费 chat——属产品级决策。
+
+## 2026-07-05 Aliyun pilot 免费 chat 链路退役
+
+- **背景**：审计确认 pilot(:8080) 入站真实流量为 0（详见 findings.md 同日条目），24h 空转探测失效后端，连带 6 个 sidecar。用户批准退役。
+- **阶段1（切前端引用）**：改 4 文件——`cloudflare/workers/chat-router.js`（移除 pilot 分支，恒回源 JDCloud）、`cloudflare/wrangler.toml`（删 PILOT_ORIGIN）、`chat-web/js/app-config.js`（shouldUsePilot 恒 false，保留 window.LiMaConfig 接口）、`donglicao-site-v2/app/developer/playground/page.tsx`（selectBaseUrl 恒主节点 + placeholder 文案）。commit + push origin main。
+- **既存 CI 修复**：`deploy-chat-web.yml` 补 `npm install`（修 7-03 起连续失败的 esbuild ERR_MODULE_NOT_FOUND）；`test.yml` pyright 路径 `server.py routing_engine/__init__.py routes/chat_endpoints.py` → `server_dlc.py`（P4/P5 已删旧文件）。
+- **部署验证**：GitHub Actions `Deploy Chat Router Worker` / `Deploy Next.js Site` / `Deploy Chat Web` 均 success；`curl chat.donglicao.com/v1/chat/completions` 响应头 `X-Lima-Backend: jdcloud`（不再 aliyun），确认前端已不走 pilot。
+- **阶段3（停后端）**：停服前只读复核——nginx proxy_pass 不直接指向任何 sidecar 端口；pilot :8080 established 连接空、journal 无新入站。逐个 stop+disable，unit 改名 `.retired-20260705`：`lima-router-pilot`/`mimo-proxy`/`longcat-web-proxy`/`kimi-proxy`/`hermes-api`/`tts-proxy`。daemon-reload + reset-failed。:8080 端口释放。
+- **终态验证**：两节点 `dlc-drawing` :8081/health ok；`lima-voice`(Aliyun)/`litestream`(JDCloud)/nginx 未受影响；`:8080` FREE。`/opt/lima-router-pilot`(1.1G) 仅停服未删。
+- **回滚**：前端 `git revert` → Actions 自动回滚；后端 unit `.retired-20260705` 改回原名 → daemon-reload → enable --now。

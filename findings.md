@@ -539,3 +539,13 @@
 - **阻塞 3（VPS 代码陈旧）**：两节点 `:8081` 跑的是旧 server_dlc（无 device_app 注册，`dlc_api/device_app_router.py` MISSING）。阶段A/B/C 的仓库变更尚未部署到 VPS。切流前必须先 `deploy_unified.py` 推送新代码并重启 `dlc-drawing`，验证 `:8081` 健康。
 - **根因（共性）**：P4/P5 瘦身"删旧系统模块"时，把小程序仍在用的 `device_app_images/voice/chat` 当死代码删了，但小程序前端并未同步移除这些调用——前后端瘦身不同步。这也是"瘦身不彻底/不一致"的一个具体实例。
 - **预防**：删除任何 `device_app_*`/对外 API 模块前，必须 grep 小程序 `manager-mobile/src` 的真实 HTTP 调用（不是 `@/api` 源码别名）确认无引用；切流生产入口前必须端点级 diff（旧 `:8080` openapi vs 新 `:8081` openapi）而非仅路由计数。
+
+## 2026-07-05 Aliyun pilot 免费 chat 链路退役（入站流量为 0）
+
+- **现象**：Aliyun `lima-router-pilot.service`(:8080) + 6 个后端 sidecar（mimo/longcat/kimi/hermes/tts）常年运行，占 `/opt/lima-router-pilot` 1.1G，但疑似无真实用户。
+- **复现/取证**：过去 24h 全部 nginx access log 中 `POST /v1/chat/completions` 入站命中 = **0**；pilot uvicorn 入站 access 行（journal last 3000）= **0**；pilot access log 唯一非监控客户端 IP 是 `117.72.118.95`（JDCloud 主节点自己）；established 连接到 :8080 为空。pilot 出站 chat/completions 787 条全是 `backend_probe_loop` 探测（大量 401/dead）。
+- **根因**：前端匿名 chat 分流早已名存实亡——CF Worker `lima-chat-router` 曾把匿名 chat 转 pilot，但 (1) manager-mobile v3.9.0 已删 aliyun 分流；(2) JDCloud 主节点 `/v1/chat/completions` 本身已随瘦身退役（现返回 410 Gone）。pilot 在无人使用的情况下 24h 空转探测失效后端。
+- **修复**：先切前端引用后停后端。① CF Worker 移除 pilot 分支（恒回源 JDCloud）；② `wrangler.toml` 删 `PILOT_ORIGIN`；③ chat-web `app-config.js` `shouldUsePilot` 恒 false；④ 官网 playground `selectBaseUrl` 恒主节点。经 GitHub Actions 部署（Worker/Pages/Next.js 三条 workflow success）。验证 `chat.donglicao.com/v1/chat/completions` 响应头 `X-Lima-Backend: jdcloud`（不再 aliyun）。随后 Aliyun 停 pilot + 6 sidecar，unit 改名 `.retired-20260705`（可逆），:8080 端口释放。
+- **如何预防**：退役前先做入站流量取证（access log + established conns + journal），用数据而非推测判断服务死活；停服用 unit 改名而非 rm，保留可逆回滚。
+- **连带修复的既存 CI 债**：① `deploy-chat-web.yml` 缺 `npm install`（自 7-03 连续 4 次失败，esbuild ERR_MODULE_NOT_FOUND）；② `test.yml` pyright 仍引用已删的 `server.py`/`routing_engine/__init__.py`/`routes/chat_endpoints.py`（改为 `server_dlc.py`）。
+- **未做**：`/opt/lima-router-pilot`（1.1G）目录仅停服未删；彻底删除属独立任务。

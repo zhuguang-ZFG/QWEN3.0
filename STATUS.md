@@ -15,10 +15,11 @@
 > 入口: `server_dlc.py`（注册 `dlc_router` 5 端点 + `/v1/images/generations` + `device_app_*` 小程序路由约 70 条 `/device/v1/app/*`）
 > 架构: `server_dlc.py → dlc_api/（routes + device_app_router 聚合器）→ dlc_core/ → device_gateway/`（任务生成链）
 >
-> ### ⚠️ VPS 生产拓扑实况（2026-07-05 阶段 D + 生产清理完成后更新）
+> ### ⚠️ VPS 生产拓扑实况（2026-07-05 阶段 D + 生产清理 + pilot 退役完成后更新）
 > nginx `chat.donglicao.com` 现把 `/dlc/*` 与 `/device/*` 代理到 **`:8081` 新 `server_dlc`**；旧 `lima-router.service`(:8080) 已 `stop+disable`（Aliyun）。
 > **两节点已标准化到 `/opt/dlc-drawing`**：Aliyun + JDCloud 均用 `WorkingDirectory=/opt/dlc-drawing` + `/opt/dlc-drawing/.venv/bin/python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081`。
-> **Aliyun 残留**：`/opt/lima-router` 目录仍保留——被 7+ 个 sidecar 引用（`lima-router-pilot`/`hermes-api`/`tts-proxy`/`mimo-proxy`/`litestream`/`longcat-web-proxy`/`kimi-proxy`）；**`lima-scnet-reverse.service`（SCNet sidecar，:4505）已于 2026-07-05 退役**（unit 改名 `.retired-20260705`）。`lima-router-pilot.service`（:8080 子域名 `aliyun-pilot.donglicao.com`）是独立组件，保留。
+> **Aliyun pilot 免费 chat 链路已退役（2026-07-05）**：审计确认 pilot（`lima-router-pilot`，:8080）入站真实流量 = 0（24h nginx access + uvicorn journal 中 `POST /v1/chat/completions` 入站 0，唯一非监控 IP 是 JDCloud 自己），24h 在空转探测一批多已 401 的失效免费后端。先切前端引用（CF Worker / chat-web `app-config.js` / 官网 playground 移除 pilot 分流，验证 `X-Lima-Backend: jdcloud`），再停 pilot + 6 个孤儿 sidecar（`lima-router-pilot`/`mimo-proxy`/`longcat-web-proxy`/`kimi-proxy`/`hermes-api`/`tts-proxy`），unit 全部改名 `.retired-20260705`（可逆），`:8080` 已释放。`lima-scnet-reverse.service`（SCNet sidecar，:4505）此前已于同日退役。
+> **`/opt/lima-router` 目录仍保留**：`litestream.service` 仍依赖它复制 `health_state.db`；`/opt/lima-router-pilot`（1.1G）与 `/opt/lima-router` 目录仅停服未删，后续可回收。
 > **JWT secret**：2026-07-05 已轮换——旧固定串 `xiaozhi-prod-secret-key-2026`（28B，低于 RFC 7518 推荐）→ 随机 32B urlsafe；两节点 `.env` 一致（sha256 `6352a64a22b8…`）；旧设备/小程序 token 全部失效，需重新登录。备份：`/opt/dlc-drawing/.env.bak-20260705-jwt`。
 > **nginx `.bak`**：2026-07-05 已清理（Aliyun 30 + JDCloud 3 → 0）；活跃 `.conf` 未动，`nginx -t` + reload 通过。
 > 生产设备状态：**研发阶段，无线上存量设备**（用户确认），故旧 `/device/v1/ws` 语音/网关链路无真实依赖，可安全退役。
