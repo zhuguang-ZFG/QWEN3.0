@@ -9,11 +9,15 @@
 
 > Updated: 2026-07-06
 > Branch: `main`
-> Scale: P5 瘦身后约 280 个 Python 文件 / ~18,000 行（删除 903 文件 / 171,000 行旧代码）
-> Tests: **1548 passed / 3 skipped / 0 failed**；ruff check clean；check_code_size PASS
+> Scale: 实测 git 跟踪应用 py = **324 文件 / 37,919 行**（不含 tests/venv）。⚠️ 旧「280 文件 / 18,000 行」为失真记录，已更正。
+> Tests: **1523 passed / 3 skipped / 0 failed**；ruff check clean；check_code_size PASS
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**
-> 入口: `server_dlc.py`（DLC 专用，不再注册 Chat/Admin/Voice 路由）
-> 架构: `server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/ → routes/device_app_*`
+> 入口: `server_dlc.py`（DLC 专用，仅注册 `dlc_router` 5 端点）
+> 架构: `server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/`（任务生成链）
+>
+> ### ⚠️ VPS 生产拓扑实况（2026-07-06 SSH 核查，Strangler Fig 只完成一半）
+> nginx `chat.donglicao.com` 仍把 **除 `/dlc/` 外的全部路径**（`/chat/ /admin /api/ /agent/ /device/v1/ws /digital-human/ /fleet/ /v1/voice`）代理到 **`:8080` 旧 `server:app`（完整旧系统仍在跑）**；仅 `/dlc/*` → `:8081` 新 `server_dlc`。`/opt/lima-router/` 上仓库已删的 `server.py`/`server_lifespan*.py` 等旧文件仍在。**结论：瘦身只"建了新入口"，从未"退役旧系统"——旧全量系统仍是生产主处理器。**
+> 生产设备状态：**研发阶段，无线上存量设备**（用户确认），故旧 `/device/v1/ws` 语音/网关链路无真实依赖，可安全退役。
 > MCP: `dlc_mcp/mcp_pipe.py` ← systemd `dlc-mcp.service` → 小智云 `wss://api.xiaozhi.me/mcp/`
 > 固件: U8 `self.plotter.write_text` / `self.plotter.draw_generated`（设备端调 dlc_api 生成路径 → 本地执行）
 > 小程序: v3.9.0（对话走小智云，绘图走 DLC；SoftAP 配网主路径）
