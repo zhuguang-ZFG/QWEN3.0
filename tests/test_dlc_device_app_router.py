@@ -27,6 +27,8 @@ def test_server_dlc_exposes_device_app_and_dlc() -> None:
     paths = {r.path for r in server_dlc.app.routes}
     # 小程序核心端点
     assert "/device/v1/app/devices" in paths
+    # 小程序 AI 绘图端点（P4/P5 误删后恢复）
+    assert "/device/v1/app/images/generations" in paths
     # DLC 绘图端点保持不变
     assert "/dlc/tasks/dispatch" in paths
     assert "/dlc/tasks/preview" in paths

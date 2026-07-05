@@ -7,20 +7,35 @@
 > **公网端点**: `chat.donglicao.com/dlc/*`（DLC API）
 > **部署**: Aliyun (`47.112.162.80`) + JDCloud (`117.72.118.95`) 双节点，`dlc-drawing` systemd 服务（端口 8081），nginx 反代 `/dlc/` 路由
 
-> Updated: 2026-07-06
+> Updated: 2026-07-05
 > Branch: `main`
-> Scale: 实测 git 跟踪应用 py = **324 文件 / 37,919 行**（不含 tests/venv）。⚠️ 旧「280 文件 / 18,000 行」为失真记录，已更正。
-> Tests: **1523 passed / 3 skipped / 0 failed**；ruff check clean；check_code_size PASS
+> Scale: 实测 git 跟踪应用 py = **294 文件 / 34,983 行**（不含 tests/venv）。⚠️ 旧「280 文件 / 18,000 行」为失真记录，已更正。2026-07-06 瘦身三阶段共删约 11,900 行死代码（cloud_services/reference/device_support/observability 死模块/ops_metrics/WS 网关/OTA/旧中间件/死配置）。
+> Tests: **1408 passed / 3 skipped / 0 failed**；ruff check clean；pyright 改动文件 0 errors；check_code_size PASS
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**
-> 入口: `server_dlc.py`（DLC 专用，仅注册 `dlc_router` 5 端点）
-> 架构: `server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/`（任务生成链）
+> 入口: `server_dlc.py`（注册 `dlc_router` 5 端点 + `/v1/images/generations` + `device_app_*` 小程序路由约 70 条 `/device/v1/app/*`）
+> 架构: `server_dlc.py → dlc_api/（routes + device_app_router 聚合器）→ dlc_core/ → device_gateway/`（任务生成链）
 >
 > ### ⚠️ VPS 生产拓扑实况（2026-07-06 SSH 核查，Strangler Fig 只完成一半）
 > nginx `chat.donglicao.com` 仍把 **除 `/dlc/` 外的全部路径**（`/chat/ /admin /api/ /agent/ /device/v1/ws /digital-human/ /fleet/ /v1/voice`）代理到 **`:8080` 旧 `server:app`（完整旧系统仍在跑）**；仅 `/dlc/*` → `:8081` 新 `server_dlc`。`/opt/lima-router/` 上仓库已删的 `server.py`/`server_lifespan*.py` 等旧文件仍在。**结论：瘦身只"建了新入口"，从未"退役旧系统"——旧全量系统仍是生产主处理器。**
 > 生产设备状态：**研发阶段，无线上存量设备**（用户确认），故旧 `/device/v1/ws` 语音/网关链路无真实依赖，可安全退役。
+>
+> ### 瘦身进度（2026-07-06）
+> - ✅ 阶段A（`040d72bb`）：`server_dlc` 补注册 `device_app_*` 小程序路由——现单一入口已可承载绘图 + 小程序 API，为 nginx 切流铺路。
+> - ✅ 阶段B+C（`078d49be`）：物理删除 WS 语音网关链 / OTA / 旧中间件 / observability 死模块 / ops_metrics / 死配置（`structured_logging`、`routing_guard_*`、`alert_evaluator`）+ 连带死测试。
+> - ⏳ 阶段D（**待执行，高风险 SSH 操作**）：VPS 旧系统退役——nginx 把 `/device/ /api/ /admin` 等小程序仍需路径从 `:8080` 改指 `:8081`，删除已退役功能 location，`systemctl stop/disable lima-router`（旧 `:8080`），清理 `/opt/lima-router/` 上已删旧文件。此步真正让生产瘦下来，需单独确认后执行。
 > MCP: `dlc_mcp/mcp_pipe.py` ← systemd `dlc-mcp.service` → 小智云 `wss://api.xiaozhi.me/mcp/`
 > 固件: U8 `self.plotter.write_text` / `self.plotter.draw_generated`（设备端调 dlc_api 生成路径 → 本地执行）
 > 小程序: v3.9.0（对话走小智云，绘图走 DLC；SoftAP 配网主路径）
+
+### 最近完成（2026-07-05）图像生成路由恢复完善
+
+- **范围**：P4/P5 瘦身时随旧 `server.py` 一起丢失的 `/v1/images/generations` 与小程序 `/device/v1/app/images/generations` 在新入口 `server_dlc.py` 下恢复。
+- **恢复文件**：`routes/images.py`、`routes/images_backends.py`、`routes/images_cache.py`、`routes/images_pollinations.py`、`routes/device_app_images.py`。
+- **关键修复**：`routes/images_backends.py` 中已删除的 `http_async.call_raw_async` 替换为直接 httpx 调用 `https://ai.xmiaom.com/v1/chat/completions`，避免生产 `ImportError`。
+- **注册**：`server_dlc.py` 新增 `app.include_router(images_router.router)`；`dlc_api/device_app_router.py` 已注册 `device_app_images`。
+- **测试**：新增 `tests/test_routes_images.py`（11 用例覆盖公网/小程序端点成功、鉴权失败、参数校验、缓存命中）；更新 `tests/device_app_helpers.py` 重新 include `device_app_images`。
+- **门禁**：pytest **1408 passed / 3 skipped / 0 failed**；ruff check + format clean；pyright 改动文件 0 errors；`check_code_size.py` PASS。
+- **待验证**：VPS 部署后用真实 key 对 `/v1/images/generations` 与 `/device/v1/app/images/generations` 冒烟。
 
 ### 最近完成（2026-07-06）固件 U8 plotter MCP 工具 + 小程序 v3.9.0 + MCP 部署脚本
 

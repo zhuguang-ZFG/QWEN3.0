@@ -2,6 +2,40 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-05 图像生成路由恢复完善：/v1/images/generations + /device/v1/app/images/generations
+
+- **背景**：P4/P5 系统瘦身时旧 `server.py` 退役，`/v1/images/generations` 与小程序 `/device/v1/app/images/generations` 随旧入口一起丢失。Chat Web、SDK、小程序 AI 绘图功能依赖这两个端点，需在新入口 `server_dlc.py` 下恢复。
+- **恢复的文件**：
+  - `routes/images.py`：OpenAI-compatible `/v1/images/generations`，主后端 xmiaom `gpt-image-2`，降级链 Agnes → SiliconFlow → Zhipu → Baidu → Tencent → Volcengine → FreeTheAi，最终兜底 Pollinations.ai。
+  - `routes/images_backends.py`：各后端具体实现；**替换已删除的 `http_async.call_raw_async` 为直接 httpx 调用 `https://ai.xmiaom.com/v1/chat/completions`**，避免运行时 `ImportError`。
+  - `routes/images_cache.py`：进程内生图缓存（TTL + 最大条目驱逐）。
+  - `routes/images_pollinations.py`：Pollinations.ai URL builder + 中文 prompt 翻译兜底。
+  - `routes/device_app_images.py`：小程序认证版 `/device/v1/app/images/generations`，对外统一返回品牌标签 `LiMa 生图`。
+- **注册与测试**：
+  - `server_dlc.py` 显式 `app.include_router(images_router.router)`，恢复公网 `/v1/images/generations`。
+  - `dlc_api/device_app_router.py` 已注册 `device_app_images`（阶段 A 工作），本次补测试覆盖。
+  - 新增 `tests/test_routes_images.py`：11 个用例覆盖公网端点成功/鉴权失败/参数校验/缓存命中、小程序端点成功/鉴权失败/空 prompt、`server_dlc` 路由暴露断言。
+  - 更新 `tests/device_app_helpers.py`：把已恢复的 `device_app_images` 路由重新 include 进测试 app。
+- **门禁**：pytest **1408 passed / 3 skipped / 0 failed**；ruff check + format clean；pyright 改动文件 0 errors；`check_code_size.py` PASS。
+- **待验证**：部署到 VPS 后用真实 `XMIAOM_API_KEY` 等 key 调用 `/v1/images/generations` 与 `/device/v1/app/images/generations` 冒烟（ Pollinations 兜底无需 key 也可初步验证链路）。
+
+## 2026-07-06 系统瘦身彻底化 A/B/C：补注册小程序路由 + 删死代码 + 清死配置
+
+- **背景**：调查确认"瘦身声称完成但未彻底"——Strangler Fig 只"建新入口"（`server_dlc`），从未"退役旧系统"。VPS 上旧 `server:app`(:8080) 仍是生产主处理器；仓库里大量模块因旧入口（`server.py`/`route_registry.py` 已删）失去可达性但从未物理删除。实测应用 py 规模 294 文件 / 34,983 行（旧 STATUS 记录「280/18000」失真，已更正）。
+- **可达性方法**：从 `server_dlc.py` 出发做 AST 全导入闭包遍历（含函数体内惰性 import），逐一裁决活/死/补注册，跳过 `.worktrees`/`tests`。
+- **阶段 A（`040d72bb`）补注册小程序路由**：`device_app_*` 从 `server_dlc` 静态不可达，但微信小程序 v3.9.0 在用（当前靠旧 :8080）——是漏注册而非死代码。新建 `dlc_api/device_app_router.py` 聚合器，`register_device_app_routes()` 显式 include 15 个顶层 router。`server_dlc` 现注册 ~127 条路由（5 DLC + ~70 device_app + 子路由）。新增 `tests/test_dlc_device_app_router.py` 护栏。
+- **阶段 B+C（`078d49be`）删死代码 + 死配置**：
+  - WS 语音网关链（8）：`device_gateway_ws*`、`device_gateway.py`、`device_gateway_hello_helpers`、`device_gateway_query_routes`、`device_gateway_events_routes`（保留 `device_gateway_dispatch.py`——经 `dlc_core.dispatch` 可达）。
+  - OTA 链：`routes/device_ota*`(3) + `device_ota/` 包(8)。
+  - 旧中间件/WS 工具：`request_id_middleware`、`security_headers`、`stream_handlers`、`upload_tokens`、`ws_common`、`ws_lifecycle_helpers`、`ws_task_helpers`、`async_compat`、`client_keys_store`、`device_admin`、`device_timeline_routes`、`handwriting`。
+  - 连带删 20 个仅测死模块的测试 + `tests/conftest.py` 引用已删 `device_gateway_hello_helpers` 的 autouse attestation fixture。
+  - 死配置：`ObservabilityConfig.structured_logging` + 4×`routing_guard_*`；`node_role.py` 的 `alert_evaluator_enabled()`/`structured_logging_enabled()`；`tests/_env_sync_observability_maps.py` 对应映射；删死测试 `test_observability_structured_logging.py`。
+  - 死部署脚本 `deploy/deploy_prometheus_metrics.py`（引用已删 `prometheus_exporter`）；`deploy_unified` 的 `SLICE_FILES` phase_a/phase_b（引用已删 `routing_engine`/`context_pipeline`）+ argparse choices。
+  - 门禁配置修复：`.tmp` 加入 `.gitignore` + ruff exclude；清理悬空的 `reference/**` exclude。
+- **本次累计删除**：约 -5,600 行（阶段 B+C 提交 62 文件 -5643）。加上更早的 cloud_services/reference/device_support(`ca600dff`)、observability/ops_metrics(`4ac2ca33`)，本轮瘦身共移除约 11,500 行 / ~98 文件。
+- **门禁**：阶段 A 1523 passed；阶段 B+C 1397 passed / 3 skipped / 0 failed；ruff check + format clean；check_code_size PASS。
+- **未完成（阶段 D，高风险 VPS 操作，待单独执行）**：nginx 把 `/device/ /api/ /admin` 等小程序仍需路径从 :8080 切到 :8081；停用旧 `lima-router`(:8080)；清理 `/opt/lima-router/` 上已删的 `server.py`/`server_lifespan*.py`。这是让**生产**真正瘦身的关键一步，仓库层已就绪。
+
 ## 2026-07-06 固件端改造 U8：新增 plotter MCP 工具 + 配网 SSID 前缀变更
 
 ## 2026-07-06 MCP 接入部署 + 小程序上传 + Git 提交推送
