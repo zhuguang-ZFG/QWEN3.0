@@ -24,8 +24,16 @@
   1. **VPS 部署同步**：确认 VPS 是否运行旧代码 → 部署新 `server_dlc.py` + 新 `dlc-drawing.service` → 切换服务名 `lima-router`→`dlc-drawing`。这是部署操作，不能仅改仓库。
   2. **设备网关 WSS 路由注册**：`server_dlc.py`/`dlc_api.app` 只注册了 `dlc_router`，**未注册 `routes/device_gateway.py` 的 `/ws` WebSocket 端点**。设备通过WSS取Redis队列任务的半条链没有对外端点。需确认是 WSS 路由漏注册（需补注册），还是设备通过别的方式取任务（HTTP轮询/MQTT），再决定是否物理删除 `routes/device_gateway*`。
   3. `sdk/`（5 文件，对外 Python SDK）是否保留——属交付物，非服务端死代码。
-  4. `observability/` 13 个非 prometheus 模块是否删除——仅被未注册的 `routes/ops_metrics/*` 引用。
+  4. ~~`observability/` 13 个非 prometheus 模块是否删除~~ **（2026-07-06 已删，见下）**。
   5. `routes/` 中 ~54 个未注册路由模块的去留取决于"WSS 是否需注册"。
+
+- **续（本轮第二切片）物理删除 observability ops-metrics 死子系统**：
+  - 证据：`server.py`/`server_lifespan.py`/`server_bootstrap.py` 全已删；`server_dlc.py` 无 lifespan，只挂 startup 日志。`observability/__init__.py` 为空，所有生产引用均为 `from observability import prometheus_metrics`；`prometheus_metrics.py` 只依赖 4 个 `prometheus_*` 子模块，零引用下列死模块。
+  - 删除（13 模块）：`telemetry_aggregator`、`backend_telemetry`、`cli_telemetry`、`jsonl_store`、`alert_evaluator`、`routing_guard`、`gray_metrics`、`metrics`、`events`、`probe_state`、`stack_dump`、`structured_logging`、`prometheus_exporter`。
+  - 删除 `routes/ops_metrics/`（整组，唯一外部引用是 `alert_evaluator.py` 函数体内惰性 import，已随之删除）。
+  - 删除 6 个对应测试：`test_alert_evaluator`、`test_cli_telemetry`、`test_jsonl_store`、`test_observability_metrics`、`test_telemetry_aggregator`、`test_observability_trace_buffer` + `tests/ops_metrics_helpers.py`。
+  - 保留：`prometheus_metrics`、`prometheus_device_task_metrics`、`prometheus_handwriting_metrics`、`prometheus_image_metrics`、`prometheus_startup_metrics`、`correlation`（生产可达）。
+  - 残留死配置（本轮未动，避免扩大改动面）：`config/node_role.py::alert_evaluator_enabled/structured_logging_enabled`、`config/settings_core.py::structured_logging/routing_guard_*` 字段零消费方，留待后续统一清理。
 - **预防**：P4/P5 物理删除后必须同步更新部署脚本的文件清单和服务入口，否则仓库与 VPS 分叉导致"声称瘦身的文件在生产还在跑"。
 
 ## 2026-07-06 §13 安全审计续：S3 限流 + S10 幂等去重（dlc_api）
