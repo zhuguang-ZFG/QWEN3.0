@@ -530,3 +530,12 @@
 - [ ] `install_dlc_mcp.sh` 在 VPS 上执行
 - [ ] 设备端 NVS token 写入流程验证（配网时小程序下发）
 - [ ] 端到端：语音 → 小智云 → MCP → dlc_api → 路径生成 → 设备执行
+
+## 2026-07-06 阶段D 前置验证：发现 3 个切流阻塞（诚实 block）
+
+- **现象**：准备把 nginx 生产流量从旧 `:8080` 切到瘦身版 `server_dlc:8081` 前，逐一验证小程序 v3.9.0 所需端点，发现 3 个问题，全部会在切流时断掉小程序，故 STOP 未切。
+- **阻塞 1（缺失端点，🔴 硬阻塞，需产品决策）**：小程序活跃页面 `ai-draw.vue`（AI 绘图）调 `/device/v1/app/images/generations`，`useVoiceStream.ts`（语音）调 `/device/v1/app/voice/ticket` + `/voice/transcribe`。提供这些的 `routes/device_app_images.py`、`device_app_voice.py`、`device_app_chat.py` **在 P4/P5 瘦身（commit 89f59be7 / 992afa0f）时已被删除**，当前仓库无实现。这些端点现由 VPS 旧 `:8080` 系统承载；一旦切流到 `:8081` 会 404。**决策点**：这三个功能（AI 绘图 / 语音 ticket / 语音转写）是保留还是废弃？保留则需从旧系统恢复/重写这三个模块并注册进 server_dlc；废弃则需先改小程序移除对应页面再切流。
+- **阻塞 2（双前缀 bug，我引入，可自修）**：阶段A 聚合器 `dlc_api/device_app_router.py` 把 `device_app_api.router` 顶层注册，而 `device_app_api.py:255` 又 `include_router(device_app_sharing)`——两者都带 `prefix="/device/v1/app"`，导致 sharing 路由变成 `/device/v1/app/device/v1/app/devices/{id}/share`（前缀叠加）。根因：`device_app_sharing` 被父 include 时已自带完整 prefix，不应再有自己的 prefix，或聚合器不应重复。**修复方向**：改 sharing router 去掉自带 prefix（因它总是被 include 到已有 prefix 的父下），或在 device_app_api include 时不传 prefix。需单独 TDD 修复。
+- **阻塞 3（VPS 代码陈旧）**：两节点 `:8081` 跑的是旧 server_dlc（无 device_app 注册，`dlc_api/device_app_router.py` MISSING）。阶段A/B/C 的仓库变更尚未部署到 VPS。切流前必须先 `deploy_unified.py` 推送新代码并重启 `dlc-drawing`，验证 `:8081` 健康。
+- **根因（共性）**：P4/P5 瘦身"删旧系统模块"时，把小程序仍在用的 `device_app_images/voice/chat` 当死代码删了，但小程序前端并未同步移除这些调用——前后端瘦身不同步。这也是"瘦身不彻底/不一致"的一个具体实例。
+- **预防**：删除任何 `device_app_*`/对外 API 模块前，必须 grep 小程序 `manager-mobile/src` 的真实 HTTP 调用（不是 `@/api` 源码别名）确认无引用；切流生产入口前必须端点级 diff（旧 `:8080` openapi vs 新 `:8081` openapi）而非仅路由计数。
