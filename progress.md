@@ -1359,3 +1359,13 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
   - `test.yml`：`Type check authority files` 仍 pyright 已删的 `server.py`/`routing_engine/__init__.py`/`routes/chat_endpoints.py`（exit 4）。改指现存入口 `server_dlc.py`。**`Tests` workflow 恢复绿灯**（7-01 以来首次）。
   - `scripts/verify_production_deploy.py`：断言已退役的 `/device/v1/health`(404) + `metrics`(410 Gone)。精简为只检 `/health` + L2 限流；删死函数 `_check_metrics`/`_load_key` 及孤立 `Path`/`ROOT`。
 - **pilot 目录回收**：`/opt/lima-router-pilot`（1.1G，仅停服的孤儿）复核无引用（仅 `.retired` unit）后删除；env 文件（`.env`+`.env.merged`，含密钥）先备份到 VPS `/root/lima-router-pilot-env-backup-20260705.tar.gz`（chmod 600）。磁盘 used 22G→21G。`dlc-drawing` 仍健康。`/opt/lima-router` 保留（`litestream` 仍依赖其复制 `health_state.db`）。
+
+## 2026-07-05 生产目录彻底回收：/opt/lima-router* 三处清理
+
+- **背景**：pilot 链路退役后，`/opt/lima-router-pilot` 与两节点 `/opt/lima-router` 成为仅停服的孤儿目录，占用大量磁盘。
+- **`/opt/lima-router-pilot`（Aliyun，1.1G）**：唯一引用是已退役 `.retired` unit，nginx/进程/cron 无引用，自包含无独有数据库。备份 `.env`+`.env.merged`（含密钥）→ `/root/lima-router-pilot-env-backup-20260705.tar.gz`（600）后删除。磁盘 22G→21G used。
+- **`/opt/lima-router`（Aliyun，871M）**：所有引用服务（lima-router / litestream / sidecar）全部 inactive，无 active 引用（`systemctl` 逐服务 grep 确认 0 ACTIVE-REF）。备份 `.env`+data 小型 db+litestream 配置（不含 120M chroma 死向量库）→ `/root/lima-router-aliyun-backup-20260705.tar.gz`（600）后删除。磁盘 21G→20G used。lima-voice 仍 active 不受影响。
+- **`/opt/lima-router`（JDCloud，1.3G）**：`litestream.service` 仍 active，但其复制的 `health_state.db` 写入者（旧 lima-router）已退役，mtime 停在 18:21（回收时 23:16，陈旧 5h），dlc-drawing 用独立 `/opt/dlc-drawing/data/health_state.db`——litestream 在持续备份死库。停 litestream（stop+disable+unit 改名 `.retired-20260705`，可逆）→ 确认 `fuser` 无持有者 → 备份 `.env`+小 db+litestream 配置 → 删除。磁盘 26G→25G used。dlc-drawing 健康。
+- **保留恢复凭据**：三处 unit 均改名 `.retired-20260705` 而非删除；三份备份 tar 保留在各节点 `/root`。
+- **回收合计**：Aliyun ~2G（pilot 1.1G + lima-router 871M）+ JDCloud 1.3G ≈ 3.3G。
+- **Deploy workflow 修复**：`deploy.yml` 主部署步骤从误标的 "Aliyun primary"（keyscan 扫 VPS_HOST 却因脚本默认 target=jdcloud 实连 JDCloud、host key 不匹配→RejectPolicy→密码回退撞同一策略再抛→崩溃）对齐到 JDCloud（keyscan JDCLOUD_HOST + 显式 `--target jdcloud` + JDCLOUD_HOST_SET 守卫）。`Deploy`/`Tests`/`CodeQL` 三条 workflow 恢复全绿，deploy job 各步骤真跑通（部署+verify+probe 均 success）。⚠️ 行为变更：Aliyun 不再由该 workflow 自动部署（生产入口本就是 JDCloud）。
