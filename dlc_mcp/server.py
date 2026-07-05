@@ -222,6 +222,15 @@ def handle_request(client: httpx.Client, req: dict) -> dict:
     if method == "tools/call":
         return _handle_tools_call(client, req_id, req.get("params", {}))
 
+    # MCP keepalive: XiaoZhi periodically sends ping; spec requires an empty result.
+    # Without this the broker treats the connection as unhealthy and closes it (~24s).
+    if method == "ping":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {}}
+
+    # Notifications (no id, e.g. notifications/initialized) require no response.
+    if method and method.startswith("notifications/"):
+        return {}
+
     return _tool_error(req_id, -32601, "Method not found")
 
 

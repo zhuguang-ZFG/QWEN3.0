@@ -80,14 +80,16 @@ async def _stderr_logger(proc: asyncio.subprocess.Process) -> None:
         sys.stderr.flush()
 
 
-async def run_bridge(endpoint: str, server_cmd: list[str], user_agent: str) -> int:
-    if not endpoint:
-        print("missing MCP endpoint; set --endpoint or MCP_ENDPOINT", file=sys.stderr)
-        return 2
+# Reconnect backoff bounds (seconds). XiaoZhi closes idle MCP connections, so a
+# single session ending is normal — we reconnect instead of crashing out.
+_RECONNECT_MIN_DELAY = 1.0
+_RECONNECT_MAX_DELAY = 30.0
 
+
+async def _run_session(endpoint: str, server_cmd: list[str], user_agent: str) -> None:
+    """Run one bridge session: spawn a fresh stdio server, connect, pump until WS closes."""
     proc = await _spawn_stdio_server(server_cmd)
     headers = {"User-Agent": user_agent}
-
     try:
         async with websockets.connect(endpoint, **_websocket_header_kwargs(websockets.connect, headers)) as ws:
             await asyncio.gather(
@@ -103,13 +105,38 @@ async def run_bridge(endpoint: str, server_cmd: list[str], user_agent: str) -> i
             except asyncio.TimeoutError:
                 proc.kill()
                 await proc.wait()
-    return 0
+
+
+async def run_bridge(endpoint: str, server_cmd: list[str], user_agent: str) -> int:
+    if not endpoint:
+        print("missing MCP endpoint; set --endpoint or MCP_ENDPOINT", file=sys.stderr)
+        return 2
+
+    delay = _RECONNECT_MIN_DELAY
+    while True:
+        try:
+            await _run_session(endpoint, server_cmd, user_agent)
+            # Clean session end (WS closed by peer) — reset backoff and reconnect.
+            delay = _RECONNECT_MIN_DELAY
+        except asyncio.CancelledError:
+            # systemd stop / KeyboardInterrupt — exit the loop cleanly.
+            raise
+        except Exception as exc:
+            print(f"bridge session ended: {type(exc).__name__}: {exc}; reconnecting in {delay:.0f}s", file=sys.stderr)
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, _RECONNECT_MAX_DELAY)
+            continue
+        # Brief pause before reconnecting after a clean close to avoid a tight loop.
+        await asyncio.sleep(_RECONNECT_MIN_DELAY)
 
 
 def main() -> None:
     args = build_arg_parser().parse_args()
     server_cmd = args.server_cmd or _default_server_cmd()
-    raise SystemExit(asyncio.run(run_bridge(args.endpoint, server_cmd, args.user_agent)))
+    try:
+        raise SystemExit(asyncio.run(run_bridge(args.endpoint, server_cmd, args.user_agent)))
+    except KeyboardInterrupt:
+        raise SystemExit(0) from None
 
 
 if __name__ == "__main__":

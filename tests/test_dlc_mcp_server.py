@@ -67,6 +67,27 @@ def test_tools_call_unknown_method() -> None:
     assert response["error"]["code"] == -32601
 
 
+def test_ping_returns_empty_result() -> None:
+    """MCP spec: ping must return an empty result object, not an error.
+
+    XiaoZhi sends periodic ping keepalives; replying with -32601 makes it treat
+    the connection as protocol-violating and close it (~24s crash loop).
+    """
+    client = httpx.Client()
+    response = handle_request(client, {"jsonrpc": "2.0", "id": 8, "method": "ping"})
+    assert "error" not in response
+    assert response["result"] == {}
+    assert response["id"] == 8
+
+
+def test_notifications_initialized_is_ignored() -> None:
+    """Notifications carry no id and expect no response; handler must not error out."""
+    client = httpx.Client()
+    response = handle_request(client, {"jsonrpc": "2.0", "method": "notifications/initialized"})
+    # A notification (no id) must not produce a response that gets written back.
+    assert response is None or response.get("id") is None
+
+
 def test_tools_call_draw_from_image_validates_args() -> None:
     client = httpx.Client()
     response = handle_request(
