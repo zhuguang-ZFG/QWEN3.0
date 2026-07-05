@@ -58,7 +58,6 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
       → Client (JSON 或 SSE)
 ```
 
-权威文档：`docs/REQUEST_PIPELINE_AUTHORITY_CN.md`（中文权威版；英文归档已删除）
 
 ### 关键模块归属
 
@@ -249,7 +248,7 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 |------|------|
 | `STATUS.md` | 当前项目状态 |
 | `CLAUDE.md` | 精简开发规则 + 仓库统计 |
-| `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` | 18 步流水线 + 模块归属矩阵 |
+| `docs/archive/strategic-plans-2026-06/REQUEST_PIPELINE_AUTHORITY_CN.md` | 旧 routing_engine 18 步流水线（已归档，routing_engine 已退役） |
 | `docs/archive/ROUTING_ENGINE_DESIGN.md` | routing_engine.py 设计决策（已归档） |
 | `docs/ARCHITECTURE.md` | 系统架构 |
 | `docs/DEPLOY_AND_RELEASE_CONVENTION.md` | 部署/发布硬规则 |
