@@ -5,8 +5,6 @@ Replaces 40+ individual deploy_*.py scripts with one parameterized script.
 
 Usage:
     python deploy_unified.py                    # deploy core files
-    python deploy_unified.py --slice phase_a    # deploy Phase A
-    python deploy_unified.py --slice phase_b    # deploy Phase B
     python deploy_unified.py --slice all        # deploy everything
     python deploy_unified.py --files a.py b.py  # deploy specific files
     python deploy_unified.py --dry-run          # show what would be deployed
@@ -103,7 +101,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Unified LiMa deploy")
     parser.add_argument(
         "--slice",
-        choices=["core", "phase_a", "phase_b", "all"],
+        choices=["core", "all"],
         default="core",
         help="Which slice to deploy",
     )

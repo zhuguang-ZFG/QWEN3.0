@@ -16,85 +16,21 @@ DLC 绘图服务（Python 3.10 + FastAPI），为 ESP32 绘图机/写字机提�
 
 ## 常用命令
 
-```powershell
-# 运行全部测试
-python -m pytest --tb=short -q
-
-# 运行单个测试文件
-python -m pytest tests/test_routing_engine.py -v
-
-# 按名称运行单个测试
-python -m pytest tests/test_routing_engine.py -k "test_classify_ide" -v
-
-# 完整 CI 风格测试（跳过长耗时/外部测试）
-python scripts/run_pre_commit_check.py --full
-
-# 代码检查
-ruff check .
-
-# 格式检查 / 自动格式化
-ruff format --check
-ruff format .
-
-# 类型检查（指定文件）
-pyright server.py routing_engine/
-
-# 本地启动服务
-python -m uvicorn server:app --host 0.0.0.0 --port 8080
-
-# Docker
-docker compose build
-docker compose up -d
-
-# 冒烟测试（本地）
-curl -sf http://127.0.0.1:8080/health
-
-# 部署到 VPS（core 切片包含后端运行时与静态资源）
-python scripts/deploy_unified.py --slice core
-
-# 部署 Chat Web 静态文件到 VPS
-python scripts/deploy_chat_web.py
-
-# 仓库统计
-python scripts/repo_stats.py
-```
-
-### 小程序一键上传（微信开发者工具 CLI）
+常用命令速查见 `.kimi-code/AGENTS.md`。本节仅保留小程序一键上传流程：
 
 ```bash
-# 1. 进入小程序目录
 cd esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile
-
-# 2. type check（确保 0 errors）
 npx vue-tsc --noEmit
-
-# 3. 编译（mp-weixin）
 npx uni build --platform mp-weixin
-
-# 4. 一键上传到微信平台
 "/c/Users/zhugu/微信web开发者工具/cli.bat" upload \
-  --project "$(pwd)/dist/build/mp-weixin" \
-  --v "X.Y.Z" \
-  -d "提交说明"
-
-# 5. 提交版本号 + 推送
-#    manifest.config.ts: versionName / versionCode +1
+  --project "$(pwd)/dist/build/mp-weixin" --v "X.Y.Z" -d "提交说明"
 git add manifest.config.ts src/manifest.json src/pages.json
-git commit -m "chore: bump version to X.Y.Z"
-git push origin main
-
-# 6. 父仓库更新子模块指针
+git commit -m "chore: bump version to X.Y.Z" && git push origin main
 cd /d/QWEN3.0
-git add esp32S_XYZ
-git commit -m "chore: bump esp32S_XYZ submodule — mini-program vX.Y.Z uploaded"
-git push origin main
+git add esp32S_XYZ && git commit -m "chore: bump esp32S_XYZ submodule" && git push origin main
 ```
 
-**注意事项**：
-- AppID：`wxbf3c1e0013b46343`（已配置在 `env/.env` 和 `manifest.config.ts`）
-- 版本号递增：每次上传前 bump `versionName`（如 `3.6.0`→`3.6.1`）和 `versionCode`（`360`→`361`）
-- 上传后需要在 [mp.weixin.qq.com](https://mp.weixin.qq.com) 提交审核才能发布
-- 微信开发者工具需提前登录并开启「设置 → 安全设置 → 服务端口」
+注意事项：AppID `wxbf3c1e0013b46343`；每次上传前 bump `versionName`/`versionCode`；上传后需在 [mp.weixin.qq.com](https://mp.weixin.qq.com) 提交审核。
 
 ---
 
@@ -356,19 +292,6 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 - 孤儿审计：`scripts/codegraph_orphans.py`
 - 瘦身证据：`progress.md`（2026-06-15 CodeGraph 条目）
 
-## Ponytail（顾问规则，LiMa 优先）
-
-**Ponytail 是本仓库最高优先级的行为原则**，全文见上文「Ponytail 第一原则（最高优先级）」。本节仅作索引与补充参考。
-
-- 上游仓库：`https://github.com/DietrichGebert/ponytail.git`
-- 详细说明：[`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md)
-- 核心要点：能少写就少写、优先复用 GitHub 高可靠代码、ESP32/固件/小程序改动先加载对应 skills、最小实现。
-
 ## 设计第二原则
 
-> 次于 Ponytail 第一原则，但高于一般编码习惯。
-
-本仓库遵循 SOLID、迪米特法则、合成复用原则，以及清晰指令、精简上下文、健壮工具接口、自动化验证循环等工程原则。
-
-- 详细说明：[`docs/AGENTS_DESIGN_PRINCIPLES.md`](docs/AGENTS_DESIGN_PRINCIPLES.md)
-- 核心要点：SRP / OCP / LSP / ISP / DIP / LoD / CRP；接口清晰、上下文精简、工具幂等可观测、改动必过测试/静态检查闭环。
+次于 Ponytail 第一原则，但高于一般编码习惯。遵循 SOLID、LoD、CRP，保持接口清晰、上下文精简、工具幂等可观测。详见 [`docs/AGENTS_DESIGN_PRINCIPLES.md`](docs/AGENTS_DESIGN_PRINCIPLES.md)。

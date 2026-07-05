@@ -16,22 +16,5 @@ def _observability_map(settings: Any) -> dict[str, tuple[Any, str, Callable[[str
         ),
         "OPENOBSERVE_ENABLED": (settings.OBSERVABILITY, "openobserve_enabled", _bool_env),
         "LIMA_PROMETHEUS_METRICS": (settings.OBSERVABILITY, "prometheus_metrics", _bool_env),
-        "LIMA_STRUCTURED_LOGGING": (settings.OBSERVABILITY, "structured_logging", _bool_env),
         "LIMA_SERVICE_NAME": (settings.OBSERVABILITY, "service_name", lambda v: v or "lima-router"),
-        "LIMA_ROUTING_GUARD_ENABLED": (settings.OBSERVABILITY, "routing_guard_enabled", _bool_env),
-        "LIMA_ROUTING_GUARD_WINDOW_SEC": (
-            settings.OBSERVABILITY,
-            "routing_guard_window_sec",
-            lambda v: int(v or "600"),
-        ),
-        "LIMA_ROUTING_GUARD_QUARANTINE_SEC": (
-            settings.OBSERVABILITY,
-            "routing_guard_quarantine_sec",
-            lambda v: int(v or "180"),
-        ),
-        "LIMA_ROUTING_GUARD_FAILURE_THRESHOLD": (
-            settings.OBSERVABILITY,
-            "routing_guard_failure_threshold",
-            lambda v: int(v or "3"),
-        ),
     }

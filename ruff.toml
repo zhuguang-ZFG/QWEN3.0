@@ -5,6 +5,7 @@ exclude = [
     "esp32S_XYZ",
     ".venv310",
     ".test-tmp",
+    ".tmp",
     ".pnpm-store",
     ".ruff_cache",
     ".agent",
@@ -12,8 +13,6 @@ exclude = [
     ".continue",
     ".roo",
     ".trae",
-    # 参考仓库，按 AGENTS.md「禁止暂存参考仓库」原则不审计/不修改
-    "reference/**",
 ]
 
 [lint]

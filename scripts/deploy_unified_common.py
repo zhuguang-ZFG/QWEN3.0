@@ -92,16 +92,9 @@ CORE_DIRS = [
     "client_keys",
 ]
 
-SLICE_FILES = {
-    "phase_a": [
-        "routing_engine/__init__.py",
-        "routing_selector/__init__.py",
-    ],
-    "phase_b": [
-        "context_pipeline/response_validator.py",
-        "route_post_process.py",
-    ],
-}
+# P4/P5 瘦身后旧 phase_a/phase_b 切片引用的模块（routing_engine/routing_selector/
+# context_pipeline/route_post_process）均已物理删除。仅保留 core/all/files 部署路径。
+SLICE_FILES: dict[str, list[str]] = {}
 
 HEALTH_WAIT_SECONDS = deploy_config.deploy_health_wait_s()
 HEALTH_POLL_SECONDS = 3

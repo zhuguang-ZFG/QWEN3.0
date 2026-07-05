@@ -22,6 +22,7 @@ __pycache__/
 *_local.env
 .lima-data/
 tmp/
+.tmp/
 .pytest_temp/
 *.pytest_temp/
 .coverage

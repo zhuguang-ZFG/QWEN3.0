@@ -67,13 +67,3 @@ def context_retrieval_enabled() -> bool:
 def prometheus_enabled() -> bool:
     """Prometheus metrics exporter is enabled unless explicitly disabled."""
     return _env_enabled("LIMA_PROMETHEUS_ENABLED", default=True)
-
-
-def alert_evaluator_enabled() -> bool:
-    """Alert evaluator is enabled unless explicitly disabled."""
-    return _env_enabled("LIMA_ALERT_EVALUATOR_ENABLED", default=True)
-
-
-def structured_logging_enabled() -> bool:
-    """Structured JSON logging is enabled unless explicitly disabled."""
-    return _env_enabled("LIMA_STRUCTURED_LOGGING_ENABLED", default=True)
