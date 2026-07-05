@@ -4,15 +4,15 @@ After=network.target dlc-drawing.service
 
 [Service]
 Type=simple
-User=lima
-Group=lima
-WorkingDirectory=/opt/lima-router/repo
-ExecStart=/usr/local/bin/python3.10 dlc_mcp/mcp_pipe.py dlc_mcp/server.py
+User=root
+WorkingDirectory=/opt/dlc-drawing
+ExecStart=/opt/dlc-drawing/.venv/bin/python dlc_mcp/mcp_pipe.py dlc_mcp/server.py
 Restart=always
 RestartSec=5
-EnvironmentFile=/opt/lima-router/.env
+EnvironmentFile=/opt/dlc-drawing/.env
 # MCP_ENDPOINT must be set in .env: wss://api.xiaozhi.me/mcp/?token=<JWT>
-# DLC_API_URL must be set in .env: http://127.0.0.1:8080
+# DLC_API_URL must be set in .env: http://127.0.0.1:8081
+# DLC_API_TOKEN must be set in .env: the device token (auth for /dlc/tasks/dispatch)
 MemoryMax=256M
 
 [Install]

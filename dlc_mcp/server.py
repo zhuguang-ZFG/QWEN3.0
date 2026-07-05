@@ -9,9 +9,18 @@ import sys
 
 import httpx
 
-DLC_API_URL = os.environ.get("DLC_API_URL", "http://127.0.0.1:18080")
+DLC_API_URL = os.environ.get("DLC_API_URL", "http://127.0.0.1:8081")
+# dlc_api /dlc/tasks/dispatch and /dlc/devices/{id}/status require
+# verify_dlc_api_token (Authorization: Bearer <token>). Configure DLC_API_TOKEN
+# on the VPS .env with the device's token; without it those endpoints return 401.
+DLC_API_TOKEN = os.environ.get("DLC_API_TOKEN", "")
 
 logger = logging.getLogger(__name__)
+
+
+def _auth_headers() -> dict[str, str]:
+    return {"Authorization": f"Bearer {DLC_API_TOKEN}"} if DLC_API_TOKEN else {}
+
 
 TOOLS = {
     "dlc.write_text": {
@@ -79,7 +88,7 @@ def _tool_error(req_id: object, code: int, message: str) -> dict:
 def _submit(client: httpx.Client, endpoint: str, payload: dict) -> dict:
     url = f"{DLC_API_URL}{endpoint}"
     try:
-        resp = client.post(url, json=payload)
+        resp = client.post(url, json=payload, headers=_auth_headers())
     except Exception as exc:
         logger.warning("dlc_api request failed: %s", exc)
         return {"status": "failed", "error": f"dlc_api unreachable: {exc}"}
@@ -94,7 +103,7 @@ def _get_json(client: httpx.Client, endpoint: str) -> dict:
     """GET JSON from dlc_api; returns {"error": ...} on failure."""
     url = f"{DLC_API_URL}{endpoint}"
     try:
-        resp = client.get(url)
+        resp = client.get(url, headers=_auth_headers())
     except Exception as exc:
         logger.warning("dlc_api GET failed: %s", exc)
         return {"error": f"dlc_api unreachable: {exc}"}

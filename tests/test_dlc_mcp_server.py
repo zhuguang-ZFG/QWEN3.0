@@ -105,7 +105,7 @@ def test_tools_call_write_text_submits_to_api() -> None:
     with patch("dlc_mcp.server.httpx.Client") as mock_client:
         mock_client.return_value.__enter__ = lambda self: self
         mock_client.return_value.__exit__ = lambda *args: None
-        mock_client.return_value.post = lambda _url, json: mock_resp
+        mock_client.return_value.post = lambda _url, json, headers=None: mock_resp
         response = handle_request(
             mock_client.return_value,
             {
@@ -120,6 +120,83 @@ def test_tools_call_write_text_submits_to_api() -> None:
         )
     assert "result" in response
     assert "queued" in response["result"]["content"][0]["text"]
+
+
+def test_submit_includes_bearer_token_when_configured() -> None:
+    """dispatch requests must carry Authorization: Bearer <token> when DLC_API_TOKEN is set.
+
+    dlc_api /dlc/tasks/dispatch requires verify_dlc_api_token; a bare POST gets 401.
+    """
+    captured: dict = {}
+    mock_resp = httpx.Response(200, json={"status": "queued", "task_id": "t1", "queue_depth": 1, "error": None})
+
+    class _Recorder:
+        def post(self, url, json=None, headers=None):
+            captured["url"] = url
+            captured["headers"] = headers or {}
+            return mock_resp
+
+    with patch("dlc_mcp.server.DLC_API_TOKEN", "secret-token"):
+        handle_request(
+            _Recorder(),
+            {
+                "jsonrpc": "2.0",
+                "id": 20,
+                "method": "tools/call",
+                "params": {"name": "dlc.write_text", "arguments": {"device_id": "dev-1", "text": "hi"}},
+            },
+        )
+    assert captured["headers"].get("Authorization") == "Bearer secret-token"
+
+
+def test_get_status_includes_bearer_token_when_configured() -> None:
+    """status queries must also carry the bearer token (endpoint is auth-guarded)."""
+    captured: dict = {}
+    mock_resp = httpx.Response(
+        200,
+        json={"device_id": "dev-1", "online": True, "working": False},
+    )
+
+    class _Recorder:
+        def get(self, url, headers=None):
+            captured["url"] = url
+            captured["headers"] = headers or {}
+            return mock_resp
+
+    with patch("dlc_mcp.server.DLC_API_TOKEN", "secret-token"):
+        handle_request(
+            _Recorder(),
+            {
+                "jsonrpc": "2.0",
+                "id": 21,
+                "method": "tools/call",
+                "params": {"name": "dlc.get_device_status", "arguments": {"device_id": "dev-1"}},
+            },
+        )
+    assert captured["headers"].get("Authorization") == "Bearer secret-token"
+
+
+def test_submit_omits_auth_header_when_no_token() -> None:
+    """No DLC_API_TOKEN → no Authorization header (dev/local behavior unchanged)."""
+    captured: dict = {}
+    mock_resp = httpx.Response(200, json={"status": "queued", "task_id": "t1", "queue_depth": 1, "error": None})
+
+    class _Recorder:
+        def post(self, url, json=None, headers=None):
+            captured["headers"] = headers or {}
+            return mock_resp
+
+    with patch("dlc_mcp.server.DLC_API_TOKEN", ""):
+        handle_request(
+            _Recorder(),
+            {
+                "jsonrpc": "2.0",
+                "id": 22,
+                "method": "tools/call",
+                "params": {"name": "dlc.write_text", "arguments": {"device_id": "dev-1", "text": "hi"}},
+            },
+        )
+    assert "Authorization" not in captured["headers"]
 
 
 def test_main_stdout_is_valid_utf8_json() -> None:

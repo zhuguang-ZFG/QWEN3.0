@@ -14,16 +14,22 @@ if [ ! -f "$SOURCE_FILE" ]; then
 fi
 
 # Check MCP_ENDPOINT in .env
-if ! grep -q "^MCP_ENDPOINT=" /opt/lima-router/.env 2>/dev/null; then
-    echo "WARNING: MCP_ENDPOINT not found in /opt/lima-router/.env"
+if ! grep -q "^MCP_ENDPOINT=" /opt/dlc-drawing/.env 2>/dev/null; then
+    echo "WARNING: MCP_ENDPOINT not found in /opt/dlc-drawing/.env"
     echo "  Add: MCP_ENDPOINT=wss://api.xiaozhi.me/mcp/?token=<JWT>"
     echo "  Get token from: https://xiaozhi.me → 智能体 → MCP 接入点"
 fi
 
 # Check DLC_API_URL in .env
-if ! grep -q "^DLC_API_URL=" /opt/lima-router/.env 2>/dev/null; then
-    echo "WARNING: DLC_API_URL not found in /opt/lima-router/.env"
-    echo "  Add: DLC_API_URL=http://127.0.0.1:8080"
+if ! grep -q "^DLC_API_URL=" /opt/dlc-drawing/.env 2>/dev/null; then
+    echo "WARNING: DLC_API_URL not found in /opt/dlc-drawing/.env"
+    echo "  Add: DLC_API_URL=http://127.0.0.1:8081"
+fi
+
+# Check DLC_API_TOKEN in .env (required: /dlc/tasks/dispatch is auth-guarded)
+if ! grep -q "^DLC_API_TOKEN=" /opt/dlc-drawing/.env 2>/dev/null; then
+    echo "WARNING: DLC_API_TOKEN not found in /opt/dlc-drawing/.env"
+    echo "  Add: DLC_API_TOKEN=<device token> (matches a LIMA_DEVICE_TOKENS entry)"
 fi
 
 echo "Installing dlc-mcp.service..."
