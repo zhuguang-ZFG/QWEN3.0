@@ -27,6 +27,10 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install build deps (esbuild)
+        working-directory: chat-web
+        run: npm install --no-audit --no-fund
+
       - name: Build hashed assets
         working-directory: chat-web
         run: node scripts/hash-assets.mjs
