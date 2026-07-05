@@ -9,5 +9,4 @@ routes = [
 ]
 
 [vars]
-PILOT_ORIGIN = "https://aliyun.donglicao.com"
 DEFAULT_ORIGIN = "https://origin-chat.donglicao.com"

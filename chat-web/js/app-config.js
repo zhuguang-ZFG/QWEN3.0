@@ -1,8 +1,8 @@
 /* Endpoint selection for LiMa chat-web.
  *
- * Anonymous simple chat requests can be routed to the Aliyun pilot node
- * (free/low-cost backends only). Everything else stays on the primary
- * JDCloud node served through chat.donglicao.com.
+ * 所有请求统一走主节点 chat.donglicao.com（由 CF Worker 回源到 JDCloud）。
+ * 历史：曾把匿名简单 chat 分流到 Aliyun pilot，该链路 2026-07-05 退役后
+ * shouldUsePilot 恒返回 false；接口保留以兼容 chat-api.js 现有调用。
  */
 (function () {
   "use strict";
@@ -42,14 +42,10 @@
     return DEFAULT_CHAT_MODELS.has(model);
   }
 
-  function shouldUsePilot(path, body) {
-    if (path !== "/v1/chat/completions") return false;
-    if (!isAnonymous()) return false;
-    if (!body || typeof body !== "object") return false;
-    if (!isDefaultChatModel(body.model)) return false;
-    if (body.tools || body.tool_choice) return false;
-    if (hasImageContent(body.messages)) return false;
-    return true;
+  function shouldUsePilot(_path, _body) {
+    // Aliyun pilot 免费 chat 链路已退役（2026-07-05）：匿名 chat 统一走主节点。
+    // 保留函数与 window.LiMaConfig 接口以兼容 chat-api.js 现有调用，恒返回 false。
+    return false;
   }
 
   function getApiOrigin(path, body) {

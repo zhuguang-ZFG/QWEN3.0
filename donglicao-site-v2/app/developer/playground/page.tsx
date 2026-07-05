@@ -57,10 +57,8 @@ export default function PlaygroundPage() {
   const [response, setResponse] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  function selectBaseUrl(key: string, ep: string, m: string): string {
-    if (!key && ep === "/v1/chat/completions" && (m === "lima" || m === "lima-1.3")) {
-      return "https://aliyun.donglicao.com";
-    }
+  function selectBaseUrl(_key: string, _ep: string, _m: string): string {
+    // Aliyun pilot 免费 chat 链路已退役（2026-07-05）：统一走主节点。
     return "https://chat.donglicao.com";
   }
 
@@ -155,7 +153,7 @@ export default function PlaygroundPage() {
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-xxx（留空则匿名请求走阿里云 pilot）"
+                  placeholder="sk-xxx（留空为匿名请求）"
                   className="w-full rounded-lg border border-white/10 bg-[#0d1117] px-4 py-2 text-slate-200 outline-none focus:border-cyan-500"
                 />
               </div>
