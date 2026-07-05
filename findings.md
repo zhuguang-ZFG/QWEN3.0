@@ -5,7 +5,9 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
-## 2026-07-06 设备网关 WS 下发链去留：证据闭合但受阻于线上 OTA config
+## 2026-07-06 设备网关 WS 下发链去留：已闭环（用户确认无存量设备 → 已退役）
+
+- **2026-07-06 闭环结论**：用户明确确认「研发阶段，无线上存量设备依赖 `chat.donglicao.com` 的 `/device/v1/ws`」，阻塞点解除。自托管 WS/MQTT 任务下发死代码链已物理退役：删除 `mqtt_client/mqtt_handlers/mqtt_topics/health/notifier/attestation/protocol/protocol_frames/protocol_validators/protocol_negotiator`、`routes/device_gateway_dispatch.py`、`routes/device_gateway_helpers.py`，并将 `device_logic/gateway.py::dispatch_or_enqueue` 与 `device_gateway/tasks.py::create_and_route_task` 简化为纯 `enqueue_pending_task`（生产本就恒 queued，行为等价）。保留 `protocol_families.py` 与全部绘图核心。下方原始调查记录保留作历史证据。
 
 - **问题**：`routes/device_gateway*.py`（约 1248 行）+ `device_logic/gateway.py` + `device_gateway/notifier.py`/`mqtt_handlers.py` 的任务下发链，在生产入口 `server_dlc.py` 下是否为死代码。这是仓库最大一块潜在瘦身目标。
 - **已查清的代码事实（仓库内可确定）**：

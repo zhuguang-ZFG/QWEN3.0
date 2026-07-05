@@ -1369,3 +1369,17 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **保留恢复凭据**：三处 unit 均改名 `.retired-20260705` 而非删除；三份备份 tar 保留在各节点 `/root`。
 - **回收合计**：Aliyun ~2G（pilot 1.1G + lima-router 871M）+ JDCloud 1.3G ≈ 3.3G。
 - **Deploy workflow 修复**：`deploy.yml` 主部署步骤从误标的 "Aliyun primary"（keyscan 扫 VPS_HOST 却因脚本默认 target=jdcloud 实连 JDCloud、host key 不匹配→RejectPolicy→密码回退撞同一策略再抛→崩溃）对齐到 JDCloud（keyscan JDCLOUD_HOST + 显式 `--target jdcloud` + JDCLOUD_HOST_SET 守卫）。`Deploy`/`Tests`/`CodeQL` 三条 workflow 恢复全绿，deploy job 各步骤真跑通（部署+verify+probe 均 success）。⚠️ 行为变更：Aliyun 不再由该 workflow 自动部署（生产入口本就是 JDCloud）。
+
+## 2026-07-06 设备网关自托管 WS/MQTT 下发链退役（死代码物理删除）
+
+- **前提**：用户确认「研发阶段，无线上存量设备依赖 `chat.donglicao.com` 的 `/device/v1/ws`」，解除 findings.md 记录的唯一阻塞点。
+- **已核实**：生产入口 `server_dlc.py` 不注册 WS 端点、不启动任何 gateway runtime；`start_device_gateway_runtime`/`start_mqtt_client`/`start_task_notifier` 全仓无生产调用者；`dispatch_or_enqueue` 的 `registry.get()` 因无 WS 会话恒返回 None → WS 分支为死代码。
+- **删除**（Plan mode 批准，coder subagent 执行 + 主 agent 核验）：
+  - `device_gateway/`：`mqtt_client.py`、`mqtt_handlers.py`、`mqtt_topics.py`、`health.py`（孤儿）、`notifier.py`、`attestation.py`、`protocol.py`、`protocol_frames.py`、`protocol_validators.py`、`protocol_negotiator.py`
+  - `routes/`：`device_gateway_dispatch.py`、`device_gateway_helpers.py`
+  - 根：`device_ws_ticket.py`（删 dispatch 后成孤儿，`/device/v1/ws` 一次性票据）
+  - 测试：`test_device_mqtt_transport.py`、`test_device_gateway_dispatch.py`、`test_routes_device_gateway_dispatch.py` 删除；`test_device_task_metrics.py`、`test_device_gateway_motion_contract.py`、`test_device_gateway_protocol.py`、`test_run_path_intent.py`、`device_gateway/{conftest,test_sessions}.py` 调整
+- **简化**（行为等价，生产本就恒 queued）：`device_logic/gateway.py::dispatch_or_enqueue` 与 `device_gateway/tasks.py::create_and_route_task` 去掉恒不执行的 WS 会话分支，只保留 `enqueue_pending_task` + metrics，返回契约不变。
+- **保留**：`protocol_families.py`（绘图核心校验）、`sessions.py`（registry 被 `device_app_api._build_device_status` 生产引用）、全部绘图/任务/gallery 核心模块。
+- **未动**（最小改动，避免误伤）：`.env.example` 的 `LIMA_DEVICE_REDIS_URL` 仍被 `device_gateway/store.py` 使用不可删；`LIMA_DEVICE_WS_URL`/`session_bus` 字段成未用配置但无害，暂留。
+- **门禁**：基线 1407 passed → 退役后 **1349 passed / 3 skipped**（−58 为删掉的 WS/mqtt/dispatch/protocol 用例）；`ruff check` clean；`check_code_size` PASS；`codegraph_orphans` 清理 `device_ws_ticket` 后无新孤儿（`test_repo_hygiene` 因未跟踪 `.cocoindex_code/`/`.serena/` 失败，与本次无关，基线即存在）。

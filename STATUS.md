@@ -246,6 +246,7 @@
 | agent_runtime 路由 | ✅ 已退役 | HTTP 路由已移除 |
 | Anthropic `/v1/messages` 兼容层 | ✅ 已退役 | 端点与转换函数已移除 |
 | channel_gateway（WeChat 绑定层） | ✅ 已退役 | 2026-06-17；23 文件 + 路由 + 13 测试删除；`channel_retirement.py` 标记 |
+| 设备网关自托管 WS/MQTT 任务下发链 | ✅ 已退役 | 2026-07-06；用户确认无线上存量设备依赖 `/device/v1/ws`。删 `notifier`/`attestation`/`protocol`/`protocol_frames`/`protocol_validators`/`protocol_negotiator`/`mqtt_client`/`mqtt_handlers`/`mqtt_topics`/`health` + `routes/device_gateway_dispatch.py`/`device_gateway_helpers.py`；`dispatch_or_enqueue`/`create_and_route_task` 简化为纯 enqueue（生产本就恒 queued，行为等价）。保留 `protocol_families.py` 及全部绘图核心 |
 
 ## 部署状态
 

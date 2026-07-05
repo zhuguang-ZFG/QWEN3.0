@@ -84,20 +84,10 @@ def build_gateway_task(
 
 
 async def dispatch_or_enqueue(device_id: str, task: dict[str, Any]) -> dict[str, Any]:
-    from device_gateway.sessions import registry
     from device_gateway.tasks import enqueue_pending_task, pending_count
-    from routes.device_gateway_dispatch import dispatch_task_to_session, publish_task_available_safe
 
     capability = str(task.get("capability", "unknown"))
-    session = registry.get(device_id)
-    sent = False
-    if session is not None:
-        sent = await dispatch_task_to_session(session, task)
-    queue_depth = 0
-    if not sent:
-        queue_depth = enqueue_pending_task(device_id, task)
-        await publish_task_available_safe(device_id, str(task.get("task_id", "")))
-    if not sent:
-        prometheus_metrics.record_device_task_dispatched(capability, "queued")
+    queue_depth = enqueue_pending_task(device_id, task)
+    prometheus_metrics.record_device_task_dispatched(capability, "queued")
     prometheus_metrics.set_device_tasks_pending(pending_count())
-    return {"sent": sent, "queueDepth": queue_depth, "dispatchStatus": "sent" if sent else "queued"}
+    return {"sent": False, "queueDepth": queue_depth, "dispatchStatus": "queued"}

@@ -30,11 +30,6 @@ from .task_lifecycle import (
     task_snapshot,
 )
 
-# ponytail: lazy import routes.device_gateway_dispatch in callers to avoid a
-# module-load circular dependency (device_gateway → routes → device_gateway).
-# Runtime reverse dependency remains; upgrade path is a TaskDispatcher protocol.
-from device_gateway.sessions import registry
-
 # Backward-compatible monkeypatch surface (tests patch device_gateway.tasks.*)
 from .task_creation import (
     apply_profile_constraints,
@@ -106,20 +101,7 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
     if task.get("error"):
         return DeviceTaskRouteResult("failed", False, pending_count(device_id), task)
 
-    session = registry.get(device_id)
-    if session is not None:
-        from routes.device_gateway_dispatch import dispatch_task_to_session
-
-        sent = await dispatch_task_to_session(session, task)
-        status = "sent" if sent else "queued"
-        prometheus_metrics.record_device_task_dispatched(capability, status)
-        prometheus_metrics.set_device_tasks_pending(pending_count())
-        return DeviceTaskRouteResult(status, sent, pending_count(device_id), task)
-
-    from routes.device_gateway_dispatch import publish_task_available_safe
-
     queue_depth = enqueue_pending_task(device_id, task)
-    await publish_task_available_safe(device_id, str(task.get("task_id", "")))
     prometheus_metrics.record_device_task_dispatched(capability, "queued")
     prometheus_metrics.set_device_tasks_pending(pending_count())
     return DeviceTaskRouteResult("queued", False, queue_depth, task)

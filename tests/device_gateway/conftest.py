@@ -4,7 +4,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from routes.device_gateway_helpers import _reset_for_tests
+from device_gateway.sessions import registry
+from device_gateway.tasks import reset_tasks_for_tests
+from device_intelligence.shadow import shadow_store
+
+
+def _reset_for_tests() -> None:
+    registry.clear()
+    reset_tasks_for_tests()
+    shadow_store.reset()
 
 
 @pytest.fixture(autouse=True)

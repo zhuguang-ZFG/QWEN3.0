@@ -4,13 +4,13 @@ import time
 from unittest.mock import AsyncMock
 
 from device_gateway.sessions import DeviceSession, registry
-from device_gateway.tasks import install_task_store_for_tests, pending_count
-from routes.device_gateway_helpers import _reset_for_tests
+from device_gateway.tasks import install_task_store_for_tests, pending_count, reset_tasks_for_tests
 
 
 def test_registry_remove_zombies_requeues_outstanding_tasks():
     """Stale sessions without recent heartbeats are evicted and their in-flight tasks requeued."""
-    _reset_for_tests()
+    registry.clear()
+    reset_tasks_for_tests()
     install_task_store_for_tests()
 
     websocket = AsyncMock()
