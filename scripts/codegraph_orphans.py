@@ -39,7 +39,6 @@ PROD_SCAN_ROOTS = (
     "device_policy",
     "device_artifacts",
     "device_ledger",
-    "device_support",
     "device_ota",
     "observability",
     "external_enrichment",

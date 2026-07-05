@@ -62,31 +62,34 @@ def get_deploy_target(target: str | None = None) -> DeployTarget:
 
 
 CORE_FILES = [
-    "server.py",
-    "routing_engine/__init__.py",
-    "routing_selector/__init__.py",
-    "router_v3/__init__.py",
-    "routing_intent.py",
-    "health_tracker.py",
-    "sticky_session.py",
+    "server_dlc.py",
     "rate_limiter.py",
-    "budget_manager.py",
-    "capability_matrix.py",
-    "route_post_process.py",
 ]
 
+# Post-P5 slimdown: only directories that still exist on disk and are reachable
+# from server_dlc.py. Deleted subsystems (context_pipeline, session_memory,
+# code_context, device_voice, backends_registry, channel_retirement) are no
+# longer deployed.
 CORE_DIRS = [
     "routes",
-    "context_pipeline",
-    "session_memory",
-    "code_context",
-    "observability",
+    "device_gateway",
     "device_ledger",
     "device_memory",
-    "device_gateway",
-    "device_voice",
-    "backends_registry",
-    "channel_retirement",
+    "device_intelligence",
+    "device_logic",
+    "device_ota",
+    "device_policy",
+    "device_workflow",
+    "device_artifacts",
+    "dlc_api",
+    "dlc_core",
+    "dlc_mcp",
+    "integrations",
+    "observability",
+    "xiaozhi_drawing",
+    "config",
+    "common",
+    "client_keys",
 ]
 
 SLICE_FILES = {

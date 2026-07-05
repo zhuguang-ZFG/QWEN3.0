@@ -5,6 +5,29 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
+## 2026-07-06 系统瘦身残留审计：仓库与 VPS 分叉 + 死代码物理删除
+
+- **现象**：STATUS.md 声称「P5 瘦身后约 280 py 文件 / ~18000 行」，实测 git 跟踪应用 py = **356 文件 / 41922 行**——数字差 76 文件 / 翻倍行数。仓库里有大量从 `server_dlc.py` 生产路径不可达的死代码。
+- **根因（仓库与 VPS 分叉）**：
+  - VPS 生产服务 `lima-router.service`（`infra/vps/systemd/lima-router.service`）ExecStart = `uvicorn server:app`，但 `server.py` 已在 P4/P5 删除。
+  - `deploy_unified_restart.py:43` 仍 `systemctl restart lima-router`（旧服务名）。
+  - `deploy_unified_common.py::CORE_FILES` 仍列 `server.py` + 旧路由模块（`routing_engine`、`router_v3`、`health_tracker` 等），`CORE_DIRS` 仍列已删目录（`context_pipeline`、`session_memory`、`code_context`、`device_voice`、`backends_registry`、`channel_retirement`）。
+  - **推论**：VPS 上运行的是旧版完整代码（未被覆盖删除），仓库与生产已分叉。`deploy_unified.py` 若以旧清单执行会在 VPS 上找不到文件而失败。
+- **修复（本轮已做）**：
+  1. 物理删除三项零风险死代码（生产零引用，仅 .worktrees 旧副本引用）：
+     - `integrations/cloud_services.py`（全仓库零 import）
+     - `reference/grbl_fix/`（17 文件，一次性固件修复脚本，无 importer）
+     - `device_support/`（2 文件，仅被审计脚本列举目录名）
+  2. 清理三处脚本对 `device_support` 的字符串引用：`scripts/guardian_full_scan.py`、`scripts/coverage/analyzer.py`、`scripts/codegraph_orphans.py`
+  3. `deploy_unified_common.py::CORE_FILES`/`CORE_DIRS` 对齐到 `server_dlc.py` 实际可达的模块清单（移除已删旧路由/旧目录，新增 `dlc_api`/`dlc_core`/`dlc_mcp`/`device_intelligence`/`device_logic` 等）
+- **待办（需用户确认后操作）**：
+  1. **VPS 部署同步**：确认 VPS 是否运行旧代码 → 部署新 `server_dlc.py` + 新 `dlc-drawing.service` → 切换服务名 `lima-router`→`dlc-drawing`。这是部署操作，不能仅改仓库。
+  2. **设备网关 WSS 路由注册**：`server_dlc.py`/`dlc_api.app` 只注册了 `dlc_router`，**未注册 `routes/device_gateway.py` 的 `/ws` WebSocket 端点**。设备通过WSS取Redis队列任务的半条链没有对外端点。需确认是 WSS 路由漏注册（需补注册），还是设备通过别的方式取任务（HTTP轮询/MQTT），再决定是否物理删除 `routes/device_gateway*`。
+  3. `sdk/`（5 文件，对外 Python SDK）是否保留——属交付物，非服务端死代码。
+  4. `observability/` 13 个非 prometheus 模块是否删除——仅被未注册的 `routes/ops_metrics/*` 引用。
+  5. `routes/` 中 ~54 个未注册路由模块的去留取决于"WSS 是否需注册"。
+- **预防**：P4/P5 物理删除后必须同步更新部署脚本的文件清单和服务入口，否则仓库与 VPS 分叉导致"声称瘦身的文件在生产还在跑"。
+
 ## 2026-07-06 §13 安全审计续：S3 限流 + S10 幂等去重（dlc_api）
 
 - **S3（`/dlc/tasks/*` 无速率限制，🟠 中等）**

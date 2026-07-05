@@ -19,7 +19,6 @@ CORE_SCAN_DIRS = (
     "device_memory",
     "device_ledger",
     "device_logic",
-    "device_support",
     "device_policy",
     "device_workflow",
     "session_memory",

@@ -24,7 +24,6 @@ CORE_MODULES = [
     ("device_ota", "OTA 升级"),
     ("device_ledger", "设备账本"),
     ("device_logic", "设备逻辑"),
-    ("device_support", "设备支持"),
     ("device_policy", "设备策略"),
     ("device_workflow", "设备工作流"),
     ("session_memory", "会话记忆"),
