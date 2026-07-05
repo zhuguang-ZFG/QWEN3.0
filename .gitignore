@@ -385,6 +385,8 @@ ARCHITECTURE_KNOWLEDGE.md
 # === Agent tooling artifacts (auto-generated, not source) ===
 .omk/
 .hypothesis/
+.cocoindex_code/
+.serena/
 
 # === Temp CI logs ===
 .tmp_ci_*.log
