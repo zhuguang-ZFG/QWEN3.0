@@ -2,6 +2,28 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-05 阶段 D：VPS 旧系统退役 + JDCloud 标准化
+
+- **背景**：阶段 A/B/C 完成后，新入口 `server_dlc.py` 已可承载全部生产路径（DLC + 小程序 + 图像）。但 VPS 上旧 `lima-router.service`(:8080) 仍在跑，nginx 仍把大量路径代理到它；JDCloud 还用旧目录 `/opt/lima-router` 启动 `dlc-drawing`，与 Aliyun 的 `/opt/dlc-drawing` 不一致。
+- **Aliyun 旧主路由退役**：
+  - 侦察发现 nginx 配置早已把 `/dlc/*` 与 `/device/*` 代理到 `:8081`，其余退役路径（`/chat/ /admin /api/ /agent/ /v1/voice /digital-human/ /fleet/`）已 `return 410`——无需改 nginx。
+  - `systemctl stop + disable lima-router.service`（备份 unit 文件为 `.retired-YYYYMMDD`）；`nginx -t && reload`。
+  - 退役后 `:8080` 端口被另一个独立服务 `lima-router-pilot.service`（Aliyun 辅助节点，子域名 `aliyun-pilot.donglicao.com`）接管，非本次退役目标，保留。
+  - `/opt/lima-router` 目录保留：`lima-scnet-reverse.service`（SCNet 反代 sidecar，:4505，仍活跃）依赖它工作。
+- **JDCloud 标准化**：
+  - `deploy_unified.py --target jdcloud --slice core` 上传 485 文件到 `/opt/dlc-drawing`（首次创建该目录）。
+  - 复制 `lima.db` + wal/shm 到 `/opt/dlc-drawing/data/`；`.env` 由 `_prepare_service` 自动从 `/opt/lima-router/.env` 复制（仅当目标不存在时）。
+  - 复制 `/opt/lima-router/.venv`（513M，含 dashscope/fastapi/uvicorn 等已装包）到 `/opt/dlc-drawing/.venv`。
+- **Aliyun venv 补齐**：
+  - Aliyun 原用 `/usr/local/bin/uvicorn`（指向 `/usr/local/bin/python3.10`，dashscope 装在系统 site-packages），但 JDCloud 无 `/usr/local/bin/python3.10`，两节点 Python 环境结构不同。
+  - 解决：`/usr/local/bin/python3.10 -m venv --system-site-packages /opt/dlc-drawing/.venv`（继承系统包），两节点统一用 `/opt/dlc-drawing/.venv/bin/python -m uvicorn`。
+  - `deploy/aliyun/dlc-drawing.service` 的 `ExecStart` 从 `/usr/local/bin/uvicorn` 改为 `/opt/dlc-drawing/.venv/bin/python -m uvicorn`，让两节点共享同一份 unit 文件。
+- **端到端冒烟验证**：
+  - `:8081/health` 两节点 → `{"status":"ok","service":"dlc-drawing","version":"0.2.0-p1"}`。
+  - `POST :8081/v1/images/generations`（真实 `LIMA_API_KEY`）两节点 → HTTP 200，返回 Agnes/Pollinations 图片 URL。
+  - `POST :8081/device/v1/app/images/generations`（VPS 自身 `.env` 的 `LIMA_JWT_SECRET` + 数据库 active 账号 id 签 JWT）Aliyun 本地 → HTTP 200，返回图片 URL + `backend:"LiMa 生图"`；`device_logic.auth.authorize()` 直调诊断确认 secret 一致（28 字节，`xiaozhi-prod-secret-key-2026`）、账号 `fdb6a72b-...` active。
+  - 公网 `https://chat.donglicao.com/health`（本地发起）→ 200 dlc-drawing，确认 nginx→:8081 链路通；VPS 自访问公网域名被 Cloudflare 拦截（1010），非服务问题。
+
 ## 2026-07-05 图像生成路由恢复完善：/v1/images/generations + /device/v1/app/images/generations
 
 - **背景**：P4/P5 系统瘦身时旧 `server.py` 退役，`/v1/images/generations` 与小程序 `/device/v1/app/images/generations` 随旧入口一起丢失。Chat Web、SDK、小程序 AI 绘图功能依赖这两个端点，需在新入口 `server_dlc.py` 下恢复。

@@ -15,16 +15,16 @@
 > 入口: `server_dlc.py`（注册 `dlc_router` 5 端点 + `/v1/images/generations` + `device_app_*` 小程序路由约 70 条 `/device/v1/app/*`）
 > 架构: `server_dlc.py → dlc_api/（routes + device_app_router 聚合器）→ dlc_core/ → device_gateway/`（任务生成链）
 >
-> ### ⚠️ VPS 生产拓扑实况（2026-07-05 更新）
-> nginx `chat.donglicao.com` 仍把 **除 `/dlc/` 外的全部路径**（`/chat/ /admin /api/ /agent/ /device/v1/ws /digital-human/ /fleet/ /v1/voice`）代理到 **`:8080` 旧 `server:app`**；仅 `/dlc/*` → `:8081` 新 `server_dlc`。
-> **Aliyun 节点变化**：`dlc-drawing` 服务已改为独立目录 `/opt/dlc-drawing`，跑最新瘦身后代码；`:8081` 上 `/v1/images/generations` 与 `/device/v1/app/images/generations` 已用真实 key 冒烟通过。
-> **阶段 D 仍待执行**：nginx 把 `/device/ /api/ /admin` 等仍需路径从 `:8080` 改指 `:8081`，停用旧 `lima-router`，清理 `/opt/lima-router/` 上已删旧文件。
+> ### ⚠️ VPS 生产拓扑实况（2026-07-05 阶段 D 完成后更新）
+> nginx `chat.donglicao.com` 现把 `/dlc/*` 与 `/device/*` 代理到 **`:8081` 新 `server_dlc`**；旧 `lima-router.service`(:8080) 已 `stop+disable`（Aliyun）。
+> **两节点已标准化到 `/opt/dlc-drawing`**：Aliyun + JDCloud 均用 `WorkingDirectory=/opt/dlc-drawing` + `/opt/dlc-drawing/.venv/bin/python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081`。
+> **Aliyun 残留**：`/opt/lima-router` 目录仍保留——`lima-scnet-reverse.service`（SCNet 反代 sidecar，:4505）仍依赖它工作；`lima-router-pilot.service`（Aliyun 辅助节点，:8080 子域名 `aliyun-pilot.donglicao.com`）是独立组件，不是本次退役目标。
 > 生产设备状态：**研发阶段，无线上存量设备**（用户确认），故旧 `/device/v1/ws` 语音/网关链路无真实依赖，可安全退役。
 >
 > ### 瘦身进度（2026-07-06）
 > - ✅ 阶段A（`040d72bb`）：`server_dlc` 补注册 `device_app_*` 小程序路由——现单一入口已可承载绘图 + 小程序 API，为 nginx 切流铺路。
 > - ✅ 阶段B+C（`078d49be`）：物理删除 WS 语音网关链 / OTA / 旧中间件 / observability 死模块 / ops_metrics / 死配置（`structured_logging`、`routing_guard_*`、`alert_evaluator`）+ 连带死测试。
-> - ⏳ 阶段D（**待执行，高风险 SSH 操作**）：VPS 旧系统退役——nginx 把 `/device/ /api/ /admin` 等小程序仍需路径从 `:8080` 改指 `:8081`，删除已退役功能 location，`systemctl stop/disable lima-router`（旧 `:8080`），清理 `/opt/lima-router/` 上已删旧文件。此步真正让生产瘦下来，需单独确认后执行。
+> - ✅ 阶段D（2026-07-05 完成）：Aliyun 旧 `lima-router.service`(:8080) 已 `stop+disable`；两节点 `dlc-drawing` 统一切到 `/opt/dlc-drawing/.venv/bin/python -m uvicorn`，独立 venv；JDCloud 标准化目录 + 复制 `lima.db`；端到端冒烟通过（`/v1/images/generations` 与 `/device/v1/app/images/generations` 两节点 + 公网链路 200）。`/opt/lima-router` 暂保留（SCNet sidecar 依赖），后续可清理。
 > MCP: `dlc_mcp/mcp_pipe.py` ← systemd `dlc-mcp.service` → 小智云 `wss://api.xiaozhi.me/mcp/`
 > 固件: U8 `self.plotter.write_text` / `self.plotter.draw_generated`（设备端调 dlc_api 生成路径 → 本地执行）
 > 小程序: v3.9.0（对话走小智云，绘图走 DLC；SoftAP 配网主路径）

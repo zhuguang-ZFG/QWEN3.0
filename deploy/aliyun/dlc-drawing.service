@@ -7,7 +7,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/dlc-drawing
 EnvironmentFile=/opt/dlc-drawing/.env
-ExecStart=/usr/local/bin/uvicorn server_dlc:app --host 127.0.0.1 --port 8081
+ExecStart=/opt/dlc-drawing/.venv/bin/python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081
 Restart=on-failure
 RestartSec=5
 
