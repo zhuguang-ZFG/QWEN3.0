@@ -15,10 +15,12 @@
 > 入口: `server_dlc.py`（注册 `dlc_router` 5 端点 + `/v1/images/generations` + `device_app_*` 小程序路由约 70 条 `/device/v1/app/*`）
 > 架构: `server_dlc.py → dlc_api/（routes + device_app_router 聚合器）→ dlc_core/ → device_gateway/`（任务生成链）
 >
-> ### ⚠️ VPS 生产拓扑实况（2026-07-05 阶段 D 完成后更新）
+> ### ⚠️ VPS 生产拓扑实况（2026-07-05 阶段 D + 生产清理完成后更新）
 > nginx `chat.donglicao.com` 现把 `/dlc/*` 与 `/device/*` 代理到 **`:8081` 新 `server_dlc`**；旧 `lima-router.service`(:8080) 已 `stop+disable`（Aliyun）。
 > **两节点已标准化到 `/opt/dlc-drawing`**：Aliyun + JDCloud 均用 `WorkingDirectory=/opt/dlc-drawing` + `/opt/dlc-drawing/.venv/bin/python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081`。
-> **Aliyun 残留**：`/opt/lima-router` 目录仍保留——`lima-scnet-reverse.service`（SCNet 反代 sidecar，:4505）仍依赖它工作；`lima-router-pilot.service`（Aliyun 辅助节点，:8080 子域名 `aliyun-pilot.donglicao.com`）是独立组件，不是本次退役目标。
+> **Aliyun 残留**：`/opt/lima-router` 目录仍保留——被 7+ 个 sidecar 引用（`lima-router-pilot`/`hermes-api`/`tts-proxy`/`mimo-proxy`/`litestream`/`longcat-web-proxy`/`kimi-proxy`）；**`lima-scnet-reverse.service`（SCNet sidecar，:4505）已于 2026-07-05 退役**（unit 改名 `.retired-20260705`）。`lima-router-pilot.service`（:8080 子域名 `aliyun-pilot.donglicao.com`）是独立组件，保留。
+> **JWT secret**：2026-07-05 已轮换——旧固定串 `xiaozhi-prod-secret-key-2026`（28B，低于 RFC 7518 推荐）→ 随机 32B urlsafe；两节点 `.env` 一致（sha256 `6352a64a22b8…`）；旧设备/小程序 token 全部失效，需重新登录。备份：`/opt/dlc-drawing/.env.bak-20260705-jwt`。
+> **nginx `.bak`**：2026-07-05 已清理（Aliyun 30 + JDCloud 3 → 0）；活跃 `.conf` 未动，`nginx -t` + reload 通过。
 > 生产设备状态：**研发阶段，无线上存量设备**（用户确认），故旧 `/device/v1/ws` 语音/网关链路无真实依赖，可安全退役。
 >
 > ### 瘦身进度（2026-07-06）

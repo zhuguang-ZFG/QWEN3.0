@@ -1295,3 +1295,30 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
   - 补录 1 个新标记：`wakeword_runtime/runtime/wakeword_config.py:3`（pypinyin 依赖上限）。
 - **门禁**：`ruff check` 改动文件 clean；`ruff format --check` 全过；`pyright` 改动文件 0 errors（1 warning：wakeword_config 的 `pypinyin` 可选依赖未解析，与 E8 前行为一致）；`scripts/check_code_size.py` PASS（0 个 >300 行文件、0 个 >50 行函数）；全量 `pytest -q` → **4388 passed / 3 skipped / 2 deselected**（较 E1-E5 收尾的 4390 −2：E7 删除退役端点测试 −1，E2 测试合并计数口径微调 −1；无新增失败）。
 - **下次**：文档同步 + git commit/push origin + VPS 部署 + 公网冒烟。
+
+
+## 2026-07-05 生产清理：SCNet sidecar 退役 + nginx .bak 清理 + JWT secret 轮换（已完成）
+
+- **目标**：阶段 D（双节点标准化到 `/opt/dlc-drawing`）收尾后的遗留项清理——退役不再使用的 SCNet sidecar、清理 nginx 历史备份、轮换固定的 JWT secret。
+- **SCNet sidecar 退役（Aliyun）**：
+  - `lima-scnet-reverse.service`（:4505）`stop` + `disable`；unit 文件改名 `/etc/systemd/system/lima-scnet-reverse.service.retired-20260705`（可逆，非删除）。
+  - 工作目录 `/opt/lima-router` **保留不动**——被 7+ 个 sidecar 引用（`lima-router-pilot`/`hermes-api`/`tts-proxy`/`mimo-proxy`/`litestream`/`longcat-web-proxy`/`kimi-proxy`），整体删除会破坏这些仍在运行的 AI 后端代理。`lima-voice.service` 工作目录是 `/opt/lima-voice`（独立），不受影响。
+  - 两节点 `dlc-drawing/.env` 与 `lima-router/.env` 的 key 集合完全一致（dlc-drawing 为完整超集），无配置丢失风险。
+- **nginx `.bak` 清理（两节点）**：
+  - Aliyun `/etc/nginx/conf.d/*.bak*` **30 → 0**；JDCloud **3 → 0**（含 `sites-available/new-api.bak`）。
+  - 清理前后 `nginx -t` 均通过，`systemctl reload nginx` 成功；活跃 `.conf` 全部保留。
+  - 已知既存 warning（非本次引入）：JDCloud `api.donglicao.com` server name 在 :443/:80/:8443 重复，nginx 仅 warn 不影响运行。
+- **JWT secret 轮换（两节点）**：
+  - 旧 secret `xiaozhi-prod-secret-key-2026`（28 字节固定串，低于 RFC 7518 推荐的 32 字节）→ 新 secret（`secrets.token_urlsafe(32)`，43 字符 / 32 字节熵随机串）。
+  - 两节点 `/opt/dlc-drawing/.env` 先 `cp -a` 备份为 `.env.bak-20260705-jwt`，再 `sed` 原地替换单值（符合「.env 合并而非覆盖」硬规则——备份 + 原地改值，非整文件覆盖）。
+  - 两节点新 secret sha256 一致（`6352a64a22b8fd7f58340fa060a2ced377e3cad4d95326ed59e5009757dd460f`）；`dlc-drawing` 重启后 health 正常。
+  - 诊断验证（每节点，`device_logic.auth.make_token`/`authorize`）：新 secret 签的 token `authorize()` 通过（返回 dict）；旧 secret 签的 token 返回 401（预期失效）。
+  - **影响**：所有此前签发的设备/小程序 JWT 立即失效，客户端需重新登录——这是轮换的预期效果。
+- **验证**：
+  - 两节点 `:8081/health` → `{"status":"ok","service":"dlc-drawing","version":"0.2.0-p1"}`。
+  - 公网 `https://chat.donglicao.com/health` → HTTP 200。
+  - systemd 最终状态：`dlc-drawing` active（两节点）；`lima-scnet-reverse` inactive（Aliyun，已退役）；`lima-router` disabled（两节点，退役）；`lima-router-pilot`/`lima-voice` active（Aliyun，保留）。
+  - 诊断脚本 `/tmp/diag_jwt.py` 已清理；secret 值全程未打印。
+- **未做/后续**：
+  - `/opt/lima-router` 目录保留——彻底清理需先逐一审计 `hermes-api`/`tts-proxy`/`mimo-proxy`/`litestream`/`kimi-proxy`/`longcat-web-proxy` 等 sidecar 是否仍在使用，属独立任务。
+  - JDCloud `api.donglicao.com` server name 冲突 warning 待单独排查。
