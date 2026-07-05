@@ -1322,3 +1322,15 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **未做/后续**：
   - `/opt/lima-router` 目录保留——彻底清理需先逐一审计 `hermes-api`/`tts-proxy`/`mimo-proxy`/`litestream`/`kimi-proxy`/`longcat-web-proxy` 等 sidecar 是否仍在使用，属独立任务。
   - JDCloud `api.donglicao.com` server name 冲突 warning 待单独排查。
+
+## 2026-07-05 生产清理（续）：/opt/lima-router 部署备份裁剪（已完成）
+
+- **背景**：阶段 D + SCNet/nginx/JWT 清理后，审计两节点 `/opt/lima-router`（Aliyun 1.1G / JDCloud 1.4G）的可回收空间。该目录不能整体删除——Aliyun 的 `lima-router-pilot`(:8080，免费后端 chat 路由) 仍通过 `mimo-proxy`/`longcat-web-proxy`/`kimi-proxy`/`hermes-api`/`tts-proxy` 等 sidecar 服务匿名 chat（chat-web / playground / manager-mobile H5），JDCloud 的 `litestream` 仍在复制 `health_state.db`。
+- **安全裁剪**：只动 `unified-*`/`manual-*`/`dotenv-before-*` 部署快照，保留最近 5 份；**绝不碰 `backups/litestream/`**（JDCloud 占 553M，litestream 活跃副本存储）。
+- **回收量**：
+  - Aliyun：backups 473M → 261M（146 份部署快照裁掉 141 份），`tmp_sonic.tar.gz` 7.7M 删除；`/opt/lima-router` 1.1G → 871M。
+  - JDCloud：backups 599M → 560M（24 份裁掉 19 份，litestream 553M 完整保留）；`/opt/lima-router` 1.4G → 1.3G。
+  - 合计回收约 **260MB**。
+- **未动（有引用或风险）**：`logs/`（全部 <7 天，rotation 已生效）、`router_model.pkl`（`local_router.py` 等引用）、`opencode-source/`（`opencode_*.py` 引用）、`data/`（多个 .db 含 litestream 源）、活跃 sidecar 进程。
+- **验证**：裁剪后两节点 `dlc-drawing` + 全部活跃 sidecar（pilot/hermes/tts/mimo/longcat/kimi/voice + litestream）均 active；`:8081/health` 正常。
+- **后续更大决策（需用户拍板）**：彻底退役 `lima-router-pilot`(:8080) 可连带下线 mimo/longcat/kimi/hermes/tts sidecar 并再回收数百 MB，但会影响 chat-web/playground/manager-mobile H5 的匿名免费 chat——属产品级决策。
