@@ -1344,3 +1344,18 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **阶段3（停后端）**：停服前只读复核——nginx proxy_pass 不直接指向任何 sidecar 端口；pilot :8080 established 连接空、journal 无新入站。逐个 stop+disable，unit 改名 `.retired-20260705`：`lima-router-pilot`/`mimo-proxy`/`longcat-web-proxy`/`kimi-proxy`/`hermes-api`/`tts-proxy`。daemon-reload + reset-failed。:8080 端口释放。
 - **终态验证**：两节点 `dlc-drawing` :8081/health ok；`lima-voice`(Aliyun)/`litestream`(JDCloud)/nginx 未受影响；`:8080` FREE。`/opt/lima-router-pilot`(1.1G) 仅停服未删。
 - **回滚**：前端 `git revert` → Actions 自动回滚；后端 unit `.retired-20260705` 改回原名 → daemon-reload → enable --now。
+
+## 2026-07-05 Deploy workflow SSH 根因修复 + pilot 目录回收
+
+- **背景**：pilot 退役后 `Deploy` workflow 仍 failure；调查确认与 pilot 退役无关，是 P4/P5 瘦身遗留的部署自动化配置 bug。
+- **根因（两缺陷叠加）**：
+  1. `.github/workflows/deploy.yml` 主部署步骤名 "Deploy Aliyun primary"，`ssh-keyscan` 扫的是 `VPS_HOST`(Aliyun)，但 `deploy_unified.py` 未传 `--target` → 默认 `jdcloud`（连 117.72.118.95）。known_hosts 无 JDCloud key → `configure_ssh_host_keys` 的 `RejectPolicy` 抛 `SSHException`。
+  2. `scripts/deploy_unified_common.py::_connect_ssh` 的密码回退路径复用同一个 `RejectPolicy` 的 ssh 对象，host key 仍未知 → 第二次 connect 在 `missing_host_key` 再抛 `SSHException`，无 except 包裹 → 崩溃（CI traceback 落点）。
+- **修复（最小改动，只改 workflow）**：主部署步骤对齐到 JDCloud（生产入口 `chat.donglicao.com` 经 CF Tunnel 指向 JDCloud，`verify` 步骤与脚本默认 target 均为 jdcloud）——`ssh-keyscan` 改扫 `JDCLOUD_HOST`、加 `if: JDCLOUD_HOST_SET` 守卫、env 补 `LIMA_JDCLOUD_SERVER`、调用显式 `--target jdcloud`，与下方已工作的 probe 步骤一致。未改 `_connect_ssh` 生产 SSH 逻辑（host key 命中后回退路径不再触发）。
+- **行为变更（需知悉）**：主步骤原意图部署 Aliyun（实际因崩溃从未成功），现纠正为部署 JDCloud。**Aliyun 节点不再由本 workflow 自动部署**；如需部署 Aliyun 应手动 `LIMA_DEPLOY_TARGET=aliyun` 或 `--target aliyun`。
+- **验证**：commit `a49ebe17` 后 `Deploy` workflow 三条全绿（Deploy / Tests / CodeQL）；deploy job 各步骤真跑通（非跳过）：`Deploy JDCloud primary` + `Verify production deployment`（`chat.donglicao.com/health` + L2 限流）+ `Deploy JDCloud provider probe` 均 success。
+- **顺带修复的既存 CI 债**（pilot 退役期间暴露）：
+  - `deploy-chat-web.yml`：build 前缺 `npm install` → `esbuild` ERR_MODULE_NOT_FOUND（自 7-03 连续失败）。加 `npm install` 步骤。
+  - `test.yml`：`Type check authority files` 仍 pyright 已删的 `server.py`/`routing_engine/__init__.py`/`routes/chat_endpoints.py`（exit 4）。改指现存入口 `server_dlc.py`。**`Tests` workflow 恢复绿灯**（7-01 以来首次）。
+  - `scripts/verify_production_deploy.py`：断言已退役的 `/device/v1/health`(404) + `metrics`(410 Gone)。精简为只检 `/health` + L2 限流；删死函数 `_check_metrics`/`_load_key` 及孤立 `Path`/`ROOT`。
+- **pilot 目录回收**：`/opt/lima-router-pilot`（1.1G，仅停服的孤儿）复核无引用（仅 `.retired` unit）后删除；env 文件（`.env`+`.env.merged`，含密钥）先备份到 VPS `/root/lima-router-pilot-env-backup-20260705.tar.gz`（chmod 600）。磁盘 used 22G→21G。`dlc-drawing` 仍健康。`/opt/lima-router` 保留（`litestream` 仍依赖其复制 `health_state.db`）。
