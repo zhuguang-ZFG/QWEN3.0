@@ -15,8 +15,10 @@
 > 入口: `server_dlc.py`（注册 `dlc_router` 5 端点 + `/v1/images/generations` + `device_app_*` 小程序路由约 70 条 `/device/v1/app/*`）
 > 架构: `server_dlc.py → dlc_api/（routes + device_app_router 聚合器）→ dlc_core/ → device_gateway/`（任务生成链）
 >
-> ### ⚠️ VPS 生产拓扑实况（2026-07-06 SSH 核查，Strangler Fig 只完成一半）
-> nginx `chat.donglicao.com` 仍把 **除 `/dlc/` 外的全部路径**（`/chat/ /admin /api/ /agent/ /device/v1/ws /digital-human/ /fleet/ /v1/voice`）代理到 **`:8080` 旧 `server:app`（完整旧系统仍在跑）**；仅 `/dlc/*` → `:8081` 新 `server_dlc`。`/opt/lima-router/` 上仓库已删的 `server.py`/`server_lifespan*.py` 等旧文件仍在。**结论：瘦身只"建了新入口"，从未"退役旧系统"——旧全量系统仍是生产主处理器。**
+> ### ⚠️ VPS 生产拓扑实况（2026-07-05 更新）
+> nginx `chat.donglicao.com` 仍把 **除 `/dlc/` 外的全部路径**（`/chat/ /admin /api/ /agent/ /device/v1/ws /digital-human/ /fleet/ /v1/voice`）代理到 **`:8080` 旧 `server:app`**；仅 `/dlc/*` → `:8081` 新 `server_dlc`。
+> **Aliyun 节点变化**：`dlc-drawing` 服务已改为独立目录 `/opt/dlc-drawing`，跑最新瘦身后代码；`:8081` 上 `/v1/images/generations` 与 `/device/v1/app/images/generations` 已用真实 key 冒烟通过。
+> **阶段 D 仍待执行**：nginx 把 `/device/ /api/ /admin` 等仍需路径从 `:8080` 改指 `:8081`，停用旧 `lima-router`，清理 `/opt/lima-router/` 上已删旧文件。
 > 生产设备状态：**研发阶段，无线上存量设备**（用户确认），故旧 `/device/v1/ws` 语音/网关链路无真实依赖，可安全退役。
 >
 > ### 瘦身进度（2026-07-06）
@@ -33,9 +35,13 @@
 - **恢复文件**：`routes/images.py`、`routes/images_backends.py`、`routes/images_cache.py`、`routes/images_pollinations.py`、`routes/device_app_images.py`。
 - **关键修复**：`routes/images_backends.py` 中已删除的 `http_async.call_raw_async` 替换为直接 httpx 调用 `https://ai.xmiaom.com/v1/chat/completions`，避免生产 `ImportError`。
 - **注册**：`server_dlc.py` 新增 `app.include_router(images_router.router)`；`dlc_api/device_app_router.py` 已注册 `device_app_images`。
-- **测试**：新增 `tests/test_routes_images.py`（11 用例覆盖公网/小程序端点成功、鉴权失败、参数校验、缓存命中）；更新 `tests/device_app_helpers.py` 重新 include `device_app_images`。
+- **测试**：新增 `tests/test_routes_images.py`（11 用例覆盖公网/小程序端点成功、鉴权失败、参数校验、缓存命中）；更新 `tests/device_app_helpers.py` 重新 include `device_app_images`；同步更新 `tests/test_deploy_unified.py` 与 `tests/_deploy_mocks.py` 匹配新部署目标。
 - **门禁**：pytest **1408 passed / 3 skipped / 0 failed**；ruff check + format clean；pyright 改动文件 0 errors；`check_code_size.py` PASS。
-- **待验证**：VPS 部署后用真实 key 对 `/v1/images/generations` 与 `/device/v1/app/images/generations` 冒烟。
+- **VPS 部署与冒烟**：
+  - Aliyun `47.112.162.80` 已部署到独立目录 `/opt/dlc-drawing`；`dlc-drawing.service` 指向新目录，`dlc-drawing` 重启后 `/health` 返回 `{"status":"ok","service":"dlc-drawing"}`。
+  - `POST :8081/v1/images/generations`（真实 `LIMA_API_KEY`）→ HTTP 200，返回 Agnes 图片 URL。
+  - `POST :8081/device/v1/app/images/generations`（真实 `LIMA_JWT_SECRET` 签发的测试账号 JWT）→ HTTP 200，返回图片 URL，`backend: "LiMa 生图"`。
+  - 旧 `lima-router`(:8080) 仍在运行，但 Aliyun 新 `:8081` 已跑最新代码并承载图像端点。
 
 ### 最近完成（2026-07-06）固件 U8 plotter MCP 工具 + 小程序 v3.9.0 + MCP 部署脚本
 

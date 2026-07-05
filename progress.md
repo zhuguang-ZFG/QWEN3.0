@@ -17,7 +17,18 @@
   - 新增 `tests/test_routes_images.py`：11 个用例覆盖公网端点成功/鉴权失败/参数校验/缓存命中、小程序端点成功/鉴权失败/空 prompt、`server_dlc` 路由暴露断言。
   - 更新 `tests/device_app_helpers.py`：把已恢复的 `device_app_images` 路由重新 include 进测试 app。
 - **门禁**：pytest **1408 passed / 3 skipped / 0 failed**；ruff check + format clean；pyright 改动文件 0 errors；`check_code_size.py` PASS。
-- **待验证**：部署到 VPS 后用真实 `XMIAOM_API_KEY` 等 key 调用 `/v1/images/generations` 与 `/device/v1/app/images/generations` 冒烟（ Pollinations 兜底无需 key 也可初步验证链路）。
+- **VPS 部署与冒烟（选项 A）**：
+  - 修复 `scripts/deploy_unified_restart.py`：把 `lima-router`（旧 :8080）改为 `dlc-drawing`（新 :8081），健康检查从 `:8080/health/ready` 改为 `:8081/health`。
+  - 修复 `scripts/deploy_unified_preflight.py`：容量检查前自动 `mkdir -p` 新目录。
+  - 修复 `config/deploy_config.py`：`REMOTE_PATH` 默认改为 `/opt/dlc-drawing`，`router_root()` 同步指向新目录。
+  - 修复 `scripts/deploy_unified_common.py`：从 `CORE_DIRS` 删除已物理删除的 `device_ota`。
+  - 新增 `deploy/aliyun/dlc-drawing.service`：独立 `WorkingDirectory=/opt/dlc-drawing` + `EnvironmentFile=/opt/dlc-drawing/.env`。
+  - 更新 `tests/test_deploy_unified.py`、`tests/_deploy_mocks.py` 以匹配新目标目录/服务名。
+  - 首次部署到 Aliyun `47.112.162.80` 的 `/opt/dlc-drawing`，485 文件上传成功，`dlc-drawing` 重启后 `/health` 返回 `{"status":"ok","service":"dlc-drawing"}`。
+  - 真实 key 冒烟：
+    - `POST :8081/v1/images/generations` → HTTP 200，返回 Agnes 图片 URL（xmiaom 未命中时自动降级）。
+    - `POST :8081/device/v1/app/images/generations`（用 VPS `.env` 中真实 `LIMA_JWT_SECRET` 签发的测试账号 JWT）→ HTTP 200，返回图片 URL + `backend: "LiMa 生图"`。
+  - 备注：VPS 上旧 `lima-router`(:8080) 仍在运行（nginx 尚未切流），但新 `dlc-drawing`(:8081) 已在独立目录跑最新代码并承载图像端点。
 
 ## 2026-07-06 系统瘦身彻底化 A/B/C：补注册小程序路由 + 删死代码 + 清死配置
 

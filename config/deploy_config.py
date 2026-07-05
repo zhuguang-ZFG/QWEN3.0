@@ -11,7 +11,9 @@ import os
 
 
 LIMA_SERVER: str = os.environ.get("LIMA_SERVER", "47.112.162.80")
-REMOTE_PATH: str = "/opt/lima-router"
+# Post-P5: the slimmed-down DLC service runs from its own directory to avoid
+# sharing code with the retired lima-router (:8080) service.
+REMOTE_PATH: str = os.environ.get("LIMA_REMOTE_PATH", "/opt/dlc-drawing")
 JDCLOUD_REMOTE_PROBE_PATH: str = "/opt/lima-probe"
 
 DEPLOY_KEY_PATH: str = os.environ.get("LIMA_DEPLOY_KEY_PATH", "~/.ssh/id_ed25519")
@@ -90,7 +92,7 @@ def deploy_host() -> str:
 
 
 def router_root() -> str:
-    return os.environ.get("LIMA_ROUTER_ROOT", "/opt/lima-router")
+    return os.environ.get("LIMA_ROUTER_ROOT", REMOTE_PATH)
 
 
 def deploy_notify_enabled() -> bool:

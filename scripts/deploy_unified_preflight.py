@@ -20,6 +20,7 @@ from scripts.deploy_unified_common import (
 def check_remote_capacity(ssh, target: DeployTarget) -> dict[str, int]:
     command = (
         "set -eu; "
+        f"mkdir -p {shlex.quote(target.remote_path)}; "
         f"disk=$(df -Pm {shlex.quote(target.remote_path)} | awk 'NR==2 {{print $4}}'); "
         "mem=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo); "
         'echo "disk_free_mb=$disk"; '

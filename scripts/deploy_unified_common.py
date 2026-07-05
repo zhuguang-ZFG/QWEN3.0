@@ -77,7 +77,6 @@ CORE_DIRS = [
     "device_memory",
     "device_intelligence",
     "device_logic",
-    "device_ota",
     "device_policy",
     "device_workflow",
     "device_artifacts",

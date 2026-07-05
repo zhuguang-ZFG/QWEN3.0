@@ -80,6 +80,7 @@ class _RestartSsh:
     def __init__(self) -> None:
         self.commands: list[str] = []
         self.closed = False
+        self._sftp = _Sftp()
 
     def load_system_host_keys(self) -> None:
         pass
@@ -87,11 +88,14 @@ class _RestartSsh:
     def connect(self, *args: object, **kwargs: object) -> None:
         pass
 
+    def open_sftp(self) -> _Sftp:
+        return self._sftp
+
     def exec_command(self, command: str) -> tuple[None, _Stream, _Stream]:
         self.commands.append(command)
         if command.startswith("curl "):
-            if "/health/ready" in command:
-                return None, _Stream('{"status":"ready","startup_status":"ready"}'), _Stream()
+            if ":8081/health" in command:
+                return None, _Stream('{"status":"ok","service":"dlc-drawing"}'), _Stream()
             return None, _Stream('{"status":"ok"}'), _Stream()
         return None, _Stream(), _Stream()
 
@@ -117,7 +121,7 @@ class _PrepareSsh:
         if "tar --ignore-failed-read" in command:
             return (
                 _Stdin(),
-                _Stream("/opt/lima-router/backups/unit-test-20260609_010203/runtime-before.tgz\n"),
+                _Stream("/opt/dlc-drawing/backups/unit-test-20260609_010203/runtime-before.tgz\n"),
                 _Stream(),
             )
         return _Stdin(), _Stream(), _Stream()

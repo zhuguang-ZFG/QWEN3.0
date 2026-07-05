@@ -22,8 +22,8 @@ def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
     result = deploy_unified.deploy_files(["scripts/deploy_unified.py"], target=get_deploy_target("jdcloud"))
 
     assert result == {"uploaded": 1, "failed": [], "skipped": []}
-    assert sftp.put_calls[0][1] == "/opt/lima-router/scripts/deploy_unified.py"
-    assert "/opt/lima-router/scripts" in sftp.dirs
+    assert sftp.put_calls[0][1] == "/opt/dlc-drawing/scripts/deploy_unified.py"
+    assert "/opt/dlc-drawing/scripts" in sftp.dirs
     assert sftp.closed is True
     assert ssh.closed is True
 
@@ -60,7 +60,7 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
         lambda files, target, label: {
             "ok": True,
             "capacity": {},
-            "backup_path": "/opt/lima-router/backups/unit/runtime-before.tgz",
+            "backup_path": "/opt/dlc-drawing/backups/unit/runtime-before.tgz",
         },
     )
     monkeypatch.setattr(
@@ -81,7 +81,7 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
     )
 
     assert deploy_unified.main() == 1
-    assert rollback_calls == ["/opt/lima-router/backups/unit/runtime-before.tgz"]
+    assert rollback_calls == ["/opt/dlc-drawing/backups/unit/runtime-before.tgz"]
     assert restart_calls == ["restart", "restart"]
 
 
@@ -116,7 +116,8 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
 
     assert deploy_unified.HEALTH_WAIT_SECONDS >= 60
     joined = "\n".join(ssh.commands)
-    assert "systemctl restart lima-router" in ssh.commands
+    assert "systemctl restart dlc-drawing" in ssh.commands
+    assert "systemctl daemon-reload" in ssh.commands
     assert "pkill" not in joined
     assert "nohup" not in joined
     assert any(command.startswith("curl ") for command in ssh.commands)
@@ -160,7 +161,7 @@ def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
 
     assert result["ok"] is True
     assert result["capacity"] == {"disk_free_mb": 2048, "mem_available_mb": 512}
-    assert result["backup_path"] == "/opt/lima-router/backups/unit-test-20260609_010203/runtime-before.tgz"
+    assert result["backup_path"] == "/opt/dlc-drawing/backups/unit-test-20260609_010203/runtime-before.tgz"
     assert any("df -Pm" in command for command in ssh.commands)
     assert any("tar --ignore-failed-read" in command for command in ssh.commands)
     assert ssh.closed is True
@@ -175,7 +176,7 @@ def test_restore_remote_backup_extracts_tar(monkeypatch):
     monkeypatch.setattr(common_mod, "configure_ssh_host_keys", lambda client: None)
 
     ok = preflight_mod.restore_remote_backup(
-        "/opt/lima-router/backups/unit/runtime-before.tgz", target=get_deploy_target("jdcloud")
+        "/opt/dlc-drawing/backups/unit/runtime-before.tgz", target=get_deploy_target("jdcloud")
     )
 
     assert ok is True
