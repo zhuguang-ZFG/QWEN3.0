@@ -9,7 +9,6 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from pathlib import Path
 
 try:
     from config import deploy_config, settings
@@ -20,19 +19,7 @@ except ImportError:
     HOST = os.environ.get("LIMA_VERIFY_HOST", "chat.donglicao.com")
     settings = None  # type: ignore[assignment]
 
-ROOT = Path(__file__).resolve().parent.parent
 UA = {"User-Agent": "LiMaDeployVerify/1.0", "Content-Type": "application/json"}
-
-
-def _load_key() -> str:
-    env_path = ROOT / ".env"
-    if env_path.is_file():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            if line.startswith("LIMA_API_KEY="):
-                return line.split("=", 1)[1].strip().strip('"').strip("'")
-    if settings is not None:
-        return settings.SECURITY.api_key.strip()
-    return os.environ.get("LIMA_API_KEY", "").strip()
 
 
 def _get(path: str, *, bearer: str = "", timeout: float = 90) -> tuple[int, str]:
@@ -79,34 +66,6 @@ def _check_health_path(path: str) -> str | None:
                 time.sleep(2)
     print(f"FAIL {path} -> {type(last_exc).__name__}: {last_exc}")
     return path
-
-
-def _check_metrics(bearer: str) -> str | None:
-    """Probe Prometheus metrics endpoint and return the failure key, or None."""
-    try:
-        status, text = _get("/v1/ops/metrics/prometheus", bearer=bearer)
-        needles = (
-            "lima_backend_retired_count",
-            "lima_backend_retirement_events_total",
-            "lima_backend_retired",
-        )
-        missing = [n for n in needles if n not in text]
-        ok = status == 200 and not missing
-        print(
-            f"OK  /v1/ops/metrics/prometheus -> {status} lines={len(text.splitlines())}"
-            if ok
-            else f"FAIL metrics -> {status} missing={missing}"
-        )
-        if ok:
-            for line in text.splitlines():
-                if line.startswith("lima_backend_retired_count "):
-                    print(f"    {line.strip()}")
-                    break
-            return None
-        return "metrics"
-    except Exception as exc:
-        print(f"FAIL metrics -> {type(exc).__name__}: {exc}")
-        return "metrics"
 
 
 def _login_rate_limit() -> tuple[int, int]:
@@ -169,18 +128,13 @@ def _check_l2_rate_limit() -> str | None:
 
 
 def main() -> int:
-    key = _load_key()
     failures: list[str] = []
 
-    for path in ("/health", "/device/v1/health"):
+    # /device/v1/health 与 /v1/ops/metrics/prometheus 已随 P4/P5 瘦身退役
+    # （WS 设备网关 + ops_metrics 物理删除）；DLC 服务只暴露 /health。
+    for path in ("/health",):
         if failure := _check_health_path(path):
             failures.append(failure)
-
-    if not key:
-        print("SKIP /v1/ops/metrics/prometheus (no LIMA_API_KEY)")
-        failures.append("metrics_no_key")
-    elif failure := _check_metrics(key):
-        failures.append(failure)
 
     if failure := _check_l2_rate_limit():
         failures.append(failure)
