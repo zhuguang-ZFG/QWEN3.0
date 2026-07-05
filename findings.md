@@ -5,6 +5,21 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
+## 2026-07-06 设备网关 WS 下发链去留：证据闭合但受阻于线上 OTA config
+
+- **问题**：`routes/device_gateway*.py`（约 1248 行）+ `device_logic/gateway.py` + `device_gateway/notifier.py`/`mqtt_handlers.py` 的任务下发链，在生产入口 `server_dlc.py` 下是否为死代码。这是仓库最大一块潜在瘦身目标。
+- **已查清的代码事实（仓库内可确定）**：
+  1. 服务端唯一任务下发链依赖 WS 端点 `/device/v1/ws`（`dispatch_task_to_session` → `session.send_json`；`drain_pending_tasks`；`publish_task_available_safe` 只是跨进程唤醒信号，非第二通道）。
+  2. `server_dlc.py` / `dlc_api.app` 只注册 `dlc_router`，**未注册** `/device/v1/ws`；`server.py`/`routes/route_registry.py` 已删除 → 该端点生产不可达。
+  3. 固件目标架构（设计文档 §1.2/§2.3）：语音走 xiaozhi.me 官方云 → MCP → `self.plotter.*`/`self.motor.run_path` HTTP 调 `dlc_api`，设备本地执行，**不从服务端拉任务**。
+  4. **但**固件仍保留 WS/MQTT 的 `motion_task` 接收能力（`application.cc:588 HandleMotionTaskJson`），协议由 OTA config 动态选择（`InitializeProtocol`：`HasMqttConfig`→MqttProtocol，否则 WebsocketProtocol）；WS 音频通道默认 URL `wss://chat.donglicao.com/device/v1/ws`（`websocket_protocol.cc:94`）。
+- **阻塞点（仓库代码无法回答的运行时事实）**：`routes/device_gateway*` 是否可删，取决于**线上存量设备的 OTA config 实际指向哪个服务器**：
+  - 若全部设备已迁移 xiaozhi.me 官方云 → WS 网关是死代码，可删。
+  - 若有设备 OTA config 仍指向 `chat.donglicao.com` 自托管 WS/MQTT 语音 → 删服务端会**断掉真实硬件的语音+任务下发**，不可逆。
+- **删除代价**：`routes/device_gateway*` 被 230 个测试文件引用，深度嵌入，非孤立死代码。删除需连带处理 230 测试 + gateway/notifier/mqtt 整条链。
+- **结论**：属高风险不可逆操作（影响真实设备语音链路），按 Ponytail 不可妥协边界 + 系统高风险操作规则，**必须先确认线上 OTA config 现状**再决定，不能靠读代码赌。
+- **需要的输入**：线上设备 OTA config 的 `websocket.url`/`mqtt` 指向统计（xiaozhi.me vs chat.donglicao.com 的设备占比），或明确"自托管语音已全部退役、无存量设备依赖 chat.donglicao.com 的 /device/v1/ws"。
+
 ## 2026-07-06 系统瘦身残留审计：仓库与 VPS 分叉 + 死代码物理删除
 
 - **现象**：STATUS.md 声称「P5 瘦身后约 280 py 文件 / ~18000 行」，实测 git 跟踪应用 py = **356 文件 / 41922 行**——数字差 76 文件 / 翻倍行数。仓库里有大量从 `server_dlc.py` 生产路径不可达的死代码。
