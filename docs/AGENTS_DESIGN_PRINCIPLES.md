@@ -11,10 +11,10 @@
 | 原则 | 核心含义 | LiMa 场景关键词 |
 |------|----------|-----------------|
 | 单一职责 SRP | 一个类/模块只应有一个引起变化的原因 | `dlc_core` 只负责路径算法；`dlc_api` 只负责 HTTP；`dlc_mcp` 只负责 MCP 适配 |
-| 开闭 OCP | 对扩展开放，对修改关闭 | 新增 MCP tool 通过 `server.py` 注册新 `Tool`，不修改 `dlc_core`；新增后端通过 `backends_registry` 注册 |
-| 里氏替换 LSP | 子类可透明替换基类 | 后端池统一接口：`BackendClient` 的不同实现（HTTP/流式/轮询）可互换 |
+| 开闭 OCP | 对扩展开放，对修改关闭 | 新增 MCP tool 通过 `dlc_mcp/server.py` 的 `TOOLS`/`TOOL_HANDLERS` 注册，不修改 `dlc_core`；新增设备能力通过 `device_gateway` 的 capability 白名单扩展 |
+| 里氏替换 LSP | 子类可透明替换基类 | `PathValidator` 统一 `validate(path) -> ValidationResult` 接口，不同运动边界实现可互换 |
 | 接口隔离 ISP | 客户端不应依赖不需要的接口 | `dlc.validate_path` 与 `dlc.dispatch_task` 分离，设备端不强制实现预览接口 |
-| 依赖倒置 DIP | 面向接口/抽象编程，高层不依赖低层 | `routing_engine` 依赖 `BackendClient` 抽象，而非具体 `httpx` 调用 |
+| 依赖倒置 DIP | 面向接口/抽象编程，高层不依赖低层 | `dlc_core` 通过 `handle_draw`/`handle_write` 等函数抽象暴露能力，`dlc_api`/`dlc_mcp` 依赖这些抽象而非具体实现 |
 | 迪米特 LoD | 最少知道原则，减少模块间直接交互 | 设备端只认识 `dlc_api`，不直接访问 `device_draw_handler` 内部 |
 | 合成复用 CRP | 优先组合/聚合，而非继承 | `dlc_mcp` 组合 `dlc_core` 能力，而不是继承绘图类 |
 | 清晰指令 | 提示、接口、配置语义明确无歧义 | MCP tool 的 `inputSchema` 必填/类型/范围完整；环境变量命名自解释 |
@@ -47,7 +47,7 @@
 
 ### LiMa 示例
 
-- 新增 MCP tool：在 `dlc_mcp/server.py` 的 `list_tools()` 中追加 `Tool(...)`，不修改 `dlc_core`。
+- 新增 MCP tool：在 `dlc_mcp/server.py` 的 `TOOLS`/`TOOL_HANDLERS` 中追加条目，不修改 `dlc_core`。
 - 新增设备能力：在固件中新增 `AddTool("self.plotter.xxx")`，不修改现有 `self.plotter.write_text`。
 - 新增图形预设：在 `dlc_core/presets.py` 增加新图形函数，不修改 `handle_draw` 主流程。
 
@@ -59,7 +59,7 @@
 
 ### LiMa 示例
 
-- `BackendClient` 基类定义 `chat(request) -> response`；`HttpBackendClient`、`StreamingBackendClient`、`AsyncBackendClient` 子类可互换。
+- `DeviceTaskStore` 抽象定义入队/出队/状态接口；`InMemoryDeviceTaskStore` 与 Redis 后端实现可互换（测试用内存、生产用 Redis）。
 - `PathValidator` 基类定义 `validate(path) -> ValidationResult`；不同运动边界实现可互换。
 
 ---
@@ -88,7 +88,7 @@
 
 ### LiMa 示例
 
-- `routing_engine.route()` 依赖 `BackendClient` 抽象，不依赖 `httpx.Client`。
+- `dlc_api` 路由依赖 `dlc_core` 的函数签名（`handle_draw`/`handle_write`/`dispatch_task`），不依赖具体路径算法实现。
 - `dlc_mcp` 依赖 `dlc_core` 的函数签名，不依赖具体算法实现。
 - 测试用 `FakePathValidator` 替换真实校验器，不修改被测代码。
 

@@ -2,6 +2,8 @@
 
 > 版本：2026-06-16
 > 关联：[`CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](CODEBASE_COLD_PRUNE_PRIORITY_CN.md) P4
+>
+> **⚠️ 已退役（历史记录）**：本文记录 CP-5 时期 `provider_probe` 迁入 `packages/provider-probe-offline/` 的历史。其"不变量"提及的 `server.py` / `server_lifespan.py` / `routes/route_registry.py` 及 `test_routing_engine.py` 等均已在 P4/P5 瘦身物理删除；`provider_probe` 现仅作 JDCloud 冷离线工具存在。本文仅供审计追溯，勿据此判断当前代码结构。
 
 ## 目的
 

@@ -20,9 +20,9 @@
 > **注意**：
 > - `/health` 在启动阶段出现 critical error（`startup.status=error`）时返回 **503**。
 > - `/device/v1/health` 在生产运行时（`LIMA_RUNTIME_ENV=production`）若 `task_store` / `session_bus` 未跨进程共享（`production_ready=false`）返回 **503**。
-> - `/v1/chat/completions` 默认限流为 60s/120 请求（IDE 来源倍率 5），超限时返回 **429**。
+> - `/dlc/tasks/*` 按设备 token 限流（`DEVICE.dlc_task_per_min` / `dlc_image_per_min`），超限时返回 **429**。
 > 验证时应先检查响应体，排除上述正常门控后再判定服务异常。
-| 路由引擎正常 | ⬜ | `python -m pytest tests/test_routing_engine.py -q` |
+| dlc_api / dlc_core / dlc_mcp 正常 | ⬜ | `python -m pytest tests/test_dlc_api.py tests/test_dlc_core_*.py tests/test_dlc_mcp_*.py -q` |
 | 设备网关正常 | ⬜ | `python -m pytest tests/test_device_gateway_*.py -q` |
 
 ## 门 B：设备协议验证（假 U8/U1）
@@ -116,8 +116,8 @@
 # 运行所有设备网关测试
 python -m pytest tests/test_device_gateway_model_routing.py tests/test_device_gateway_protocol.py tests/test_device_gateway_routes.py tests/test_device_gateway_store.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_profiles.py -q
 
-# 运行路由引擎测试
-python -m pytest tests/test_routing_engine.py tests/test_routing_pipeline_authority.py -q
+# 运行 dlc 核心测试（API / 绘图核心 / MCP）
+python -m pytest tests/test_dlc_api.py tests/test_dlc_core_*.py tests/test_dlc_mcp_*.py -q
 
 # 运行全量 CI 检查
 python scripts/run_pre_commit_check.py --full

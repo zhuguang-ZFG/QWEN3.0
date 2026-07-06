@@ -1,16 +1,18 @@
 # JDCloud Runtime Status
 
-> Updated: 2026-06-30
-> Scope: JDCloud node `117.72.118.95` now runs the primary `lima-router` compute; public HTTPS ingress is still handled by Alibaba Cloud with Tailscale backhaul.
+> Updated: 2026-07-06
+> Scope: 小智云 + DLC 瘦身后，JDCloud 节点 `117.72.118.95` 已从 primary `lima-router` compute **退役**，转为 backend / data / observability 节点。公网入口由阿里云 `47.112.162.80` 承载（`chat.donglicao.com :443 → /dlc/* → dlc_api`）。
 
 ## Summary
 
-JDCloud has been promoted from a secondary ops/probe node to the primary
+> ⚠️ 本节以下内容记录的是 2026-06-30 lima-router 时代的历史拓扑，**已退役**。当前权威定位见文末「小智云 + DLC 瘦身后的职责定位」一节：JDCloud 不再跑主 `lima-router`，对话/LLM 路由交给小智官方云，JDCloud 仅保留 MySQL / Redis / Prometheus / probe / worker 与可选 `dlc_api` hot-standby。
+
+历史记录（lima-router 时代）：JDCloud had been promoted from a secondary ops/probe node to the primary
 `lima-router` compute node. The public `chat.donglicao.com` DNS still points to
 Alibaba Cloud, which reverse-proxies dynamic requests over Tailscale to JDCloud
 (`100.85.114.65:8080`).
 
-Primary LiMa production API traffic now terminates on:
+Primary LiMa production API traffic then terminated on:
 
 ```text
 https://chat.donglicao.com/v1
