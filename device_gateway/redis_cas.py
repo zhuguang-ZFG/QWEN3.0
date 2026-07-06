@@ -211,3 +211,61 @@ def get_version(state: dict[str, Any] | None) -> int:
     if state is None:
         return 0
     return int(state.get(VERSION_FIELD, 0))
+
+
+# Lua: atomically move ONE item from the processing list back to pending.
+# Only LPUSH when LREM actually removed the item — otherwise a concurrent
+# consumer already popped it and re-queuing would duplicate the task.
+# KEYS[1] = processing list key
+# KEYS[2] = pending list key
+# ARGV[1] = item (the exact serialized payload)
+# ARGV[2] = ttl_seconds (EXPIRE applied to pending key when moved)
+# Returns: number of items moved (0 or 1)
+_REQUEUE_LUA = """
+local removed = redis.call('LREM', KEYS[1], 0, ARGV[1])
+if removed and removed > 0 then
+    redis.call('LPUSH', KEYS[2], ARGV[1])
+    redis.call('EXPIRE', KEYS[2], ARGV[2])
+    return 1
+end
+return 0
+"""
+
+_requeue_scripts: dict[int, Any] = {}
+
+
+def _get_requeue_script(redis_client):
+    cid = id(redis_client)
+    script = _requeue_scripts.get(cid)
+    if script is None:
+        script = redis_client.register_script(_REQUEUE_LUA)
+        _requeue_scripts[cid] = script
+    return script
+
+
+def requeue_item_atomic(
+    redis_client,
+    processing_key: str,
+    pending_key: str,
+    item: str,
+    ttl_seconds: int,
+) -> int:
+    """Atomically move ``item`` from ``processing_key`` back to ``pending_key``.
+
+    LREM + LPUSH happen in a single Lua eval so a crash between them cannot
+    lose the task (the original two-step LREM/LPUSH left a window where the
+    item was in neither list). LPUSH only fires when LREM actually removed the
+    item, so a concurrent consumer that already popped it is never duplicated.
+
+    Returns the number of items moved (0 or 1). Falls back to a non-atomic
+    Python path for clients without ``register_script`` (test fakes).
+    """
+    if not hasattr(redis_client, "register_script"):
+        removed = redis_client.lrem(processing_key, 0, item)
+        if removed and removed > 0:
+            redis_client.lpush(pending_key, item)
+            redis_client.expire(pending_key, ttl_seconds)
+            return 1
+        return 0
+    script = _get_requeue_script(redis_client)
+    return int(script(keys=[processing_key, pending_key], args=[item, ttl_seconds]))

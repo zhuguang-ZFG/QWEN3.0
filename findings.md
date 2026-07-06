@@ -585,3 +585,14 @@
   - `path_validator` 无类型校验/点数上限，非数值坐标触发 500。\r
 - **误报排除（参考上次教训，每条先核查再下结论）**：SQL 注入全参数化、IDOR 按 owner/account 收紧、SSRF 三层防护完整、Redis 用 JSON 非 pickle（无反序列化 RCE）、`record_simplification` 路径拼接（device_id 经正则校验禁 `/`，不可利用）、`auth.py` 空 token 兜底（已显式标注 CRITICAL 默认关闭）。\r
 - **测试**：新增 `tests/test_hidden_issues_review.py`（6 用例，静态+行为双校验），全量 1373 passed（含新测试 + 既有回归），ruff/CI gate/check_code_size 全过。
+
+## 2026-07-06 P2 技术债处理（幂等键回滚 + recover 原子化 + CAS 核查降级）
+
+- **背景**：项目级审查记录的 3 项 P2 技术债，逐条建立证据链后处理。参考同类 FastAPI + Redis 队列项目的幂等/原子化惯例，复用仓库已有 `device_gateway/redis_cas.py` 的 Lua `register_script` 模式。
+- **P2-a 幂等键先占位后执行 — 已修**：`dlc_api/routes.py::dispatch_task_endpoint` 在 `_build_dispatch_payload` / `dispatch_task` 之前就 `SET NX EX` 占用幂等键，一旦 payload 构建或下发失败（设备离线、路径生成异常、dispatch rejected），key 已被消费，客户端用同一 `Idempotency-Key` 重试会被判 `duplicate`，命令永久丢失。**修复**：新增 `release_idempotency_key`（Redis DEL，best-effort，失败靠 TTL 兜底），在三条失败路径（result 非 success / motion_task None / dispatch status 不在 `{sent,queued}`）释放 key；成功路径保留 key 维持去重语义。新增 `tests/test_p2_idempotency_rollback.py`（失败释放可重试 + 成功保留判重双向覆盖）。
+- **P2-c recover 的 LREM+LPUSH 非原子 — 已修**：`device_gateway/redis_store_recover.py::recover_stale_processing` 原先先 `lrem(proc)` 再 `lpush(pending)`，两步之间崩溃会导致任务既不在 processing 也不在 pending，永久丢失（at-most-once）。**修复**：在 `redis_cas.py` 新增 `requeue_item_atomic`（Lua 单次 LREM+LPUSH+EXPIRE 原子化，仅当 LREM 命中才 LPUSH，避免与并发 pop 竞争误删兄弟副本后重复入队；带 fallback 供无 `register_script` 的测试 fake）。新增 `tests/test_p2_recover_atomic.py`（命中迁移 + 未命中不 LPUSH + recover 回归）。
+- **P2-b CAS 重试耗尽静默丢弃 — 核查降级，不改**：审查怀疑 `_cas_update` 耗尽 3 次重试返回 None 时，`ack_processing` 未清 `processing_started_at` 会被 recover 误判 stale 重新入队 → 绘图机重复执行。**核查发现**：`ack_processing` 经 `_remove_processing_task` 先 `lrem` 把 item 从 processing **队列 list** 移除，之后才 `_cas_update` 改 state hash；而 `recover_stale_processing` 遍历的是 processing **队列 list**（`lrange`），item 已不在其中，recover 扫不到 → **不会重复入队，无物理重复执行风险**。CAS 失败的真实影响仅是 state hash 元数据字段（`processing_started_at`/status/retry_count）不同步，且耗尽时已有 `_log.warning`（符合禁止静默降级）。全面改 8 个调用方返回值语义波及大、收益低。**结论：队列正确性不依赖 CAS 返回值，属可观测性问题非安全问题，不改。**
+- **P2-d 全表 hgetall — 记入待办不做**：`redis_store.py` 的 `active_tasks_for_device`/`list_tasks_for_device` 全表 `hgetall` + Python 过滤，O(N) 扫描。属纯性能优化，需在所有写入点维护 per-device 反向索引 + 现有数据迁移，改动面最大、回归风险高；当前设备量下 O(N) 可接受，规模到了再做。
+- **文件行数约束**：`dlc_api/routes.py` 加 `release_idempotency_key` 后达 322 行超 300 硬限，把幂等键逻辑（client 单例 + claim/release）抽到新模块 `dlc_api/idempotency.py`，routes.py 降到 254 行；routes.py 用 `import as _claim_idempotency_key/_release_idempotency_key` 别名保持既有测试 patch 目标稳定。
+- **测试**：全量 816 passed（含新增 2 个 P2 测试文件 + 既有回归），ruff/check_code_size 全过。
+- **教训**：延续「审查高估 → 核查降级」模式——P2-b 与之前的 SSRF/子进程误报同理，审查提出的"物理重复执行"风险经证据链核查（队列 list vs state hash 的职责分离）证伪。真实修复只落在证据充分的 P2-a/P2-c。

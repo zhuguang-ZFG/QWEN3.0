@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 
+from config.settings import DEVICE
 from device_gateway.redis_store_helpers import decode_redis_json
 
 _log = logging.getLogger(__name__)
@@ -39,11 +40,15 @@ class RedisStoreRecoverMixin:
                     data.get("_processing_at") or data.get("_enqueued_at") or 0
                 )
                 if processing_started_at > 0 and now - processing_started_at > timeout_sec:
-                    # Atomically move from processing back to pending
-                    removed = self._redis.lrem(proc_key, 0, item)  # type: ignore[attr-defined]
-                    if removed:
-                        self._redis.lpush(pending_key, item)  # type: ignore[attr-defined]
-                        self._ensure_queue_ttl(device_id)  # type: ignore[attr-defined]
+                    # P2-c: single atomic LREM+LPUSH (Lua). The old two-step
+                    # lrem-then-lpush left a crash window where the task was in
+                    # neither list (permanent loss); the helper only re-queues
+                    # when LREM actually removed the item.
+                    from device_gateway.redis_cas import requeue_item_atomic
+
+                    ttl = int(DEVICE.redis_task_ttl)
+                    moved = requeue_item_atomic(self._redis, proc_key, pending_key, item, ttl)  # type: ignore[attr-defined]
+                    if moved:
                         if state:
                             # AUDIT-9-S4: CAS-protected status update.
                             self._cas_update(  # type: ignore[attr-defined]

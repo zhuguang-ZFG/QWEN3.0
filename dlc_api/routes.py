@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from config.settings import DEVICE, REDIS
+from config.settings import DEVICE
 from dlc_api.deps import verify_dlc_api_token
 from dlc_api.schemas import (
     DeviceStatusResponse,
@@ -29,6 +29,8 @@ from dlc_core import (
     handle_write,
     validate_path,
 )
+from dlc_api.idempotency import claim_idempotency_key as _claim_idempotency_key
+from dlc_api.idempotency import release_idempotency_key as _release_idempotency_key
 from routes.rate_limit_helper import check_key_limit
 
 logger = logging.getLogger(__name__)
@@ -101,36 +103,6 @@ def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None
     return image_url, None
 
 
-# S10: idempotency dedupe TTL (seconds) for the Redis SET NX EX claim.
-_IDEMPOTENCY_TTL = 600
-
-# review Warning #3：idempotency 路径复用模块级 Redis client，避免每次 dispatch
-# 都新建连接池（connection churn）。沿用 rate_limiter_redis._get_client 的惰性单例惯例。
-_idem_client: Any | None = None
-_idem_prefix: str = ""
-_idem_client_failed = False
-
-
-def _get_idempotency_client() -> tuple[Any, str] | None:
-    """Return a cached (client, prefix) for idempotency dedupe, or None when unavailable."""
-    global _idem_client, _idem_prefix, _idem_client_failed
-    if _idem_client is not None:
-        return _idem_client, _idem_prefix
-    if _idem_client_failed:
-        return None
-    try:
-        from device_gateway.redis_store_helpers import connect_redis
-
-        _idem_client, _idem_prefix = connect_redis(
-            REDIS.device_redis_url, "dlc_idempotency", key_prefix="lima:dlc:idem"
-        )
-    except Exception as exc:
-        _idem_client_failed = True
-        logger.warning("S10: idempotency Redis unavailable (%s); allowing dispatch without dedupe", exc)
-        return None
-    return _idem_client, _idem_prefix
-
-
 def _motion_task(text: str, request_id: str, entrypoint: str) -> dict[str, Any]:
     """Build a motion_task dict for dispatch_task."""
     return {"text": text, "request_id": request_id, "source": "dlc_api", "entrypoint": entrypoint}
@@ -141,27 +113,6 @@ def _quota_for(task_type: str) -> int:
     if task_type == "draw_from_image":
         return DEVICE.dlc_image_per_min
     return DEVICE.dlc_task_per_min
-
-
-def _claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = _IDEMPOTENCY_TTL) -> bool:
-    """S10: atomically claim an idempotency key. Returns True on first use, False on replay.
-
-    Uses Redis SET NX EX for cross-worker dedupe. When Redis is unavailable we
-    log a warning and allow the request through (fail-open) rather than blocking
-    a legitimate dispatch on infra failure — a duplicate is less harmful than a
-    dropped command, and the warning surfaces the degraded state (no silent
-    degradation).
-    """
-    cached = _get_idempotency_client()
-    if cached is None:
-        return True
-    client, prefix = cached
-    try:
-        claimed = client.set(f"{prefix}:{idem_key}", task_id or "1", nx=True, ex=ttl)
-    except Exception as exc:
-        logger.warning("S10: idempotency SET NX failed (%s); allowing dispatch without dedupe", exc)
-        return True
-    return bool(claimed)
 
 
 @router.get("/health")
@@ -232,16 +183,28 @@ async def dispatch_task_endpoint(
         return limited
 
     # S10: dedupe replays — a repeated Idempotency-Key must not dispatch twice.
-    if idempotency_key and not _claim_idempotency_key(f"{caller_device_id}:{idempotency_key}", body.request_id):
+    idem_full_key = f"{caller_device_id}:{idempotency_key}" if idempotency_key else None
+    if idem_full_key and not _claim_idempotency_key(idem_full_key, body.request_id):
         return TaskDispatchResponse(status="duplicate", error="idempotency key already used")
 
+    # P2-a: the idempotency key is claimed *before* the work runs, so any failure
+    # below must release it — otherwise a transient failure (device offline, path
+    # gen error) permanently burns the key and the client can never retry.
     result, motion_task = await _build_dispatch_payload(body)
     if result.get("status") != "success":
+        if idem_full_key:
+            _release_idempotency_key(idem_full_key)
         return TaskDispatchResponse(status="failed", error=result.get("error"))
     if motion_task is None:
+        if idem_full_key:
+            _release_idempotency_key(idem_full_key)
         return TaskDispatchResponse(status="failed", error="unsupported type")
 
     dispatch_result = await dispatch_task(body.device_id, motion_task)
+    # A rejected/failed dispatch never reached the device queue — release the key
+    # so the caller can retry with the same Idempotency-Key.
+    if idem_full_key and dispatch_result.get("status") not in {"sent", "queued"}:
+        _release_idempotency_key(idem_full_key)
     return TaskDispatchResponse(
         status=dispatch_result["status"],
         task_id=dispatch_result.get("task_id"),
