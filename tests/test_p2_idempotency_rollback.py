@@ -41,6 +41,9 @@ class _FakeRedis:
         self.store[key] = value
         return True
 
+    def get(self, key: str):
+        return self.store.get(key)
+
     def delete(self, *keys: str) -> int:
         removed = 0
         for k in keys:

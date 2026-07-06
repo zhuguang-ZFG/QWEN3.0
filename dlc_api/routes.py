@@ -193,18 +193,18 @@ async def dispatch_task_endpoint(
     result, motion_task = await _build_dispatch_payload(body)
     if result.get("status") != "success":
         if idem_full_key:
-            _release_idempotency_key(idem_full_key)
+            _release_idempotency_key(idem_full_key, body.request_id)
         return TaskDispatchResponse(status="failed", error=result.get("error"))
     if motion_task is None:
         if idem_full_key:
-            _release_idempotency_key(idem_full_key)
+            _release_idempotency_key(idem_full_key, body.request_id)
         return TaskDispatchResponse(status="failed", error="unsupported type")
 
     dispatch_result = await dispatch_task(body.device_id, motion_task)
     # A rejected/failed dispatch never reached the device queue — release the key
     # so the caller can retry with the same Idempotency-Key.
     if idem_full_key and dispatch_result.get("status") not in {"sent", "queued"}:
-        _release_idempotency_key(idem_full_key)
+        _release_idempotency_key(idem_full_key, body.request_id)
     return TaskDispatchResponse(
         status=dispatch_result["status"],
         task_id=dispatch_result.get("task_id"),

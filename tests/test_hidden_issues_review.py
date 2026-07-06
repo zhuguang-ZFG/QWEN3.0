@@ -123,9 +123,17 @@ def test_routes_no_duplicate_definitions():
 
     src = Path("dlc_api/routes.py").read_text(encoding="utf-8")
     quota_defs = re.findall(r"^def _quota_for\(", src, re.MULTILINE)
-    idem_defs = re.findall(r"^def _claim_idempotency_key\(", src, re.MULTILINE)
+    # routes.py 里 _quota_for 恰好定义一次（防重复定义回归）。
     assert len(quota_defs) == 1, f"_quota_for 定义了 {len(quota_defs)} 次，应只有 1 次"
-    assert len(idem_defs) == 1, f"_claim_idempotency_key 定义了 {len(idem_defs)} 次，应只有 1 次"
+    # 幂等键逻辑已抽到 dlc_api/idempotency.py（routes.py 用 import 别名，不重复定义）。
+    assert not re.findall(r"^def _claim_idempotency_key\(", src, re.MULTILINE), (
+        "_claim_idempotency_key 不应在 routes.py 重复定义，应从 dlc_api.idempotency import"
+    )
+    idem_src = Path("dlc_api/idempotency.py").read_text(encoding="utf-8")
+    claim_defs = re.findall(r"^def claim_idempotency_key\(", idem_src, re.MULTILINE)
+    release_defs = re.findall(r"^def release_idempotency_key\(", idem_src, re.MULTILINE)
+    assert len(claim_defs) == 1, f"claim_idempotency_key 定义了 {len(claim_defs)} 次，应只有 1 次"
+    assert len(release_defs) == 1, f"release_idempotency_key 定义了 {len(release_defs)} 次，应只有 1 次"
 
 
 # ── 辅助 ───────────────────────────────────────────────────────────────────

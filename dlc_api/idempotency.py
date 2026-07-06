@@ -67,20 +67,54 @@ def claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = IDEMPOTENCY
     return bool(claimed)
 
 
-def release_idempotency_key(idem_key: str) -> None:
-    """S10: release a previously claimed idempotency key so the caller can retry.
+# Lua: compare-and-delete — only DEL when the stored value matches ARGV[1].
+# Prevents deleting a key that a *different* request re-claimed after the
+# original claim's TTL expired (lost-lock / delete-someone-else's-lock bug).
+_CAD_LUA = """
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    return redis.call('DEL', KEYS[1])
+end
+return 0
+"""
+
+_cad_scripts: dict[int, Any] = {}
+
+
+def _get_cad_script(client: Any) -> Any:
+    cid = id(client)
+    script = _cad_scripts.get(cid)
+    if script is None:
+        script = client.register_script(_CAD_LUA)
+        _cad_scripts[cid] = script
+    return script
+
+
+def release_idempotency_key(idem_key: str, expected_value: str) -> None:
+    """S10: release a claimed key **only if** it still holds ``expected_value``.
 
     Called when a claimed dispatch fails before the command is actually sent
     (path build error, device offline, dispatch rejected). Standard idempotency
     semantics: only a *successful* dispatch should keep the key; a failure must
-    be retryable with the same key. Best-effort — a DEL failure just leaves the
-    key to expire naturally via its TTL.
+    be retryable with the same key.
+
+    Compare-and-delete (matching the claim's ``request_id``) is required so a
+    slow-then-failed request cannot delete a key that a *different* request
+    re-claimed after the original TTL expired — otherwise that later request's
+    dedupe guard is silently dropped and the device could execute twice.
+    Best-effort — any Redis error just leaves the key to expire via its TTL.
     """
     cached = _get_idempotency_client()
     if cached is None:
         return
     client, prefix = cached
+    full_key = f"{prefix}:{idem_key}"
+    expected = expected_value or "1"
     try:
-        client.delete(f"{prefix}:{idem_key}")
+        if hasattr(client, "register_script"):
+            _get_cad_script(client)(keys=[full_key], args=[expected])
+        else:
+            # Non-atomic fallback for test fakes: GET then DEL when it matches.
+            if client.get(full_key) == expected:
+                client.delete(full_key)
     except Exception as exc:
         logger.warning("S10: idempotency key release failed (%s); key will expire via TTL", exc)
