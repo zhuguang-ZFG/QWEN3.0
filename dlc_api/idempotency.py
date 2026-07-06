@@ -10,6 +10,7 @@ successful dispatch keeps the key, a failure stays retryable.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from typing import Any
 
@@ -19,6 +20,34 @@ logger = logging.getLogger(__name__)
 
 # S10: idempotency dedupe TTL (seconds) for the Redis SET NX EX claim.
 IDEMPOTENCY_TTL = 600
+
+# Two-barrier dedupe (业界模式：AWS Powertools in-progress 幂等 / Kafka 双屏障管道)。
+# 复刻本仓库 rate_limiter.py 的 L1(进程内)+L2(Redis) 分层：Redis(L2) 可用时以其
+# 为权威；Redis 不可用时回退 L1 进程内 TTL 字典，至少挡住同 worker 重复 dispatch，
+# 把 fail-open 的"完全无去重"收窄成"挡住同 worker 重复"。不翻转 fail-open 语义。
+# server_dlc:app 单 worker 启动，故 L1 覆盖单节点几乎全部流量。
+_l1_store: dict[str, tuple[str, float]] = {}
+_l1_lock = threading.Lock()
+
+
+def _l1_claim(idem_key: str, value: str, ttl: int) -> bool:
+    """L1 兜底 claim：未过期条目存在则视为重复(False)，否则占用并放行(True)。"""
+    now = time.monotonic()
+    with _l1_lock:
+        entry = _l1_store.get(idem_key)
+        if entry is not None and entry[1] > now:
+            return False
+        _l1_store[idem_key] = (value, now + ttl)
+        return True
+
+
+def _l1_release(idem_key: str, expected: str) -> None:
+    """L1 兜底 release：仅当条目 value 匹配才清除（CAD，防误删他人 key）。"""
+    with _l1_lock:
+        entry = _l1_store.get(idem_key)
+        if entry is not None and entry[0] == expected:
+            _l1_store.pop(idem_key, None)
+
 
 # review Warning #3：idempotency 路径复用模块级 Redis client，避免每次 dispatch
 # 都新建连接池（connection churn）。沿用 rate_limiter_redis._get_client 的惰性单例惯例。
@@ -65,13 +94,14 @@ def claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = IDEMPOTENCY
     """
     cached = _get_idempotency_client()
     if cached is None:
-        return True
+        # Redis(L2) 不可用 → 回退 L1 进程内屏障（挡住同 worker 重复）。
+        return _l1_claim(idem_key, task_id or "1", ttl)
     client, prefix = cached
     try:
         claimed = client.set(f"{prefix}:{idem_key}", task_id or "1", nx=True, ex=ttl)
     except Exception as exc:
-        logger.warning("S10: idempotency SET NX failed (%s); allowing dispatch without dedupe", exc)
-        return True
+        logger.warning("S10: idempotency SET NX failed (%s); falling back to L1 dedupe", exc)
+        return _l1_claim(idem_key, task_id or "1", ttl)
     return bool(claimed)
 
 
@@ -113,6 +143,8 @@ def release_idempotency_key(idem_key: str, expected_value: str) -> None:
     """
     cached = _get_idempotency_client()
     if cached is None:
+        # Redis(L2) 不可用 → 释放 L1 进程内屏障（CAD：仅 value 匹配才清除）。
+        _l1_release(idem_key, expected_value or "1")
         return
     client, prefix = cached
     full_key = f"{prefix}:{idem_key}"
