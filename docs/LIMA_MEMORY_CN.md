@@ -5,6 +5,8 @@
 > **最新权威来源:** `STATUS.md`、`progress.md`、`findings.md`、`docs/README.md`
 >
 > **注:** 2026-05-26 及更早的快照为历史记录，以最新节为准。
+>
+> **退役声明（2026-07-06）：** 本文档是长期项目记忆，保留了多轮迭代的快照。其中描述 `routing_engine` / `router_v3` / `http_caller` / `backends_registry` / `session_memory` 主路径 / `context_pipeline` 代码上下文 / `provider_probe` / `skills_injector` / `chat_endpoints` 等 AI 路由相关系统的段落均为**历史记录**，对应模块已在 P4/P5 瘦身物理删除。当前真实架构以 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) 为准（DLC 绘图服务：`server_dlc` + `dlc_api`/`dlc_core`/`dlc_mcp`/`device_gateway`）。阅读本文时请按"历史快照"对待旧系统段落，勿据此找代码或做新决策。
 
 ---
 
