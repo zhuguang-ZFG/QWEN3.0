@@ -61,6 +61,19 @@ class TestScreenDrawingRequest:
         assert result["feasible"] is True
         assert result["complexity"] == "simple"
 
+    def test_medium_simple_sketch_feasible_when_no_profile(self):
+        # few-shot 正例明确教画树/花/房子（medium 简笔画），无 profile 设备不应拒绝。
+        for prompt in ("画一棵树", "画一朵花", "画一栋房子"):
+            result = screen_drawing_request(prompt, "unknown-device")
+            assert result["feasible"] is True, f"{prompt} 被误拒（few-shot 正例应可画）"
+            assert result["complexity"] == "medium"
+
+    def test_complex_still_rejected_when_no_profile(self):
+        # 无 profile 仍须拒绝 complex（照片/多主体/彩色），保留 fail-safe 下限。
+        result = screen_drawing_request("画一座城市和人群的照片", "unknown-device")
+        assert result["feasible"] is False
+        assert result["complexity"] == "complex"
+
     def test_rejected_for_complex_on_limited_device(self):
         profile = DeviceProfile(
             device_id="dev-small",

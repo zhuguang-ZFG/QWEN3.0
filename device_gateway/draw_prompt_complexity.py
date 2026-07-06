@@ -104,7 +104,11 @@ def classify_plotter_complexity(prompt: str) -> str:
 def _max_complexity_for_profile(profile) -> str:
     """根据设备最大路径点数决定可接受复杂度。"""
     if profile is None:
-        return "simple"
+        # 无 profile 时默认允许 medium：few-shot 正例（树/花/房子/动物）均为
+        # medium 级简笔画，若卡在 simple 会把这些明确支持的请求误拒（与 few-shot
+        # 自相矛盾）。complex（照片/城市/人群/写实）仍拒绝。下游 precheck_draw_motion_path
+        # + path_validator 硬点数上限对真实超限路径兜底，放行 medium 是安全的。
+        return "medium"
     points = profile.max_path_points
     if points <= 60:
         return "simple"
