@@ -67,7 +67,14 @@
   - 门禁配置修复：`.tmp` 加入 `.gitignore` + ruff exclude；清理悬空的 `reference/**` exclude。
 - **本次累计删除**：约 -5,600 行（阶段 B+C 提交 62 文件 -5643）。加上更早的 cloud_services/reference/device_support(`ca600dff`)、observability/ops_metrics(`4ac2ca33`)，本轮瘦身共移除约 11,500 行 / ~98 文件。
 - **门禁**：阶段 A 1523 passed；阶段 B+C 1397 passed / 3 skipped / 0 failed；ruff check + format clean；check_code_size PASS。
-- **未完成（阶段 D，高风险 VPS 操作，待单独执行）**：nginx 把 `/device/ /api/ /admin` 等小程序仍需路径从 :8080 切到 :8081；停用旧 `lima-router`(:8080)；清理 `/opt/lima-router/` 上已删的 `server.py`/`server_lifespan*.py`。这是让**生产**真正瘦身的关键一步，仓库层已就绪。
+
+
+
+- **阶段 D（生产切流）——已核实完成（2026-07-06）**：
+  - 双节点 nginx 配置 `/etc/nginx/conf.d/chat.donglicao.com.conf` 已把 `/device/`、`/dlc/`、`/health` 切到 `:8081`；旧路径 `/chat/`、`/api/`、`/admin/`、`/agent/`、`/fleet/`、`/digital-human/`、`/v1/`、`/v1/live`、`/v1/voice`、`/device/v1/ws` 显式 `return 410`。
+  - 阿里云：`lima-router.service` inactive；`/opt/lima-router/` 目录不存在；:8080 无监听。
+  - 京东云：`lima-router.service` disabled/inactive；`/opt/lima-router/` 目录不存在；:8080 被 code-server 占用（非 lima-router）。
+  - 公网冒烟：`/health` → 200；`/chat/`、`/api/v1/status`、`/admin` → 410；生产切流已实际生效。
 
 ## 2026-07-06 固件端改造 U8：新增 plotter MCP 工具 + 配网 SSID 前缀变更
 
