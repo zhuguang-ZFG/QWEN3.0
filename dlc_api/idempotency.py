@@ -10,6 +10,7 @@ successful dispatch keeps the key, a failure stays retryable.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from config.settings import REDIS
@@ -24,14 +25,19 @@ IDEMPOTENCY_TTL = 600
 _idem_client: Any | None = None
 _idem_prefix: str = ""
 _idem_client_failed = False
+# Cursor 复审：失败后记录时间戳，冷却窗口过后允许重连一次，避免永久粘滞
+# （Redis 短暂抖动恢复后能自愈），窗口内仍不重试以保留连接超时保护。
+_idem_client_failed_at = 0.0
+_IDEM_RETRY_COOLDOWN = 30.0
 
 
 def _get_idempotency_client() -> tuple[Any, str] | None:
     """Return a cached (client, prefix) for idempotency dedupe, or None when unavailable."""
-    global _idem_client, _idem_prefix, _idem_client_failed
+    global _idem_client, _idem_prefix, _idem_client_failed, _idem_client_failed_at
     if _idem_client is not None:
         return _idem_client, _idem_prefix
-    if _idem_client_failed:
+    if _idem_client_failed and (time.monotonic() - _idem_client_failed_at) < _IDEM_RETRY_COOLDOWN:
+        # 冷却窗口内：不重试，继续放行（避免每次 dispatch 卡在 Redis 连接超时上）。
         return None
     try:
         from device_gateway.redis_store_helpers import connect_redis
@@ -41,8 +47,10 @@ def _get_idempotency_client() -> tuple[Any, str] | None:
         )
     except Exception as exc:
         _idem_client_failed = True
+        _idem_client_failed_at = time.monotonic()
         logger.warning("S10: idempotency Redis unavailable (%s); allowing dispatch without dedupe", exc)
         return None
+    _idem_client_failed = False
     return _idem_client, _idem_prefix
 
 
