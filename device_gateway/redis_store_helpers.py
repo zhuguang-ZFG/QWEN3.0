@@ -30,7 +30,17 @@ def connect_redis(
             import redis as _redis_mod
         except ImportError as exc:
             raise RuntimeError(f"redis package required for {label}") from exc
-        client = _redis_mod.Redis.from_url(redis_url, decode_responses=True)
+        # P1 #3（隐藏问题审查）：必须设 socket_timeout，否则 Redis 慢响应/断连会
+        # 无限阻塞事件循环（redis-py 默认 socket_timeout=None）。配合同步调用经
+        # to_thread 的修复，确保单次 Redis 故障不拖垮全站。
+        client = _redis_mod.Redis.from_url(
+            redis_url,
+            decode_responses=True,
+            socket_timeout=2.0,
+            socket_connect_timeout=2.0,
+            health_check_interval=30,
+            retry_on_timeout=True,
+        )
     return client, key_prefix.rstrip(":")
 
 

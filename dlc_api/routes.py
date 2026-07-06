@@ -34,38 +34,6 @@ from routes.rate_limit_helper import check_key_limit
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# S3: per-caller rate quotas. draw_from_image is CPU/cost heavy → lower quota.
-_TASK_QUOTA_PER_MIN = 30
-_IMAGE_TASK_QUOTA_PER_MIN = 6
-
-# S10: idempotency dedupe. Redis SET NX EX; TTL from settings when available.
-_IDEMPOTENCY_TTL = 600
-
-
-def _quota_for(task_type: str) -> int:
-    """Return the per-minute quota for a task type (draw_from_image is lower)."""
-    return _IMAGE_TASK_QUOTA_PER_MIN if task_type == "draw_from_image" else _TASK_QUOTA_PER_MIN
-
-
-def _claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = _IDEMPOTENCY_TTL) -> bool:
-    """S10: atomically claim an idempotency key. Return True if first-seen.
-
-    Uses Redis SET NX EX for cross-worker dedupe. When Redis is unavailable we
-    log a warning and allow the request (fail-open): dedupe is a replay-safety
-    optimization, not an authorization gate, and the device-side motion_busy
-    lock (§1.6.6) is the physical backstop against double execution.
-    """
-    try:
-        from config.settings import REDIS
-        from device_gateway.redis_store_helpers import connect_redis
-
-        client, prefix = connect_redis(REDIS.device_redis_url, "dlc_idempotency", key_prefix="lima:dlc:idem")
-        claimed = client.set(f"{prefix}:{idem_key}", task_id, nx=True, ex=ttl)
-        return bool(claimed)
-    except Exception as exc:  # noqa: BLE001 - fail-open with explicit warning
-        logger.warning("dlc idempotency check unavailable (%s); allowing request", type(exc).__name__)
-        return True
-
 
 def _preview_from_result(result: dict[str, Any]) -> TaskPreviewResponse:
     """Build a TaskPreviewResponse from a dlc_core result dict."""

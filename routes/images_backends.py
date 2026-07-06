@@ -269,7 +269,9 @@ async def _generate_via_dashscope_i2i(prompt: str, image_url: str, size: str, n:
 
     try:
         client = DashScopeImageClient()
-        result = client.generate(
+        # P0 #1（隐藏问题审查）：同步调用必须丢线程池，避免阻塞事件循环。
+        result = await asyncio.to_thread(
+            client.generate,
             prompt=prompt,
             model="wanx2.1-imageedit",
             function="stylization_all",

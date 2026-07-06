@@ -1,5 +1,6 @@
 """设备绘图路由 - device_draw 模式"""
 
+import asyncio
 import logging
 from typing import Dict, Any, Optional
 from dashscope_image_client import DashScopeImageClient
@@ -82,7 +83,9 @@ async def _generate_image(
     )
     logger.info(f"Enhanced prompt: {enhanced_prompt[:100]}...")
     client = DashScopeImageClient()
-    result = client.generate(prompt=enhanced_prompt, model=model, size=size, n=1)
+    # P0 #1（隐藏问题审查）：ImageSynthesis.call 是同步阻塞 HTTP，必须丢线程池，
+    # 否则一次 DashScope 慢响应（5-30s）会卡死整个 asyncio 事件循环。
+    result = await asyncio.to_thread(client.generate, prompt=enhanced_prompt, model=model, size=size, n=1)
     # DashScope 失败时直接返回错误（P4 瘦身：多后端 image_fallback 已删除）
     if result.get("status") != "success" or not result.get("images"):
         logger.warning("DashScope image generation failed for device %s, no fallback available", device_id)

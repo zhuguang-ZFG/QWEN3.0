@@ -568,4 +568,20 @@
 - **现象**：部署修复后，`https://chat.donglicao.com/docs` 仍返回 200。\r
 - **核查**：(1) 上游 `curl 127.0.0.1:8081/docs` → 404（FastAPI docs 已正确关闭）；(2) nginx `location /` 是 `try_files $uri $uri/ /index.html`（SPA catch-all），任何未知路径都 fallback 到前端 `index.html` 返回 200。\r
 - **结论**：公网 `/docs` 的 200 **不是** FastAPI 交互文档暴露（响应体是前端 SPA HTML，不是 Swagger UI），是 SPA 路由的正常行为。FastAPI 层的 docs 关闭仍然有价值——防御纵深，即使 nginx 配置变更或直连上游也无法访问交互文档。本次修复有效，但"公网暴露 API surface"的风险评级从 P1 下调为"非漏洞 + 防御纵深保留"。\r
-- **无需额外动作**：SPA fallback 行为是前端路由设计，不应改。
+- **无需额外动作**：SPA fallback 行为是前端路由设计，不应改。\r
+\r
+## 2026-07-07 项目级代码审查（参考 GitHub 同类项目）：4 视角并行 + 修复 Top5\r
+\r
+- **方法**：4 个 explore subagent 并行从「安全/并发可靠性/边界健壮性/可维护性」4 视角审查核心生产代码（dlc_api/dlc_core/dlc_mcp/device_gateway/routes），参考 OWASP、FastAPI 官方安全建议、asyncio 陷阱、Redis 队列最佳实践。收敛去重后逐条 `Read`/`grep` 核查真实性（吸取上次 SSRF 误报教训），修复 Top5。\r
+- **P0 #1 DashScope 同步阻塞事件循环（3 视角独立发现）— 真实，已修**：`device_draw_handler.py:85` 与 `routes/images_backends.py:272` 在 `async def` 内裸调 `client.generate()`（`ImageSynthesis.call` 同步 HTTP，5-30s），会卡死整个 asyncio 事件循环，期间所有设备 WS 心跳/健康检查/其他请求全停摆。DashScope 一次慢响应 = 全站假死。`asyncio.wait_for` 对同步阻塞无效（无法中断）。**修复**：两处改 `await asyncio.to_thread(client.generate, ...)`，同步调用丢线程池，事件循环不再被占。\r
+- **P1 #3 Redis 客户端无 socket_timeout — 真实，已修**：`redis_store_helpers.py:33` `Redis.from_url(redis_url, decode_responses=True)` 未设超时（redis-py 默认 `socket_timeout=None` 无限阻塞）。Redis 慢响应/断连/主从切换时同步调用挂住几十秒，叠加 P0 #1 时全站卡死无 fail-fast。**修复**：加 `socket_timeout=2.0, socket_connect_timeout=2.0, health_check_interval=30, retry_on_timeout=True`。\r
+- **P1 #5 MCP 畸形 JSON 崩主循环 — 真实，已修**：`dlc_mcp/server.py:247` `handle_request` 在 `try` 外，合法 JSON 但非对象（`["list"]`/`"str"`）时 `req.get` 抛 `AttributeError` → 整个 stdio 主循环退出 → mcp_pipe 频繁重连，MCP 工具持续不可用。**修复**：`handle_request` 入口加 `isinstance(req, dict)` 校验返回 -32600；`main()` 把 `handle_request` 纳入 try，异常返回 -32603 不退出主循环。\r
+- **P2 #4 routes.py 重复定义（3 视角发现）— 真实，已修**：`_quota_for`（`:45`/`:141`）与 `_claim_idempotency_key`（`:50`/`:148`）各定义两次，后者覆盖前者；常量 `_TASK_QUOTA_PER_MIN=30`/`_IMAGE_TASK_QUOTA_PER_MIN=6`/`_IDEMPOTENCY_TTL=600` 因此全部失效（实际生效的是 `DEVICE.dlc_*_per_min` 配置）。合并冲突未解干净的典型残留。**修复**：删除第一组（常量+两个函数），保留实际生效的配置版。\r
+- **核查确认的真实但未修（P2，记入待办，避免本次范围蔓延）**：\r
+  - async 端点全表 `hgetall` + 同步 SQLite/Redis 未下线程池（`redis_store.py:80,102`、`device_app_tasks.py:180`、`dispatch.py:26`）——需加 per-device 索引 + to_thread，改动面大，独立任务。\r
+  - CAS 重试耗尽静默丢弃（`redis_store_helpers.py:189`）+ recover 的 lrem/lpush 非原子——可能导致绘图机重复执行或任务丢失，需 Lua 脚本原子化。\r
+  - 幂等键先占位后执行，dispatch 失败后同 key 重试被判 duplicate——违反幂等语义，需失败回滚 key。\r
+  - 应用层无 body size 上限（`server_dlc.py` 未挂中间件）——依赖 nginx 兜底，建议恢复最小 ASGI body limit。\r
+  - `path_validator` 无类型校验/点数上限，非数值坐标触发 500。\r
+- **误报排除（参考上次教训，每条先核查再下结论）**：SQL 注入全参数化、IDOR 按 owner/account 收紧、SSRF 三层防护完整、Redis 用 JSON 非 pickle（无反序列化 RCE）、`record_simplification` 路径拼接（device_id 经正则校验禁 `/`，不可利用）、`auth.py` 空 token 兜底（已显式标注 CRITICAL 默认关闭）。\r
+- **测试**：新增 `tests/test_hidden_issues_review.py`（6 用例，静态+行为双校验），全量 1373 passed（含新测试 + 既有回归），ruff/CI gate/check_code_size 全过。

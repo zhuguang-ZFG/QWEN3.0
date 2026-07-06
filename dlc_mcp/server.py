@@ -198,6 +198,10 @@ def _handle_tools_call(client: httpx.Client, req_id: object, params: dict) -> di
 
 def handle_request(client: httpx.Client, req: dict) -> dict:
     """Route a JSON-RPC request to the correct handler."""
+    # P1 #5（隐藏问题审查）：合法 JSON 但非对象（list/str/int）必须返回 -32600，
+    # 不能让 req.get 抛 AttributeError 崩溃调用方。
+    if not isinstance(req, dict):
+        return _tool_error(None, -32600, "Invalid Request: expected JSON object")
     method = req.get("method")
     req_id = req.get("id")
 
@@ -244,7 +248,13 @@ def main() -> None:
                 req = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            resp = handle_request(client, req)
+            # P1 #5：handle_request 必须纳入 try，任何畸形请求/内部异常
+            # 都返回错误响应，不能让主循环退出（否则 mcp_pipe 频繁重连）。
+            try:
+                resp = handle_request(client, req)
+            except Exception as exc:  # noqa: BLE001 - 不能让主循环崩
+                logger.warning("MCP handle_request internal error: %s", exc)
+                resp = _tool_error(None, -32603, "Internal error")
             if resp and resp.get("id") is not None:
                 payload = json.dumps(resp, ensure_ascii=False) + "\n"
                 sys.stdout.buffer.write(payload.encode("utf-8"))
