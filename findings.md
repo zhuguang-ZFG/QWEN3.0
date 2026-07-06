@@ -463,6 +463,8 @@
 
 ## 2026-07-02 external_enrichment provider 占位状态确认
 
+> ⚠️ **作废标注（2026-07-06 代码实证）**：本节记录的 `external_enrichment/` 模块已在 P4/P5 瘦身时物理删除——`git ls-files external_enrichment` 返回 0 文件，目录不存在。下方原始「TODO: 真实 API 接入」占位记录仅作历史保留，无需再跟进。
+
 - `external_enrichment/providers/nager_date.py` 与 `open_meteo.py` 方法体仅返回硬编码 mock（`# TODO: Actual API call would go here`）。
 - 确认：两文件被 `tests/test_external_enrichment.py` 明确用作离线测试 mock（docstring 标注 "offline tests with mock"）。
 - 结论：保留，不为瘦身删除测试依赖。真实 API 接入留待功能驱动时再做（YAGNI）。
@@ -635,6 +637,7 @@
 - **U8 音频协议 bug（STATUS.md:160）— 已过时，2026-07-02 已修**：progress.md:820 标 ✅，方案 A（固件改 PCM 上下行透传，保留 MQTT/Xiaozhi 的 OPUS 路径）已实现。剩余仅「真机端到端验证」需硬件在环；且该自托管 WS 语音链在「对话走小智云」架构下已退役。
 - **测试**：全量 **1396 passed / 3 skipped / 0 failed**（1387 + 6 path_validator + 3 body_size）；ruff check + format + check_code_size 全过。提交 `51ce39cf` push origin main，双节点部署（阿里云 474 uploaded / 京东云 paramiko 核实最新代码 + 重启），公网 `/health` 200。
 - **教训**：延续「审查记录会过时」模式——findings 待办里 2/4 项（external_enrichment、U8）经核查已作废，真实修复只落在证据充分的 path_validator + body limit 两项。落地前先核查目录/代码现状，避免为过时记录制造投机工作（Ponytail 第一原则）。
+
 ## 2026-07-06 lima-router-pilot 彻底退役：VPS 死配置 + 前端死代码清理
 
 - **背景**：pilot（aliyun.donglicao.com 免费 chat 分流）逻辑已于 2026-07-05 退役（shouldUsePilot 恒 false、CF Worker 分流移除），但残留死配置/死代码。本轮彻底清理。
