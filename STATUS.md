@@ -312,3 +312,26 @@
 | `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` | 设备模型路由策略 | 推荐 |
 | `docs/ESP32S_XYZ_MANAGEMENT_CN.md` | 产品子模块边界 | 推荐 |
 | `docs/LIMA_MEMORY_CN.md` | 持久跨会话记忆 | 推荐 |
+
+## 待人工 / 待硬件跟踪清单（2026-07-06 核实）
+
+> 以下为文档全量扫描后确认的剩余挂起项。均**无法由 Agent 独立闭环**——需物理硬件在环、用户手动操作，或已评估决定暂不做。非遗留缺陷。
+
+### A. 需物理硬件在环
+- **U8 真机语音端到端验证**：固件 PCM 上下行透传链代码已闭环（`UsesPcm()→send_pcm_→format="pcm"`），仅剩真机烧录后的实时语音/TTS 回放验证。注：该自托管 WS 语音链在「对话走小智云」架构下已退役，优先级低。
+- **U1 FluidNC 硬件验证**：软件层完成，D1-D8 硬件步骤需物理绘图机在环测试。
+
+### B. 需用户手动操作
+- **微信小程序上传/审核**：`manager-mobile` 改动需在微信开发者工具上传 + mp.weixin.qq.com 提交审核（BACKLOG-P0-4）。
+
+### C. 已评估决定暂不做（YAGNI / 过早优化 / 可选）
+- **`IDEMPOTENCY_FAIL_CLOSED` 开关**：当前 fail-open + L1 屏障已足够；进入高价值/不可逆场景（收费打印、雕刻机）再加。
+- **P2-d 全表 hgetall 优化**：实测生产 `HLEN lima:device:tasks`=19 字段，属过早优化；`HLEN` 增长到数千字段量级再重启。
+- **provider-probe-offline 裸 except**：`auth_detector.py:64`、`pricing_probe.py:74` 各 1 处，冷离线工具非生产路径，风险低，待「全仓零裸吞」要求时统一处理。
+
+### D. 已核实为「过时记录」并标注作废（本轮清理）
+- `findings.md:100` 公网 `/dlc/*` 返回 405 未修复 → 实测 **422**（端点可达，路由已通）。
+- `findings.md:555` `/opt/lima-router-pilot` 仅停服未删 → 阿里云实测目录**已删除**。
+- `progress.md:1337` nginx `api.donglicao.com` server name warning → `nginx -t` **无 warning**。
+- `findings.md:466` external_enrichment mock TODO → 模块 P4/P5 已物理删除（0 git 跟踪）。
+- `STATUS.md:160` U8 音频协议 bug 待排期 → 2026-07-02 方案 A 已修（代码实证）。
