@@ -596,3 +596,15 @@
 - **文件行数约束**：`dlc_api/routes.py` 加 `release_idempotency_key` 后达 322 行超 300 硬限，把幂等键逻辑（client 单例 + claim/release）抽到新模块 `dlc_api/idempotency.py`，routes.py 降到 254 行；routes.py 用 `import as _claim_idempotency_key/_release_idempotency_key` 别名保持既有测试 patch 目标稳定。
 - **测试**：全量 816 passed（含新增 2 个 P2 测试文件 + 既有回归），ruff/check_code_size 全过。
 - **教训**：延续「审查高估 → 核查降级」模式——P2-b 与之前的 SSRF/子进程误报同理，审查提出的"物理重复执行"风险经证据链核查（队列 list vs state hash 的职责分离）证伪。真实修复只落在证据充分的 P2-a/P2-c。
+
+## 2026-07-06 P2-d 全表 hgetall 优化：实测生产数据后否决
+
+- **背景**：4视角审查提出 `active_tasks_for_device`/`list_tasks_for_device` 用 `hgetall(lima:device:tasks)` 全表扫描 + 逐条 decode，担心"任务随历史累积 → O(N) 拖垮事件循环 / Redis OOM"，建议改 per-device 反向索引。记入 P2 待办。
+- **决策方法**：不凭猜测做优化，先采集 VPS 生产 Redis 真实规模（阿里云 `47.112.162.80`，`LIMA_DEVICE_REDIS_URL` 生产确用 Redis backend，非 memory）。
+- **实测数据（2026-07-06）**：
+  - 阿里云 `HLEN lima:device:tasks` = **19 字段**，hash 内存 **24280 bytes（约 24KB）**。
+  - 京东云 tasks hash = 1 字段。
+  - 无 processing/pending 队列堆积；整库 `dbsize` = 2 个 key。
+- **结论：否决 P2-d，不做**。19 字段的 hgetall + decode 是微秒级，per-device 索引在此规模是典型过早优化，违背 Ponytail 第一原则（不做投机性优化 / YAGNI）。审查的"O(N) 拖垮"前提在真实生产不成立。
+- **重新评估触发条件**：仅当 `HLEN lima:device:tasks` 增长到数千字段量级（可作为运维监控指标）时，才作为独立性能任务重启。届时优先考虑：终态任务字段的后台 reaper（`hscan`+`hdel`）或活跃任务有序集合索引，而非一次性大重构。
+- **附带修正**：redis_task_ttl 默认 30 天 + 每次写刷新整键 TTL 的"永不过期"隐患（审查 P1-1 提及）在当前 19 字段规模无实际影响，同样待规模增长后再评估。
