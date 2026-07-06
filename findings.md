@@ -617,7 +617,21 @@
   - [Spring Boot REST API Idempotency-Key Guide](https://springboot-123.mizucoffee.com/en/blog/spring-boot-rest-api-idempotency-key-guide/) 明确框架："按业务影响分级——支付等关键操作 fail-closed，其他 fail-open"。
   - [Algoroq / Plexobject 十二大致命反模式](https://www.algoroq.io/blog/idempotency-distributed-systems/) 强调"金融操作永远 fail-closed"，限定在高风险/不可逆场景。
   - 工业机器人 fail-safe 原则针对人身伤害或设备损毁风险。
-- **应用到本项目**：  - 操作对象：ESP32 绘图机/写字机，消费者玩具级设备。  - 重复执行后果：浪费纸张/耗材、轻微笔迹重叠——**可逆、低严重**。  - 拒绝执行后果：用户语音指令被静默丢弃，设备"不响应"——**直接伤害用户体验**。  - 现状已改善：本轮已补 L1 进程内二级屏障，Redis 挂时同 worker（单节点几乎全部流量）重复请求会被拦住，风险已从"零去重"收窄到"仅跨节点重复才漏网"。
+- **应用到本项目**：
+  - 操作对象：ESP32 绘图机/写字机，消费者玩具级设备。
+  - 重复执行后果：浪费纸张/耗材、轻微笔迹重叠——**可逆、低严重**。
+  - 拒绝执行后果：用户语音指令被静默丢弃，设备"不响应"——**直接伤害用户体验**。
+  - 现状已改善：本轮已补 L1 进程内二级屏障，Redis 挂时同 worker（单节点几乎全部流量）重复请求会被拦住，风险已从"零去重"收窄到"仅跨节点重复才漏网"。
 - **决策**：**保持 fail-open + L1，不改 fail-closed**。理由与现有 `claim_idempotency_key` docstring 一致："a duplicate is less harmful than a dropped command"。消费者绘图动作的重复成本低于命令丢失的可用性损失，符合 Spring Boot 指南的"按业务影响分级"原则。
 - **可配置开关（未做，可选）**：若未来进入高价值/不可撤销场景（如收费打印、雕刻机等），可通过环境变量 `IDEMPOTENCY_FAIL_CLOSED=1` 切换为 fail-closed；当前默认保持 fail-open，不增加复杂度。
 - **关联修复**：本轮同步修复了 `_get_idempotency_client()` 的永久粘滞问题——首次 Redis 连接失败后加入 30s 冷却窗口，窗口过后自动重连，避免进程终身 fail-open（详见同日提交）。
+
+## 2026-07-06 代码层加固闭环：path_validator 类型守卫 + server_dlc body 上限（findings 待办核查）
+
+- **背景**：逐条核查设计文档/STATUS/progress/findings 里记录但未闭环的代码层待办，参考业界惯例做精确改善。
+- **#1 path_validator 非数值坐标 500（findings.md:585 指摘属实）— 已修**：`dlc_core/path_validator.py::validate_path` 的 `path: list[dict[str, Any]]` schema 允许 x/y 为任意类型，传 `{"x":"abc","y":5}` 会在 `x < 0` 比较处抛 `TypeError` → 500。**修复**：加 `_is_number`（int/float 且排除 bool 子类）守卫，非数值坐标返回 error 而非抛异常；非 dict 点也拒绝；新增硬点数上限 `MAX_PATH_POINTS=5000`（超过即 error，200 仍是软 warning 阈值）。新增 `tests/test_path_validator_type_guard.py`（6 用例：非数值 x/y、bool 坐标、非 dict、硬上限、正常路径）。
+- **#2 server_dlc 无 body 上限（findings.md:584 指摘属实）— 已修**：`server_dlc.py` 无任何中间件，请求体大小完全依赖 nginx `client_max_body_size 32M` 兜底；直连 :8081（内网/调试/nginx 配置漂移）则无上限。**修复**：新增 `dlc_api/middleware.py::BodySizeLimitMiddleware`（纯 ASGI，先查 Content-Length header 快速 413，无 header 时累计读取超限也拒绝），`add_body_size_limit(app, max_bytes=32*1024*1024)` 挂到 `server_dlc:app`（与 nginx 阈值对齐）。新增 `tests/test_body_size_limit.py`（3 用例：超限 413、正常放行、生产入口已挂中间件）。
+- **#3 external_enrichment mock（findings.md:466）— 已过时，无需处理**：核查确认 `external_enrichment/` 目录在 P4/P5 瘦身时已物理删除（主仓库 0 git 跟踪文件，仅 `.worktrees` 旧分支副本残留）。原 TODO「真实 API 接入」的模块已不存在，记录作废。
+- **U8 音频协议 bug（STATUS.md:160）— 已过时，2026-07-02 已修**：progress.md:820 标 ✅，方案 A（固件改 PCM 上下行透传，保留 MQTT/Xiaozhi 的 OPUS 路径）已实现。剩余仅「真机端到端验证」需硬件在环；且该自托管 WS 语音链在「对话走小智云」架构下已退役。
+- **测试**：全量 **1396 passed / 3 skipped / 0 failed**（1387 + 6 path_validator + 3 body_size）；ruff check + format + check_code_size 全过。提交 `51ce39cf` push origin main，双节点部署（阿里云 474 uploaded / 京东云 paramiko 核实最新代码 + 重启），公网 `/health` 200。
+- **教训**：延续「审查记录会过时」模式——findings 待办里 2/4 项（external_enrichment、U8）经核查已作废，真实修复只落在证据充分的 path_validator + body limit 两项。落地前先核查目录/代码现状，避免为过时记录制造投机工作（Ponytail 第一原则）。
