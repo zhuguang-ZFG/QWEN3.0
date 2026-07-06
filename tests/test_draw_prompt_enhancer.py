@@ -110,6 +110,12 @@ class TestEnhancedPromptContent:
         assert "正面示例" in prompt
         assert "设备约束" in prompt
 
+    def test_always_enforces_single_line_style(self):
+        # 用户要求：永远强制单线图，即使 style 传非单线风格也不例外。
+        for style in ("简约", "写实轮廓", "可爱"):
+            prompt = enhance_drawing_prompt("画一只猫", style=style)
+            assert "单线" in prompt, f"style={style} 输出应强制单线图约束"
+
     def test_includes_device_profile_constraints(self):
         profile = DeviceProfile(
             device_id="dev-constraint",
