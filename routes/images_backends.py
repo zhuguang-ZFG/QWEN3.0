@@ -19,6 +19,8 @@ IMAGE_BACKEND = "xmiaom_gpt_image_2"
 
 _OPENAI_IMAGE_TIMEOUT = int(os.environ.get("LIMA_OPENAI_IMAGE_TIMEOUT_SECONDS", "120"))
 _XMIAOM_IMAGE_TIMEOUT = int(os.environ.get("LIMA_XMIAOM_IMAGE_TIMEOUT_SECONDS", "30"))
+# review Suggestion #5：DashScope i2i 同步调用经 to_thread 后仍需调用级超时兜底。
+_DASHSCOPE_I2I_TIMEOUT = int(os.environ.get("LIMA_DASHSCOPE_I2I_TIMEOUT_SECONDS", "30"))
 
 
 def _build_xmiaom_payload(prompt: str, size: str = "1024x1024") -> bytes:
@@ -270,14 +272,18 @@ async def _generate_via_dashscope_i2i(prompt: str, image_url: str, size: str, n:
     try:
         client = DashScopeImageClient()
         # P0 #1（隐藏问题审查）：同步调用必须丢线程池，避免阻塞事件循环。
-        result = await asyncio.to_thread(
-            client.generate,
-            prompt=prompt,
-            model="wanx2.1-imageedit",
-            function="stylization_all",
-            base_image_url=image_url,
-            n=n,
-            size=size.replace("x", "*"),
+        # review Suggestion #5：再包 wait_for 做调用级超时兜底，SDK 无限慢时不挂死线程。
+        result = await asyncio.wait_for(
+            asyncio.to_thread(
+                client.generate,
+                prompt=prompt,
+                model="wanx2.1-imageedit",
+                function="stylization_all",
+                base_image_url=image_url,
+                n=n,
+                size=size.replace("x", "*"),
+            ),
+            timeout=_DASHSCOPE_I2I_TIMEOUT,
         )
     except Exception as exc:
         _log.warning("DashScope i2i failed: %s", exc)

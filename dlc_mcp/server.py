@@ -186,10 +186,18 @@ TOOL_HANDLERS = {
 }
 
 
-def _handle_tools_call(client: httpx.Client, req_id: object, params: dict) -> dict:
-    """Dispatch a tools/call request to the appropriate DLC tool."""
+def _handle_tools_call(client: httpx.Client, req_id: object, params: object) -> dict:
+    """Dispatch a tools/call request to the appropriate DLC tool.
+
+    P1 #5（review 复查）：params/arguments 可能是合法 JSON 但非对象（list/str/int），
+    必须显式校验类型并返回 -32602 Invalid params，不能让 .get 抛 AttributeError。
+    """
+    if not isinstance(params, dict):
+        return _tool_error(req_id, -32602, "params must be an object")
     name = params.get("name")
     args = params.get("arguments", {})
+    if not isinstance(args, dict):
+        return _tool_error(req_id, -32602, "arguments must be an object")
     handler = TOOL_HANDLERS.get(name)
     if handler:
         return handler(client, req_id, args)

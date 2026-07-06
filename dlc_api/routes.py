@@ -101,6 +101,36 @@ def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None
     return image_url, None
 
 
+# S10: idempotency dedupe TTL (seconds) for the Redis SET NX EX claim.
+_IDEMPOTENCY_TTL = 600
+
+# review Warning #3：idempotency 路径复用模块级 Redis client，避免每次 dispatch
+# 都新建连接池（connection churn）。沿用 rate_limiter_redis._get_client 的惰性单例惯例。
+_idem_client: Any | None = None
+_idem_prefix: str = ""
+_idem_client_failed = False
+
+
+def _get_idempotency_client() -> tuple[Any, str] | None:
+    """Return a cached (client, prefix) for idempotency dedupe, or None when unavailable."""
+    global _idem_client, _idem_prefix, _idem_client_failed
+    if _idem_client is not None:
+        return _idem_client, _idem_prefix
+    if _idem_client_failed:
+        return None
+    try:
+        from device_gateway.redis_store_helpers import connect_redis
+
+        _idem_client, _idem_prefix = connect_redis(
+            REDIS.device_redis_url, "dlc_idempotency", key_prefix="lima:dlc:idem"
+        )
+    except Exception as exc:
+        _idem_client_failed = True
+        logger.warning("S10: idempotency Redis unavailable (%s); allowing dispatch without dedupe", exc)
+        return None
+    return _idem_client, _idem_prefix
+
+
 def _motion_task(text: str, request_id: str, entrypoint: str) -> dict[str, Any]:
     """Build a motion_task dict for dispatch_task."""
     return {"text": text, "request_id": request_id, "source": "dlc_api", "entrypoint": entrypoint}
@@ -113,7 +143,7 @@ def _quota_for(task_type: str) -> int:
     return DEVICE.dlc_task_per_min
 
 
-def _claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = 600) -> bool:
+def _claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = _IDEMPOTENCY_TTL) -> bool:
     """S10: atomically claim an idempotency key. Returns True on first use, False on replay.
 
     Uses Redis SET NX EX for cross-worker dedupe. When Redis is unavailable we
@@ -122,13 +152,10 @@ def _claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = 600) -> bo
     dropped command, and the warning surfaces the degraded state (no silent
     degradation).
     """
-    try:
-        from device_gateway.redis_store_helpers import connect_redis
-
-        client, prefix = connect_redis(REDIS.device_redis_url, "dlc_idempotency", key_prefix="lima:dlc:idem")
-    except Exception as exc:
-        logger.warning("S10: idempotency Redis unavailable (%s); allowing dispatch without dedupe", exc)
+    cached = _get_idempotency_client()
+    if cached is None:
         return True
+    client, prefix = cached
     try:
         claimed = client.set(f"{prefix}:{idem_key}", task_id or "1", nx=True, ex=ttl)
     except Exception as exc:

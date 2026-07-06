@@ -24,6 +24,10 @@ from device_gateway.draw_responses import build_success_response as _build_succe
 
 logger = logging.getLogger(__name__)
 
+# P0 #1 / review Suggestion #5：DashScope 生图调用级超时上限（秒）。
+# to_thread 只保证不卡事件循环，wait_for 才能给单次调用兜底，避免线程挂死。
+_DASHSCOPE_GENERATE_TIMEOUT = 30.0
+
 PRESET_KEYWORDS = {
     "circle": ["圆", "圆形", "circle"],
     "square": ["方", "方形", "正方形", "square"],
@@ -85,7 +89,18 @@ async def _generate_image(
     client = DashScopeImageClient()
     # P0 #1（隐藏问题审查）：ImageSynthesis.call 是同步阻塞 HTTP，必须丢线程池，
     # 否则一次 DashScope 慢响应（5-30s）会卡死整个 asyncio 事件循环。
-    result = await asyncio.to_thread(client.generate, prompt=enhanced_prompt, model=model, size=size, n=1)
+    # review Suggestion #5：to_thread 只避免卡事件循环，仍需调用级超时兜底，
+    # 否则 SDK 无限慢时线程会长期挂起。
+    try:
+        result = await asyncio.wait_for(
+            asyncio.to_thread(client.generate, prompt=enhanced_prompt, model=model, size=size, n=1),
+            timeout=_DASHSCOPE_GENERATE_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "DashScope image generation timed out for device %s (%.0fs)", device_id, _DASHSCOPE_GENERATE_TIMEOUT
+        )
+        return {"status": "failed", "images": [], "task_id": "", "error": "image generation timed out"}
     # DashScope 失败时直接返回错误（P4 瘦身：多后端 image_fallback 已删除）
     if result.get("status") != "success" or not result.get("images"):
         logger.warning("DashScope image generation failed for device %s, no fallback available", device_id)

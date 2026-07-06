@@ -9,8 +9,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 # ── P0 #1：DashScope 同步调用必须包进 to_thread，不能裸跑在事件循环 ──────────
 
@@ -66,23 +64,19 @@ def test_mcp_main_handles_arbitrary_exception(monkeypatch):
 
     # 模拟 stdin 依次输入：非对象 JSON、空行、合法 initialize
     fake_stdin = io.StringIO('["not", "an", "object"]\n\n{"jsonrpc":"2.0","id":1,"method":"initialize"}\n')
-    # 用真实 stdout buffer（StringIO 无 buffer 属性），替换为可写 buffer
-    fake_stdout = io.BufferedReader(io.BytesIO()) if False else None  # noqa
 
     class _BufferedStdout:
-        buffer = io.BytesIO()
+        """带 buffer.write() 的最小 stdout stub，行为与真实 sys.stdout 一致。"""
+
+        def __init__(self) -> None:
+            self.buffer = io.BytesIO()
 
     monkeypatch.setattr(mcp_server.sys, "stdin", fake_stdin)
     monkeypatch.setattr(mcp_server.sys, "stdout", _BufferedStdout())
 
-    # main() 必须正常跑完，不抛异常（旧代码会因为 list.get 崩溃）
-    try:
-        mcp_server.main()
-    except AttributeError as e:
-        if "buffer" in str(e):
-            pass  # 测试桩 buffer 写入相关，非主循环崩溃
-        else:
-            pytest.fail(f"main() 在畸形 JSON 上崩溃（应被 try 包住）: {e}")
+    # main() 必须正常跑完，不抛任何异常（旧代码会因为 list.get 崩溃）。
+    # 不吞任何异常字符串——stub 已提供完整 buffer，任何异常都是真实回归。
+    mcp_server.main()
 
 
 def test_mcp_handle_request_rejects_non_dict():
@@ -92,6 +86,31 @@ def test_mcp_handle_request_rejects_non_dict():
     for bad_req in (["list"], "string", 42, None):
         resp = mcp_server.handle_request(httpx_client_stub(), bad_req)  # type: ignore[arg-type]
         assert resp.get("error", {}).get("code") == -32600, f"非 dict 请求 {bad_req!r} 应返回 -32600，实际: {resp}"
+
+
+def test_mcp_tools_call_rejects_non_dict_params():
+    """tools/call 的 params 为非对象（list/str）时必须返回 -32602，不抛异常。"""
+    from dlc_mcp import server as mcp_server
+
+    for bad_params in ([], "x", 1):
+        req = {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": bad_params}
+        resp = mcp_server.handle_request(httpx_client_stub(), req)
+        assert resp.get("error", {}).get("code") == -32602, f"params={bad_params!r} 应返回 -32602，实际: {resp}"
+
+
+def test_mcp_tools_call_rejects_non_dict_arguments():
+    """tools/call 的 arguments 为非对象（str/list）时必须返回 -32602，不抛异常。"""
+    from dlc_mcp import server as mcp_server
+
+    for bad_args in ("x", [], 1):
+        req = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "dlc.write_text", "arguments": bad_args},
+        }
+        resp = mcp_server.handle_request(httpx_client_stub(), req)
+        assert resp.get("error", {}).get("code") == -32602, f"arguments={bad_args!r} 应返回 -32602，实际: {resp}"
 
 
 # ── P2 #4：routes.py 不能有重复定义 ─────────────────────────────────────────
