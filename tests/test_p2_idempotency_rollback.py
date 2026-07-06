@@ -144,3 +144,35 @@ def test_successful_dispatch_keeps_key_locked(monkeypatch) -> None:
     assert second.json()["status"] == "duplicate"
     # Underlying dispatch ran only once.
     assert mock_dispatch.await_count == 1
+
+
+# ── P2-a2 (Cursor 复审补漏): claim 后抛异常也必须 release ─────────────────────
+
+
+@patch("dlc_api.routes.handle_write", new_callable=AsyncMock)
+def test_exception_after_claim_releases_key(mock_write, monkeypatch) -> None:
+    """claim 后 dispatch_task 抛异常（非返回 failed）→ 幂等键必须被释放。
+
+    Cursor 复审发现：原实现只在返回 status:failed 的分支 release，若下游
+    抛异常则无 try/finally 兜底，key 占满 600s TTL，同 Idempotency-Key 重试
+    被判 duplicate → 命令永久丢失。
+    """
+    fake = _install_fake_idem(monkeypatch)
+    mock_write.return_value = {
+        "status": "success",
+        "svg_path": "M0,0",
+        "width": 10,
+        "height": 10,
+        "model": "deterministic",
+        "error": None,
+    }
+    headers = {"Authorization": "Bearer t", "Idempotency-Key": "boom-1"}
+    with patch("dlc_api.routes.check_key_limit", return_value=None):
+        with patch("dlc_api.routes.dispatch_task", new_callable=AsyncMock) as mock_dispatch:
+            mock_dispatch.side_effect = RuntimeError("device gateway crashed")
+            client = TestClient(app)
+            try:
+                client.post("/dlc/tasks/dispatch", json=_write_body(), headers=headers)
+            except RuntimeError:
+                pass  # 异常是否上抛不是本测试关注点；关注点是 key 必须已释放
+    assert not fake.store, f"claim 后抛异常未释放 idempotency key: {fake.store}"

@@ -188,21 +188,32 @@ async def dispatch_task_endpoint(
         return TaskDispatchResponse(status="duplicate", error="idempotency key already used")
 
     # P2-a: the idempotency key is claimed *before* the work runs, so any failure
-    # below must release it — otherwise a transient failure (device offline, path
-    # gen error) permanently burns the key and the client can never retry.
-    result, motion_task = await _build_dispatch_payload(body)
-    if result.get("status") != "success":
-        if idem_full_key:
-            _release_idempotency_key(idem_full_key, body.request_id)
-        return TaskDispatchResponse(status="failed", error=result.get("error"))
-    if motion_task is None:
-        if idem_full_key:
-            _release_idempotency_key(idem_full_key, body.request_id)
-        return TaskDispatchResponse(status="failed", error="unsupported type")
+    # (returned or raised) must release it — see _dispatch_and_release.
+    return await _dispatch_and_release(body, idem_full_key)
 
-    dispatch_result = await dispatch_task(body.device_id, motion_task)
-    # A rejected/failed dispatch never reached the device queue — release the key
-    # so the caller can retry with the same Idempotency-Key.
+
+async def _dispatch_and_release(body: TaskDispatchRequest, idem_full_key: str | None) -> TaskDispatchResponse:
+    """Build the motion payload and dispatch it, releasing the idempotency key on
+    any failure path (returned failure, unsupported type, raised exception, or a
+    rejected dispatch) so the caller can retry with the same Idempotency-Key.
+    Only a dispatch that actually reached the device queue keeps the key."""
+    try:
+        result, motion_task = await _build_dispatch_payload(body)
+        if result.get("status") != "success":
+            if idem_full_key:
+                _release_idempotency_key(idem_full_key, body.request_id)
+            return TaskDispatchResponse(status="failed", error=result.get("error"))
+        if motion_task is None:
+            if idem_full_key:
+                _release_idempotency_key(idem_full_key, body.request_id)
+            return TaskDispatchResponse(status="failed", error="unsupported type")
+
+        dispatch_result = await dispatch_task(body.device_id, motion_task)
+    except Exception:
+        # Command never reached the device queue — release so the caller can retry.
+        if idem_full_key:
+            _release_idempotency_key(idem_full_key, body.request_id)
+        raise
     if idem_full_key and dispatch_result.get("status") not in {"sent", "queued"}:
         _release_idempotency_key(idem_full_key, body.request_id)
     return TaskDispatchResponse(
