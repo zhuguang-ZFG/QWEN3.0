@@ -36,79 +36,44 @@ git add esp32S_XYZ && git commit -m "chore: bump esp32S_XYZ submodule" && git pu
 
 ## 架构
 
-### 请求处理流水线（生产环境）
+### 请求处理链路（P4/P5 瘦身后的真实架构）
 
 ```
-Client → server.py (BodySizeLimitMiddleware, access_guard)
-      → routes/chat_endpoints.py
-      → routes/chat_preflight.py (guardrails, budget, identity)
-      → routing_engine.route()          ← 权威路由入口（`routing_engine/` 包）
-         ├─ identity_guard              (身份短路)
-         ├─ routing_classifier.classify (request_type: ide/chat/vision)
-         ├─ routing_classifier.classify_scenario (scenario: coding/chat)
-         ├─ skill_store recall          (技能记忆 → 召回后端)
-         ├─ context_pipeline.retrieval_injection (知识图谱/向量上下文，按需)
-         ├─ router_v3.select_backends → routing_selector.select (后端排序)
-         ├─ skills_injector             (向消息注入技能)
-         ├─ speculative                 (简单请求：并行推测调用)
-         ├─ routing_executor.execute    (串行/并行 + 降级，`routing_executor/` 包)
-         └─ route_post_process          (关联/证据/反馈)
-      → http_caller → backend pool (httpx sync/async/stream，`http_caller.py` 为 thin re-export)
-      → routes/chat_post_closeout.py (记忆、指标、蒸馏队列)
-      → Client (JSON 或 SSE)
+Client → server_dlc.py (FastAPI 入口，:8081，/docs 已禁用 SEC-05)
+      → dlc_api/routes.py (/dlc/tasks/* + /dlc/devices/*，verify_dlc_api_token)
+      → dlc_core (handle_draw / handle_write / handle_draw_from_image)
+      → dlc_core/dispatch.py → device_gateway (Redis 任务队列 + WSS 下发到 ESP32)
+      → Client (JSON)
+小智云 MCP → dlc_mcp/server.py (JSON-RPC stdio ↔ WS bridge，mcp_pipe.py)
+          → dlc_api/routes.py (/dlc/tasks/* ...)
+微信小程序 → server_dlc.py (/device/v1/app/*，device_app_router 聚合)
 ```
 
+### 关键模块归属（当前在用）
 
-### 关键模块归属
+| 职责 | 模块 |
+|------|------|
+| HTTP 入口 | `server_dlc.py` |
+| DLC 路由 | `dlc_api/` (`routes.py`, `app.py`, `deps.py`, `schemas.py`, `device_app_router.py`) |
+| 绘图/写字核心 | `dlc_core/` (`draw.py`, `dispatch.py`, `device_status.py`, `write.py`, `path_validator.py`, `presets.py`, `safety.py`, `intent.py`) |
+| MCP JSON-RPC | `dlc_mcp/` (`server.py`, `mcp_pipe.py`) |
+| 设备网关 | `device_gateway/` (Redis 队列、WS、设备状态、family approval、gallery) |
+| 设备 App API | `routes/` (`device_app_api.py`, `device_app_tasks.py`, `images_backends.py`, `device_app_gallery.py`) |
+| 鉴权/限流 | `access_guard.py`, `rate_limiter.py`, `rate_limiter_redis.py`, `ws_ticket.py`, `device_logic/auth.py` |
+| 图生 | `dashscope_image_client.py`（DashScope/wanx，经 `asyncio.to_thread`） |
 
-| 职责 | 模块 | 遗留/门面 |
-|------|------|-----------|
-| 后端注册 | `backends_registry/` 包 + `backends_constants.py` | — |
-| 意图分析 | `routing_intent.py` | — |
-| 意图分类 | `routing_classifier.py` | — |
-| 后端池 | `router_v3/` 包 (`POOLS` 在 `pools.py`) | — |
-| 后端排序 | `routing_selector/` 包 | — |
-| 后端执行 | `routing_executor.py` | — |
-| HTTP 传输 | `http_caller.py` (→ `http_sync`/`http_async`/`http_stream`) | — |
-| 健康/冷却 | `health_tracker.py` | — |
-| 预算 | `budget_manager.py` | — |
-| 粘性会话 | `sticky_session.py` | — |
-| 流桥接 | `streaming.py`, `routes/stream_handlers.py` | — |
-| 检索注入 | `context_pipeline/retrieval_injection.py` | — |
-| 代码上下文 | 已物理删除（v3.0 退役） | 编码能力退役，原模块已移除 |
-| 技能注入 | `skills_injector.py` | — |
-| 会话记忆 | `session_memory/store*.py` (拆分：db/crud/promote/admin) | — |
-| 运维指标 | `routes/ops_metrics.py` | — |
-
-### 并行子系统（非聊天主路径）
-
-| 子系统 | 路径 | 用途 |
-|--------|------|------|
-| 设备网关 | `device_gateway/`, `routes/device_gateway*.py` | `/device/v1/*`；Redis 任务队列 + WSS；ESP32/硬件 |
-
-| 会话记忆 | `session_memory/` | 持久记忆 + 学习循环 |
-| 上下文流水线 | `context_pipeline/` (17 模块) | 检索注入、技能记忆、响应验证/重排序、token 预算、路由权重（代码上下文 v3.0 已退役移除） |
-| 可观测性 | `observability/` | Prometheus 指标、结构化日志 |
-| 提供商探测 | `packages/provider-probe-offline/provider_probe/`（冷离线；根目录 `provider_probe/` 为指针）, `provider_automation/`, `backends_registry/` | 自动发现新 AI 提供商（仅 JDCloud） |
-
-### 服务启动
-
-- `server.py` — 精简 FastAPI 入口；连接中间件、注入依赖、通过 `routes/route_registry.py` 注册路由
-- `server_bootstrap.py` — 模型常量 (`MODEL_ID = "lima-1.3"`)、运行时状态、Cloudflare 终极降级
-- `server_lifespan.py` — 异步生命周期：加载健康状态、后端画像、启动探测循环、会话记忆守护进程、MQTT、Prometheus 导出器、自动索引器
+**已退役模块（禁止按此表去找代码）**：旧 `server.py`/`routing_engine*`/`router_v3`/`routing_executor`/`http_caller`/`context_pipeline`（代码上下文 v3.0 删）/`session_memory` 主路径/`observability`/`provider_probe`（仅 JDCloud 冷离线指针）/`backends_registry` —— 均已在 P4/P5 瘦身物理删除。详见 `progress.md` 与 `docs/archive/`。
 
 ### 部署拓扑
 
 ```
-Internet → VPS (nginx → lima-router :8080, Redis)
-              ↕ FRP :8088
-         Windows 本地 (:8080 开发代理 + 免费后端)
+Internet → 阿里云 VPS 47.112.162.80 (nginx → server_dlc :8081, Redis)
+                ↓ 同代码部署
+         JDCloud 117.72.118.95 (备节点)
 ```
 
-- 主 VPS：`47.112.162.80`（阿里云）
-- 备用节点：JDCloud `117.72.118.95`（仅提供商探测/监控）
-- 部署脚本：`scripts/deploy_unified.py`（容量感知、自动备份）
-- 回滚：`/opt/lima-router/backups/`
+- 部署脚本：`scripts/deploy_unified.py`（双节点、容量感知、自动备份）
+- 回滚：`/opt/dlc-drawing/backups/`
 
 ---
 
