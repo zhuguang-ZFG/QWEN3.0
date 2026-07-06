@@ -103,3 +103,39 @@ async def test_device_draw_optimization_reduces_points():
         opt = result["optimization"]
         assert opt["optimized_points"] < opt["original_points"]
         assert opt["reduction_ratio"] > 0
+
+
+@pytest.mark.asyncio
+async def test_complex_prompt_degrades_to_generation_not_rejected():
+    """复杂请求应降级为简化 prompt 送生成，而非在 prompt 层硬拒绝。
+
+    降级优于拒绝：复杂描述简化成单线简笔画尽力画，下游 motion bounds +
+    path_validator 硬点数上限兜底。let voice draw anything。
+    """
+    captured = {}
+
+    mock_client = MagicMock()
+
+    def _capture_generate(*, prompt, model, size, n):
+        captured["prompt"] = prompt
+        return {"status": "success", "images": [{"url": "http://example.com/x.jpg"}]}
+
+    mock_client.generate.side_effect = _capture_generate
+
+    mock_converter = MagicMock()
+    mock_converter.convert_url_to_svg = AsyncMock(
+        return_value={"status": "success", "svg_path": "M 10 10 L 50 50 Z", "width": 200, "height": 200}
+    )
+
+    with (
+        patch("device_gateway.device_draw_handler.DashScopeImageClient", return_value=mock_client),
+        patch("device_gateway.device_draw_handler.SVGConverter", return_value=mock_converter),
+    ):
+        # complex 请求（含"城市/人群"高信号词），无 profile 设备
+        result = await handle_device_draw("画一座城市和人群的照片", device_id="test-complex")
+
+    # 不应被硬拒绝：应真正走到 DashScope 生成
+    assert captured.get("prompt"), "复杂请求应送去生成，而非在 prompt 层拒绝"
+    # 送去的应是增强后的简化 prompt（含黑白线条约束）
+    assert "黑白" in captured["prompt"] or "线条" in captured["prompt"]
+    assert result["status"] == "success"

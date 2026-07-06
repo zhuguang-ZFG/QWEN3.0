@@ -230,14 +230,10 @@ async def _try_preset_or_generate(
             record_failed_draw_prompt(device_id, prompt, error=str(fast.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, fast)
 
+    # 降级优于拒绝：复杂描述简化成单线简笔画尽力画，而非在 prompt 层硬拒绝。
+    # feasible=True 时 simplified_prompt 就是原 prompt；不可行时是启发式简化版。
+    # 下游 motion bounds precheck + path_validator 硬点数上限双重兜底真实超限路径。
     screen = screen_drawing_request(prompt, device_id)
-    if not screen["feasible"]:
-        record_failed_draw_prompt(device_id, prompt, error=screen["reason"])
-        return _finalize_draw_response(
-            device_id,
-            prompt,
-            _build_failed_response(config["model"], screen["suggestion"]),
-        )
 
     try:
         result = await _generate_image(
