@@ -635,3 +635,10 @@
 - **U8 音频协议 bug（STATUS.md:160）— 已过时，2026-07-02 已修**：progress.md:820 标 ✅，方案 A（固件改 PCM 上下行透传，保留 MQTT/Xiaozhi 的 OPUS 路径）已实现。剩余仅「真机端到端验证」需硬件在环；且该自托管 WS 语音链在「对话走小智云」架构下已退役。
 - **测试**：全量 **1396 passed / 3 skipped / 0 failed**（1387 + 6 path_validator + 3 body_size）；ruff check + format + check_code_size 全过。提交 `51ce39cf` push origin main，双节点部署（阿里云 474 uploaded / 京东云 paramiko 核实最新代码 + 重启），公网 `/health` 200。
 - **教训**：延续「审查记录会过时」模式——findings 待办里 2/4 项（external_enrichment、U8）经核查已作废，真实修复只落在证据充分的 path_validator + body limit 两项。落地前先核查目录/代码现状，避免为过时记录制造投机工作（Ponytail 第一原则）。
+## 2026-07-06 lima-router-pilot 彻底退役：VPS 死配置 + 前端死代码清理
+
+- **背景**：pilot（aliyun.donglicao.com 免费 chat 分流）逻辑已于 2026-07-05 退役（shouldUsePilot 恒 false、CF Worker 分流移除），但残留死配置/死代码。本轮彻底清理。
+- **VPS 侧（阿里云）**：`lima-router-pilot.service` unit 已不存在、:8080 无监听，但 nginx `aliyun-pilot.donglicao.com.conf` 仍 proxy_pass 到死端口 :8080，导致 `aliyun.donglicao.com/health` 返回 502。备份到 `/root/aliyun-pilot.donglicao.com.conf.retired-20260706` 后改名 `.retired-20260706`，`nginx -t` + reload，502 消除。主入口 `chat.donglicao.com/health` 仍 200。
+- **前端侧（chat-web，commit 855e01fd）**：`app-config.js` 删除 PILOT_ORIGIN 常量 + pilot 分流辅助死函数（hasImageContent/isDefaultChatModel/getApiOrigin），shouldUsePilot 保留恒 false 仅兼容 chat-api.js 调用；`app-boot.js` 删 pilotOrigin；`index.html` CSP connect-src 移除 aliyun.donglicao.com（安全收益：收紧白名单）。chat-api.js 依赖的 PRIMARY_ORIGIN/shouldUsePilot/getApiUrl 均保留，零回归。
+- **验证**：3 个 JS node --check 语法通过；hash-assets 重建 dist 无 aliyun 残留；CI Deploy Chat Web 成功（29s）；公网 app.donglicao.com CSP 已无 aliyun，chat.donglicao.com/health 200。
+- **可逆性**：nginx conf 改名保留（`.retired-20260706`），前端删除的是恒不生效死代码，随时可从 git 恢复。
