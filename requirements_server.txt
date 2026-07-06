@@ -17,7 +17,7 @@ python-dotenv~=1.2.2
 
 # 部署工具（deploy_unified.py SSH 上传）
 paramiko~=5.0.0
-cryptography>=48.0.1         # transitive via paramiko
+cryptography>=49.0.0         # transitive via paramiko
 
 # 数据层
 redis~=8.0.1                 # 设备任务队列（RedisDeviceTaskStore）
