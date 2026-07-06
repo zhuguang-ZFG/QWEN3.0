@@ -608,3 +608,16 @@
 - **结论：否决 P2-d，不做**。19 字段的 hgetall + decode 是微秒级，per-device 索引在此规模是典型过早优化，违背 Ponytail 第一原则（不做投机性优化 / YAGNI）。审查的"O(N) 拖垮"前提在真实生产不成立。
 - **重新评估触发条件**：仅当 `HLEN lima:device:tasks` 增长到数千字段量级（可作为运维监控指标）时，才作为独立性能任务重启。届时优先考虑：终态任务字段的后台 reaper（`hscan`+`hdel`）或活跃任务有序集合索引，而非一次性大重构。
 - **附带修正**：redis_task_ttl 默认 30 天 + 每次写刷新整键 TTL 的"永不过期"隐患（审查 P1-1 提及）在当前 19 字段规模无实际影响，同样待规模增长后再评估。
+
+## 2026-07-06 S10 幂等去重：Redis 不可用时的 fail-open vs fail-closed 决策
+
+- **背景**：Cursor 第三方复审提出，Redis 不可用时当前 fail-open（放行）可能导致 ESP32 物理设备重复画/写，建议改为 fail-closed（拒绝）。该建议属于产品策略，需定夺。
+- **调研方法**：参考开源项目/工程实践对 fail-open vs fail-closed 的决策框架，而非凭直觉。
+  - [Stripe 幂等设计](https://stripe.com/blog/idempotency) 强调对关键操作做幂等保护，但未主张所有操作在存储不可用时都拒绝。
+  - [Spring Boot REST API Idempotency-Key Guide](https://springboot-123.mizucoffee.com/en/blog/spring-boot-rest-api-idempotency-key-guide/) 明确框架："按业务影响分级——支付等关键操作 fail-closed，其他 fail-open"。
+  - [Algoroq / Plexobject 十二大致命反模式](https://www.algoroq.io/blog/idempotency-distributed-systems/) 强调"金融操作永远 fail-closed"，限定在高风险/不可逆场景。
+  - 工业机器人 fail-safe 原则针对人身伤害或设备损毁风险。
+- **应用到本项目**：  - 操作对象：ESP32 绘图机/写字机，消费者玩具级设备。  - 重复执行后果：浪费纸张/耗材、轻微笔迹重叠——**可逆、低严重**。  - 拒绝执行后果：用户语音指令被静默丢弃，设备"不响应"——**直接伤害用户体验**。  - 现状已改善：本轮已补 L1 进程内二级屏障，Redis 挂时同 worker（单节点几乎全部流量）重复请求会被拦住，风险已从"零去重"收窄到"仅跨节点重复才漏网"。
+- **决策**：**保持 fail-open + L1，不改 fail-closed**。理由与现有 `claim_idempotency_key` docstring 一致："a duplicate is less harmful than a dropped command"。消费者绘图动作的重复成本低于命令丢失的可用性损失，符合 Spring Boot 指南的"按业务影响分级"原则。
+- **可配置开关（未做，可选）**：若未来进入高价值/不可撤销场景（如收费打印、雕刻机等），可通过环境变量 `IDEMPOTENCY_FAIL_CLOSED=1` 切换为 fail-closed；当前默认保持 fail-open，不增加复杂度。
+- **关联修复**：本轮同步修复了 `_get_idempotency_client()` 的永久粘滞问题——首次 Redis 连接失败后加入 30s 冷却窗口，窗口过后自动重连，避免进程终身 fail-open（详见同日提交）。
