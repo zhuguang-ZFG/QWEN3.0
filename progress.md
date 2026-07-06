@@ -69,14 +69,20 @@
 - **门禁**：阶段 A 1523 passed；阶段 B+C 1397 passed / 3 skipped / 0 failed；ruff check + format clean；check_code_size PASS。
 
 
-
+
+
 - **阶段 D（生产切流）——已核实完成（2026-07-06）**：
   - 双节点 nginx 配置 `/etc/nginx/conf.d/chat.donglicao.com.conf` 已把 `/device/`、`/dlc/`、`/health` 切到 `:8081`；旧路径 `/chat/`、`/api/`、`/admin/`、`/agent/`、`/fleet/`、`/digital-human/`、`/v1/`、`/v1/live`、`/v1/voice`、`/device/v1/ws` 显式 `return 410`。
   - 阿里云：`lima-router.service` inactive；`/opt/lima-router/` 目录不存在；:8080 无监听。
   - 京东云：`lima-router.service` disabled/inactive；`/opt/lima-router/` 目录不存在；:8080 被 code-server 占用（非 lima-router）。
   - 公网冒烟：`/health` → 200；`/chat/`、`/api/v1/status`、`/admin` → 410；生产切流已实际生效。
 
-## 2026-07-06 固件端改造 U8：新增 plotter MCP 工具 + 配网 SSID 前缀变更
+
+- **阶段 D 后续清理（2026-07-06）**：
+  - 删除 `/etc/nginx/conf.d/chat.donglicao.com.conf.pre-*` 历史备份（两节点均已无此文件，无需清理）。
+  - 备份并删除 `/etc/systemd/system/*.retired-20260705` 退役 unit 文件（阿里云 8 个、京东云 1 个），备份存于 `/root/retired-units-20260706.tar.gz`。
+  - 备份并删除阿里云 `/var/www/chat/*.bak*` 共 245 个历史备份文件，备份存于 `/root/chat-web-bak-20260706.tar.gz`。
+  - 清理后公网冒烟：`/health` → 200，`/chat/` → 410，服务正常。## 2026-07-06 固件端改造 U8：新增 plotter MCP 工具 + 配网 SSID 前缀变更
 
 ## 2026-07-06 MCP 接入部署 + 小程序上传 + Git 提交推送
 
