@@ -645,3 +645,14 @@
 - **前端侧（chat-web，commit 855e01fd）**：`app-config.js` 删除 PILOT_ORIGIN 常量 + pilot 分流辅助死函数（hasImageContent/isDefaultChatModel/getApiOrigin），shouldUsePilot 保留恒 false 仅兼容 chat-api.js 调用；`app-boot.js` 删 pilotOrigin；`index.html` CSP connect-src 移除 aliyun.donglicao.com（安全收益：收紧白名单）。chat-api.js 依赖的 PRIMARY_ORIGIN/shouldUsePilot/getApiUrl 均保留，零回归。
 - **验证**：3 个 JS node --check 语法通过；hash-assets 重建 dist 无 aliyun 残留；CI Deploy Chat Web 成功（29s）；公网 app.donglicao.com CSP 已无 aliyun，chat.donglicao.com/health 200。
 - **可逆性**：nginx conf 改名保留（`.retired-20260706`），前端删除的是恒不生效死代码，随时可从 git 恢复。
+
+
+## 2026-07-06 文档未完成标记全量核查：3 条过时记录作废
+
+逐条实证核查 STATUS/progress/findings 里的未完成标记，发现以下 3 条已与生产现状矛盾，作废：
+
+- **findings.md:100「公网 /dlc/* 返回 405 未修复」— 已过时**：2026-07-05 记录 JDCloud 无 DLC 服务 + SSH 认证失败导致公网 405。实证：公网 `POST https://chat.donglicao.com/dlc/tasks/validate` 现返回 **422**（请求体校验，端点可达），京东云本地 :8081 同为 422。路由已通，JDCloud 已部署 DLC 服务，SSH 密码认证本会话多次成功。
+- **findings.md:555「/opt/lima-router-pilot（1.1G）仅停服未删」— 已过时**：实证阿里云 `/opt/lima-router-pilot` 与 `/opt/lima-router` 目录均已不存在（2026-07-05 已回收，见 STATUS.md:22），:8080 无监听。
+- **progress.md:1337「JDCloud api.donglicao.com server name 冲突 warning 待排查」— 已过时**：实证阿里云 `nginx -t` 无 warning。
+
+其余未完成标记均为合理挂起（需硬件在环：U8 真机验证、U1 FluidNC；需用户手动：微信小程序上传）或已决策不做（P2-d 全表 hgetall 过早优化、IDEMPOTENCY_FAIL_CLOSED 保持 fail-open），非遗漏。
