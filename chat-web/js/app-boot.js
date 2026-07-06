@@ -5,12 +5,10 @@
   const fallbackOrigin = "https://chat.donglicao.com";
   const config = window.LiMaConfig || {};
   const primaryOrigin = config.PRIMARY_ORIGIN || fallbackOrigin;
-  const pilotOrigin = config.PILOT_ORIGIN || "https://aliyun.donglicao.com";
 
   window.LIMA_CONFIG = {
     apiOrigin: primaryOrigin,
     wsOrigin: primaryOrigin.replace(/^http/, "wss"),
-    pilotOrigin,
     turnstileSiteKey: "0x4AAAAAADte5jOdkXGwfJIh",
   };
 
