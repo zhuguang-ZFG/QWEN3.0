@@ -656,3 +656,23 @@
 - **progress.md:1337「JDCloud api.donglicao.com server name 冲突 warning 待排查」— 已过时**：实证阿里云 `nginx -t` 无 warning。
 
 其余未完成标记均为合理挂起（需硬件在环：U8 真机验证、U1 FluidNC；需用户手动：微信小程序上传）或已决策不做（P2-d 全表 hgetall 过早优化、IDEMPOTENCY_FAIL_CLOSED 保持 fail-open），非遗漏。
+
+## 2026-07-08 小程序 miniprogram-ci 遗留问题
+
+- **pnpm install prepare 钩子割裂子模块归属**（CRITICAL）
+  - **现象**：在 `manager-mobile` 目录运行 `pnpm install` 时，`package.json` 的 `prepare` 脚本 `git init && husky` 在该目录新建了空 `.git`，导致 manager-mobile 从 esp32S_XYZ 仓库割裂出来，HEAD 落在 `master` 且 0 提交。远端历史（`599c2ea` 等）仍在 `origin`，但工作区无法访问。
+  - **根因**：`prepare` 脚本在**每个**目录执行，子目录没有 git init 的上下文，于是新建空 repo。`husky` 又在空 repo 里初始化 hooks，形成双重割裂。
+  - **修复**：把 `prepare` 脚本改为仅在根仓库执行（`if [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd)" ]`），或移除 manager-mobile 目录的 `prepare` 钩子依赖。stray `.git` 已移至 `/tmp/manager-mobile-stray-git-bak` 备份。
+  - **预防**：子目录跑 `pnpm install` 前应确认不是在根目录下，或在 `.npmrc` 里把 `prepare` 条件化（`if [ -n "$CI" ] || [ "$(git rev-parse --show-toplevel)" = "$(pwd)" ]`）。更推荐在 esp32S_XYZ 仓库根目录统一执行 `pnpm install`，而非在子模块目录。
+
+- **miniprogram-ci 上传 `_lruCache is not a constructor`**（BLOCKER）
+  - **现象**：微信小程序上传 `v3.9.2` 时崩溃，报 `TypeError: _lruCache is not a constructor at @babel/helper-compilation-targets/lib/index.js:143:22`。
+  - **根因**：`.npmrc` 开了 `shamefully_hoist=true`，会把所有依赖拍平到顶层 `node_modules`。原 scoped override `@babel/helper-compilation-targets>lru-cache: ^5.1.1` 只影响 babel helper 私有的 v5，但 hoist 把 `lru-cache@11` 拍到顶层，赢了 babel helper 的私有 v5，导致 miniprogram-ci 子进程拿到 v11（无默认构造器）。
+  - **修复**：`pnpm-workspace.yaml` 改为全局 pin `lru-cache: 5.1.1`，让顶层也是 v5。`pnpm install` 后顶层 `lru-cache` 从 11.5.1 降至 5.1.1，babel helper 解析到的也是 v5，上传恢复成功。
+  - **预防**：`shamefully_hoist=true` 会绕过 scoped override，任何依赖如果被 hoist 到顶层，都必须在 `overrides` 里全局 pin。建议评估是否必须开 hoist，或改用 `resolution`（pnpm 现在也支持 `resolutions`）。
+
+- **pages.config.ts 是真正源头，改 src/pages.json 会被打回**（MEDIUM）
+  - **现象**：在 `src/pages.json` 删 z-paging easycom 规则后，`uni build --platform mp-weixin` 会从 `pages.config.ts` 重新生成 `src/pages.json`，导致刚才的删除被覆盖加回（还顺带格式化加了尾逗号）。
+  - **根因**：`vite-plugin-uni-pages` 的行为是「配置源 `pages.config.ts` → 构建 → 生成 `src/pages.json`」。直接改生成物是反模式，应该改源文件。
+  - **修复**：从源头 `pages.config.ts` 删除 z-paging 规则，下次构建后 `src/pages.json` 自动与源头一致。
+  - **预防**：微信相关配置（manifest、pages、tabBar）应从 `*.config.ts` 源头改，而非直接改 `src/*.json` 生成物。如果构建工具支持配置文件热更新，应优先改配置源。
