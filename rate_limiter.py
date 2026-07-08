@@ -1,11 +1,15 @@
-"""Sliding-window IP rate limiter for chat endpoints."""
+"""Sliding-window IP rate limiter + Redis-backed keyed rate limits."""
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
+from typing import Any
 
-import rate_limiter_redis
+from config import settings
+
+_log = logging.getLogger(__name__)
 
 WINDOW = 60
 MAX_PER_WINDOW = 120
@@ -15,6 +19,97 @@ _lock = threading.Lock()
 _requests: dict[str, list[float]] = {}
 _keyed_lock = threading.Lock()
 _keyed_requests: dict[str, list[float]] = {}
+
+# --- Redis keyed rate limit (cross-worker device auth L2) ---
+
+_KEY_PREFIX = "lima:keyed_rate:"
+_test_client: Any | None = None
+_redis_client: Any | None = None
+_redis_client_failed = False
+
+
+def _auth_rate_redis_flag() -> str:
+    return settings.SECURITY.device_auth_rate_redis
+
+
+def _redis_url() -> str:
+    from config.db_config import DEVICE_REDIS_URL
+
+    return settings.SECURITY.device_auth_rate_redis_url or DEVICE_REDIS_URL
+
+
+def use_redis_backend() -> bool:
+    flag = _auth_rate_redis_flag()
+    if flag in {"0", "false", "memory", "off", "no"}:
+        return False
+    if flag in {"1", "true", "redis", "on", "yes"}:
+        return bool(_redis_url())
+    return bool(_redis_url())
+
+
+def set_test_client(client: Any | None) -> None:
+    """Inject a fake Redis client in unit tests."""
+    global _test_client, _redis_client, _redis_client_failed
+    _test_client = client
+    _redis_client = None
+    _redis_client_failed = False
+
+
+def _get_redis_client() -> Any | None:
+    global _redis_client, _redis_client_failed
+    if _test_client is not None:
+        return _test_client
+    if _redis_client_failed:
+        return None
+    if _redis_client is not None:
+        return _redis_client
+    url = _redis_url()
+    if not url:
+        return None
+    try:
+        import redis
+
+        _redis_client = redis.Redis.from_url(url, decode_responses=True)
+        _redis_client.ping()
+    except Exception as exc:
+        _redis_client_failed = True
+        _log.warning("keyed rate limit Redis unavailable: %s", type(exc).__name__)
+        return None
+    return _redis_client
+
+
+def _check_keyed_redis(key: str, *, max_per_window: int, window: float) -> bool | None:
+    """Return True/False when Redis handled the key; None when Redis is not used."""
+    if not use_redis_backend():
+        return None
+    client = _get_redis_client()
+    if client is None:
+        return None
+    limit = max(1, max_per_window)
+    bucket = int(time.time() // window)
+    rkey = f"{_KEY_PREFIX}{key}:{bucket}"
+    try:
+        count = int(client.incr(rkey))
+        if count == 1:
+            client.expire(rkey, int(window) + 1)
+        return count <= limit
+    except Exception as exc:
+        _log.warning("keyed rate limit Redis check failed: %s", type(exc).__name__)
+        return None
+
+
+def _reset_redis() -> None:
+    client = _test_client if _test_client is not None else _redis_client
+    if client is None:
+        return
+    try:
+        for raw in client.scan_iter(f"{_KEY_PREFIX}*"):
+            client.delete(raw)
+    except Exception as exc:
+        _log.warning("keyed rate limit Redis reset failed: %s", type(exc).__name__)
+
+
+# --- In-memory sliding-window IP limiter ---
 
 
 def _prune_recent(timestamps: list[float], now: float, window: float = WINDOW) -> list[float]:
@@ -59,7 +154,7 @@ def check_rate_limit(ip: str, multiplier: int = 1) -> bool:
 
 def check_keyed_rate_limit(key: str, *, max_per_window: int, window: float = WINDOW) -> bool:
     """Sliding-window limiter keyed by arbitrary string (e.g. device auth action + IP)."""
-    redis_result = rate_limiter_redis.check_keyed(key, max_per_window=max_per_window, window=window)
+    redis_result = _check_keyed_redis(key, max_per_window=max_per_window, window=window)
     if redis_result is not None:
         return redis_result
 
@@ -101,4 +196,4 @@ def reset(ip: str | None = None) -> None:
     with _keyed_lock:
         if ip is None:
             _keyed_requests.clear()
-    rate_limiter_redis.reset()
+    _reset_redis()
