@@ -8,7 +8,15 @@ import os
 from dataclasses import dataclass
 from typing import Callable
 
-from voice_e2e_http import fake_wav_bytes, get_json, post_json, post_multipart, probe_pcm_chunks, probe_wav_bytes
+from voice_e2e_http import (
+    fake_wav_bytes,
+    get_json,
+    post_json,
+    post_multipart,
+    probe_pcm_chunks,
+    probe_transcript_ok,
+    probe_wav_bytes,
+)
 
 VOICE_TRANSCRIBE_PATH = "/device/v1/app/voice/transcribe"
 VOICE_TICKET_PATH = "/device/v1/app/voice/ticket"
@@ -86,12 +94,46 @@ def probe_voice_ticket(host: str, token: str) -> ProbeResult:
 
 
 def _transcript_ok(text: str, *, strict: bool) -> bool:
-    cleaned = (text or "").strip()
-    if not cleaned:
-        return False
+    return probe_transcript_ok(text, strict=strict)
+
+
+async def _recv_ws_transcript(ws, *, timeout: float = 45) -> dict | None:
+    message: dict | None = None
+    deadline = asyncio.get_running_loop().time() + timeout
+    while True:
+        remaining = deadline - asyncio.get_running_loop().time()
+        if remaining <= 0:
+            break
+        raw = await asyncio.wait_for(ws.recv(), timeout=remaining)
+        frame = json.loads(raw)
+        if frame.get("type") == "error":
+            return frame
+        if frame.get("type") == "transcript":
+            message = frame
+            if frame.get("is_final"):
+                break
+    return message
+
+
+def _evaluate_ws_message(name: str, ws_path: str, message: dict | None, *, strict: bool) -> ProbeResult:
+    if message is None:
+        return ProbeResult(name, "fail", f"WS {ws_path} no transcript frame received")
+    if message.get("type") == "error":
+        if not strict:
+            return ProbeResult(name, "warn", f"WS {ws_path} -> error frame: {message.get('message', '')!r}")
+        return ProbeResult(name, "fail", f"WS {ws_path} error frame: {message}")
+    if message.get("type") != "transcript":
+        return ProbeResult(name, "fail", f"WS {ws_path} unexpected frame: {message}")
+    text = str(message.get("text") or "")
+    if message.get("is_final") and _transcript_ok(text, strict=strict):
+        return ProbeResult(
+            name,
+            "pass",
+            f"WS {ws_path} -> transcript is_final={message.get('is_final')} text={text!r}",
+        )
     if not strict:
-        return True
-    return any(token in cleaned for token in ("画", "猫", "huà", "mao"))
+        return ProbeResult(name, "warn", f"WS {ws_path} -> transcript without expected text: {text!r}")
+    return ProbeResult(name, "fail", f"WS {ws_path} transcript not acceptable: {message}")
 
 
 def probe_voice_transcribe_auth(host: str, token: str, *, strict: bool) -> ProbeResult:
@@ -154,51 +196,8 @@ async def _probe_voice_ws_path(
             for chunk in probe_pcm_chunks():
                 await ws.send(chunk)
             await ws.send("stop")
-            message: dict | None = None
-            deadline = asyncio.get_running_loop().time() + 45
-            while True:
-                remaining = deadline - asyncio.get_running_loop().time()
-                if remaining <= 0:
-                    break
-                raw = await asyncio.wait_for(ws.recv(), timeout=remaining)
-                frame = json.loads(raw)
-                if frame.get("type") == "error":
-                    if not strict:
-                        return ProbeResult(
-                            name,
-                            "warn",
-                            f"WS {ws_path} -> error frame: {frame.get('message', '')!r}",
-                        )
-                    return ProbeResult(name, "fail", f"WS {ws_path} error frame: {frame}")
-                if frame.get("type") == "transcript":
-                    message = frame
-                    if frame.get("is_final"):
-                        break
-            if message is None:
-                return ProbeResult(name, "fail", f"WS {ws_path} no transcript frame received")
-        if message.get("type") == "transcript":
-            text = str(message.get("text") or "")
-            ok = _transcript_ok(text, strict=strict)
-            if message.get("is_final") and ok:
-                return ProbeResult(
-                    name,
-                    "pass",
-                    f"WS {ws_path} -> transcript is_final={message.get('is_final')} text={text!r}",
-                )
-            if not strict:
-                return ProbeResult(
-                    name,
-                    "warn",
-                    f"WS {ws_path} -> transcript without expected text: {text!r}",
-                )
-            return ProbeResult(name, "fail", f"WS {ws_path} transcript not acceptable: {message}")
-        if message.get("type") == "error" and not strict:
-            return ProbeResult(
-                name,
-                "warn",
-                f"WS {ws_path} -> error frame (ASR failed on probe audio): {message.get('message', '')!r}",
-            )
-        return ProbeResult(name, "fail", f"WS {ws_path} unexpected frame: {message}")
+            message = await _recv_ws_transcript(ws)
+        return _evaluate_ws_message(name, ws_path, message, strict=strict)
     except Exception as exc:
         code = getattr(exc, "code", None)
         status_code = getattr(exc, "status_code", None) or code

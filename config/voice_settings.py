@@ -32,6 +32,9 @@ class VoiceConfig:
     max_audio_bytes: int = int(os.environ.get("LIMA_VOICE_MAX_AUDIO_BYTES", "1048576"))
     transcribe_per_min: int = int(os.environ.get("LIMA_VOICE_TRANSCRIBE_PER_MIN", "10"))
     funasr_language: str = os.environ.get("LIMA_VOICE_FUNASR_LANGUAGE", "auto").strip() or "auto"
+    min_pcm_bytes: int = int(os.environ.get("LIMA_VOICE_MIN_PCM_BYTES", "3200"))
+    stream_pcm_frame_bytes: int = int(os.environ.get("LIMA_VOICE_STREAM_PCM_FRAME_BYTES", "1280"))
+    stream_frame_interval_ms: int = int(os.environ.get("LIMA_VOICE_STREAM_FRAME_INTERVAL_MS", "40"))
 
 
 def _parse_voiceprint_threshold() -> float:
@@ -70,6 +73,7 @@ class AliyunNLSConfig:
 class DashScopeASRConfig:
     api_key: str = _DASHSCOPE_API_KEY
     model: str = os.environ.get("DASHSCOPE_ASR_MODEL", "").strip()
+    stream_model: str = os.environ.get("LIMA_VOICE_STREAM_ASR_MODEL", "").strip()
 
 
 @dataclass

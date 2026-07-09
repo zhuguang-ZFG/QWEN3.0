@@ -5,7 +5,7 @@ from __future__ import annotations
 from config.voice_settings import VOICE
 from device_voice.audio_format import prepare_pcm
 from device_voice.providers.base import AsrNotConfiguredError, AsrProvider
-from device_voice.providers.registry import create_asr_provider
+from device_voice.providers.registry import create_asr_provider, normalize_asr_provider_name
 
 __all__ = [
     "AsrNotConfiguredError",
@@ -26,7 +26,7 @@ def content_type_for_audio(audio_data: bytes) -> str:
 def get_asr_provider() -> AsrProvider:
     if not VOICE.enabled:
         raise AsrNotConfiguredError("LIMA_VOICE_ENABLED is not set")
-    return create_asr_provider(VOICE.asr_provider)
+    return create_asr_provider(normalize_asr_provider_name(VOICE.asr_provider))
 
 
 async def transcribe_audio(audio_data: bytes) -> str:

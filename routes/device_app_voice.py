@@ -21,6 +21,7 @@ from device_voice.asr import (
     content_type_for_audio,
     transcribe_audio,
 )
+from device_voice.audio_format import require_min_pcm_bytes
 from config.voice_settings import VOICE
 
 _log = logging.getLogger(__name__)
@@ -50,6 +51,11 @@ async def transcribe_voice(
         return err(400, "audio file is empty", 400)
     if len(audio_data) > VOICE.max_audio_bytes:
         return err(413, "audio file is too large", 413)
+
+    try:
+        require_min_pcm_bytes(audio_data, minimum=VOICE.min_pcm_bytes)
+    except ValueError as exc:
+        return err(400, str(exc), 400)
 
     device_id = device_id.strip()
     if device_id:
@@ -97,6 +103,12 @@ async def issue_voice_ticket(authorization: str = Header(default="")) -> Any:
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
+    limited = check_key_limit(
+        f"device_app_voice_ticket:{account['id']}",
+        VOICE.transcribe_per_min * 3,
+    )
+    if limited is not None:
+        return limited
     return {
         "ticket": voice_app_ws_ticket.issue(account["id"]),
         "expires_in": voice_app_ws_ticket.TTL_SECONDS,

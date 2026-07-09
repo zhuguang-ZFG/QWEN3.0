@@ -10,6 +10,7 @@ import threading
 import time
 
 from device_voice.audio_format import ensure_wav_bytes, prepare_audio_for_streaming
+from config.voice_settings import VOICE
 
 _log = logging.getLogger(__name__)
 _DEFAULT_ONESHOT_MODEL = "qwen3-asr-flash"
@@ -124,12 +125,13 @@ class DashScopeRecognitionProvider:
         )
         recognition.start()
         try:
-            chunk_size = 3200
+            chunk_size = max(160, VOICE.stream_pcm_frame_bytes)
+            interval = max(0.0, VOICE.stream_frame_interval_ms / 1000.0)
             chunks = [payload[offset : offset + chunk_size] for offset in range(0, len(payload), chunk_size)]
             for index, chunk in enumerate(chunks):
                 recognition.send_audio_frame(chunk)
-                if index + 1 < len(chunks):
-                    time.sleep(0.1)
+                if index + 1 < len(chunks) and interval:
+                    time.sleep(interval)
         finally:
             recognition.stop()
         collector.wait()

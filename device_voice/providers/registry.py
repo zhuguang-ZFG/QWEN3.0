@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from config.backend_config import ALIYUN_API_KEY
 from config.voice_settings import VOICE, VOICE_PROVIDERS
 from device_voice.providers.base import AsrNotConfiguredError, AsrProvider
@@ -13,7 +15,22 @@ from device_voice.providers.dashscope import (
 from device_voice.providers.funasr_local import FunAsrLocalProvider
 from device_voice.providers.whisper_local import WhisperLocalProvider, whisper_config_or_default
 
+_log = logging.getLogger(__name__)
 _SUPPORTED = frozenset({"dashscope", "funasr", "whisper"})
+_LEGACY_ALIASES = {
+    "aliyun": "dashscope",
+    "aliyun_fallback": "dashscope",
+    "aliyun_nls": "dashscope",
+    "funasr_local": "funasr",
+}
+
+
+def normalize_asr_provider_name(provider_name: str) -> str:
+    normalized = (provider_name or "dashscope").strip().lower()
+    mapped = _LEGACY_ALIASES.get(normalized, normalized)
+    if mapped != normalized:
+        _log.warning("legacy ASR provider %r mapped to %r", normalized, mapped)
+    return mapped
 
 
 def supported_asr_providers() -> tuple[str, ...]:
@@ -51,7 +68,7 @@ def _create_whisper_provider() -> AsrProvider:
 
 def create_asr_provider(provider_name: str) -> AsrProvider:
     """Instantiate an ASR provider by configured name."""
-    normalized = (provider_name or "dashscope").strip().lower()
+    normalized = normalize_asr_provider_name(provider_name)
     if normalized not in _SUPPORTED:
         raise AsrNotConfiguredError(f"unsupported ASR provider: {normalized}")
     if normalized == "funasr":

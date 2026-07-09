@@ -65,8 +65,15 @@ async def handle_voice_stream_ws(websocket: WebSocket) -> None:
                 await session.feed(message["bytes"])
                 continue
             text = str(message.get("text") or "").strip().lower()
+            if text in {"ping", "heartbeat"}:
+                await websocket.send_json({"type": "pong"})
+                continue
             if text == "stop":
-                final_text = await session.finish()
+                try:
+                    final_text = await session.finish()
+                except ValueError as exc:
+                    await websocket.send_json({"type": "error", "message": str(exc)})
+                    break
                 if final_text:
                     await _send_transcript(websocket, final_text, is_final=True)
                 break
@@ -82,6 +89,9 @@ async def handle_voice_stream_ws(websocket: WebSocket) -> None:
                 final_text = await session.finish()
                 if final_text and websocket.client_state == WebSocketState.CONNECTED:
                     await _send_transcript(websocket, final_text, is_final=True)
+            except ValueError as exc:
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    await websocket.send_json({"type": "error", "message": str(exc)})
             except Exception as exc:
                 _log.warning("voice ws finalize failed: %s", type(exc).__name__)
         if websocket.client_state != WebSocketState.DISCONNECTED:

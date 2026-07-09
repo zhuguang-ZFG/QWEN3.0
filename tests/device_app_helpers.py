@@ -9,6 +9,7 @@ from device_gateway.tasks import install_task_store_for_tests, reset_tasks_for_t
 from device_logic.activation import reset_activation_store_for_tests
 from device_logic.auth import jwt
 from device_logic.db import _schema_ready_paths, connect
+from device_voice.audio_format import pcm_to_wav_bytes
 
 
 def token(account_id: str) -> str:
@@ -23,20 +24,9 @@ def token(account_id: str) -> str:
     return jwt.encode(payload, "test-secret-minimum-32-bytes-long!!", algorithm="HS256")
 
 
-def fake_wav_bytes(payload: bytes = b"\x00\x00" * 160) -> bytes:
-    """Minimal 44-byte WAV header + PCM payload for transcribe tests."""
-    data_size = len(payload)
-    return (
-        b"RIFF"
-        + (36 + data_size).to_bytes(4, "little")
-        + b"WAVE"
-        + b"fmt "
-        + (16).to_bytes(4, "little")
-        + b"\x00" * 16
-        + b"data"
-        + data_size.to_bytes(4, "little")
-        + payload
-    )
+def fake_wav_bytes(payload: bytes = b"\x00\x00" * 1600) -> bytes:
+    """Minimal mono WAV for transcribe tests (~100 ms @ 16 kHz)."""
+    return pcm_to_wav_bytes(payload, sample_rate=16000)
 
 
 def headers(account_id: str) -> dict[str, str]:

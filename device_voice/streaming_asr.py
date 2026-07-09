@@ -10,6 +10,7 @@ from collections.abc import Awaitable, Callable
 from config.backend_config import ALIYUN_API_KEY
 from config.voice_settings import VOICE, VOICE_PROVIDERS
 from device_voice.asr import AsrNotConfiguredError, get_asr_provider, transcribe_audio
+from device_voice.audio_format import iter_pcm_frames, pcm_stream_frame, require_min_pcm_bytes
 from device_voice.providers.dashscope import uses_streaming_model
 
 _log = logging.getLogger(__name__)
@@ -23,14 +24,16 @@ class BufferedVoiceStreamSession:
         self._chunks: list[bytes] = []
 
     async def feed(self, chunk: bytes) -> None:
-        if chunk:
-            self._chunks.append(chunk)
+        pcm_chunk = pcm_stream_frame(chunk)
+        if pcm_chunk:
+            self._chunks.append(pcm_chunk)
 
     async def finish(self) -> str:
         audio_data = b"".join(self._chunks)
         self._chunks.clear()
         if not audio_data:
             return ""
+        require_min_pcm_bytes(audio_data, minimum=VOICE.min_pcm_bytes)
         return await transcribe_audio(audio_data)
 
 
@@ -47,6 +50,7 @@ class DashScopeLiveStreamSession:
         self._error: Exception | None = None
         self._done: threading.Event | None = None
         self._started = False
+        self._total_pcm_bytes = 0
 
     async def start(self, handler: TranscriptHandler) -> None:
         if self._started:
@@ -58,11 +62,25 @@ class DashScopeLiveStreamSession:
     async def feed(self, chunk: bytes) -> None:
         if not chunk or not self._started:
             return
-        await asyncio.to_thread(self._feed_sync, chunk)
+        pcm_chunk = pcm_stream_frame(chunk)
+        if not pcm_chunk:
+            return
+        frame_bytes = max(160, VOICE.stream_pcm_frame_bytes)
+        interval = max(0.0, VOICE.stream_frame_interval_ms / 1000.0)
+        frames = iter_pcm_frames(pcm_chunk, frame_bytes=frame_bytes)
+        for index, frame in enumerate(frames):
+            await asyncio.to_thread(self._feed_sync, frame)
+            self._total_pcm_bytes += len(frame)
+            if index + 1 < len(frames) and interval:
+                await asyncio.sleep(interval)
 
     async def finish(self) -> str:
         if not self._started:
             return ""
+        if self._total_pcm_bytes < VOICE.min_pcm_bytes:
+            raise ValueError(
+                f"audio is too short ({self._total_pcm_bytes} bytes PCM; need at least {VOICE.min_pcm_bytes})"
+            )
         return await asyncio.to_thread(self._finish_sync)
 
     def _start_sync(self) -> None:
@@ -134,15 +152,26 @@ class DashScopeLiveStreamSession:
         return text
 
 
+def dashscope_stream_model() -> str | None:
+    """Optional model for realtime WS ASR; None keeps buffered one-shot on stop."""
+    explicit = (VOICE_PROVIDERS.dashscope_asr.stream_model or "").strip()
+    if explicit:
+        return explicit
+    configured = (VOICE_PROVIDERS.dashscope_asr.model or "").strip()
+    if configured and uses_streaming_model(configured):
+        return configured
+    return None
+
+
 async def open_voice_stream_session() -> BufferedVoiceStreamSession | DashScopeLiveStreamSession:
     """Return a streaming session matching the configured ASR provider."""
     if not VOICE.enabled:
         raise AsrNotConfiguredError("LIMA_VOICE_ENABLED is not set")
     provider_name = (VOICE.asr_provider or "dashscope").strip().lower()
-    if provider_name == "dashscope":
+    if provider_name in {"dashscope", "aliyun", "aliyun_fallback", "aliyun_nls"}:
         api_key = VOICE_PROVIDERS.dashscope_asr.api_key or ALIYUN_API_KEY
-        model = (VOICE_PROVIDERS.dashscope_asr.model or "qwen3-asr-flash").strip()
-        if api_key and uses_streaming_model(model):
+        model = dashscope_stream_model()
+        if api_key and model and uses_streaming_model(model):
             return DashScopeLiveStreamSession(api_key=api_key, model=model)
     get_asr_provider()
     return BufferedVoiceStreamSession()

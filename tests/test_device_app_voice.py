@@ -103,6 +103,19 @@ def test_transcribe_empty_audio(tmp_path, monkeypatch, mock_asr):
     assert response.status_code == 400
 
 
+def test_transcribe_too_short_audio(tmp_path, monkeypatch):
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    short_pcm = b"\x00\x00" * 100
+    response = client.post(
+        "/device/v1/app/voice/transcribe",
+        headers=headers("a-owner"),
+        files={"audio": ("clip.wav", io.BytesIO(fake_wav_bytes(short_pcm)), "audio/wav")},
+    )
+    assert response.status_code == 400
+    assert "too short" in response.json()["message"].lower()
+
+
 def test_transcribe_oversize_audio(tmp_path, monkeypatch):
     from config.voice_settings import VOICE
 

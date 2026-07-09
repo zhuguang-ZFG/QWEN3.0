@@ -37,6 +37,7 @@ class FunAsrLocalProvider:
             return self._model
         if not self._model_dir:
             raise AsrNotConfiguredError("LIMA_VOICE_MODEL_DIR is not configured for FunASR")
+        _warn_if_low_memory()
         try:
             from funasr import AutoModel
         except ImportError as exc:
@@ -61,3 +62,16 @@ class FunAsrLocalProvider:
         if not text:
             raise RuntimeError("FunASR returned empty transcript")
         return text
+
+
+def _warn_if_low_memory(*, minimum_gb: float = 2.0) -> None:
+    """xiaozhi fun_local: refuse load when free RAM is below ~2 GB."""
+    try:
+        import psutil
+    except ImportError:
+        return
+    available_gb = psutil.virtual_memory().available / (1024**3)
+    if available_gb < minimum_gb:
+        raise AsrNotConfiguredError(
+            f"FunASR needs about {minimum_gb:.0f}GB free RAM; only {available_gb:.1f}GB available"
+        )

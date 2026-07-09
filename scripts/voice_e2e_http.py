@@ -12,29 +12,29 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from device_voice.audio_format import pcm_to_wav_bytes
+
 UA = {"User-Agent": "LiMaVoiceE2E/1.0", "Content-Type": "application/json"}
 DEFAULT_PROBE_WAV = Path(__file__).resolve().parent / "fixtures" / "voice_probe_draw_cat.wav"
 PROBE_PCM_FRAME_BYTES = 1280
+
+
+def probe_transcript_ok(text: str, *, strict: bool) -> bool:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return False
+    if not strict:
+        return True
+    return any(token in cleaned for token in ("画", "猫", "huà", "mao"))
 
 
 def https_ctx() -> ssl.SSLContext:
     return ssl.create_default_context()
 
 
-def fake_wav_bytes(payload: bytes = b"\x00\x00" * 160) -> bytes:
-    """Minimal mono WAV (44-byte header + PCM) for unauth probes."""
-    data_size = len(payload)
-    return (
-        b"RIFF"
-        + (36 + data_size).to_bytes(4, "little")
-        + b"WAVE"
-        + b"fmt "
-        + (16).to_bytes(4, "little")
-        + b"\x00" * 16
-        + b"data"
-        + data_size.to_bytes(4, "little")
-        + payload
-    )
+def fake_wav_bytes(payload: bytes = b"\x00\x00" * 1600) -> bytes:
+    """Minimal mono WAV for unauth probes (~100 ms @ 16 kHz)."""
+    return pcm_to_wav_bytes(payload, sample_rate=16000)
 
 
 def probe_wav_bytes() -> bytes:

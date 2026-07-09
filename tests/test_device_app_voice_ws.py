@@ -49,6 +49,22 @@ def test_voice_ws_streams_transcript(tmp_path, monkeypatch):
         assert message["is_final"] is True
 
 
+def test_voice_ws_ping_pong(tmp_path, monkeypatch):
+    voice_app_ws_ticket.reset()
+    monkeypatch.setattr("routes.device_app_voice_ws.open_voice_stream_session", _fake_open_session)
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    ticket = client.post("/device/v1/app/voice/ticket", headers=headers("a-owner")).json()["ticket"]
+
+    with client.websocket_connect(f"/device/v1/app/voice/ws?ticket={ticket}") as websocket:
+        websocket.send_text("ping")
+        message = websocket.receive_json()
+        assert message == {"type": "pong"}
+        websocket.send_text("stop")
+        transcript = websocket.receive_json()
+        assert transcript["type"] == "transcript"
+
+
 def test_legacy_v1_voice_alias(tmp_path, monkeypatch):
     voice_app_ws_ticket.reset()
     monkeypatch.setattr("routes.device_app_voice_ws.open_voice_stream_session", _fake_open_session)

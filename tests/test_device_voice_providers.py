@@ -8,7 +8,7 @@ from dataclasses import replace
 from config.voice_settings import VOICE
 from device_voice.providers.base import AsrNotConfiguredError
 from device_voice.providers.funasr_local import FunAsrLocalProvider, strip_funasr_tags
-from device_voice.providers.registry import create_asr_provider, supported_asr_providers
+from device_voice.providers.registry import create_asr_provider, normalize_asr_provider_name, supported_asr_providers
 
 
 def test_supported_asr_providers():
@@ -18,6 +18,13 @@ def test_supported_asr_providers():
 def test_create_unknown_provider_raises():
     with pytest.raises(AsrNotConfiguredError, match="unsupported"):
         create_asr_provider("unknown-provider")
+
+
+def test_legacy_provider_alias_maps_to_dashscope(monkeypatch):
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "test-key")
+    assert normalize_asr_provider_name("aliyun_fallback") == "dashscope"
+    provider = create_asr_provider("aliyun_fallback")
+    assert provider.__class__.__name__ == "Qwen3AsrFlashProvider"
 
 
 def test_create_dashscope_without_api_key(monkeypatch):
