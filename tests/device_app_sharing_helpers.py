@@ -26,7 +26,6 @@ def _sharing_client(tmp_path, monkeypatch) -> TestClient:
 
     from routes.device_app_api import router as app_router
     from routes.device_app_assets import router as assets_router
-    from routes.device_app_sharing import router as sharing_router
     from routes.device_app_task_extras import router as task_extras_router
     from routes.device_app_task_templates import router as template_router
     from routes.device_app_tasks import router as task_router
@@ -34,7 +33,6 @@ def _sharing_client(tmp_path, monkeypatch) -> TestClient:
     registry.clear()
     app = FastAPI()
     app.include_router(app_router)
-    app.include_router(sharing_router)
     app.include_router(task_router)
     app.include_router(task_extras_router)
     app.include_router(template_router)

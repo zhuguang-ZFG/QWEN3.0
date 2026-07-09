@@ -104,8 +104,9 @@ def test_subscribe_list_unsubscribe_flow(client):
     assert listed.status_code == 200, listed.text
     subscriptions = listed.json()["data"]["subscriptions"]
     assert len(subscriptions) == 1
-    assert subscriptions[0]["id"] == sub_id
-    assert subscriptions[0]["openid"] == "wx-openid-1"
+    assert subscriptions[0]["subscriptionId"] == sub_id
+    assert subscriptions[0]["deviceIds"] == ["dev-1"]
+    assert subscriptions[0]["templateIds"] == ["task_completed", "task_failed"]
 
     deleted = client.delete(
         f"/device/v1/app/notifications/subscriptions/{sub_id}",
@@ -206,6 +207,25 @@ def test_subscribe_rejects_empty_device_ids(client):
     )
     assert response.status_code == 400
     assert "deviceIds" in response.json()["message"]
+
+
+def test_subscribe_rejects_mismatched_openid(client):
+    _seed_account_and_device()
+    _seed_binding()
+    with connect() as conn:
+        conn.execute("UPDATE v2_account SET wechat_openid='wx-real-openid' WHERE id='a-owner'")
+        conn.commit()
+
+    response = client.post(
+        "/device/v1/app/notifications/subscribe",
+        headers=_headers("a-owner"),
+        json={
+            "openid": "wx-other-openid",
+            "templateIds": ["task_completed"],
+            "deviceIds": ["dev-1"],
+        },
+    )
+    assert response.status_code == 403, response.text
 
 
 def test_subscribe_rejects_unauthorized_device(client):

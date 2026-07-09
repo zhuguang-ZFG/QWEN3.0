@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from typing import Any
 
 from fastapi import APIRouter, Header, Request
@@ -33,6 +34,24 @@ def _json_list(value: Any) -> list[str]:
     return []
 
 
+def _notification_payload(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
+    data = dict(row)
+    sub_id = str(data.get("id") or "")
+    return {
+        "subscriptionId": sub_id,
+        "id": sub_id,
+        "status": str(data.get("status") or ""),
+        "deviceIds": _json_list(data.get("device_ids")),
+        "templateIds": _json_list(data.get("template_ids")),
+        "createdAt": data.get("created_at"),
+        "updatedAt": data.get("updated_at"),
+    }
+
+
+def _expected_openid(account: dict[str, Any]) -> str:
+    return str(account.get("wechat_openid") or account.get("openid") or "").strip()
+
+
 @router.post("/notifications/subscribe")
 async def subscribe_notifications(
     request: Request,
@@ -54,6 +73,10 @@ async def subscribe_notifications(
         return err(400, "openid and templateIds are required", 400)
     if not device_ids:
         return err(400, "deviceIds is required", 400)
+
+    expected = _expected_openid(account)
+    if expected and openid != expected:
+        return err(403, "openid does not match authenticated account", 403)
 
     with connect() as conn:
         for did in device_ids:
@@ -102,7 +125,8 @@ async def list_subscriptions(
             (account["id"],),
         ).fetchall()
 
-    return JSONResponse({"code": 0, "data": {"subscriptions": [dict(r) for r in rows], "count": len(rows)}})
+    subscriptions = [_notification_payload(row) for row in rows]
+    return JSONResponse({"code": 0, "data": {"subscriptions": subscriptions, "count": len(subscriptions)}})
 
 
 @router.delete("/notifications/subscriptions/{sub_id}")

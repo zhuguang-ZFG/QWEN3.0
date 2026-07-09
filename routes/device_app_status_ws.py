@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from typing import Any
 
 from access_guard import extract_bearer_token
@@ -26,6 +27,10 @@ _log = logging.getLogger(__name__)
 _POLL_INTERVAL = 5.0
 
 
+def _query_token_auth_enabled() -> bool:
+    return os.environ.get("LIMA_DEVICE_APP_WS_QUERY_AUTH", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 async def _authorize_ws(websocket: WebSocket, device_id: str) -> bool:
     """Validate ticket or query-token and device access. Returns True on success."""
     ticket = websocket.query_params.get("ticket", "").strip()
@@ -41,6 +46,9 @@ async def _authorize_ws(websocket: WebSocket, device_id: str) -> bool:
                     if denied is None:
                         return True
             return False
+
+    if not _query_token_auth_enabled():
+        return False
 
     auth_query = websocket.query_params.get("authorization", "").strip()
     if auth_query:

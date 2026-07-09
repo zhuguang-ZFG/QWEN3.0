@@ -14,7 +14,7 @@ from device_logic.db import connect
 from device_logic.http import err, expires_at, new_id, now, read_body, str_field
 from device_logic.payloads import device_payload, share_payload
 
-router = APIRouter(prefix="/device/v1/app", tags=["device-app-sharing"])
+router = APIRouter(tags=["device-app-sharing"])
 
 
 def _share_token() -> str:

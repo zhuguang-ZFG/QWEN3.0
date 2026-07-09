@@ -62,6 +62,7 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "device_app.db"))
     monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
     monkeypatch.setenv("LIMA_XIAOZHI_LOGIN_CODE", "000000")
+    monkeypatch.setenv("LIMA_DEVICE_APP_WS_QUERY_AUTH", "1")
     _schema_ready_paths.clear()
     reset_activation_store_for_tests()
     reset_tasks_for_tests()

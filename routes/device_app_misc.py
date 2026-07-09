@@ -12,6 +12,7 @@ from device_logic.access import (
     is_owner,
     parse_supply_updates,
     require_device_access,
+    require_device_control,
 )
 from device_logic.auth import authorize
 from device_logic.db import connect
@@ -156,7 +157,7 @@ async def update_supplies(device_id: str, request: Request, authorization: str =
     if isinstance(body, JSONResponse):
         return body
     with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
+        denied = require_device_control(conn, account, device_id)
         if denied:
             return denied
     items, error = parse_supply_updates(body)

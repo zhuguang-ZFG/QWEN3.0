@@ -80,6 +80,7 @@ def _patch_deps(account):
     with (
         patch.object(misc, "authorize", return_value=account),
         patch.object(misc, "require_device_access", return_value=None),
+        patch.object(misc, "require_device_control", return_value=None),
         patch.object(misc, "is_owner", return_value=True),
         patch.object(misc, "expire_pending_transfers"),
         patch.object(misc, "new_id", return_value="new-id"),
