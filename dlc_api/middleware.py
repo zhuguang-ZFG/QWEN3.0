@@ -9,6 +9,7 @@ ASGI 中间件：优先按 `Content-Length` header 快速拒绝（413），对�
 
 from __future__ import annotations
 
+from fastapi import FastAPI
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 # 默认应用层上限：32MB，与 nginx `client_max_body_size 32M` 对齐。
@@ -100,6 +101,6 @@ class BodySizeLimitMiddleware:
         await send({"type": "http.response.body", "body": body})
 
 
-def add_body_size_limit(app: object, *, max_bytes: int = DEFAULT_MAX_BODY_BYTES) -> None:
+def add_body_size_limit(app: FastAPI, *, max_bytes: int = DEFAULT_MAX_BODY_BYTES) -> None:
     """Attach :class:`BodySizeLimitMiddleware` to a FastAPI/Starlette app."""
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=max_bytes)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -170,13 +171,25 @@ _P13_SKIP_DIRS = frozenset(
 
 def _p13_scan_paths() -> list[Path]:
     paths: list[Path] = []
-    for p in sorted(ROOT.rglob("*.py")):
-        if not p.is_file():
-            continue
-        if any(part in _P13_SKIP_DIRS or part.startswith(".venv") for part in p.parts):
-            continue
-        paths.append(p)
-    return paths
+
+    def _on_walk_error(_err: OSError) -> None:
+        # Ignore broken symlinks / unreadable directories inside dependency trees.
+        pass
+
+    for dirpath, dirnames, filenames in os.walk(ROOT, onerror=_on_walk_error, followlinks=False):
+        # Prune skipped directories so we never descend into them.
+        dirnames[:] = [d for d in dirnames if d not in _P13_SKIP_DIRS and not d.startswith(".venv")]
+        for filename in filenames:
+            if not filename.endswith(".py"):
+                continue
+            p = Path(dirpath) / filename
+            try:
+                if not p.is_file():
+                    continue
+            except OSError:
+                continue
+            paths.append(p)
+    return sorted(paths)
 
 
 def test_p13_no_silent_exception_pass_in_active_paths():

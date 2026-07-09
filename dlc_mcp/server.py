@@ -195,6 +195,8 @@ def _handle_tools_call(client: httpx.Client, req_id: object, params: object) -> 
     if not isinstance(params, dict):
         return _tool_error(req_id, -32602, "params must be an object")
     name = params.get("name")
+    if not isinstance(name, str):
+        return _tool_error(req_id, -32602, "name must be a string")
     args = params.get("arguments", {})
     if not isinstance(args, dict):
         return _tool_error(req_id, -32602, "arguments must be an object")

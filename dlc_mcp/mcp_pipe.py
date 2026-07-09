@@ -16,7 +16,7 @@ DEFAULT_ENDPOINT_ENV = "MCP_ENDPOINT"
 DEFAULT_SERVER = str(Path(__file__).with_name("server.py"))
 
 
-def _websocket_header_kwargs(connect_func: Any, headers: dict[str, str]) -> dict[str, dict[str, str]]:
+def _websocket_header_kwargs(connect_func: Any, headers: dict[str, str]) -> dict[str, Any]:
     params = inspect.signature(connect_func).parameters
     if "additional_headers" in params:
         return {"additional_headers": headers}
@@ -48,7 +48,7 @@ async def _spawn_stdio_server(server_cmd: list[str]) -> asyncio.subprocess.Proce
     )
 
 
-async def _stdio_to_ws(proc: asyncio.subprocess.Process, ws: websockets.WebSocketClientProtocol) -> None:
+async def _stdio_to_ws(proc: asyncio.subprocess.Process, ws: Any) -> None:
     assert proc.stdout is not None
     while True:
         line = await proc.stdout.readline()
@@ -61,7 +61,7 @@ async def _stdio_to_ws(proc: asyncio.subprocess.Process, ws: websockets.WebSocke
         await ws.send(text)
 
 
-async def _ws_to_stdio(ws: websockets.WebSocketClientProtocol, proc: asyncio.subprocess.Process) -> None:
+async def _ws_to_stdio(ws: Any, proc: asyncio.subprocess.Process) -> None:
     assert proc.stdin is not None
     async for message in ws:
         if isinstance(message, bytes):

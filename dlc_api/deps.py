@@ -12,12 +12,13 @@ import os
 
 from fastapi import Header, HTTPException, status
 
+logger = logging.getLogger(__name__)
+
 try:
     from device_logic.db import connect as _db_connect
-except Exception:  # pragma: no cover - graceful degradation
+except Exception as exc:  # pragma: no cover - graceful degradation
+    logger.warning("device_logic.db unavailable; DB token lookup disabled: %s", exc)
     _db_connect = None  # type: ignore[assignment]
-
-logger = logging.getLogger(__name__)
 
 
 def _token_hash(token: str) -> str:

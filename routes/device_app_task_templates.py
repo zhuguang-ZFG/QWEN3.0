@@ -161,6 +161,8 @@ async def execute_task_template(template_id: str, request: Request, authorizatio
     device_id, source = _resolve_template_target(body, row)
     if isinstance(device_id, JSONResponse):
         return device_id
+    # type narrowing only — source is guaranteed str on the non-error path
+    assert source is not None  # noqa: S101
 
     with connect() as conn:
         denied = require_device_control(conn, account, device_id)

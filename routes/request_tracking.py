@@ -144,14 +144,26 @@ def elapsed_ms(started_at: float) -> int:
     return max(0, int((time.time() - started_at) * 1000))
 
 
+def _sanitize_text(value: str) -> str:
+    """Redact common secret-like patterns from a free-text value."""
+    if not value:
+        return value
+    # Bearer tokens, API keys, passwords, long hex strings
+    patterns = [
+        (r"(?i)(\b(?:bearer|token|api[_-]?key|password|secret)\s*[:=]\s*)\S+", r"\1[REDACTED]"),
+        (r"\b(sk-[a-zA-Z0-9_-]{20,})\b", r"[REDACTED]"),
+        (r"\b([a-f0-9]{32,})\b", r"[REDACTED]"),
+    ]
+    for pattern, repl in patterns:
+        value = re.sub(pattern, repl, value)
+    return value
+
+
 def _sanitize_query_and_prompt(query: str, sys_prompt_preview: str) -> tuple[str, str]:
     """AUDIT-5-O2：脱敏 query/sys_prompt 后返回（剥离密钥类模式）。"""
-    try:
-        from observability.events import _sanitize_text
-
-        return _sanitize_text(query)[:80], (_sanitize_text(sys_prompt_preview)[:100] if sys_prompt_preview else "")
-    except Exception:
-        return (query or "")[:80], (sys_prompt_preview or "")[:100]
+    safe_query = _sanitize_text(query or "")[:80]
+    safe_sys_prompt = _sanitize_text(sys_prompt_preview or "")[:100] if sys_prompt_preview else ""
+    return safe_query, safe_sys_prompt
 
 
 def _build_log_entry(

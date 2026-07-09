@@ -5,6 +5,40 @@
 >
 > ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
 
+## 2026-07-09 静态分析门禁修复：pyright 0 errors / pytest 全绿
+
+- **现象**：`pyright dlc_api dlc_core dlc_mcp routes` 报 3 errors + 26 warnings；`pytest` 中 `tests/test_ci_gates.py::test_p13_no_silent_exception_pass_in_active_paths` 因 `esp32S_XYZ/.../node_modules/` 内断裂软链接导致 `FileNotFoundError` 失败。
+- **复现**：
+  - `pyright` 直接运行报大量 `reportMissingImports`（fastapi/httpx 等），因为 `pyrightconfig.json` 未声明 `venv`。
+  - 用 `.venv310/Scripts/python.exe -m pyright --pythonpath .venv310/Scripts/python.exe` 复现真实类型错误。
+  - `pytest tests/test_ci_gates.py` 在 `rglob("*.py")` 时命中 `node_modules/.pnpm/esbuild@0.20.2/node_modules/@esbuild/darwin-arm64` 断裂软链接。
+- **根因**：
+  1. `pyrightconfig.json` 缺少 `venvPath`/`venv`。
+  2. `dlc_api/routes.py` 中 `_resolve_hostname` 返回类型、`image_url` 的 `Optional` 窄化、`check_key_limit` 返回 `JSONResponse` 与声明返回类型冲突。
+  3. `routes/request_tracking.py` 仍惰性 import 已删除的 `observability.events`。
+  4. `dlc_api/deps.py` 在模块导入失败时使用裸 `except Exception` 且无日志。
+  5. `tests/test_ci_gates.py::_p13_scan_paths` 使用 `sorted(ROOT.rglob("*.py"))`，对断裂软链接目录无容错。
+- **修复（本轮已做）**：
+  1. `pyrightconfig.json`：添加 `"venvPath": ".", "venv": ".venv310"`。
+  2. `dlc_api/routes.py`：`_resolve_hostname` 结果转 `str`；`preview_task`/`dispatch_task_endpoint` 返回类型加入 `JSONResponse`；`draw_from_image` 分支显式检查 `image_url is not None`。
+  3. `dlc_api/deps.py`：在 import fallback 的 `except Exception` 块中记录 `logger.warning`。
+  4. `routes/request_tracking.py`：移除对 `observability.events` 的依赖，内联实现 `_sanitize_text`（脱敏 bearer/token/api_key/password/长 hex）。
+  5. `dlc_mcp/server.py`：对 `params.get("name")` 做 `isinstance(name, str)` 校验。
+  6. `routes/device_app_task_templates.py`：在 `_resolve_template_target` 返回后加 `assert source is not None`。
+  7. `dlc_mcp/mcp_pipe.py`：`_websocket_header_kwargs` 返回类型改为 `dict[str, Any]`；websocket 句柄类型改为 `Any`。
+  8. `dlc_api/middleware.py`：`add_body_size_limit` 的 `app` 参数类型从 `object` 改为 `FastAPI`。
+  9. `tests/test_ci_gates.py`：`_p13_scan_paths` 改用 `os.walk(..., followlinks=False, onerror=...)` 并剪枝跳过目录，避免触碰 `node_modules` 内断裂软链接。
+- **验证**：
+  - `ruff check .` / `scripts/run_ruff_check.py`：通过。
+  - `python scripts/check_code_size.py`：通过。
+  - `pyright dlc_api dlc_core dlc_mcp routes`：**0 errors, 0 warnings**。
+  - `pytest`：**1391 passed, 3 skipped**（剩余 3 条为 FastAPI `@app.on_event` 废弃警告，非错误）。
+- **如何预防**：
+  - 保持 `pyrightconfig.json` 与项目 venv 同步；提交前运行 `pyright` 而非仅 `ruff`。
+  - 新代码避免 `except Exception:` 裸块；至少记录 warning 并说明原因。
+  - 删除退役模块时同步清理惰性 import 与 facade 文件。
+  - 测试中使用 `os.walk`/`rglob` 扫描仓库时启用 `followlinks=False` 并处理 `OSError`。
+
 ## 2026-07-06 设备网关 WS 下发链去留：已闭环（用户确认无存量设备 → 已退役）
 
 - **2026-07-06 闭环结论**：用户明确确认「研发阶段，无线上存量设备依赖 `chat.donglicao.com` 的 `/device/v1/ws`」，阻塞点解除。自托管 WS/MQTT 任务下发死代码链已物理退役：删除 `mqtt_client/mqtt_handlers/mqtt_topics/health/notifier/attestation/protocol/protocol_frames/protocol_validators/protocol_negotiator`、`routes/device_gateway_dispatch.py`、`routes/device_gateway_helpers.py`，并将 `device_logic/gateway.py::dispatch_or_enqueue` 与 `device_gateway/tasks.py::create_and_route_task` 简化为纯 `enqueue_pending_task`（生产本就恒 queued，行为等价）。保留 `protocol_families.py` 与全部绘图核心。下方原始调查记录保留作历史证据。

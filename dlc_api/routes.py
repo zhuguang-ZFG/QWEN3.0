@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import JSONResponse
 
 from config.settings import DEVICE
 from dlc_api.deps import verify_dlc_api_token
@@ -66,7 +67,7 @@ def _is_private_ip(value: str) -> bool:
 
 def _resolve_hostname(hostname: str) -> list[str]:
     """Resolve *hostname* to a list of IP strings (patched in tests)."""
-    return [info[4][0] for info in socket.getaddrinfo(hostname, None)]
+    return [str(info[4][0]) for info in socket.getaddrinfo(hostname, None)]
 
 
 def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -136,7 +137,7 @@ async def get_device_status_endpoint(
 async def preview_task(
     body: TaskPreviewRequest,
     caller_device_id: str = Depends(verify_dlc_api_token),
-) -> TaskPreviewResponse:
+) -> TaskPreviewResponse | JSONResponse:
     """Generate a motion path preview without dispatching to the device."""
     if body.device_id != caller_device_id:
         return TaskPreviewResponse(status="rejected", error="device_id mismatch")
@@ -160,8 +161,8 @@ async def preview_task(
 
     if body.type == "draw_from_image":
         image_url, err = _validate_image_url(body.payload)
-        if err:
-            return TaskPreviewResponse(status="failed", error=err)
+        if err or image_url is None:
+            return TaskPreviewResponse(status="failed", error=err or "image_url is required")
         result = await handle_draw_from_image(image_url, device_id=body.device_id)
         return _preview_from_result(result)
 
@@ -173,7 +174,7 @@ async def dispatch_task_endpoint(
     body: TaskDispatchRequest,
     caller_device_id: str = Depends(verify_dlc_api_token),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
-) -> TaskDispatchResponse:
+) -> TaskDispatchResponse | JSONResponse:
     """Generate a motion path and dispatch it to the target device."""
     if body.device_id != caller_device_id:
         return TaskDispatchResponse(status="rejected", error="device_id mismatch")
@@ -247,8 +248,8 @@ async def _build_dispatch_payload(
 
     if body.type == "draw_from_image":
         image_url, err = _validate_image_url(body.payload)
-        if err:
-            return {"status": "failed", "error": err}, None
+        if err or image_url is None:
+            return {"status": "failed", "error": err or "image_url is required"}, None
         result = await handle_draw_from_image(image_url, device_id=body.device_id)
         return result, _motion_task("描图", body.request_id, "draw_from_image")
 
