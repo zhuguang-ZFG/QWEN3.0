@@ -8,7 +8,7 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
 from device_logic.constants import ALLOWED_MEMBER_ROLES
-from device_logic.access import require_device_access
+from device_logic.access import require_device_access, require_device_control
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, read_body, str_field
@@ -33,7 +33,7 @@ async def create_member(request: Request, authorization: str = Header(default=""
     if role not in ALLOWED_MEMBER_ROLES:
         return err(400, "invalid member role", 400)
     with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
+        denied = require_device_control(conn, account, device_id)
         if denied:
             return denied
         member_id = new_id()
@@ -78,7 +78,7 @@ async def enroll_voiceprint(request: Request, authorization: str = Header(defaul
     if not member_id or not device_id:
         return err(400, "memberId and deviceId are required", 400)
     with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
+        denied = require_device_control(conn, account, device_id)
         if denied:
             return denied
         member = conn.execute(
@@ -148,7 +148,7 @@ async def update_voiceprint(voiceprint_id: str, request: Request, authorization:
         row = conn.execute("SELECT * FROM v2_voiceprint WHERE id=? AND status!='disabled'", (voiceprint_id,)).fetchone()
         if row is None:
             return err(404, "voiceprint not found", 404)
-        denied = require_device_access(conn, account, row["device_id"])
+        denied = require_device_control(conn, account, row["device_id"])
         if denied:
             return denied
         conn.execute(
@@ -169,7 +169,7 @@ async def delete_voiceprint(voiceprint_id: str, authorization: str = Header(defa
         row = conn.execute("SELECT * FROM v2_voiceprint WHERE id=? AND status!='disabled'", (voiceprint_id,)).fetchone()
         if row is None:
             return err(404, "voiceprint not found", 404)
-        denied = require_device_access(conn, account, row["device_id"])
+        denied = require_device_control(conn, account, row["device_id"])
         if denied:
             return denied
         conn.execute("UPDATE v2_voiceprint SET status='disabled' WHERE id=?", (voiceprint_id,))

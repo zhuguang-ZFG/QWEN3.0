@@ -49,9 +49,14 @@ def require_device_access(
     account: dict[str, Any],
     device_id: str,
 ) -> JSONResponse | None:
-    if not device_access(conn, account, device_id):
-        return err(403, "Device is not bound to this account", 403)
-    return None
+    """Require owner or an accepted, unexpired share with at least view permission."""
+    if account.get("role") == "admin":
+        return None
+    if is_owner(conn, account, device_id):
+        return None
+    if check_share_permission(conn, device_id, account["id"], "view"):
+        return None
+    return err(403, "Device is not bound to this account", 403)
 
 
 def require_device_control(
