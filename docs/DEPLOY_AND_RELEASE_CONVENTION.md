@@ -54,11 +54,13 @@ git diff --stat
 ### Step 3: VPS 部署
 
 ```bash
-# 标准部署（推荐）：读取 .env 中的 LIMA_DEPLOY_KEY_PATH / LIMA_DEPLOY_USE_TAR
-python scripts/deploy_unified.py --slice core
+# 标准部署（默认京东云主生产节点）
+python scripts/deploy_unified.py --target jdcloud --slice core
 
-# 同步 nginx 配置并部署 core（谨慎：会触碰 /etc/nginx）
-python scripts/deploy_unified.py --slice core --sync-nginx
+# 同步 nginx（含 /v1/voice → :8081、voice WS upgrade）
+python scripts/deploy_unified.py --target jdcloud --slice core --sync-nginx
+
+**注意**：`--slice core` 不含 `device_voice/` 目录（见 `deploy_unified_common.py` CORE_DIRS）。语音栈需 `--files` 显式部署或全量 `routes/` + `device_voice/`。
 
 # 仅上传指定文件（不重启）
 python scripts/deploy_unified.py --files <file1> <file2> --no-restart
@@ -69,15 +71,15 @@ python scripts/deploy_unified.py --dry-run
 
 **部署前必须**:
 - 记录当前版本（`git log --oneline -1`）
-- 记录备份位置（VPS `/opt/lima-router/backups/`）
-- 确认 `.env` 中 `LIMA_DEPLOY_KEY_PATH` 指向有效私钥
+- 记录备份位置（VPS `/opt/dlc-drawing/backups/`）
+- 确认 `.env` 中 `LIMA_DEPLOY_KEY_PATH` 指向有效私钥（京东云亦支持密码认证，见 `config/deploy_config.py`）
 - 确认 SSH 使用 `RejectPolicy`（非 `AutoAddPolicy`）
 
 **部署流程**:
 1. 自动检查 VPS 磁盘和内存容量
 2. 在 VPS 上创建 tar 备份
 3. 默认使用 tar/scp 批量上传（环境 `LIMA_DEPLOY_USE_TAR=1`），失败时回退到 SFTP
-4. `systemctl restart lima-router`
+4. `systemctl restart dlc-drawing`（或部署脚本等价重启 `server_dlc`）
 5. 轮询 `/health`（liveness，最长 120s）与 `/health/ready`（readiness，最长 60s）等待服务完全就绪
 6. readiness 成功后打印启动阶段耗时摘要
 
@@ -93,8 +95,11 @@ curl -sf https://chat.donglicao.com/health/ready
 # 设备网关健康
 curl -sf https://chat.donglicao.com/device/v1/health
 
-# 切片 smoke（按需）
-python scripts/smoke_<feature>_vps.py
+# 语音 strict E2E（需 VPS SSH 取 JWT + 公网探针）
+LIMA_VOICE_E2E_STRICT=1 python scripts/run_voice_e2e_production.py
+
+# 或接入统一部署验证
+LIMA_VOICE_E2E_STRICT=1 python scripts/verify_production_deploy.py
 ```
 
 **健康端点 503 场景**:
@@ -111,11 +116,13 @@ python scripts/smoke_<feature>_vps.py
 - IDE 来源请求倍率为 `5`（即 600/分钟），普通请求倍率为 `1`。
 - 超限时返回 **429**（非 503）。
 
-**验证失败时**:
-1. 收集日志: `ssh root@47.112.162.80 'journalctl -u lima-router -n 50 --no-pager'`
-2. 检查进程: `ssh root@47.112.162.80 'systemctl status lima-router'`
-3. 最小化修复 → 重新部署 → 重跑 smoke
-4. 仍失败则 rollback: 从 `/opt/lima-router/backups/<label>/runtime-before.tgz` 恢复
+**验证失败时**（默认京东云主生产）:
+1. 收集日志: `ssh root@117.72.118.95 'journalctl -u dlc-drawing -n 50 --no-pager'`
+2. 检查进程: `ssh root@117.72.118.95 'systemctl status dlc-drawing'`
+3. 最小化修复 → 重新部署 → 重跑 smoke / `LIMA_VOICE_E2E_STRICT=1 python scripts/run_voice_e2e_production.py`
+4. 仍失败则 rollback: 从 `/opt/dlc-drawing/backups/<label>/runtime-before.tgz` 恢复
+
+阿里云 pilot（`--target aliyun`）仍可能使用 `/opt/lima-router` 与 `lima-router` 服务 — 勿与京东云主生产混淆。
 
 ### Step 5: 证据落盘
 
@@ -167,10 +174,10 @@ Gitee 镜像同步已不再是强制 closeout 步骤。`findings.md` OPS-022 已
 
 | 切片 | 部署脚本 | 说明 |
 |------|----------|------|
-| 标准部署 | `scripts/deploy_unified.py --slice core` | 容量检查 + 备份 + tar/scp 上传 + 重启 + health/ready 等待 |
-| 同步 nginx | `scripts/deploy_unified.py --slice core --sync-nginx` | 额外同步 `deploy/nginx/chat.donglicao.com.conf` 并 reload nginx |
-| 指定切片 | `scripts/deploy_unified.py --slice phase_a/phase_b/all` | 按切片部署 |
-| 指定文件 | `scripts/deploy_unified.py --files a.py b.py` | 仅上传指定文件 |
+| 标准部署 | `scripts/deploy_unified.py --target jdcloud --slice core` | 默认京东云；容量 + 备份 + 上传 + 重启 |
+| 同步 nginx | `scripts/deploy_unified.py --target jdcloud --sync-nginx` | 含 `/v1/voice`、voice WS location |
+| 指定文件 | `scripts/deploy_unified.py --target jdcloud --files a.py` | 语音栈见 `device_voice/`、`routes/device_app_voice*.py` |
+| 语音 E2E | `scripts/run_voice_e2e_production.py` | `LIMA_VOICE_E2E_STRICT=1` 公网 6 项探针 |
 | JDCloud 探测 | `scripts/check_jdcloud_node.py` | 只读烟雾，不部署 |
 | 预提交门禁 | `scripts/run_pre_commit_check.py` | ruff + pytest 本地门禁 |
 | 双远程推送 | `docs/archive/retired/push_dual_remotes.py` | GitHub + Gitee 同步（已退役归档） |

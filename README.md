@@ -76,8 +76,14 @@ curl -s http://127.0.0.1:8081/dlc/tasks/validate \
 ### 微信小程序设备 App
 
 ```bash
-GET  /device/v1/app/*         # 小程序设备 App API（见 device_app_router）
+POST /device/v1/app/voice/transcribe   # 按住说话 → ASR + intent
+POST /device/v1/app/voice/ticket       # 换取 WS ticket
+WS   /device/v1/app/voice/ws           # 实时流 ASR（ticket 鉴权）
+WS   /v1/voice                         # M2 兼容别名
+GET  /device/v1/app/*                  # 其他设备 App API
 ```
+
+详见 [`docs-site/api/voice.md`](docs-site/api/voice.md)。
 
 ### 健康检查
 
@@ -98,14 +104,14 @@ python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081
 ### 生产部署（VPS）
 
 ```bash
-# 标准全量部署
-python scripts/deploy_unified.py --slice core
+# 标准全量部署（默认京东云）
+python scripts/deploy_unified.py --target jdcloud --slice core
 
-# 仅上传指定文件（不重启）
-python scripts/deploy_unified.py --files <file1> <file2> --no-restart
+# 语音栈增量
+python scripts/deploy_unified.py --target jdcloud --files routes/device_app_voice.py device_voice/
 
-# 仅检查会部署哪些文件
-python scripts/deploy_unified.py --dry-run
+# 生产语音 strict E2E
+LIMA_VOICE_E2E_STRICT=1 python scripts/run_voice_e2e_production.py
 ```
 
 部署依赖 `.env` 中的 `LIMA_DEPLOY_KEY_PATH` 与 `LIMA_DEPLOY_USE_TAR=1`。
@@ -123,7 +129,8 @@ python scripts/deploy_unified.py --dry-run
 ├── dlc_core/                  # 绘图/写字/下发核心
 ├── dlc_mcp/                   # 小智云 MCP JSON-RPC
 ├── device_gateway/            # Redis 任务队列、WS、设备状态
-├── routes/                    # 设备 App、图库等路由
+├── device_voice/              # 小程序语音 ASR（REST/WS）
+├── routes/                    # 设备 App、语音、图库等路由
 ├── dashscope_image_client.py  # 图生后端
 ├── scripts/                   # 工具、部署、冒烟脚本
 ├── tests/                     # 测试套件

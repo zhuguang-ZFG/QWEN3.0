@@ -3,12 +3,17 @@
 This directory contains tracked, non-secret assets for the secondary JDCloud
 node used by LiMa ops experiments.
 
-## Role
+## Role（2026-07-10 更新）
 
-- JDCloud node: `117.72.118.95`
-- Current roles: new-api (OpenAI API gateway, api.donglicao.com) + provider-probe / monitoring node.
-- Non-role: it is not the primary LiMa Router and does not replace
-  `chat.donglicao.com/v1` for IDE or terminal-agent traffic.
+- **京东云** `117.72.118.95`：**主生产节点** — `chat.donglicao.com` → `server_dlc` :8081（含小程序 `/device/v1/app/*`、语音 `/v1/voice`）
+- **同节点附加角色**：new-api（`api.donglicao.com`）、provider-probe / monitoring
+- **阿里云** `47.112.162.80`：历史 pilot / 部分反代（非默认 `deploy_unified` 目标）
+
+默认部署：
+
+```bash
+python scripts/deploy_unified.py --target jdcloud --slice core
+```
 
 ## Tracked Assets
 

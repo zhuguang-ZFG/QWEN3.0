@@ -1,13 +1,13 @@
 # LiMa 文档索引
 
-> 更新日期：2026-07-06
+> 更新日期：2026-07-10
 > 项目定位：DLC 绘图服务 —— 为 ESP32 绘图机/写字机提供云端路径生成、任务下发、设备管理，通过 MCP 与小智官方云（xiaozhi.me）集成。
 >
 > **瘦身声明**：旧多后端 AI 路由系统（server.py + routing_engine + router_v3 + chat/admin/voice/provider 探测）已在 P4/P5 瘦身中物理删除。当前生产入口为 `server_dlc:8081`。凡本索引未列出、且描述上述旧系统的文档，均已归入 `archive/`，仅作历史审计，不得作为当前决策依据。
 
 ## 必读顺序（新协作者）
 
-1. [`../STATUS.md`](../STATUS.md) — 当前项目状态、已完成项、退役模块、部署健康
+1. [`../STATUS.md`](../STATUS.md) / [`PROJECT_STATUS_CN.md`](PROJECT_STATUS_CN.md) — 当前项目状态（二者同步）
 2. [`../AGENTS.md`](../AGENTS.md) — 代码规范、命令、Git/部署约定、真实架构
 3. [`ARCHITECTURE.md`](ARCHITECTURE.md) — 瘦身后系统架构与模块边界
 4. [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) — 设备开发、联调、验证入口
@@ -17,8 +17,11 @@
 
 | 目标 | 文档 | 状态 |
 | --- | --- | --- |
-| 当前状态 | [`../STATUS.md`](../STATUS.md) | ✅ 活跃 |
-| 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
+| 语音 API（公开文档） | [`../docs-site/api/voice.md`](../docs-site/api/voice.md) | ✅ 活跃（2026-07-10） |
+| 语音设计规格 | [`superpowers/specs/2026-07-02-mini-program-voice-draw-design.md`](superpowers/specs/2026-07-02-mini-program-voice-draw-design.md) | ✅ 后端完成，真机待验 |
+| 遗留待办 | [`superpowers/specs/2026-07-02-backlog-planning.md`](superpowers/specs/2026-07-02-backlog-planning.md) | ✅ 活跃 |
+| 当前状态 | [`../STATUS.md`](../STATUS.md) / [`PROJECT_STATUS_CN.md`](PROJECT_STATUS_CN.md) | ✅ 2026-07-10 |
+| 开发约定 | [`../AGENTS.md`](../AGENTS.md) / [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
 | 真实架构总览 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | ✅ 活跃（2026-07-06 重写） |
 | 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) | ✅ 活跃（含 draw_generated 热路径） |
 | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃（含历史快照，顶部有退役标注） |
@@ -27,14 +30,16 @@
 | 第一开发原则（Ponytail） | [`AGENTS_PONYTAIL.md`](AGENTS_PONYTAIL.md) | ✅ 活跃 |
 | 第二开发原则（设计） | [`AGENTS_DESIGN_PRINCIPLES.md`](AGENTS_DESIGN_PRINCIPLES.md) | ✅ 活跃 |
 | ECC 开发流程 | [`ECC_WORKFLOW_CN.md`](ECC_WORKFLOW_CN.md) | ✅ 活跃 |
-| 历史执行进展 | [`../progress.md`](../progress.md) | ✅ 活跃 |
-| 事实发现日志 | [`../findings.md`](../findings.md) | ✅ 活跃（append-only） |
+| 历史执行进展 | [`../progress.md`](../progress.md) | 可选 |
+| 事实发现日志 | [`../findings.md`](../findings.md) | 可选（append-only） |
+| 语音 TDD 证据 | [`testing/device_app_voice.tdd.md`](testing/device_app_voice.tdd.md) | ✅ 2026-07-10 |
 
 ## 架构与设备
 
 | 主题 | 文档 |
 | --- | --- |
 | 系统总览 | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| 语音 API | [`../docs-site/api/voice.md`](../docs-site/api/voice.md) |
 | 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) |
 | ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT_CN.md`](ESP32S_XYZ_MANAGEMENT_CN.md) |
 | 小智云集成缺口 | [`XIAOZHI_INTEGRATION_GAP_CN.md`](XIAOZHI_INTEGRATION_GAP_CN.md) |

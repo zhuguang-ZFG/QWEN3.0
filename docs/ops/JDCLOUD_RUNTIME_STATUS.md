@@ -1,7 +1,9 @@
 # JDCloud Runtime Status
 
-> Updated: 2026-07-06
-> Scope: 小智云 + DLC 瘦身后，JDCloud 节点 `117.72.118.95` 已从 primary `lima-router` compute **退役**，转为 backend / data / observability 节点。公网入口由阿里云 `47.112.162.80` 承载（`chat.donglicao.com :443 → /dlc/* → dlc_api`）。
+> **2026-07-10 生产事实（优先阅读）**：`chat.donglicao.com` 公网入口现由 **京东云 `117.72.118.95`** 承载 `server_dlc` :8081（含小程序 `/device/v1/app/*`、语音 `/v1/voice`）。默认部署：`python scripts/deploy_unified.py --target jdcloud`。下文大量内容为 2026-06/07 历史拓扑，阅读时以 `STATUS.md`、`docs/ARCHITECTURE.md` 为准。
+
+> Updated: 2026-07-06（历史章节未逐段修订）
+> Scope（历史，2026-07-06 稿）：下文记录 JDCloud 从 primary `lima-router` compute **退役**为 backend 节点的过程。**当前（2026-07-10）** 京东云同时承载 `chat.donglicao.com` → `server_dlc` :8081 主生产，见文件首段横幅。
 
 ## Summary
 

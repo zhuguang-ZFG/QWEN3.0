@@ -1,6 +1,6 @@
 # LiMa 系统架构文档（P4/P5 瘦身后）
 
-> 更新日期：2026-07-09
+> 更新日期：2026-07-10
 > 当前版本：`dlc-drawing 0.4.0-p3`，Python 3.10 + FastAPI
 > 生产入口：`server_dlc:8081`，公网 `https://chat.donglicao.com`
 
@@ -51,7 +51,8 @@ LiMa 是深圳市动力巢科技有限公司（donglicao.com）面向 ESP32 绘�
 | 绘图/写字核心 | `dlc_core/` (`draw.py`, `dispatch.py`, `device_status.py`, `write.py`, `path_validator.py`, `presets.py`, `safety.py`, `intent.py`) |
 | MCP JSON-RPC | `dlc_mcp/` (`server.py`, `mcp_pipe.py`) |
 | 设备网关 | `device_gateway/` (Redis 队列、WS、设备状态、family approval、gallery) |
-| 设备 App API | `routes/` (`device_app_api.py`, `device_app_tasks.py`, `images_backends.py`, `device_app_gallery.py`) |
+| 设备 App API | `routes/`（`device_app_*`、`device_app_voice*`） |
+| 语音 ASR | `device_voice/`、`voice_app_ws_ticket.py` |
 | 鉴权/限流 | `access_guard.py`, `rate_limiter.py`, `ws_ticket.py`, `device_logic/auth.py` |
 | 图生 | `dashscope_image_client.py`（DashScope/wanx，经 `asyncio.to_thread` 不阻塞事件循环，调用级 `wait_for` 超时兜底） |
 
@@ -59,6 +60,7 @@ LiMa 是深圳市动力巢科技有限公司（donglicao.com）面向 ESP32 绘�
 
 ```
 微信小程序 → server_dlc.py (/device/v1/app/*) → device_app_router 聚合
+          → /v1/voice?ticket=…（legacy ASR-only WS，nginx → :8081）
 小智云 MCP → dlc_mcp/server.py (JSON-RPC) → dlc_api/routes.py (/dlc/tasks/*)
 直接 HTTP → dlc_api/routes.py (verify_dlc_api_token)
 所有路径 → dlc_core (handle_draw / handle_write / handle_draw_from_image)
@@ -66,16 +68,17 @@ LiMa 是深圳市动力巢科技有限公司（donglicao.com）面向 ESP32 绘�
          → ESP32 固件执行运动
 ```
 
-## 5. 部署拓扑
+## 5. 部署拓扑（2026-07-10）
 
 ```
-Internet → 阿里云 VPS 47.112.162.80 (nginx → server_dlc :8081, Redis)
-                ↓ 同代码部署
-         JDCloud 117.72.118.95 (备节点)
+Internet → Cloudflare → 京东云 117.72.118.95 (nginx → server_dlc :8081)
+                ↓ 可选
+         阿里云 47.112.162.80 (pilot / 反代节点)
 ```
 
-- 部署脚本：`scripts/deploy_unified.py`（双节点、容量感知、自动备份）
-- 回滚：`/opt/dlc-drawing/backups/`
+- 默认部署：`python scripts/deploy_unified.py --target jdcloud`
+- 运行时：`/opt/dlc-drawing/`；回滚：`/opt/dlc-drawing/backups/`
+- 语音探针：`scripts/run_voice_e2e_production.py`（`LIMA_VOICE_E2E_STRICT=1`）
 - 详见 [`docs/DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md)
 
 ## 6. 已退役模块（不要按此找代码）

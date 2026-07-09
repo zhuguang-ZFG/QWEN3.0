@@ -67,9 +67,9 @@ CORE_FILES = [
 ]
 
 # Post-P5 slimdown: only directories that still exist on disk and are reachable
-# from server_dlc.py. Deleted subsystems (context_pipeline, session_memory,
-# code_context, device_voice, backends_registry, channel_retirement) are no
-# longer deployed.
+# from server_dlc.py. device_voice/ is deployed via --files (not in CORE_DIRS).
+# Deleted subsystems (context_pipeline, session_memory, code_context,
+# backends_registry, channel_retirement) are no longer deployed.
 CORE_DIRS = [
     "routes",
     "device_gateway",

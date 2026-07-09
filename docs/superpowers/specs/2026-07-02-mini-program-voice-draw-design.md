@@ -1,9 +1,13 @@
 # 小程序语音控制绘图机/写字机 —— 执行级设计文档
 
-- **日期**: 2026-07-02
-- **状态**: 已完成（M0+M1+M2 全部实施、部署、上传）
-- **执行结果**：后端端点已部署京东云主生产节点（公网冒烟 401/422 通过）；小程序 v3.8.0 已构建并上传微信平台；自检修复 4 个 bug（frameSize 单位/错误信息泄漏/意图一致性/死代码）。待办见 `2026-07-02-backlog-planning.md`。
-- **未验证**：真机端到端（真实录音→ASR→派发物理设备）尚未验证（见 backlog P0-3）。
+- **日期**: 2026-07-02（**后端复核 2026-07-10**）
+- **状态**: 后端 M0/M1/M2 **已完成**；小程序 v3.8.0 已上传微信；**真机全链路待验证**
+- **执行结果**：
+  - 后端：`0e8122a3` 恢复 REST/WS + E2E 探针；`e64ac48f` 加固 pacing/min-PCM/ping
+  - 生产：京东云 `117.72.118.95`，strict E2E **6/6 PASS**（`LIMA_VOICE_E2E_STRICT=1`）
+  - 文档：`docs-site/api/voice.md`、`STATUS.md` 已同步
+- **未验证**：真机端到端（真实录音→确认→物理设备运动）— 见 backlog **P0-3**
+- **待办**：微信审核 **P0-4**；U8 OPUS/PCM **P0-2**（仅设备直连语音）
 - **前置**: 系统瘦身已完成（`2026-07-02-system-slimdown-design.md`），基线已清理
 - **范围**: 小程序端补齐语音交互，驱动绘图机（draw_generated）和写字机（write_text）
 - **读者**: 实施 agent。本文档自包含，无需额外上下文。
@@ -49,9 +53,11 @@
 }
 ```
 
-**缺口（本 spec 新增）**：
-- 后端无 REST 一次性转写端点（只有 WS `/v1/voice` 完整对话管道）
-- 小程序无录音、无 ASR 调用、无语音指令 UI
+**历史缺口（2026-07-02，已补齐）**：
+- ~~后端无 REST 转写~~ → `POST /device/v1/app/voice/transcribe` ✅
+- ~~无 WS ticket~~ → `POST /device/v1/app/voice/ticket` ✅
+- ~~`/v1/voice` 旧完整对话管道~~ → 现为 **ASR-only** WS（`routes/device_app_voice_ws.py`），nginx → :8081 ✅
+- 小程序录音/UI：见子模块 `esp32S_XYZ/.../manager-mobile`（本仓无源码）
 
 ---
 
@@ -159,11 +165,12 @@ def _fake_wav(payload: bytes = b"\x00\x00" * 160) -> bytes:
 
 ### 5.4 验收
 
-- [ ] `pytest tests/test_device_app_voice.py -v` 10 测试全绿
-- [ ] `ruff check routes/device_app_voice.py tests/test_device_app_voice.py`
-- [ ] `routes/device_app_voice.py` ≤ 300 行（目标 ~100 行，是薄包装）
-- [ ] `tests/device_app_helpers.py` 的 `client()` 已 include voice router
-- [ ] `routes/route_registry.py` 已加注册
+- [x] `pytest tests/test_device_app_voice*.py tests/test_device_voice_*.py -v` 全绿（2026-07-10）
+- [x] `ruff check` 通过
+- [x] `tests/device_app_helpers.py` 的 `client()` 已 include voice router
+- [x] `dlc_api/device_app_router.py` 已挂载 voice + voice_ws + legacy `/v1/voice`
+- [x] 生产 strict E2E：`python scripts/run_voice_e2e_production.py`（`LIMA_VOICE_E2E_STRICT=1`）
+- [ ] `transcribe_voice` 函数 ≤50 行（当前略超，pre-commit 仅 warning）
 
 ---
 
@@ -299,9 +306,9 @@ UI 结构（用 wot-design-uni + CSS 变量，深色主题）：
 
 ## 七、M2 — 小程序实时流（1.5 天）
 
-### 7.1 复用 `/v1/voice` WS（已存在）
+### 7.1 `/v1/voice` WS（2026-07-10 实现）
 
-`/v1/voice` 是完整对话管道（VAD→ASR→**LLM→TTS**）。实时流模式**只用 ASR 阶段**，忽略 LLM/TTS 输出帧。
+**注意**：旧 `voice_pipeline_ws`（VAD→ASR→LLM→TTS）已退役。当前 `/v1/voice` 与 `/device/v1/app/voice/ws` 为 **ASR-only** 管道（`device_voice/streaming_asr.py`），仅返回 `{type:"transcript"}` / `pong` / `error`。
 
 ### 7.2 实现要点
 
@@ -315,7 +322,8 @@ UI 结构（用 wot-design-uni + CSS 变量，深色主题）：
 
 - **小程序录音分块**：`getRecorderManager.onFrameRecorded` 需设 `frameSize`，格式选 `pcm`
 - **WS 生命周期**：重连、心跳、错误处理 —— 复用 `src/pages/v2/device-detail/composables/useDeviceWebSocket.ts` 的模式
-- **忽略无关帧**：`/v1/voice` 会返回 `reply`（TTS）等帧，实时流模式只取 `transcript`
+- **帧类型**：仅处理 `transcript`；可发文本 `ping` 收 `pong` 保活；`stop` 结束并收最终 `transcript`
+- **意图**：WS 不返回 `intent`；松开后用 transcript 走 M1 确认流（客户端解析或后续 `/voice/parse`）
 
 ### 7.4 验收
 
@@ -354,13 +362,19 @@ UI 结构（用 wot-design-uni + CSS 变量，深色主题）：
 
 ## 十一、环境变量
 
-新增端点无新环境变量。依赖现有：
-- `LIMA_VOICE_ASR_PROVIDER`（默认 funasr）— 决定 ASR 后端
-- `LIMA_JWT_SECRET` — JWT 签名（鉴权用）
-- ASR provider 各自的配置（见 `device_voice/providers/`）
+见 `config/voice_settings.py` 与 [`docs-site/api/voice.md`](../../../docs-site/api/voice.md)：
+
+| 变量 | 生产建议 |
+|------|----------|
+| `LIMA_VOICE_ENABLED=1` | 必须 |
+| `LIMA_VOICE_ASR_PROVIDER=dashscope` | 云 ASR |
+| `DASHSCOPE_ASR_MODEL=qwen3-asr-flash` | REST 按住说话 |
+| `LIMA_VOICE_STREAM_ASR_MODEL` | 空=WS 缓冲模式；真机逐帧可设 `paraformer-realtime-v2` |
+| `DASHSCOPE_API_KEY` / `ALIYUN_API_KEY` | DashScope 凭证 |
+| `LIMA_JWT_SECRET` | 小程序 JWT |
 
 ## 十二、验收总表
 
-**M0**：10 测试全绿；ruff；文件 ≤300 行；路由注册；helper include
-**M1**：按住说话→绘图机/写字机端到端；确认对话框可编辑/改设备/切换；type-check 0 error
-**M2**：实时流→边说边显→松开→派发；复用 M1 对话框；WS 重连
+**M0**：测试全绿；ruff；路由挂载；strict E2E PASS（2026-07-10）
+**M1**：按住说话→绘图机/写字机端到端；确认对话框 — **真机待验 P0-3**
+**M2**：实时流→边说边显→松开→派发；WS 重连 — **真机待验 P0-3**

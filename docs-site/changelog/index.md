@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-07-10 小程序语音栈加固
+
+- 设备 App 语音 REST/WS 部署京东云，`LIMA_VOICE_E2E_STRICT=1` 生产探针 6/6 PASS。
+- `/v1/voice` 改为 ASR-only WebSocket（nginx → :8081）。
+- 详见 [2026-07-10-voice.md](./2026-07-10-voice.md)。
+
 ## 2026-06-25 Phase C P2：控制台按住说话
 
 - `chat-web/chat-ui.js` 语音输入改为按住说话：按住开始识别，松开自动发送；短按取消。

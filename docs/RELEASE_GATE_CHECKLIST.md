@@ -1,6 +1,6 @@
 # AI 到运动发布门清单
 
-> 日期: 2026-06-12
+> 日期: 2026-06-12（**语音门 2026-07-10 增补**）
 > 范围: 从用户请求到终端运动事件的端到端发布门
 > 状态: Phase 5 实现
 
@@ -24,6 +24,8 @@
 > 验证时应先检查响应体，排除上述正常门控后再判定服务异常。
 | dlc_api / dlc_core / dlc_mcp 正常 | ⬜ | `python -m pytest tests/test_dlc_api.py tests/test_dlc_core_*.py tests/test_dlc_mcp_*.py -q` |
 | 设备网关正常 | ⬜ | `python -m pytest tests/test_device_gateway_*.py -q` |
+| 语音 REST/WS strict E2E | ✅ | `LIMA_VOICE_E2E_STRICT=1 python scripts/run_voice_e2e_production.py` → 6/6 PASS（2026-07-10） |
+| 语音单元测试 | ✅ | `python -m pytest tests/test_device_app_voice*.py tests/test_device_voice_*.py tests/test_voice_e2e_probe.py -q` |
 
 ## 门 B：设备协议验证（假 U8/U1）
 
@@ -31,7 +33,8 @@
 |--------|------|---------|
 | 假 U8 hello 握手 | ⬜ | WebSocket 连接 + hello 消息 |
 | 假 U8 heartbeat 响应 | ⬜ | 心跳消息返回 ack |
-| 假 U8 transcript 接受 | ⬜ | 语音转文字消息处理 |
+| 假 U8 transcript 接受 | ⬜ | 设备直连语音（受 P0-2 OPUS/PCM 影响） |
+| 小程序真机语音→设备运动 | ⬜ | backlog P0-3：按住说话 + 实时流 + 物理机执行 |
 | 假 U8 motion_event 接收 | ⬜ | 运动事件消息处理 |
 | 路由策略在 motion_task 中传递 | ⬜ | 验证 route_policy 字段存在 |
 | 假 U1 运动执行 | ⬜ | 运动指令执行 + 结果返回 |

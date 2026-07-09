@@ -1,5 +1,7 @@
 # 05 · 部署与运维分册
 
+> **2026-07-10 生产事实（优先）**：`chat.donglicao.com` 主流量走京东云 `117.72.118.95` → `server_dlc` :8081；默认 `python scripts/deploy_unified.py --target jdcloud`；备份 `/opt/dlc-drawing/backups/`；重启 `dlc-drawing`。下文 P3 双云设计为历史冻结稿，勿与当前主生产混淆。
+
 > 当前主路线：**在 `D:/QWEN3.0` 内瘦身出 `dlc_core / dlc_api / dlc_mcp`，以小智官方云承载语音/对话/LLM，以 DLC 核心承载写字/绘图/路径/设备控制。**
 > 关联：`docs/xiaozhi-cloud/README.md`、`00-roadmap.md`、`01-architecture.md`、`02-service-refactor.md`
 > 阶段：本分册面向 **P3（安全与可运维）**，P0/P1 阶段仅需本地 `uvicorn` 起服务，无需读本分册的双云部分。
@@ -59,14 +61,15 @@ JDCloud 117.72.118.95  (MySQL / Redis / Prometheus / Grafana / 后台任务)
 **常用命令（来自 AGENTS.md）：**
 
 ```powershell
-# 部署 core 切片（含后端运行时与静态资源）
-python scripts/deploy_unified.py --slice core
+# 默认京东云主生产
+python scripts/deploy_unified.py --target jdcloud --slice core
 
-# 干跑，查看将部署哪些文件
-python scripts/deploy_unified.py --dry-run
+# 语音栈增量（core 不含 device_voice/）
+python scripts/deploy_unified.py --target jdcloud --files device_voice/ routes/device_app_voice.py
 
-# 部署后验证
+# 部署后验证（含语音 strict E2E，需环境变量）
 python scripts/verify_production_deploy.py
+LIMA_VOICE_E2E_STRICT=1 python scripts/run_voice_e2e_production.py
 ```
 
 ---
@@ -142,13 +145,13 @@ P0 已实现 `/health`（见 `09-p0-evidence.md`）。
 
 ### 6.1 自动备份
 
-`scripts/deploy_unified_preflight.py` 在部署前自动备份到 VPS `/opt/lima-router/backups/`。
+`scripts/deploy_unified_preflight.py` 在部署前自动备份到 VPS `/opt/dlc-drawing/backups/`（`LIMA_REMOTE_PATH` 默认 `/opt/dlc-drawing`）。
 
 ### 6.2 回滚步骤
 
 ```powershell
 # deploy_unified.py 内置 restore_remote_backup；部署失败自动回滚上一版本
-# 手动回滚：SSH 到 VPS，从 /opt/lima-router/backups/ 恢复
+# 手动回滚：SSH 到京东云，从 /opt/dlc-drawing/backups/ 恢复
 ```
 
 ### 6.3 回滚安全约束（AGENTS.md 硬规则）

@@ -1,6 +1,6 @@
 # LiMa 设备开发者入口
 
-> 更新日期：2026-06-18
+> 更新日期：2026-07-10
 > 目标：给设备联调、模型准入、任务发布和故障排查提供一页式入口。
 
 ## 适用场景
@@ -26,7 +26,9 @@
 - `device_gateway/model_routing.py`
 - `device_gateway/tasks.py`
 - `device_gateway/path_validator.py`
-- `device_gateway/path_pipeline.py`
+- `routes/device_app_voice.py` / `routes/device_app_voice_ws.py` — 小程序语音 REST/WS
+- `device_voice/` — ASR provider（DashScope / FunASR / Whisper）
+- `voice_app_ws_ticket.py` — WS ticket（绑定 account_id）
 
 ## draw_generated 热路径（2026-06-18）
 
@@ -41,6 +43,20 @@ transcript / POST /device/v1/tasks / /device/v1/app/tasks
 ```
 
 生图失败返回 `error.code=draw_failed`，不会回退到笔画字库。
+
+## 语音联调（小程序 M0/M1/M2）
+
+```text
+按住说话:  WAV/PCM → POST /device/v1/app/voice/transcribe → {text, intent} → 确认 → POST tasks
+实时流:    ticket → WS /v1/voice 或 /device/v1/app/voice/ws → transcript → 确认 → POST tasks
+```
+
+- 公开 API 文档：[`docs-site/api/voice.md`](../docs-site/api/voice.md)
+- 设计规格：[`superpowers/specs/2026-07-02-mini-program-voice-draw-design.md`](superpowers/specs/2026-07-02-mini-program-voice-draw-design.md)
+- 生产 strict E2E：`LIMA_VOICE_E2E_STRICT=1 python scripts/run_voice_e2e_production.py`
+- TDD 证据：[`testing/device_app_voice.tdd.md`](testing/device_app_voice.tdd.md)
+
+**注意**：WS 仅返回 `transcript`，不含 `intent`；设备直连 OPUS 路径见 backlog P0-2。
 
 ## 常用验证
 

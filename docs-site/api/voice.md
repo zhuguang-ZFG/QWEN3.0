@@ -38,9 +38,11 @@ Authorization: Bearer <JWT>
 ```json
 {
   "ticket": "tk-xxxxxxxx",
-  "expires_in": 300
+  "expires_in": 30
 }
 ```
+
+> `expires_in` 与 `voice_app_ws_ticket.TTL_SECONDS` 一致（30 秒）；ticket **单次使用**，绑定当前账号。
 
 2. 使用 ticket 连接 WS，发送 **PCM 二进制帧**，结束时发送文本 `stop`。
 
@@ -66,8 +68,11 @@ Authorization: Bearer <JWT>
 ### 处理流程（M2）
 
 ```text
-小程序 PCM 帧 → WS 缓冲/流式 ASR → resolve_voice_task → 意图确认 → 设备派发
+小程序 PCM 帧 → WS 缓冲/流式 ASR → transcript（仅文本）
+  → 小程序侧 resolve_voice_task / 或再调 REST transcribe → 意图确认 → 设备派发
 ```
+
+> WS **不返回** `intent`；与 REST `/voice/transcribe` 不同，意图解析在拿到最终 `transcript` 后由客户端完成。
 
 默认 WS 为 **缓冲模式**（stop 时一次性 qwen3-asr-flash）。真机逐帧录音可设置：
 

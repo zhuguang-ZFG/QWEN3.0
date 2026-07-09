@@ -1,5 +1,7 @@
 # D-3b 旧系统退役 Runbook（生产切换，不可逆，需人工在场）
 
+> **2026-07-10 现状**：`chat.donglicao.com` 主流量已走 `server_dlc` :8081；`/v1/voice` 已改为 ASR-only WS（非旧 :8080 对话管道）。下文为 2026-07 切换时的历史 Runbook，**步骤二 nginx 事实已变更** — 以 `deploy/nginx/chat.donglicao.com.conf` 为准。
+
 > 本文档记录「瘦身工程 D-3b 阶段」在 VPS 上退役旧 `server:app`、切到新 `server_dlc:app` 的**安全执行顺序**。
 > 所有事实均为 2026-07 SSH 实测核查结果。**这是不可逆生产操作，必须人工在场、逐步执行、每步验证后再走下一步。**
 
