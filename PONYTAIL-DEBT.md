@@ -7,6 +7,7 @@
 
 | 文件 | 行 | 简化内容 | 上限 | 升级触发条件 |
 |------|----|----------|------|--------------|
+| `motion_executor.cc:6` | 6 | 固件审查修复导致单文件超过 300 行目标，暂不拆分 | 单文件略大但仍在同一编译单元内 | 下次新增非运动执行职责（路径规划、设备发现等）时拆分为 core/path/capability 三个文件 |
 | `access_guard.py:14` | 14 | WS_QUERY_PARAM_TOKEN_WARNING：每次 legacy query-param auth 使用都记录日志 | 日志噪音 | query-param auth 使用量连续 7 天为 0 时删除该路径 |
 | `device_logic/activation.py:26` | 26 | `IF NOT EXISTS` + `_table_ready` 缓存 | 孤立测试 DB 可能失效 | 测试固定使用独立 DB 后改为显式建表 |
 | `device_logic/activation.py:55` | 55 | 立即消费激活码（一次性使用） | TTL 内重放仍可能 | 引入幂等消费记录后移除 |
