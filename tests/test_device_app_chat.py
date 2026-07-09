@@ -6,6 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from device_logic.audio_store import write_audio_file
 from device_logic.db import _schema_ready_paths, connect
 from device_logic.http import new_id, now
 
@@ -74,6 +75,7 @@ def _seed() -> None:
 @pytest.fixture
 def client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "chat.db"))
+    monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path / "lima-data"))
     monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
     _schema_ready_paths.clear()
     from routes.device_app_chat import router as chat_router
@@ -81,6 +83,17 @@ def client(tmp_path, monkeypatch) -> TestClient:
     app = FastAPI()
     app.include_router(chat_router)
     return TestClient(app)
+
+
+def _seed_with_audio_file(tmp_path) -> None:
+    _seed()
+    storage_path = write_audio_file("dev-1", "audio-1", b"fake-audio-bytes", ext="mp3")
+    with connect() as conn:
+        conn.execute(
+            "UPDATE v2_audio_record SET storage_path=?, content_type=? WHERE audio_id='audio-1'",
+            (storage_path, "audio/mpeg"),
+        )
+        conn.commit()
 
 
 def test_chat_history_returns_audio_messages(client):
@@ -98,11 +111,21 @@ def test_chat_history_denies_guest_without_share(client):
     assert response.status_code == 403
 
 
-def test_audio_meta_requires_device_access(client):
-    _seed()
+def test_audio_meta_requires_device_access(client, tmp_path):
+    _seed_with_audio_file(tmp_path)
     response = client.get("/device/v1/app/audio/audio-1", headers=_headers("a-owner"))
     assert response.status_code == 200, response.text
-    assert response.json()["audioId"] == "audio-1"
+    data = response.json()
+    assert data["audioId"] == "audio-1"
+    assert data["url"].endswith("/device/v1/app/audio/audio-1/content")
 
     denied = client.get("/device/v1/app/audio/audio-1", headers=_headers("a-guest"))
     assert denied.status_code == 403
+
+
+def test_audio_content_streams_file(client, tmp_path):
+    _seed_with_audio_file(tmp_path)
+    response = client.get("/device/v1/app/audio/audio-1/content", headers=_headers("a-owner"))
+    assert response.status_code == 200, response.text
+    assert response.content == b"fake-audio-bytes"
+    assert response.headers["content-type"].startswith("audio/mpeg")

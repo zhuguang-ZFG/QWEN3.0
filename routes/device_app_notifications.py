@@ -69,14 +69,17 @@ async def subscribe_notifications(
     openid = str_field(body, "openid", "openId")
     template_ids = _json_list(body.get("templateIds", []))
     device_ids = _json_list(body.get("deviceIds", []))
-    if not openid or not template_ids:
-        return err(400, "openid and templateIds are required", 400)
+    if not template_ids:
+        return err(400, "templateIds is required", 400)
     if not device_ids:
         return err(400, "deviceIds is required", 400)
 
     expected = _expected_openid(account)
-    if expected and openid != expected:
+    if not expected:
+        return err(400, "WeChat openid is not linked to this account", 400)
+    if openid and openid != expected:
         return err(403, "openid does not match authenticated account", 403)
+    openid = expected
 
     with connect() as conn:
         for did in device_ids:

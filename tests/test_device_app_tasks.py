@@ -180,6 +180,43 @@ def test_device_app_voice_review_paths(tmp_path, monkeypatch):
     assert row["status"] == "pending"
 
 
+def test_control_share_cannot_approve_voice_task(tmp_path, monkeypatch):
+    from device_app_sharing_helpers import seed_guest
+
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    seed_binding()
+    seed_guest()
+    create_share = client.post(
+        "/device/v1/app/devices/dev-1/share",
+        headers=headers("a-owner"),
+        json={"permission": "control"},
+    )
+    assert create_share.status_code == 200, create_share.text
+    token = create_share.json()["shareToken"]
+    accepted = client.post(f"/device/v1/app/shares/{token}/accept", headers=headers("a-guest"))
+    assert accepted.status_code == 200, accepted.text
+
+    created = client.post(
+        "/device/v1/app/devices/dev-1/tasks",
+        headers=headers("a-owner"),
+        json={
+            "capability": "run_path",
+            "source": "voice",
+            "params": {"path": [{"x": 0, "y": 0, "z": 0}], "requireApproval": True},
+        },
+    )
+    task_id = created.json()["taskId"]
+    assert (
+        client.post("/device/v1/app/devices/dev-1/voice-tasks/pending", headers=headers("a-guest"), json={}).status_code
+        == 403
+    )
+    assert (
+        client.post(f"/device/v1/app/tasks/{task_id}/approve", headers=headers("a-guest"), json={}).status_code == 403
+    )
+    assert client.post(f"/device/v1/app/tasks/{task_id}/reject", headers=headers("a-guest"), json={}).status_code == 403
+
+
 def test_device_app_reject_pending_voice_task(tmp_path, monkeypatch):
     client, _store = make_client(tmp_path, monkeypatch)
     seed_account_and_device()

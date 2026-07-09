@@ -84,6 +84,9 @@ def client(tmp_path, monkeypatch):
 def test_subscribe_list_unsubscribe_flow(client):
     _seed_account_and_device()
     _seed_binding()
+    with connect() as conn:
+        conn.execute("UPDATE v2_account SET wechat_openid='wx-openid-1' WHERE id='a-owner'")
+        conn.commit()
 
     response = client.post(
         "/device/v1/app/notifications/subscribe",
@@ -119,8 +122,11 @@ def test_subscribe_list_unsubscribe_flow(client):
     assert listed_after.json()["data"]["count"] == 0
 
 
-def test_subscribe_requires_openid_and_templates(client):
+def test_subscribe_requires_templates(client):
     _seed_account_and_device()
+    with connect() as conn:
+        conn.execute("UPDATE v2_account SET wechat_openid='wx-openid-1' WHERE id='a-owner'")
+        conn.commit()
     response = client.post(
         "/device/v1/app/notifications/subscribe",
         headers=_headers("a-owner"),
@@ -128,6 +134,22 @@ def test_subscribe_requires_openid_and_templates(client):
     )
     assert response.status_code == 400, response.text
     assert "templateIds" in response.json()["message"]
+
+
+def test_subscribe_rejects_without_linked_openid(client):
+    _seed_account_and_device()
+    _seed_binding()
+    response = client.post(
+        "/device/v1/app/notifications/subscribe",
+        headers=_headers("a-owner"),
+        json={
+            "openid": "wx-arbitrary",
+            "templateIds": ["task_completed"],
+            "deviceIds": ["dev-1"],
+        },
+    )
+    assert response.status_code == 400, response.text
+    assert "not linked" in response.json()["message"].lower()
 
 
 def test_subscribe_rejects_unauthorized(client):
@@ -200,6 +222,9 @@ async def test_dispatch_notification_uses_mock_notifier_and_writes_log(client, m
 def test_subscribe_rejects_empty_device_ids(client):
     _seed_account_and_device()
     _seed_binding()
+    with connect() as conn:
+        conn.execute("UPDATE v2_account SET wechat_openid='wx-openid-1' WHERE id='a-owner'")
+        conn.commit()
     response = client.post(
         "/device/v1/app/notifications/subscribe",
         headers=_headers("a-owner"),
@@ -231,6 +256,9 @@ def test_subscribe_rejects_mismatched_openid(client):
 def test_subscribe_rejects_unauthorized_device(client):
     _seed_account_and_device()
     _seed_binding()
+    with connect() as conn:
+        conn.execute("UPDATE v2_account SET wechat_openid='wx-openid-1' WHERE id='a-owner'")
+        conn.commit()
     response = client.post(
         "/device/v1/app/notifications/subscribe",
         headers=_headers("a-owner"),
