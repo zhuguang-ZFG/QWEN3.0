@@ -1,12 +1,12 @@
-# LiMa（力码）—— AI 智能硬件云端服务
+# DLC 绘图服务 —— ESP32 绘图机/写字机云端
 
 > 深圳市动力巢科技有限公司（www.donglicao.com）
 
-LiMa 是一个多后端 AI 路由服务器，同时为 AI 绘图机、写字机、2D 数字人等智能硬件提供云端控制平面。
+DLC 绘图服务为 ESP32 绘图机、写字机提供云端路径生成、任务下发与设备管理能力。通过 MCP 协议与小智官方云集成，支持语音控制绘图/写字。
 
-- **AI 路由**：根据请求类型、健康状态、预算与质量评分，智能路由到 170+ 个 AI 后端（Groq、NVIDIA、OpenRouter、DeepSeek、Cloudflare、阿里云等）。
-- **设备云端**：为 ESP32 绘图机/写字机提供任务派发、路径规划、状态监控与 OTA。
-- **公网入口**：https://chat.donglicao.com（支持匿名免费聊天，无需 API Key）。
+- **绘图/写字核心**：文本绘图、写字、图生路径与路径校验
+- **设备云端**：任务派发、设备状态、小程序 App API、图库
+- **公网入口**：https://chat.donglicao.com/dlc/*（nginx → `server_dlc` :8081）
 
 ---
 
@@ -14,8 +14,8 @@ LiMa 是一个多后端 AI 路由服务器，同时为 AI 绘图机、写字机�
 
 - **运行时**：Python 3.10 + FastAPI + uvicorn
 - **HTTP 客户端**：httpx
-- **数据**：SQLite（语义缓存、会话记忆）、Redis（设备任务队列）
-- **通信**：WebSocket / MQTT（设备双向通信）
+- **数据**：SQLite（设备/会话数据）、Redis（设备任务队列）
+- **图生**：DashScope/wanx（`dashscope_image_client.py`）
 - **代码检查**：ruff（目标 py310，行宽 120）
 - **类型检查**：pyright
 - **测试**：pytest（asyncio_mode=auto）
@@ -35,7 +35,7 @@ pip install -r requirements_server.txt
 
 ```bash
 cp .env.example .env
-# 编辑 .env，至少设置 LIMA_API_KEYS、CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_TOKEN
+# 编辑 .env，至少设置 LIMA_API_KEY / LIMA_API_KEYS
 ```
 
 ### 3. 启动服务
@@ -47,45 +47,42 @@ python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081
 ### 4. 健康检查
 
 ```bash
-curl http://127.0.0.1:8080/health
+curl http://127.0.0.1:8081/health
 ```
 
 ---
 
 ## 主要 API
 
-### OpenAI 兼容聊天
+### DLC 任务（需 `Authorization: Bearer <LIMA_API_KEY>`）
 
 ```bash
-POST /v1/chat/completions
+POST /dlc/tasks/draw          # 文本绘图预览
+POST /dlc/tasks/write         # 写字预览
+POST /dlc/tasks/dispatch      # 下发任务到设备
+POST /dlc/tasks/validate      # 校验运动路径
+GET  /dlc/devices/{id}/status # 设备状态
 ```
 
 示例：
 
 ```bash
-curl -s http://127.0.0.1:8080/v1/chat/completions \
+curl -s http://127.0.0.1:8081/dlc/tasks/validate \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $LIMA_API_KEY" \
-  -d '{
-    "model": "lima-1.3",
-    "messages": [{"role": "user", "content": "你好"}]
-  }'
+  -d '{"path":[{"x":0,"y":0},{"x":10,"y":10}]}'
 ```
 
-### 设备网关
+### 微信小程序设备 App
 
 ```bash
-GET  /device/v1/health           # 设备网关健康
-POST /device/v1/tasks            # 下发任务（写字/绘图/控制）
-GET  /device/v1/tasks/{task_id}  # 查询任务
-WS   /device/v1/ws               # 设备 WebSocket 长连接
+GET  /device/v1/app/*         # 小程序设备 App API（见 device_app_router）
 ```
 
-### 管理端点
+### 健康检查
 
 ```bash
-GET /v1/status        # 后端与熔断状态（需 private API key）
-GET /health           # 服务健康
+GET /health                   # 服务健康（无需鉴权）
 ```
 
 ---
@@ -121,31 +118,13 @@ python scripts/deploy_unified.py --dry-run
 
 ```
 .
-├── server.py                  # FastAPI 入口
-├── server_bootstrap.py        # 运行时常量与终极降级
-├── server_lifespan.py         # 异步生命周期
-├── routing_engine.py          # AI 路由权威入口
-├── router_v3/                 # 后端池
-├── routing_selector/          # 后端排序与选择
-├── routing_executor.py        # 后端执行（串/并行 + 降级）
-├── http_caller.py             # HTTP 传输层
-├── backends_registry/         # 170+ 后端注册
-├── routes/                    # FastAPI 路由
-│   ├── chat_endpoints.py
-│   ├── device_gateway*.py
-│   ├── device_app_*.py
-│   ├── device_ota_app.py
-│   ├── system_endpoints.py
-│   └── xiaozhi_compat/        # 小智 App 兼容层（默认关闭）
-├── device_gateway/            # 设备协议、任务、路径规划
-├── device_logic/              # 账号、鉴权、设备数据逻辑
-├── session_memory/            # 持久记忆与学习循环
-├── context_pipeline/          # 检索与上下文注入（编码模块已退役）
-├── skills/                    # 可注入技能 Markdown
-├── chat-web/                  # Web 聊天控制台
-├── donglicao-site-v2/         # 官网 Next.js 站点
-├── docs-site/                 # VitePress 开发者文档站
-├── sdk/                       # Python/JS/Go 官方 SDK
+├── server_dlc.py              # 生产 FastAPI 入口（:8081）
+├── dlc_api/                   # DLC HTTP 路由与小程序 App 聚合
+├── dlc_core/                  # 绘图/写字/下发核心
+├── dlc_mcp/                   # 小智云 MCP JSON-RPC
+├── device_gateway/            # Redis 任务队列、WS、设备状态
+├── routes/                    # 设备 App、图库等路由
+├── dashscope_image_client.py  # 图生后端
 ├── scripts/                   # 工具、部署、冒烟脚本
 ├── tests/                     # 测试套件
 └── docs/                      # 文档索引与架构说明
@@ -162,10 +141,8 @@ python scripts/deploy_unified.py --dry-run
 | [`CLAUDE.md`](CLAUDE.md) | 精简开发规则与仓库统计 |
 | [`docs/README.md`](docs/README.md) | 文档索引与必读顺序 |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 系统架构与模块边界 |
-| [`docs/REQUEST_PIPELINE_AUTHORITY_CN.md`](docs/REQUEST_PIPELINE_AUTHORITY_CN.md) | 18 步请求处理管线 |
 | [`docs/DEPLOY_AND_RELEASE_CONVENTION.md`](docs/DEPLOY_AND_RELEASE_CONVENTION.md) | 部署与发布约定 |
 | [`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) | 设备开发、联调、验证入口 |
-| [`docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md) | 历史路线图（已归档） |
 
 ---
 
@@ -187,8 +164,8 @@ python scripts/deploy_unified.py --dry-run
 # 全量测试
 python -m pytest --tb=short -q
 
-# 聚焦测试
-python -m pytest tests/test_routing_engine.py -v
+# DLC API 聚焦
+python -m pytest tests/test_dlc_api.py -v
 
 # 预提交门禁
 python scripts/run_pre_commit_check.py --full
@@ -198,15 +175,7 @@ python scripts/run_pre_commit_check.py --full
 
 ## 退役说明
 
-以下模块已移除或归档：
-
-- Telegram bot/operator 通知
-- GitHub/Gitee webhook 路由
-- Anthropic `/v1/messages` 兼容层
-- `channel_gateway`（微信绑定层）
-- `lima_mcp/` HTTP MCP 路由
-
-详见 [`STATUS.md`](STATUS.md)「退役模块」。
+P4/P5 瘦身后已移除旧 LiMa 多后端路由、`server.py`、`routing_engine*`、Chat/Admin/Voice 等模块。详见 [`STATUS.md`](STATUS.md) 与 [`docs/archive/`](docs/archive/)。
 
 ---
 
@@ -216,4 +185,4 @@ MIT License
 
 ---
 
-**LiMa —— 让 AI 硬件更智能。**
+**DLC —— 让绘图机更智能。**

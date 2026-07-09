@@ -119,7 +119,7 @@ def _quota_for(task_type: str) -> int:
 @router.get("/health")
 async def health() -> dict[str, str]:
     """Lightweight health endpoint for load balancers and smoke tests."""
-    return {"status": "ok", "service": "dlc-drawing", "version": "0.2.0-p1"}
+    return {"status": "ok", "service": "dlc-drawing", "version": "0.4.0-p3"}
 
 
 @router.get("/dlc/devices/{device_id}/status", response_model=DeviceStatusResponse)

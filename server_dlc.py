@@ -1,7 +1,7 @@
 """DLC production entry point — DLC drawing + mini-program device-app routes.
 
 Run:
-    python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8080
+    python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081
 
 This is the slimmed-down production server for the XiaoZhi + DLC architecture.
 It registers the DLC drawing routes plus the WeChat mini-program device-app

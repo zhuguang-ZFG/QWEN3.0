@@ -52,7 +52,7 @@ LiMa 是深圳市动力巢科技有限公司（donglicao.com）面向 ESP32 绘�
 | MCP JSON-RPC | `dlc_mcp/` (`server.py`, `mcp_pipe.py`) |
 | 设备网关 | `device_gateway/` (Redis 队列、WS、设备状态、family approval、gallery) |
 | 设备 App API | `routes/` (`device_app_api.py`, `device_app_tasks.py`, `images_backends.py`, `device_app_gallery.py`) |
-| 鉴权/限流 | `access_guard.py`, `rate_limiter.py`, `rate_limiter_redis.py`, `ws_ticket.py`, `device_logic/auth.py` |
+| 鉴权/限流 | `access_guard.py`, `rate_limiter.py`, `ws_ticket.py`, `device_logic/auth.py` |
 | 图生 | `dashscope_image_client.py`（DashScope/wanx，经 `asyncio.to_thread` 不阻塞事件循环，调用级 `wait_for` 超时兜底） |
 
 ## 4. 请求处理链路
@@ -62,9 +62,8 @@ LiMa 是深圳市动力巢科技有限公司（donglicao.com）面向 ESP32 绘�
 小智云 MCP → dlc_mcp/server.py (JSON-RPC) → dlc_api/routes.py (/dlc/tasks/*)
 直接 HTTP → dlc_api/routes.py (verify_dlc_api_token)
 所有路径 → dlc_core (handle_draw / handle_write / handle_draw_from_image)
-         → dlc_core/dispatch.py → device_gateway (Redis 队列)
-        → dlc_core/dispatch.py → device_gateway (Redis 队列 + WSS)
-        → ESP32 固件执行运动
+         → dlc_core/dispatch.py → device_gateway (Redis 队列 + WSS)
+         → ESP32 固件执行运动
 ```
 
 ## 5. 部署拓扑

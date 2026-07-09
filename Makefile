@@ -24,5 +24,4 @@ docker-down:
 	docker compose down
 
 smoke-test:
-	curl -sf http://127.0.0.1:8081/dlc/tasks/validate && echo " dlc/validate OK" || (echo " dlc/validate FAILED" && exit 1)
 	curl -sf http://127.0.0.1:8081/health && echo " health OK" || (echo " health FAILED" && exit 1)

@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import argparse
 import ast
+import os
 import subprocess
 import sys
 from collections.abc import Callable
-import os
 from pathlib import Path
 
 FILE_LIMIT = 300
@@ -61,9 +61,13 @@ def _should_skip(path: Path) -> bool:
     return any(part in EXCLUDE_DIRS for part in path.parts)
 
 
+def _walk_onerror(err: OSError) -> None:
+    print(f"WARN: skip {err.filename}: {err.strerror}", file=sys.stderr)
+
+
 def _iter_python_files(root: Path) -> list[Path]:
     files: list[Path] = []
-    for dirpath_str, _dirnames, filenames in os.walk(root, followlinks=False, onerror=lambda _: None):
+    for dirpath_str, _dirnames, filenames in os.walk(root, followlinks=False, onerror=_walk_onerror):
         dirpath = Path(dirpath_str)
         if _should_skip(dirpath):
             _dirnames.clear()

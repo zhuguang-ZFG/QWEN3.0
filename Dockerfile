@@ -21,7 +21,7 @@ RUN chown -R lima:lima /app && chmod -R o-w /app
 
 USER lima
 
-EXPOSE 8080
+EXPOSE 8081
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8081/health || exit 1
