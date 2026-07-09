@@ -59,7 +59,7 @@ Client → server_dlc.py (FastAPI 入口，:8081，/docs 已禁用 SEC-05)
 | MCP JSON-RPC | `dlc_mcp/` (`server.py`, `mcp_pipe.py`) |
 | 设备网关 | `device_gateway/` (Redis 队列、WS、设备状态、family approval、gallery) |
 | 设备 App API | `routes/` (`device_app_api.py`, `device_app_tasks.py`, `images_backends.py`, `device_app_gallery.py`) |
-| 鉴权/限流 | `access_guard.py`, `rate_limiter.py`, `rate_limiter_redis.py`, `ws_ticket.py`, `device_logic/auth.py` |
+| 鉴权/限流 | `access_guard.py`, `rate_limiter.py`, `ws_ticket.py`, `device_logic/auth.py` |
 | 图生 | `dashscope_image_client.py`（DashScope/wanx，经 `asyncio.to_thread`） |
 
 **已退役模块（禁止按此表去找代码）**：旧 `server.py`/`routing_engine*`/`router_v3`/`routing_executor`/`http_caller`/`context_pipeline`（代码上下文 v3.0 删）/`session_memory` 主路径/`observability`/`provider_probe`（仅 JDCloud 冷离线指针）/`backends_registry` —— 均已在 P4/P5 瘦身物理删除。详见 `progress.md` 与 `docs/archive/`。

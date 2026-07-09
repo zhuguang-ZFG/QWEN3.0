@@ -41,7 +41,7 @@ cp .env.example .env
 ### 3. 启动服务
 
 ```bash
-python -m uvicorn server:app --host 0.0.0.0 --port 8080
+python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081
 ```
 
 ### 4. 健康检查
@@ -95,7 +95,7 @@ GET /health           # 服务健康
 ### 本地开发
 
 ```bash
-python -m uvicorn server:app --host 0.0.0.0 --port 8080
+python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081
 ```
 
 ### 生产部署（VPS）

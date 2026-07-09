@@ -7,10 +7,10 @@
 > **公网端点**: `chat.donglicao.com/dlc/*`（DLC API）
 > **部署**: Aliyun (`47.112.162.80`) + JDCloud (`117.72.118.95`) 双节点，`dlc-drawing` systemd 服务（端口 8081），nginx 反代 `/dlc/` 路由
 
-> Updated: 2026-07-05
+> Updated: 2026-07-09
 > Branch: `main`
 > Scale: 实测 git 跟踪应用 py = **294 文件 / 34,983 行**（不含 tests/venv）。⚠️ 旧「280 文件 / 18,000 行」为失真记录，已更正。2026-07-06 瘦身三阶段共删约 11,900 行死代码（cloud_services/reference/device_support/observability 死模块/ops_metrics/WS 网关/OTA/旧中间件/死配置）。
-> Tests: **1408 passed / 3 skipped / 0 failed**；ruff check clean；pyright 改动文件 0 errors；check_code_size PASS
+> Tests: **1391 passed / 3 skipped / 0 failed**；ruff check clean；pyright 改动文件 0 errors；check_code_size PASS
 > Code Size: **0 个 >300 行文件、0 个 >50 行函数**
 > 入口: `server_dlc.py`（注册 `dlc_router` 5 端点 + `/v1/images/generations` + `device_app_*` 小程序路由约 70 条 `/device/v1/app/*`）
 > 架构: `server_dlc.py → dlc_api/（routes + device_app_router 聚合器）→ dlc_core/ → device_gateway/`（任务生成链）
@@ -33,6 +33,14 @@
 > MCP: `dlc_mcp/mcp_pipe.py` ← systemd `dlc-mcp.service` → 小智云 `wss://api.xiaozhi.me/mcp/`
 > 固件: U8 `self.plotter.write_text` / `self.plotter.draw_generated`（设备端调 dlc_api 生成路径 → 本地执行）
 > 小程序: v3.9.0（对话走小智云，绘图走 DLC；SoftAP 配网主路径）
+
+### 最近完成（2026-07-09）基础设施修复
+
+- **Dockerfile**：CMD 从已删除的 `server:app` 修正为 `server_dlc:app :8081`，HEALTHCHECK 同步
+- **server_dlc.py**：`@app.on_event("startup")` 迁移为 FastAPI lifespan 模式，消除 DeprecationWarning
+- **check_code_size.py**：`rglob` 改为 `os.walk(followlinks=False)`，修复 Windows 下 broken symlink 崩溃
+- **Makefile**：`smoke-test` 端点从已删除的 `/v1/models` 更新为 `/dlc/tasks/validate` + `/health`，端口 8080→8081
+- **门禁**：ruff check/format clean、pyright 0 errors、1391 passed
 
 ### 最近完成（2026-07-05）图像生成路由恢复完善
 

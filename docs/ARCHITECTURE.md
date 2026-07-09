@@ -1,7 +1,7 @@
 # LiMa 系统架构文档（P4/P5 瘦身后）
 
-> 更新日期：2026-07-06
-> 当前版本：`dlc-drawing 0.2.0-p1`，Python 3.10 + FastAPI
+> 更新日期：2026-07-09
+> 当前版本：`dlc-drawing 0.4.0-p3`，Python 3.10 + FastAPI
 > 生产入口：`server_dlc:8081`，公网 `https://chat.donglicao.com`
 
 旧版多后端 AI 路由架构（server.py + routing_engine + router_v3 + chat/admin/voice/provider 探测）已在 P4/P5 瘦身物理删除，旧版架构文档归档于 [`archive/strategic-plans-2026-06/ARCHITECTURE_OLD_20260626.md`](archive/strategic-plans-2026-06/ARCHITECTURE_OLD_20260626.md)。
@@ -61,7 +61,8 @@ LiMa 是深圳市动力巢科技有限公司（donglicao.com）面向 ESP32 绘�
 微信小程序 → server_dlc.py (/device/v1/app/*) → device_app_router 聚合
 小智云 MCP → dlc_mcp/server.py (JSON-RPC) → dlc_api/routes.py (/dlc/tasks/*)
 直接 HTTP → dlc_api/routes.py (verify_dlc_api_token)
-所有路径 → dlc_core (handle_draw/handle_write/handle_draw_from_image)
+所有路径 → dlc_core (handle_draw / handle_write / handle_draw_from_image)
+         → dlc_core/dispatch.py → device_gateway (Redis 队列)
         → dlc_core/dispatch.py → device_gateway (Redis 队列 + WSS)
         → ESP32 固件执行运动
 ```
@@ -85,5 +86,5 @@ Internet → 阿里云 VPS 47.112.162.80 (nginx → server_dlc :8081, Redis)
 ## 7. 固件与小程序
 
 - 固件：`esp32S_XYZ/firmware/u8-xiaozhi/`（ESP32 + U1 协议 + BluFi 配网 + motion_executor 并发锁）
-- 小程序：`esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/`（uni-app + Vue3 + TS）
+- 小程序：`esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/` v3.9.0（uni-app + Vue3 + TS）
 - 子模块指针由父仓库 `esp32S_XYZ` gitlink 跟踪
