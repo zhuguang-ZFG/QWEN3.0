@@ -11,6 +11,7 @@ chat/admin/voice/provider or self-hosted device-gateway WS routes.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import logging
 
 from fastapi import FastAPI
@@ -23,8 +24,16 @@ from routes import images as images_router
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
+
 # P1: disable interactive docs on the public entrypoint (SEC-05).
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*")
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="DLC Drawing Service",
     version="0.4.0-p3",
     docs_url=None,
@@ -36,8 +45,3 @@ add_body_size_limit(app, max_bytes=32 * 1024 * 1024)
 app.include_router(dlc_router)
 app.include_router(images_router.router)
 register_device_app_routes(app)
-
-
-@app.on_event("startup")
-async def _log_startup() -> None:
-    logger.info("DLC server started — /health, /dlc/*, /device/v1/app/*")

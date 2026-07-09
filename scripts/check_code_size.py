@@ -16,6 +16,7 @@ import ast
 import subprocess
 import sys
 from collections.abc import Callable
+import os
 from pathlib import Path
 
 FILE_LIMIT = 300
@@ -61,7 +62,18 @@ def _should_skip(path: Path) -> bool:
 
 
 def _iter_python_files(root: Path) -> list[Path]:
-    return [p for p in root.rglob("*.py") if not _should_skip(p)]
+    files: list[Path] = []
+    for dirpath_str, _dirnames, filenames in os.walk(root, followlinks=False, onerror=lambda _: None):
+        dirpath = Path(dirpath_str)
+        if _should_skip(dirpath):
+            _dirnames.clear()
+            continue
+        for f in filenames:
+            if f.endswith(".py"):
+                fp = dirpath / f
+                if not _should_skip(fp):
+                    files.append(fp)
+    return files
 
 
 def _iter_git_python_files(root: Path) -> list[Path]:
