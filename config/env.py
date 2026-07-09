@@ -81,6 +81,10 @@ def distill_log_enabled() -> bool:
 
 def wechat_dev_login_enabled() -> bool:
     """WeChat dev-login bypass for device app auth."""
+    from runtime_env import is_production_runtime
+
+    if is_production_runtime():
+        return False
     return FLAGS.wechat_dev_login
 
 

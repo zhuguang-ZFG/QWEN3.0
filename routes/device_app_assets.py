@@ -162,6 +162,9 @@ async def create_asset(request: Request, authorization: str = Header(default="")
     if isinstance(account, JSONResponse):
         return account
 
+    if account.get("role") != "admin":
+        return err(403, "only admin can create global assets", 403)
+
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body

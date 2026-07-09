@@ -113,6 +113,19 @@ def authorize(authorization: str) -> dict[str, Any] | JSONResponse:
     return dict(row)
 
 
+def load_active_account(account_id: str) -> dict[str, Any] | None:
+    """Load an active account row by id without requiring a JWT."""
+    account_id = (account_id or "").strip()
+    if not account_id:
+        return None
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM v2_account WHERE id=? AND status='active'",
+            (account_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
 def _login_response(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any] | JSONResponse:
     token = make_token(account)
     if token is None:

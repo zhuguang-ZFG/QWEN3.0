@@ -17,18 +17,18 @@ _tickets: dict[str, "_AppStatusTicket"] = {}
 @dataclass(frozen=True)
 class _AppStatusTicket:
     device_id: str
-    token: str
+    account_id: str
     expires_at: float
 
 
-def issue(device_id: str, token: str) -> str:
+def issue(device_id: str, account_id: str) -> str:
     ticket = secrets.token_urlsafe(32)
     expires_at = time.time() + TTL_SECONDS
     with _lock:
         _purge_expired(time.time())
         if len(_tickets) >= _MAX_TICKETS:
             _evict_oldest()
-        _tickets[ticket] = _AppStatusTicket(device_id, token, expires_at)
+        _tickets[ticket] = _AppStatusTicket(device_id, account_id, expires_at)
     return ticket
 
 
@@ -41,7 +41,7 @@ def consume(ticket: str) -> tuple[str, str] | None:
         _purge_expired(now)
     if entry is None or now > entry.expires_at:
         return None
-    return entry.device_id, entry.token
+    return entry.device_id, entry.account_id
 
 
 def reset() -> None:

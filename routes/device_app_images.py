@@ -7,10 +7,12 @@ import time
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
+from config import settings
 from device_logic.auth import authorize
 from device_logic.http import err, read_body
 from routes.images import ImageRequest, _generate_image_urls
 from routes.images_cache import should_skip_cache
+from routes.rate_limit_helper import check_key_limit
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-images"])
 
@@ -25,6 +27,13 @@ async def device_app_image_generations(request: Request, authorization: str = He
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
+
+    limited = check_key_limit(
+        f"device_app_image:{account['id']}",
+        settings.DEVICE.dlc_image_per_min,
+    )
+    if limited is not None:
+        return limited
 
     body = await read_body(request)
     if isinstance(body, JSONResponse):

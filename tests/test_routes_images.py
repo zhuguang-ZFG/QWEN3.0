@@ -176,6 +176,26 @@ class TestDeviceAppImageGenerations:
         )
         assert response.status_code == 400
 
+    def test_device_app_image_generations_rate_limited(self, device_app_client, monkeypatch):
+        import rate_limiter
+        from config import settings
+
+        rate_limiter.reset()
+        monkeypatch.setattr(settings.DEVICE, "dlc_image_per_min", 1)
+        payload = {"prompt": "a robot", "size": "1024x1024"}
+        first = device_app_client.post(
+            "/device/v1/app/images/generations",
+            headers=_auth_header(),
+            json=payload,
+        )
+        assert first.status_code == 200, first.text
+        second = device_app_client.post(
+            "/device/v1/app/images/generations",
+            headers=_auth_header(),
+            json=payload,
+        )
+        assert second.status_code == 429
+
 
 def test_server_dlc_exposes_v1_images_generations(monkeypatch):
     """server_dlc.app 暴露 /v1/images/generations（P4/P5 误删后恢复）。"""

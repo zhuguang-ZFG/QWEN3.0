@@ -69,7 +69,7 @@ async def _login_by_wechat(body: dict) -> dict | JSONResponse:
             openid = session["openid"]
         except WechatLoginError as exc:
             logger.warning("WeChat login failed for appid=%s: %s", appid, exc)
-            return err(401, f"WeChat login failed: {exc}", 401)
+            return err(401, "WeChat login failed", 401)
     elif wechat_dev_login_enabled():
         openid = f"wx:{code}"
     else:

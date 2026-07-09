@@ -31,19 +31,32 @@ async def request_transfer(device_id: str, request: Request, authorization: str 
     if isinstance(body, JSONResponse):
         return body
     to_phone = str_field(body, "toPhone", "to_phone")
+    to_openid = str_field(body, "toOpenid", "to_openid", "openid")
     to_account_id = str_field(body, "toAccountId", "to_account_id")
     reason = str_field(body, "reason") or ""
     with connect() as conn:
         if not is_owner(conn, account, device_id):
             return err(403, "only the device owner can initiate a transfer", 403)
         expire_pending_transfers(conn)
-        if to_phone:
-            target = conn.execute("SELECT id FROM v2_account WHERE phone=? AND status='active'", (to_phone,)).fetchone()
-            if target is None:
-                return err(404, "recipient account not found", 404)
-            to_account_id = target["id"]
         if not to_account_id:
-            return err(400, "toPhone or toAccountId is required", 400)
+            if to_phone:
+                target = conn.execute(
+                    "SELECT id FROM v2_account WHERE phone=? AND status='active'",
+                    (to_phone,),
+                ).fetchone()
+                if target is None:
+                    return err(404, "recipient account not found", 404)
+                to_account_id = target["id"]
+            elif to_openid:
+                target = conn.execute(
+                    "SELECT id FROM v2_account WHERE wechat_openid=? AND status='active'",
+                    (to_openid,),
+                ).fetchone()
+                if target is None:
+                    return err(404, "recipient account not found", 404)
+                to_account_id = target["id"]
+        if not to_account_id:
+            return err(400, "toPhone, toOpenid or toAccountId is required", 400)
         if to_account_id == account["id"]:
             return err(400, "cannot transfer to yourself", 400)
         transfer_id = new_id()

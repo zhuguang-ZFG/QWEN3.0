@@ -8,13 +8,13 @@ import os
 from typing import Any
 
 from access_guard import extract_bearer_token
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from starlette.websockets import WebSocketState
 
 import app_status_ws_ticket
 from device_logic.access import require_device_access
-from device_logic.auth import authorize
+from device_logic.auth import authorize, load_active_account
 from device_logic.db import connect
 from device_logic.http import now
 from routes.device_app_api import _build_device_status
@@ -37,9 +37,9 @@ async def _authorize_ws(websocket: WebSocket, device_id: str) -> bool:
     if ticket:
         redeemed = app_status_ws_ticket.consume(ticket)
         if redeemed:
-            redeemed_device_id, token = redeemed
+            redeemed_device_id, account_id = redeemed
             if redeemed_device_id == device_id:
-                account = authorize(f"Bearer {token}")
+                account = load_active_account(account_id)
                 if isinstance(account, dict):
                     with connect() as conn:
                         denied = require_device_access(conn, account, device_id)
@@ -119,7 +119,7 @@ async def _push_transition_events(
 
 @router.post("/devices/{device_id}/ws/ticket")
 async def issue_device_status_ws_ticket(
-    request,  # type: ignore  # noqa: ANN001
+    request: Request,
     device_id: str,
 ) -> JSONResponse:
     """Exchange a user token for a one-time device status WebSocket ticket."""
@@ -139,7 +139,7 @@ async def issue_device_status_ws_ticket(
         return JSONResponse(status_code=403, content={"detail": "Access denied"})
     return JSONResponse(
         {
-            "ticket": app_status_ws_ticket.issue(device_id, token),
+            "ticket": app_status_ws_ticket.issue(device_id, account["id"]),
             "expires_in": app_status_ws_ticket.TTL_SECONDS,
         }
     )
