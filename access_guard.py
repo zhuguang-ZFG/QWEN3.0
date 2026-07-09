@@ -5,6 +5,7 @@ import secrets
 
 from fastapi import Header, HTTPException, Request, WebSocket
 
+import voice_app_ws_ticket
 import ws_ticket
 from config.settings import SECURITY
 from runtime_env import is_production_runtime
@@ -86,27 +87,31 @@ def extract_websocket_token(
 def authenticate_websocket(
     websocket: WebSocket,
     query_authorization: str = "",
-) -> tuple[bool, str]:
+) -> tuple[bool, str, str | None]:
     """Authorize a WebSocket connection.
 
-    Returns ``(authorized, method)`` where method is ``header``, ``ticket``,
-    ``query`` (legacy), or ``none``.
+    Returns ``(authorized, method, account_id)`` where method is ``header``,
+    ``ticket``, ``query`` (legacy), or ``none``. *account_id* is set when a
+    device-app voice ticket was redeemed.
     """
     header_token = extract_bearer_token(websocket.headers.get("authorization", ""))
     if is_token_valid(header_token):
-        return True, "header"
+        return True, "header", None
 
     ticket = websocket.query_params.get("ticket", "").strip()
+    account_id = voice_app_ws_ticket.consume(ticket)
+    if account_id:
+        return True, "ticket", account_id
     if ticket and ws_ticket.consume(ticket):
-        return True, "ticket"
+        return True, "ticket", None
 
     query_token = extract_bearer_token(query_authorization.strip())
     if query_token and is_token_valid(query_token):
         # ponytail: legacy path — warn on every use so log-pipelines catch deprecation drift.
         _log.warning(WS_QUERY_PARAM_TOKEN_WARNING, websocket.url.path)
-        return True, "query"
+        return True, "query", None
 
-    return False, "none"
+    return False, "none", None
 
 
 def constant_time_equals(a: str, b: str) -> bool:

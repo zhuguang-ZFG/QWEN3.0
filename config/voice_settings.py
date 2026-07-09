@@ -25,11 +25,13 @@ _DASHSCOPE_API_KEY = _env_with_aliases("DASHSCOPE_API_KEY", "ALIYUN_API_KEY")
 @dataclass
 class VoiceConfig:
     enabled: bool = os.environ.get("LIMA_VOICE_ENABLED", "0").strip().lower() in {"1", "true", "yes"}
-    asr_provider: str = os.environ.get("LIMA_VOICE_ASR_PROVIDER", "funasr").strip().lower()
+    asr_provider: str = os.environ.get("LIMA_VOICE_ASR_PROVIDER", "dashscope").strip().lower()
     tts_provider: str = os.environ.get("LIMA_VOICE_TTS_PROVIDER", "edge").strip().lower()
     vad_provider: str = os.environ.get("LIMA_VOICE_VAD_PROVIDER", "silero").strip().lower()
     model_dir: str = os.environ.get("LIMA_VOICE_MODEL_DIR", "data/voice_models")
     max_audio_bytes: int = int(os.environ.get("LIMA_VOICE_MAX_AUDIO_BYTES", "1048576"))
+    transcribe_per_min: int = int(os.environ.get("LIMA_VOICE_TRANSCRIBE_PER_MIN", "10"))
+    funasr_language: str = os.environ.get("LIMA_VOICE_FUNASR_LANGUAGE", "auto").strip() or "auto"
 
 
 def _parse_voiceprint_threshold() -> float:

@@ -20,6 +20,7 @@ from dlc_api.device_app_router import register_device_app_routes
 from dlc_api.middleware import add_body_size_limit
 from dlc_api.routes import router as dlc_router
 from routes import images as images_router
+from routes.device_app_voice_ws import legacy_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 # P1: disable interactive docs on the public entrypoint (SEC-05).
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*")
+    logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*, /v1/voice")
     yield
 
 
@@ -45,3 +46,4 @@ add_body_size_limit(app, max_bytes=32 * 1024 * 1024)
 app.include_router(dlc_router)
 app.include_router(images_router.router)
 register_device_app_routes(app)
+app.include_router(legacy_router)

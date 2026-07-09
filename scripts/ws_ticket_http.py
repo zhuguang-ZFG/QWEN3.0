@@ -63,3 +63,13 @@ def issue_device_ws_ticket(host: str, device_id: str, token: str) -> str:
     if not ticket:
         raise RuntimeError(f"/device/v1/ws/ticket missing ticket: {body}")
     return str(ticket)
+
+
+def issue_voice_app_ticket(host: str, token: str) -> str:
+    status, body = post_json(f"https://{host}/device/v1/app/voice/ticket", bearer=token)
+    if status != 200:
+        raise RuntimeError(f"/device/v1/app/voice/ticket returned {status}: {body}")
+    ticket = body.get("ticket")
+    if not ticket:
+        raise RuntimeError(f"/device/v1/app/voice/ticket missing ticket: {body}")
+    return str(ticket)

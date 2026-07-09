@@ -179,7 +179,7 @@ def _voice_map(settings: Any) -> dict[str, tuple[Any, str, Callable[[str | None]
         "LIMA_VOICE_ASR_PROVIDER": (
             settings.VOICE,
             "asr_provider",
-            lambda v: (v or "funasr").strip().lower(),
+            lambda v: (v or "dashscope").strip().lower(),
         ),
         "LIMA_VOICE_TTS_PROVIDER": (
             settings.VOICE,
@@ -200,6 +200,16 @@ def _voice_map(settings: Any) -> dict[str, tuple[Any, str, Callable[[str | None]
             settings.VOICE,
             "max_audio_bytes",
             lambda v: int(v or "1048576"),
+        ),
+        "LIMA_VOICE_TRANSCRIBE_PER_MIN": (
+            settings.VOICE,
+            "transcribe_per_min",
+            lambda v: int(v or "10"),
+        ),
+        "LIMA_VOICE_FUNASR_LANGUAGE": (
+            settings.VOICE,
+            "funasr_language",
+            lambda v: (v or "auto").strip() or "auto",
         ),
     }
 

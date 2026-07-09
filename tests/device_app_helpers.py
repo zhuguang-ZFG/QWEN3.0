@@ -23,6 +23,22 @@ def token(account_id: str) -> str:
     return jwt.encode(payload, "test-secret-minimum-32-bytes-long!!", algorithm="HS256")
 
 
+def fake_wav_bytes(payload: bytes = b"\x00\x00" * 160) -> bytes:
+    """Minimal 44-byte WAV header + PCM payload for transcribe tests."""
+    data_size = len(payload)
+    return (
+        b"RIFF"
+        + (36 + data_size).to_bytes(4, "little")
+        + b"WAVE"
+        + b"fmt "
+        + (16).to_bytes(4, "little")
+        + b"\x00" * 16
+        + b"data"
+        + data_size.to_bytes(4, "little")
+        + payload
+    )
+
+
 def headers(account_id: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token(account_id)}"}
 
@@ -72,7 +88,10 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     from routes.device_app_assets import router as assets_router
     from routes.device_app_auth import router as auth_router
 
-    # P4: chat router deleted
+    from routes.device_app_chat import router as chat_router
+    from routes.device_app_voice import router as voice_router
+    from routes.device_app_voice_ws import legacy_router as voice_legacy_ws_router
+    from routes.device_app_voice_ws import router as voice_ws_router
     from routes.device_app_discovery import router as discovery_router
     from routes.device_app_images import router as images_router
     from routes.device_app_members import router as member_router
@@ -84,14 +103,16 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     from routes.device_app_task_templates import router as template_router
     from routes.device_app_tasks import router as task_router
     from routes.device_app_activity import router as activity_router
-    # P4: voice_router deleted
 
     registry.clear()
     app = FastAPI()
     app.include_router(app_router)
     app.include_router(assets_router)
     app.include_router(auth_router)
-    # P4: chat_router deleted
+    app.include_router(chat_router)
+    app.include_router(voice_router)
+    app.include_router(voice_ws_router)
+    app.include_router(voice_legacy_ws_router)
     app.include_router(discovery_router)
     app.include_router(images_router)
     app.include_router(member_router)
@@ -103,5 +124,4 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     app.include_router(task_extras_router)
     app.include_router(status_ws_router)
     app.include_router(activity_router)
-    # P4: voice_router deleted
     return TestClient(app), store

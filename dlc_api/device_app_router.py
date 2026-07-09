@@ -36,6 +36,8 @@ from routes import (
     device_app_task_extras,
     device_app_task_templates,
     device_app_tasks,
+    device_app_voice,
+    device_app_voice_ws,
 )
 
 # Top-level mini-program routers, in registration order.
@@ -48,6 +50,8 @@ _DEVICE_APP_ROUTERS = (
     device_app_members.router,
     device_app_chat.router,
     device_app_auth.router,
+    device_app_voice.router,
+    device_app_voice_ws.router,
     device_app_notifications.router,
     device_app_provision.router,
     device_app_stats.router,

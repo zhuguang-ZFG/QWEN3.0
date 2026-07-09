@@ -1,14 +1,31 @@
 #!/usr/bin/env python3
-"""Read-only production deploy smoke (health, metrics, L2 rate limit)."""
+"""Read-only production deploy smoke (health, metrics, L2 rate limit, voice)."""
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from voice_e2e_http import fake_wav_bytes, post_multipart
+from voice_e2e_probe import (
+    exit_code_for_results,
+    print_probe_results,
+    run_voice_e2e_probes,
+    voice_e2e_skipped,
+)
 
 try:
     from config import deploy_config, settings
@@ -127,6 +144,40 @@ def _check_l2_rate_limit() -> str | None:
     return "l2_rate_limit" if strict else None
 
 
+def _check_device_app_voice_unauth() -> str | None:
+    """POST /device/v1/app/voice/transcribe without auth should be 401."""
+    try:
+        status, _ = post_multipart(
+            HOST,
+            "/device/v1/app/voice/transcribe",
+            files={"audio": ("clip.wav", fake_wav_bytes(), "audio/wav")},
+        )
+    except Exception as exc:
+        print(f"WARN voice transcribe probe -> {type(exc).__name__}: {exc}")
+        return None
+    ok = status == 401
+    print(f"{'OK' if ok else 'FAIL'}  /device/v1/app/voice/transcribe unauth -> {status}")
+    return None if ok else "voice_transcribe_unauth"
+
+
+def _check_device_app_voice_e2e() -> list[str]:
+    """Authenticated voice REST + WS probes when credentials are configured."""
+    if voice_e2e_skipped():
+        print("SKIP voice auth E2E (LIMA_VOICE_E2E_SKIP=1)")
+        return []
+    try:
+        results = asyncio.run(run_voice_e2e_probes(HOST))
+    except Exception as exc:
+        print(f"WARN voice auth E2E -> {type(exc).__name__}: {exc}")
+        return []
+    # unauth probe already ran in main(); drop duplicate
+    results = [item for item in results if item.name != "voice_transcribe_unauth"]
+    print_probe_results(results)
+    if exit_code_for_results(results):
+        return ["voice_e2e_auth"]
+    return []
+
+
 def main() -> int:
     failures: list[str] = []
 
@@ -138,6 +189,11 @@ def main() -> int:
 
     if failure := _check_l2_rate_limit():
         failures.append(failure)
+
+    if failure := _check_device_app_voice_unauth():
+        failures.append(failure)
+
+    failures.extend(_check_device_app_voice_e2e())
 
     print("---")
     if failures:

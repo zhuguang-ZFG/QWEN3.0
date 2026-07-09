@@ -11,9 +11,10 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from config.voice_settings import VOICE
 from device_logic.access import require_device_access, require_device_control
-from device_logic.audio_store import ext_for_content_type, resolve_storage_path, write_audio_file
+from device_logic.audio_clips import save_device_audio_clip
+from device_logic.audio_store import resolve_storage_path
 from device_logic.auth import authorize
-from device_logic.chat_store import list_audio_history, persist_user_audio_clip
+from device_logic.chat_store import list_audio_history
 from device_logic.db import connect
 from device_logic.http import err, new_id, read_body, str_field
 
@@ -80,19 +81,13 @@ async def ingest_audio_clip(device_id: str, request: Request, authorization: str
         denied = require_device_control(conn, account, device_id)
         if denied:
             return denied
-        storage_path = write_audio_file(
-            device_id,
-            audio_id,
-            audio_data,
-            ext=ext_for_content_type(content_type),
-        )
-        saved = persist_user_audio_clip(
+        saved = save_device_audio_clip(
             conn,
             device_id,
             content,
-            audio_id,
-            storage_path=storage_path,
+            audio_data,
             content_type=content_type,
+            audio_id=audio_id,
             duration_ms=parsed_duration,
         )
     if saved is None:
