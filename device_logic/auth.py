@@ -122,6 +122,7 @@ def _login_response(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any] | J
         "expiresIn": 86400,
         "accountId": account["id"],
         "userId": account["id"],
+        "openid": account["wechat_openid"] or "",
         "phone": account["phone"],
         "email": account["email"],
     }
@@ -130,6 +131,7 @@ def _login_response(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any] | J
 def account_payload(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
     return {
         "accountId": account["id"],
+        "openid": account["wechat_openid"] or "",
         "phone": account["phone"],
         "email": account["email"],
         "nickname": account["nickname"],
