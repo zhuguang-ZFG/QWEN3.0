@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 from typing import Any
 
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import FileResponse, JSONResponse
 
-from device_logic.access import require_device_access
-from device_logic.audio_store import resolve_storage_path
+from config.voice_settings import VOICE
+from device_logic.access import require_device_access, require_device_control
+from device_logic.audio_store import ext_for_content_type, resolve_storage_path, write_audio_file
 from device_logic.auth import authorize
-from device_logic.chat_store import list_audio_history
+from device_logic.chat_store import list_audio_history, persist_user_audio_clip
 from device_logic.db import connect
-from device_logic.http import err
+from device_logic.http import err, new_id, read_body, str_field
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-chat"])
 
@@ -42,6 +45,59 @@ async def device_chat_history(device_id: str, authorization: str = Header(defaul
         rows = list_audio_history(conn, device_id)
     chat_history = [{"content": row["content"], "audioId": row["audio_id"]} for row in rows]
     return {"chatHistory": chat_history, "count": len(chat_history)}
+
+
+@router.post("/devices/{device_id}/audio-clips")
+async def ingest_audio_clip(device_id: str, request: Request, authorization: str = Header(default="")) -> Any:
+    """Store a user audio clip + transcript for voiceprint chat-history playback."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+
+    content = str_field(body, "content", "text", "transcript")
+    audio_b64 = str_field(body, "audioBase64", "audio_base64")
+    if not content or not audio_b64:
+        return err(400, "content and audioBase64 are required", 400)
+
+    try:
+        audio_data = base64.b64decode(audio_b64, validate=True)
+    except (binascii.Error, ValueError):
+        return err(400, "audioBase64 must be valid base64", 400)
+    if not audio_data:
+        return err(400, "audio payload is empty", 400)
+    if len(audio_data) > VOICE.max_audio_bytes:
+        return err(413, "audio payload is too large", 413)
+
+    audio_id = str_field(body, "audioId", "audio_id") or new_id()
+    content_type = str_field(body, "contentType", "content_type") or "audio/mpeg"
+    duration_ms = body.get("durationMs", body.get("duration_ms"))
+    parsed_duration = int(duration_ms) if isinstance(duration_ms, int) else None
+
+    with connect() as conn:
+        denied = require_device_control(conn, account, device_id)
+        if denied:
+            return denied
+        storage_path = write_audio_file(
+            device_id,
+            audio_id,
+            audio_data,
+            ext=ext_for_content_type(content_type),
+        )
+        saved = persist_user_audio_clip(
+            conn,
+            device_id,
+            content,
+            audio_id,
+            storage_path=storage_path,
+            content_type=content_type,
+            duration_ms=parsed_duration,
+        )
+    if saved is None:
+        return err(503, "device has no bound account for chat persistence", 503)
+    return saved
 
 
 @router.get("/audio/{audio_id}")

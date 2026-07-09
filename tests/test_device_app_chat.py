@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -129,3 +131,44 @@ def test_audio_content_streams_file(client, tmp_path):
     assert response.status_code == 200, response.text
     assert response.content == b"fake-audio-bytes"
     assert response.headers["content-type"].startswith("audio/mpeg")
+
+
+def test_ingest_audio_clip_persists_playback(client):
+    _seed()
+    response = client.post(
+        "/device/v1/app/devices/dev-1/audio-clips",
+        headers=_headers("a-owner"),
+        json={
+            "content": "hello ingest",
+            "audioBase64": base64.b64encode(b"clip-bytes").decode(),
+            "contentType": "audio/mpeg",
+            "durationMs": 900,
+        },
+    )
+    assert response.status_code == 200, response.text
+    audio_id = response.json()["audioId"]
+
+    history = client.get("/device/v1/app/devices/dev-1/chat-history", headers=_headers("a-owner"))
+    assert history.status_code == 200, history.text
+    assert any(item["audioId"] == audio_id for item in history.json()["chatHistory"])
+
+    meta = client.get(f"/device/v1/app/audio/{audio_id}", headers=_headers("a-owner"))
+    assert meta.status_code == 200, meta.text
+    assert meta.json()["url"]
+
+    content = client.get(f"/device/v1/app/audio/{audio_id}/content", headers=_headers("a-owner"))
+    assert content.status_code == 200, content.text
+    assert content.content == b"clip-bytes"
+
+
+def test_ingest_audio_clip_denies_guest_without_share(client):
+    _seed()
+    response = client.post(
+        "/device/v1/app/devices/dev-1/audio-clips",
+        headers=_headers("a-guest"),
+        json={
+            "content": "blocked",
+            "audioBase64": base64.b64encode(b"x").decode(),
+        },
+    )
+    assert response.status_code == 403

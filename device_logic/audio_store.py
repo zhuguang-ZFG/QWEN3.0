@@ -28,6 +28,17 @@ def audio_file_path(device_id: str, audio_id: str, *, ext: str = "mp3") -> Path:
     return audio_root() / safe_device / f"{safe_audio}.{safe_ext}"
 
 
+def ext_for_content_type(content_type: str) -> str:
+    normalized = (content_type or "").split(";", 1)[0].strip().lower()
+    return {
+        "audio/mpeg": "mp3",
+        "audio/mp3": "mp3",
+        "audio/wav": "wav",
+        "audio/x-wav": "wav",
+        "audio/webm": "webm",
+    }.get(normalized, "bin")
+
+
 def write_audio_file(device_id: str, audio_id: str, data: bytes, *, ext: str = "mp3") -> str:
     path = audio_file_path(device_id, audio_id, ext=ext)
     path.parent.mkdir(parents=True, exist_ok=True)

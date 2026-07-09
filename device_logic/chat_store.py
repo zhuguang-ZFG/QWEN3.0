@@ -220,3 +220,65 @@ def persist_user_transcript(conn: sqlite3.Connection, device_id: str, content: s
     if session_id is None:
         return None
     return insert_message(conn, session_id, "user", content)
+
+
+def insert_audio_record(
+    conn: sqlite3.Connection,
+    device_id: str,
+    session_id: str,
+    audio_id: str,
+    *,
+    storage_path: str,
+    content_type: str,
+    duration_ms: int | None = None,
+) -> str:
+    record_id = new_id()
+    conn.execute(
+        """
+        INSERT INTO v2_audio_record
+        (id, device_id, session_id, audio_id, duration_ms, storage_path, content_type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (record_id, device_id, session_id, audio_id, duration_ms, storage_path, content_type, now()),
+    )
+    conn.commit()
+    return record_id
+
+
+def persist_user_audio_clip(
+    conn: sqlite3.Connection,
+    device_id: str,
+    content: str,
+    audio_id: str,
+    *,
+    storage_path: str,
+    content_type: str = "audio/mpeg",
+    duration_ms: int | None = None,
+) -> dict[str, str] | None:
+    """Persist transcript + audio metadata for voiceprint chat-history playback."""
+    session_id = ensure_active_session(conn, device_id)
+    if session_id is None:
+        return None
+    existing = conn.execute("SELECT id FROM v2_audio_record WHERE audio_id=?", (audio_id,)).fetchone()
+    if existing is None:
+        insert_audio_record(
+            conn,
+            device_id,
+            session_id,
+            audio_id,
+            storage_path=storage_path,
+            content_type=content_type,
+            duration_ms=duration_ms,
+        )
+    else:
+        conn.execute(
+            """
+            UPDATE v2_audio_record
+            SET storage_path=?, content_type=?, duration_ms=COALESCE(?, duration_ms), session_id=?
+            WHERE audio_id=?
+            """,
+            (storage_path, content_type, duration_ms, session_id, audio_id),
+        )
+        conn.commit()
+    message_id = insert_message(conn, session_id, "user", content, audio_id=audio_id)
+    return {"messageId": message_id, "audioId": audio_id, "sessionId": session_id}
