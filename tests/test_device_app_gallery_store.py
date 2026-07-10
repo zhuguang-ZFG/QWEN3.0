@@ -110,3 +110,18 @@ def test_other_account_cannot_access(account_id: str) -> None:
     assert gallery_store.get_image(image["id"], other_id) is None
     assert gallery_store.delete_image(image["id"], other_id) is False
     assert gallery_store.list_images(other_id) == []
+
+
+def test_update_thumb_url(account_id: str) -> None:
+    image = gallery_store.add_image(
+        account_id=account_id,
+        file_id="telegram-file-thumb",
+        filename="thumb.jpg",
+        size_bytes=1,
+        thumb_url="https://t.me/old.jpg",
+    )
+    assert gallery_store.update_thumb_url(image["id"], account_id, "https://t.me/new.jpg") is True
+    found = gallery_store.get_image(image["id"], account_id)
+    assert found is not None
+    assert found["thumbUrl"] == "https://t.me/new.jpg"
+    assert gallery_store.update_thumb_url("missing", account_id, "https://t.me/x.jpg") is False

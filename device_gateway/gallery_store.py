@@ -97,6 +97,22 @@ def get_image(image_id: str, account_id: str) -> dict[str, Any] | None:
     return _row_to_dict(row) if row else None
 
 
+def update_thumb_url(image_id: str, account_id: str, thumb_url: str) -> bool:
+    """Update the cached Telegram thumb URL for an active gallery image."""
+    with connect() as conn:
+        cursor = conn.execute(
+            """
+            UPDATE v2_gallery_image
+            SET thumb_url = ?
+            WHERE id = ? AND account_id = ? AND status = 'active'
+            """,
+            (thumb_url, image_id, account_id),
+        )
+        conn.commit()
+        affected = cursor.rowcount
+    return bool(affected)
+
+
 def delete_image(image_id: str, account_id: str) -> bool:
     """Soft-delete a gallery image. Returns True if a row was affected."""
     with connect() as conn:

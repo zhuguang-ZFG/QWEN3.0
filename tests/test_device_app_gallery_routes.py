@@ -9,11 +9,13 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from device_gateway.gallery_service import clear_proxy_cache_for_tests
 from device_gateway.store import InMemoryDeviceTaskStore
 from device_gateway.tasks import install_task_store_for_tests, reset_tasks_for_tests
 from device_logic.activation import reset_activation_store_for_tests
 from device_logic.auth import jwt
 from device_logic.db import _schema_ready_paths, connect
+from integrations.telegram_bot.client import TelegramNotConfiguredError
 from routes.device_app_gallery import router as gallery_router
 
 
@@ -44,6 +46,15 @@ def _seed_account(account_id: str) -> None:
         conn.commit()
 
 
+def _mock_backend(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
+    mock_backend = AsyncMock()
+    mock_backend.send_photo = AsyncMock(return_value="telegram-file-id")
+    mock_backend.get_file_url = AsyncMock(return_value="https://api.telegram.org/file/botsecret/photos/x.jpg")
+    mock_backend.download_file = AsyncMock(return_value=b"fake-image-bytes")
+    monkeypatch.setattr("routes.device_app_gallery.get_gallery_backend", lambda: mock_backend)
+    return mock_backend
+
+
 @pytest.fixture
 def gallery_client(tmp_path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "gallery_routes.db"))
@@ -54,6 +65,7 @@ def gallery_client(tmp_path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     reset_activation_store_for_tests()
     reset_tasks_for_tests()
     install_task_store_for_tests(InMemoryDeviceTaskStore())
+    clear_proxy_cache_for_tests()
 
     app = FastAPI()
     app.include_router(gallery_router)
@@ -76,12 +88,7 @@ def test_list_gallery_empty(gallery_client: TestClient) -> None:
 
 def test_upload_gallery_image_success(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     _seed_account("owner")
-
-    mock_client = AsyncMock()
-    mock_client.send_photo = AsyncMock(return_value="telegram-file-id")
-    mock_client.get_file_url = AsyncMock(return_value="https://t.me/file.jpg")
-
-    monkeypatch.setattr("routes.device_app_gallery.TelegramBotClient", lambda: mock_client)
+    _mock_backend(monkeypatch)
 
     response = gallery_client.post(
         "/device/v1/app/gallery",
@@ -92,13 +99,14 @@ def test_upload_gallery_image_success(gallery_client: TestClient, monkeypatch: p
     data = response.json()
     assert data["code"] == 0
     assert data["data"]["fileId"] == "telegram-file-id"
-    assert data["data"]["thumbUrl"] == "https://t.me/file.jpg"
+    assert data["data"]["thumbUrl"].endswith(f"/device/v1/app/gallery/{data['data']['id']}/thumb")
+    assert data["data"]["fileUrl"].endswith(f"/device/v1/app/gallery/{data['data']['id']}/file")
 
     listed = gallery_client.get("/device/v1/app/gallery", headers=_headers("owner"))
     assert listed.json()["data"]["count"] == 1
 
 
-def test_upload_gallery_unsupported_type(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_upload_gallery_unsupported_type(gallery_client: TestClient) -> None:
     _seed_account("owner")
     response = gallery_client.post(
         "/device/v1/app/gallery",
@@ -110,11 +118,7 @@ def test_upload_gallery_unsupported_type(gallery_client: TestClient, monkeypatch
 
 def test_delete_gallery_image(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     _seed_account("owner")
-
-    mock_client = AsyncMock()
-    mock_client.send_photo = AsyncMock(return_value="file-to-delete")
-    mock_client.get_file_url = AsyncMock(return_value="https://t.me/file.jpg")
-    monkeypatch.setattr("routes.device_app_gallery.TelegramBotClient", lambda: mock_client)
+    _mock_backend(monkeypatch)
 
     upload = gallery_client.post(
         "/device/v1/app/gallery",
@@ -131,13 +135,29 @@ def test_delete_gallery_image(gallery_client: TestClient, monkeypatch: pytest.Mo
     assert listed.json()["data"]["count"] == 0
 
 
-def test_get_download_url_refreshes(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_list_gallery_does_not_hit_telegram(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     _seed_account("owner")
+    mock_backend = _mock_backend(monkeypatch)
 
-    mock_client = AsyncMock()
-    mock_client.send_photo = AsyncMock(return_value="file-download")
-    mock_client.get_file_url = AsyncMock(return_value="https://t.me/old.jpg")
-    monkeypatch.setattr("routes.device_app_gallery.TelegramBotClient", lambda: mock_client)
+    upload = gallery_client.post(
+        "/device/v1/app/gallery",
+        headers=_headers("owner"),
+        files={"file": ("test.jpg", io.BytesIO(b"fake-image"), "image/jpeg")},
+    )
+    image_id = upload.json()["data"]["id"]
+    mock_backend.get_file_url.reset_mock()
+
+    response = gallery_client.get("/device/v1/app/gallery", headers=_headers("owner"))
+    assert response.status_code == 200
+    image = response.json()["data"]["images"][0]
+    assert image["thumbUrl"].endswith(f"/device/v1/app/gallery/{image_id}/thumb")
+    mock_backend.get_file_url.assert_not_called()
+
+
+def test_get_thumb_proxy_returns_bytes(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_account("owner")
+    mock_backend = _mock_backend(monkeypatch)
+    mock_backend.download_file = AsyncMock(return_value=b"thumb-bytes")
 
     upload = gallery_client.post(
         "/device/v1/app/gallery",
@@ -146,15 +166,98 @@ def test_get_download_url_refreshes(gallery_client: TestClient, monkeypatch: pyt
     )
     image_id = upload.json()["data"]["id"]
 
-    mock_client.get_file_url = AsyncMock(return_value="https://t.me/fresh.jpg")
+    response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/thumb", headers=_headers("owner"))
+    assert response.status_code == 200
+    assert response.content == b"thumb-bytes"
+    assert response.headers["content-type"].startswith("image/")
+    assert "max-age=3600" in response.headers.get("cache-control", "")
+
+
+def test_get_thumb_proxy_accepts_access_token_query(
+    gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_account("owner")
+    _mock_backend(monkeypatch)
+
+    upload = gallery_client.post(
+        "/device/v1/app/gallery",
+        headers=_headers("owner"),
+        files={"file": ("test.jpg", io.BytesIO(b"fake-image"), "image/jpeg")},
+    )
+    image_id = upload.json()["data"]["id"]
+    token = _token("owner")
+
+    response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/thumb?access_token={token}")
+    assert response.status_code == 200
+    assert response.headers.get("cache-control") == "no-store, private"
+
+
+def test_get_file_proxy_returns_bytes(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_account("owner")
+    _mock_backend(monkeypatch)
+
+    upload = gallery_client.post(
+        "/device/v1/app/gallery",
+        headers=_headers("owner"),
+        files={"file": ("test.jpg", io.BytesIO(b"fake-image"), "image/jpeg")},
+    )
+    image_id = upload.json()["data"]["id"]
+
+    response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/file", headers=_headers("owner"))
+    assert response.status_code == 200
+    assert response.content == b"fake-image-bytes"
+    assert response.headers.get("cache-control") == "no-store, private"
+
+
+def test_get_download_url_returns_stable_proxy(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_account("owner")
+    mock_backend = _mock_backend(monkeypatch)
+
+    upload = gallery_client.post(
+        "/device/v1/app/gallery",
+        headers=_headers("owner"),
+        files={"file": ("test.jpg", io.BytesIO(b"fake-image"), "image/jpeg")},
+    )
+    image_id = upload.json()["data"]["id"]
+
+    mock_backend.get_file_url.reset_mock()
     response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/download", headers=_headers("owner"))
     assert response.status_code == 200
-    assert response.json()["data"]["url"] == "https://t.me/fresh.jpg"
+    url = response.json()["data"]["url"]
+    assert f"/device/v1/app/gallery/{image_id}/file" in url
+    assert "fetch_token=" in url
+    assert "api.telegram.org" not in url
+    mock_backend.get_file_url.assert_not_called()
+
+
+def test_get_file_proxy_accepts_fetch_token(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_account("owner")
+    _mock_backend(monkeypatch)
+
+    upload = gallery_client.post(
+        "/device/v1/app/gallery",
+        headers=_headers("owner"),
+        files={"file": ("test.jpg", io.BytesIO(b"fake-image"), "image/jpeg")},
+    )
+    image_id = upload.json()["data"]["id"]
+
+    download = gallery_client.get(f"/device/v1/app/gallery/{image_id}/download", headers=_headers("owner"))
+    file_url = download.json()["data"]["url"]
+    fetch_token = file_url.split("fetch_token=", 1)[1]
+
+    response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/file?fetch_token={fetch_token}")
+    assert response.status_code == 200
+    assert response.content == b"fake-image-bytes"
+    assert response.headers.get("cache-control") == "no-store, private"
 
 
 def test_gallery_not_configured_returns_503(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     _seed_account("owner")
-    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+
+    def _raise_missing() -> None:
+        raise TelegramNotConfiguredError("missing")
+
+    monkeypatch.setattr("routes.device_app_gallery.get_gallery_backend", _raise_missing)
 
     response = gallery_client.post(
         "/device/v1/app/gallery",
