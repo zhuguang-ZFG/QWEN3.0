@@ -44,8 +44,11 @@ def _get(path: str, *, bearer: str = "", timeout: float = 90) -> tuple[int, str]
     if bearer:
         headers["Authorization"] = f"Bearer {bearer}"
     req = urllib.request.Request(f"https://{HOST}{path}", headers=headers)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.status, resp.read().decode("utf-8", errors="replace")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status, resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read().decode("utf-8", errors="replace")
 
 
 def _post(path: str, body: dict, *, timeout: float = 90) -> tuple[int, str]:
@@ -58,19 +61,32 @@ def _post(path: str, body: dict, *, timeout: float = 90) -> tuple[int, str]:
         return exc.code, exc.read().decode("utf-8", errors="replace")
 
 
+def _configured_api_key() -> str:
+    """Return the deploy-verify API key when configured."""
+    if settings is not None:
+        return (settings.SECURITY.api_key or "").strip()
+    return os.environ.get("LIMA_API_KEY", "").strip()
+
+
 def _check_health_path(path: str) -> str | None:
     """Probe a health endpoint and return the failure key, or None on success."""
     attempts = 3
     last_exc: Exception | None = None
+    api_key = _configured_api_key()
     for attempt in range(attempts):
         started = time.monotonic()
         try:
             status, body = _get(path)
+            used_key = False
+            if status == 401 and api_key:
+                status, body = _get(path, bearer=api_key)
+                used_key = True
             elapsed = time.monotonic() - started
             data = json.loads(body)
             ok = status == 200 and data.get("status") == "ok"
+            auth_note = " (with API key)" if used_key and ok else ""
             print(
-                f"OK  {path} -> {status} status={data.get('status')} ({elapsed:.2f}s)"
+                f"OK  {path} -> {status} status={data.get('status')} ({elapsed:.2f}s){auth_note}"
                 if ok
                 else f"FAIL {path} -> {status} {body[:120]} ({elapsed:.2f}s)"
             )
