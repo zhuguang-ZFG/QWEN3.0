@@ -171,7 +171,9 @@ async def execute_task_template(template_id: str, request: Request, authorizatio
 
     params = json.loads(row["params"]) if row["params"] else {}
     request_id = str_field(body, "requestId", "request_id")
-    task, error = await _build_app_gateway_task(device_id, row["capability"], params, source, request_id)
+    task, error = await _build_app_gateway_task(
+        device_id, row["capability"], params, source, request_id, str(account.get("id", ""))
+    )
     if error:
         return error
     assert task is not None

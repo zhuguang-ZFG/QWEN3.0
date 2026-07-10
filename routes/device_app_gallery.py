@@ -47,10 +47,12 @@ def _authorize_gallery(
     *,
     image_id: str = "",
     fetch_token: str = "",
+    thumb_token: str = "",
 ) -> tuple[dict[str, Any] | JSONResponse, bool]:
-    """Authorize via Bearer header, access_token query, or short-lived fetch_token."""
-    if fetch_token.strip() and image_id:
-        parsed = parse_gallery_fetch_token(fetch_token.strip())
+    """Authorize via Bearer header, access_token query, fetch_token, or thumb_token."""
+    hmac_token = fetch_token.strip() or thumb_token.strip()
+    if hmac_token and image_id:
+        parsed = parse_gallery_fetch_token(hmac_token)
         if parsed and parsed[1] == image_id:
             return {"id": parsed[0]}, False
 
@@ -81,13 +83,15 @@ async def _serve_gallery_proxy(
     access_token: str,
     fetch_token: str = "",
     *,
+    thumb_token: str = "",
     for_file: bool,
 ) -> Response | JSONResponse:
-    account, used_query_token = _authorize_gallery(
+    account, used_jwt_query = _authorize_gallery(
         authorization,
         access_token,
         image_id=image_id,
         fetch_token=fetch_token,
+        thumb_token=thumb_token,
     )
     account_id = _account_id(account)
     if isinstance(account_id, JSONResponse):
@@ -107,7 +111,7 @@ async def _serve_gallery_proxy(
 
     try:
         backend = get_gallery_backend()
-        content, mime_type = await get_cached_image_bytes(account_id, image_id, image, backend)
+        content, mime_type = await get_cached_image_bytes(account_id, image_id, image, backend, for_file=for_file)
     except TelegramNotConfiguredError as exc:
         return _gallery_not_configured_response(exc)
     except Exception as exc:
@@ -118,7 +122,7 @@ async def _serve_gallery_proxy(
     return Response(
         content=content,
         media_type=mime_type,
-        headers=proxy_cache_headers(query_token_auth=used_query_token, for_file=for_file),
+        headers=proxy_cache_headers(jwt_query_auth=used_jwt_query, for_file=for_file),
     )
 
 
@@ -163,7 +167,7 @@ async def upload_gallery_image(
         thumb_url=thumb_url,
         tags=[],
     )
-    return JSONResponse({"code": 0, "data": with_stable_urls(image, request)})
+    return JSONResponse({"code": 0, "data": with_stable_urls(image, request, account_id)})
 
 
 @router.get("/gallery")
@@ -208,9 +212,17 @@ async def get_gallery_thumb(
     authorization: str = Header(default=""),
     access_token: str = Query(default=""),
     fetch_token: str = Query(default=""),
+    thumb_token: str = Query(default=""),
 ) -> Response:
     """Proxy gallery image bytes with a stable, cacheable URL."""
-    return await _serve_gallery_proxy(image_id, authorization, access_token, fetch_token, for_file=False)
+    return await _serve_gallery_proxy(
+        image_id,
+        authorization,
+        access_token,
+        fetch_token,
+        thumb_token=thumb_token,
+        for_file=False,
+    )
 
 
 @router.get("/gallery/{image_id}/file")
@@ -221,7 +233,13 @@ async def get_gallery_file(
     fetch_token: str = Query(default=""),
 ) -> Response:
     """Proxy full gallery image bytes for draw_from_image (no Telegram URL exposure)."""
-    return await _serve_gallery_proxy(image_id, authorization, access_token, fetch_token, for_file=True)
+    return await _serve_gallery_proxy(
+        image_id,
+        authorization,
+        access_token,
+        fetch_token,
+        for_file=True,
+    )
 
 
 @router.get("/gallery/{image_id}/download")

@@ -102,6 +102,7 @@ def test_upload_gallery_image_success(gallery_client: TestClient, monkeypatch: p
     assert data["data"]["fileId"] == "telegram-file-id"
     assert data["data"]["thumbUrl"].endswith(f"/device/v1/app/gallery/{data['data']['id']}/thumb")
     assert data["data"]["fileUrl"].endswith(f"/device/v1/app/gallery/{data['data']['id']}/file")
+    assert data["data"]["thumbToken"]
 
     listed = gallery_client.get("/device/v1/app/gallery", headers=_headers("owner"))
     listed_data = listed.json()["data"]
@@ -193,6 +194,60 @@ def test_get_thumb_proxy_accepts_access_token_query(
     response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/thumb?access_token={token}")
     assert response.status_code == 200
     assert response.headers.get("cache-control") == "no-store, private"
+
+
+def test_get_thumb_proxy_accepts_thumb_token(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_account("owner")
+    mock_backend = _mock_backend(monkeypatch)
+    mock_backend.get_file_url = AsyncMock(return_value="https://api.telegram.org/file/botsecret/thumbs/x.jpg")
+    mock_backend.download_file = AsyncMock(return_value=b"thumb-bytes")
+
+    upload = gallery_client.post(
+        "/device/v1/app/gallery",
+        headers=_headers("owner"),
+        files={"file": ("test.jpg", io.BytesIO(b"fake-image"), "image/jpeg")},
+    )
+    image_id = upload.json()["data"]["id"]
+    thumb_token = upload.json()["data"]["thumbToken"]
+    assert thumb_token
+
+    response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/thumb?thumb_token={thumb_token}")
+    assert response.status_code == 200
+    assert response.content == b"thumb-bytes"
+    assert "max-age=3600" in response.headers.get("cache-control", "")
+
+
+def test_get_thumb_proxy_rejects_invalid_thumb_token(
+    gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_account("owner")
+    _mock_backend(monkeypatch)
+
+    upload = gallery_client.post(
+        "/device/v1/app/gallery",
+        headers=_headers("owner"),
+        files={"file": ("test.jpg", io.BytesIO(b"fake-image"), "image/jpeg")},
+    )
+    image_id = upload.json()["data"]["id"]
+
+    response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/thumb?thumb_token=bad:token")
+    assert response.status_code == 401
+
+
+def test_list_gallery_includes_thumb_token(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    _seed_account("owner")
+    _mock_backend(monkeypatch)
+
+    gallery_client.post(
+        "/device/v1/app/gallery",
+        headers=_headers("owner"),
+        files={"file": ("test.jpg", io.BytesIO(b"fake-image"), "image/jpeg")},
+    )
+
+    response = gallery_client.get("/device/v1/app/gallery", headers=_headers("owner"))
+    images = response.json()["data"]["images"]
+    assert len(images) == 1
+    assert images[0]["thumbToken"]
 
 
 def test_get_file_proxy_returns_bytes(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:

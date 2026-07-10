@@ -11,12 +11,12 @@ from observability import prometheus_metrics
 
 from .device_draw_handler import handle_device_draw
 from .image_url_validation import validate_image_url
-
-_log = logging.getLogger(__name__)
 from .model_routing import CONTROL_CAPABILITIES, looks_like_svg_path
 from .path_pipeline import render_svg_task, render_text_task, text_to_svg_path
 from .path_validator import MAX_FEED, MIN_FEED
 from .safety import DEFAULT_FEED, safe_point
+
+_log = logging.getLogger(__name__)
 
 
 def _clamp_feed(raw: Any, default: int = DEFAULT_FEED) -> int:
@@ -146,6 +146,42 @@ def _draw_user_preferences(params: dict[str, Any]) -> dict[str, Any]:
     return prefs
 
 
+def _gallery_image_id_from_params(params: dict[str, Any]) -> str:
+    raw = params.get("galleryImageId") or params.get("gallery_image_id")
+    return str(raw).strip() if raw else ""
+
+
+def _account_id_from_params(params: dict[str, Any]) -> str:
+    raw = params.get("_account_id") or params.get("accountId") or params.get("account_id")
+    return str(raw).strip() if raw else ""
+
+
+def _resolve_gallery_draw_image(
+    params: dict[str, Any],
+) -> tuple[str | None, str | None, str | None]:
+    """Return (image_url, gallery_image_id, error_msg)."""
+    gallery_image_id = _gallery_image_id_from_params(params)
+    if not gallery_image_id:
+        return None, None, None
+
+    account_id = _account_id_from_params(params)
+    if not account_id:
+        return None, None, "gallery_image_id requires authenticated account context"
+
+    from device_gateway import gallery_store
+    from device_gateway.gallery_service import internal_gallery_file_url
+
+    image = gallery_store.get_image(gallery_image_id, account_id)
+    if image is None:
+        return None, None, "gallery image not found"
+
+    image_url = internal_gallery_file_url(account_id, gallery_image_id)
+    if not image_url:
+        return None, None, "gallery image URL could not be resolved"
+
+    return image_url, gallery_image_id, None
+
+
 async def build_draw_generated_params(
     prompt: str, device_id: str, params: dict[str, Any]
 ) -> tuple[dict[str, Any], str | None]:
@@ -160,14 +196,25 @@ async def build_draw_generated_params(
             "preview_svg": rendered.get("preview_svg", ""),
         }, None
 
+    gallery_image_url, gallery_image_id, gallery_error = _resolve_gallery_draw_image(params)
+    if gallery_error:
+        return {}, gallery_error
+
     provided_image_url = params.get("imageUrl") or params.get("image_url")
-    if provided_image_url:
+    if gallery_image_url:
+        provided_image_url = gallery_image_url
+    elif provided_image_url:
         validated_url, url_error = validate_image_url(str(provided_image_url))
         if url_error or validated_url is None:
             return {}, url_error or "image_url is invalid"
         provided_image_url = validated_url
+
+    draw_prompt = prompt.strip()
+    if not draw_prompt and gallery_image_id:
+        draw_prompt = f"gallery:{gallery_image_id[:32]}"
+
     result = await handle_device_draw(
-        prompt,
+        draw_prompt,
         device_id=device_id,
         user_preferences=_draw_user_preferences(params),
         image_url=str(provided_image_url) if provided_image_url else None,
@@ -181,12 +228,15 @@ async def build_draw_generated_params(
         "feed": user_feed,
         "path": rendered["path"],
         "source_capability": "draw_generated",
-        "prompt": prompt,
+        "prompt": draw_prompt[:120],
         "preview_svg": rendered.get("preview_svg", ""),
     }
-    returned_image_url = result.get("image_url") or provided_image_url
-    if isinstance(returned_image_url, str) and returned_image_url:
-        run_params["image_url"] = returned_image_url[:512]
+    if gallery_image_id:
+        run_params["gallery_image_id"] = gallery_image_id[:64]
+    else:
+        returned_image_url = result.get("image_url") or provided_image_url
+        if isinstance(returned_image_url, str) and returned_image_url:
+            run_params["image_url"] = returned_image_url[:512]
     model = result.get("model")
     if isinstance(model, str) and model:
         run_params["draw_model"] = model[:80]

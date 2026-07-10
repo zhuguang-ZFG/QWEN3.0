@@ -46,6 +46,7 @@ async def preview_task(request: Request, authorization: str = Header(default="")
         params,
         _PREVIEW_SOURCE,
         f"preview_{new_id()}",
+        str(account.get("id", "")),
     )
     if error:
         return error
@@ -84,7 +85,9 @@ async def create_batch_tasks(device_id: str, request: Request, authorization: st
         capability = str_field(item, "capability") or "write_text"
         raw_params = item.get("params")
         params: dict[str, Any] = dict(raw_params) if isinstance(raw_params, dict) else {}
-        task, error = await _build_app_gateway_task(device_id, capability, params, _BATCH_SOURCE, new_id())
+        task, error = await _build_app_gateway_task(
+            device_id, capability, params, _BATCH_SOURCE, new_id(), str(account.get("id", ""))
+        )
         if error:
             results.append({"status": "failed", "error": _error_message(error)})
             continue

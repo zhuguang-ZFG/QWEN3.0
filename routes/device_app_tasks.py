@@ -66,11 +66,18 @@ def _normalize_capability(capability: str, params: dict[str, Any]) -> tuple[str,
 
 
 async def _build_app_gateway_task(
-    device_id: str, capability: str, params: dict[str, Any], source: str, request_id: str
+    device_id: str,
+    capability: str,
+    params: dict[str, Any],
+    source: str,
+    request_id: str,
+    account_id: str = "",
 ) -> tuple[dict[str, Any] | None, JSONResponse | None]:
     capability, task_params, error = _normalize_capability(capability, params)
     if error:
         return None, err(4001, error, 400)
+    if account_id:
+        task_params["_account_id"] = account_id
     sanitized, validation_error = validate_capability_params(capability, task_params)
     if validation_error:
         return None, err(4002, f"validation failed: {validation_error}", 400)
@@ -145,6 +152,7 @@ async def _create_structured_task(
         params,
         source,
         str_field(body, "requestId", "request_id"),
+        account_id=str(account.get("id", "")),
     )
     if error:
         return error

@@ -127,12 +127,23 @@ def validate_capability_params(
     for field in required:
         if field in ("path", "feed"):
             continue  # path may be generated later; feed already clamped
+        if capability == "draw_generated" and field == "prompt":
+            has_image = bool(
+                params.get("image_url")
+                or params.get("imageUrl")
+                or params.get("gallery_image_id")
+                or params.get("galleryImageId")
+            )
+            if has_image and field in params:
+                continue
         if field not in params or not params[field]:
             return {}, MotionErrorCode.E_BAD_PARAMS.value
 
     for key, value in params.items():
         if key in ("path", "feed"):
             continue  # path preserved only when explicitly validated above
+        if key.startswith("_"):
+            continue
         if isinstance(value, str):
             limit = 8192 if key == "preview_svg" else 120
             sanitized[key] = value[:limit]
