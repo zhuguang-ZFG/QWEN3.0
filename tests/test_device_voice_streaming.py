@@ -82,3 +82,57 @@ async def test_open_voice_stream_session_buffered_for_whisper(monkeypatch):
 
     session = await open_voice_stream_session()
     assert isinstance(session, BufferedVoiceStreamSession)
+
+
+@pytest.mark.asyncio
+async def test_buffered_session_rejects_oversized_feed(monkeypatch):
+    monkeypatch.setattr(
+        "device_voice.streaming_asr.VOICE",
+        replace(VOICE, max_audio_bytes=32),
+    )
+    session = BufferedVoiceStreamSession()
+    await session.feed(b"\x00\x01" * 8)
+    with pytest.raises(ValueError, match="exceeds max size"):
+        await session.feed(b"\x00\x01" * 10)
+
+
+@pytest.mark.asyncio
+async def test_dashscope_feed_splits_frames_and_paces(monkeypatch):
+    monkeypatch.setattr(
+        "device_voice.streaming_asr.VOICE",
+        replace(VOICE, stream_pcm_frame_bytes=160, stream_frame_interval_ms=10, max_audio_bytes=4096),
+    )
+    sleeps: list[float] = []
+
+    async def fake_sleep(delay: float) -> None:
+        sleeps.append(delay)
+
+    fed: list[bytes] = []
+    session = DashScopeLiveStreamSession(api_key="k", model="paraformer-realtime-v2")
+    session._started = True
+    session._feed_sync = lambda frame: fed.append(frame)  # type: ignore[method-assign]
+    monkeypatch.setattr("device_voice.streaming_asr.asyncio.sleep", fake_sleep)
+
+    await session.feed(b"\x00\x01" * 160)
+    assert len(fed) == 2
+    assert all(len(frame) == 160 for frame in fed)
+    assert sleeps == [0.01]
+
+
+@pytest.mark.asyncio
+async def test_dashscope_close_stops_recognition(monkeypatch):
+    stopped: list[str] = []
+
+    class FakeRecognition:
+        def stop(self) -> None:
+            stopped.append("stop")
+
+    session = DashScopeLiveStreamSession(api_key="k", model="paraformer-realtime-v2")
+    session._started = True
+    session._recognition = FakeRecognition()
+    session._done = __import__("threading").Event()
+
+    await session.close()
+    assert stopped == ["stop"]
+    assert session._started is False
+    assert session._recognition is None

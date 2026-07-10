@@ -134,3 +134,38 @@ async def test_whisper_provider_transcribe_with_mock_model(monkeypatch):
     provider._model = FakeModel()
     text = await provider.transcribe(pcm_to_wav_bytes(b"\x00\x00" * 40, sample_rate=16000))
     assert text == "你好"
+
+
+def test_qwen3_transcribe_passes_api_key_per_request(monkeypatch):
+    from device_voice.audio_format import pcm_to_wav_bytes
+    from device_voice.providers.dashscope import Qwen3AsrFlashProvider
+
+    captured: dict[str, str] = {}
+
+    class FakeResponse:
+        def __iter__(self):
+            chunk = type("Chunk", (), {})()
+            chunk.output = type(
+                "Output",
+                (),
+                {
+                    "choices": [
+                        type("Choice", (), {"message": type("Message", (), {"content": [{"text": "你好"}]})()})()
+                    ]
+                },
+            )()
+            yield chunk
+
+    def fake_call(*_args, **kwargs):
+        captured["api_key"] = kwargs.get("api_key", "")
+        return FakeResponse()
+
+    monkeypatch.setattr(
+        "dashscope.MultiModalConversation.call",
+        fake_call,
+        raising=False,
+    )
+    provider = Qwen3AsrFlashProvider(api_key="per-request-key", model="qwen3-asr-flash")
+    text = provider._transcribe_sync(pcm_to_wav_bytes(b"\x00\x00" * 40, sample_rate=16000))
+    assert text == "你好"
+    assert captured["api_key"] == "per-request-key"

@@ -36,7 +36,6 @@ class Qwen3AsrFlashProvider:
         return await asyncio.to_thread(self._transcribe_sync, audio_data)
 
     def _transcribe_sync(self, audio_data: bytes) -> str:
-        import dashscope
         from dashscope import MultiModalConversation
 
         wav_bytes = ensure_wav_bytes(audio_data)
@@ -46,10 +45,10 @@ class Qwen3AsrFlashProvider:
                 temp_file.write(wav_bytes)
                 temp_path = temp_file.name
 
-            dashscope.api_key = self._api_key
             response = MultiModalConversation.call(
                 model=self._model,
                 messages=[{"role": "user", "content": [{"audio": temp_path}]}],
+                api_key=self._api_key,
                 result_format="message",
                 asr_options={"enable_lid": True, "enable_itn": True},
                 stream=True,

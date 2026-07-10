@@ -32,6 +32,19 @@ def issue(account_id: str) -> str:
     return ticket
 
 
+def peek(ticket: str) -> str | None:
+    """Return the bound account id for a valid ticket without consuming it."""
+    if not ticket:
+        return None
+    now = time.time()
+    with _lock:
+        entry = _tickets.get(ticket)
+        _purge_expired(now)
+    if entry is None or now > entry.expires_at:
+        return None
+    return entry.account_id
+
+
 def consume(ticket: str) -> str | None:
     """Validate and consume a ticket. Returns the bound account id or None."""
     if not ticket:

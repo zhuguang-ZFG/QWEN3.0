@@ -31,6 +31,8 @@ class VoiceConfig:
     model_dir: str = os.environ.get("LIMA_VOICE_MODEL_DIR", "data/voice_models")
     max_audio_bytes: int = int(os.environ.get("LIMA_VOICE_MAX_AUDIO_BYTES", "1048576"))
     transcribe_per_min: int = int(os.environ.get("LIMA_VOICE_TRANSCRIBE_PER_MIN", "10"))
+    ws_connect_per_min: int = int(os.environ.get("LIMA_VOICE_WS_CONNECT_PER_MIN", "0"))
+    ws_max_concurrent: int = int(os.environ.get("LIMA_VOICE_WS_MAX_CONCURRENT", "3"))
     funasr_language: str = os.environ.get("LIMA_VOICE_FUNASR_LANGUAGE", "auto").strip() or "auto"
     min_pcm_bytes: int = int(os.environ.get("LIMA_VOICE_MIN_PCM_BYTES", "3200"))
     stream_pcm_frame_bytes: int = int(os.environ.get("LIMA_VOICE_STREAM_PCM_FRAME_BYTES", "1280"))
