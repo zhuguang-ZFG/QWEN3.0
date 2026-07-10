@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only production deploy smoke (health, metrics, L2 rate limit, voice)."""
+"""Read-only production deploy smoke (health, metrics, L2 rate limit, voice, optional gallery)."""
 
 from __future__ import annotations
 
@@ -25,6 +25,12 @@ from voice_e2e_probe import (
     print_probe_results,
     run_voice_e2e_probes,
     voice_e2e_skipped,
+)
+from gallery_e2e_probe import (
+    exit_code_for_results as gallery_exit_code_for_results,
+    gallery_e2e_skipped,
+    print_probe_results as print_gallery_probe_results,
+    run_gallery_e2e_probes_authenticated,
 )
 
 try:
@@ -194,6 +200,25 @@ def _check_device_app_voice_e2e() -> list[str]:
     return []
 
 
+def _check_device_app_gallery_e2e() -> list[str]:
+    """Authenticated gallery upload/thumb/file probes when enabled."""
+    if gallery_e2e_skipped():
+        print("SKIP gallery auth E2E (LIMA_GALLERY_E2E_SKIP=1)")
+        return []
+    if os.environ.get("LIMA_GALLERY_E2E", "").strip().lower() not in {"1", "true", "yes"}:
+        print("SKIP gallery auth E2E (set LIMA_GALLERY_E2E=1 to enable)")
+        return []
+    try:
+        results = run_gallery_e2e_probes_authenticated(HOST)
+    except Exception as exc:
+        print(f"WARN gallery auth E2E -> {type(exc).__name__}: {exc}")
+        return []
+    print_gallery_probe_results(results)
+    if gallery_exit_code_for_results(results):
+        return ["gallery_e2e_auth"]
+    return []
+
+
 def main() -> int:
     failures: list[str] = []
 
@@ -221,6 +246,7 @@ def main() -> int:
         failures.append(failure)
 
     failures.extend(_check_device_app_voice_e2e())
+    failures.extend(_check_device_app_gallery_e2e())
 
     print("---")
     if failures:
