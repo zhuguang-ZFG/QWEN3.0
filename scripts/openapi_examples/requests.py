@@ -198,8 +198,6 @@ _REQUEST_BY_PATH: dict[str, Callable[[], Any]] = {
     "/device/v1/app/devices/register": _req_device_register,
     "/device/v1/app/devices/manual-add": _req_device_manual_add,
     "/device/v1/app/devices/discover": _req_device_discover,
-    "/device/v1/app/devices/pair": _req_device_pair,
-    "/device/v1/app/devices/pair/confirm": _req_device_pair_confirm,
     "/device/v1/app/devices/provision": _req_device_provision,
     "/device/v1/app/devices/provision/confirm": _req_device_provision_confirm,
     "/device/v1/app/devices/{device_id}/unbind": _req_device_unbind,

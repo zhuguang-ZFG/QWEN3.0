@@ -82,7 +82,7 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     from routes.device_app_voice import router as voice_router
     from routes.device_app_voice_ws import legacy_router as voice_legacy_ws_router
     from routes.device_app_voice_ws import router as voice_ws_router
-    from routes.device_app_discovery import router as discovery_router
+    from routes.device_app_provision import router as provision_router
     from routes.device_app_images import router as images_router
     from routes.device_app_members import router as member_router
     from routes.device_app_misc import router as misc_router
@@ -103,7 +103,7 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
     app.include_router(voice_router)
     app.include_router(voice_ws_router)
     app.include_router(voice_legacy_ws_router)
-    app.include_router(discovery_router)
+    app.include_router(provision_router)
     app.include_router(images_router)
     app.include_router(member_router)
     app.include_router(misc_router)

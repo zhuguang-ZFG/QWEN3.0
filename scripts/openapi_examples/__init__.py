@@ -136,8 +136,6 @@ _RESPONSE_BY_PATH: dict[str, Callable[[], Any]] = {
     "/device/v1/app/devices/register": _resp_device_register,
     "/device/v1/app/devices/manual-add": _resp_device_manual_add,
     "/device/v1/app/devices/discover": _resp_device_discover,
-    "/device/v1/app/devices/pair": _resp_device_pair,
-    "/device/v1/app/devices/pair/confirm": _resp_device_pair_confirm,
     "/device/v1/app/devices/provision": _resp_device_provision,
     "/device/v1/app/devices/provision/confirm": _resp_device_provision_confirm,
     "/device/v1/app/devices/{device_id}/unbind": _resp_device_unbind,

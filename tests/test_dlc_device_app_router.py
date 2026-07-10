@@ -44,4 +44,4 @@ def test_server_dlc_device_app_route_count() -> None:
 
     paths = openapi_paths(server_dlc.app)
     app_paths = [p for p in paths if p.startswith("/device/v1/app")]
-    assert len(app_paths) >= 60, f"device_app routes dropped to {len(app_paths)}"
+    assert len(app_paths) >= 58, f"device_app routes dropped to {len(app_paths)}"
