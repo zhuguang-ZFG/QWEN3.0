@@ -1101,7 +1101,7 @@ if __name__ == "__main__":
 | `routes/device_app_tasks.py` | `GET /tasks/{task_id}` | `task_snapshot` + `require_device_access` | 保留 | |
 | `routes/device_app_api.py` | `GET /devices/{device_id}/status` | `_build_device_status`（registry + active_tasks_for_device） | 保留；内部聚合改为 `dlc_core.device_status.get_device_status`，复用同一来源 | 供小程序设备详情页 |
 | `routes/device_app_status_ws.py` | `WS /devices/{device_id}/ws` | 轮询 `_build_device_status` 并推送 transition | 保留；调用 `routes/device_app_api._build_device_status`，后者再调 `dlc_core.device_status` | 小程序实时状态推送 |
-| `routes/device_app_gallery.py` | `POST /gallery` / `GET /gallery` / `DELETE /gallery/{id}` / `GET /gallery/{id}/download` | Telegram 图库存储 + `gallery_store` | 保留；下载 URL 作为 `image_url` 供 `dlc_core.draw.handle_draw_from_image` 使用 | 用户上传/系统图片绘图必备 |
+| `routes/device_app_gallery.py` | `POST /gallery` / `GET /gallery` / `DELETE /gallery/{id}` / `GET /gallery/{id}/download` | Telegram 图库存储 + `gallery_store` | 保留；列表返回 `thumbToken`；绘图任务传 `gallery_image_id`（服务端解析 URL，token 不落库） | 用户上传/系统图片绘图必备 |
 | `routes/device_app_provision.py` | `POST /devices/provision` / `POST /devices/provision/confirm` | `v2_pair_request` 表 + `bind_device` | **保留为唯一配网绑定端点**；P1 默认采用 pair_token 预绑定，经 SoftAP 写入设备 NVS（§5.2.6） | 一键配网账户绑定 |
 | `routes/device_app_api.py` | `POST /devices/register` / `POST /devices/bind` / `GET /devices` / `GET/PUT /devices/{id}` / `POST /devices/{id}/unbind` | 现有 CRUD | 保留；绑定/解绑与绘图核心无关，但设备所有权校验是 `dlc_core.dispatch` 安全前提 | |
 | `routes/device_app_api.py` | `GET /devices/{device_id}/tasks` | （若存在）统一合并到 `routes/device_app_tasks.py` | P3 去重：如有重复端点，归并到 `device_app_tasks.py` | 避免同功能多入口 |
@@ -1131,18 +1131,17 @@ ESP32 U8 执行
 **调用链路示例（小程序图库图片绘图）：**
 
 ```text
-小程序 GET /device/v1/app/gallery/{id}/download
-  → 返回 Telegram 临时 HTTPS URL
-  ↓
 小程序 POST /device/v1/app/devices/{id}/tasks
-  {capability: "draw_from_image", params: {image_url: "https://api.telegram.org/..."}}
+  {capability: "draw_generated", params: {gallery_image_id: "<id>", prompt: ""}}
   ↓
-dlc_core.draw.handle_draw_from_image(image_url, device_id="...")
-  → 立即下载图片到 /tmp/dlc_uploads/ → svg_converter → precheck_path
+device_gateway.task_draw_params.build_draw_generated_params
+  → gallery_store 校验归属 → internal_gallery_file_url（服务端 fetch_token，不落库）
+  → handle_device_draw → svg_converter → precheck_path
   ↓
-dlc_core.dispatch.dispatch_task(device_id, task)
-  → 设备执行
+dispatch_or_enqueue(device_id, task) → 设备执行
 ```
+
+缩略图列表仍走 `GET /gallery` 返回 `thumbToken`；`GET /gallery/{id}/thumb?thumb_token=...` 代理字节，不暴露 JWT。
 
 > **Ponytail 决策：** 小程序端点路径和鉴权链**保持不变**，仅把内部路径生成逻辑替换为 `dlc_core`。这样小程序改造量最小，且保留现有 JWT + 设备所有权校验的安全防线。
 

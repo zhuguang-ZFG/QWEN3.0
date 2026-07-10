@@ -218,7 +218,7 @@ _POST_COLUMN_ADD: dict[str, tuple[str, ...]] = {
 
 
 def apply_migrations(conn: sqlite3.Connection) -> None:
-    """Run all additive column migrations then all DDL statements."""
+    """Run DDL first, then additive column migrations on existing tables."""
     existing_columns: dict[str, set[str]] = {}
 
     def columns_of(table: str) -> set[str]:
@@ -226,13 +226,23 @@ def apply_migrations(conn: sqlite3.Connection) -> None:
             existing_columns[table] = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
         return existing_columns[table]
 
-    for table, column, sql in _ADD_COLUMN_MIGRATIONS:
-        if column not in columns_of(table):
-            conn.execute(sql)
-            for extra in _POST_COLUMN_ADD.get(column, ()):
-                conn.execute(extra)
+    def table_exists(table: str) -> bool:
+        row = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        ).fetchone()
+        return row is not None
 
     for ddl in _DDL_STATEMENTS:
         conn.execute(ddl)
+
+    for table, column, sql in _ADD_COLUMN_MIGRATIONS:
+        if not table_exists(table):
+            continue
+        if column not in columns_of(table):
+            conn.execute(sql)
+            existing_columns.pop(table, None)
+            for extra in _POST_COLUMN_ADD.get(column, ()):
+                conn.execute(extra)
 
     conn.commit()

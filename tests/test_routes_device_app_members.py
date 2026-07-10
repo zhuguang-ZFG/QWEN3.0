@@ -93,6 +93,7 @@ def _patch_deps(account):
     with (
         patch.object(members, "authorize", return_value=account),
         patch.object(members, "require_device_access", return_value=None),
+        patch.object(members, "require_device_control", return_value=None),
         patch.object(members, "ALLOWED_MEMBER_ROLES", {"child", "adult", "admin"}),
         patch.object(members, "new_id", return_value="new-id"),
     ):
