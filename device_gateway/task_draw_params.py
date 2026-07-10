@@ -156,6 +156,9 @@ def _account_id_from_params(params: dict[str, Any]) -> str:
     return str(raw).strip() if raw else ""
 
 
+_GALLERY_DRAW_MIME_TYPES = frozenset({"image/jpeg", "image/png"})
+
+
 def _resolve_gallery_draw_image(
     params: dict[str, Any],
 ) -> tuple[str | None, str | None, str | None]:
@@ -174,6 +177,10 @@ def _resolve_gallery_draw_image(
     image = gallery_store.get_image(gallery_image_id, account_id)
     if image is None:
         return None, None, "gallery image not found"
+
+    mime = str(image.get("mimeType") or image.get("mime_type") or "").lower()
+    if mime not in _GALLERY_DRAW_MIME_TYPES:
+        return None, None, f"unsupported image type for draw: {mime or 'unknown'}"
 
     image_url = internal_gallery_file_url(account_id, gallery_image_id)
     if not image_url:

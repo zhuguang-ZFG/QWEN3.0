@@ -46,13 +46,12 @@ def _account_id(account: dict[str, Any] | JSONResponse) -> str | JSONResponse:
 
 def _authorize_gallery(
     authorization: str,
-    access_token: str = "",
     *,
     image_id: str = "",
     fetch_token: str = "",
     thumb_token: str = "",
-) -> tuple[dict[str, Any] | JSONResponse, bool]:
-    """Authorize via Bearer header, access_token query, fetch_token, or thumb_token."""
+) -> dict[str, Any] | JSONResponse:
+    """Authorize via Bearer header, fetch_token, or thumb_token."""
     hmac_token = ""
     expected_purpose = ""
     if thumb_token.strip():
@@ -65,15 +64,10 @@ def _authorize_gallery(
     if hmac_token and image_id:
         parsed = parse_gallery_hmac_token(hmac_token)
         if not parsed or parsed[1] != image_id or parsed[2] != expected_purpose:
-            return err(401, "invalid gallery token", 401), False
-        return {"id": parsed[0]}, False
+            return err(401, "invalid gallery token", 401)
+        return {"id": parsed[0]}
 
-    header_auth = authorization.strip()
-    used_query_token = bool(access_token.strip() and not header_auth)
-    if used_query_token:
-        header_auth = f"Bearer {access_token.strip()}"
-        _log.debug("gallery proxy authorized via access_token query param (deprecated for thumbs)")
-    return authorize(header_auth), used_query_token
+    return authorize(authorization.strip())
 
 
 def _validate_upload(file: UploadFile, content: bytes) -> JSONResponse | None:
@@ -92,15 +86,13 @@ def _gallery_not_configured_response(exc: TelegramNotConfiguredError) -> JSONRes
 async def _serve_gallery_proxy(
     image_id: str,
     authorization: str,
-    access_token: str,
     fetch_token: str = "",
     *,
     thumb_token: str = "",
     for_file: bool,
 ) -> Response | JSONResponse:
-    account, used_jwt_query = _authorize_gallery(
+    account = _authorize_gallery(
         authorization,
-        access_token,
         image_id=image_id,
         fetch_token=fetch_token,
         thumb_token=thumb_token,
@@ -113,8 +105,9 @@ async def _serve_gallery_proxy(
     if image is None:
         return err(404, "image not found", 404)
 
+    proxy_kind = "file" if for_file else "thumb"
     limited = check_key_limit(
-        f"gallery_proxy:{account_id}",
+        f"gallery_proxy:{account_id}:{proxy_kind}",
         GALLERY_PROXY_RATE_LIMIT_PER_MIN,
         window=60.0,
     )
@@ -134,7 +127,7 @@ async def _serve_gallery_proxy(
     return Response(
         content=content,
         media_type=mime_type,
-        headers=proxy_cache_headers(jwt_query_auth=used_jwt_query, for_file=for_file),
+        headers=proxy_cache_headers(for_file=for_file),
     )
 
 
@@ -223,14 +216,12 @@ async def delete_gallery_image(image_id: str, authorization: str = Header(defaul
 async def get_gallery_thumb(
     image_id: str,
     authorization: str = Header(default=""),
-    access_token: str = Query(default=""),
     thumb_token: str = Query(default=""),
 ) -> Response:
     """Proxy gallery image bytes with a stable, cacheable URL."""
     return await _serve_gallery_proxy(
         image_id,
         authorization,
-        access_token,
         "",
         thumb_token=thumb_token,
         for_file=False,
@@ -241,14 +232,12 @@ async def get_gallery_thumb(
 async def get_gallery_file(
     image_id: str,
     authorization: str = Header(default=""),
-    access_token: str = Query(default=""),
     fetch_token: str = Query(default=""),
 ) -> Response:
     """Proxy full gallery image bytes for draw_from_image (no Telegram URL exposure)."""
     return await _serve_gallery_proxy(
         image_id,
         authorization,
-        access_token,
         fetch_token,
         for_file=True,
     )

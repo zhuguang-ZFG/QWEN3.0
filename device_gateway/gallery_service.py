@@ -243,8 +243,8 @@ async def get_cached_image_bytes(
     return content, mime_type
 
 
-def proxy_cache_headers(*, jwt_query_auth: bool, for_file: bool = False) -> dict[str, str]:
+def proxy_cache_headers(*, for_file: bool = False) -> dict[str, str]:
     """Cache policy for gallery proxy responses."""
-    if jwt_query_auth or for_file:
+    if for_file:
         return {"Cache-Control": "no-store, private"}
     return {"Cache-Control": f"private, max-age={THUMB_CACHE_MAX_AGE_SECONDS}"}

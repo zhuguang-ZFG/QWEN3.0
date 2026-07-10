@@ -33,7 +33,7 @@ def test_get_thumb_proxy_returns_bytes(gallery_client: TestClient, monkeypatch: 
     assert "max-age=3600" in response.headers.get("cache-control", "")
 
 
-def test_get_thumb_proxy_accepts_access_token_query(
+def test_get_thumb_proxy_rejects_access_token_query(
     gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seed_gallery_account("owner")
@@ -44,8 +44,55 @@ def test_get_thumb_proxy_accepts_access_token_query(
     token = gallery_token("owner")
 
     response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/thumb?access_token={token}")
-    assert response.status_code == 200
-    assert response.headers.get("cache-control") == "no-store, private"
+    assert response.status_code == 401
+
+
+def test_get_thumb_proxy_rejects_expired_thumb_token(
+    gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed_gallery_account("owner")
+    mock_gallery_backend(monkeypatch)
+
+    image = upload_gallery_jpeg(gallery_client)
+    image_id = image["id"]
+    thumb_token = image["thumbToken"]
+    assert thumb_token
+
+    monkeypatch.setattr("device_gateway.gallery_service.time.time", lambda: 9_999_999_999)
+    response = gallery_client.get(f"/device/v1/app/gallery/{image_id}/thumb?thumb_token={thumb_token}")
+    assert response.status_code == 401
+
+
+def test_get_thumb_proxy_rejects_cross_account_token(
+    gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed_gallery_account("owner")
+    seed_gallery_account("other")
+    mock_gallery_backend(monkeypatch)
+
+    owner_image = upload_gallery_jpeg(gallery_client, account_id="owner")
+    other_image = upload_gallery_jpeg(gallery_client, account_id="other")
+    thumb_token = owner_image["thumbToken"]
+    assert thumb_token
+
+    response = gallery_client.get(f"/device/v1/app/gallery/{other_image['id']}/thumb?thumb_token={thumb_token}")
+    assert response.status_code == 401
+
+
+def test_get_thumb_proxy_other_account_bearer_returns_404(
+    gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed_gallery_account("owner")
+    seed_gallery_account("other")
+    mock_gallery_backend(monkeypatch)
+
+    image = upload_gallery_jpeg(gallery_client, account_id="owner")
+
+    response = gallery_client.get(
+        f"/device/v1/app/gallery/{image['id']}/thumb",
+        headers=gallery_headers("other"),
+    )
+    assert response.status_code == 404
 
 
 def test_get_thumb_proxy_accepts_thumb_token(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:

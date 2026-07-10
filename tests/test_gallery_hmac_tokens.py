@@ -29,6 +29,16 @@ def test_thumb_and_file_tokens_have_distinct_purposes() -> None:
     assert file_parsed == ("owner", "img-1", GALLERY_TOKEN_PURPOSE_FILE)
 
 
+def test_expired_hmac_token_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    base = 1_700_000_000
+    monkeypatch.setattr("device_gateway.gallery_service.time.time", lambda: base)
+    thumb = issue_gallery_thumb_token("owner", "img-expired")
+    assert thumb
+
+    monkeypatch.setattr("device_gateway.gallery_service.time.time", lambda: base + 4000)
+    assert parse_gallery_hmac_token(thumb) is None
+
+
 def test_file_token_rejected_when_parsed_as_thumb_only() -> None:
     file_token = issue_gallery_fetch_token("owner", "img-2")
     assert file_token

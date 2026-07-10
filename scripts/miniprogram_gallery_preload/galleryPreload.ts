@@ -1,7 +1,7 @@
 /**
  * Gallery thumb preload helpers for manager-mobile (uni-app / mp-weixin).
  */
-import { getBearerToken, getEnvBaseUrl } from '@/utils/index'
+import { getEnvBaseUrl } from '@/utils/index'
 
 export const GALLERY_PRELOAD_DEFAULT_COUNT = 6
 
@@ -10,23 +10,23 @@ const _preloadedSrc = new Set<string>()
 export type GalleryImage = {
   id: string
   thumbPath?: string
+  thumbToken?: string
 }
 
 export function clearGalleryPreloadCache(): void {
   _preloadedSrc.clear()
 }
 
-/** Build an authenticated thumb URL suitable for <image src> and wx.preloadAssets. */
+/** Build a thumb URL with short-lived thumb_token (no JWT in query). */
 export function galleryThumbSrc(image: GalleryImage): string {
   const base = getEnvBaseUrl().replace(/\/$/, '')
   const path = image.thumbPath || `/device/v1/app/gallery/${image.id}/thumb`
-  const token = getBearerToken()
   const url = `${base}${path}`
-  if (!token) {
+  if (!image.thumbToken) {
     return url
   }
   const sep = url.includes('?') ? '&' : '?'
-  return `${url}${sep}access_token=${encodeURIComponent(token)}`
+  return `${url}${sep}thumb_token=${encodeURIComponent(image.thumbToken)}`
 }
 
 export type GalleryPreloadOptions = {
