@@ -127,6 +127,8 @@ def load_active_account(account_id: str) -> dict[str, Any] | None:
 
 
 def _login_response(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any] | JSONResponse:
+    if not isinstance(account, dict):
+        account = dict(account)
     token = make_token(account)
     if token is None:
         return err(503, "JWT support is unavailable", 503)
@@ -142,6 +144,8 @@ def _login_response(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any] | J
 
 
 def account_payload(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(account, dict):
+        account = dict(account)
     return {
         "accountId": account["id"],
         "openid": account.get("wechat_openid") or "",

@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from routes import device_app_images
 from routes import images as img
 from routes import images_cache as image_cache
+from tests.route_paths_helpers import openapi_paths
 
 
 def _fake_xmiaom(url: str = "https://example.com/fake.png", backend: str = "xmiaom"):
@@ -202,5 +203,5 @@ def test_server_dlc_exposes_v1_images_generations(monkeypatch):
     monkeypatch.setattr(img, "_generate_via_xmiaom", _fake_xmiaom())
     import server_dlc
 
-    paths = {r.path for r in server_dlc.app.routes}
+    paths = openapi_paths(server_dlc.app)
     assert "/v1/images/generations" in paths
