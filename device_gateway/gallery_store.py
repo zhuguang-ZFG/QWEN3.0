@@ -83,6 +83,20 @@ def list_images(
     return [_row_to_dict(row) for row in rows]
 
 
+def count_images(account_id: str) -> int:
+    """Count active gallery images for an account."""
+    with connect() as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM v2_gallery_image
+            WHERE account_id = ? AND status = 'active'
+            """,
+            (account_id,),
+        ).fetchone()
+    return int(row["total"] if row else 0)
+
+
 def get_image(image_id: str, account_id: str) -> dict[str, Any] | None:
     """Get a single gallery image if it belongs to the account and is active."""
     with connect() as conn:

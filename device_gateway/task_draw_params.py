@@ -10,6 +10,7 @@ from integrations.autohanding.client import AutohandingRateLimitError
 from observability import prometheus_metrics
 
 from .device_draw_handler import handle_device_draw
+from .image_url_validation import validate_image_url
 
 _log = logging.getLogger(__name__)
 from .model_routing import CONTROL_CAPABILITIES, looks_like_svg_path
@@ -160,6 +161,11 @@ async def build_draw_generated_params(
         }, None
 
     provided_image_url = params.get("imageUrl") or params.get("image_url")
+    if provided_image_url:
+        validated_url, url_error = validate_image_url(str(provided_image_url))
+        if url_error or validated_url is None:
+            return {}, url_error or "image_url is invalid"
+        provided_image_url = validated_url
     result = await handle_device_draw(
         prompt,
         device_id=device_id,

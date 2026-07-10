@@ -185,7 +185,8 @@ async def list_gallery_images(
         limit=max(1, min(limit, 200)),
         offset=max(0, offset),
     )
-    return JSONResponse({"code": 0, "data": {"images": images, "count": len(images)}})
+    total = gallery_store.count_images(account_id)
+    return JSONResponse({"code": 0, "data": {"images": images, "count": len(images), "total": total}})
 
 
 @router.delete("/gallery/{image_id}")

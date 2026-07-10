@@ -84,6 +84,7 @@ def test_list_gallery_empty(gallery_client: TestClient) -> None:
     data = response.json()
     assert data["code"] == 0
     assert data["data"]["images"] == []
+    assert data["data"]["total"] == 0
 
 
 def test_upload_gallery_image_success(gallery_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -103,7 +104,9 @@ def test_upload_gallery_image_success(gallery_client: TestClient, monkeypatch: p
     assert data["data"]["fileUrl"].endswith(f"/device/v1/app/gallery/{data['data']['id']}/file")
 
     listed = gallery_client.get("/device/v1/app/gallery", headers=_headers("owner"))
-    assert listed.json()["data"]["count"] == 1
+    listed_data = listed.json()["data"]
+    assert listed_data["count"] == 1
+    assert listed_data["total"] == 1
 
 
 def test_upload_gallery_unsupported_type(gallery_client: TestClient) -> None:

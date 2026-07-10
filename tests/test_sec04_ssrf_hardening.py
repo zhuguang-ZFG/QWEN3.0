@@ -103,9 +103,9 @@ def test_reject_dns_rebind_to_private_ip(monkeypatch):
     private IP, exercising the rebinding guard rather than the allowlist check.
     Patches ``dlc_api.routes._resolve_hostname`` (the DNS-resolution helper).
     """
-    from dlc_api import routes as r
+    from device_gateway import image_url_validation as iv
 
-    monkeypatch.setattr(r, "_resolve_hostname", lambda host: ["10.66.6.6"])
+    monkeypatch.setattr(iv, "_resolve_hostname", lambda host: ["10.66.6.6"])
 
     client = TestClient(app)
     response = _post(client, "https://api.telegram.org/file/bot123/img.png")
@@ -119,9 +119,9 @@ def test_reject_dns_rebind_to_private_ip(monkeypatch):
 
 def test_allow_telegram_host(monkeypatch):
     """api.telegram.org must pass both the whitelist and the DNS resolution."""
-    from dlc_api import routes as r
+    from device_gateway import image_url_validation as iv
 
-    monkeypatch.setattr(r, "_resolve_hostname", lambda host: ["149.154.167.220"])  # public Telegram IP
+    monkeypatch.setattr(iv, "_resolve_hostname", lambda host: ["149.154.167.220"])  # public Telegram IP
     with patch("dlc_api.routes.handle_draw_from_image", new_callable=AsyncMock) as mock:
         mock.return_value = {
             "status": "success",

@@ -125,3 +125,23 @@ def test_update_thumb_url(account_id: str) -> None:
     assert found is not None
     assert found["thumbUrl"] == "https://t.me/new.jpg"
     assert gallery_store.update_thumb_url("missing", account_id, "https://t.me/x.jpg") is False
+
+
+def test_count_images(account_id: str) -> None:
+    assert gallery_store.count_images(account_id) == 0
+    gallery_store.add_image(
+        account_id=account_id,
+        file_id="telegram-file-1",
+        filename="one.jpg",
+        size_bytes=1,
+    )
+    gallery_store.add_image(
+        account_id=account_id,
+        file_id="telegram-file-2",
+        filename="two.jpg",
+        size_bytes=2,
+    )
+    assert gallery_store.count_images(account_id) == 2
+    listed = gallery_store.list_images(account_id, limit=1, offset=0)
+    assert len(listed) == 1
+    assert gallery_store.count_images(account_id) == 2

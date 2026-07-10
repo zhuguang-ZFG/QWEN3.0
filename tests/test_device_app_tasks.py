@@ -261,7 +261,10 @@ def test_device_app_draw_generated_image_url(tmp_path, monkeypatch):
         json={
             "capability": "draw_generated",
             "source": "client",
-            "params": {"imageUrl": "https://example.com/input.jpg", "feed": 500},
+            "params": {
+                "imageUrl": "https://api.telegram.org/file/bot123/input.jpg",
+                "feed": 500,
+            },
         },
     )
     assert created.status_code == 200, created.text

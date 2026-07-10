@@ -1,19 +1,19 @@
 /**
  * Gallery thumb preload helpers for manager-mobile (uni-app / mp-weixin).
- *
- * Copy into:
- *   esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/src/utils/galleryPreload.ts
- *
- * Wire into image-picker.vue after gallery list loads.
  */
 import { getBearerToken, getEnvBaseUrl } from '@/utils/index'
 
 export const GALLERY_PRELOAD_DEFAULT_COUNT = 6
 
+const _preloadedSrc = new Set<string>()
+
 export type GalleryImage = {
   id: string
-  thumbUrl?: string
   thumbPath?: string
+}
+
+export function clearGalleryPreloadCache(): void {
+  _preloadedSrc.clear()
 }
 
 /** Build an authenticated thumb URL suitable for <image src> and wx.preloadAssets. */
@@ -29,20 +29,39 @@ export function galleryThumbSrc(image: GalleryImage): string {
   return `${url}${sep}access_token=${encodeURIComponent(token)}`
 }
 
-/** Preload the first N gallery thumbs (P0). Falls back to uni.getImageInfo. */
-export function preloadGalleryThumbs(images: GalleryImage[], limit = GALLERY_PRELOAD_DEFAULT_COUNT): void {
-  const batch = images.slice(0, Math.max(0, limit))
+export type GalleryPreloadOptions = {
+  offset?: number
+  limit?: number
+}
+
+/** Preload gallery thumbs in batches (P0/P1). Falls back to uni.getImageInfo. */
+export function preloadGalleryThumbs(
+  images: GalleryImage[],
+  options: number | GalleryPreloadOptions = GALLERY_PRELOAD_DEFAULT_COUNT,
+): void {
+  const offset = typeof options === 'number' ? 0 : (options.offset ?? 0)
+  const limit = typeof options === 'number' ? options : (options.limit ?? GALLERY_PRELOAD_DEFAULT_COUNT)
+  const batch = images
+    .slice(offset, offset + Math.max(0, limit))
+    .map(image => galleryThumbSrc(image))
+    .filter((src) => {
+      if (_preloadedSrc.has(src)) {
+        return false
+      }
+      _preloadedSrc.add(src)
+      return true
+    })
   if (!batch.length) {
     return
   }
-  const data = batch.map((image) => ({ type: 'image' as const, src: galleryThumbSrc(image) }))
+  const data = batch.map(src => ({ type: 'image' as const, src }))
   // #ifdef MP-WEIXIN
   if (typeof wx !== 'undefined' && typeof wx.preloadAssets === 'function') {
     wx.preloadAssets({ data })
     return
   }
   // #endif
-  batch.forEach((image) => {
-    uni.getImageInfo({ src: galleryThumbSrc(image) })
+  batch.forEach((src) => {
+    uni.getImageInfo({ src })
   })
 }
