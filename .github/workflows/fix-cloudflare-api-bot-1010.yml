@@ -1,10 +1,20 @@
 name: Fix Cloudflare API Bot Block (1010)
 
-# Skip Bot Fight / Browser Integrity / UA blocks for api.donglicao.com
-# Root cause: CF blocks User-Agent like "OpenAI/Python 1.0" with 403 "Your request was blocked" (1010).
+# api.donglicao.com is an API gateway; CF Bot Fight blocks OpenAI-style UAs (403/1010).
+# GH CLOUDFLARE_API_TOKEN can edit DNS but not WAF rulesets — grey-cloud (DNS only)
+# sends traffic straight to Aliyun origin and eliminates Bot Fight for this host.
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "dns_only (recommended) | restore_proxy"
+        required: true
+        default: dns_only
+        type: choice
+        options:
+          - dns_only
+          - restore_proxy
 
 permissions:
   contents: read
@@ -17,7 +27,9 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Apply skip rule for api.donglicao.com
+      - name: Toggle api.donglicao.com Cloudflare proxy
+        env:
+          MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
           python3 <<'PY'
@@ -26,7 +38,8 @@ jobs:
           TOKEN = os.environ["CLOUDFLARE_API_TOKEN"]
           ZONE_NAME = "donglicao.com"
           HOST = "api.donglicao.com"
-          RULE_DESC = "LiMa NewAPI: skip bot/BIC/UA for api.donglicao.com (fix CF 1010)"
+          MODE = os.environ.get("MODE", "dns_only")
+          WANT_PROXIED = MODE != "dns_only"
 
           def api(method, url, data=None):
               req = urllib.request.Request(
@@ -47,131 +60,63 @@ jobs:
                   try:
                       parsed = json.loads(body)
                   except json.JSONDecodeError:
-                      parsed = {"success": False, "errors": [{"message": body[:500]}], "http": e.code}
-                  parsed.setdefault("http", e.code)
+                      parsed = {"success": False, "errors": [{"message": body[:500]}]}
+                  parsed["http"] = e.code
                   return parsed
 
           zones = api("GET", f"https://api.cloudflare.com/client/v4/zones?name={ZONE_NAME}")
           if not zones.get("success") or not zones.get("result"):
               raise SystemExit(f"zone lookup failed: {zones}")
           zone_id = zones["result"][0]["id"]
-          print("zone_id", zone_id)
+          print("zone_id", zone_id, "mode", MODE, "want_proxied", WANT_PROXIED)
 
-          # Snapshot security settings
-          for key in ("security_level", "browser_check"):
-              r = api("GET", f"https://api.cloudflare.com/client/v4/zones/{zone_id}/settings/{key}")
-              print(key, r.get("success"), (r.get("result") or {}).get("value"))
-
-          phase = "http_request_firewall_custom"
-          entry_url = f"https://api.cloudflare.com/client/v4/zones/{zone_id}/rulesets/phases/{phase}/entrypoint"
-          entry = api("GET", entry_url)
-          print("entrypoint_get", entry.get("success"), entry.get("errors"))
-
-          expression = f'(http.host eq "{HOST}")'
-          new_rule = {
-              "action": "skip",
-              "action_parameters": {
-                  # bic=Browser Integrity Check (1010), uaBlock=UA bans, hot=Hotlink, securityLevel, waf, rateLimit
-                  "products": [
-                      "bic",
-                      "uaBlock",
-                      "hot",
-                      "securityLevel",
-                      "rateLimit",
-                      "waf",
-                      "zoneLockdown",
-                  ],
-              },
-              "description": RULE_DESC,
-              "enabled": True,
-              "expression": expression,
-          }
-
-          if entry.get("success") and entry.get("result"):
-              ruleset_id = entry["result"]["id"]
-              rules = list(entry["result"].get("rules") or [])
-              # upsert by description
-              replaced = False
-              for i, rule in enumerate(rules):
-                  if rule.get("description") == RULE_DESC or (
-                      rule.get("action") == "skip" and HOST in (rule.get("expression") or "")
-                  ):
-                      rules[i] = {**rule, **new_rule, "id": rule.get("id")}
-                      replaced = True
-                      break
-              if not replaced:
-                  rules.insert(0, new_rule)
-              upd = api(
-                  "PUT",
-                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/rulesets/{ruleset_id}",
-                  {"rules": rules},
-              )
-              print("ruleset_update", upd.get("success"), upd.get("errors"))
-              if not upd.get("success"):
-                  raise SystemExit(upd)
-          else:
-              # create entrypoint ruleset
-              created = api(
-                  "POST",
-                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/rulesets",
-                  {
-                      "name": "LiMa custom firewall",
-                      "kind": "zone",
-                      "phase": phase,
-                      "rules": [new_rule],
-                  },
-              )
-              print("ruleset_create", created.get("success"), created.get("errors"))
-              if not created.get("success"):
-                  raise SystemExit(created)
-
-          # Also try Configuration Rules: disable Bot Fight for this host if phase exists
-          cfg_phase = "http_config_settings"
-          cfg_entry = api(
-              "GET",
-              f"https://api.cloudflare.com/client/v4/zones/{zone_id}/rulesets/phases/{cfg_phase}/entrypoint",
-          )
-          print("config_entrypoint", cfg_entry.get("success"), cfg_entry.get("errors"))
-          if cfg_entry.get("success") and cfg_entry.get("result"):
-              cfg_id = cfg_entry["result"]["id"]
-              cfg_rules = list(cfg_entry["result"].get("rules") or [])
-              cfg_rule = {
-                  "action": "set_config",
-                  "action_parameters": {
-                      "security_level": "essentially_off",
-                  },
-                  "description": "LiMa NewAPI: security_level essentially_off for api host",
-                  "enabled": True,
-                  "expression": expression,
-              }
-              replaced = False
-              for i, rule in enumerate(cfg_rules):
-                  if "NewAPI: security_level" in (rule.get("description") or ""):
-                      cfg_rules[i] = {**rule, **cfg_rule, "id": rule.get("id")}
-                      replaced = True
-                      break
-              if not replaced:
-                  cfg_rules.insert(0, cfg_rule)
-              cfg_upd = api(
-                  "PUT",
-                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/rulesets/{cfg_id}",
-                  {"rules": cfg_rules},
-              )
-              print("config_update", cfg_upd.get("success"), cfg_upd.get("errors"))
-
-          # Verify DNS record exists (informational)
           dns = api(
               "GET",
-              f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?name={HOST}&type=A",
+              f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?name={HOST}",
           )
-          if dns.get("success"):
-              for rec in dns.get("result") or []:
-                  print(
-                      "dns",
-                      rec.get("name"),
-                      rec.get("content"),
-                      "proxied=",
-                      rec.get("proxied"),
-                  )
-          print("DONE")
+          if not dns.get("success"):
+              raise SystemExit(f"dns list failed: {dns}")
+          recs = dns.get("result") or []
+          if not recs:
+              raise SystemExit(f"no DNS records for {HOST}: {dns}")
+
+          for rec in recs:
+              print(
+                  "before",
+                  rec.get("id"),
+                  rec.get("type"),
+                  rec.get("content"),
+                  "proxied=",
+                  rec.get("proxied"),
+              )
+              if rec.get("type") not in ("A", "AAAA", "CNAME"):
+                  continue
+              if bool(rec.get("proxied")) == WANT_PROXIED:
+                  print("already desired state, skip", rec["id"])
+                  continue
+              payload = {
+                  "type": rec["type"],
+                  "name": rec["name"],
+                  "content": rec["content"],
+                  "ttl": 1 if WANT_PROXIED else 300,
+                  "proxied": WANT_PROXIED,
+              }
+              upd = api(
+                  "PUT",
+                  f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{rec['id']}",
+                  payload,
+              )
+              print("update", upd.get("success"), upd.get("errors"))
+              if not upd.get("success"):
+                  raise SystemExit(upd)
+              result = upd.get("result") or {}
+              print(
+                  "after",
+                  result.get("type"),
+                  result.get("content"),
+                  "proxied=",
+                  result.get("proxied"),
+              )
+
+          print("DONE", "proxied=" + str(WANT_PROXIED))
           PY

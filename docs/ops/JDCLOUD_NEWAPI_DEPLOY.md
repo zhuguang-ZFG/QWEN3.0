@@ -556,21 +556,19 @@ NEWAPI_HC_PING_UUID=<uuid>
 
 **现象**：偶发 `403` / `error code: 1010` / 正文 `Your request was blocked.`
 **复现**：`User-Agent: OpenAI/Python 1.0` 会被拦；`KimiCode/*`、`curl`、浏览器 UA 通常正常。
-**原因**：Cloudflare Bot Fight / Browser Integrity / UA 规则对 API 客户端不友好。
+**原因**：Cloudflare 橙云代理开启 Bot Fight / Browser Integrity，对 API 客户端 UA 不友好。
 
-**处理（已提供一键 workflow）**：
+**推荐处理：api 子域改 DNS Only（灰云）**，流量直达阿里云 `47.112.162.80`（仍用 Let's Encrypt），不再经 CF Bot：
 
 ```bash
-gh workflow run fix-cloudflare-api-bot-1010.yml
+gh workflow run fix-cloudflare-api-bot-1010.yml -f mode=dns_only
+# 若需恢复橙云：
+# gh workflow run fix-cloudflare-api-bot-1010.yml -f mode=restore_proxy
 ```
 
-规则：对 `http.host eq "api.donglicao.com"` **skip** `bic` / `uaBlock` / `waf` / `securityLevel` 等，并可选把该 host 的 `security_level` 设为 `essentially_off`。
+**手动**：Cloudflare Dashboard → DNS → `api` A 记录 → 云朵点灰（DNS only）。
 
-**手动（Dashboard）**：Security → WAF → Custom rules → Create rule
-- Expression: `(http.host eq "api.donglicao.com")`
-- Action: Skip → 勾选 Bot Fight Mode / Browser Integrity Check / WAF 等
-
-**注意**：本地 `CF_API_TOKEN`（AI Gateway）**没有** Zone 权限；改 WAF 需用 GitHub Secret `CLOUDFLARE_API_TOKEN`（Pages/DNS 那枚）或新建含 `Zone.WAF` + `Zone.Rulesets` 的 token。
+**说明**：GitHub Secret `CLOUDFLARE_API_TOKEN` 有 DNS 编辑权、无 WAF Rulesets 写权，故用灰云而非 WAF skip。本地 `CF_API_TOKEN`（AI Gateway）不能改 Zone。
 
 ---
 
