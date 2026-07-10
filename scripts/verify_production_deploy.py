@@ -199,12 +199,23 @@ def main() -> int:
 
     # /device/v1/health 与 /v1/ops/metrics/prometheus 已随 P4/P5 瘦身退役
     # （WS 设备网关 + ops_metrics 物理删除）；DLC 服务只暴露 /health。
+    health_failure: str | None = None
     for path in ("/health",):
         if failure := _check_health_path(path):
-            failures.append(failure)
+            health_failure = failure
 
-    if failure := _check_l2_rate_limit():
-        failures.append(failure)
+    l2_failure = _check_l2_rate_limit()
+    if l2_failure:
+        failures.append(l2_failure)
+
+    # chat.donglicao.com 可能在边缘单独拦截 /health（401），而 /device/v1/app/* 仍可达。
+    if health_failure and l2_failure is None:
+        print(
+            "WARN /health blocked at edge but L2 probes succeeded; "
+            "skipping public /health failure (use loopback :8081/health on VPS for liveness)"
+        )
+    elif health_failure:
+        failures.append(health_failure)
 
     if failure := _check_device_app_voice_unauth():
         failures.append(failure)
