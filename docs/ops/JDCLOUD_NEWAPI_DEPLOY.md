@@ -4,7 +4,9 @@
 > **公网入口**：`https://api.donglicao.com`（Cloudflare → 阿里云反代 → 京东云）
 > **目标节点**：JDCloud `117.72.118.95`（new-api 服务实际运行节点）
 > **代理节点**：AliCloud `47.112.162.80`（nginx 反代，绕过 JDCloud ISP 拦截）
-> **配套脚本**：`deploy/jdcloud/install_newapi.sh`、`configure_newapi_firewall.sh`、`newapi.nginx.conf`
+> **配套脚本**：`deploy/jdcloud/install_newapi.sh`、`configure_newapi_firewall.sh`、`newapi.nginx.conf`、`tune_newapi_kimi_cache.sh`
+> **Kimi CLI 缓存**：`docs/ops/NEWAPI_KIMI_CODE_CACHE_CN.md`
+> **详细改善方案**：`docs/ops/NEWAPI_KIMI_IMPROVEMENT_PLAN_CN.md`
 > **关联文档**：`docs/DEPLOY_AND_RELEASE_CONVENTION.md` · `docs/ops/JDCLOUD_RUNTIME_STATUS.md` · `deploy/jdcloud/README.md`
 
 ---
@@ -392,34 +394,35 @@ mysql -e "UPDATE newapi.users SET access_token='<32位token>' WHERE username='ro
 
 ## 4. 备份（每日 cron）
 
-放 runbook 里以可执行块呈现，按需落地到 `deploy/jdcloud/newapi_backup.sh`：
+> **现网（2026-07-10）**：已迁 **MySQL** `newapi@127.0.0.1`；`new-api` 使用 **`network_mode: host`**（容器 bridge 访问不了宿主机 3306）。
+> 备份脚本：[`deploy/jdcloud/newapi_backup.sh`](../../deploy/jdcloud/newapi_backup.sh)（`mysqldump --no-tablespaces`）
+> 迁移脚本：[`deploy/jdcloud/pure_mysql_mig.py`](../../deploy/jdcloud/pure_mysql_mig.py)
+> Windows：`powershell -File scripts/deploy_newapi_backup.ps1`
 
 ```bash
-# /opt/newapi/backup.sh —— 加入 crontab
-#!/bin/bash
-set -euo pipefail
-TS=$(date +%Y%m%d_%H%M%S)
-DEST=/var/backups/newapi/$TS
-mkdir -p "$DEST"
+cp deploy/jdcloud/newapi_backup.sh /opt/newapi/backup.sh
+chmod +x /opt/newapi/backup.sh
+/opt/newapi/backup.sh
+ls -lht /var/backups/newapi | head -5
 
-# 1. 导出 MySQL 数据库（无需停服，mysqldump 原子性快照）
-cd /opt/newapi
-mysqldump -u newapi -p"$NEWAPI_MYSQL_PASS" -h 127.0.0.1 newapi > "$DEST/newapi.sql"
-
-# 2. 备份 docker-compose.yml（不含真实密码）
-cp /opt/newapi/docker-compose.yml "$DEST/"
-
-# 3. 清理 > 14 天的备份
-find /var/backups/newapi -mindepth 1 -maxdepth 1 -mtime +14 -exec rm -rf {} \;
-
-# 4. 推送 JDCloud OSS（可选，避免本地磁盘单点）
-# aliyun oss cp "$DEST" oss://my-bucket/newapi/$TS/ --recursive
+# 每天 03:13，保留 14 天
+(crontab -l 2>/dev/null | grep -v '/opt/newapi/backup.sh'; echo \
+  '13 3 * * * /opt/newapi/backup.sh >> /var/log/newapi-backup.log 2>&1') | crontab -
 ```
 
+可选异地：
+
+- **默认已启用**：京东云 → 阿里云 `47.112.162.80:/var/backups/newapi-offsite`（SSH 密钥 `id_ed25519_newapi_offsite`，配置在 `/opt/newapi/.env.backup`）
+- 真·对象存储：安装 `ossutil64` 后在 `.env.backup` 设 `NEWAPI_OSS_URI=oss://bucket/newapi`
+
+**恢复（MySQL）**：
+
 ```bash
-chmod +x /opt/newapi/backup.sh
-# 每天凌晨 3:13 备份
-(crontab -l 2>/dev/null; echo "13 3 * * * /opt/newapi/backup.sh >> /var/log/newapi-backup.log 2>&1") | crontab -
+cd /opt/newapi
+docker-compose stop new-api
+gunzip -c /var/backups/newapi/<最新>/newapi.sql.gz | mysql -u newapi -p -h127.0.0.1 newapi
+docker-compose start new-api
+curl -sf http://127.0.0.1:3000/api/status
 ```
 
 ---
@@ -518,22 +521,56 @@ docker tag calciumion/new-api:latest calciumion/new-api:prev
 | 故障 | 处置 |
 |---|---|
 | Web UI 502 | `docker compose logs --tail=200`；先 `docker compose restart`，无效则 `up -d --force-recreate` |
-| 数据库损坏 | `mysql -u root -p newapi < /var/backups/newapi/<最新>/newapi.sql && docker compose restart` |
+| 数据库损坏 | `gunzip -c /var/backups/newapi/<最新>/newapi.sql.gz \| mysql -u newapi -p -h127.0.0.1 newapi` 后 `docker-compose start new-api`（见 §4） |
 | 整个节点挂了 | JDCloud 控制台重置 → 按本 runbook §3 重跑（数据靠 `/var/backups/newapi` 恢复） |
 | 误删数据卷 | **不可逆**——这就是为什么 §4 备份必须每日跑且 `>14` 天保留 |
 
 ---
 
-## 8. 监控（接入现有 healthcheck 体系）
+## 8. 监控（轻量 healthcheck，不烧额度）
 
-仓库已有 `docs/archive/superpowers-2026-05/2026-05-26-infra-tools-integration.md` 的 INF-B Healthchecks 计划。new-api 上线后追加 2 个 check：
+**现网（2026-07-10）**：京东云 cron 每 5 分钟跑 `/opt/newapi/healthcheck.sh`（源：`deploy/jdcloud/newapi_healthcheck.sh`）。
 
-| Check | 周期 | URL | 失败含义 |
-|---|---|---|---|
-| `jdcloud-newapi-https` | 5 min | `https://api.donglicao.com/api/status` | 公网入口挂 |
-| `jdcloud-newapi-chat` | 30 min | POST `https://api.donglicao.com/v1/chat/completions`（用专用 test token） | 整链路（含渠道后端）挂 |
+检查项（**无** `/v1/chat/completions`、**无** Claude 探活）：
 
-不接入 new-api 自带的"渠道测速"作为告警源——它的主动探测会消耗渠道额度。
+| 项 | 含义 |
+|---|---|
+| `127.0.0.1:3000/api/status` | new-api 本机存活 |
+| docker `new-api` | 容器在跑 |
+| `claude-cache-proxy` / `:3001` | 代理 unit 或端口 |
+| Redis `PING` | 缓存层 |
+
+推送：`powershell -File scripts/deploy_newapi_healthcheck.ps1`
+日志：`/var/log/newapi-healthcheck.log`
+
+可选 Healthchecks.io：在 [healthchecks.io](https://healthchecks.io) 建 check（建议 5 min），把 UUID 写入：
+
+```bash
+# 京东云 /opt/newapi/.env.backup
+NEWAPI_HC_PING_UUID=<uuid>
+```
+
+或本机部署时：`$env:NEWAPI_HC_PING_UUID='...'` 再跑 deploy 脚本。
+
+## 8.1 Cloudflare 1010 / Bot 拦截（api 子域）
+
+**现象**：偶发 `403` / `error code: 1010` / 正文 `Your request was blocked.`
+**复现**：`User-Agent: OpenAI/Python 1.0` 会被拦；`KimiCode/*`、`curl`、浏览器 UA 通常正常。
+**原因**：Cloudflare Bot Fight / Browser Integrity / UA 规则对 API 客户端不友好。
+
+**处理（已提供一键 workflow）**：
+
+```bash
+gh workflow run fix-cloudflare-api-bot-1010.yml
+```
+
+规则：对 `http.host eq "api.donglicao.com"` **skip** `bic` / `uaBlock` / `waf` / `securityLevel` 等，并可选把该 host 的 `security_level` 设为 `essentially_off`。
+
+**手动（Dashboard）**：Security → WAF → Custom rules → Create rule
+- Expression: `(http.host eq "api.donglicao.com")`
+- Action: Skip → 勾选 Bot Fight Mode / Browser Integrity Check / WAF 等
+
+**注意**：本地 `CF_API_TOKEN`（AI Gateway）**没有** Zone 权限；改 WAF 需用 GitHub Secret `CLOUDFLARE_API_TOKEN`（Pages/DNS 那枚）或新建含 `Zone.WAF` + `Zone.Rulesets` 的 token。
 
 ---
 
@@ -592,7 +629,7 @@ docker tag calciumion/new-api:latest calciumion/new-api:prev
 - [ ] 添加至少 1 个普通用户并生成 token
 - [ ] smoke.sh 全 7 项通过
 - [ ] 每日 03:13 cron 备份跑通，保留 14 天
-- [ ] Healthchecks.io 2 个 check 接入
+- [x] 轻量 healthcheck cron（`*/5`，无 chat）；Healthchecks.io UUID 可选（`NEWAPI_HC_PING_UUID`）
 
 ---
 
