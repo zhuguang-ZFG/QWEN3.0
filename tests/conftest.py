@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent / "xiaozhi_schema"))
 
 # Enable auto mode so @pytest.mark.asyncio tests run without manual event loop setup
-pytest_plugins = ["pytest_asyncio"]
+pytest_plugins = ["pytest_asyncio", "tests.gallery_routes_helpers"]
 
 # === Test isolation: set unique temp paths for all test env vars ===
 # Runs before any test module imports, so env vars are available at import time.

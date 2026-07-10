@@ -20,6 +20,9 @@ _log = logging.getLogger(__name__)
 THUMB_CACHE_MAX_AGE_SECONDS = 3600
 GALLERY_PRELOAD_DEFAULT_COUNT = 6
 GALLERY_PROXY_RATE_LIMIT_PER_MIN = 60
+GALLERY_TOKEN_PURPOSE_THUMB = "thumb"
+GALLERY_TOKEN_PURPOSE_FILE = "file"
+_VALID_TOKEN_PURPOSES = frozenset({GALLERY_TOKEN_PURPOSE_THUMB, GALLERY_TOKEN_PURPOSE_FILE})
 GALLERY_FETCH_TOKEN_TTL_SECONDS = 600
 GALLERY_THUMB_TOKEN_TTL_SECONDS = THUMB_CACHE_MAX_AGE_SECONDS
 _PROXY_CACHE_TTL_SECONDS = 3600
@@ -59,37 +62,79 @@ def _gallery_signing_secret() -> str | None:
     return secret or None
 
 
-def issue_gallery_fetch_token(
-    account_id: str, image_id: str, *, ttl_seconds: int = GALLERY_FETCH_TOKEN_TTL_SECONDS
+def evict_proxy_cache_for_image(account_id: str, image_id: str) -> None:
+    """Drop cached proxy bytes after delete or metadata change."""
+    _proxy_cache.pop(f"{account_id}:{image_id}:file", None)
+    _proxy_cache.pop(f"{account_id}:{image_id}:thumb", None)
+
+
+def _issue_gallery_hmac_token(
+    account_id: str,
+    image_id: str,
+    *,
+    purpose: str,
+    ttl_seconds: int,
 ) -> str | None:
-    """Issue a short-lived HMAC token for server-side gallery file fetches."""
+    """Issue a short-lived HMAC token scoped to thumb or file proxy."""
+    if purpose not in _VALID_TOKEN_PURPOSES:
+        return None
     secret = _gallery_signing_secret()
     if not secret:
         return None
     expires_at = int(time.time()) + max(30, ttl_seconds)
-    payload = f"{expires_at}:{account_id}:{image_id}"
+    payload = f"{expires_at}:{account_id}:{image_id}:{purpose}"
     digest = hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
     return f"{payload}:{digest}"
 
 
-def parse_gallery_fetch_token(token: str) -> tuple[str, str] | None:
-    """Return (account_id, image_id) when *token* is valid; otherwise None."""
+def issue_gallery_fetch_token(
+    account_id: str, image_id: str, *, ttl_seconds: int = GALLERY_FETCH_TOKEN_TTL_SECONDS
+) -> str | None:
+    """Issue a short-lived HMAC token for gallery file fetches."""
+    return _issue_gallery_hmac_token(
+        account_id,
+        image_id,
+        purpose=GALLERY_TOKEN_PURPOSE_FILE,
+        ttl_seconds=ttl_seconds,
+    )
+
+
+def parse_gallery_hmac_token(token: str) -> tuple[str, str, str] | None:
+    """Return (account_id, image_id, purpose) when *token* is valid; otherwise None."""
     secret = _gallery_signing_secret()
     if not secret or not token:
         return None
     parts = token.split(":")
-    if len(parts) != 4:
+    if len(parts) == 4:
+        expires_raw, account_id, image_id, digest = parts
+        purpose = GALLERY_TOKEN_PURPOSE_FILE
+        payload = f"{expires_raw}:{account_id}:{image_id}"
+    elif len(parts) == 5:
+        expires_raw, account_id, image_id, purpose, digest = parts
+        if purpose not in _VALID_TOKEN_PURPOSES:
+            return None
+        payload = f"{expires_raw}:{account_id}:{image_id}:{purpose}"
+    else:
         return None
-    expires_raw, account_id, image_id, digest = parts
     try:
         expires_at = int(expires_raw)
     except ValueError:
         return None
     if expires_at < int(time.time()):
         return None
-    payload = f"{expires_at}:{account_id}:{image_id}"
     expected = hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, digest):
+        return None
+    return account_id, image_id, purpose
+
+
+def parse_gallery_fetch_token(token: str) -> tuple[str, str] | None:
+    """Backward-compatible parser returning (account_id, image_id) for file tokens."""
+    parsed = parse_gallery_hmac_token(token)
+    if not parsed:
+        return None
+    account_id, image_id, purpose = parsed
+    if purpose != GALLERY_TOKEN_PURPOSE_FILE:
         return None
     return account_id, image_id
 
@@ -106,9 +151,10 @@ def stable_file_download_url(request: Request, account_id: str, image_id: str) -
 
 def issue_gallery_thumb_token(account_id: str, image_id: str) -> str | None:
     """Issue a short-lived HMAC token for mini-program thumb URLs (no JWT in query)."""
-    return issue_gallery_fetch_token(
+    return _issue_gallery_hmac_token(
         account_id,
         image_id,
+        purpose=GALLERY_TOKEN_PURPOSE_THUMB,
         ttl_seconds=GALLERY_THUMB_TOKEN_TTL_SECONDS,
     )
 

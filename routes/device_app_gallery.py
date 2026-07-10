@@ -15,11 +15,14 @@ from fastapi.responses import JSONResponse, Response
 from device_gateway import gallery_store
 from device_gateway.gallery_service import (
     GALLERY_PROXY_RATE_LIMIT_PER_MIN,
+    GALLERY_TOKEN_PURPOSE_FILE,
+    GALLERY_TOKEN_PURPOSE_THUMB,
+    evict_proxy_cache_for_image,
     get_cached_image_bytes,
     list_images_for_app,
     proxy_cache_headers,
     stable_file_download_url,
-    parse_gallery_fetch_token,
+    parse_gallery_hmac_token,
     with_stable_urls,
 )
 from device_gateway.gallery_storage import get_gallery_backend
@@ -50,17 +53,26 @@ def _authorize_gallery(
     thumb_token: str = "",
 ) -> tuple[dict[str, Any] | JSONResponse, bool]:
     """Authorize via Bearer header, access_token query, fetch_token, or thumb_token."""
-    hmac_token = fetch_token.strip() or thumb_token.strip()
+    hmac_token = ""
+    expected_purpose = ""
+    if thumb_token.strip():
+        hmac_token = thumb_token.strip()
+        expected_purpose = GALLERY_TOKEN_PURPOSE_THUMB
+    elif fetch_token.strip():
+        hmac_token = fetch_token.strip()
+        expected_purpose = GALLERY_TOKEN_PURPOSE_FILE
+
     if hmac_token and image_id:
-        parsed = parse_gallery_fetch_token(hmac_token)
-        if parsed and parsed[1] == image_id:
-            return {"id": parsed[0]}, False
+        parsed = parse_gallery_hmac_token(hmac_token)
+        if not parsed or parsed[1] != image_id or parsed[2] != expected_purpose:
+            return err(401, "invalid gallery token", 401), False
+        return {"id": parsed[0]}, False
 
     header_auth = authorization.strip()
     used_query_token = bool(access_token.strip() and not header_auth)
     if used_query_token:
         header_auth = f"Bearer {access_token.strip()}"
-        _log.debug("gallery proxy authorized via access_token query param")
+        _log.debug("gallery proxy authorized via access_token query param (deprecated for thumbs)")
     return authorize(header_auth), used_query_token
 
 
@@ -202,6 +214,7 @@ async def delete_gallery_image(image_id: str, authorization: str = Header(defaul
         return account_id
 
     if gallery_store.delete_image(image_id, account_id):
+        evict_proxy_cache_for_image(account_id, image_id)
         return JSONResponse({"code": 0, "data": {"deleted": True}})
     return err(404, "image not found", 404)
 
@@ -211,7 +224,6 @@ async def get_gallery_thumb(
     image_id: str,
     authorization: str = Header(default=""),
     access_token: str = Query(default=""),
-    fetch_token: str = Query(default=""),
     thumb_token: str = Query(default=""),
 ) -> Response:
     """Proxy gallery image bytes with a stable, cacheable URL."""
@@ -219,7 +231,7 @@ async def get_gallery_thumb(
         image_id,
         authorization,
         access_token,
-        fetch_token,
+        "",
         thumb_token=thumb_token,
         for_file=False,
     )
