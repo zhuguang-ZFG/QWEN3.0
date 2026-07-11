@@ -86,6 +86,7 @@ LIMA-external/
 .test-tmp/
 .pnpm-store/
 .venv310/
+.venv310-review/
 .playwright-mcp/
 .omo/
 
