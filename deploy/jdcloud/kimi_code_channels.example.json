@@ -1,0 +1,51 @@
+{
+  "kimi_code_cli_channels": {
+    "description": "Import via Web UI; replace <<API_KEY>> with upstream keys. Priority lower = preferred.",
+    "channels": [
+      {
+        "name": "Kimi-Code-Official",
+        "type": 1,
+        "base_url": "https://api.kimi.com/coding",
+        "models": "kimi-for-coding,kimi-for-coding-highspeed",
+        "priority": 10,
+        "header_override": {},
+        "note": "Primary for Kimi Code CLI. Do NOT append /v1 — NewAPI OpenAI relay strips trailing /v1 and would hit .../coding/chat/completions (404)."
+      },
+      {
+        "name": "100xLabs-Claude-Cache",
+        "type": 14,
+        "base_url": "https://sub.100xlabs.space",
+        "models": "claude-opus-4-6,claude-opus-4-7,claude-opus-4-8",
+        "priority": 20,
+        "header_override": {
+          "anthropic-beta": "prompt-caching-2024-07-01"
+        },
+        "note": "Deploy on :3001 sidecar; Anthropic native for cache_read_input_tokens"
+      },
+      {
+        "name": "100xLabs-Claude-OpenAI-Compat",
+        "type": 1,
+        "base_url": "https://sub.100xlabs.space/v1",
+        "models": "claude-opus-4-6,claude-opus-4-7,claude-opus-4-8",
+        "priority": 25,
+        "header_override": {
+          "anthropic-beta": "prompt-caching-2024-07-01"
+        },
+        "note": "For Kimi providers.newapi-claude (type=openai) on :3001"
+      }
+    ]
+  },
+  "kimi_code_cli_provider_snippet": {
+    "providers.newapi": {
+      "type": "openai",
+      "base_url": "https://api.donglicao.com/v1",
+      "api_key": "sk-<<NEWAPI_TOKEN>>"
+    },
+    "providers.newapi-claude": {
+      "type": "openai",
+      "base_url": "http://127.0.0.1:3001/v1",
+      "api_key": "sk-<<NEWAPI_TOKEN>>",
+      "note": "Use SSH tunnel or LAN to JDCloud :3001; or single gateway with model routing on :3000"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+# NewAPI on JDCloud — host network, host MySQL + host Redis (no compose redis).
+# SQL_DSN / secrets come from .env via env_file (do NOT interpolate SQL_DSN in yaml).
+version: "3.8"
+
+services:
+  new-api:
+    image: calciumion/new-api:latest
+    restart: always
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      - MAX_REQUEST_BODY_MB=48
+      - STREAM_SCANNER_MAX_BUFFER_MB=128
+      - SESSION_SECRET=${SESSION_SECRET}
+      - CRYPTO_SECRET=${CRYPTO_SECRET}
+      - TZ=Asia/Shanghai
+      # Prefer URL-encoded password form from live compose; placeholder for fresh installs
+      - REDIS_CONN_STRING=redis://127.0.0.1:6379
+      - REDIS_POOL_SIZE=24
+      - MEMORY_CACHE_ENABLED=true
+      - BATCH_UPDATE_ENABLED=true
+      - BATCH_UPDATE_INTERVAL=5
+      - STREAMING_TIMEOUT=600
+      - FORCE_STREAM_OPTION=true
+      - ERROR_LOG_ENABLED=true
+      - CHANNEL_TEST_FREQUENCY=120
+      - RELAY_MAX_IDLE_CONNS=500
+      - RELAY_MAX_IDLE_CONNS_PER_HOST=100
+      - GLOBAL_API_RATE_LIMIT=360
+      - GLOBAL_API_RATE_LIMIT_DURATION=180
+    volumes:
+      - ./data:/data

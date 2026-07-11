@@ -90,8 +90,16 @@ services:
       - REDIS_CONN_STRING=${REDIS_CONN}
       - TZ=Asia/Shanghai
       - BATCH_UPDATE_ENABLED=true
+      - BATCH_UPDATE_INTERVAL=5
       - ERROR_LOG_ENABLED=true
       - SESSION_SECRET=${SESSION_SECRET}
+      - MEMORY_CACHE_ENABLED=true
+      - CRYPTO_SECRET=${SESSION_SECRET}
+      - REDIS_POOL_SIZE=24
+      - SYNC_FREQUENCY=30
+      - STREAMING_TIMEOUT=600
+      - STREAM_SCANNER_MAX_BUFFER_MB=128
+      - MAX_REQUEST_BODY_MB=48
     logging:
       driver: json-file
       options:
@@ -149,6 +157,7 @@ echo "       /etc/nginx/sites-enabled/"
 echo "  3. 申请 TLS: sudo certbot --nginx -d api.donglicao.com"
 echo "  4. 浏览器打开 https://api.donglicao.com，默认 root / 123456，立即改密码"
 echo "  5. 关闭注册，添加渠道，添加用户 → 复制 sk-xxx 令牌"
+echo "  6. Kimi CLI 缓存调优: bash deploy/jdcloud/tune_newapi_kimi_cache.sh"
 echo ""
 echo "回滚: cd ${NEWAPI_DIR} && docker compose down   # MySQL 数据不动"
 echo ""

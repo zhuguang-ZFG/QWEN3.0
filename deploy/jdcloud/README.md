@@ -31,6 +31,10 @@ python scripts/deploy_unified.py --target jdcloud --slice core
 | `install_newapi.sh` | New API 一键安装脚本（复用宿主机 MySQL 8.0 + Redis 7.0，host 网络模式）。 |
 | `configure_newapi_firewall.sh` | New API 专用 ufw 防火墙（保护 3000/3306/6379）。 |
 | `newapi.nginx.conf` | New API nginx 反代 + 自签证书配置（api.donglicao.com，无需 certbot）。 |
+| `tune_newapi_kimi_cache.sh` | （完整版）Kimi 缓存调优；日常优先用 `apply_newapi_fast_tune.sh`。 |
+| `apply_newapi_fast_tune.sh` | **快路径**：现网 SQLite+Redis 一键补 CRYPTO/SSE，不迁库。 |
+| `docker-compose.newapi-claude.yml` | Claude 专用 new-api 侧车（loopback 3001）。 |
+| `kimi_code_channels.example.json` | Kimi/Claude 渠道 Header 模板（无密钥）。 |
 
 ## new-api 部署概览
 

@@ -1,0 +1,28 @@
+# Kimi Code CLI — NewAPI Claude cache (automatic edge path, no tunnel, no probe).
+
+[providers.newapi]
+type = "openai"
+base_url = "https://api.donglicao.com/v1"
+api_key = ""
+
+# Public edge proxies /v1/chat/completions + /v1/messages → JDCloud :3001
+[providers.newapi-claude]
+type = "openai"
+base_url = "https://api.donglicao.com/v1"
+api_key = ""
+
+# Pick by task; same session keep one model for better third-party cache hits
+[models."newapi/claude-opus-4-8"]
+provider = "newapi-claude"
+model = "claude-opus-4-8"
+display_name = "Claude Opus 4.8 (edge cache)"
+
+[models."newapi/claude-opus-4-7"]
+provider = "newapi-claude"
+model = "claude-opus-4-7"
+display_name = "Claude Opus 4.7 (edge cache)"
+
+[models."newapi/claude-opus-4-6"]
+provider = "newapi-claude"
+model = "claude-opus-4-6"
+display_name = "Claude Opus 4.6 (edge cache)"
