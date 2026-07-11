@@ -105,6 +105,11 @@ class SessionRegistry:
         with self._lock:
             return list(self._sessions.keys())
 
+    def active_sessions(self) -> list[DeviceSession]:
+        """返回所有活跃会话的快照（用于优雅关停）。"""
+        with self._lock:
+            return list(self._sessions.values())
+
     def update_heartbeat(self, device_id: str, uptime_ms: int) -> None:
         with self._lock:
             session = self._sessions.get(device_id)

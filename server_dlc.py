@@ -37,6 +37,22 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*, /v1/voice")
     yield
+    # --- 优雅关停：关闭 WebSocket 会话 + Redis 连接池 ---
+    try:
+        from device_gateway.sessions import registry as _reg
+
+        for s in _reg.active_sessions():
+            try:
+                await s.websocket.close(code=1012, reason="server_restart")
+            except Exception:
+                logger.warning("关闭会话失败 device=%s", s.device_id, exc_info=True)
+        from device_gateway.store import task_store as _ts
+
+        if getattr(_ts, "backend_name", None) == "redis":
+            _ts._redis.close()
+            logger.info("已关闭 Redis 连接池")
+    except Exception:
+        logger.warning("清理异常", exc_info=True)
 
 
 app = FastAPI(

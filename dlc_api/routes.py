@@ -30,6 +30,7 @@ from dlc_core import (
 from dlc_api.idempotency import claim_idempotency_key as _claim_idempotency_key
 from dlc_api.idempotency import release_idempotency_key as _release_idempotency_key
 from device_gateway.image_url_validation import validate_image_url
+from device_gateway.store import task_store_health
 from routes.rate_limit_helper import check_key_limit
 
 logger = logging.getLogger(__name__)
@@ -67,9 +68,27 @@ def _quota_for(task_type: str) -> int:
 
 
 @router.get("/health")
-async def health() -> dict[str, str]:
+async def health():
     """Lightweight health endpoint for load balancers and smoke tests."""
-    return {"status": "ok", "service": "dlc-drawing", "version": "0.4.0-p3"}
+    base = {"service": "dlc-drawing", "version": "0.4.0-p3"}
+    try:
+        backend = task_store_health().get("backend", "memory")
+    except Exception:
+        logger.warning("task_store_health 调用失败，按 memory 处理", exc_info=True)
+        backend = "memory"
+    deps: dict[str, str] = {"task_store": backend}
+    if backend == "redis":
+        try:
+            from device_gateway.store import task_store
+
+            task_store._redis.ping()
+        except Exception:
+            logger.warning("Redis ping 失败", exc_info=True)
+            return JSONResponse(
+                status_code=503,
+                content={"status": "degraded", **base, "dependencies": deps},
+            )
+    return {"status": "ok", **base, "dependencies": deps}
 
 
 @router.get("/dlc/devices/{device_id}/status", response_model=DeviceStatusResponse)
