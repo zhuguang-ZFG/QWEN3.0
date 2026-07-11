@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Gallery preload feature review via local A2A MCP bridge (streamable-http) -> MiMo.
- * Usage: node scripts/a2a_mimo_review_gallery.js
+ * Ask AtomCode (A2A :4940) to review the NewAPI Kimi fast-path improvement plan.
+ * Usage: node scripts/a2a_atomcode_review_newapi_plan.js
  *
  * Streamable-http protocol:
  *   Initialize: POST to MCP_URL, get mcp-session-id from response header
@@ -9,44 +9,64 @@
  *   Response body is SSE format (event: message / data: {...})
  */
 
+const fs = require("fs");
+const path = require("path");
+
 const MCP_URL = process.env.A2A_MCP_URL || "http://127.0.0.1:41242/mcp";
-const MIMO_URL = "http://127.0.0.1:4939";
+const ATOMCODE_URL = process.env.A2A_ATOMCODE_URL || "http://127.0.0.1:4940";
 const TIMEOUT_MS = Number(process.env.A2A_REVIEW_TIMEOUT_MS || 600000);
+const PLAN_PATH =
+  process.env.A2A_PLAN_PATH ||
+  path.join(__dirname, "..", "docs", "ops", "NEWAPI_KIMI_IMPROVEMENT_PLAN_CN.md");
+const FAST_TUNE_PATH = path.join(__dirname, "..", "deploy", "jdcloud", "apply_newapi_fast_tune.sh");
 
-const REVIEW_PROMPT = `请对以下图库功能做独立、只读 code review（不要修改文件，不要读取 .env 密钥）。
+function buildPrompt() {
+  const plan = fs.readFileSync(PLAN_PATH, "utf8");
+  const tune = fs.existsSync(FAST_TUNE_PATH)
+    ? fs.readFileSync(FAST_TUNE_PATH, "utf8")
+    : "(missing apply_newapi_fast_tune.sh)";
+  return `你是资深 LLM 网关 / NewAPI / Kimi Code CLI 运维审查员。请对以下「快路径改善方案」做独立、只读审核（不要修改任何文件，不要索要或打印密钥）。
 
-项目: D:\\QWEN3.0 (DLC FastAPI) + 子模块 esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile
+## 背景（已核实的现网）
+- 公网: https://api.donglicao.com → 阿里云反代 → 京东云 117.72.118.95:3000
+- 目录: /opt/newapi
+- 数据: SQLite ./data/one-api.db（容器未配 SQL_DSN）
+- Redis: compose 内 redis:7-alpine，REDIS_CONN_STRING=redis://redis:6379，MEMORY_CACHE_ENABLED=true
+- 已有: STREAMING_TIMEOUT=300, FORCE_STREAM_OPTION=true
+- 缺失: CRYPTO_SECRET, SESSION_SECRET；SSE 建议 600
+- 客户端主路径: Kimi Code CLI；LiteLLM 已退役
+- 改密码必须改 SQLite，改 MySQL 无效（曾踩坑）
 
-审查范围（含已提交 + 工作区未提交改动）:
+## 待审方案全文
+路径: ${PLAN_PATH}
 
-【后端 — 已提交 1281d676 + 未提交 total 分页】
-- routes/device_app_gallery.py — /thumb /file /download 代理、fetch_token 鉴权、列表 total
-- device_gateway/gallery_service.py — stable URL、HMAC fetch_token、代理缓存、限流
-- device_gateway/gallery_storage.py — Telegram 存储抽象
-- device_gateway/gallery_store.py — count_images、update_thumb_url
-- tests/test_device_app_gallery_*.py, tests/test_gallery_storage.py
+\`\`\`markdown
+${plan}
+\`\`\`
 
-【小程序 — 已提交 9f81a93 + 未提交 v2 优化】
-- src/api/gallery/gallery.ts — 分页 GALLERY_PAGE_SIZE=24、上传 onProgressUpdate
-- src/utils/galleryPreload.ts — 分批 preload、去重 Set
-- src/pages/v2/device-detail/composables/useGalleryList.ts — 分页/滚动加载
-- src/pages/v2/device-detail/components/gallery-panel.vue — 进度条、预览、删除确认
-- src/utils/formatBytes.ts
-- useDeviceActions.ts — draw_generated + image_url（非 draw_from_image）
+## 配套快路径脚本
+路径: ${FAST_TUNE_PATH}
 
-重点审查:
-1. 安全: access_token/fetch_token 在 URL、JWT 泄露面、draw_generated image_url SSRF、fetch_token 重放
-2. 性能: thumb 代理是否下载全图、预加载重复、分页 COUNT 查询、内存缓存
-3. 正确性: total/count 契约、分页 hasMore、prependImage totalCount、服务端 draw 拉取 /file
-4. 测试盲区与前后端部署顺序（total 字段）
-5. 小程序 UX: 预览用 thumb 非全图、滚动加载竞态
+\`\`\`bash
+${tune}
+\`\`\`
 
-输出格式:
+## 请重点审查
+1. 快路径 Step A–D 是否真能「15 分钟见效」？有无遗漏必做项？
+2. CRYPTO_SECRET / SESSION_SECRET / STREAMING_TIMEOUT 对 NewAPI 缓存与 SSE 的实际作用是否说对？
+3. 把 MySQL 迁移后置是否合理？有无隐藏风险？
+4. Claude anthropic-beta Header 与 Kimi CLI 固定模型是否足够？LinuxDo 上 cch/attribution 问题是否应在快路径提及？
+5. apply_newapi_fast_tune.sh 脚本正确性与回滚安全性
+6. 验收指标是否可操作
+
+## 输出格式（中文）
 ## 总体评价
-## 优点
-## 问题（P0/P1/P2，含文件路径、描述、建议）
-## 测试盲区
-## 与常见审查偏差的自我校验`;
+## 方案优点
+## 问题（P0/P1/P2：描述 + 建议改法）
+## 对快路径的修订建议（可直接粘贴进文档的短段落）
+## 是否建议立刻执行 Step A
+`;
+}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -91,7 +111,7 @@ class HttpMcpClient {
       params: {
         protocolVersion: "2025-03-26",
         capabilities: {},
-        clientInfo: { name: "dlc-mimo-gallery-review", version: "1.0.0" },
+        clientInfo: { name: "dlc-atomcode-newapi-plan-review", version: "1.0.0" },
       },
     };
     const controller = new AbortController();
@@ -216,27 +236,28 @@ function extractText(result) {
 }
 
 async function main() {
+  const prompt = buildPrompt();
+  console.error(`[a2a] plan=${PLAN_PATH} bytes=${prompt.length}`);
   console.error(`[a2a] Connecting MCP: ${MCP_URL}`);
   const client = new HttpMcpClient(MCP_URL);
   await client.connect();
   console.error(`[a2a] Session ID: ${client.sessionId}`);
 
-  console.error(`[a2a] Sending gallery review to MiMo (${MIMO_URL}), timeout ${TIMEOUT_MS}ms...`);
+  const agentsRaw = await client.call("tools/call", { name: "list_agents", arguments: {} });
+  console.error(`[a2a] Agents: ${extractText(agentsRaw).slice(0, 800)}`);
+
+  console.error(`[a2a] Sending plan review to AtomCode (${ATOMCODE_URL}), timeout ${TIMEOUT_MS}ms...`);
   const reviewResult = await client.call(
     "tools/call",
     {
       name: "send_message",
       arguments: {
-        agent_url: MIMO_URL,
-        message: REVIEW_PROMPT,
+        agent_url: ATOMCODE_URL,
+        message: prompt,
       },
     },
     TIMEOUT_MS
   );
-
-  if (reviewResult?.isError) {
-    throw new Error(`Review call returned isError: ${extractText(reviewResult)}`);
-  }
 
   const text = extractText(reviewResult);
   console.log(text || JSON.stringify(reviewResult, null, 2));

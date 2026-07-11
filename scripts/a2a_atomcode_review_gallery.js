@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Gallery preload feature review via local A2A MCP bridge (streamable-http) -> MiMo.
- * Usage: node scripts/a2a_mimo_review_gallery.js
+ * Gallery feature review via local A2A MCP bridge (streamable-http) -> AtomCode.
+ * Usage: node scripts/a2a_atomcode_review_gallery.js
  *
  * Streamable-http protocol:
  *   Initialize: POST to MCP_URL, get mcp-session-id from response header
@@ -10,43 +10,47 @@
  */
 
 const MCP_URL = process.env.A2A_MCP_URL || "http://127.0.0.1:41242/mcp";
-const MIMO_URL = "http://127.0.0.1:4939";
+const ATOMCODE_URL = "http://127.0.0.1:4940";
 const TIMEOUT_MS = Number(process.env.A2A_REVIEW_TIMEOUT_MS || 600000);
 
 const REVIEW_PROMPT = `请对以下图库功能做独立、只读 code review（不要修改文件，不要读取 .env 密钥）。
 
 项目: D:\\QWEN3.0 (DLC FastAPI) + 子模块 esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile
 
-审查范围（含已提交 + 工作区未提交改动）:
+近期已合并提交（请基于实际代码阅读）:
+- fdb81fae feat(gallery): thumb_token auth, gallery_image_id draw, thumb proxy
+- bed878d2 fix(ci): migration order, auth payload, voiceprint test mocks
+- e26072ee feat(gallery): HMAC token purpose scoping; deps pillow/uvicorn/cryptography/hypothesis
+- 6c51909d chore(deps): fastapi 0.139, opencv 5, scikit-image 0.25, dashscope 1.26
+- 544aa19b chore(site-v2): npm bumps (next/react-dom/sharp)
 
-【后端 — 已提交 1281d676 + 未提交 total 分页】
-- routes/device_app_gallery.py — /thumb /file /download 代理、fetch_token 鉴权、列表 total
-- device_gateway/gallery_service.py — stable URL、HMAC fetch_token、代理缓存、限流
-- device_gateway/gallery_storage.py — Telegram 存储抽象
-- device_gateway/gallery_store.py — count_images、update_thumb_url
-- tests/test_device_app_gallery_*.py, tests/test_gallery_storage.py
+审查范围:
 
-【小程序 — 已提交 9f81a93 + 未提交 v2 优化】
-- src/api/gallery/gallery.ts — 分页 GALLERY_PAGE_SIZE=24、上传 onProgressUpdate
-- src/utils/galleryPreload.ts — 分批 preload、去重 Set
-- src/pages/v2/device-detail/composables/useGalleryList.ts — 分页/滚动加载
-- src/pages/v2/device-detail/components/gallery-panel.vue — 进度条、预览、删除确认
-- src/utils/formatBytes.ts
-- useDeviceActions.ts — draw_generated + image_url（非 draw_from_image）
+【后端】
+- routes/device_app_gallery.py — thumb_token/fetch_token 鉴权、代理、删图清缓存
+- device_gateway/gallery_service.py — HMAC purpose 分域、stable URL、代理缓存、限流
+- device_gateway/task_draw_params.py — gallery_image_id 内部解析 URL，不落库 token
+- device_gateway/gallery_store.py — 元数据、软删
+- device_gateway/image_url_validation.py — SSRF 白名单
+- tests/test_device_app_gallery_*.py, tests/test_gallery_hmac_tokens.py, tests/test_task_creation_gallery_image_id.py
+
+【小程序】（子模块 manager-mobile，若可读）
+- src/api/gallery/, src/utils/galleryPreload.ts
+- gallery-panel.vue, useDeviceActions.ts — draw_generated + gallery_image_id
 
 重点审查:
-1. 安全: access_token/fetch_token 在 URL、JWT 泄露面、draw_generated image_url SSRF、fetch_token 重放
-2. 性能: thumb 代理是否下载全图、预加载重复、分页 COUNT 查询、内存缓存
-3. 正确性: total/count 契约、分页 hasMore、prependImage totalCount、服务端 draw 拉取 /file
-4. 测试盲区与前后端部署顺序（total 字段）
-5. 小程序 UX: 预览用 thumb 非全图、滚动加载竞态
+1. 安全: thumb vs file token 互斥、JWT access_token 查询参数泄露、删图后 token 重放、跨账号隔离
+2. 正确性: gallery_image_id 绘图链路、删图 404、多 worker 代理缓存一致性
+3. 性能: thumb 是否拉全图、列表签发 token 频率、内存缓存上限
+4. 依赖升级风险: opencv 5 / fastapi 0.139 对绘图链路影响
+5. 测试盲区
 
 输出格式:
 ## 总体评价
 ## 优点
 ## 问题（P0/P1/P2，含文件路径、描述、建议）
 ## 测试盲区
-## 与常见审查偏差的自我校验`;
+## 部署/回归风险`;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -91,7 +95,7 @@ class HttpMcpClient {
       params: {
         protocolVersion: "2025-03-26",
         capabilities: {},
-        clientInfo: { name: "dlc-mimo-gallery-review", version: "1.0.0" },
+        clientInfo: { name: "dlc-atomcode-gallery-review", version: "1.0.0" },
       },
     };
     const controller = new AbortController();
@@ -221,13 +225,13 @@ async function main() {
   await client.connect();
   console.error(`[a2a] Session ID: ${client.sessionId}`);
 
-  console.error(`[a2a] Sending gallery review to MiMo (${MIMO_URL}), timeout ${TIMEOUT_MS}ms...`);
+  console.error(`[a2a] Sending gallery review to AtomCode (${ATOMCODE_URL}), timeout ${TIMEOUT_MS}ms...`);
   const reviewResult = await client.call(
     "tools/call",
     {
       name: "send_message",
       arguments: {
-        agent_url: MIMO_URL,
+        agent_url: ATOMCODE_URL,
         message: REVIEW_PROMPT,
       },
     },
