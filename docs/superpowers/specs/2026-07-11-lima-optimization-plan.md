@@ -2,6 +2,14 @@
 
 > 来源：MiMo 调研 → Kimi + Atom 双重代码核对 → Claude Code plan 设计。本文以核对后的现状为准。
 
+## 执行状态（2026-07-12 更新）
+
+- **A 完成**：中间件恒启用（`server_dlc.py:52`）。原计划的 `LIMA_REQUEST_ID_MIDDLEWARE` 关闭开关**未实现且决策删除**（YAGNI：开销可忽略，关掉会断日志关联，无禁用场景）。
+- **B 完成**：`LIMA_STRUCTURED_LOGGING=1` 启用（`server_dlc.py:26`）。
+- **C 完成验证后删除**：VPS 模块级验证全 PASS，但发现 `check_rate_limit` 生产零调用方（keyed 限流已覆盖生产需求），按 ponytail 删除实现与测试（commit `7eed9aac`）。
+- **D 完成**：`LIMA_REDIS_TASK_INDEX` 经 VPS 模块级验证全 PASS（索引写入/索引读路径/TTL/开关行为）。
+- **E 代码完成**：`LIMA_AUTO_FALLBACK`（`device_gateway/model_routing.py`）；ESP32 端到端验证待真机排期。
+
 ## 整体排序与依赖
 
 ```
@@ -35,7 +43,7 @@ E (AI fallback 路由，独立；建议 B 完成后做，便于 warning 可观�
 - 文件：`dlc_api/middleware.py`（追加 `RequestIDMiddleware(BaseHTTPMiddleware)`）、`server_dlc.py`（注册）。
 - 逻辑：读 `X-Request-ID`，无则 `uuid4().hex[:16]`；存 `request.state.request_id` + contextvars；响应头写回。`add_request_id_middleware(app)`。
 - 测试 `tests/test_request_id_middleware.py`：① 无 header 自动生成 ② 有 header 透传 ③ `/health` 带 header ④ 并发不串。
-- env：`LIMA_REQUEST_ID_MIDDLEWARE=0` 可跳过（默认启用）。
+- env：~~`LIMA_REQUEST_ID_MIDDLEWARE=0` 可跳过（默认启用）~~ 开关未实现，2026-07-12 决策删除（见顶部执行状态）：中间件恒启用。
 - 完成定义：`curl -v /health` 返回 `X-Request-ID`；CI 绿。
 
 ### B. 结构化日志（1d）
