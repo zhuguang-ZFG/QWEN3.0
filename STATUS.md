@@ -1,7 +1,7 @@
 # LiMa / DLC 项目状态
 
 > 更新日期：2026-07-12
-> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `caed1111`）
+> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `2793f190`）
 > 公网入口：`https://chat.donglicao.com` → 京东云 `117.72.118.95`（`server_dlc` :8081）
 
 > 根目录 `STATUS.md` 与本文件内容保持同步（供 CI/人类速览）。
@@ -33,7 +33,7 @@ server_dlc.py (:8081)
 | jdcloud 默认部署 | ✅ | `deploy_unified.py --target jdcloud` |
 | nginx `/v1/voice` → :8081 | ✅ | `deploy/nginx/chat.donglicao.com.conf` |
 | 文档同步 | ✅ | `docs/`、`docs-site/api/voice.md` |
-| A–E 优化计划 | ✅ | A/B/D 完成；C 验证后删除（`7eed9aac`）；E 原语 + draw 接线完成；ESP32 E2E 待真机 |
+| A–E 优化计划 | ✅ | A/B/D 完成；C 验证后删除（`7eed9aac`）；E 原语 + draw 接线（`ff80dff6`/`2793f190`） |
 | 优雅关停 + `/health` Redis 依赖检查 | ✅ | `caed1111`；已部署京东云 |
 | logrotate `/etc/logrotate.d/lima-dlc` | ✅ | 已落 VPS（零代码） |
 
@@ -41,12 +41,12 @@ server_dlc.py (:8081)
 
 ## 待办（阻塞上线）
 
-| ID | 项 |
-|----|-----|
-| P0-3 | 真机 E2E：录音 → 确认 → 物理设备运动 |
-| P0-4 | 微信审核发布（v3.8.0 已上传未提审） |
-| P0-2 | U8 OPUS/PCM（仅设备直连语音） |
-| E-2 | ESP32 端到端验证 `LIMA_AUTO_FALLBACK` draw 路径（需真机） |
+| ID | 项 | 阻塞 |
+|----|-----|------|
+| P0-3 | 真机 E2E：录音 → 确认 → 物理设备运动 | 真机 |
+| P0-4 | 微信审核发布（v3.8.0 已上传未提审） | 运营/提审 |
+| P0-2 | U8 OPUS/PCM（仅设备直连语音） | 产品排期 |
+| E-2 | ESP32 端到端验证 `LIMA_AUTO_FALLBACK` draw 路径 | **暂无真机**（2026-07-12 挂起；有机后再验） |
 
 详见 [`superpowers/specs/2026-07-02-backlog-planning.md`](superpowers/specs/2026-07-02-backlog-planning.md)。
 
