@@ -13,16 +13,22 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 import logging
+import os
 
 from fastapi import FastAPI
 
 from dlc_api.device_app_router import register_device_app_routes
-from dlc_api.middleware import add_body_size_limit
+from dlc_api.middleware import add_body_size_limit, add_request_id_middleware
 from dlc_api.routes import router as dlc_router
 from routes import images as images_router
 from routes.device_app_voice_ws import legacy_router
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+if os.environ.get("LIMA_STRUCTURED_LOGGING") == "1":
+    from observability.structured_logging import setup_structured_logging
+
+    setup_structured_logging(service="lima-dlc", version="0.4.0-p3")
+else:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -43,6 +49,7 @@ app = FastAPI(
 )
 # SEC: 应用层请求体上限兜底（不只靠 nginx client_max_body_size；直连 :8081 时仍生效）。
 add_body_size_limit(app, max_bytes=32 * 1024 * 1024)
+add_request_id_middleware(app)
 app.include_router(dlc_router)
 app.include_router(images_router.router)
 register_device_app_routes(app)
