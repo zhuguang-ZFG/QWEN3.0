@@ -57,14 +57,17 @@ async def device_app_image_generations(request: Request, authorization: str = He
         "enhance": img_req.enhance,
         "safe": img_req.safe,
     }
-    data_items, backend, _duration_ms = await _generate_image_urls(
-        prompt,
-        img_req.size,
-        img_req.n,
-        options,
-        image_url=img_req.image_url,
-        skip_cache=should_skip_cache(request),
-    )
+    try:
+        data_items, backend, _duration_ms = await _generate_image_urls(
+            prompt,
+            img_req.size,
+            img_req.n,
+            options,
+            image_url=img_req.image_url,
+            skip_cache=should_skip_cache(request),
+        )
+    except ValueError as exc:
+        return err(400, str(exc), 400)
     urls = [{"url": item["url"]} for item in data_items]
 
     # 真实 backend 仅保留在函数局部（可用于内部监控），对外响应统一返回品牌标签。

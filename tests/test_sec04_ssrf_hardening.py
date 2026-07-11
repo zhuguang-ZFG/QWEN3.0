@@ -136,3 +136,37 @@ def test_allow_telegram_host(monkeypatch):
         response = _post(client, "https://api.telegram.org/file/bot123/img.png")
         data = response.json()
         assert data["status"] == "success", f"telegram host should be allowed; got: {data}"
+
+
+# ── images/generations i2i path must use the same SSRF guard ─────────────────
+
+
+def test_images_generations_i2i_rejects_private_image_url(monkeypatch):
+    """/_generate_image_urls must validate image_url before DashScope i2i."""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient as TC
+
+    from routes import images as img
+
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    called = {"n": 0}
+
+    async def spy_i2i(prompt: str, image_url: str, size: str, n: int):
+        called["n"] += 1
+        return [{"url": "https://example.com/x.png"}]
+
+    async def fake_xmiaom(prompt: str, size: str):
+        return [{"url": "https://example.com/x.png"}]
+
+    monkeypatch.setattr(img, "_generate_via_dashscope_i2i", spy_i2i)
+    monkeypatch.setattr(img, "_generate_via_xmiaom", fake_xmiaom)
+    app_local = FastAPI()
+    app_local.include_router(img.router)
+    client = TC(app_local)
+    response = client.post(
+        "/v1/images/generations",
+        headers={"Authorization": "Bearer test-key"},
+        json={"prompt": "x", "image_url": "https://192.168.1.1/a.png"},
+    )
+    assert response.status_code == 400
+    assert called["n"] == 0

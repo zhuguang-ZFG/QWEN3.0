@@ -117,6 +117,7 @@ def test_bind_device_invalid_activation(client, auth_header):
 
 
 def test_bind_device_success(client, auth_header):
+    api._bind_limiter.reset_all()
     response = client.post(
         "/device/v1/app/devices/bind",
         json={"deviceSn": "SN123", "activationCode": "code-123", "model": "x"},
@@ -124,6 +125,30 @@ def test_bind_device_success(client, auth_header):
     )
     assert response.status_code == 200
     assert response.json()["deviceId"] == "dev-1"
+
+
+def test_bind_device_rate_limited(client, auth_header):
+    api._bind_limiter.reset_all()
+    original_max = api._bind_limiter._max_calls
+    api._bind_limiter._max_calls = 1
+    try:
+        assert (
+            client.post(
+                "/device/v1/app/devices/bind",
+                json={"deviceSn": "SN123", "activationCode": "code-123"},
+                headers=auth_header,
+            ).status_code
+            == 200
+        )
+        response = client.post(
+            "/device/v1/app/devices/bind",
+            json={"deviceSn": "SN123", "activationCode": "code-123"},
+            headers=auth_header,
+        )
+        assert response.status_code == 429
+    finally:
+        api._bind_limiter._max_calls = original_max
+        api._bind_limiter.reset_all()
 
 
 def test_list_devices_success(client, auth_header):

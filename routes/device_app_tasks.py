@@ -174,14 +174,20 @@ async def _create_structured_task(
 
 @router.get("/tasks")
 async def list_tasks(
-    device_id: str,
     authorization: str = Header(default=""),
+    device_id: str | None = Query(default=None),
+    deviceId: str | None = Query(default=None),
     status: str = "",
     limit: int = Query(20, ge=1, le=100),
 ):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
+    # Mini-program may send camelCase deviceId; accept either alias.
+    resolved = (device_id or deviceId or "").strip()
+    if not resolved:
+        return err(400, "device_id is required", 400)
+    device_id = resolved
     with connect() as conn:
         denied = require_device_access(conn, account, device_id)
         if denied:

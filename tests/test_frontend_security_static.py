@@ -44,3 +44,11 @@ def test_firmware_websocket_protocol_is_lima_only() -> None:
     assert "Original xiaozhi-server hello parsing" not in text
     assert 'cJSON_AddStringToObject(root, "protocol", LIMA_PROTOCOL_VERSION);' in text
     assert 'strcmp(type->valuestring, "hello_ack") == 0' in text
+
+
+def test_u1_webui_authentication_is_enabled() -> None:
+    """U1 Grbl WebUI must not ship with authentication commented out."""
+    text = (ROOT / "esp32S_XYZ/firmware/u1-grbl/Grbl_Esp32/src/Config.h").read_text(encoding="utf-8")
+    # Active define (not a commented-out // #define line).
+    assert "#define ENABLE_AUTHENTICATION" in text
+    assert "// #define ENABLE_AUTHENTICATION" not in text

@@ -113,6 +113,47 @@ class TestPublicImageGenerations:
         )
         assert response.status_code == 400
 
+    def test_image_generations_rejects_private_image_url(self, public_client, monkeypatch):
+        """i2i must not forward private/non-allowlisted image_url to DashScope (SSRF)."""
+        called = {"n": 0}
+
+        async def spy_i2i(prompt: str, image_url: str, size: str, n: int):
+            called["n"] += 1
+            return [{"url": "https://example.com/i2i.png", "backend": "dashscope_i2i"}]
+
+        monkeypatch.setattr(img, "_generate_via_dashscope_i2i", spy_i2i)
+        response = public_client.post(
+            "/v1/images/generations",
+            headers={"Authorization": "Bearer test-key"},
+            json={
+                "prompt": "edit this",
+                "size": "1024x1024",
+                "image_url": "https://127.0.0.1/secret.png",
+            },
+        )
+        assert response.status_code == 400
+        assert called["n"] == 0
+
+    def test_image_generations_rejects_non_allowlisted_image_url(self, public_client, monkeypatch):
+        called = {"n": 0}
+
+        async def spy_i2i(prompt: str, image_url: str, size: str, n: int):
+            called["n"] += 1
+            return [{"url": "https://example.com/i2i.png", "backend": "dashscope_i2i"}]
+
+        monkeypatch.setattr(img, "_generate_via_dashscope_i2i", spy_i2i)
+        response = public_client.post(
+            "/v1/images/generations",
+            headers={"Authorization": "Bearer test-key"},
+            json={
+                "prompt": "edit this",
+                "size": "1024x1024",
+                "image_url": "https://evil.example.com/img.png",
+            },
+        )
+        assert response.status_code == 400
+        assert called["n"] == 0
+
     def test_image_cache_returns_same_url(self, public_client, monkeypatch):
         call_count = {"n": 0}
 
@@ -176,6 +217,26 @@ class TestDeviceAppImageGenerations:
             json={"prompt": "   ", "size": "1024x1024"},
         )
         assert response.status_code == 400
+
+    def test_device_app_image_generations_rejects_private_image_url(self, device_app_client, monkeypatch):
+        called = {"n": 0}
+
+        async def spy_i2i(prompt: str, image_url: str, size: str, n: int):
+            called["n"] += 1
+            return [{"url": "https://example.com/i2i.png", "backend": "dashscope_i2i"}]
+
+        monkeypatch.setattr(img, "_generate_via_dashscope_i2i", spy_i2i)
+        response = device_app_client.post(
+            "/device/v1/app/images/generations",
+            headers=_auth_header(),
+            json={
+                "prompt": "edit this",
+                "size": "1024x1024",
+                "image_url": "https://10.0.0.1/internal.png",
+            },
+        )
+        assert response.status_code == 400
+        assert called["n"] == 0
 
     def test_device_app_image_generations_rate_limited(self, device_app_client, monkeypatch):
         import rate_limiter

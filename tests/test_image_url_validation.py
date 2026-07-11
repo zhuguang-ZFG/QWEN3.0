@@ -13,6 +13,12 @@ def test_reject_non_allowlisted_host() -> None:
     assert err and "not allowed" in err
 
 
+def test_reject_literal_private_ip() -> None:
+    url, err = iv.validate_image_url("https://127.0.0.1/img.png")
+    assert url is None
+    assert err and ("blocked" in err.lower() or "private" in err.lower())
+
+
 def test_allow_telegram_host(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(iv, "_resolve_hostname", lambda _host: ["149.154.167.220"])
     url, err = iv.validate_image_url("https://api.telegram.org/file/bot123/img.png")

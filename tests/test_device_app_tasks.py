@@ -46,6 +46,38 @@ def test_device_app_task_list_rejects_invalid_limit(tmp_path, monkeypatch):
     assert response.status_code == 422
 
 
+def test_device_app_task_list_accepts_deviceId_alias(tmp_path, monkeypatch):
+    """Mini-program sends camelCase deviceId; must not 422."""
+    client, store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    seed_binding()
+    store.create_task_state(
+        {
+            "type": "motion_task",
+            "task_id": "task-camel",
+            "device_id": "dev-1",
+            "capability": "run_path",
+            "source": "voice",
+            "params": {"path": [{"x": 0, "y": 0, "z": 0}]},
+            "request_id": "req-camel",
+        },
+        status="queued",
+    )
+
+    listed = client.get("/device/v1/app/tasks?deviceId=dev-1", headers=headers("a-owner"))
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["tasks"][0]["taskId"] == "task-camel"
+
+
+def test_device_app_task_list_requires_device_id(tmp_path, monkeypatch):
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    seed_binding()
+
+    response = client.get("/device/v1/app/tasks", headers=headers("a-owner"))
+    assert response.status_code == 400
+
+
 def test_device_app_create_task_uses_native_gateway_route(tmp_path, monkeypatch):
     client, _store = make_client(tmp_path, monkeypatch)
     seed_account_and_device()

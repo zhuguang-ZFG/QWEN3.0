@@ -63,6 +63,9 @@ def _build_device_status(device_id: str) -> dict[str, Any]:
 # L2 fix: rate-limit device registration to 5 calls per 60 s per account.
 # Prevents activation-code flooding and unbounded SQLite row creation.
 _register_limiter = RateLimiter(max_calls=5, window_seconds=60)
+# Bind is unlimited-rate historically; static factory codes can be compare_digest-reused.
+# Cap per-account bind attempts to blunt activation-code brute force (keep static-code semantics).
+_bind_limiter = RateLimiter(max_calls=10, window_seconds=60)
 
 
 def _device_error(exc: DeviceLogicError) -> JSONResponse:
@@ -105,6 +108,8 @@ async def bind_device(request: Request, authorization: str = Header(default=""))
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
+    if not _bind_limiter.is_allowed(account["id"]):
+        return err(429, "Too many bind requests — try again later", 429)
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body

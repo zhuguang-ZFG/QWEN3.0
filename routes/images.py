@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from access_guard import require_private_api_key
+from device_gateway.image_url_validation import validate_image_url
 from observability import prometheus_metrics as _prom_metrics
 from routes.images_backends import (
     IMAGE_BACKEND,
@@ -136,7 +137,12 @@ async def _generate_image_urls(
     backend = ""
 
     # Image-to-image: try a dedicated backend first when a reference image is provided.
+    # SEC-04: never forward private/non-allowlisted hosts to DashScope.
     if image_url:
+        validated, url_err = validate_image_url(image_url)
+        if url_err or validated is None:
+            raise ValueError(url_err or "invalid image_url")
+        image_url = validated
         data_items = await _generate_via_dashscope_i2i(enhanced_prompt, image_url, size, n)
         if data_items:
             backend = "dashscope_i2i"
@@ -181,14 +187,17 @@ async def image_generations(request: Request):
     )
 
     options = _build_pollinations_options(img_req)
-    data_items, backend, duration_ms = await _generate_image_urls(
-        prompt,
-        img_req.size,
-        img_req.n,
-        options,
-        skip_cache=should_skip_cache(request),
-        image_url=img_req.image_url,
-    )
+    try:
+        data_items, backend, duration_ms = await _generate_image_urls(
+            prompt,
+            img_req.size,
+            img_req.n,
+            options,
+            skip_cache=should_skip_cache(request),
+            image_url=img_req.image_url,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     urls = [{"url": item["url"]} for item in data_items]
     _record_image_request(img_req.prompt[:80], backend, duration_ms, client_ip)
 
