@@ -77,7 +77,7 @@ def _get_idempotency_client() -> tuple[Any, str] | None:
     except Exception as exc:
         _idem_client_failed = True
         _idem_client_failed_at = time.monotonic()
-        logger.warning("S10: idempotency Redis unavailable (%s); allowing dispatch without dedupe", exc)
+        logger.warning("S10: idempotency Redis unavailable (%s); using L1 in-process dedupe", exc)
         return None
     _idem_client_failed = False
     return _idem_client, _idem_prefix
@@ -100,7 +100,7 @@ def claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = IDEMPOTENCY
     try:
         claimed = client.set(f"{prefix}:{idem_key}", task_id or "1", nx=True, ex=ttl)
     except Exception as exc:
-        logger.warning("S10: idempotency SET NX failed (%s); falling back to L1 dedupe", exc)
+        logger.warning("S10: idempotency SET NX failed (%s); using L1 in-process dedupe", exc)
         return _l1_claim(idem_key, task_id or "1", ttl)
     return bool(claimed)
 

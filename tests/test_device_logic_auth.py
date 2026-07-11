@@ -74,3 +74,37 @@ def test_make_token_requires_jwt(monkeypatch, caplog):
     }
     assert auth.make_token(fake_account) is None
     assert any("PyJWT is not installed" in record.message for record in caplog.records)
+
+
+def test_make_token_includes_tv_from_token_epoch(monkeypatch):
+    """make_token includes 'tv' (token version) from account token_epoch."""
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-token-epoch")
+    fake_account = {
+        "id": "acc-1",
+        "phone": "13000000000",
+        "nickname": "n",
+        "avatar_url": "",
+        "role": "user",
+        "created_at": 0,
+        "token_epoch": 3,
+    }
+    token = auth.make_token(fake_account)
+    assert token is not None
+    decoded = auth.jwt.decode(token, auth.jwt_secret(), algorithms=["HS256"])
+    assert decoded["tv"] == 3
+
+
+def test_make_token_defaults_tv_to_zero_when_missing(monkeypatch):
+    """make_token defaults 'tv' to 0 when token_epoch is missing or None."""
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-token-epoch")
+    fake_account = {
+        "id": "acc-1",
+        "phone": "13000000000",
+        "nickname": "n",
+        "avatar_url": "",
+        "role": "user",
+        "created_at": 0,
+    }
+    token = auth.make_token(fake_account)
+    decoded = auth.jwt.decode(token, auth.jwt_secret(), algorithms=["HS256"])
+    assert decoded["tv"] == 0

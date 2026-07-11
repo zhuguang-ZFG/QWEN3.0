@@ -80,6 +80,7 @@ def make_token(account: sqlite3.Row | dict[str, Any], expires_in: int = 86400) -
         "role": account["role"],
         "iat": now_ts,
         "exp": now_ts + expires_in,
+        "tv": int(account.get("token_epoch") or 0),
     }
     return jwt.encode(payload, secret, algorithm="HS256")
 
@@ -110,6 +111,11 @@ def authorize(authorization: str) -> dict[str, Any] | JSONResponse:
         ).fetchone()
     if row is None:
         return err(401, "Unauthorized", 401)
+    # Token version check: reject tokens issued before the last password change.
+    token_epoch = int(payload.get("tv") or 0)
+    db_epoch = int(row["token_epoch"] or 0) if "token_epoch" in row.keys() else 0
+    if token_epoch != db_epoch:
+        return err(401, "Token revoked", 401)
     return dict(row)
 
 

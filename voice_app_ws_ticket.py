@@ -5,6 +5,7 @@ from __future__ import annotations
 import secrets
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 TTL_SECONDS = 30
@@ -38,8 +39,8 @@ def peek(ticket: str) -> str | None:
         return None
     now = time.time()
     with _lock:
-        entry = _tickets.get(ticket)
         _purge_expired(now)
+        entry = _tickets.get(ticket)
     if entry is None or now > entry.expires_at:
         return None
     return entry.account_id
@@ -51,11 +52,32 @@ def consume(ticket: str) -> str | None:
         return None
     now = time.time()
     with _lock:
-        entry = _tickets.pop(ticket, None)
         _purge_expired(now)
+        entry = _tickets.pop(ticket, None)
     if entry is None or now > entry.expires_at:
         return None
     return entry.account_id
+
+
+def consume_if(ticket: str, predicate: Callable[[str], bool]) -> str | None:
+    """Consume a ticket only if predicate(account_id) is truthy.
+
+    The ticket is NOT consumed when the predicate returns falsy, allowing the
+    caller to reject the connection without burning the ticket.
+    """
+    if not ticket:
+        return None
+    now = time.time()
+    with _lock:
+        _purge_expired(now)
+        entry = _tickets.get(ticket)
+        if entry is None or now > entry.expires_at:
+            return None
+        account_id = entry.account_id
+        if not predicate(account_id):
+            return None  # do NOT consume — leave ticket for retry
+        _tickets.pop(ticket, None)
+    return account_id
 
 
 def reset() -> None:

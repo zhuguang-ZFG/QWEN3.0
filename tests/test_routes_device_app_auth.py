@@ -220,3 +220,75 @@ def test_delete_api_key_not_found(client, auth_header):
     with patch.object(key_routes, "delete_key", return_value=False):
         response = client.delete("/device/v1/app/keys/key-1", headers=auth_header)
     assert response.status_code == 404
+
+
+def test_change_password_increments_token_epoch(client, auth_header, account):
+    """改密成功后 token_epoch 递增，旧 token 失效。"""
+    with (
+        patch.object(auth, "_verify_password", return_value=True),
+        patch.object(auth, "_hash_password", return_value="new-hash"),
+        patch.object(auth, "connect") as mock_connect,
+    ):
+        mock_conn = MagicMock()
+        mock_connect.return_value.__enter__ = MagicMock(return_value=mock_conn)
+        mock_connect.return_value.__exit__ = MagicMock(return_value=False)
+
+        response = client.put(
+            "/device/v1/app/auth/change-password",
+            headers=auth_header,
+            json={"oldPassword": "old", "newPassword": "newpass123"},
+        )
+    assert response.status_code == 200
+
+    # Verify the SQL includes token_epoch increment
+    update_calls = [c for c in mock_conn.execute.call_args_list if "token_epoch" in str(c)]
+    assert len(update_calls) > 0, "change_password SQL should update token_epoch"
+
+
+def test_authorize_rejects_token_with_stale_token_epoch(monkeypatch):
+    """authorize 拒绝 token_epoch 不匹配的旧 token（改密后旧 token 失效）。"""
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-stale-epoch")
+    import device_logic.auth as auth_mod
+
+    # Build a token with tv=0, but set db token_epoch=1
+    fake_account = {
+        "id": "acc-epoch",
+        "phone": "13000000000",
+        "nickname": "n",
+        "avatar_url": "",
+        "role": "user",
+        "created_at": 0,
+        "token_epoch": 0,
+        "status": "active",
+    }
+    token = auth_mod.make_token(fake_account)
+    assert token is not None
+
+    # Mock DB to return row with token_epoch=1
+    class _FakeRow:
+        def __init__(self, d):
+            self._d = d
+
+        def __getitem__(self, key):
+            return self._d.get(key)
+
+        def keys(self):
+            return self._d.keys()
+
+        def __contains__(self, key):
+            return key in self._d
+
+    row_with_epoch_1 = _FakeRow({**fake_account, "token_epoch": 1})
+    cursor = MagicMock()
+    cursor.fetchone.return_value = row_with_epoch_1
+    conn = MagicMock()
+    conn.execute.return_value = cursor
+    with patch.object(auth_mod, "connect") as mock_connect:
+        mock_connect.return_value.__enter__ = MagicMock(return_value=conn)
+        mock_connect.return_value.__exit__ = MagicMock(return_value=False)
+        result = auth_mod.authorize(f"Bearer {token}")
+
+    from fastapi.responses import JSONResponse
+
+    assert isinstance(result, JSONResponse), "stale token_epoch should return 401"
+    assert result.status_code == 401

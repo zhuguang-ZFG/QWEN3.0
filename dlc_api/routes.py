@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 
-from config.settings import DEVICE
+from config.settings import DEVICE, REDIS
 from dlc_api.deps import verify_dlc_api_token
 from dlc_api.schemas import (
     DeviceStatusResponse,
@@ -77,6 +78,20 @@ async def health():
         logger.warning("task_store_health 调用失败，按 memory 处理", exc_info=True)
         backend = "memory"
     deps: dict[str, str] = {"task_store": backend}
+
+    # Honest probe: env expects Redis but store still memory → misconfigured.
+    store_pref = os.environ.get("LIMA_DEVICE_TASK_STORE", "").strip().lower()
+    env_wants_redis = store_pref == "redis" or bool(REDIS.device_redis_url)
+    if env_wants_redis and backend != "redis":
+        logger.warning(
+            "env expects Redis (LIMA_DEVICE_TASK_STORE/LIMA_DEVICE_REDIS_URL) but backend is %s",
+            backend,
+        )
+        return JSONResponse(
+            status_code=503,
+            content={"status": "degraded", **base, "dependencies": deps},
+        )
+
     if backend == "redis":
         try:
             from device_gateway.store import task_store

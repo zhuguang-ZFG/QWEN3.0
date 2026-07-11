@@ -39,8 +39,9 @@ def _authorize_voice_ws(websocket: WebSocket) -> dict[str, Any] | None:
         return None
     account = load_active_account(account_id)
     if not isinstance(account, dict):
-        return None
-    if voice_app_ws_ticket.consume(ticket) != account_id:
+        return None  # do not consume — ticket stays for retry
+    # Atomically consume only if account is valid; invalid account leaves ticket intact.
+    if voice_app_ws_ticket.consume_if(ticket, lambda aid: aid == account_id) != account_id:
         return None
     return account
 

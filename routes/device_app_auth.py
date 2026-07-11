@@ -161,6 +161,9 @@ async def change_password(request: Request, authorization: str = Header(default=
         return err(4003, "Incorrect old password", 400)
     new_hash = _hash_password(new_password)
     with connect() as conn:
-        conn.execute("UPDATE v2_account SET password_hash=? WHERE id=?", (new_hash, account["id"]))
+        conn.execute(
+            "UPDATE v2_account SET password_hash=?, token_epoch=COALESCE(token_epoch,0)+1 WHERE id=?",
+            (new_hash, account["id"]),
+        )
         conn.commit()
     return {"accountId": account["id"], "updatedAt": now()}

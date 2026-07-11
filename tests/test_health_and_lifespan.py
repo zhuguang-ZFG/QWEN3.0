@@ -180,3 +180,67 @@ class TestHealthEndpoint:
         # 原有字段仍存在
         assert data["service"] == "dlc-drawing"
         assert data["version"] == "0.4.0-p3"
+
+    def test_env_expects_redis_but_backend_is_memory_returns_503(self) -> None:
+        """env 配置了 Redis URL 但实际 backend 为 memory → 503 degraded。"""
+        from dlc_api.app import app
+
+        mock_redis = MagicMock()
+        mock_redis.device_redis_url = "redis://localhost:6379"
+
+        with (
+            patch(
+                "dlc_api.routes.task_store_health",
+                return_value={"backend": "memory", "shared_across_processes": False},
+            ),
+            patch("dlc_api.routes.REDIS", mock_redis),
+        ):
+            client = TestClient(app)
+            resp = client.get("/health")
+
+        assert resp.status_code == 503
+        data = resp.json()
+        assert data["status"] == "degraded"
+        assert data["dependencies"]["task_store"] == "memory"
+
+    def test_no_redis_url_and_memory_backend_returns_200(self) -> None:
+        """纯 memory 部署（无 Redis URL）→ 200 ok。"""
+        from dlc_api.app import app
+
+        mock_redis = MagicMock()
+        mock_redis.device_redis_url = ""
+
+        with (
+            patch(
+                "dlc_api.routes.task_store_health",
+                return_value={"backend": "memory", "shared_across_processes": False},
+            ),
+            patch("dlc_api.routes.REDIS", mock_redis),
+            patch.dict("os.environ", {"LIMA_DEVICE_TASK_STORE": ""}, clear=False),
+        ):
+            client = TestClient(app)
+            resp = client.get("/health")
+
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
+    def test_task_store_pref_redis_with_memory_backend_returns_503(self) -> None:
+        """LIMA_DEVICE_TASK_STORE=redis 但 backend 仍是 memory → 503。"""
+        from dlc_api.app import app
+
+        mock_redis = MagicMock()
+        mock_redis.device_redis_url = ""
+
+        with (
+            patch(
+                "dlc_api.routes.task_store_health",
+                return_value={"backend": "memory", "shared_across_processes": False},
+            ),
+            patch("dlc_api.routes.REDIS", mock_redis),
+            patch.dict("os.environ", {"LIMA_DEVICE_TASK_STORE": "redis"}, clear=False),
+        ):
+            client = TestClient(app)
+            resp = client.get("/health")
+
+        assert resp.status_code == 503
+        assert resp.json()["status"] == "degraded"

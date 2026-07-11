@@ -209,6 +209,7 @@ _ADD_COLUMN_MIGRATIONS: tuple[tuple[str, str, str], ...] = (
     ("v2_voiceprint", "audio_id", "ALTER TABLE v2_voiceprint ADD COLUMN audio_id TEXT"),
     ("v2_audio_record", "storage_path", "ALTER TABLE v2_audio_record ADD COLUMN storage_path TEXT"),
     ("v2_audio_record", "content_type", "ALTER TABLE v2_audio_record ADD COLUMN content_type TEXT"),
+    ("v2_account", "token_epoch", "ALTER TABLE v2_account ADD COLUMN token_epoch INTEGER DEFAULT 0"),
 )
 
 # Extra statements to run after a specific column add (e.g. unique index).
