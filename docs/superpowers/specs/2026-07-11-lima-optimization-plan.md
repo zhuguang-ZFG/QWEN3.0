@@ -4,11 +4,11 @@
 
 ## 执行状态（2026-07-12 更新）
 
-- **A 完成**：中间件恒启用（`server_dlc.py:52`）。原计划的 `LIMA_REQUEST_ID_MIDDLEWARE` 关闭开关**未实现且决策删除**（YAGNI：开销可忽略，关掉会断日志关联，无禁用场景）。
-- **B 完成**：`LIMA_STRUCTURED_LOGGING=1` 启用（`server_dlc.py:26`）。
+- **A 完成**：中间件恒启用（`server_dlc.py:68`）。原计划的 `LIMA_REQUEST_ID_MIDDLEWARE` 关闭开关**未实现且决策删除**（YAGNI：开销可忽略，关掉会断日志关联，无禁用场景）。
+- **B 完成**：`LIMA_STRUCTURED_LOGGING=1` 启用（`server_dlc.py:29`）；fallback `basicConfig` 在 `:31`。
 - **C 完成验证后删除**：VPS 模块级验证全 PASS，但发现 `check_rate_limit` 生产零调用方（keyed 限流已覆盖生产需求），按 ponytail 删除实现与测试（commit `7eed9aac`）。
 - **D 完成**：`LIMA_REDIS_TASK_INDEX` 经 VPS 模块级验证全 PASS（索引写入/索引读路径/TTL/开关行为）。
-- **E 代码完成**：`LIMA_AUTO_FALLBACK`（`device_gateway/model_routing.py`）；ESP32 端到端验证待真机排期。
+- **E 三态**：代码原语完成（`try_backends` + `LIMA_AUTO_FALLBACK`）/ **调用方未接线**（全仓 grep 仅 `model_routing.py` + `tests/test_fallback_routing.py`）/ ESP32 E2E 待排期。
 
 ## 整体排序与依赖
 
@@ -27,14 +27,16 @@ E (AI fallback 路由，独立；建议 B 完成后做，便于 warning 可观�
 
 ## 已核实现状（证据）
 
+> 以下为 2026-07-11 实施前快照；以顶部「执行状态」为准。
+
 - `device_gateway/redis_store.py:80,102` 两处 `hgetall(self._key("tasks"))` 全量反序列化后按 `device_id` 过滤；`list_tasks_for_device` 的 limit 为遍历后截断（:123-124）。真实 O(N)。
 - `device_gateway/sessions.py:62/65/68` `SessionRegistry`、`_MAX_DEVICE_SESSIONS=2000`、进程内 `dict`+`RLock`；`remove_zombies`(:139) 已调 `requeue_pending_tasks`。
 - `rate_limiter.py`：keyed 限流已有完整 Redis backend（`_check_keyed_redis` incr+expire）；`check_rate_limit`（IP 滑动窗口 :134-152）纯内存。
-- `device_gateway/model_routing.py:62` `get_route_role_alternatives` 仅返回列表，无自动 fallback；`device_draw_handler.py:104` 注释「image_fallback 已删除」。
+- `device_gateway/model_routing.py:62` `get_route_role_alternatives` 仅返回列表，无自动 fallback（已过时，见执行状态）；`device_draw_handler.py:104` 注释「image_fallback 已删除」。
 - ASR：`.env.example:269-271` 有 `aliyun_fallback`，但 `asr_composite.py` 已删，`device_voice/providers/registry.py:22` 把它当 `dashscope` 别名，`create_asr_provider()` 只返单一 provider。
-- `server_dlc.py:25` 仍是 `logging.basicConfig`；`observability/` 仅 `correlation.py`（内存 ring buffer）+ 4 个 prometheus 模块；无 structured_logging.py；无 OTel。
+- `server_dlc.py:25` 仍是 `logging.basicConfig`（已过时，见执行状态）；`observability/` 仅 `correlation.py`（内存 ring buffer）+ 4 个 prometheus 模块；无 structured_logging.py（已过时，见执行状态）；无 OTel。
 - `Dockerfile:29` 单 uvicorn，无 `--workers`。
-- `dlc_api/middleware.py` 仅 `BodySizeLimitMiddleware`，无 X-Request-ID。
+- `dlc_api/middleware.py` 仅 `BodySizeLimitMiddleware`，无 X-Request-ID（已过时，见执行状态）。
 - 可复用设计：`docs/OBSERVABILITY_EVENTS_CN.md:4`、`docs/archive/strategic-plans-2026-06/OPTIMIZATION_ANALYSIS_2026-06-23.md:127-128`。
 
 ## 条目明细
