@@ -35,15 +35,39 @@ def _run_lifespan(sessions: list[MagicMock], *, backend_name: str = "memory") ->
     with (
         patch("device_gateway.sessions.registry", mock_reg),
         patch("device_gateway.store.task_store", mock_store),
+        patch("device_gateway.store.configure_task_store_from_env") as mock_configure,
     ):
         with TestClient(app):
             pass  # 触发 lifespan startup + shutdown
+        mock_configure.assert_called_once()
     return mock_store
 
 
 # ---------------------------------------------------------------------------
 # 优雅关停（lifespan shutdown）测试
 # ---------------------------------------------------------------------------
+
+
+class TestLifespanStartup:
+    """验证 lifespan startup 配置 task store（fail-fast）。"""
+
+    def test_configure_task_store_called_on_startup(self) -> None:
+        _run_lifespan([])
+
+    def test_configure_failure_prevents_startup(self) -> None:
+        from server_dlc import app
+
+        with patch(
+            "device_gateway.store.configure_task_store_from_env",
+            side_effect=RuntimeError("redis misconfigured"),
+        ):
+            try:
+                with TestClient(app):
+                    pass
+            except RuntimeError as exc:
+                assert "redis misconfigured" in str(exc)
+            else:
+                raise AssertionError("expected configure failure to abort startup")
 
 
 class TestLifespanShutdown:

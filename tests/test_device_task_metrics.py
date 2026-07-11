@@ -40,9 +40,9 @@ async def test_dispatch_or_enqueue_records_queued(sample_task):
     ):
         result = await dispatch_or_enqueue("dev-1", sample_task)
 
-    assert result["dispatchStatus"] == "queued"
+    assert result["dispatchStatus"] == "queued_no_delivery"
     assert result["sent"] is False
-    mock_dispatched.assert_called_once_with("home", "queued")
+    mock_dispatched.assert_called_once_with("home", "queued_no_delivery")
     mock_pending.assert_called()
 
 
@@ -65,7 +65,7 @@ async def test_create_and_route_task_records_created_and_queued():
     ):
         result = await create_and_route_task(request)
 
-    assert result.status == "queued"
+    assert result.status == "queued_no_delivery"
     mock_issued.assert_called_once_with("home", "api")
-    mock_dispatched.assert_called_once_with("home", "queued")
+    mock_dispatched.assert_called_once_with("home", "queued_no_delivery")
     mock_pending.assert_called()

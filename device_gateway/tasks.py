@@ -84,7 +84,11 @@ class DeviceTaskRouteResult:
 
 
 async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteResult:
-    """Create a motion task, then dispatch locally or enqueue for the device."""
+    """Create a motion task and enqueue it.
+
+    Self-hosted device WS is retired; the queue has no production consumer,
+    so status is ``queued_no_delivery`` (not a false "sent/queued for delivery").
+    """
     device_id = request.device_id.strip()
     text = request.text.strip()
     create_kwargs: dict[str, Any] = {"request_id": request.request_id or None}
@@ -102,9 +106,9 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
         return DeviceTaskRouteResult("failed", False, pending_count(device_id), task)
 
     queue_depth = enqueue_pending_task(device_id, task)
-    prometheus_metrics.record_device_task_dispatched(capability, "queued")
+    prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")
     prometheus_metrics.set_device_tasks_pending(pending_count())
-    return DeviceTaskRouteResult("queued", False, queue_depth, task)
+    return DeviceTaskRouteResult("queued_no_delivery", False, queue_depth, task)
 
 
 def reset_tasks_for_tests() -> None:

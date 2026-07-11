@@ -84,10 +84,12 @@ def build_gateway_task(
 
 
 async def dispatch_or_enqueue(device_id: str, task: dict[str, Any]) -> dict[str, Any]:
+    """Enqueue task only. Self-hosted device WS is retired — no production consumer."""
     from device_gateway.tasks import enqueue_pending_task, pending_count
 
     capability = str(task.get("capability", "unknown"))
     queue_depth = enqueue_pending_task(device_id, task)
-    prometheus_metrics.record_device_task_dispatched(capability, "queued")
+    # Honest status: queued but not deliverable (no live dispatch path).
+    prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")
     prometheus_metrics.set_device_tasks_pending(pending_count())
-    return {"sent": False, "queueDepth": queue_depth, "dispatchStatus": "queued"}
+    return {"sent": False, "queueDepth": queue_depth, "dispatchStatus": "queued_no_delivery"}

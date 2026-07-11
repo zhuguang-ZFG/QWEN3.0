@@ -113,7 +113,7 @@ def test_execute_template_creates_task(tmp_path, monkeypatch):
     data = executed.json()["data"]
     assert data["capability"] == "run_path"
     assert data["deviceId"] == "dev-1"
-    assert data["dispatchStatus"] == "queued"
+    assert data["dispatchStatus"] == "queued_no_delivery"
     assert data["taskId"]
 
     with connect() as conn:

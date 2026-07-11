@@ -21,7 +21,8 @@ def _reset_device_state():
 async def test_create_and_route_task_queues_when_device_offline() -> None:
     result = await create_and_route_task(DeviceTaskRequest(device_id="dev-1", text="home", request_id="req-1"))
 
-    assert result.status == "queued"
+    # Self-hosted device WS retired: enqueue is not delivery.
+    assert result.status == "queued_no_delivery"
     assert result.sent is False
     assert result.queue_depth == 1
     assert result.task["device_id"] == "dev-1"

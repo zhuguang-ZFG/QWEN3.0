@@ -81,6 +81,9 @@ async def _build_app_gateway_task(
     sanitized, validation_error = validate_capability_params(capability, task_params)
     if validation_error:
         return None, err(4002, f"validation failed: {validation_error}", 400)
+    # path_validator strips underscore keys; re-inject JWT account for gallery ownership.
+    if account_id:
+        sanitized["_account_id"] = account_id
     task = await project_to_motion_task_async(
         device_id,
         {"capability": capability, "params": sanitized, "source": source, "entrypoint": "app_api"},

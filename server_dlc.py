@@ -35,6 +35,13 @@ logger = logging.getLogger(__name__)
 # P1: disable interactive docs on the public entrypoint (SEC-05).
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from device_gateway.store import configure_task_store_from_env
+
+    try:
+        configure_task_store_from_env()
+    except Exception:
+        logger.error("task store configuration failed", exc_info=True)
+        raise
     logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*, /v1/voice")
     yield
     # --- 优雅关停：关闭 WebSocket 会话 + Redis 连接池 ---

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import secrets
 import socket
 import time
@@ -22,6 +23,7 @@ from device_logic.http import err, expires_at, new_id, now, read_body, str_field
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-provision"])
 _log = logging.getLogger(__name__)
 
+_DEFAULT_DEVICE_WS_URL = "wss://chat.donglicao.com/device/v1/ws"
 _UDP_DISCOVERY_MESSAGE = b'{"cmd":"discover","proto":"lima-device-v1"}'
 _UDP_SCAN_PORTS = (5000, 8080, 1883, 12345)
 _UDP_SCAN_TIMEOUT = 2.0
@@ -186,7 +188,8 @@ async def create_provision(request: Request, authorization: str = Header(default
 
     provision_id = new_id()
     provision_token = secrets.token_urlsafe(32)
-    server_url = f"wss://{request.headers.get('host') or 'chat.donglicao.com'}/device/v1/ws"
+    # Fixed env URL only — never build wss from request Host (host-header spoof).
+    server_url = (os.environ.get("LIMA_DEVICE_WS_URL") or "").strip() or _DEFAULT_DEVICE_WS_URL
     expires = expires_at(1800)
 
     with connect() as conn:

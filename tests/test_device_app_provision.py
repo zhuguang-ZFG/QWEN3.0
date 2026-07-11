@@ -57,9 +57,42 @@ def test_provision_returns_token(tmp_path, monkeypatch):
     data = response.json()
     assert data["deviceSn"] == "SN-PAIR-01"
     assert data["provisionToken"]
-    assert data["serverUrl"]
+    assert data["serverUrl"] == "wss://chat.donglicao.com/device/v1/ws"
     assert data["configPayload"]["wifi_ssid"] == "MyWiFi"
     assert data["configPayload"]["pair_token"] == data["provisionToken"]
+    assert data["configPayload"]["server_url"] == data["serverUrl"]
+
+
+def test_provision_server_url_ignores_host_header(tmp_path, monkeypatch):
+    client, _store = _provision_client(tmp_path, monkeypatch)
+    _seed_account()
+    monkeypatch.delenv("LIMA_DEVICE_WS_URL", raising=False)
+
+    response = client.post(
+        "/device/v1/app/devices/provision",
+        headers={**headers("a-owner"), "Host": "evil.example.com"},
+        json={"deviceSn": "SN-PAIR-HOST", "wifiSsid": "MyWiFi", "wifiPassword": "secret"},
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["serverUrl"] == "wss://chat.donglicao.com/device/v1/ws"
+    assert "evil.example.com" not in data["serverUrl"]
+
+
+def test_provision_server_url_from_env(tmp_path, monkeypatch):
+    client, _store = _provision_client(tmp_path, monkeypatch)
+    _seed_account()
+    monkeypatch.setenv("LIMA_DEVICE_WS_URL", "wss://custom.example.com/device/v1/ws")
+
+    response = client.post(
+        "/device/v1/app/devices/provision",
+        headers=headers("a-owner"),
+        json={"deviceSn": "SN-PAIR-ENV", "wifiSsid": "MyWiFi", "wifiPassword": "secret"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["serverUrl"] == "wss://custom.example.com/device/v1/ws"
 
 
 def test_confirm_provision_binds_device(tmp_path, monkeypatch):

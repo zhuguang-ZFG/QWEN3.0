@@ -58,7 +58,7 @@ def test_device_app_create_task_uses_native_gateway_route(tmp_path, monkeypatch)
     )
     assert created.status_code == 200, created.text
     data = created.json()
-    assert data["status"] == "queued"
+    assert data["status"] == "queued_no_delivery"
     assert data["queueDepth"] == 1
     assert data["task"]["request_id"] == "req-app-001"
     assert data["taskId"] == data["task"]["task_id"]
@@ -93,7 +93,7 @@ def test_device_app_create_capability_task_lists_and_approves(tmp_path, monkeypa
     )
     assert approved.status_code == 200, approved.text
     assert approved.json()["status"] == "approved"
-    assert approved.json()["dispatchStatus"] == "queued"
+    assert approved.json()["dispatchStatus"] == "queued_no_delivery"
 
 
 def test_device_app_create_task_validation_paths(tmp_path, monkeypatch):

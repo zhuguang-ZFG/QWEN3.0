@@ -20,8 +20,8 @@ async def dispatch_task(device_id: str, task: dict[str, Any], *, channel: str = 
         channel: reserved for future transport selection (mqtt/ws).
 
     Returns:
-        {"status": "sent" | "queued" | "rejected" | "failed", "task_id": str | None,
-         "queue_depth": int, "error": str | None}
+        {"status": "sent" | "queued" | "queued_no_delivery" | "rejected" | "failed",
+         "task_id": str | None, "queue_depth": int, "error": str | None}
     """
     if active_tasks_for_device(device_id):
         return {

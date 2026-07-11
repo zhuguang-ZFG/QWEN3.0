@@ -93,6 +93,57 @@ async def test_draw_generated_gallery_image_id_requires_account_context():
     assert "account context" in str(task.get("error", {}).get("reason", "")).lower()
 
 
+def test_account_id_from_params_ignores_client_fields():
+    from device_gateway.task_draw_params import _account_id_from_params
+
+    assert _account_id_from_params({"accountId": "evil", "_account_id": "good"}) == "good"
+    assert _account_id_from_params({"accountId": "evil"}) == ""
+    assert _account_id_from_params({"account_id": "evil"}) == ""
+    assert _account_id_from_params({"_account_id": "owner"}) == "owner"
+
+
+@pytest.mark.asyncio
+async def test_draw_generated_rejects_client_account_id_spoof(tmp_path, monkeypatch):
+    """Client accountId must not unlock another account's gallery image."""
+    monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "gallery_draw_idor.db"))
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
+    monkeypatch.setenv("LIMA_VERIFY_HOST", "chat.donglicao.com")
+
+    from device_logic.db import _schema_ready_paths, connect
+    from device_gateway import gallery_store
+
+    _schema_ready_paths.clear()
+    with connect() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)",
+            ("owner", "owner-phone", "owner"),
+        )
+        conn.commit()
+
+    image = gallery_store.add_image(
+        account_id="owner",
+        file_id="telegram-file-id",
+        filename="cat.jpg",
+        size_bytes=1234,
+        mime_type="image/jpeg",
+        thumb_url="https://api.telegram.org/file/botsecret/thumb.jpg",
+        tags=[],
+    )
+
+    voice_task = {
+        "capability": "draw_generated",
+        "params": {
+            "prompt": "",
+            "gallery_image_id": image["id"],
+            "accountId": "owner",  # client-supplied; must be ignored
+        },
+        "source": "api",
+    }
+    task = await project_to_motion_task_async("dev-gallery-idor", voice_task)
+    assert task.get("error", {}).get("code") == "draw_failed"
+    assert "account context" in str(task.get("error", {}).get("reason", "")).lower()
+
+
 @pytest.mark.asyncio
 async def test_draw_generated_gallery_image_id_ignores_image_url(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "gallery_draw_priority.db"))

@@ -152,7 +152,8 @@ def _gallery_image_id_from_params(params: dict[str, Any]) -> str:
 
 
 def _account_id_from_params(params: dict[str, Any]) -> str:
-    raw = params.get("_account_id") or params.get("accountId") or params.get("account_id")
+    # Server-injected only; never trust client accountId/account_id (IDOR).
+    raw = params.get("_account_id")
     return str(raw).strip() if raw else ""
 
 
