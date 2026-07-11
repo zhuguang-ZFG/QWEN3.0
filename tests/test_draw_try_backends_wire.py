@@ -2,25 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from device_gateway.device_draw_handler import _generate_image
-
-
-def _mock_svg_converter():
-    """Return a mock SVGConverter that converts any URL to a valid SVG."""
-    mock = MagicMock()
-    mock.convert_url_to_svg = AsyncMock(
-        return_value={
-            "status": "success",
-            "svg_path": "M 10 10 L 50 50 L 90 10 Z",
-            "width": 200,
-            "height": 200,
-        }
-    )
-    return mock
 
 
 @pytest.mark.asyncio
@@ -74,17 +61,10 @@ async def test_fallback_on_first_fails_second_succeeds(monkeypatch):
 
     mock_client_cls = MagicMock()
     mock_client_cls.return_value.generate = _gen
-    mock_converter = _mock_svg_converter()
 
-    with (
-        patch(
-            "device_gateway.device_draw_handler.DashScopeImageClient",
-            mock_client_cls,
-        ),
-        patch(
-            "device_gateway.device_draw_handler.SVGConverter",
-            return_value=mock_converter,
-        ),
+    with patch(
+        "device_gateway.device_draw_handler.DashScopeImageClient",
+        mock_client_cls,
     ):
         result = await _generate_image(
             "fallback test",
@@ -130,41 +110,21 @@ async def test_timeout_triggers_fallback(monkeypatch):
     """LIMA_AUTO_FALLBACK=1: first backend times out → falls back to second."""
     monkeypatch.setenv("LIMA_AUTO_FALLBACK", "1")
 
-    call_count = 0
+    mock_call = AsyncMock(
+        side_effect=[
+            asyncio.TimeoutError("simulated per-backend timeout"),
+            {
+                "status": "success",
+                "images": [{"url": "http://example.com/img2.jpg"}],
+                "task_id": "t2",
+                "error": None,
+            },
+        ]
+    )
 
-    def _gen(**kwargs):
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            # Simulate a slow call that will be cancelled by wait_for
-            import time
-
-            time.sleep(10)
-        return {
-            "status": "success",
-            "images": [{"url": "http://example.com/img2.jpg"}],
-            "task_id": "t2",
-            "error": None,
-        }
-
-    mock_client_cls = MagicMock()
-    mock_client_cls.return_value.generate = _gen
-    mock_converter = _mock_svg_converter()
-
-    # Override the per-backend timeout to be very short so the test is fast
-    with (
-        patch(
-            "device_gateway.device_draw_handler.DashScopeImageClient",
-            mock_client_cls,
-        ),
-        patch(
-            "device_gateway.device_draw_handler.SVGConverter",
-            return_value=mock_converter,
-        ),
-        patch(
-            "device_gateway.device_draw_handler._DASHSCOPE_GENERATE_TIMEOUT",
-            0.1,
-        ),
+    with patch(
+        "device_gateway.device_draw_handler._call_dashscope_generate",
+        mock_call,
     ):
         result = await _generate_image(
             "timeout test",
@@ -174,7 +134,7 @@ async def test_timeout_triggers_fallback(monkeypatch):
         )
 
     assert result["status"] == "success"
-    assert call_count == 2, "timeout on first should trigger fallback to second"
+    assert mock_call.call_count == 2, "timeout on first should trigger fallback to second"
 
 
 @pytest.mark.asyncio

@@ -83,10 +83,12 @@ async def try_backends(
 ) -> T:
     """Try each backend for *route_role* in priority order, returning the first success.
 
-    When *idempotent* is ``True`` the call is safe to retry on failure — the
-    next backend in the list is attempted.  When ``False`` (e.g. image
-    generation which is non-idempotent) a failure is immediately re-raised
-    without falling back.
+    Fallback is activated only when *both* ``LIMA_AUTO_FALLBACK`` is truthy
+    AND ``idempotent=True``.  When ``idempotent=False`` a failure is
+    immediately re-raised — e.g. a one-shot external API call where retry
+    would double-bill or cause side-effects.  Callers that *do* accept
+    retry cost (such as image generation with ``idempotent=True``) will
+    fall back to the next backend on failure.
 
     The env-var ``LIMA_AUTO_FALLBACK`` must be set to a truthy value
     (``1 / true / on / yes``) for fallback to activate.  When disabled the

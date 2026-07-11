@@ -111,8 +111,11 @@ async def _generate_image(
         return await try_backends(
             "device_draw",
             _execute_draw,
-            idempotent=True,
-            timeout=_DASHSCOPE_GENERATE_TIMEOUT + 5,
+            idempotent=True,  # intentionally allow model-switch retry; may double-bill
+            # Inner _call_dashscope_generate already has wait_for(timeout=30s);
+            # outer timeout is same value as a safety net — sync SDK thread
+            # won't be cancelled after TimeoutError (known limitation).
+            timeout=_DASHSCOPE_GENERATE_TIMEOUT,
         )
     except Exception as exc:
         logger.warning("try_backends exhausted for device %s: %s", device_id, exc)
