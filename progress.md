@@ -1428,3 +1428,9 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **保留**：keyed Redis 限流（`check_keyed_rate_limit`，device auth L2，生产在用）与 D（task 二级索引，已验证）。
 - **门禁**：聚焦测试 22 passed；ruff clean。
 - **后续**：VPS 重新部署删除后的 `rate_limiter.py` 保持版本一致（无行为变化：该路径本就无调用方）。
+
+## 2026-07-12 修复 3 个预存在红测试（test_dlc_api draw-from-image）
+
+- **根因**：SEC-04 校验从 `dlc_api/routes.py` 移到 `device_gateway/image_url_validation.py` 后，测试里的 DNS stub 仍 patch 旧位置 `dlc_api.routes._resolve_hostname`（该属性已不存在，赋值成死属性），导致 `validate_image_url` 走真实 DNS——本机 api.telegram.org 被 DNS 污染解析到保留地址，SSRF 守卫正确拦截，用例随之失败。实现无跑偏。
+- **修复**：改为 autouse fixture + monkeypatch 补 `device_gateway.image_url_validation._resolve_hostname`（返回公网 Telegram IP），与 `tests/test_sec04_ssrf_hardening.py` 的补法一致；自动还原不污染其他测试文件。
+- **门禁**：全量 **1536 passed / 3 skipped / 0 failed**（此前 3 failed）；ruff clean。

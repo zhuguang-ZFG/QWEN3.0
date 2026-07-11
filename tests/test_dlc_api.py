@@ -26,12 +26,18 @@ def _override_token() -> str:
 
 app.dependency_overrides[verify_dlc_api_token] = _override_token
 
-# SEC-04: draw_from_image now enforces a host allowlist (api.telegram.org) plus
-# DNS-resolution SSRF guard. Stub the resolver so image tests exercise the happy
-# path without real network lookups.
-import dlc_api.routes as _dlc_routes  # noqa: E402
 
-_dlc_routes._resolve_hostname = lambda host: ["149.154.167.220"]  # public Telegram IP
+# SEC-04: draw_from_image enforces a host allowlist (api.telegram.org) plus a
+# DNS-resolution SSRF guard. Stub the resolver at its real home
+# (device_gateway.image_url_validation) so image tests don't depend on ambient
+# DNS — patching dlc_api.routes._resolve_hostname never worked after the
+# validation moved out of routes.py.
+@pytest.fixture(autouse=True)
+def _stub_image_dns(monkeypatch):
+    monkeypatch.setattr(
+        "device_gateway.image_url_validation._resolve_hostname",
+        lambda host: ["149.154.167.220"],  # public Telegram IP
+    )
 
 
 def test_health_ok() -> None:
