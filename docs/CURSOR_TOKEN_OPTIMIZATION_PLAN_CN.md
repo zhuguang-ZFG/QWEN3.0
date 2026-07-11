@@ -2,7 +2,7 @@
 
 > 目标：Pro 额度不白烧。优先 **稳定前缀（prompt cache）** + **减少每轮固定注入** + **按需启用 MCP**。
 >
-> 不适用：为 Cursor IDE 主路径再套一层 LiteLLM（见下文 §6）。
+> 不适用：为 Cursor IDE 主路径再套一层 LiteLLM（已退役，见 Phase 5b）。
 
 ---
 
@@ -12,7 +12,7 @@
 2. **固定注入越少越好** — `alwaysApply` 规则、MCP tool schema、skill 列表都是「每轮税」。
 3. **检索/记忆/委托各留一个** — 代码图、记忆、子 Agent 各一套，禁止三套并行。
 4. **重活用 Agent，轻问答用 Chat** — Agent 带工具才值得开 MCP。
-5. **LiteLLM 只管外围** — Kimi CLI / orchestrator / 子 Agent；Cursor Pro 主会话不绕代理。
+5. **LiteLLM 已退役** — 2026-07-10 归档 `~/.whetstone/litellm-proxy`；Kimi 走官方/newapi 直连，Cursor 不绕代理。
 
 ---
 
@@ -172,20 +172,20 @@ powershell -File scripts/cursor_mcp_tiers.ps1 -Tier lean   # 剥离全局里的 
 
 ---
 
-## Phase 5b — LiteLLM（外围，不碰 Cursor Pro 主路径）
+## Phase 5b — LiteLLM（已退役，2026-07-10）
 
-```
-已有：~/.whetstone/litellm-proxy :8000
-      Kimi default → litellm/labs100x-claude-opus-4.6
-      cache_control_injection_points 已配置
-      Redis cache: false（勿开，会重复旧答案）
+> **状态：已归档。** `~/.whetstone/litellm-proxy` 不再维护；Kimi Code CLI 使用 `managed:kimi-code` 与 `config.toml` 内 newapi/100xlabs **直连**；Cursor 主路径为 Pro，禁止再套 LiteLLM。
+
+```powershell
+# 一次性归档（停服 + zip + 可选删除目录）
+pwsh -File scripts/archive_litellm_proxy.ps1 -RemoveAfterArchive
 ```
 
-| 做 | 不做 |
-|----|------|
-| Kimi / orchestrator 走 LiteLLM | Cursor Pro IDE 再套 LiteLLM |
-| 保持 `cache_control_injection_points` | 开 Redis exact cache |
-| 子任务用固定 system、少改规则 | Cursor BYOK 除非自愿放弃 Pro 额度 |
+| 曾用于 | 现替代 |
+|--------|--------|
+| Kimi → labs100x 等上游 | `~/.kimi-code/config.toml` 内 `[providers.newapi]` / `[providers.100xlabs]` |
+| orchestrator weak/strong | Cursor 子 Agent / a2a-bridge（default 档按需开） |
+| 语义缓存中间件 | 已弃用；勿恢复 Redis exact cache |
 
 ---
 
@@ -253,6 +253,7 @@ Write-Host "MCP global=$g project=$p total=$($g+$p)"
 | 项目 MCP | `.cursor/mcp.json`、`.cursor/mcp.json.example` |
 | Skills 归档 | `scripts/cursor_archive_skills.ps1` |
 | Kimi→Cursor 迁移 | `scripts/migrate_kimi_to_cursor.ps1` |
+| LiteLLM 归档 | `scripts/archive_litellm_proxy.ps1` |
 | A2A 接入 | `scripts/setup_a2a_bridge_cursor.ps1` |
 | 项目 Agent 规则 | `AGENTS.md` |
 | Ponytail | `docs/AGENTS_PONYTAIL.md` |
@@ -267,6 +268,7 @@ Write-Host "MCP global=$g project=$p total=$($g+$p)"
 | 2026-07-10 | P2–P4：hooks 瘦身、skills 90→24、karpathy/ecc alwaysApply off |
 | 2026-07-10 | P5b：AGENTS 拆分、全局 rules 118→23 |
 | 2026-07-10 | P5：项目 MCP、dlc-core-brief、强制注入改 @手动、CLAUDE 瘦身、audit 脚本 |
+| 2026-07-10 | LiteLLM 退役：归档脚本 + Phase 5b 标记废弃；Kimi 直连 / Cursor Pro |
 
 ---
 

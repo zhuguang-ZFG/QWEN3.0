@@ -70,3 +70,14 @@ reference/
 # 鏃ュ織
 *.log
 *.pid
+# 子模块 / 大目录（减索引与 @ 误带）
+esp32S_XYZ/
+.codegraph/
+docs/archive/
+.worktrees/
+
+# 进展日志（非代码上下文）
+progress.md
+findings.md
+STATUS.md
+*.db
