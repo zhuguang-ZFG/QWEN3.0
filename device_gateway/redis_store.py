@@ -16,12 +16,13 @@ from device_gateway.redis_store_helpers import (
     validate_task_schema,
 )
 from device_gateway.store_utils import DeviceStoreBase
+from device_gateway.redis_store_index import RedisTaskIndexMixin
 from device_gateway.redis_store_recover import RedisStoreRecoverMixin
 
 _log = logging.getLogger(__name__)
 
 
-class RedisDeviceTaskStore(RedisStoreHelpers, RedisStoreRecoverMixin, DeviceStoreBase):
+class RedisDeviceTaskStore(RedisTaskIndexMixin, RedisStoreHelpers, RedisStoreRecoverMixin, DeviceStoreBase):
     backend_name = "redis"
     shared_across_processes = True
 
@@ -76,6 +77,11 @@ class RedisDeviceTaskStore(RedisStoreHelpers, RedisStoreRecoverMixin, DeviceStor
         }
 
     def active_tasks_for_device(self, device_id: str) -> list[dict[str, Any]]:
+        if self._task_index_enabled():
+            return self._active_tasks_indexed(device_id)
+        return self._active_tasks_hgetall(device_id)
+
+    def _active_tasks_hgetall(self, device_id: str) -> list[dict[str, Any]]:
         active: list[dict[str, Any]] = []
         raw_states = self._redis.hgetall(self._key("tasks"))
         values = raw_states.values() if isinstance(raw_states, dict) else raw_states
@@ -93,6 +99,16 @@ class RedisDeviceTaskStore(RedisStoreHelpers, RedisStoreRecoverMixin, DeviceStor
         return active
 
     def list_tasks_for_device(
+        self,
+        device_id: str,
+        status: str = "",
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        if self._task_index_enabled():
+            return self._list_tasks_indexed(device_id, status, limit)
+        return self._list_tasks_hgetall(device_id, status, limit)
+
+    def _list_tasks_hgetall(
         self,
         device_id: str,
         status: str = "",

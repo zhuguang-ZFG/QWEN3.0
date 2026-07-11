@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from copy import deepcopy
 from typing import Any
 
@@ -150,6 +151,21 @@ class RedisStoreHelpers:
                 return bool(self._redis.lrem(key, 1, item))
         return False
 
+    def _index_key(self, device_id: str) -> str:
+        return self._key(f"task_idx:{device_id}")
+
+    def _task_index_enabled(self) -> bool:
+        return os.environ.get("LIMA_REDIS_TASK_INDEX", "0").strip().lower() in {"1", "true", "on", "yes"}
+
+    def _index_add(self, device_id: str, task_id: str) -> None:
+        if not self._task_index_enabled():
+            return
+        try:
+            self._redis.sadd(self._index_key(device_id), task_id)
+            self._redis.expire(self._index_key(device_id), DEVICE.redis_task_ttl)
+        except Exception as exc:
+            _log.warning("task index add failed device=%s task=%s: %s", device_id, task_id, type(exc).__name__)
+
     def _read_task_state(self, task_id: str) -> dict[str, Any] | None:
         raw = self._redis.hget(self._key("tasks"), task_id)
         if raw is None:
@@ -174,11 +190,21 @@ class RedisStoreHelpers:
         if expected_version is None:
             self._redis.hset(tasks_key, task_id, encode_redis_json(state))
             self._redis.expire(tasks_key, ttl)
+            task_data = state.get("task")
+            device_id = task_data.get("device_id") if isinstance(task_data, dict) else None
+            if device_id:
+                self._index_add(device_id, task_id)
             return True
         # Lazy import to avoid circular dependency at module load.
         from device_gateway.redis_cas import cas_write_state
 
-        return cas_write_state(self._redis, tasks_key, task_id, state, expected_version, ttl)
+        success = cas_write_state(self._redis, tasks_key, task_id, state, expected_version, ttl)
+        if success:
+            task_data = state.get("task")
+            device_id = task_data.get("device_id") if isinstance(task_data, dict) else None
+            if device_id:
+                self._index_add(device_id, task_id)
+        return success
 
     def _cas_update(
         self,
