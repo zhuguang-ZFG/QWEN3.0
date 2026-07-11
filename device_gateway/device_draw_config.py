@@ -12,6 +12,20 @@ from device_gateway.draw_prompt_enhancer import (
 
 logger = logging.getLogger(__name__)
 
+# try_backends backend name → DashScope model (matches DEVICE_ROLE_PREFERENCES).
+DRAW_BACKEND_MODELS = {
+    "dashscope_wanx": "wanx2.1-t2i-turbo",
+    "dashscope_flux": "flux-schnell",
+}
+
+
+def resolve_draw_model(backend_name: str, caller_model: str) -> str:
+    """Map try_backends entry to DashScope model; caller overrides wanx only."""
+    default_model = DRAW_BACKEND_MODELS.get(backend_name, "wanx2.1-t2i-turbo")
+    if caller_model and backend_name == "dashscope_wanx":
+        return caller_model
+    return default_model
+
 
 def _resolve_draw_request(prefs: dict, device_id: str | None, prompt: str) -> dict:
     """Resolve drawing request config and log the request."""

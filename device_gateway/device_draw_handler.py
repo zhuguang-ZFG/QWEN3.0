@@ -4,6 +4,8 @@ import asyncio
 import logging
 from typing import Dict, Any, Optional
 from dashscope_image_client import DashScopeImageClient
+from device_gateway.device_draw_config import resolve_draw_model
+from device_gateway.model_routing import try_backends
 from device_gateway.handwriting_path import try_text_to_handwriting
 from xiaozhi_drawing.svg_converter import SVGConverter
 from xiaozhi_drawing.svg_validator import validate_svg_path
@@ -27,6 +29,16 @@ logger = logging.getLogger(__name__)
 # P0 #1 / review Suggestion #5：DashScope 生图调用级超时上限（秒）。
 # to_thread 只保证不卡事件循环，wait_for 才能给单次调用兜底，避免线程挂死。
 _DASHSCOPE_GENERATE_TIMEOUT = 30.0
+
+
+async def _call_dashscope_generate(prompt: str, model_name: str, size: str) -> dict[str, Any]:
+    """Thread off sync DashScope generate with a hard timeout."""
+    client = DashScopeImageClient()
+    return await asyncio.wait_for(
+        asyncio.to_thread(client.generate, prompt=prompt, model=model_name, size=size, n=1),
+        timeout=_DASHSCOPE_GENERATE_TIMEOUT,
+    )
+
 
 PRESET_KEYWORDS = {
     "circle": ["圆", "圆形", "circle"],
@@ -86,25 +98,25 @@ async def _generate_image(
         device_profile=device_profile,
     )
     logger.info(f"Enhanced prompt: {enhanced_prompt[:100]}...")
-    client = DashScopeImageClient()
-    # P0 #1（隐藏问题审查）：ImageSynthesis.call 是同步阻塞 HTTP，必须丢线程池，
-    # 否则一次 DashScope 慢响应（5-30s）会卡死整个 asyncio 事件循环。
-    # review Suggestion #5：to_thread 只避免卡事件循环，仍需调用级超时兜底，
-    # 否则 SDK 无限慢时线程会长期挂起。
+
+    async def _execute_draw(backend: dict[str, Any]) -> dict[str, Any]:
+        backend_name = backend["backend"]
+        model_name = resolve_draw_model(backend_name, model)
+        result = await _call_dashscope_generate(enhanced_prompt, model_name, size)
+        if result.get("status") != "success" or not result.get("images"):
+            raise RuntimeError(f"image generation failed ({backend_name}): {result.get('error', 'no images')}")
+        return result
+
     try:
-        result = await asyncio.wait_for(
-            asyncio.to_thread(client.generate, prompt=enhanced_prompt, model=model, size=size, n=1),
-            timeout=_DASHSCOPE_GENERATE_TIMEOUT,
+        return await try_backends(
+            "device_draw",
+            _execute_draw,
+            idempotent=True,
+            timeout=_DASHSCOPE_GENERATE_TIMEOUT + 5,
         )
-    except asyncio.TimeoutError:
-        logger.warning(
-            "DashScope image generation timed out for device %s (%.0fs)", device_id, _DASHSCOPE_GENERATE_TIMEOUT
-        )
-        return {"status": "failed", "images": [], "task_id": "", "error": "image generation timed out"}
-    # DashScope 失败时直接返回错误（P4 瘦身：多后端 image_fallback 已删除）
-    if result.get("status") != "success" or not result.get("images"):
-        logger.warning("DashScope image generation failed for device %s, no fallback available", device_id)
-    return result
+    except Exception as exc:
+        logger.warning("try_backends exhausted for device %s: %s", device_id, exc)
+        return {"status": "failed", "images": [], "task_id": "", "error": str(exc)}
 
 
 async def _convert_image_to_svg(image_url: str) -> Dict[str, Any]:

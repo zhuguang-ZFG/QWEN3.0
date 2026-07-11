@@ -8,7 +8,7 @@
 - **B 完成**：`LIMA_STRUCTURED_LOGGING=1` 启用（`server_dlc.py:29`）；fallback `basicConfig` 在 `:31`。
 - **C 完成验证后删除**：VPS 模块级验证全 PASS，但发现 `check_rate_limit` 生产零调用方（keyed 限流已覆盖生产需求），按 ponytail 删除实现与测试（commit `7eed9aac`）。
 - **D 完成**：`LIMA_REDIS_TASK_INDEX` 经 VPS 模块级验证全 PASS（索引写入/索引读路径/TTL/开关行为）。
-- **E 三态**：代码原语完成（`try_backends` + `LIMA_AUTO_FALLBACK`）/ **调用方未接线**（全仓 grep 仅 `model_routing.py` + `tests/test_fallback_routing.py`）/ ESP32 E2E 待排期。
+- **E 三态**：代码原语完成（`try_backends` + `LIMA_AUTO_FALLBACK`）/ **draw 已接线**（`device_draw_handler._generate_image`，`idempotent=True`；voice 不适用）/ ESP32 E2E 待排期。
 
 ## 整体排序与依赖
 
