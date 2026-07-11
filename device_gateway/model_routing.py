@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+import os
 import re
-from typing import Any
+from typing import Any, Awaitable, Callable, TypeVar
+
+_log = logging.getLogger(__name__)
+T = TypeVar("T")
 
 from device_gateway.profiles import ResolvedProfile, enrich_route_policy_with_profile, resolve_profile
 
@@ -61,6 +67,66 @@ def get_preferred_backend(route_role: str) -> dict[str, Any] | None:
 def get_route_role_alternatives(route_role: str) -> list[dict[str, Any]]:
     """Get all admitted backends for a device route role (for fallback)."""
     return DEVICE_ROLE_PREFERENCES.get(route_role, [])
+
+
+def _auto_fallback_enabled() -> bool:
+    """Return True when *LIMA_AUTO_FALLBACK* is set to a truthy value."""
+    return os.environ.get("LIMA_AUTO_FALLBACK", "0").strip().lower() in {"1", "true", "on", "yes"}
+
+
+async def try_backends(
+    route_role: str,
+    execute_fn: Callable[[dict[str, Any]], Awaitable[T]],
+    *,
+    idempotent: bool = False,
+    timeout: float = 30.0,
+) -> T:
+    """Try each backend for *route_role* in priority order, returning the first success.
+
+    When *idempotent* is ``True`` the call is safe to retry on failure — the
+    next backend in the list is attempted.  When ``False`` (e.g. image
+    generation which is non-idempotent) a failure is immediately re-raised
+    without falling back.
+
+    The env-var ``LIMA_AUTO_FALLBACK`` must be set to a truthy value
+    (``1 / true / on / yes``) for fallback to activate.  When disabled the
+    first backend is attempted and any failure is re-raised immediately —
+    identical to the pre-fallback behaviour.
+
+    Every failed attempt emits a ``logger.warning`` (no silent excepts).
+    """
+    alts = get_route_role_alternatives(route_role)
+    if not alts:
+        raise ValueError(f"no backends for route_role={route_role!r}")
+
+    enabled = _auto_fallback_enabled()
+    last_exc: BaseException | None = None
+
+    for backend in alts:
+        try:
+            return await asyncio.wait_for(execute_fn(backend), timeout=timeout)
+        except Exception as exc:
+            last_exc = exc
+            if not enabled:
+                raise
+            if not idempotent:
+                _log.warning(
+                    "fallback stop (non-idempotent) role=%s backend=%s: %s",
+                    route_role,
+                    backend.get("backend"),
+                    type(exc).__name__,
+                )
+                raise
+            _log.warning(
+                "fallback continue role=%s backend=%s -> next: %s",
+                route_role,
+                backend.get("backend"),
+                type(exc).__name__,
+            )
+            continue
+
+    assert last_exc is not None  # alts is non-empty
+    raise last_exc  # type: ignore[misc]
 
 
 def _classify_capability(capability: str, params: dict) -> dict[str, Any]:
@@ -152,4 +218,5 @@ __all__ = [
     "looks_like_svg_path",
     "resolve_device_route_policy",
     "select_model_with_profile",
+    "try_backends",
 ]
