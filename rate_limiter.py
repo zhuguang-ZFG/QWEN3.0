@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import threading
 import time
 from typing import Any
@@ -20,23 +19,6 @@ _lock = threading.Lock()
 _requests: dict[str, list[float]] = {}
 _keyed_lock = threading.Lock()
 _keyed_requests: dict[str, list[float]] = {}
-
-# --- Redis keyed rate limit (cross-worker device auth L2) ---
-
-# --- IP Redis rate limit (cross-worker IP sliding window) ---
-
-_IP_RATE_REDIS_KEY = "LIMA_IP_RATE_REDIS"
-
-
-def _ip_rate_redis_flag() -> str:
-    """Return the IP rate-limit Redis flag from settings or env."""
-    # Prefer settings.SECURITY.ip_rate_redis if it exists
-    flag = getattr(settings.SECURITY, "ip_rate_redis", None)
-    if flag is not None:
-        return str(flag).strip().lower()
-    # Fallback to environment variable
-    return os.environ.get(_IP_RATE_REDIS_KEY, "0").strip().lower()
-
 
 # --- Redis keyed rate limit (cross-worker device auth L2) ---
 
@@ -116,26 +98,6 @@ def _check_keyed_redis(key: str, *, max_per_window: int, window: float) -> bool 
         return None
 
 
-def _check_ip_redis(ip: str, *, max_per_window: int, window: float) -> bool | None:
-    """Return True/False when Redis handled the IP; None when Redis is not used."""
-    if _ip_rate_redis_flag() in {"0", "false", "memory", "off", "no"}:
-        return None
-    client = _get_redis_client()
-    if client is None:
-        return None
-    limit = max(1, max_per_window)
-    bucket = int(time.time() // window)
-    rkey = f"lima:ip_rate:{ip}:{bucket}"
-    try:
-        count = int(client.incr(rkey))
-        if count == 1:
-            client.expire(rkey, int(window) + 1)
-        return count <= limit
-    except Exception as exc:
-        _log.warning("IP rate-limit Redis fallback: %s", type(exc).__name__)
-        return None
-
-
 def _reset_redis() -> None:
     client = _test_client if _test_client is not None else _redis_client
     if client is None:
@@ -171,12 +133,6 @@ def _evict_oldest_ips() -> None:
 
 def check_rate_limit(ip: str, multiplier: int = 1) -> bool:
     """Return True when the client is within its sliding-window limit."""
-    # Try Redis-backed IP rate limit first if enabled
-    redis_result = _check_ip_redis(ip, max_per_window=MAX_PER_WINDOW * max(1, multiplier), window=WINDOW)
-    if redis_result is not None:
-        return redis_result
-
-    # Fall back to in-memory sliding window
     now = time.time()
     limit = max(1, MAX_PER_WINDOW * max(1, multiplier))
     with _lock:

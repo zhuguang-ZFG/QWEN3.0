@@ -710,3 +710,10 @@
   - **根因**：`vite-plugin-uni-pages` 的行为是「配置源 `pages.config.ts` → 构建 → 生成 `src/pages.json`」。直接改生成物是反模式，应该改源文件。
   - **修复**：从源头 `pages.config.ts` 删除 z-paging 规则，下次构建后 `src/pages.json` 自动与源头一致。
   - **预防**：微信相关配置（manifest、pages、tabBar）应从 `*.config.ts` 源头改，而非直接改 `src/*.json` 生成物。如果构建工具支持配置文件热更新，应优先改配置源。
+
+## 2026-07-12 VPS 验证 C/D 时发现：`check_rate_limit` 生产零调用方（C 实为待接线死代码）
+
+- **现象**：优化计划 C（`4ff69e77`，`rate_limiter.py` 新增 `LIMA_IP_RATE_REDIS` Redis 后端）挂在 `check_rate_limit()` 上，但全仓生产代码**无任何调用方**——生产限流全部走 `check_keyed_rate_limit()`（`routes/rate_limit_helper.py` 的 `check_key_limit`/`check_ip_limit`、device auth L2），其 keyed Redis 后端（`LIMA_DEVICE_AUTH_RATE_REDIS=auto`）在 VPS 早已生效。
+- **佐证**：`docs/DEPLOY_AND_RELEASE_CONVENTION.md:113-117` 描述的「/v1/chat/completions 滑动窗口限流 120/60s」是旧聊天栈（已退役删除）的行为，文档过时；C 的函数随旧栈失去唯一调用方。
+- **影响**：C 代码本身正确（VPS 模块级验证全 PASS，见 progress.md 同日条目），但开启 `LIMA_IP_RATE_REDIS` 对生产流量**零效果**——没有路由调用它。要么把它接入需要 IP 级限流的路由（替换 `check_ip_limit` 内的 keyed 调用），要么按 ponytail 原则视为可删代码。
+- **决策（2026-07-12，用户拍板）**：删除 C。已删 `rate_limiter.py` 的 `_check_ip_redis`/`_ip_rate_redis_flag`/`_IP_RATE_REDIS_KEY`（`check_rate_limit` 回归纯内存滑动窗口）、整个 `tests/test_rate_limiter_redis.py`（全部用例只覆盖该特性）、`.env.example` 的 `LIMA_IP_RATE_REDIS` 注释块。keyed Redis 限流（device auth L2）不受影响。VPS 已重新部署删除后的 `rate_limiter.py`。

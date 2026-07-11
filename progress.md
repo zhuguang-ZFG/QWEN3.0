@@ -1412,3 +1412,19 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **验证**：MCP 握手全通（initialize / notifications/initialized / tools/list 返回 4 个 dlc.* 工具 / ping）；`dev-test-1` 带 token dispatch → HTTP 200 `{"status":"queued","task_id":...}`（无 token 422）；服务连续存活 >3.5min、`ConnectionClosedError`=0、`NRestarts`=0。
 - **门禁**：`tests/test_dlc_mcp_server.py` 17 passed；ruff + format + check_code_size PASS。提交 `360a413b`（auth+路径）+ 后续 commit（ping+重连）已 push origin main。
 - **诚实边界**：VPS 仅占位设备 `dev-test-1`、无真实绘图机硬件，故链路验证止于「任务入队」；固件端 `HandleMotionTaskJson` 执行 + 语音端到端待有设备接入后验证。
+
+## 2026-07-12 优化计划 C/D 京东云 VPS 部署 + 模块级验证（全 PASS）
+
+- **部署**：`deploy_unified.py --target jdcloud --files rate_limiter.py device_gateway/redis_store.py device_gateway/redis_store_helpers.py device_gateway/redis_store_index.py`；自动依赖 10 个文件经 md5 比对与 VPS 完全一致（无害上传）。备份 `/opt/dlc-drawing/backups/unified-files-20260712_013319/`；重启后 health OK（version 0.4.0-p3）；4 文件 VPS md5 == 本地 md5。
+- **验证方式**：开关均为调用时读 env，故在 VPS 用生产 venv 直接 import 模块验证（脚本 `/tmp/verify_cd_remote.py`，跑后即删），隔离命名空间 `lima:verify:*` + 测试 IP `203.0.113.99`，**未改 .env、未开总限流、零生产数据/流量影响**，全部写入已清理并验证为空。
+- **D（`LIMA_REDIS_TASK_INDEX`，生产 Redis 100.85.114.65）**：flag=1 → `task_idx:{device_id}` set 含 task_id ✅、索引读路径 `list_tasks_for_device` 返回该任务 ✅、索引 key 带 TTL ✅；flag=0 → 不写索引 ✅。
+- **C（`LIMA_IP_RATE_REDIS`）**：flag=0 → 无 `lima:ip_rate:*` key（纯内存）✅；flag=1 → key 创建、5 次调用计数累加为 5（INCR 跨调用一致）✅、TTL ∈ (0,61] ✅。
+- **结论**：两开关在生产环境（真实 Redis、生产 venv）行为正确。但 C 当前无生产调用方（详见 findings.md 同日条目），「双 worker 计数一致性」待其接入路由后才有验证意义；Redis INCR 原子性 + `tests/test_rate_limiter_redis.py` 已覆盖该性质。
+
+## 2026-07-12 删除优化计划 C（无生产调用方的 IP Redis 限流，ponytail）
+
+- **背景**：VPS 验证发现 `check_rate_limit` 生产零调用方（详见 findings.md 同日条目），用户决策删除而非接线。
+- **删除**：`rate_limiter.py` 的 `_check_ip_redis`/`_ip_rate_redis_flag`/`_IP_RATE_REDIS_KEY` + `import os`（`check_rate_limit` 回归纯内存滑动窗口）；`tests/test_rate_limiter_redis.py` 整文件（11 用例只覆盖该特性）；`.env.example` 的 `LIMA_IP_RATE_REDIS` 注释块。
+- **保留**：keyed Redis 限流（`check_keyed_rate_limit`，device auth L2，生产在用）与 D（task 二级索引，已验证）。
+- **门禁**：聚焦测试 22 passed；ruff clean。
+- **后续**：VPS 重新部署删除后的 `rate_limiter.py` 保持版本一致（无行为变化：该路径本就无调用方）。
