@@ -119,10 +119,10 @@ async def _serve_gallery_proxy(
         content, mime_type = await get_cached_image_bytes(account_id, image_id, image, backend, for_file=for_file)
     except TelegramNotConfiguredError as exc:
         return _gallery_not_configured_response(exc)
-    except Exception as exc:
+    except Exception:
         label = "file" if for_file else "thumb"
         _log.exception("failed to proxy gallery %s for %s", label, image_id)
-        return err(500, f"gallery {label} proxy failed: {exc}", 500)
+        return err(500, f"gallery {label} proxy failed", 500)
 
     return Response(
         content=content,
@@ -159,9 +159,9 @@ async def upload_gallery_image(
         thumb_url = await backend.get_file_url(file_id)
     except TelegramFileTooLargeError as exc:
         return err(413, str(exc), 413)
-    except Exception as exc:
+    except Exception:
         _log.exception("failed to upload image to Telegram gallery")
-        return err(500, f"telegram upload failed: {exc}", 500)
+        return err(500, "telegram upload failed", 500)
 
     image = gallery_store.add_image(
         account_id=account_id,

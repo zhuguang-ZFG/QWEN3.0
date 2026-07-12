@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 from typing import Any
 
 from device_gateway.device_draw_handler import handle_device_draw as _handle_device_draw
@@ -29,7 +30,8 @@ def _detect_preset(prompt: str) -> str | None:
 
 
 def _build_preview_svg(svg_path: str, width: int, height: int) -> str:
-    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}"><path d="{svg_path}" fill="none" stroke="black"/></svg>'
+    safe_path = html.escape(svg_path, quote=True)
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}"><path d="{safe_path}" fill="none" stroke="black"/></svg>'
 
 
 async def _try_preset_or_font(prompt: str, device_id: str | None = None) -> dict[str, Any] | None:

@@ -36,6 +36,14 @@ class RedisDeviceTaskStore(RedisTaskIndexMixin, RedisStoreHelpers, RedisStoreRec
         if keys:
             self._redis.delete(*keys)
 
+    def ping(self) -> None:
+        """Liveness check for the underlying Redis connection."""
+        self._redis.ping()
+
+    def close(self) -> None:
+        """Close the underlying Redis connection pool."""
+        self._redis.close()
+
     def next_task_id(self) -> str:
         value = int(self._redis.incr(self._key("task_counter")))
         return f"task-{value:06d}"

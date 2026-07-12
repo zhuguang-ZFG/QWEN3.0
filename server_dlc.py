@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
         from device_gateway.store import task_store as _ts
 
         if getattr(_ts, "backend_name", None) == "redis":
-            _ts._redis.close()
+            _ts.close()
             logger.info("已关闭 Redis 连接池")
     except Exception:
         logger.warning("清理异常", exc_info=True)

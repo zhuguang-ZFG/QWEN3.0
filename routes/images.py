@@ -53,12 +53,12 @@ _IMAGE_BACKENDS: list[tuple[str, Callable[..., Awaitable[list[dict]]]]] = [
 
 
 class ImageRequest(BaseModel):
-    prompt: str
+    prompt: str = Field(max_length=4000)
     model: str = "lima-image"
     size: str = Field(default="1024x1024", pattern=r"^\d{1,4}x\d{1,4}$")
     n: int = Field(default=1, ge=1, le=10)
     seed: int | None = Field(default=None, ge=-1, le=2147483647)
-    negative_prompt: str | None = None
+    negative_prompt: str | None = Field(default=None, max_length=4000)
     image_url: str | None = Field(default=None, description="Optional reference image for image-to-image generation")
     nologo: bool = True
     private: bool = False

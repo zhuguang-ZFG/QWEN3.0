@@ -96,7 +96,7 @@ async def health():
         try:
             from device_gateway.store import task_store
 
-            task_store._redis.ping()
+            task_store.ping()
         except Exception:
             logger.warning("Redis ping 失败", exc_info=True)
             return JSONResponse(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import secrets
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Header, Request
@@ -37,12 +38,16 @@ def _parse_permission(body: dict[str, Any]) -> str | None:
 def _parse_expires_at(body: dict[str, Any]) -> str | None:
     explicit = str_field(body, "expiresAt", "expires_at")
     if explicit:
+        try:
+            datetime.fromisoformat(explicit.replace("Z", "+00:00"))
+        except ValueError:
+            return None
         return explicit
     try:
         seconds = int(body.get("expiresIn", 604800))
     except (TypeError, ValueError):
         seconds = 604800
-    return expires_at(max(60, seconds))
+    return expires_at(min(max(60, seconds), 30 * 86400))
 
 
 @router.post("/devices/{device_id}/share")

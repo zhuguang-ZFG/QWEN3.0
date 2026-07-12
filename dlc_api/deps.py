@@ -7,6 +7,7 @@ LIMA_DEVICE_TOKENS env var serves as dev/emergency fallback.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
 import os
 
@@ -105,7 +106,11 @@ def verify_dlc_api_token(authorization: str = Header(...)) -> str:
         logger.warning("No DB token match and LIMA_DEVICE_TOKENS not configured; rejecting")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-    device_id = tokens.get(token)
+    token_hash = _token_hash(token)
+    device_id = next(
+        (dev for raw, dev in tokens.items() if hmac.compare_digest(_token_hash(raw), token_hash)),
+        None,
+    )
     if not device_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 

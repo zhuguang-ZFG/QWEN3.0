@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from dlc_core.safety import DEFAULT_WORKSPACE_MM
+from dlc_core.safety import DEFAULT_WORKSPACE_MM, MAX_PATH_POINTS
 
-# 硬点数上限：超过即拒绝（防畸形/恶意超大 path）。200 仍是软阈值（warning）。
-MAX_PATH_POINTS = 5000
+# 硬点数上限：超过即拒绝（防畸形/恶意超大 path）。MAX_PATH_POINTS（200）是软阈值（warning）。
+HARD_MAX_PATH_POINTS = 5000
 
 
 def _is_number(value: Any) -> bool:
@@ -30,9 +30,9 @@ def validate_path(path: list[dict], *, workspace: dict[str, float] | None = None
         return {"ok": False, "errors": errors, "warnings": warnings}
 
     # 硬点数上限：防止畸形/恶意超大 path 拖垮下游生成与设备执行。
-    # 200 是软阈值（warning），MAX_PATH_POINTS 是硬阈值（拒绝）。
-    if len(path) > MAX_PATH_POINTS:
-        errors.append(f"path exceeds hard limit of {MAX_PATH_POINTS} points")
+    # MAX_PATH_POINTS（200）是软阈值（warning），HARD_MAX_PATH_POINTS 是硬阈值（拒绝）。
+    if len(path) > HARD_MAX_PATH_POINTS:
+        errors.append(f"path exceeds hard limit of {HARD_MAX_PATH_POINTS} points")
         return {"ok": False, "errors": errors, "warnings": warnings}
 
     max_x = bounds.get("x", DEFAULT_WORKSPACE_MM["x"])
@@ -54,7 +54,7 @@ def validate_path(path: list[dict], *, workspace: dict[str, float] | None = None
         if x < 0 or x > max_x or y < 0 or y > max_y:
             errors.append(f"point {i} out of workspace bounds")
 
-    if len(path) > 200:
-        warnings.append("path exceeds 200 points")
+    if len(path) > MAX_PATH_POINTS:
+        warnings.append(f"path exceeds {MAX_PATH_POINTS} points")
 
     return {"ok": not errors, "errors": errors, "warnings": warnings}

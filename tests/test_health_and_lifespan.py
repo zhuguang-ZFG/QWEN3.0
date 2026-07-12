@@ -99,13 +99,13 @@ class TestLifespanShutdown:
         """当 task_store 后端为 redis 时，关闭 Redis 连接池。"""
         mock_store = _run_lifespan([], backend_name="redis")
 
-        mock_store._redis.close.assert_called_once()
+        mock_store.close.assert_called_once()
 
     def test_redis_not_closed_when_backend_is_memory(self) -> None:
         """当 task_store 后端为 memory 时，不调用 Redis 关闭。"""
         mock_store = _run_lifespan([], backend_name="memory")
 
-        assert not mock_store._redis.close.called
+        assert not mock_store.close.called
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +137,7 @@ class TestHealthEndpoint:
     def test_redis_ok_returns_200(self) -> None:
         """Redis 可用时返回 200 + dependencies。"""
         mock_store = MagicMock()
-        mock_store._redis.ping.return_value = True
+        mock_store.ping.return_value = True
 
         from dlc_api.app import app
 
@@ -159,7 +159,7 @@ class TestHealthEndpoint:
     def test_redis_unavailable_returns_503(self) -> None:
         """Redis 不可用时返回 503 degraded。"""
         mock_store = MagicMock()
-        mock_store._redis.ping.side_effect = ConnectionError("redis down")
+        mock_store.ping.side_effect = ConnectionError("redis down")
 
         from dlc_api.app import app
 

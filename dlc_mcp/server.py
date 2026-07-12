@@ -222,7 +222,7 @@ def handle_request(client: httpx.Client, req: dict) -> dict:
             "result": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "dlc-mcp-p0", "version": "0.1.0-p0"},
+                "serverInfo": {"name": "dlc-mcp-p0", "version": "0.4.0-p3"},
             },
         }
 
