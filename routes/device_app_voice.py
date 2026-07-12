@@ -28,6 +28,53 @@ _log = logging.getLogger(__name__)
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-voice"])
 
 
+async def _read_upload_audio(audio: UploadFile) -> bytes | JSONResponse:
+    audio_data = await audio.read()
+    if not audio_data:
+        return err(400, "audio file is empty", 400)
+    if len(audio_data) > VOICE.max_audio_bytes:
+        return err(413, "audio file is too large", 413)
+    try:
+        require_min_pcm_bytes(audio_data, minimum=VOICE.min_pcm_bytes)
+    except ValueError as exc:
+        return err(400, str(exc), 400)
+    return audio_data
+
+
+async def _transcribe_or_error(audio_data: bytes) -> str | JSONResponse:
+    try:
+        return await transcribe_audio(audio_data)
+    except ValueError as exc:
+        return err(400, str(exc), 400)
+    except AsrNotConfiguredError as exc:
+        _log.warning("voice transcribe unavailable: %s", exc)
+        return err(503, "ASR is not configured", 503)
+    except Exception as exc:
+        _log.warning("voice transcribe failed: %s", type(exc).__name__, exc_info=True)
+        return err(503, "ASR failed", 503)
+
+
+def _persist_device_audio(
+    device_id: str,
+    text: str,
+    audio_data: bytes,
+) -> dict[str, str] | JSONResponse | None:
+    if not device_id:
+        return None
+    with connect() as conn:
+        persisted = save_device_audio_clip(
+            conn,
+            device_id,
+            text,
+            audio_data,
+            content_type=content_type_for_audio(audio_data),
+            audio_id=new_id(),
+        )
+    if persisted is None:
+        return err(503, "device has no bound account for chat persistence", 503)
+    return persisted
+
+
 @router.post("/voice/transcribe")
 async def transcribe_voice(
     authorization: str = Header(default=""),
@@ -46,16 +93,9 @@ async def transcribe_voice(
     if limited is not None:
         return limited
 
-    audio_data = await audio.read()
-    if not audio_data:
-        return err(400, "audio file is empty", 400)
-    if len(audio_data) > VOICE.max_audio_bytes:
-        return err(413, "audio file is too large", 413)
-
-    try:
-        require_min_pcm_bytes(audio_data, minimum=VOICE.min_pcm_bytes)
-    except ValueError as exc:
-        return err(400, str(exc), 400)
+    audio_data = await _read_upload_audio(audio)
+    if isinstance(audio_data, JSONResponse):
+        return audio_data
 
     device_id = device_id.strip()
     if device_id:
@@ -64,32 +104,14 @@ async def transcribe_voice(
             if denied:
                 return denied
 
-    try:
-        text = await transcribe_audio(audio_data)
-    except ValueError as exc:
-        return err(400, str(exc), 400)
-    except AsrNotConfiguredError as exc:
-        _log.warning("voice transcribe unavailable: %s", exc)
-        return err(503, "ASR is not configured", 503)
-    except Exception as exc:
-        _log.warning("voice transcribe failed: %s", type(exc).__name__, exc_info=True)
-        return err(503, "ASR failed", 503)
+    text = await _transcribe_or_error(audio_data)
+    if isinstance(text, JSONResponse):
+        return text
 
     intent = resolve_voice_task(text)
-    audio_id = new_id()
-    persisted: dict[str, str] | None = None
-    if device_id:
-        with connect() as conn:
-            persisted = save_device_audio_clip(
-                conn,
-                device_id,
-                text,
-                audio_data,
-                content_type=content_type_for_audio(audio_data),
-                audio_id=audio_id,
-            )
-        if persisted is None:
-            return err(503, "device has no bound account for chat persistence", 503)
+    persisted = _persist_device_audio(device_id, text, audio_data)
+    if isinstance(persisted, JSONResponse):
+        return persisted
 
     payload: dict[str, Any] = {"text": text, "intent": intent}
     if persisted is not None:

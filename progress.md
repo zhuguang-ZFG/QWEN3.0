@@ -1476,3 +1476,13 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
   - 抽样 9 关键文件（含 `server_dlc`/`task_create`/`auth`/`gallery`/`images`/`voice_ticket`）**md5 双端 == 本地**。
 - **备份**：aliyun `/opt/dlc-drawing/backups/aliyun-security-20260712_100707/pre.tgz`。
 - **未做**：aliyun 全量 `slice core`（依赖膨胀/SSH 易断）；仅保证安全路径与启动闭包对齐。
+
+## 2026-07-12 代码尺寸债清理（文件 ≤300 + voice 函数 ≤50）
+
+- **测试拆分**（`f550253d`）：`test_device_app_tasks` / `test_dlc_api` / `test_device_app_notifications` 拆为 6 文件，均 ≤227 行；36 passed。
+- **gallery apply 脚本**（`4c26a5ad`）：内嵌 TS/Vue 模板抽到 `scripts/miniprogram_gallery_templates/`；`apply_miniprogram_gallery_v2.py` 760→91、`improvements` 578→113。
+- **主仓扫描**：第一方包（routes/dlc_*/device_*/scripts/tests 等）**0 个文件 >300 行**。
+- **voice 函数拆分**（本提交）：
+  - `routes/device_app_voice_ws.py`：`_run_voice_stream_ws` 69 行 → open/frame/control/loop/finalize 小函数（最大 19 行）。
+  - `routes/device_app_voice.py`：`transcribe_voice` 66 行 → read/transcribe/persist helpers（endpoint 41 行）。
+- **门禁**：voice 相关 29 passed；ruff clean。语义未改。
