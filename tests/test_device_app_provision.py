@@ -59,6 +59,8 @@ def test_provision_returns_token(tmp_path, monkeypatch):
     assert data["provisionToken"]
     assert data["serverUrl"] == "wss://chat.donglicao.com/device/v1/ws"
     assert data["configPayload"]["wifi_ssid"] == "MyWiFi"
+    assert "wifi_password" not in data["configPayload"]
+    assert "secret" not in response.text
     assert data["configPayload"]["pair_token"] == data["provisionToken"]
     assert data["configPayload"]["server_url"] == data["serverUrl"]
 

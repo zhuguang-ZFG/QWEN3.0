@@ -9,6 +9,7 @@ from device_gateway import store as store_mod
 from device_gateway.coordinator import MultiDeviceCoordinator
 from device_gateway.tasks import create_and_route_task, task_snapshot
 from device_gateway.tasks import DeviceTaskRequest
+from config import settings
 from device_logic.access import require_device_access, require_device_control
 from device_logic.auth import authorize
 from device_logic.db import connect
@@ -27,6 +28,7 @@ from routes.device_app_task_store import (
     record_rejection,
     reject_task_row,
 )
+from routes.rate_limit_helper import check_key_limit
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-tasks"])
 
@@ -36,6 +38,12 @@ async def create_task(device_id: str, request: Request, authorization: str = Hea
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
+    limited = check_key_limit(
+        f"device_app_task:{account['id']}",
+        settings.DEVICE.dlc_task_per_min,
+    )
+    if limited is not None:
+        return limited
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body

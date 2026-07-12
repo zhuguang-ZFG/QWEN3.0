@@ -99,8 +99,9 @@ def _build_provision_response(
     device_sn: str,
     server_url: str,
     wifi_ssid: str,
-    wifi_password: str,
 ) -> dict:
+    # Never echo wifi password: clients already have it; SoftAP/BLE send it
+    # device-local. Response is JWT-authenticated but still lands in logs/proxies.
     return {
         "provisionId": provision_id,
         "provisionToken": provision_token,
@@ -110,7 +111,6 @@ def _build_provision_response(
         "expiresIn": 1800,
         "configPayload": {
             "wifi_ssid": wifi_ssid,
-            "wifi_password": wifi_password,
             "server_url": server_url,
             "pair_token": provision_token,
             "device_sn": device_sn,
@@ -180,7 +180,7 @@ async def create_provision(request: Request, authorization: str = Header(default
         return body
     device_sn = str_field(body, "deviceSn", "device_sn")
     wifi_ssid = str_field(body, "wifiSsid", "ssid")
-    wifi_password = str_field(body, "wifiPassword", "password") or ""
+    # wifiPassword may still be sent for client-local SoftAP/BLE; never store or echo it.
     if not device_sn:
         return err(400, "deviceSn is required", 400)
     if not wifi_ssid:
@@ -203,7 +203,7 @@ async def create_provision(request: Request, authorization: str = Header(default
         )
         conn.commit()
 
-    return _build_provision_response(provision_id, provision_token, device_sn, server_url, wifi_ssid, wifi_password)
+    return _build_provision_response(provision_id, provision_token, device_sn, server_url, wifi_ssid)
 
 
 @router.post("/devices/provision/confirm")

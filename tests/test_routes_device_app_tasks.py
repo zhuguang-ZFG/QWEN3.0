@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from routes import device_app_task_create as tasks_create
@@ -129,6 +130,21 @@ def test_create_task_with_text_success(client, auth_header):
     )
     assert response.status_code == 200
     assert response.json()["taskId"] == "task-1"
+
+
+def test_create_task_rate_limited(client, auth_header):
+    limited = JSONResponse(
+        status_code=429,
+        content={"error": {"message": "Rate limit exceeded. Try again later.", "type": "rate_limit_error"}},
+    )
+    with patch.object(tasks, "check_key_limit", return_value=limited):
+        response = client.post(
+            "/device/v1/app/devices/dev-1/tasks",
+            json={"text": "draw a cat"},
+            headers=auth_header,
+        )
+    assert response.status_code == 429
+    assert response.json()["error"]["type"] == "rate_limit_error"
 
 
 def test_create_structured_task_success(client, auth_header):
