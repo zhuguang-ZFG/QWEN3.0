@@ -20,17 +20,7 @@ def password() -> str:
     raise SystemExit("no pw")
 
 
-def main() -> int:
-    script = LOCAL.read_text(encoding="utf-8")
-    c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script, VPS host key unpinned
-    c.connect(HOST, username="root", password=password(), timeout=25, allow_agent=False, look_for_keys=False)
-    sftp = c.open_sftp()
-    with sftp.file("/tmp/migrate_newapi_sqlite_to_mysql.sh", "w") as f:
-        f.write(script)
-    sftp.close()
-    # Pre-install tool FIRST while service still up (reduces downtime)
-    pre = r"""
+_PREINSTALL = r"""
 set -e
 VENV=/opt/newapi/.venv-mig
 IDX=https://pypi.tuna.tsinghua.edu.cn/simple
@@ -42,7 +32,38 @@ fi
 "$VENV/bin/sqlite3mysql" --help >/dev/null
 echo PREINSTALL_OK
 """
-    _, o, e = c.exec_command(pre, timeout=150)
+
+
+def _connect() -> paramiko.SSHClient:
+    c = paramiko.SSHClient()
+    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script
+    c.connect(HOST, username="root", password=password(), timeout=25, allow_agent=False, look_for_keys=False)
+    return c
+
+
+def _upload_script(c: paramiko.SSHClient, script: str) -> None:
+    sftp = c.open_sftp()
+    with sftp.file("/tmp/migrate_newapi_sqlite_to_mysql.sh", "w") as f:
+        f.write(script)
+    sftp.close()
+
+
+def _redact(text: str) -> str:
+    safe = []
+    for line in text.splitlines():
+        if "PASS=" in line.upper() or "SQL_DSN=" in line or "password" in line.lower():
+            safe.append("[redacted]")
+        else:
+            safe.append(line)
+    return "\n".join(safe)
+
+
+def main() -> int:
+    script = LOCAL.read_text(encoding="utf-8")
+    c = _connect()
+    _upload_script(c, script)
+    # Pre-install tool FIRST while service still up (reduces downtime)
+    _, o, e = c.exec_command(_PREINSTALL, timeout=150)
     pre_out = o.read().decode("utf-8", "replace")
     pre_err = e.read().decode("utf-8", "replace")
     pre_code = o.channel.recv_exit_status()
@@ -54,22 +75,12 @@ echo PREINSTALL_OK
         return pre_code or 1
     print("preinstall OK")
 
-    _, o, e = c.exec_command(
-        "bash /tmp/migrate_newapi_sqlite_to_mysql.sh",
-        timeout=300,
-    )
+    _, o, e = c.exec_command("bash /tmp/migrate_newapi_sqlite_to_mysql.sh", timeout=300)
     out = o.read().decode("utf-8", "replace")
     err = e.read().decode("utf-8", "replace")
     code = o.channel.recv_exit_status()
     c.close()
-    # redact
-    safe = []
-    for line in (out + "\n" + err).splitlines():
-        if "PASS=" in line.upper() or "SQL_DSN=" in line or "password" in line.lower():
-            safe.append("[redacted]")
-        else:
-            safe.append(line)
-    text = "\n".join(safe)
+    text = _redact(out + "\n" + err)
     OUT.write_text(text, encoding="utf-8")
     print(text[-3000:] if len(text) > 3000 else text)
     return code

@@ -70,12 +70,7 @@ def run_gallery_e2e_probes_authenticated(host: str, *, token: str | None = None)
     return run_gallery_e2e_probes(host, bearer)
 
 
-def run_gallery_e2e_probes(host: str, token: str) -> list[GalleryProbeResult]:
-    """Exercise gallery upload/list/thumb/file/delete on production."""
-    results: list[GalleryProbeResult] = []
-    image_id = ""
-    thumb_token = ""
-
+def _probe_upload(host: str, token: str) -> tuple[list[GalleryProbeResult], str, str]:
     status, body = post_multipart(
         host,
         GALLERY_PATH,
@@ -83,87 +78,101 @@ def run_gallery_e2e_probes(host: str, token: str) -> list[GalleryProbeResult]:
         bearer=token,
     )
     if status == 503:
-        results.append(GalleryProbeResult("gallery_upload", "skip", "gallery storage not configured (503)"))
-        return results
+        return [GalleryProbeResult("gallery_upload", "skip", "gallery storage not configured (503)")], "", ""
     if status != 200 or body.get("code") != 0:
-        results.append(GalleryProbeResult("gallery_upload", "fail", f"HTTP {status} {repr(body)[:200]}"))
-        return results
-
+        return [GalleryProbeResult("gallery_upload", "fail", f"HTTP {status} {repr(body)[:200]}")], "", ""
     data = body.get("data") or {}
     image_id = str(data.get("id") or "")
     thumb_token = str(data.get("thumbToken") or "")
     if not image_id or not thumb_token:
-        results.append(GalleryProbeResult("gallery_upload", "fail", "missing id or thumbToken in upload response"))
-        return results
-    results.append(GalleryProbeResult("gallery_upload", "ok", f"image_id={image_id[:12]}"))
+        return [GalleryProbeResult("gallery_upload", "fail", "missing id or thumbToken in upload response")], "", ""
+    return [GalleryProbeResult("gallery_upload", "ok", f"image_id={image_id[:12]}")], image_id, thumb_token
 
+
+def _probe_list(host: str, token: str, image_id: str) -> GalleryProbeResult:
     status, list_body = get_json(host, GALLERY_PATH, bearer=token)
     if status != 200 or list_body.get("code") != 0:
-        results.append(GalleryProbeResult("gallery_list", "fail", f"HTTP {status}"))
-    else:
-        payload = list_body.get("data") or {}
-        total = payload.get("total")
-        images = payload.get("images") or []
-        ok = isinstance(total, int) and any(str(item.get("id")) == image_id for item in images)
-        results.append(
-            GalleryProbeResult(
-                "gallery_list",
-                "ok" if ok else "fail",
-                f"total={total} count={len(images)}",
-            )
-        )
+        return GalleryProbeResult("gallery_list", "fail", f"HTTP {status}")
+    payload = list_body.get("data") or {}
+    total = payload.get("total")
+    images = payload.get("images") or []
+    ok = isinstance(total, int) and any(str(item.get("id")) == image_id for item in images)
+    return GalleryProbeResult("gallery_list", "ok" if ok else "fail", f"total={total} count={len(images)}")
 
+
+def _probe_thumbs(host: str, token: str, image_id: str, thumb_token: str) -> list[GalleryProbeResult]:
     thumb_path = f"{GALLERY_PATH}/{image_id}/thumb?thumb_token={urllib.parse.quote(thumb_token)}"
     thumb_status, thumb_bytes = _get_bytes(host, thumb_path)
-    if thumb_status != 200 or len(thumb_bytes) < 16:
-        results.append(
-            GalleryProbeResult("gallery_thumb_token", "fail", f"HTTP {thumb_status} bytes={len(thumb_bytes)}")
+    results = [
+        GalleryProbeResult(
+            "gallery_thumb_token",
+            "ok" if thumb_status == 200 and len(thumb_bytes) >= 16 else "fail",
+            f"HTTP {thumb_status} bytes={len(thumb_bytes)}"
+            if not (thumb_status == 200 and len(thumb_bytes) >= 16)
+            else f"bytes={len(thumb_bytes)}",
         )
-    else:
-        results.append(GalleryProbeResult("gallery_thumb_token", "ok", f"bytes={len(thumb_bytes)}"))
-
+    ]
     legacy_status, _ = _get_bytes(host, f"{GALLERY_PATH}/{image_id}/thumb?access_token={urllib.parse.quote(token)}")
-    if legacy_status == 401:
-        results.append(GalleryProbeResult("gallery_thumb_rejects_access_token", "ok", "401"))
-    else:
-        results.append(
-            GalleryProbeResult(
-                "gallery_thumb_rejects_access_token",
-                "fail",
-                f"expected 401 got {legacy_status}",
-            )
+    results.append(
+        GalleryProbeResult(
+            "gallery_thumb_rejects_access_token",
+            "ok" if legacy_status == 401 else "fail",
+            "401" if legacy_status == 401 else f"expected 401 got {legacy_status}",
         )
+    )
+    return results
 
+
+def _probe_download_and_file(host: str, token: str, image_id: str) -> list[GalleryProbeResult]:
     dl_status, dl_body = get_json(host, f"{GALLERY_PATH}/{image_id}/download", bearer=token)
     fetch_token = ""
     if dl_status == 200 and dl_body.get("code") == 0:
         fetch_token = _parse_fetch_token(str((dl_body.get("data") or {}).get("url") or ""))
     if not fetch_token:
-        results.append(GalleryProbeResult("gallery_download", "fail", f"HTTP {dl_status}"))
-    else:
-        results.append(GalleryProbeResult("gallery_download", "ok", "fetch_token issued"))
-        file_status, file_bytes = _get_bytes(
-            host,
-            f"{GALLERY_PATH}/{image_id}/file?fetch_token={urllib.parse.quote(fetch_token)}",
+        return [GalleryProbeResult("gallery_download", "fail", f"HTTP {dl_status}")]
+    results = [GalleryProbeResult("gallery_download", "ok", "fetch_token issued")]
+    file_status, file_bytes = _get_bytes(
+        host,
+        f"{GALLERY_PATH}/{image_id}/file?fetch_token={urllib.parse.quote(fetch_token)}",
+    )
+    results.append(
+        GalleryProbeResult(
+            "gallery_file_proxy",
+            "ok" if file_status == 200 and len(file_bytes) >= 16 else "fail",
+            f"bytes={len(file_bytes)}"
+            if file_status == 200 and len(file_bytes) >= 16
+            else f"HTTP {file_status} bytes={len(file_bytes)}",
         )
-        if file_status != 200 or len(file_bytes) < 16:
-            results.append(
-                GalleryProbeResult("gallery_file_proxy", "fail", f"HTTP {file_status} bytes={len(file_bytes)}")
-            )
-        else:
-            results.append(GalleryProbeResult("gallery_file_proxy", "ok", f"bytes={len(file_bytes)}"))
+    )
+    return results
 
+
+def _probe_delete(host: str, token: str, image_id: str, thumb_token: str) -> list[GalleryProbeResult]:
+    thumb_path = f"{GALLERY_PATH}/{image_id}/thumb?thumb_token={urllib.parse.quote(thumb_token)}"
     del_status, del_body = post_json_delete(host, f"{GALLERY_PATH}/{image_id}", bearer=token)
     if del_status != 200 or del_body.get("code") != 0:
-        results.append(GalleryProbeResult("gallery_delete", "fail", f"HTTP {del_status}"))
-    else:
-        results.append(GalleryProbeResult("gallery_delete", "ok", "deleted"))
-        gone_status, _ = _get_bytes(host, thumb_path)
-        if gone_status == 404:
-            results.append(GalleryProbeResult("gallery_deleted_thumb_404", "ok", "404"))
-        else:
-            results.append(GalleryProbeResult("gallery_deleted_thumb_404", "fail", f"HTTP {gone_status}"))
+        return [GalleryProbeResult("gallery_delete", "fail", f"HTTP {del_status}")]
+    results = [GalleryProbeResult("gallery_delete", "ok", "deleted")]
+    gone_status, _ = _get_bytes(host, thumb_path)
+    results.append(
+        GalleryProbeResult(
+            "gallery_deleted_thumb_404",
+            "ok" if gone_status == 404 else "fail",
+            "404" if gone_status == 404 else f"HTTP {gone_status}",
+        )
+    )
+    return results
 
+
+def run_gallery_e2e_probes(host: str, token: str) -> list[GalleryProbeResult]:
+    """Exercise gallery upload/list/thumb/file/delete on production."""
+    results, image_id, thumb_token = _probe_upload(host, token)
+    if not image_id:
+        return results
+    results.append(_probe_list(host, token, image_id))
+    results.extend(_probe_thumbs(host, token, image_id, thumb_token))
+    results.extend(_probe_download_and_file(host, token, image_id))
+    results.extend(_probe_delete(host, token, image_id, thumb_token))
     return results
 
 

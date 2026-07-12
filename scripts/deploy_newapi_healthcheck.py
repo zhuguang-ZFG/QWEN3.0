@@ -28,35 +28,25 @@ def password() -> str:
     raise SystemExit("set LIMA_JDCLOUD_SSH_PASS or put password in D:\\Downloads\\VPS.txt")
 
 
-def main() -> int:
-    if not LOCAL.is_file():
-        raise SystemExit(f"missing {LOCAL}")
-    script = LOCAL.read_text(encoding="utf-8")
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script, VPS host key unpinned
-    client.connect(HOST, username="root", password=password(), timeout=25, allow_agent=False, look_for_keys=False)
-    sftp = client.open_sftp()
-    with sftp.file("/opt/newapi/healthcheck.sh", "w") as f:
-        f.write(script)
-    sftp.close()
-
-    # Optional UUID from env on deploy machine → append to .env.backup if provided
+def _uuid_cmd() -> str:
     uuid = (os.environ.get("NEWAPI_HC_PING_UUID") or "").strip()
-    uuid_cmd = ""
-    if uuid:
-        uuid_cmd = f"""
+    if not uuid:
+        return ""
+    return f"""
 grep -q '^NEWAPI_HC_PING_UUID=' /opt/newapi/.env.backup 2>/dev/null \\
   && sed -i 's/^NEWAPI_HC_PING_UUID=.*/NEWAPI_HC_PING_UUID={uuid}/' /opt/newapi/.env.backup \\
   || echo 'NEWAPI_HC_PING_UUID={uuid}' >> /opt/newapi/.env.backup
 chmod 600 /opt/newapi/.env.backup 2>/dev/null || true
 """
 
-    cmd = f"""
+
+def _install_remote_cmd() -> str:
+    return f"""
 set -e
 chmod +x /opt/newapi/healthcheck.sh
 touch /opt/newapi/.env.backup
 chmod 600 /opt/newapi/.env.backup
-{uuid_cmd}
+{_uuid_cmd()}
 CRON_LINE='*/5 * * * * /opt/newapi/healthcheck.sh >> /var/log/newapi-healthcheck.log 2>&1'
 (crontab -l 2>/dev/null | grep -v '/opt/newapi/healthcheck.sh' || true; echo "$CRON_LINE") | crontab -
 echo '--- crontab ---'
@@ -71,7 +61,21 @@ else
   echo 'HC_PING=skipped (set NEWAPI_HC_PING_UUID to enable healthchecks.io)'
 fi
 """
-    _, stdout, stderr = client.exec_command(cmd, timeout=90)
+
+
+def main() -> int:
+    if not LOCAL.is_file():
+        raise SystemExit(f"missing {LOCAL}")
+    script = LOCAL.read_text(encoding="utf-8")
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script
+    client.connect(HOST, username="root", password=password(), timeout=25, allow_agent=False, look_for_keys=False)
+    sftp = client.open_sftp()
+    with sftp.file("/opt/newapi/healthcheck.sh", "w") as f:
+        f.write(script)
+    sftp.close()
+
+    _, stdout, stderr = client.exec_command(_install_remote_cmd(), timeout=90)
     out = stdout.read().decode("utf-8", "replace")
     err = stderr.read().decode("utf-8", "replace")
     code = stdout.channel.recv_exit_status()

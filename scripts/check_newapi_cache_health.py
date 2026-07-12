@@ -67,22 +67,7 @@ def jdcloud_password() -> str:
     return ""
 
 
-def check_server_env() -> tuple[int, list[str]]:
-    lines: list[str] = []
-    try:
-        import paramiko
-    except ImportError:
-        return 0, ["WARN  server-env skipped (paramiko not installed)"]
-    password = jdcloud_password()
-    if not password:
-        return 0, ["WARN  server-env skipped (set LIMA_JDCLOUD_SSH_PASS or VPS.txt)"]
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script, VPS host key unpinned
-    try:
-        client.connect(HOST, username="root", password=password, timeout=25, allow_agent=False, look_for_keys=False)
-    except OSError as exc:
-        return 1, [f"FAIL  server-ssh -> {exc}"]
-    script = r"""
+_SERVER_ENV_SCRIPT = r"""
 cd /opt/newapi || exit 2
 CID=$(docker-compose ps -q new-api 2>/dev/null | head -1); [ -z "$CID" ] && CID=$(docker ps -qf name=new-api | head -1)
 [ -z "$CID" ] && { echo ENV_FAIL; exit 1; }
@@ -99,10 +84,10 @@ else
   echo REDIS_PING=$(redis-cli PING 2>/dev/null || echo FAIL)
 fi
 """
-    _, stdout, _ = client.exec_command(script, timeout=60)
-    out = stdout.read().decode("utf-8", "replace")
-    client.close()
-    vals = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+
+
+def _score_server_env(vals: dict[str, str]) -> tuple[int, list[str]]:
+    lines: list[str] = []
     fails = 0
     clen = int(vals.get("CRYPTO_LEN", "0") or 0)
     # wc -c counts newline → tolerate len-1
@@ -128,6 +113,27 @@ fi
     return fails, lines
 
 
+def check_server_env() -> tuple[int, list[str]]:
+    try:
+        import paramiko
+    except ImportError:
+        return 0, ["WARN  server-env skipped (paramiko not installed)"]
+    password = jdcloud_password()
+    if not password:
+        return 0, ["WARN  server-env skipped (set LIMA_JDCLOUD_SSH_PASS or VPS.txt)"]
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script, VPS host key unpinned
+    try:
+        client.connect(HOST, username="root", password=password, timeout=25, allow_agent=False, look_for_keys=False)
+    except OSError as exc:
+        return 1, [f"FAIL  server-ssh -> {exc}"]
+    _, stdout, _ = client.exec_command(_SERVER_ENV_SCRIPT, timeout=60)
+    out = stdout.read().decode("utf-8", "replace")
+    client.close()
+    vals = dict(line.split("=", 1) for line in out.splitlines() if "=" in line)
+    return _score_server_env(vals)
+
+
 def usage_cache_read(body: dict) -> int | None:
     usage = body.get("usage") or {}
     if "cache_read_input_tokens" in usage:
@@ -141,7 +147,7 @@ def usage_cache_read(body: dict) -> int | None:
     return None
 
 
-def main() -> int:
+def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="NewAPI cache health probe")
     p.add_argument("--host", default=os.environ.get("LIMA_NEWAPI_HOST", "api.donglicao.com"))
     p.add_argument("--claude-port", type=int, default=3001)
@@ -154,27 +160,87 @@ def main() -> int:
         help="opt-in Claude dual-call cache_read check (burns upstream quota)",
     )
     p.add_argument("--require-sidecar", action="store_true")
-    args = p.parse_args()
+    return p.parse_args()
 
-    failures = warnings = 0
-    token = resolve_token(args.token)
-    base = f"https://{args.host}"
 
+def _check_public_status(base: str, token: str) -> int:
     status, body = http_json(f"{base}/api/status", bearer=token)
     ok = status == 200 and body.get("success") is True
     print(f"{'OK' if ok else 'FAIL'}  public /api/status -> {status}")
     if not ok:
-        failures += 1
         print(f"      {repr(body)[:200]}")
+        return 1
+    return 0
 
-    ss, sb = http_json(f"http://127.0.0.1:{args.claude_port}/api/status")
+
+def _check_sidecar(port: int, *, require: bool) -> int:
+    ss, sb = http_json(f"http://127.0.0.1:{port}/api/status")
     if ss == 200 and sb.get("success") is True:
-        print(f"OK    claude-sidecar :{args.claude_port}")
-    elif args.require_sidecar:
-        print(f"FAIL  claude-sidecar :{args.claude_port} -> {ss}")
-        failures += 1
-    else:
-        print(f"SKIP  claude-sidecar :{args.claude_port} (optional)")
+        print(f"OK    claude-sidecar :{port}")
+        return 0
+    if require:
+        print(f"FAIL  claude-sidecar :{port} -> {ss}")
+        return 1
+    print(f"SKIP  claude-sidecar :{port} (optional)")
+    return 0
+
+
+def _check_kimi_smoke(base: str, token: str) -> int:
+    chat = f"{base}/v1/chat/completions"
+    ks, kb = http_json(
+        chat,
+        bearer=token,
+        body={
+            "model": "kimi-for-coding-highspeed",
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 8,
+        },
+        timeout=90,
+    )
+    if ks == 200 and kb.get("choices"):
+        print(f"OK    kimi smoke model={kb.get('model')}")
+        return 0
+    print(f"FAIL  kimi smoke -> {ks} {repr(kb)[:160]}")
+    if ks == 404:
+        print("      hint: Kimi base_url = https://api.kimi.com/coding (no /v1)")
+    return 1
+
+
+def _check_claude_cache(base: str, token: str) -> tuple[int, int]:
+    chat = f"{base}/v1/chat/completions"
+    pad = ("You are a careful coding assistant. " * 80).strip()
+    payload = {
+        "model": "claude-opus-4-6",
+        "messages": [
+            {"role": "system", "content": pad},
+            {"role": "user", "content": "Reply with exactly: ok"},
+        ],
+        "max_tokens": 16,
+    }
+    c1, _ = http_json(chat, bearer=token, body=payload, timeout=180)
+    c2, b2 = http_json(chat, bearer=token, body=payload, timeout=180)
+    if c1 != 200 or c2 != 200:
+        print(f"FAIL  claude dual-call -> {c1}/{c2}")
+        return 1, 0
+    cr = usage_cache_read(b2)
+    if cr is None:
+        print("WARN  claude #2: no cache_read field")
+        return 0, 1
+    if cr > 0:
+        print(f"OK    claude cache_read_input_tokens={cr}")
+        return 0, 0
+    print("WARN  claude #2: cache_read=0")
+    return 0, 1
+
+
+def main() -> int:
+    args = _parse_args()
+    failures = warnings = 0
+    token = resolve_token(args.token)
+    base = f"https://{args.host}"
+
+    failures += _check_public_status(base, token)
+    failures += _check_sidecar(args.claude_port, require=args.require_sidecar)
 
     if not args.skip_server:
         n, lines = check_server_env()
@@ -187,52 +253,13 @@ def main() -> int:
             print("FAIL  need --token / NEWAPI_API_KEY / ~/.kimi-code providers.newapi")
             failures += 1
         else:
-            chat = f"{base}/v1/chat/completions"
-            ks, kb = http_json(
-                chat,
-                bearer=token,
-                body={
-                    "model": "kimi-for-coding-highspeed",
-                    "messages": [{"role": "user", "content": "ping"}],
-                    "max_tokens": 8,
-                },
-                timeout=90,
-            )
-            if ks == 200 and kb.get("choices"):
-                print(f"OK    kimi smoke model={kb.get('model')}")
-            else:
-                print(f"FAIL  kimi smoke -> {ks} {repr(kb)[:160]}")
-                if ks == 404:
-                    print("      hint: Kimi base_url = https://api.kimi.com/coding (no /v1)")
-                failures += 1
-
+            failures += _check_kimi_smoke(base, token)
             if not args.claude_cache:
                 print("SKIP  claude cache_read (pass --claude-cache to enable; burns quota)")
             else:
-                pad = ("You are a careful coding assistant. " * 80).strip()
-                payload = {
-                    "model": "claude-opus-4-6",
-                    "messages": [
-                        {"role": "system", "content": pad},
-                        {"role": "user", "content": "Reply with exactly: ok"},
-                    ],
-                    "max_tokens": 16,
-                }
-                c1, _ = http_json(chat, bearer=token, body=payload, timeout=180)
-                c2, b2 = http_json(chat, bearer=token, body=payload, timeout=180)
-                if c1 != 200 or c2 != 200:
-                    print(f"FAIL  claude dual-call -> {c1}/{c2}")
-                    failures += 1
-                else:
-                    cr = usage_cache_read(b2)
-                    if cr is None:
-                        print("WARN  claude #2: no cache_read field")
-                        warnings += 1
-                    elif cr > 0:
-                        print(f"OK    claude cache_read_input_tokens={cr}")
-                    else:
-                        print("WARN  claude #2: cache_read=0")
-                        warnings += 1
+                f, w = _check_claude_cache(base, token)
+                failures += f
+                warnings += w
 
     print(f"---\nresult: failures={failures} warnings={warnings}")
     print("Doc: docs/ops/NEWAPI_KIMI_CODE_CACHE_CN.md")

@@ -1502,3 +1502,10 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **扫描**：`routes/dlc_*/device_gateway/device_logic/device_voice` 等第一方生产路径 **0 个函数 >50 行**。
 - **门禁**：fallback/voice 相关 38 passed；ruff clean。
 - **Aliyun 运维**：1.8G 节点 flaresolverr 多 Chromium 时 available 可跌至 ~140MB，uvicorn 卡在 swap、unit 显示 active 但不 listen。处理：`podman restart flaresolverr` 释放内存后 `systemctl start dlc-drawing`。
+
+## 2026-07-12 运维脚本函数 ≤50 行扫尾（无功能变更）
+
+- `gallery_e2e_probe.run_gallery_e2e_probes`：拆 upload/list/thumbs/download/delete 子探针。
+- `check_newapi_cache_health`：`check_server_env` / `main` 拆 parse/score/status/sidecar/kimi/claude helpers。
+- `migrate_newapi_sqlite_to_mysql` / `deploy_newapi_healthcheck`：`main` 拆 connect/upload/redact 与 remote cmd 组装。
+- **扫描**：`scripts/*.py` 与生产包 **0 个函数 >50 行**；行为未改（纯结构拆分）。
