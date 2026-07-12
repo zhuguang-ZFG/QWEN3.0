@@ -1434,3 +1434,21 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **根因**：SEC-04 校验从 `dlc_api/routes.py` 移到 `device_gateway/image_url_validation.py` 后，测试里的 DNS stub 仍 patch 旧位置 `dlc_api.routes._resolve_hostname`（该属性已不存在，赋值成死属性），导致 `validate_image_url` 走真实 DNS——本机 api.telegram.org 被 DNS 污染解析到保留地址，SSRF 守卫正确拦截，用例随之失败。实现无跑偏。
 - **修复**：改为 autouse fixture + monkeypatch 补 `device_gateway.image_url_validation._resolve_hostname`（返回公网 Telegram IP），与 `tests/test_sec04_ssrf_hardening.py` 的补法一致；自动还原不污染其他测试文件。
 - **门禁**：全量 **1536 passed / 3 skipped / 0 failed**（此前 3 failed）；ruff clean。
+
+## 2026-07-12 安全审查闭环（P0→HIGH→MEDIUM→LOW）+ 京东云部署
+
+- **范围**：深度 code review 后按严重度分批修复并推送，最后同步京东云生产。
+- **提交**：
+  - P0 `cd1780d4`：gallery IDOR、Host 头 WS URL、假 queued → `queued_no_delivery`、lifespan 配置 fail-fast
+  - HIGH `ba6544f2` + 固件 `91cb4ea`：i2i SSRF、bind 限流、list tasks `deviceId` alias、U1 `ENABLE_AUTHENTICATION`（`allow_dashscope` 按 Q-02 不改）
+  - MEDIUM `9974bec4`：health 期望 redis 但 backend≠redis → 503；`token_epoch`+`tv` 改密吊销；voice `consume_if`；幂等日志措辞（fail-open+L1 保留）
+  - LOW `1592c882`：gallery 异常不回传 bot token、env token 常量时间比较、share 过期校验/上限、MAX_PATH_POINTS 单一定义、prompt max_length、store 公开 ping/close、SVG escape、mcp 版本对齐、usage 测试
+  - 固件 LOW `4de9ae9`：control WS token 常量时间比较；activation 失败日志去掉完整 body
+- **门禁**：全量 **1574 passed / 3 skipped**；ruff clean。
+- **部署（jdcloud `/opt/dlc-drawing`）**：
+  - `deploy_unified.py --files` 因 auto-deps 膨胀 + SFTP 中途 `Socket is closed` 两次失败；改为直传 12 个仍 DIFF 文件 + 既有已对齐文件 md5 复核。
+  - 20 个安全相关生产文件 **md5 全匹配**；`systemctl restart dlc-drawing` → active。
+  - `/health` → `ok` / `task_store=redis`；`v2_account.token_epoch` 列已存在（migrations 在 connect 时生效）。
+  - 公网 `chat.donglicao.com/health` 从本机 403（Cloudflare 1010，非服务故障）；VPS 本机探针 200。
+- **未做**：`device_app_tasks.py` 306 行拆分（债）；IDF floor 5.5.2→5.5.3（升构建风险/收益低）；固件 `control_ws_token` 写入者（已是 fail-closed 拒绝无 token 握手）。
+- **部署教训**：`expand_with_dependencies` 把 12 文件扩到 160+，SFTP 长连接易断；精确 diff 列表 + 直传 SFTP 更稳。

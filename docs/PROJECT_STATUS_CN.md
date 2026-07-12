@@ -1,7 +1,7 @@
 # LiMa / DLC 项目状态
 
-> 更新日期：2026-07-10
-> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `e64ac48f`）
+> 更新日期：2026-07-12
+> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `1592c882`）
 > 公网入口：`https://chat.donglicao.com` → 京东云 `117.72.118.95`（`server_dlc` :8081）
 
 > 根目录 `STATUS.md` 与本文件内容保持同步（供 CI/人类速览）。
@@ -14,7 +14,7 @@
 server_dlc.py (:8081)
   → dlc_api/          /dlc/*、device_app_router
   → dlc_core/         绘图/写字/下发
-  → device_gateway/   Redis + WSS → ESP32
+  → device_gateway/   Redis（任务队列/小程序路径为主；自托管 WSS→ESP32 已退役）
   → device_voice/     小程序语音 ASR（REST + WS）
 小智 MCP → dlc_mcp/
 小程序   → /device/v1/app/*、/v1/voice?ticket=…
@@ -33,16 +33,21 @@ server_dlc.py (:8081)
 | jdcloud 默认部署 | ✅ | `deploy_unified.py --target jdcloud` |
 | nginx `/v1/voice` → :8081 | ✅ | `deploy/nginx/chat.donglicao.com.conf` |
 | 文档同步 | ✅ | `docs/`、`docs-site/api/voice.md` |
+| A–E 优化计划 | ✅ | A/B/D 完成；C 验证后删除（`7eed9aac`）；E 原语 + draw 接线（`ff80dff6`/`2793f190`） |
+| 优雅关停 + `/health` Redis 依赖检查 | ✅ | `caed1111`；已部署京东云 |
+| logrotate `/etc/logrotate.d/lima-dlc` | ✅ | 已落 VPS（零代码） |
+| 安全审查 P0/HIGH/MEDIUM/LOW | ✅ | `cd1780d4`/`ba6544f2`/`9974bec4`/`1592c882`；固件 `91cb4ea`/`4de9ae9`；已部署京东云 |
 
 ---
 
 ## 待办（阻塞上线）
 
-| ID | 项 |
-|----|-----|
-| P0-3 | 真机 E2E：录音 → 确认 → 物理设备运动 |
-| P0-4 | 微信审核发布（v3.8.0 已上传未提审） |
-| P0-2 | U8 OPUS/PCM（仅设备直连语音） |
+| ID | 项 | 阻塞 |
+|----|-----|------|
+| P0-3 | 真机 E2E：录音 → 确认 → 物理设备运动 | 真机 |
+| P0-4 | 微信审核发布（v3.8.0 已上传未提审） | 运营/提审 |
+| P0-2 | U8 OPUS/PCM（仅设备直连语音） | 产品排期 |
+| E-2 | ESP32 端到端验证 `LIMA_AUTO_FALLBACK` draw 路径 | **暂无真机**（2026-07-12 挂起；有机后再验） |
 
 详见 [`superpowers/specs/2026-07-02-backlog-planning.md`](superpowers/specs/2026-07-02-backlog-planning.md)。
 
