@@ -77,10 +77,8 @@ class DashScopeRecognitionProvider:
             return ""
         return await asyncio.to_thread(self._transcribe_sync, audio_data)
 
-    def _transcribe_sync(self, audio_data: bytes) -> str:
-        from dashscope.audio.asr import Recognition, RecognitionCallback, RecognitionResult
-
-        payload, sample_rate, audio_format = prepare_audio_for_streaming(audio_data)
+    def _build_recognition_collector(self):
+        from dashscope.audio.asr import RecognitionCallback, RecognitionResult
 
         class Collector(RecognitionCallback):
             def __init__(self) -> None:
@@ -112,7 +110,22 @@ class DashScopeRecognitionProvider:
             def wait(self, timeout: float = 30.0) -> None:
                 self._done.wait(timeout=timeout)
 
-        collector = Collector()
+        return Collector()
+
+    def _stream_pcm_chunks(self, recognition, payload: bytes) -> None:
+        chunk_size = max(160, VOICE.stream_pcm_frame_bytes)
+        interval = max(0.0, VOICE.stream_frame_interval_ms / 1000.0)
+        chunks = [payload[offset : offset + chunk_size] for offset in range(0, len(payload), chunk_size)]
+        for index, chunk in enumerate(chunks):
+            recognition.send_audio_frame(chunk)
+            if index + 1 < len(chunks) and interval:
+                time.sleep(interval)
+
+    def _transcribe_sync(self, audio_data: bytes) -> str:
+        from dashscope.audio.asr import Recognition
+
+        payload, sample_rate, audio_format = prepare_audio_for_streaming(audio_data)
+        collector = self._build_recognition_collector()
         recognition = Recognition(
             model=self._model,
             format=audio_format,
@@ -124,13 +137,7 @@ class DashScopeRecognitionProvider:
         )
         recognition.start()
         try:
-            chunk_size = max(160, VOICE.stream_pcm_frame_bytes)
-            interval = max(0.0, VOICE.stream_frame_interval_ms / 1000.0)
-            chunks = [payload[offset : offset + chunk_size] for offset in range(0, len(payload), chunk_size)]
-            for index, chunk in enumerate(chunks):
-                recognition.send_audio_frame(chunk)
-                if index + 1 < len(chunks) and interval:
-                    time.sleep(interval)
+            self._stream_pcm_chunks(recognition, payload)
         finally:
             recognition.stop()
         collector.wait()

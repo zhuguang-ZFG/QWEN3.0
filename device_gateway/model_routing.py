@@ -74,6 +74,34 @@ def _auto_fallback_enabled() -> bool:
     return os.environ.get("LIMA_AUTO_FALLBACK", "0").strip().lower() in {"1", "true", "on", "yes"}
 
 
+def _should_continue_fallback(
+    *,
+    enabled: bool,
+    idempotent: bool,
+    route_role: str,
+    backend: dict[str, Any],
+    exc: BaseException,
+) -> bool:
+    """Return True when the next backend should be tried; raise otherwise."""
+    if not enabled:
+        raise exc
+    if not idempotent:
+        _log.warning(
+            "fallback stop (non-idempotent) role=%s backend=%s: %s",
+            route_role,
+            backend.get("backend"),
+            type(exc).__name__,
+        )
+        raise exc
+    _log.warning(
+        "fallback continue role=%s backend=%s -> next: %s",
+        route_role,
+        backend.get("backend"),
+        type(exc).__name__,
+    )
+    return True
+
+
 async def try_backends(
     route_role: str,
     execute_fn: Callable[[dict[str, Any]], Awaitable[T]],
@@ -83,19 +111,8 @@ async def try_backends(
 ) -> T:
     """Try each backend for *route_role* in priority order, returning the first success.
 
-    Fallback is activated only when *both* ``LIMA_AUTO_FALLBACK`` is truthy
-    AND ``idempotent=True``.  When ``idempotent=False`` a failure is
-    immediately re-raised — e.g. a one-shot external API call where retry
-    would double-bill or cause side-effects.  Callers that *do* accept
-    retry cost (such as image generation with ``idempotent=True``) will
-    fall back to the next backend on failure.
-
-    The env-var ``LIMA_AUTO_FALLBACK`` must be set to a truthy value
-    (``1 / true / on / yes``) for fallback to activate.  When disabled the
-    first backend is attempted and any failure is re-raised immediately —
-    identical to the pre-fallback behaviour.
-
-    Every failed attempt emits a ``logger.warning`` (no silent excepts).
+    Fallback requires both ``LIMA_AUTO_FALLBACK`` truthy and ``idempotent=True``.
+    Non-idempotent failures re-raise immediately. Every failed attempt logs a warning.
     """
     alts = get_route_role_alternatives(route_role)
     if not alts:
@@ -103,29 +120,18 @@ async def try_backends(
 
     enabled = _auto_fallback_enabled()
     last_exc: BaseException | None = None
-
     for backend in alts:
         try:
             return await asyncio.wait_for(execute_fn(backend), timeout=timeout)
         except Exception as exc:
             last_exc = exc
-            if not enabled:
-                raise
-            if not idempotent:
-                _log.warning(
-                    "fallback stop (non-idempotent) role=%s backend=%s: %s",
-                    route_role,
-                    backend.get("backend"),
-                    type(exc).__name__,
-                )
-                raise
-            _log.warning(
-                "fallback continue role=%s backend=%s -> next: %s",
-                route_role,
-                backend.get("backend"),
-                type(exc).__name__,
+            _should_continue_fallback(
+                enabled=enabled,
+                idempotent=idempotent,
+                route_role=route_role,
+                backend=backend,
+                exc=exc,
             )
-            continue
 
     assert last_exc is not None  # alts is non-empty
     raise last_exc  # type: ignore[misc]

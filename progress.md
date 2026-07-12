@@ -1494,3 +1494,11 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **device_app_images / images**：endpoint 与 `_generate_image_urls` 抽 parse/options/i2i/backends helpers。
 - **notifications**：subscribe 抽 parse/insert helpers。
 - **门禁**：相关 93 passed；`check_code_size` 目标文件 PASS；语义未改。
+
+## 2026-07-12 生产函数 ≤50 行扫尾 + Aliyun 内存说明
+
+- **model_routing.try_backends**：抽 `_should_continue_fallback`，主函数 ≤50。
+- **device_voice.providers.dashscope._transcribe_sync**：抽 collector/stream helpers，主函数 ≤50。
+- **扫描**：`routes/dlc_*/device_gateway/device_logic/device_voice` 等第一方生产路径 **0 个函数 >50 行**。
+- **门禁**：fallback/voice 相关 38 passed；ruff clean。
+- **Aliyun 运维**：1.8G 节点 flaresolverr 多 Chromium 时 available 可跌至 ~140MB，uvicorn 卡在 swap、unit 显示 active 但不 listen。处理：`podman restart flaresolverr` 释放内存后 `systemctl start dlc-drawing`。
