@@ -1461,3 +1461,18 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - **门禁**：聚焦 41 passed；ruff + `check_code_size` PASS。API 语义未改（deviceId alias、`_account_id` re-inject）。
 - **部署**：直传 4 文件到 jdcloud `/opt/dlc-drawing`，md5 全匹配；`systemctl restart dlc-drawing` → active；`/health` ok + `task_store=redis`；生产 venv import `device_app_task_create` OK。
 - **附带**：`scripts/a2a_mimo_dispatch.js`；教训：MCP send_message 轮询易 Unknown task，实现派活用 `a2a_dispatch.py`；MiMo 风控时改 Atom/Grok。
+
+## 2026-07-12 Aliyun 对齐安全修复 + tasks 拆分（0.2.0-p1 → 0.4.0-p3）
+
+- **背景**：jdcloud 已是 `0.4.0-p3` + 安全审查 + tasks 拆分；aliyun 仍 `0.2.0-p1`，关键安全文件 23/23 DIFF，且缺 voice/gallery 栈。
+- **部署策略**：直传安全核心 + `server_dlc` 启动必需（voice/chat/gallery 依赖）+ redis_store 全家桶；**import 探针通过后再 restart**，避免半升级 crash-loop。
+- **过程**：
+  1. 首批 38 文件 md5 全匹配，但 import 缺 `device_logic.audio_clips` → **未重启**。
+  2. 迭代补：`audio_clips`/`audio_store`/`chat_store`/`gallery_service`/`gallery_storage`/`middleware`。
+  3. 重启后 lifespan 缺 `redis_store_index` → 再传 redis_store 相关 7 文件。
+  4. 最终：startup complete，`/health` 200。
+- **终态（两节点）**：
+  - aliyun/jdcloud：`dlc-drawing` active；`version=0.4.0-p3`；`task_store=redis`。
+  - 抽样 9 关键文件（含 `server_dlc`/`task_create`/`auth`/`gallery`/`images`/`voice_ticket`）**md5 双端 == 本地**。
+- **备份**：aliyun `/opt/dlc-drawing/backups/aliyun-security-20260712_100707/pre.tgz`。
+- **未做**：aliyun 全量 `slice core`（依赖膨胀/SSH 易断）；仅保证安全路径与启动闭包对齐。

@@ -38,6 +38,7 @@ server_dlc.py (:8081)
 | logrotate `/etc/logrotate.d/lima-dlc` | ✅ | 已落 VPS（零代码） |
 | 安全审查 P0/HIGH/MEDIUM/LOW | ✅ | `cd1780d4`/`ba6544f2`/`9974bec4`/`1592c882`；固件 `91cb4ea`/`4de9ae9`；已部署京东云 |
 | device_app_tasks 拆分 ≤300 行 | ✅ | `f122c3a7`；Atom 实现；已部署京东云 |
+| Aliyun 安全/版本对齐 | ✅ | 2026-07-12：`0.4.0-p3` + redis task_store；关键安全文件 md5 与本地一致 |
 
 ---
 
