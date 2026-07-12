@@ -391,3 +391,6 @@ ARCHITECTURE_KNOWLEDGE.md
 
 # === Temp CI logs ===
 .tmp_ci_*.log
+
+# local temp clones (not part of LiMa)
+_newapi_gh/
