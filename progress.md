@@ -1486,3 +1486,11 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
   - `routes/device_app_voice_ws.py`：`_run_voice_stream_ws` 69 行 → open/frame/control/loop/finalize 小函数（最大 19 行）。
   - `routes/device_app_voice.py`：`transcribe_voice` 66 行 → read/transcribe/persist helpers（endpoint 41 行）。
 - **门禁**：voice 相关 29 passed；ruff clean。语义未改。
+
+## 2026-07-12 生产函数 ≤50 行拆分（draw/path/images/notifications）
+
+- **task_draw_params**：`build_draw_generated_params` 拆 resolve/finalize helpers；handwriting 抽到 `device_gateway/task_handwriting_params.py`（文件 304→201）。
+- **path_validator**：`validate_capability_params` 拆 required/scalar helpers。
+- **device_app_images / images**：endpoint 与 `_generate_image_urls` 抽 parse/options/i2i/backends helpers。
+- **notifications**：subscribe 抽 parse/insert helpers。
+- **门禁**：相关 93 passed；`check_code_size` 目标文件 PASS；语义未改。

@@ -112,6 +112,24 @@ def _build_pollinations_options(img_req: ImageRequest) -> dict:
     }
 
 
+async def _try_i2i_backend(prompt: str, image_url: str, size: str, n: int) -> tuple[list[dict], str]:
+    # SEC-04: never forward private/non-allowlisted hosts to DashScope.
+    validated, url_err = validate_image_url(image_url)
+    if url_err or validated is None:
+        raise ValueError(url_err or "invalid image_url")
+    data_items = await _generate_via_dashscope_i2i(prompt, validated, size, n)
+    return (data_items, "dashscope_i2i") if data_items else ([], "")
+
+
+async def _try_image_backends(prompt: str, size: str, n: int, options: dict) -> tuple[list[dict], str]:
+    for backend_name, generator in _IMAGE_BACKENDS:
+        data_items = await generator(prompt, size, n)
+        if data_items:
+            return data_items, backend_name
+    data_items = await generate_pollinations_urls(prompt, size, n, options)
+    return data_items, "pollinations"
+
+
 async def _generate_image_urls(
     prompt: str,
     size: str,
@@ -135,32 +153,14 @@ async def _generate_image_urls(
     started = time.time()
     data_items: list[dict] = []
     backend = ""
-
-    # Image-to-image: try a dedicated backend first when a reference image is provided.
-    # SEC-04: never forward private/non-allowlisted hosts to DashScope.
     if image_url:
-        validated, url_err = validate_image_url(image_url)
-        if url_err or validated is None:
-            raise ValueError(url_err or "invalid image_url")
-        image_url = validated
-        data_items = await _generate_via_dashscope_i2i(enhanced_prompt, image_url, size, n)
-        if data_items:
-            backend = "dashscope_i2i"
-
-    for backend_name, generator in _IMAGE_BACKENDS:
-        if data_items:
-            break
-        data_items = await generator(enhanced_prompt, size, n)
-        backend = backend_name
-
+        data_items, backend = await _try_i2i_backend(enhanced_prompt, image_url, size, n)
     if not data_items:
-        data_items = await generate_pollinations_urls(enhanced_prompt, size, n, options)
-        backend = "pollinations"
-    duration_ms = int((time.time() - started) * 1000)
+        data_items, backend = await _try_image_backends(enhanced_prompt, size, n, options)
 
+    duration_ms = int((time.time() - started) * 1000)
     if data_items:
         set_cached_image(enhanced_prompt, size, n, variant, data_items, backend)
-
     _prom_metrics.record_image_request(backend)
     return data_items, backend, duration_ms
 

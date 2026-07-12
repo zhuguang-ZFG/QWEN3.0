@@ -2,21 +2,21 @@
 
 from __future__ import annotations
 
-import logging
-import time
 from typing import Any
-
-from integrations.autohanding.client import AutohandingRateLimitError
-from observability import prometheus_metrics
 
 from .device_draw_handler import handle_device_draw
 from .image_url_validation import validate_image_url
 from .model_routing import CONTROL_CAPABILITIES, looks_like_svg_path
-from .path_pipeline import render_svg_task, render_text_task, text_to_svg_path
+from .path_pipeline import render_svg_task, render_text_task
 from .path_validator import MAX_FEED, MIN_FEED
 from .safety import DEFAULT_FEED, safe_point
+from .task_handwriting_params import build_handwriting_params
 
-_log = logging.getLogger(__name__)
+__all__ = [
+    "build_draw_generated_params",
+    "build_handwriting_params",
+    "build_run_params_async",
+]
 
 
 def _clamp_feed(raw: Any, default: int = DEFAULT_FEED) -> int:
@@ -26,109 +26,6 @@ def _clamp_feed(raw: Any, default: int = DEFAULT_FEED) -> int:
     except (TypeError, ValueError):
         return default
     return int(max(MIN_FEED, min(MAX_FEED, val)))
-
-
-def _handwriting_options(params: dict[str, Any]) -> dict[str, Any]:
-    from integrations.autohanding import constants
-
-    return {
-        "font_type": str(params.get("font_type", constants.DEFAULT_FONT_TYPE)),
-        "paper_bg_type": str(params.get("paper_bg_type", constants.DEFAULT_PAPER_BG_TYPE)),
-        "mistake_rate": int(params.get("mistake_rate", constants.DEFAULT_MISTAKE_RATE)),
-        "messy_ratio": int(params.get("messy_ratio", constants.DEFAULT_MESSY_RATIO)),
-        "char_random": int(params.get("char_random", constants.DEFAULT_CHAR_RANDOM)),
-    }
-
-
-def _is_ascii(text: str) -> bool:
-    return all(ord(ch) < 128 for ch in text)
-
-
-def _record_handwriting(status: str, start_ms: float, *, fallback: bool = False) -> None:
-    duration_ms = (time.time() * 1000) - start_ms
-    prometheus_metrics.record_handwriting_request(status, fallback=fallback)
-    prometheus_metrics.record_handwriting_duration(duration_ms, status=status)
-
-
-async def _call_autohanding(text: str, options: dict[str, Any]) -> bytes:
-    from integrations.autohanding import client as autohanding_client
-    from integrations.autohanding import constants
-
-    return await autohanding_client.convert_text(
-        text[: constants.MAX_TEXT_LENGTH],
-        font_type=options["font_type"],
-        paper_bg_type=options["paper_bg_type"],
-        mistake_rate=options["mistake_rate"],
-        messy_ratio=options["messy_ratio"],
-        char_random=options["char_random"],
-    )
-
-
-async def _vectorize_handwriting_png(png_bytes: bytes) -> dict[str, Any]:
-    from xiaozhi_drawing.svg_converter import SVGConverter
-
-    converter = SVGConverter()
-    return await converter.convert_bytes_to_svg(
-        png_bytes,
-        skeletonize=True,
-        reorder_strokes=True,
-        threshold_mode="auto",
-        spur_length_threshold=10,
-        min_stroke_length=5.0,
-    )
-
-
-def _build_local_fallback_params(text: str, feed: int = DEFAULT_FEED) -> dict[str, Any]:
-    rendered = text_to_svg_path(text)
-    return {
-        "feed": feed,
-        "path": rendered["path"],
-        "source_capability": "handwriting",
-        "text": text[:80],
-        "preview_svg": rendered.get("preview_svg", ""),
-        "backend": "lima-local",
-    }
-
-
-def _build_handwriting_run_params(svg_path: str, text: str, feed: int = DEFAULT_FEED) -> dict[str, Any]:
-    rendered = render_svg_task(svg_path)
-    return {
-        "feed": feed,
-        "path": rendered["path"],
-        "source_capability": "handwriting",
-        "text": text[:80],
-        "preview_svg": rendered.get("preview_svg", ""),
-    }
-
-
-async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> tuple[dict[str, Any], str | None]:
-    """Build device run params from autohanding.com handwriting preview."""
-    text = str(params.get("text", "")).strip()
-    if not text:
-        return {}, "empty handwriting text"
-
-    start_ms = time.time() * 1000
-    options = _handwriting_options(params)
-    try:
-        png_bytes = await _call_autohanding(text, options)
-    except Exception as exc:
-        if isinstance(exc, AutohandingRateLimitError):
-            _record_handwriting("rate_limit", start_ms)
-            return {}, f"autohanding rate limit: {exc}"
-        _log.warning("autohanding failed for task mode, trying local fallback: %s", exc)
-        if _is_ascii(text):
-            _record_handwriting("fallback", start_ms, fallback=True)
-            return _build_local_fallback_params(text, _clamp_feed(params.get("feed"))), None
-        _record_handwriting("failed", start_ms)
-        return {}, f"autohanding error: {exc}"
-
-    svg_result = await _vectorize_handwriting_png(png_bytes)
-    if svg_result.get("status") != "success" or not svg_result.get("svg_path"):
-        _record_handwriting("vectorization_failed", start_ms)
-        return {}, svg_result.get("error") or "handwriting vectorization failed"
-
-    _record_handwriting("success", start_ms)
-    return _build_handwriting_run_params(str(svg_result["svg_path"]), text, _clamp_feed(params.get("feed"))), None
 
 
 def _looks_like_svg_path(text: str) -> bool:
@@ -190,47 +87,42 @@ def _resolve_gallery_draw_image(
     return image_url, gallery_image_id, None
 
 
-async def build_draw_generated_params(
-    prompt: str, device_id: str, params: dict[str, Any]
-) -> tuple[dict[str, Any], str | None]:
-    user_feed = _clamp_feed(params.get("feed"))
-    if _looks_like_svg_path(prompt):
-        rendered = render_svg_task(prompt)
-        return {
-            "feed": user_feed,
-            "path": rendered["path"],
-            "source_capability": "draw_generated",
-            "prompt": prompt,
-            "preview_svg": rendered.get("preview_svg", ""),
-        }, None
+def _svg_path_draw_params(prompt: str, user_feed: float) -> dict[str, Any]:
+    rendered = render_svg_task(prompt)
+    return {
+        "feed": user_feed,
+        "path": rendered["path"],
+        "source_capability": "draw_generated",
+        "prompt": prompt,
+        "preview_svg": rendered.get("preview_svg", ""),
+    }
 
+
+def _resolve_draw_image_url(params: dict[str, Any]) -> tuple[str | None, str | None, str | None]:
+    """Return (image_url, gallery_image_id, error)."""
     gallery_image_url, gallery_image_id, gallery_error = _resolve_gallery_draw_image(params)
     if gallery_error:
-        return {}, gallery_error
+        return None, None, gallery_error
+    if gallery_image_url:
+        return gallery_image_url, gallery_image_id, None
 
     provided_image_url = params.get("imageUrl") or params.get("image_url")
-    if gallery_image_url:
-        provided_image_url = gallery_image_url
-    elif provided_image_url:
-        validated_url, url_error = validate_image_url(str(provided_image_url))
-        if url_error or validated_url is None:
-            return {}, url_error or "image_url is invalid"
-        provided_image_url = validated_url
+    if not provided_image_url:
+        return None, None, None
+    validated_url, url_error = validate_image_url(str(provided_image_url))
+    if url_error or validated_url is None:
+        return None, None, url_error or "image_url is invalid"
+    return validated_url, None, None
 
-    draw_prompt = prompt.strip()
-    if not draw_prompt and gallery_image_id:
-        draw_prompt = f"gallery:{gallery_image_id[:32]}"
 
-    result = await handle_device_draw(
-        draw_prompt,
-        device_id=device_id,
-        user_preferences=_draw_user_preferences(params),
-        image_url=str(provided_image_url) if provided_image_url else None,
-    )
-    if result.get("status") != "success" or not result.get("svg_path"):
-        error = str(result.get("error") or "draw generation failed")
-        return {}, error
-
+def _finalize_draw_run_params(
+    *,
+    user_feed: float,
+    draw_prompt: str,
+    result: dict[str, Any],
+    gallery_image_id: str | None,
+    provided_image_url: str | None,
+) -> dict[str, Any]:
     rendered = render_svg_task(str(result["svg_path"]))
     run_params: dict[str, Any] = {
         "feed": user_feed,
@@ -248,7 +140,43 @@ async def build_draw_generated_params(
     model = result.get("model")
     if isinstance(model, str) and model:
         run_params["draw_model"] = model[:80]
-    return run_params, None
+    return run_params
+
+
+async def build_draw_generated_params(
+    prompt: str, device_id: str, params: dict[str, Any]
+) -> tuple[dict[str, Any], str | None]:
+    user_feed = _clamp_feed(params.get("feed"))
+    if _looks_like_svg_path(prompt):
+        return _svg_path_draw_params(prompt, user_feed), None
+
+    provided_image_url, gallery_image_id, image_error = _resolve_draw_image_url(params)
+    if image_error:
+        return {}, image_error
+
+    draw_prompt = prompt.strip()
+    if not draw_prompt and gallery_image_id:
+        draw_prompt = f"gallery:{gallery_image_id[:32]}"
+
+    result = await handle_device_draw(
+        draw_prompt,
+        device_id=device_id,
+        user_preferences=_draw_user_preferences(params),
+        image_url=str(provided_image_url) if provided_image_url else None,
+    )
+    if result.get("status") != "success" or not result.get("svg_path"):
+        return {}, str(result.get("error") or "draw generation failed")
+
+    return (
+        _finalize_draw_run_params(
+            user_feed=user_feed,
+            draw_prompt=draw_prompt,
+            result=result,
+            gallery_image_id=gallery_image_id,
+            provided_image_url=provided_image_url,
+        ),
+        None,
+    )
 
 
 async def build_run_params_async(

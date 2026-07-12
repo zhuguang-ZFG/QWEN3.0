@@ -21,6 +21,28 @@ router = APIRouter(prefix="/device/v1/app", tags=["device-app-images"])
 PUBLIC_IMAGE_BACKEND_LABEL = "LiMa 生图"
 
 
+def _image_options(img_req: ImageRequest) -> dict:
+    return {
+        "model": img_req.model,
+        "seed": img_req.seed,
+        "negative_prompt": img_req.negative_prompt,
+        "nologo": img_req.nologo,
+        "private": img_req.private,
+        "enhance": img_req.enhance,
+        "safe": img_req.safe,
+    }
+
+
+def _parse_image_request(body: dict) -> ImageRequest | JSONResponse:
+    try:
+        img_req = ImageRequest(**body)
+    except Exception:
+        return err(400, "invalid image request", 400)
+    if not img_req.prompt.strip():
+        return err(400, "empty prompt", 400)
+    return img_req
+
+
 @router.post("/images/generations")
 async def device_app_image_generations(request: Request, authorization: str = Header(default="")) -> JSONResponse:
     """Generate images using the same backend as /v1/images/generations but with device-app auth."""
@@ -39,44 +61,28 @@ async def device_app_image_generations(request: Request, authorization: str = He
     if isinstance(body, JSONResponse):
         return body
 
-    try:
-        img_req = ImageRequest(**body)
-    except Exception:
-        return err(400, "invalid image request", 400)
+    img_req = _parse_image_request(body)
+    if isinstance(img_req, JSONResponse):
+        return img_req
 
-    prompt = img_req.prompt.strip()
-    if not prompt:
-        return err(400, "empty prompt", 400)
-
-    options = {
-        "model": img_req.model,
-        "seed": img_req.seed,
-        "negative_prompt": img_req.negative_prompt,
-        "nologo": img_req.nologo,
-        "private": img_req.private,
-        "enhance": img_req.enhance,
-        "safe": img_req.safe,
-    }
     try:
         data_items, backend, _duration_ms = await _generate_image_urls(
-            prompt,
+            img_req.prompt.strip(),
             img_req.size,
             img_req.n,
-            options,
+            _image_options(img_req),
             image_url=img_req.image_url,
             skip_cache=should_skip_cache(request),
         )
     except ValueError as exc:
         return err(400, str(exc), 400)
-    urls = [{"url": item["url"]} for item in data_items]
 
     # 真实 backend 仅保留在函数局部（可用于内部监控），对外响应统一返回品牌标签。
     _ = backend
-
     return JSONResponse(
         {
             "created": int(time.time()),
-            "data": urls,
+            "data": [{"url": item["url"]} for item in data_items],
             "backend": PUBLIC_IMAGE_BACKEND_LABEL,
         }
     )

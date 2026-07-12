@@ -52,6 +52,46 @@ def _expected_openid(account: dict[str, Any]) -> str:
     return str(account.get("wechat_openid") or account.get("openid") or "").strip()
 
 
+def _parse_subscribe_body(body: dict[str, Any], account: dict[str, Any]) -> tuple[str, list, list] | JSONResponse:
+    openid = str_field(body, "openid", "openId")
+    template_ids = _json_list(body.get("templateIds", []))
+    device_ids = _json_list(body.get("deviceIds", []))
+    if not template_ids:
+        return err(400, "templateIds is required", 400)
+    if not device_ids:
+        return err(400, "deviceIds is required", 400)
+
+    expected = _expected_openid(account)
+    if not expected:
+        return err(400, "WeChat openid is not linked to this account", 400)
+    if openid and openid != expected:
+        return err(403, "openid does not match authenticated account", 403)
+    return expected, template_ids, device_ids
+
+
+def _insert_subscription(account_id: str, openid: str, template_ids: list, device_ids: list) -> str:
+    sub_id = new_id()
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO v2_notification_subscription
+            (id, account_id, openid, template_ids, device_ids, created_at, updated_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+            """,
+            (
+                sub_id,
+                account_id,
+                openid,
+                json.dumps(template_ids, ensure_ascii=False),
+                json.dumps(device_ids, ensure_ascii=False),
+                now(),
+                now(),
+            ),
+        )
+        conn.commit()
+    return sub_id
+
+
 @router.post("/notifications/subscribe")
 async def subscribe_notifications(
     request: Request,
@@ -66,46 +106,17 @@ async def subscribe_notifications(
     if isinstance(body, JSONResponse):
         return body
 
-    openid = str_field(body, "openid", "openId")
-    template_ids = _json_list(body.get("templateIds", []))
-    device_ids = _json_list(body.get("deviceIds", []))
-    if not template_ids:
-        return err(400, "templateIds is required", 400)
-    if not device_ids:
-        return err(400, "deviceIds is required", 400)
-
-    expected = _expected_openid(account)
-    if not expected:
-        return err(400, "WeChat openid is not linked to this account", 400)
-    if openid and openid != expected:
-        return err(403, "openid does not match authenticated account", 403)
-    openid = expected
+    parsed = _parse_subscribe_body(body, account)
+    if isinstance(parsed, JSONResponse):
+        return parsed
+    openid, template_ids, device_ids = parsed
 
     with connect() as conn:
         for did in device_ids:
             if not device_access(conn, account, did):
                 return err(403, f"no access to device {did}", 403)
 
-    sub_id = new_id()
-    with connect() as conn:
-        conn.execute(
-            """
-            INSERT INTO v2_notification_subscription
-            (id, account_id, openid, template_ids, device_ids, created_at, updated_at, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
-            """,
-            (
-                sub_id,
-                account["id"],
-                openid,
-                json.dumps(template_ids, ensure_ascii=False),
-                json.dumps(device_ids, ensure_ascii=False),
-                now(),
-                now(),
-            ),
-        )
-        conn.commit()
-
+    sub_id = _insert_subscription(account["id"], openid, template_ids, device_ids)
     return JSONResponse({"code": 0, "data": {"subscriptionId": sub_id, "status": "active"}})
 
 
