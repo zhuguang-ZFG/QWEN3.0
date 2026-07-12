@@ -171,9 +171,10 @@ def append_event_atomic(
     if not hasattr(redis_client, "register_script"):
         return _append_event_fallback(redis_client, tasks_key, task_id, event, ttl_seconds, new_status)
     script = _get_append_script(redis_client)
+    # ARGV must match _APPEND_EVENT_LUA: task_id, event_json, status, ttl
     raw = script(
         keys=[tasks_key],
-        args=[encode_redis_json(event), new_status, ttl_seconds],
+        args=[task_id, encode_redis_json(event), new_status, ttl_seconds],
     )
     if raw is None:
         return None

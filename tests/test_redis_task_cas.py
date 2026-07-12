@@ -29,6 +29,63 @@ class _FakeRedis:
         self._ttls[key] = ttl
 
 
+class _FakeRedisWithScript(_FakeRedis):
+    """Fake that exposes register_script so production Lua call path is exercised.
+
+    Implements append-event semantics matching _APPEND_EVENT_LUA ARGV order:
+    ARGV[1]=task_id, ARGV[2]=event_json, ARGV[3]=status, ARGV[4]=ttl.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.last_append_args: list | None = None
+
+    def register_script(self, _lua: str):
+        client = self
+
+        def script(*, keys, args):  # noqa: ANN001
+            client.last_append_args = list(args)
+            # CAS scripts also use register_script; only append has 4 string-heavy args
+            # with event JSON in args[1]. Keep behavior correct for append contract.
+            if len(args) == 4 and isinstance(args[1], str) and args[1].lstrip().startswith("{"):
+                task_id, event_json, new_status, ttl_seconds = args
+                cur = client.hget(keys[0], task_id)
+                if cur is None:
+                    return None
+                import json
+                from copy import deepcopy
+
+                state = json.loads(cur)
+                events = state.setdefault("events", [])
+                events.append(deepcopy(json.loads(event_json)))
+                if new_status:
+                    state["status"] = new_status
+                state[VERSION_FIELD] = int(state.get(VERSION_FIELD, 0)) + 1
+                out = json.dumps(state, separators=(",", ":"))
+                client.hset(keys[0], task_id, out)
+                client.expire(keys[0], int(ttl_seconds))
+                return out
+            # Minimal CAS path for completeness if ever hit via this fake
+            task_id, expected_version, new_json, ttl_seconds = args
+            cur = client.hget(keys[0], task_id)
+            if cur is None:
+                if int(expected_version) < 0:
+                    client.hset(keys[0], task_id, new_json)
+                    client.expire(keys[0], int(ttl_seconds))
+                    return 1
+                return 2
+            import json
+
+            state = json.loads(cur)
+            if int(state.get(VERSION_FIELD, 0)) != int(expected_version):
+                return 0
+            client.hset(keys[0], task_id, new_json)
+            client.expire(keys[0], int(ttl_seconds))
+            return 1
+
+        return script
+
+
 TASKS_KEY = "lima:device:tasks"
 
 
@@ -82,6 +139,32 @@ def test_append_event_atomic_appends_and_bumps_version():
 def test_append_event_atomic_returns_none_for_missing_task():
     r = _FakeRedis()
     assert append_event_atomic(r, TASKS_KEY, "ghost", {"phase": "done"}, 300) is None
+
+
+def test_append_event_atomic_lua_path_passes_task_id_first():
+    """Production Redis uses register_script; ARGV[1] must be task_id (not event JSON)."""
+    r = _FakeRedisWithScript()
+    r.hset(
+        TASKS_KEY,
+        "t1",
+        '{"task":{"task_id":"t1"},"status":"dispatched","events":[{"phase":"accepted"}],"_version":1}',
+    )
+    updated = append_event_atomic(r, TASKS_KEY, "t1", {"phase": "done"}, 300, new_status="done")
+    assert updated is not None
+    assert r.last_append_args is not None
+    assert r.last_append_args[0] == "t1"
+    assert len(r.last_append_args) == 4
+    assert len(updated["events"]) == 2
+    assert updated["events"][1]["phase"] == "done"
+    assert updated["status"] == "done"
+    assert updated[VERSION_FIELD] == 2
+
+
+def test_append_event_atomic_lua_path_missing_task_returns_none():
+    r = _FakeRedisWithScript()
+    assert append_event_atomic(r, TASKS_KEY, "ghost", {"phase": "done"}, 300) is None
+    assert r.last_append_args is not None
+    assert r.last_append_args[0] == "ghost"
 
 
 def test_append_event_concurrent_no_lost_append():

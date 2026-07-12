@@ -1509,3 +1509,10 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
 - `check_newapi_cache_health`：`check_server_env` / `main` 拆 parse/score/status/sidecar/kimi/claude helpers。
 - `migrate_newapi_sqlite_to_mysql` / `deploy_newapi_healthcheck`：`main` 拆 connect/upload/redact 与 remote cmd 组装。
 - **扫描**：`scripts/*.py` 与生产包 **0 个函数 >50 行**；行为未改（纯结构拆分）。
+
+## 2026-07-12 修复 P0 append_event_atomic Lua ARGV 错位
+
+- **根因**：`_APPEND_EVENT_LUA` 约定 ARGV[1]=task_id，Python `script(args=)` 漏传 task_id，真 Redis 下 HGET 用 event JSON 当 field → 恒 miss。
+- **修复**：`args=[task_id, encode_redis_json(event), new_status, ttl_seconds]`。
+- **测试**：`_FakeRedisWithScript` 走 `register_script` 路径，断言 ARGV[0]==task_id；缺任务返回 None。旧 Fake 无 script 仍覆盖 fallback。
+- **门禁**：`tests/test_redis_task_cas.py` 等 24 passed。
