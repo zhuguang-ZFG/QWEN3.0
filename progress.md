@@ -2,6 +2,19 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-12 审查 MEDIUM：provision 不回显 WiFi 密码 + app 任务写路径限流
+
+- **提交**：`9a2b6be1`（已 push `origin/main`）
+- **改动**：
+  - `routes/device_app_provision.py`：`configPayload` 去掉 `wifi_password`；请求体仍可带 password 供客户端本地 SoftAP/BLE，服务端不存不回显
+  - `routes/device_app_tasks.py`：`POST /devices/{id}/tasks` 按 `account_id` 走 `check_key_limit`（`DEVICE.dlc_task_per_min`，默认 30/min）
+- **测试**：`test_device_app_provision` + `test_routes_device_app_tasks` + `test_device_app_tasks` → 28 passed；ruff / size PASS
+- **双节点**：
+  - jdcloud：md5 对齐，`/health` ok
+  - aliyun：文件 md5 对齐；冷启动较慢（~数十秒才 listen 8081），最终 `/health` ok + `task_store=redis`
+- **已决策不做 / 已闭环不重复**：health redis 503、token_epoch 吊销、voice consume_if、幂等 fail-open+L1（`9974bec4`）；async 全表 hgetall+to_thread 改面大，独立任务
+- **审查债剩余**：async SQLite/Redis to_thread 热点、前端/小程序/固件历史 MEDIUM（headers/CSP、mcp user_only 等，跨仓）
+
 ## 2026-07-12 审查 HIGH：任务 approve 原子性 + busy 含 queued + free-text 审批门
 
 - **提交**：`a5735e53`（已 push `origin/main`）
