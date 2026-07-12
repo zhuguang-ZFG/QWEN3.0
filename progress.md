@@ -2,6 +2,17 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-12 审查 MEDIUM：否决 to_thread/hgetall；固件 user_only DoToolCall 门禁
+
+- **决策（ponytail）**：
+  - **不做** async 全表 `hgetall` + 全路径 `to_thread`：findings 2026-07-06 生产实测 `HLEN lima:device:tasks≈19`、hash ~24KB，属 YAGNI；索引开关 `LIMA_REDIS_TASK_INDEX` 已存在默认关，规模到数千再开
+  - **做** 固件 MCP `user_only` 执行门禁（审查 MEDIUM 真问题；上游 [78/xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) DoToolCall 同样只 list 过滤、call 不挡）
+- **改动**（子模块 `esp32S_XYZ` `cc9875a`）：
+  - `ParseMessage(..., allow_user_only_tools=false)` 默认
+  - `DoToolCall`：`user_only && !allow` → error `Tool requires user channel`
+  - 本地控制 WS（握手已 token 鉴权）传 `true`；云端 AI 通道保持默认 `false`
+- **未刷机**：需真机 OTA/烧录后生效；安装路径仍有 F1 签名门禁兜底
+
 ## 2026-07-12 审查 MEDIUM：provision 不回显 WiFi 密码 + app 任务写路径限流
 
 - **提交**：`9a2b6be1`（已 push `origin/main`）
