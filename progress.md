@@ -1452,3 +1452,12 @@ VPS 部署 + 公网冒烟 + 文档同步（progress/STATUS/findings/PONYTAIL-DEB
   - 公网 `chat.donglicao.com/health` 从本机 403（Cloudflare 1010，非服务故障）；VPS 本机探针 200。
 - **未做**：`device_app_tasks.py` 306 行拆分（债）；IDF floor 5.5.2→5.5.3（升构建风险/收益低）；固件 `control_ws_token` 写入者（已是 fail-closed 拒绝无 token 握手）。
 - **部署教训**：`expand_with_dependencies` 把 12 文件扩到 160+，SFTP 长连接易断；精确 diff 列表 + 直传 SFTP 更稳。
+
+## 2026-07-12 拆分 device_app_tasks（≤300 行）+ 京东云部署
+
+- **背景**：`routes/device_app_tasks.py` 306 行触碰单文件硬限；LOW 债项。
+- **A2A**：MiMo `2d05007e` 失败（`Request blocked by risk control`）；改派 Atom `04595ba1` 成功（~246s）。
+- **改动**（`f122c3a7`）：新建 `routes/device_app_task_create.py`（创建路径 helpers + 常量）；`device_app_tasks.py` 196 行仅路由；extras/templates import 同步；测试 patch 同步。
+- **门禁**：聚焦 41 passed；ruff + `check_code_size` PASS。API 语义未改（deviceId alias、`_account_id` re-inject）。
+- **部署**：直传 4 文件到 jdcloud `/opt/dlc-drawing`，md5 全匹配；`systemctl restart dlc-drawing` → active；`/health` ok + `task_store=redis`；生产 venv import `device_app_task_create` OK。
+- **附带**：`scripts/a2a_mimo_dispatch.js`；教训：MCP send_message 轮询易 Unknown task，实现派活用 `a2a_dispatch.py`；MiMo 风控时改 Atom/Grok。

@@ -1,7 +1,7 @@
 # LiMa / DLC 项目状态
 
 > 更新日期：2026-07-12
-> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `1592c882`）
+> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `f122c3a7`）
 > 公网入口：`https://chat.donglicao.com` → 京东云 `117.72.118.95`（`server_dlc` :8081）
 
 > 根目录 `STATUS.md` 与本文件内容保持同步（供 CI/人类速览）。
@@ -37,6 +37,7 @@ server_dlc.py (:8081)
 | 优雅关停 + `/health` Redis 依赖检查 | ✅ | `caed1111`；已部署京东云 |
 | logrotate `/etc/logrotate.d/lima-dlc` | ✅ | 已落 VPS（零代码） |
 | 安全审查 P0/HIGH/MEDIUM/LOW | ✅ | `cd1780d4`/`ba6544f2`/`9974bec4`/`1592c882`；固件 `91cb4ea`/`4de9ae9`；已部署京东云 |
+| device_app_tasks 拆分 ≤300 行 | ✅ | `f122c3a7`；Atom 实现；已部署京东云 |
 
 ---
 
