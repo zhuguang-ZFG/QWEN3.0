@@ -14,7 +14,12 @@ from device_logic.db import connect
 from device_logic.http import err, new_id, now, ok, read_body, str_field
 from routes.device_app_task_payloads import task_row_payload
 from routes.device_app_task_store import insert_task_row
-from routes.device_app_tasks import APP_TASK_CAPABILITIES, APP_TASK_SOURCES, _build_app_gateway_task, _dispatch_or_wait
+from routes.device_app_task_create import (
+    APP_TASK_CAPABILITIES,
+    APP_TASK_SOURCES,
+    _build_app_gateway_task,
+    _dispatch_or_wait,
+)
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-templates"])
 

@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from routes import device_app_task_create as tasks_create
 from routes import device_app_tasks as tasks
 
 
@@ -88,11 +89,11 @@ def _patch_deps(account):
         patch.object(tasks, "require_device_owner", return_value=None),
         patch.object(tasks.store_mod, "task_store", MagicMock()) as mock_store,
         patch.object(tasks, "create_and_route_task") as mock_create_route,
-        patch.object(tasks, "project_to_motion_task_async") as mock_project,
-        patch.object(tasks, "validate_capability_params", return_value=({}, None)),
-        patch.object(tasks, "dispatch_or_enqueue", return_value={"sent": True, "queueDepth": 0}),
+        patch.object(tasks_create, "project_to_motion_task_async") as mock_project,
+        patch.object(tasks_create, "validate_capability_params", return_value=({}, None)),
+        patch.object(tasks_create, "dispatch_or_enqueue", return_value={"sent": True, "queueDepth": 0}),
         patch.object(tasks, "task_snapshot", return_value=None),
-        patch.object(tasks, "insert_task_row") as mock_insert,
+        patch.object(tasks_create, "insert_task_row") as mock_insert,
         patch.object(tasks, "approve_task_row") as mock_approve,
         patch.object(tasks, "dispatch_approved_task") as mock_dispatch_approved,
         patch.object(tasks, "reject_task_row") as mock_reject,
@@ -140,7 +141,7 @@ def test_create_structured_task_success(client, auth_header):
 
 
 def test_create_structured_task_unsupported_capability(client, auth_header):
-    with patch.object(tasks, "validate_capability_params", return_value=({}, "bad param")):
+    with patch.object(tasks_create, "validate_capability_params", return_value=({}, "bad param")):
         response = client.post(
             "/device/v1/app/devices/dev-1/tasks",
             json={"capability": "write_text", "params": {"text": "hello"}, "source": "api"},

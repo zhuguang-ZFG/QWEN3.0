@@ -12,7 +12,7 @@ from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, read_body, str_field
 from routes.device_app_task_store import insert_task_row
-from routes.device_app_tasks import _build_app_gateway_task, _dispatch_or_wait
+from routes.device_app_task_create import _build_app_gateway_task, _dispatch_or_wait
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-task-extras"])
 
