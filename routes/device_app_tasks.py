@@ -23,6 +23,7 @@ from routes.device_app_task_payloads import (
 from routes.device_app_task_store import (
     approve_task_row,
     dispatch_approved_task,
+    insert_task_row,
     record_rejection,
     reject_task_row,
 )
@@ -53,12 +54,17 @@ async def create_task(device_id: str, request: Request, authorization: str = Hea
                 entrypoint="app_api",
             )
         )
+        db_status = "pending" if result.status == "waiting_approval" else "approved"
+        # Persist so approve/list can find free-text tasks (same table as structured).
+        if not result.task.get("error") and result.task.get("task_id"):
+            insert_task_row(device_id, account, result.task, "app", db_status, body, {})
         return {
             "taskId": result.task["task_id"],
             "status": result.status,
             "sent": result.sent,
             "queueDepth": result.queue_depth,
             "task": result.task,
+            "dispatchStatus": result.status,
         }
     return await _create_structured_task(device_id, account, body)
 

@@ -238,4 +238,6 @@ class RedisStoreHelpers:
         return None
 
 
-_ACTIVE_STATUSES = frozenset({"dispatched", "running", "processing", "progress", "accepted"})
+# Include queue/dispatch pipeline so busy checks and status WS "working" see
+# tasks that occupy the device before a motion phase is reported.
+_ACTIVE_STATUSES = frozenset({"queued", "dispatching", "dispatched", "running", "processing", "progress", "accepted"})

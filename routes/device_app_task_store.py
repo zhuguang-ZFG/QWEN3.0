@@ -15,7 +15,7 @@ from device_logic.db import connect
 from device_logic.http import err, json_params, now, str_field
 
 _log = logging.getLogger(__name__)
-DB_TASK_SOURCES = {"client": "api"}
+DB_TASK_SOURCES = {"client": "api", "app": "api"}
 
 
 def insert_task_row(
@@ -40,7 +40,7 @@ def insert_task_row(
                 task["task_id"],
                 device_id,
                 account["id"],
-                str(task.get("app_capability") or task["capability"]),
+                str(task.get("app_capability") or task.get("capability") or "unknown"),
                 json_params(db_params),
                 DB_TASK_SOURCES.get(source, source),
                 status,
@@ -64,7 +64,13 @@ def approve_task_row(task_id: str, account: dict[str, Any]):
         task = snapshot.get("task") if snapshot and isinstance(snapshot.get("task"), dict) else None
         if not isinstance(task, dict):
             return err(409, "task dispatch payload is unavailable", 409), None
-        conn.execute("UPDATE v2_task SET status='approved', error_msg=NULL WHERE id=?", (task_id,))
+        # Atomic claim: only one concurrent approve wins.
+        cur = conn.execute(
+            "UPDATE v2_task SET status='approved', error_msg=NULL WHERE id=? AND status='pending'",
+            (task_id,),
+        )
+        if getattr(cur, "rowcount", 0) != 1:
+            return err(409, "task is no longer pending", 409), None
         conn.commit()
         return conn.execute("SELECT * FROM v2_task WHERE id=?", (task_id,)).fetchone(), task
 
@@ -91,10 +97,12 @@ def reject_task_row(task_id: str, account: dict[str, Any], reason: str):
             return denied
         if row["status"] != "pending":
             return err(400, "task is not pending", 400)
-        conn.execute(
-            "UPDATE v2_task SET status='rejected', error_msg=?, completed_at=? WHERE id=?",
+        cur = conn.execute(
+            "UPDATE v2_task SET status='rejected', error_msg=?, completed_at=? WHERE id=? AND status='pending'",
             (reason, now(), task_id),
         )
+        if getattr(cur, "rowcount", 0) != 1:
+            return err(409, "task is no longer pending", 409)
         conn.commit()
         return conn.execute("SELECT * FROM v2_task WHERE id=?", (task_id,)).fetchone()
 

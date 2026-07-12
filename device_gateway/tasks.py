@@ -17,6 +17,8 @@ from .task_creation import (
     project_to_motion_task_async,
 )
 from .task_events import TERMINAL_PHASES, execute_recovery, record_motion_event
+from device_workflow.state import TaskState
+
 from .task_lifecycle import (
     ack_processing_task,
     active_tasks_for_device,
@@ -104,6 +106,10 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
 
     if task.get("error"):
         return DeviceTaskRouteResult("failed", False, pending_count(device_id), task)
+
+    # Align with structured app path: high-risk / approval-gated tasks stay pending.
+    if task.get("workflow_state") == TaskState.WAITING_APPROVAL.value:
+        return DeviceTaskRouteResult("waiting_approval", False, pending_count(device_id), task)
 
     queue_depth = enqueue_pending_task(device_id, task)
     prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")

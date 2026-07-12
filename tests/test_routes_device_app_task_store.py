@@ -19,9 +19,10 @@ def task():
     return {"task_id": "task-1", "app_capability": "write_text", "capability": "write_text", "params": {}}
 
 
-def _make_conn(row=None, rows=None, fetchone_sequence=None):
+def _make_conn(row=None, rows=None, fetchone_sequence=None, rowcount: int = 1):
     conn = MagicMock()
     cursor = MagicMock()
+    cursor.rowcount = rowcount
     if fetchone_sequence is not None:
         cursor.fetchone.side_effect = fetchone_sequence
     else:
@@ -46,8 +47,8 @@ def _ctx_manager(conn):
     return Ctx()
 
 
-def _patch_conn(row=None, rows=None):
-    return patch.object(store, "connect", return_value=_ctx_manager(_make_conn(row=row, rows=rows)))
+def _patch_conn(row=None, rows=None, rowcount: int = 1):
+    return patch.object(store, "connect", return_value=_ctx_manager(_make_conn(row=row, rows=rows, rowcount=rowcount)))
 
 
 @pytest.fixture(autouse=True)
@@ -100,6 +101,15 @@ def test_approve_task_row_not_pending(account):
     with _patch_conn(row=row):
         result, task = store.approve_task_row("task-1", account)
     assert result.status_code == 400
+    assert task is None
+
+
+def test_approve_task_row_race_lost_claim(account):
+    """Concurrent approve: conditional UPDATE affects 0 rows → 409."""
+    row = {"id": "task-1", "device_id": "dev-1", "status": "pending"}
+    with _patch_conn(row=row, rowcount=0):
+        result, task = store.approve_task_row("task-1", account)
+    assert result.status_code == 409
     assert task is None
 
 

@@ -65,6 +65,15 @@ class TestTaskIdempotency:
         task_ids = [t["task_id"] for t in active]
         assert task["task_id"] in task_ids
 
+    def test_queued_task_counts_as_active(self):
+        """queued occupies the device for busy/working semantics (review HIGH)."""
+        from device_gateway.tasks import enqueue_pending_task
+
+        task = create_task_from_transcript("dev-1", "home")
+        enqueue_pending_task("dev-1", task)
+        active = active_tasks_for_device("dev-1")
+        assert any(t.get("task_id") == task["task_id"] for t in active)
+
     def test_different_device_no_cross_talk(self):
         create_task_from_transcript("dev-1", "写你好")
         active_dev2 = active_tasks_for_device("dev-2")
