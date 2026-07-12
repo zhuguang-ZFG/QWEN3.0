@@ -2,6 +2,20 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-12 审查 HIGH：任务 approve 原子性 + busy 含 queued + free-text 审批门
+
+- **提交**：`a5735e53`（已 push `origin/main`）
+- **改动**：
+  - `approve_task_row` / `reject_task_row`：条件 `UPDATE ... AND status='pending'` + `rowcount==1`，并发双 claim → 409
+  - `_ACTIVE_STATUSES` 含 `queued` / `dispatching`，设备 busy 检查不再漏排队中任务
+  - `create_and_route_task`：`workflow_state==waiting_approval` 时不入队，与 free-text/structured 审批对齐
+  - free-text 创建后 `insert_task_row` 落 `v2_task`；`DB_TASK_SOURCES` 增加 `app→api`
+- **测试**：相关 60 项 pytest 全绿；ruff check 通过
+- **双节点部署**（tar-over-ssh，密钥 `jdcloud_ed25519` / `lima_deploy_ed25519`）：
+  - jdcloud + aliyun：4 文件 md5 与本地一致；`/health` → `status=ok`、`task_store=redis`
+- **说明**：`deploy_unified.py` 默认 `id_ed25519` 对两节点 Authentication failed，本轮绕过脚本直传；未改 deploy 配置（YAGNI）
+- **审查债剩余（MEDIUM，本批不做）**：写路径限流、provision wifi 回显、async to_thread、health memory 恒 ok、幂等 Redis fail-open、JWT 24h 无吊销、voice ticket 竞态等
+
 ## 2026-07-05 阶段 D：VPS 旧系统退役 + JDCloud 标准化
 
 - **背景**：阶段 A/B/C 完成后，新入口 `server_dlc.py` 已可承载全部生产路径（DLC + 小程序 + 图像）。但 VPS 上旧 `lima-router.service`(:8080) 仍在跑，nginx 仍把大量路径代理到它；JDCloud 还用旧目录 `/opt/lima-router` 启动 `dlc-drawing`，与 Aliyun 的 `/opt/dlc-drawing` 不一致。
@@ -77,11 +91,16 @@
   - 京东云：`lima-router.service` disabled/inactive；`/opt/lima-router/` 目录不存在；:8080 被 code-server 占用（非 lima-router）。
   - 公网冒烟：`/health` → 200；`/chat/`、`/api/v1/status`、`/admin` → 410；生产切流已实际生效。
 
-
-- **阶段 D 后续清理（2026-07-06）**：
-  - 删除 `/etc/nginx/conf.d/chat.donglicao.com.conf.pre-*` 历史备份（两节点均已无此文件，无需清理）。
-  - 备份并删除 `/etc/systemd/system/*.retired-20260705` 退役 unit 文件（阿里云 8 个、京东云 1 个），备份存于 `/root/retired-units-20260706.tar.gz`。
-  - 备份并删除阿里云 `/var/www/chat/*.bak*` 共 245 个历史备份文件，备份存于 `/root/chat-web-bak-20260706.tar.gz`。
+
+
+- **阶段 D 后续清理（2026-07-06）**：
+
+  - 删除 `/etc/nginx/conf.d/chat.donglicao.com.conf.pre-*` 历史备份（两节点均已无此文件，无需清理）。
+
+  - 备份并删除 `/etc/systemd/system/*.retired-20260705` 退役 unit 文件（阿里云 8 个、京东云 1 个），备份存于 `/root/retired-units-20260706.tar.gz`。
+
+  - 备份并删除阿里云 `/var/www/chat/*.bak*` 共 245 个历史备份文件，备份存于 `/root/chat-web-bak-20260706.tar.gz`。
+
   - 清理后公网冒烟：`/health` → 200，`/chat/` → 410，服务正常。## 2026-07-06 固件端改造 U8：新增 plotter MCP 工具 + 配网 SSID 前缀变更
 
 ## 2026-07-06 MCP 接入部署 + 小程序上传 + Git 提交推送
