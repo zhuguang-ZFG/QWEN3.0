@@ -717,3 +717,19 @@
 - **佐证**：`docs/DEPLOY_AND_RELEASE_CONVENTION.md:113-117` 描述的「/v1/chat/completions 滑动窗口限流 120/60s」是旧聊天栈（已退役删除）的行为，文档过时；C 的函数随旧栈失去唯一调用方。
 - **影响**：C 代码本身正确（VPS 模块级验证全 PASS，见 progress.md 同日条目），但开启 `LIMA_IP_RATE_REDIS` 对生产流量**零效果**——没有路由调用它。要么把它接入需要 IP 级限流的路由（替换 `check_ip_limit` 内的 keyed 调用），要么按 ponytail 原则视为可删代码。
 - **决策（2026-07-12，用户拍板）**：删除 C。已删 `rate_limiter.py` 的 `_check_ip_redis`/`_ip_rate_redis_flag`/`_IP_RATE_REDIS_KEY`（`check_rate_limit` 回归纯内存滑动窗口）、整个 `tests/test_rate_limiter_redis.py`（全部用例只覆盖该特性）、`.env.example` 的 `LIMA_IP_RATE_REDIS` 注释块。keyed Redis 限流（device auth L2）不受影响。VPS 已重新部署删除后的 `rate_limiter.py`。
+
+## 2026-07-14 A2A 逐文件全项目审查：123 文件闭环，交叉复核确认 119 / 证伪 20 / 存疑 14
+
+- **方式**：Atom + Reasonix 初审（123/123 文件），Claude Opus 4.6 / Atom / Reasonix 三路并行独立交叉复核 18 批，每份高危发现逐行判定。产物：`.tmp/a2a_review/`（QUEUE.md、REVIEW_REPORT.md、findings/、cross/verdict_*）。
+- **修复链（已全部提交推送 origin/main）**：
+  - `770d82eb` P0 六项：NaN 物理防御、JWT typ 隔离、token 吊销 fail-closed、calibrate 误映射删除、audio 路径穿越、SSRF pin-IP。
+  - `b7b80647`+`68598020` P1 两波：redis 双花、流式 413、TOCTOU、出网脱敏 5 处、caller_model 白名单、text 上限 5000、captcha 哈希。
+  - `c50aec75`+`50b6ae3a`+`370643d5` P2 三波：测试函数移出 `__all__`+TESTING 守卫、固件版本语义化比较、registry 电话脱敏+分页、进程内状态容量上限 4 处、删死代码 `device_logic/sms.py`、insert-before-dispatch 消灭幽灵任务。
+  - 门禁：1719 passed / 3 skipped，ruff / check_code_size 全过。
+- **证伪 20 项**（初审报告但复核推翻，详见 REVIEW_REPORT.md 第二节）：误报率约 13%，含 060-063 四项跨 agent 分歧按复核结论记证伪。
+- **存疑 14 项需人工终裁**（依赖运行时配置，REVIEW_REPORT.md 第六节）：family_approval_store 身份校验、path_validator 负坐标、provision 无 authorize、KNOWN_PROFILES 无锁、auth INSERT 无 status、rate_limit 多 worker、StoreManager 无锁（no-GIL）、api_key 无 verify_key 入口等。
+- **关键决策记录**：
+  - profile 层空 fw_rev **fail-open+warning**（老设备兼容），registry 层 `assert_firmware_compatible` 保持严格；改严会导致 `test_device_app_task_extras.py` 4 例失败。
+  - FIX-O 中 Reasonix 给 `device_logic/auth_rate.py` 加的「每次调用 ping Redis」已**整体还原**（热路径冗余 + 与 rate_limiter 既有告警重复）。
+  - ponytail 否决项：不为存疑项预先加锁/加校验，等运行时配置确认后再定。
+- **遗留提醒**：Codex A2A（4941）muyuan.do key 401 auth_missing，需更换 key；Grok CLI 已卸载、A2A 4943 链路全清（daemon/launcher/dispatch/ps1/health-watch），健康看门狗实测 all ok。
