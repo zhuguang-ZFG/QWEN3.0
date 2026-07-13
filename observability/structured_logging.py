@@ -39,6 +39,39 @@ _STANDARD_RECORD_ATTRS: frozenset[str] = frozenset(logging.makeLogRecord({}).__d
 
 _listener: logging.handlers.QueueListener | None = None
 _configured = False
+_log = logging.getLogger(__name__)
+
+# Max log-queue size; when full the oldest record is dropped instead of blocking.
+_MAX_QUEUE_SIZE = 10_000
+_DROP_WARN_INTERVAL = 100
+
+
+class _BoundedQueueHandler(logging.handlers.QueueHandler):
+    """QueueHandler that drops oldest records when the queue is full.
+
+    Tracks discarded records and issues a warning every ``_DROP_WARN_INTERVAL``
+    drops to prevent log-storm amplification.
+    """
+
+    def __init__(self, queue: queue.Queue[logging.LogRecord]) -> None:
+        super().__init__(queue)
+        self._drop_count = 0
+
+    def enqueue(self, record: logging.LogRecord) -> None:
+        try:
+            self.queue.put_nowait(record)
+        except queue.Full:
+            try:
+                self.queue.get_nowait()  # drop oldest
+                self._drop_count += 1
+                self.queue.put_nowait(record)
+            except queue.Empty:
+                pass
+            if self._drop_count % _DROP_WARN_INTERVAL == 1:
+                _log.warning(
+                    "Structured log queue full; dropped %d records so far",
+                    self._drop_count,
+                )
 
 
 class JsonFormatter(logging.Formatter):
@@ -103,8 +136,8 @@ def setup_structured_logging(*, service: str, version: str) -> None:
     stream_handler = logging.StreamHandler(sys.stderr)
     stream_handler.setFormatter(formatter)
 
-    log_queue: queue.Queue[logging.LogRecord] = queue.Queue(-1)
-    queue_handler = logging.handlers.QueueHandler(log_queue)
+    log_queue: queue.Queue[logging.LogRecord] = queue.Queue(_MAX_QUEUE_SIZE)
+    queue_handler = _BoundedQueueHandler(log_queue)
 
     root = logging.getLogger()
     root.setLevel(logging.INFO)

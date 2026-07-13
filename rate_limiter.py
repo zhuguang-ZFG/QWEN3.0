@@ -14,6 +14,7 @@ _log = logging.getLogger(__name__)
 WINDOW = 60
 MAX_PER_WINDOW = 120
 MAX_TRACKED_IPS = 50_000
+MAX_TRACKED_KEYS = 50_000
 
 _lock = threading.Lock()
 _requests: dict[str, list[float]] = {}
@@ -131,6 +132,22 @@ def _evict_oldest_ips() -> None:
         _requests.pop(ip, None)
 
 
+def _evict_oldest_keyed() -> None:
+    """Evict oldest entries from _keyed_requests when capacity is exceeded."""
+    if len(_keyed_requests) <= MAX_TRACKED_KEYS:
+        return
+    victims = sorted(_keyed_requests.items(), key=lambda item: item[1][-1] if item[1] else 0.0)
+    count = max(len(_keyed_requests) - MAX_TRACKED_KEYS, len(_keyed_requests) // 4)
+    for key, _ in victims[:count]:
+        _keyed_requests.pop(key, None)
+    _log.warning(
+        "Keyed rate-limit store exceeded %d keys; evicted %d oldest entries. "
+        "Multi-worker: Redis fallback amplifies limit N-fold.",
+        MAX_TRACKED_KEYS,
+        count,
+    )
+
+
 def check_rate_limit(ip: str, multiplier: int = 1) -> bool:
     """Return True when the client is within its sliding-window limit."""
     now = time.time()
@@ -170,6 +187,8 @@ def check_keyed_rate_limit(key: str, *, max_per_window: int, window: float = WIN
             return False
         recent.append(now)
         _keyed_requests[key] = recent
+        if len(_keyed_requests) > MAX_TRACKED_KEYS:
+            _evict_oldest_keyed()
     return True
 
 

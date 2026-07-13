@@ -16,10 +16,13 @@ Usage::
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections import deque
 from typing import Deque
+
+_log = logging.getLogger(__name__)
 
 
 class RateLimiter:
@@ -29,6 +32,9 @@ class RateLimiter:
         max_calls: Maximum number of allowed calls within *window_seconds*.
         window_seconds: Length of the sliding window in seconds.
     """
+
+    # Hard cap on the number of tracked keys to prevent unbounded growth.
+    _MAX_KEYS = 10_000
 
     def __init__(self, max_calls: int, window_seconds: float) -> None:
         if max_calls < 1:
@@ -54,6 +60,17 @@ class RateLimiter:
         now = time.monotonic()
         cutoff = now - self._window
         with self._lock:
+            # Check if this is a new key and we need to make room
+            is_new_key = key not in self._calls
+            if is_new_key and len(self._calls) >= self._MAX_KEYS:
+                # Evict the oldest existing key BEFORE inserting the new one
+                oldest_key = min(self._calls, key=lambda k: self._calls[k][-1] if self._calls[k] else float("inf"))
+                del self._calls[oldest_key]
+                _log.warning(
+                    "RateLimiter keys reached %d; evicted oldest key '%s'",
+                    self._MAX_KEYS,
+                    oldest_key,
+                )
             dq = self._calls.setdefault(key, deque())
             # Evict timestamps outside the window
             while dq and dq[0] <= cutoff:

@@ -2,6 +2,16 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-14 A2A 逐文件全项目审查 + P0/P1/P2 修复（123 文件）
+
+- **审查**：Atom/Reasonix 初审 123 文件（高 150/中 281/低 289）→ Claude/Atom/Reasonix 三路交叉复核 153 项高危（确认 119/证伪 20/存疑 14）。产物：`.tmp/a2a_review/`（QUEUE/REVIEW_REPORT/findings/cross）
+- **P0**（`770d82eb`）：NaN 物理防御 4 处（path_validator/safety/handwriting_params/path_optimizer）、JWT typ 隔离（device/admin 双域）、token 吊销 fail-closed（deps `_DB_UNAVAILABLE` sentinel）、calibrate→home 误映射删除、audio 路径穿越（先检后写）、SSRF pin-IP（`xiaozhi_drawing/image_url_validation.py`）。Claude 独立复核：0 阻塞 2 建议
+- **P1 第 1 波**（`b7b80647`）：redis recover 双花、流式 413 中断、TOCTOU（activation/captcha/dispatch）、出网脱敏 5 处（params/error/shadow/wechat）
+- **P1 第 2 波**（`68598020`）：caller_model 白名单、text 长度上限（MAX_TEXT_LENGTH=5000）、captcha 哈希存储
+- **P2 第 1 波**（`c50aec75`）：测试函数移出 `__all__`+TESTING 守卫、固件版本语义化比较（`device_gateway/_version_compare.py`）、registry 电话 PII 脱敏+分页、sms DeprecationWarning、auth/store 静默降级补 warning
+  - 决策：profile 层空 fw_rev 保持 fail-open+warning（老设备兼容），registry 层 `assert_firmware_compatible` 在有 fw_rev 时严格
+- **门禁**：全量 1701 passed / 3 skipped；ruff + check_code_size 全过
+
 ## 2026-07-13 F5：MCP 幂等键内容寻址（跟进 a9e44bc7）
 
 - **改动**：`dlc_mcp/server.py` 新增 `_dispatch_idem_key(endpoint, payload)` → `sha256(canonical)[:32]`；`Idempotency-Key: mcp-<32hex>`，与 JSON-RPC id 解耦

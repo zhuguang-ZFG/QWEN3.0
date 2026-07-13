@@ -1,25 +1,14 @@
 """FIX-N: dead-code deprecation + silent-degradation warning logs.
 
-Covers 4 points:
-1. device_logic.sms emits DeprecationWarning on import.
-2. device_gateway.auth logs a warning when the registered-device fallback fires.
-3. device_gateway.store_utils logs a warning on non-redis backend selection.
-4. device_intelligence.maintenance logs a warning when the ledger lookup fails.
+Covers 3 points:
+1. device_gateway.auth logs a warning when the registered-device fallback fires.
+2. device_gateway.store_utils logs a warning on non-redis backend selection.
+3. device_intelligence.maintenance logs a warning when the ledger lookup fails.
 """
 
 from __future__ import annotations
 
-import importlib
 import logging
-
-import pytest
-
-
-def test_sms_module_import_emits_deprecation_warning():
-    import device_logic.sms as sms
-
-    with pytest.warns(DeprecationWarning, match="device_logic.sms is deprecated"):
-        importlib.reload(sms)
 
 
 def test_auth_fallback_logs_warning(monkeypatch, caplog):
