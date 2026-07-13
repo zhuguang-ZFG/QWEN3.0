@@ -10,7 +10,12 @@
 - **P1 第 2 波**（`68598020`）：caller_model 白名单、text 长度上限（MAX_TEXT_LENGTH=5000）、captcha 哈希存储
 - **P2 第 1 波**（`c50aec75`）：测试函数移出 `__all__`+TESTING 守卫、固件版本语义化比较（`device_gateway/_version_compare.py`）、registry 电话 PII 脱敏+分页、sms DeprecationWarning、auth/store 静默降级补 warning
   - 决策：profile 层空 fw_rev 保持 fail-open+warning（老设备兼容），registry 层 `assert_firmware_compatible` 在有 fw_rev 时严格
-- **门禁**：全量 1701 passed / 3 skipped；ruff + check_code_size 全过
+- **P2 第 2 波**（wave2a + wave2b）：
+  - 进程内状态容量上限：`rate_limiter._keyed_requests` 50k 淘汰、`RateLimiter._calls` 10k 淘汰、`device_route_memory` 锁+FIFO 5k、`structured_logging` 队列 10k drop-oldest（均带 warning）
+  - 删死代码 `device_logic/sms.py`（静态全局 login_code）
+  - 幽灵任务修复：`device_app_task_create`/`task_extras` 改先 `insert_task_row` 后 dispatch；dispatch 失败 `mark_task_failed` 补偿；pause/resume 事件移到 insert 之后
+  - 接力记录：FIX-Q Claude 两棒 900s 超时（产出 `mark_task_failed` 原语保留），Reasonix 接力完成
+- **门禁**：全量 1719 passed / 3 skipped；ruff + check_code_size 全过
 
 ## 2026-07-13 F5：MCP 幂等键内容寻址（跟进 a9e44bc7）
 

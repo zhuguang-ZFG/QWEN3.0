@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi.responses import JSONResponse
@@ -12,8 +13,10 @@ from device_gateway.task_events import record_task_paused, record_task_resumed
 from device_workflow.state import TaskState
 from device_logic.gateway import dispatch_or_enqueue
 from device_logic.http import err, str_field
-from routes.device_app_task_store import insert_task_row
+from routes.device_app_task_store import insert_task_row, mark_task_failed, set_task_status
 from routes.device_app_task_payloads import task_row_payload
+
+_log = logging.getLogger(__name__)
 
 APP_TASK_CAPABILITIES = frozenset(
     {
@@ -107,12 +110,31 @@ async def _create_structured_task(
     if error:
         return error
     assert task is not None
+    # Insert first — no ghost task. Dispatch only after the row exists.
+    try:
+        row = insert_task_row(device_id, account, task, source, "pending", body, params)
+    except Exception as exc:
+        _log.warning("insert_task_row failed task=%s err=%s", task["task_id"], exc)
+        return err(500, "failed to save task", 500)
+
+    # Record lifecycle events after insert
     if capability == "pause":
         record_task_paused(str(task["task_id"]), device_id)
     elif capability == "resume":
         record_task_resumed(str(task["task_id"]), device_id)
-    dispatch, status = await _dispatch_or_wait(device_id, task, source, params)
-    row = insert_task_row(device_id, account, task, source, status, body, params)
+
+    # Dispatch after insert
+    try:
+        dispatch, status = await _dispatch_or_wait(device_id, task, source, params)
+    except Exception as exc:
+        _log.warning("dispatch failed after insert task=%s err=%s", task["task_id"], exc)
+        mark_task_failed(str(task["task_id"]), "dispatch failed")
+        return err(500, "failed to dispatch task", 500)
+
+    if status != "pending":
+        set_task_status(str(task["task_id"]), status)
+        row = dict(row) if not isinstance(row, dict) else {**row, "status": status}
+
     data = task_row_payload(row)
     data.update(dispatch)
     data.update({"task": task, "taskId": task["task_id"]})

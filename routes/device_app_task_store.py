@@ -102,6 +102,36 @@ def revert_task_to_pending(task_id: str) -> None:
         _log.warning("revert_task_to_pending failed task=%s err=%s", task_id, exc)
 
 
+def mark_task_failed(task_id: str, reason: str) -> None:
+    """Best-effort mark an inserted task as failed after a dispatch failure/rejection."""
+    try:
+        with connect() as conn:
+            cur = conn.execute(
+                "UPDATE v2_task SET status='failed', error_msg=?, completed_at=? "
+                "WHERE id=? AND status IN ('pending', 'approved')",
+                (reason, now(), task_id),
+            )
+            if getattr(cur, "rowcount", 0) > 0:
+                conn.commit()
+                _log.warning("marked task %s failed after dispatch failure: %s", task_id, reason)
+    except Exception as exc:
+        _log.warning("mark_task_failed failed task=%s err=%s", task_id, exc)
+
+
+def set_task_status(task_id: str, new_status: str) -> None:
+    """Best-effort update the status of a pending task (e.g. pending -> approved)."""
+    try:
+        with connect() as conn:
+            cur = conn.execute(
+                "UPDATE v2_task SET status=? WHERE id=? AND status='pending'",
+                (new_status, task_id),
+            )
+            if getattr(cur, "rowcount", 0) > 0:
+                conn.commit()
+    except Exception as exc:
+        _log.warning("set_task_status failed task=%s err=%s", task_id, exc)
+
+
 def reject_task_row(task_id: str, account: dict[str, Any], reason: str):
     with connect() as conn:
         row = conn.execute("SELECT * FROM v2_task WHERE id=?", (task_id,)).fetchone()

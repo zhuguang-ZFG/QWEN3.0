@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Header, Request
@@ -12,11 +13,13 @@ from device_logic.access import require_device_control
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, read_body, str_field
-from routes.device_app_task_store import insert_task_row
+from routes.device_app_task_store import insert_task_row, mark_task_failed, set_task_status
 from routes.device_app_task_create import _build_app_gateway_task, _dispatch_or_wait
 from routes.rate_limit_helper import check_key_limit
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-task-extras"])
+
+_log = logging.getLogger(__name__)
 
 _MAX_BATCH_TASKS = 20
 _BATCH_SOURCE = "api"
@@ -99,10 +102,29 @@ async def create_batch_tasks(device_id: str, request: Request, authorization: st
             results.append({"status": "failed", "error": _error_message(error)})
             continue
         assert task is not None
-        _dispatch, status = await _dispatch_or_wait(device_id, task, _BATCH_SOURCE, params)
-        insert_task_row(device_id, account, task, _BATCH_SOURCE, status, item, params)
-        results.append({"taskId": task["task_id"], "status": status})
+        results.append(await _insert_then_dispatch(device_id, account, task, item, params))
     return {"tasks": results, "count": len(results)}
+
+
+async def _insert_then_dispatch(
+    device_id: str, account: dict[str, Any], task: dict[str, Any], item: dict[str, Any], params: dict[str, Any]
+) -> dict[str, Any]:
+    """Insert the task row first, then dispatch — no ghost task on DB failure."""
+    task_id = str(task["task_id"])
+    try:
+        insert_task_row(device_id, account, task, _BATCH_SOURCE, "pending", item, params)
+    except Exception as exc:
+        _log.warning("insert_task_row failed task=%s err=%s", task_id, exc)
+        return {"taskId": task_id, "status": "failed", "error": str(exc)}
+    try:
+        _dispatch, status = await _dispatch_or_wait(device_id, task, _BATCH_SOURCE, params)
+    except Exception as exc:
+        _log.warning("dispatch failed after insert task=%s err=%s", task_id, exc)
+        mark_task_failed(task_id, "dispatch failed")
+        return {"taskId": task_id, "status": "failed", "error": str(exc)}
+    if status != "pending":
+        set_task_status(task_id, status)
+    return {"taskId": task_id, "status": status}
 
 
 def _error_message(error: JSONResponse) -> str:

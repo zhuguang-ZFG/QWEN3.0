@@ -116,6 +116,7 @@ def _patch_deps(account):
             "workflow_state": "ready",
         }
         mock_insert.return_value = _make_task_row()
+        mock_insert_structured.return_value = _make_task_row()
         mock_approve.return_value = (_make_task_row(status="approved"), {"task_id": "task-1"})
         mock_dispatch_approved.return_value = {"sent": True, "queueDepth": 0}
         mock_reject.return_value = _make_task_row(status="rejected")
