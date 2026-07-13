@@ -47,14 +47,12 @@ def check_activation_code(code: str) -> bool:
     with _connect() as conn:
         _ensure_table(conn)
         _purge_expired(conn, now_ts)
-        row = conn.execute(
-            "SELECT 1 FROM v2_activation_code WHERE code=? AND expires_at > ?",
+        cursor = conn.execute(
+            "DELETE FROM v2_activation_code WHERE code=? AND expires_at > ?",
             (code, now_ts),
-        ).fetchone()
-        if row is not None:
-            # ponytail: consume the code immediately — one-time use, prevents replay within TTL.
-            conn.execute("DELETE FROM v2_activation_code WHERE code=?", (code,))
-            conn.commit()
+        )
+        conn.commit()
+        if cursor.rowcount > 0:
             return True
         conn.commit()
     expected = settings.DEVICE.activation_code

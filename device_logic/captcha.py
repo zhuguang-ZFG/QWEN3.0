@@ -63,10 +63,10 @@ def verify_captcha(captcha_id: str | None, captcha_code: str | None) -> JSONResp
         ).fetchone()
         if row is None:
             return err(4001, "Invalid or expired captcha", 400)
-        if not secrets.compare_digest(row["code"].upper(), captcha_code.upper()):
-            return err(4001, "Invalid or expired captcha", 400)
         conn.execute("DELETE FROM v2_captcha WHERE id=?", (captcha_id,))
         conn.commit()
+        if not secrets.compare_digest(row["code"].upper(), captcha_code.upper()):
+            return err(4001, "Invalid or expired captcha", 400)
     return None
 
 

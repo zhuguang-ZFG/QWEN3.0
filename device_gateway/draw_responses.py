@@ -2,11 +2,22 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict
 
 # 对外统一品牌名，隐藏真实生图模型（wanx2.1-t2i-turbo 等）。
 # 真实模型名仅用于内部日志（device_draw_handler），响应体对外统一返回品牌标签。
 PUBLIC_DRAW_MODEL_LABEL = "LiMa 生图"
+
+
+def _sanitize_error(error: str) -> str:
+    """Remove URLs and file-system paths from error text, truncate to 200 chars."""
+    s = re.sub(r"https?://\S+", "[URL]", error)
+    s = re.sub(r"[/\\](?:home|Users|tmp|var|opt|etc|root)[/\\]\S*", " [PATH]", s)
+    s = re.sub(r"[A-Za-z]:\\\S+", " [PATH]", s)
+    if len(s) > 200:
+        s = s[:197] + "..."
+    return s or "An error occurred"
 
 
 def build_failed_response(model: str, error: str) -> Dict[str, Any]:
@@ -18,7 +29,7 @@ def build_failed_response(model: str, error: str) -> Dict[str, Any]:
         "width": 0,
         "height": 0,
         "model": PUBLIC_DRAW_MODEL_LABEL,
-        "error": error,
+        "error": _sanitize_error(error),
     }
 
 
@@ -37,7 +48,7 @@ def build_partial_response(
         "width": width,
         "height": height,
         "model": PUBLIC_DRAW_MODEL_LABEL,
-        "error": error,
+        "error": _sanitize_error(error),
     }
 
 

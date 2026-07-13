@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any
 
@@ -11,6 +12,16 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _JS_CODE2SESSION_URL = "https://api.weixin.qq.com/sns/jscode2session"
+
+# Sentinel keys to redact from logged URLs.
+_SENSITIVE_QUERY_KEYS: frozenset[str] = frozenset({"secret", "signature"})
+
+
+def _redact_url(url: str) -> str:
+    """Redact sensitive query-string parameters (secret, signature) from a URL."""
+    for key in _SENSITIVE_QUERY_KEYS:
+        url = re.sub(rf"(?<={key}=)[^&\s]+", "***", url)
+    return url
 
 
 class WechatLoginError(Exception):
@@ -45,7 +56,7 @@ class WechatMiniappGateway:
             elapsed_ms = (time.monotonic() - start) * 1000
             logger.info("WeChat jscode2session took %.1fms", elapsed_ms)
         except httpx.HTTPError as exc:
-            logger.warning("WeChat jscode2session request failed: %s", exc)
+            logger.warning("WeChat jscode2session request failed: %s", _redact_url(str(exc)))
             raise WechatLoginError("WeChat login request failed") from exc
         except ValueError as exc:
             logger.warning("WeChat jscode2session returned malformed JSON: %s", exc)

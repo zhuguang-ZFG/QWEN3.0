@@ -270,7 +270,20 @@ class RedisDeviceTaskStore(RedisTaskIndexMixin, RedisStoreHelpers, RedisStoreRec
         return False
 
     def ack_processing(self, device_id: str, task_id: str) -> bool:
-        """Remove a task from the processing queue after device ack."""
+        """Remove a task from the processing queue after device ack.
+
+        Anti-double-spend: if task was already recovered back to pending,
+        reject this late ack so downstream never fires a duplicate completion.
+        """
+        state = self._read_task_state(task_id)
+        if state and state.get("recovered_at") and state.get("status") != "processing":
+            _log.warning(
+                "ack_processing rejected: task %s already recovered (status=%s)",
+                task_id,
+                state.get("status"),
+            )
+            self._remove_processing_task(device_id, task_id)  # cleanup stale entry
+            return False
         removed = self._remove_processing_task(device_id, task_id)
         if removed:
             # AUDIT-9-S4: CAS-protected pop of processing_started_at.

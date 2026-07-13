@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 import pytest
 
-from device_logic.wechat_gateway import WechatLoginError, WechatMiniappGateway
+from device_logic.wechat_gateway import WechatLoginError, WechatMiniappGateway, _redact_url
 
 
 class FakeResponse:
@@ -81,3 +81,37 @@ async def test_jscode2session_raises_when_not_configured() -> None:
     gateway = WechatMiniappGateway("", "")
     with pytest.raises(WechatLoginError, match="not configured"):
         await gateway.jscode2session("abc")
+
+
+class TestRedactUrl:
+    def test_redacts_secret_query_param(self):
+        url = "https://api.weixin.qq.com/sns/jscode2session?appid=wx&secret=my-secret&js_code=abc"
+        result = _redact_url(url)
+        assert "secret=" in result
+        assert "my-secret" not in result
+        assert "***" in result
+
+    def test_no_secret_unchanged(self):
+        url = "https://api.weixin.qq.com/sns/jscode2session?appid=wx&js_code=abc"
+        assert _redact_url(url) == url
+
+
+@pytest.mark.asyncio
+async def test_jscode2session_logs_redacted_url(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Verify that httpx.HTTPError log output does NOT contain the raw secret."""
+    import logging
+
+    caplog.set_level(logging.WARNING)
+
+    response = FakeResponse({}, status_code=500)
+    _patch_async_client(monkeypatch, response)
+    gateway = WechatMiniappGateway("wxappid", "my-secret-value")
+
+    with pytest.raises(WechatLoginError, match="request failed"):
+        await gateway.jscode2session("abc")
+
+    log_text = caplog.text
+    assert "my-secret-value" not in log_text
+    assert "request failed" in log_text

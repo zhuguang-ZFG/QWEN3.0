@@ -51,10 +51,14 @@ class RedisStoreRecoverMixin:
                     if moved:
                         if state:
                             # AUDIT-9-S4: CAS-protected status update.
+                            # Anti-double-spend: mark recovered_at so ack_processing
+                            # can detect stale workers and reject late acks.
+                            _now = now
                             self._cas_update(  # type: ignore[attr-defined]
                                 task_id,
                                 lambda s: (
                                     s.__setitem__("status", "queued"),
+                                    s.__setitem__("recovered_at", str(_now)),
                                     s.pop("processing_started_at", None),
                                 ),
                             )

@@ -34,7 +34,8 @@ class TestTaskRowPayload:
         assert payload["taskId"] == "task-1"
         assert payload["requestId"] == "req-1"
         assert json.loads(payload["constraintsJson"]) == {"max_len": 100}
-        assert payload["params"]["requestId"] == "req-1"
+        # requestId is filtered out from params whitelist (internal field)
+        assert "requestId" not in payload["params"]
 
     def test_request_id_fallback(self):
         row = {
@@ -52,6 +53,36 @@ class TestTaskRowPayload:
             "completed_at": "",
         }
         assert task_row_payload(row)["requestId"] == "req-2"
+
+    def test_filters_sensitive_params(self):
+        """secret/token/api_key must not appear in response params."""
+        params = {
+            "text": "hello",
+            "path": "/draw/line",
+            "token": "sk-xxxx",
+            "secret": "my-secret",
+            "api_key": "key-123",
+        }
+        row = {
+            "id": "task-3",
+            "device_id": "dev-1",
+            "intent": "chat",
+            "params": json.dumps(params),
+            "source": "voice",
+            "status": "pending",
+            "progress": 0,
+            "error_msg": "",
+            "member_id": "",
+            "created_at": "",
+            "started_at": "",
+            "completed_at": "",
+        }
+        payload = task_row_payload(row)
+        assert payload["params"]["text"] == "hello"
+        assert payload["params"]["path"] == "/draw/line"
+        assert "token" not in payload["params"]
+        assert "secret" not in payload["params"]
+        assert "api_key" not in payload["params"]
 
 
 class TestTaskSummaryPayload:

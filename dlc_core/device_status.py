@@ -7,6 +7,25 @@ from typing import Any
 from device_intelligence import shadow_store
 from routes.device_app_api import _build_device_status
 
+# 影子状态白名单：只暴露前端需要的公开字段，剔除 token/mac/password/secret/api_key 等。
+SHADOW_WHITELIST: frozenset[str] = frozenset(
+    {
+        "device_id",
+        "fw_rev",
+        "capabilities",
+        "profile_id",
+        "last_heartbeat_uptime_ms",
+        "last_motion_event",
+        "desired",
+        "updated_at",
+    }
+)
+
+
+def _sanitize_shadow(shadow: dict[str, Any]) -> dict[str, Any]:
+    """Keep only whitelisted keys from the device shadow dict."""
+    return {k: v for k, v in shadow.items() if k in SHADOW_WHITELIST}
+
 
 async def get_device_status(device_id: str) -> dict[str, Any]:
     """Aggregate the canonical runtime device status for DLC callers.
@@ -23,6 +42,7 @@ async def get_device_status(device_id: str) -> dict[str, Any]:
         }
     """
     status = _build_device_status(device_id)
+    raw_shadow = shadow_store.snapshot(device_id) or {}
     return {
         "device_id": device_id,
         "online": bool(status.get("online")),
@@ -30,5 +50,5 @@ async def get_device_status(device_id: str) -> dict[str, Any]:
         "active_task_id": status.get("activeTaskId"),
         "firmware_version": status.get("firmwareVersion"),
         "last_seen_at": status.get("lastSeenAt"),
-        "shadow": shadow_store.snapshot(device_id) or {},
+        "shadow": _sanitize_shadow(raw_shadow),
     }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
@@ -11,12 +12,22 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 
+def _sanitize_message(message: str) -> str:
+    """Remove URLs and file-system paths from a message, truncate to 200 chars."""
+    s = re.sub(r"https?://\S+", "[URL]", message)
+    s = re.sub(r"[/\\](?:home|Users|tmp|var|opt|etc|root)[/\\]\S*", " [PATH]", s)
+    s = re.sub(r"[A-Za-z]:\\\S+", " [PATH]", s)
+    if len(s) > 200:
+        s = s[:197] + "..."
+    return s or "An error occurred"
+
+
 def ok(data: Any) -> JSONResponse:
     return JSONResponse({"code": 0, "data": data})
 
 
 def err(code: int, message: str, status_code: int = 400) -> JSONResponse:
-    return JSONResponse({"code": code, "message": message}, status_code=status_code)
+    return JSONResponse({"code": code, "message": _sanitize_message(message)}, status_code=status_code)
 
 
 async def read_body(request: Request) -> dict[str, Any] | JSONResponse:

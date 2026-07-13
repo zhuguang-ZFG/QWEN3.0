@@ -9,6 +9,27 @@ from fastapi.responses import JSONResponse
 from device_logic.access import is_owner
 from device_logic.http import err, json_params, loads_json
 
+# 内部字段白名单：只暴露前端需要的公开字段，其余丢弃（token/secret/api_key 等不出网）。
+PARAMS_WHITELIST: frozenset[str] = frozenset(
+    {
+        "path",
+        "image_url",
+        "capability",
+        "text",
+        "mode",
+        "device_type",
+        "style",
+        "complexity",
+        "width",
+        "height",
+        "preset",
+        "svg_path",
+        "constraints",
+        "source",
+        "prompt",
+    }
+)
+
 
 def task_row_payload(row) -> dict[str, Any]:
     params = loads_json(row["params"])
@@ -19,7 +40,7 @@ def task_row_payload(row) -> dict[str, Any]:
         "id": row["id"],
         "deviceId": row["device_id"],
         "capability": row["intent"],
-        "params": params,
+        "params": {k: v for k, v in params.items() if k in PARAMS_WHITELIST},
         "paramsJson": json_params(params),
         "requestId": request_id,
         "constraintsJson": json_params(constraints),

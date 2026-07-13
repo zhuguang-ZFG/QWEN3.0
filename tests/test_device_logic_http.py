@@ -20,6 +20,21 @@ class TestErr:
         assert response.status_code == 400
         assert b"bad request" in response.body
 
+    def test_sanitize_url_in_message(self):
+        response = err(1, "failed: http://internal.donglicao.com/x")
+        assert b"[URL]" in response.body
+        assert b"donglicao" not in response.body
+
+    def test_sanitize_path_in_message(self):
+        response = err(1, "error at /home/user/file.py")
+        assert b"[PATH]" in response.body
+        assert b"/home/user" not in response.body
+
+    def test_sanitize_truncates_long_message(self):
+        long_msg = "x" * 500
+        response = err(1, long_msg)
+        assert len(response.body) < 400  # truncated
+
 
 class TestReadBody:
     @pytest.mark.asyncio

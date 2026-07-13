@@ -72,3 +72,37 @@ async def test_get_device_status_uses_empty_shadow_when_missing(mock_build_statu
     assert result["firmware_version"] is None
     assert result["last_seen_at"] is None
     assert result["shadow"] == {}
+
+
+@pytest.mark.asyncio
+@patch("dlc_core.device_status.shadow_store")
+@patch("dlc_core.device_status._build_device_status")
+async def test_get_device_status_filters_sensitive_shadow_fields(mock_build_status, mock_shadow_store) -> None:
+    """Sensitive fields (token, mac, password, secret, api_key) must be filtered out of shadow."""
+    mock_build_status.return_value = {
+        "deviceId": "dev-1",
+        "online": True,
+        "working": True,
+        "activeTaskId": None,
+        "firmwareVersion": "u8-3.9.0",
+        "lastSeenAt": "2026-07-04T09:01:00Z",
+    }
+    mock_shadow_store.snapshot.return_value = {
+        "device_id": "dev-1",
+        "fw_rev": "u8-3.9.0",
+        "token": "sk-xxx",
+        "mac": "aa:bb:cc:dd:ee:ff",
+        "password": "p@ss",
+        "secret": "my-secret",
+        "api_key": "key-456",
+    }
+
+    result = await get_device_status("dev-1")
+
+    assert "device_id" in result["shadow"]
+    assert "fw_rev" in result["shadow"]
+    assert "token" not in result["shadow"]
+    assert "mac" not in result["shadow"]
+    assert "password" not in result["shadow"]
+    assert "secret" not in result["shadow"]
+    assert "api_key" not in result["shadow"]

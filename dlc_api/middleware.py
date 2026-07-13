@@ -75,15 +75,18 @@ class BodySizeLimitMiddleware:
                 received += len(message.get("body", b""))
                 if received > limit:
                     too_large = True
+                    # Stop feeding body to app — signal end-of-stream so app
+                    # finishes without consuming unbounded memory.
+                    return {"type": "http.request", "body": b"", "more_body": False}
             return message
 
-        # Wrap receive so a body without Content-Length is still bounded. We
-        # can only send a 413 before the app starts its own response, so guard
-        # the send side too.
         started = False
 
         async def _guarded_send(message: Message) -> None:
             nonlocal started
+            if too_large and not started:
+                # Suppress app's response; we send 413 ourselves after app returns.
+                return
             if message["type"] == "http.response.start":
                 started = True
             await send(message)
