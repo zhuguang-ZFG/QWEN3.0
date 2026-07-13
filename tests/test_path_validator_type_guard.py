@@ -55,3 +55,33 @@ def test_soft_warning_still_present() -> None:
     result = validate_path(mid)
     assert result["ok"] is True
     assert any("200" in w for w in result["warnings"]), result
+
+
+def test_nan_x_returns_error() -> None:
+    """NaN x 应因非有限值被拒绝。"""
+    result = validate_path([{"x": float("nan"), "y": 5}])
+    assert result["ok"] is False
+    assert any("point 0" in e for e in result["errors"]), result
+
+
+def test_nan_y_returns_error() -> None:
+    """NaN y 应因非有限值被拒绝。"""
+    result = validate_path([{"x": 5, "y": float("nan")}])
+    assert result["ok"] is False
+    assert any("point 0" in e for e in result["errors"]), result
+
+
+def test_inf_x_returns_error() -> None:
+    """Inf/-Inf x 应因非有限值被拒绝。"""
+    for val in (float("inf"), float("-inf")):
+        result = validate_path([{"x": val, "y": 5}])
+        assert result["ok"] is False
+        assert any("point 0" in e for e in result["errors"]), result
+
+
+def test_inf_y_returns_error() -> None:
+    """Inf/-Inf y 应因非有限值被拒绝。"""
+    for val in (float("inf"), float("-inf")):
+        result = validate_path([{"x": 5, "y": val}])
+        assert result["ok"] is False
+        assert any("point 0" in e for e in result["errors"]), result

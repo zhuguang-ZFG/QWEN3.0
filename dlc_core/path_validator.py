@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from dlc_core.safety import DEFAULT_WORKSPACE_MM, MAX_PATH_POINTS
@@ -12,7 +13,7 @@ HARD_MAX_PATH_POINTS = 5000
 
 def _is_number(value: Any) -> bool:
     """坐标必须是真数值：int/float 但排除 bool（bool 是 int 子类但语义非法）。"""
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
 def validate_path(path: list[dict], *, workspace: dict[str, float] | None = None) -> dict[str, Any]:

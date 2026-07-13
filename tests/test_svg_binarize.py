@@ -80,11 +80,7 @@ class TestBinarization:
         mock_response.content = buf.getvalue()
         mock_response.raise_for_status = MagicMock()
 
-        with patch("xiaozhi_drawing.svg_converter.httpx.AsyncClient") as mock_client:
-            mock_instance = AsyncMock()
-            mock_instance.get = AsyncMock(return_value=mock_response)
-            mock_client.return_value.__aenter__.return_value = mock_instance
-
+        with patch("xiaozhi_drawing.svg_converter.fetch_pinned", new=AsyncMock(return_value=mock_response.content)):
             converter = SVGConverter()
             result = await converter.convert_url_to_svg("https://example.com/x.png", threshold_mode="adaptive")
             assert result["status"] == "success"
@@ -109,11 +105,7 @@ class TestBinarization:
         mock_response.content = buf.getvalue()
         mock_response.raise_for_status = MagicMock()
 
-        with patch("xiaozhi_drawing.svg_converter.httpx.AsyncClient") as mock_client:
-            mock_instance = AsyncMock()
-            mock_instance.get = AsyncMock(return_value=mock_response)
-            mock_client.return_value.__aenter__.return_value = mock_instance
-
+        with patch("xiaozhi_drawing.svg_converter.fetch_pinned", new=AsyncMock(return_value=mock_response.content)):
             converter = SVGConverter()
             result_auto = await converter.convert_url_to_svg(
                 "https://example.com/x.png", skeletonize=True, threshold_mode="auto"

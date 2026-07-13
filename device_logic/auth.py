@@ -81,6 +81,7 @@ def make_token(account: sqlite3.Row | dict[str, Any], expires_in: int = 86400) -
         "iat": now_ts,
         "exp": now_ts + expires_in,
         "tv": int(account.get("token_epoch") or 0),
+        "typ": "device",
     }
     return jwt.encode(payload, secret, algorithm="HS256")
 
@@ -101,6 +102,12 @@ def authorize(authorization: str) -> dict[str, Any] | JSONResponse:
         return err(401, "Token expired", 401)
     except jwt.InvalidTokenError:
         return err(401, "Unauthorized", 401)
+    # JWT typ isolation: reject admin tokens on device endpoints
+    token_typ = payload.get("typ")
+    if token_typ == "admin":
+        return err(401, "Unauthorized", 401)
+    if token_typ is None:
+        _log.warning("Device token missing typ field  -  treating as legacy token: %s", payload.get("sub", ""))
     account_id = str(payload.get("account_id") or payload.get("sub") or "")
     if not account_id:
         return err(401, "Unauthorized", 401)

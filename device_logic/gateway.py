@@ -30,8 +30,6 @@ def gateway_capability(intent: str, params: dict[str, Any]) -> tuple[str, dict[s
         return "run_path", mapped, None
     if intent == "home":
         return "home", {"source_capability": "home"}, None
-    if intent == "calibrate":
-        return "home", {"source_capability": "calibrate"}, None
     return "", {}, f"unsupported capability: {intent}"
 
 

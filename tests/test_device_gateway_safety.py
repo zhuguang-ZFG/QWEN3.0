@@ -132,6 +132,25 @@ class TestValidateRunPathParams:
         with pytest.raises(SafetyError):
             validate_run_path_params(params)
 
+    def test_nan_feed_raises(self):
+        """NaN feed 应因非有限值被 SafetyError 拒绝。"""
+        params = {
+            "path": [{"x": 0, "y": 0}],
+            "feed": float("nan"),
+        }
+        with pytest.raises(SafetyError):
+            validate_run_path_params(params)
+
+    def test_inf_feed_raises(self):
+        """Inf feed 应因非有限值被 SafetyError 拒绝。"""
+        for val in (float("inf"), float("-inf")):
+            params = {
+                "path": [{"x": 0, "y": 0}],
+                "feed": val,
+            }
+            with pytest.raises(SafetyError):
+                validate_run_path_params(params)
+
 
 def test_constants():
     """Safety constants have expected values."""

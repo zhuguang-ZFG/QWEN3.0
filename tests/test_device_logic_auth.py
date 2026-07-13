@@ -108,3 +108,129 @@ def test_make_token_defaults_tv_to_zero_when_missing(monkeypatch):
     token = auth.make_token(fake_account)
     decoded = auth.jwt.decode(token, auth.jwt_secret(), algorithms=["HS256"])
     assert decoded["tv"] == 0
+
+
+def test_make_token_includes_typ_device(monkeypatch):
+    """make_token includes 'typ': 'device' in the JWT payload."""
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-typ-isolation")
+    fake_account = {
+        "id": "acc-typ-1",
+        "phone": "13000000001",
+        "nickname": "n",
+        "avatar_url": "",
+        "role": "user",
+        "created_at": 0,
+    }
+    token = auth.make_token(fake_account)
+    assert token is not None
+    decoded = auth.jwt.decode(token, auth.jwt_secret(), algorithms=["HS256"])
+    assert decoded.get("typ") == "device"
+
+
+def test_make_admin_token_includes_typ_admin(monkeypatch):
+    """make_admin_token includes 'typ': 'admin' in the JWT payload."""
+    import device_logic.admin_auth as admin_auth
+
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-typ-isolation")
+    fake_user = {
+        "id": "admin-typ-1",
+        "email": "admin@test.com",
+        "nickname": "admin",
+        "role": "admin",
+        "status": "active",
+        "created_at": "2025-01-01",
+    }
+    token = admin_auth.make_admin_token(fake_user)
+    assert token is not None
+    decoded = admin_auth.jwt.decode(token, admin_auth._jwt_secret(), algorithms=["HS256"])
+    assert decoded.get("typ") == "admin"
+
+
+def test_decode_admin_token_rejects_device_typ(monkeypatch, caplog):
+    """decode_admin_token returns None for tokens with typ=device."""
+    import device_logic.admin_auth as admin_auth
+
+    caplog.set_level(logging.WARNING)
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-typ-isolation")
+    secret = admin_auth._jwt_secret()
+    assert secret is not None
+
+    # Craft a device-typed token
+    payload = {
+        "sub": "device-test-1",
+        "role": "admin",
+        "typ": "device",
+        "iat": 1700000000,
+        "exp": 9999999999,
+    }
+    token = admin_auth.jwt.encode(payload, secret, algorithm="HS256")
+    result = admin_auth.decode_admin_token(token)
+    assert result is None
+    assert any("device-typed" in record.message for record in caplog.records)
+
+
+def test_decode_admin_token_accepts_admin_typ(monkeypatch):
+    """decode_admin_token accepts tokens with typ=admin."""
+    import device_logic.admin_auth as admin_auth
+
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-typ-isolation")
+    secret = admin_auth._jwt_secret()
+    assert secret is not None
+
+    payload = {
+        "sub": "admin-test-1",
+        "role": "superadmin",
+        "typ": "admin",
+        "iat": 1700000000,
+        "exp": 9999999999,
+    }
+    token = admin_auth.jwt.encode(payload, secret, algorithm="HS256")
+    result = admin_auth.decode_admin_token(token)
+    assert result is not None
+    assert result["sub"] == "admin-test-1"
+
+
+def test_decode_admin_token_accepts_legacy_no_typ(monkeypatch, caplog):
+    """decode_admin_token accepts legacy tokens without typ field (compatibility)."""
+    import device_logic.admin_auth as admin_auth
+
+    caplog.set_level(logging.WARNING)
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-typ-isolation")
+    secret = admin_auth._jwt_secret()
+    assert secret is not None
+
+    # Legacy token: no typ field
+    payload = {
+        "sub": "legacy-admin-1",
+        "role": "admin",
+        "iat": 1700000000,
+        "exp": 9999999999,
+    }
+    token = admin_auth.jwt.encode(payload, secret, algorithm="HS256")
+    result = admin_auth.decode_admin_token(token)
+    assert result is not None
+    assert result["sub"] == "legacy-admin-1"
+    assert any("legacy" in record.message for record in caplog.records)
+
+
+def test_authorize_rejects_admin_typ(monkeypatch):
+    """authorize() returns 401 JSONResponse for admin-typed tokens."""
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-typ-isolation")
+    secret = auth.jwt_secret()
+    assert secret is not None
+
+    # Craft an admin-typed token
+    payload = {
+        "sub": "admin-on-device-1",
+        "account_id": "admin-on-device-1",
+        "role": "admin",
+        "typ": "admin",
+        "iat": 1700000000,
+        "exp": 9999999999,
+    }
+    token = auth.jwt.encode(payload, secret, algorithm="HS256")
+    result = auth.authorize(f"Bearer {token}")
+    from fastapi.responses import JSONResponse
+
+    assert isinstance(result, JSONResponse)
+    assert result.status_code == 401

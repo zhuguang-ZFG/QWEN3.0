@@ -8,7 +8,7 @@ from io import BytesIO
 import logging
 from typing import Any
 
-import httpx
+from xiaozhi_drawing.image_url_validation import fetch_pinned
 import numpy as np
 
 try:
@@ -136,11 +136,9 @@ def _svg_payload(
 
 
 async def _download_image(image_url: str) -> BytesIO:
-    """Download image from URL."""
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(image_url)
-        resp.raise_for_status()
-        return BytesIO(resp.content)
+    """Download image from URL with SSRF pin-IP protection."""
+    content = await fetch_pinned(image_url)
+    return BytesIO(content)
 
 
 async def _convert_image_bytes(

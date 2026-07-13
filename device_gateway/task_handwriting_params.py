@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import time
 from typing import Any
 
@@ -20,6 +21,8 @@ def _clamp_feed(raw: Any, default: int = DEFAULT_FEED) -> int:
     try:
         val = float(raw)
     except (TypeError, ValueError):
+        return default
+    if not math.isfinite(val):
         return default
     return int(max(MIN_FEED, min(MAX_FEED, val)))
 

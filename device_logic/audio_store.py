@@ -14,6 +14,9 @@ def _sanitize_id(value: str) -> str:
     cleaned = _SAFE_ID.sub("_", (value or "").strip())
     if not cleaned:
         raise ValueError("audio id is required")
+    parts = Path(cleaned).parts
+    if ".." in parts:
+        raise ValueError(f"path traversal detected in audio id: {value!r}")
     return cleaned
 
 
@@ -41,9 +44,13 @@ def ext_for_content_type(content_type: str) -> str:
 
 def write_audio_file(device_id: str, audio_id: str, data: bytes, *, ext: str = "mp3") -> str:
     path = audio_file_path(device_id, audio_id, ext=ext)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    return str(path.relative_to(audio_root()))
+    resolved = path.resolve()
+    root = audio_root().resolve()
+    if not resolved.is_relative_to(root):
+        raise ValueError(f"path traversal detected: {path} outside {root}")
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    resolved.write_bytes(data)
+    return str(resolved.relative_to(root))
 
 
 def resolve_storage_path(storage_path: str) -> Path | None:

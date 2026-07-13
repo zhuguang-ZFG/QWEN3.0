@@ -6,6 +6,24 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+
+from device_gateway.safety import DEFAULT_FEED
+from device_gateway.task_handwriting_params import _clamp_feed
+
+
+def test_clamp_feed_nan_returns_default() -> None:
+    """NaN feed 应返回 DEFAULT_FEED，而非 MAX_FEED。"""
+    result = _clamp_feed(float("nan"))
+    assert result == DEFAULT_FEED
+
+
+def test_clamp_feed_inf_returns_default() -> None:
+    """Inf feed 应返回 DEFAULT_FEED。"""
+    for val in (float("inf"), float("-inf")):
+        result = _clamp_feed(val)
+        assert result == DEFAULT_FEED
+
+
 from device_gateway import path_pipeline
 from device_gateway.task_draw_params import build_handwriting_params
 from integrations.autohanding.client import AutohandingClientError, AutohandingRateLimitError

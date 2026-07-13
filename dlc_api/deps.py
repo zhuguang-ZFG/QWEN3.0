@@ -27,17 +27,23 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def _lookup_token_from_db(token: str) -> str | None:
+# Sentinel returned when DB is entirely unavailable (import/connection error),
+# as opposed to DB working normally but the token not found (None).
+_DB_UNAVAILABLE = object()
+
+
+def _lookup_token_from_db(token: str) -> str | None | object:
     """Query v2_device_token for the device_id matching *token*.
 
-    Returns None (graceful degradation) when:
-    - device_logic.db is not importable
-    - the table does not exist yet
-    - any other DB error
+    Returns:
+        str — device_id when the token is found.
+        None — DB was queried successfully but the token does not exist.
+        ``_DB_UNAVAILABLE`` — DB is not importable, the table does not exist,
+        or any other DB error occurred (graceful degradation).
     """
     if _db_connect is None:
         logger.info("device_logic.db unavailable; skipping DB token lookup")
-        return None
+        return _DB_UNAVAILABLE
 
     token_hash = _token_hash(token)
     try:
@@ -50,8 +56,8 @@ def _lookup_token_from_db(token: str) -> str | None:
             logger.info("Token resolved via DB for device %s", row["device_id"])
             return str(row["device_id"])
     except Exception as exc:
-        # Table may not exist yet (P2 placeholder); fall through to env fallback
-        logger.info("DB token lookup failed (%s); falling back to env", exc)
+        logger.warning("DB token lookup failed (%s); falling back to env", exc)
+        return _DB_UNAVAILABLE
     return None
 
 
@@ -92,18 +98,23 @@ def verify_dlc_api_token(authorization: str = Header(...)) -> str:
         HTTPException: 401 if the token is missing or invalid.
     """
     scheme, _, token = authorization.partition(" ")
+    token = token.strip()
     if scheme.lower() != "bearer" or not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization header")
 
     # 1. Try DB lookup (production path)
     device_id = _lookup_token_from_db(token)
-    if device_id:
+    if isinstance(device_id, str):
         return device_id
 
-    # 2. Env-var fallback (dev/emergency)
+    # 2. DB worked but token not found → reject immediately
+    if device_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    # 3. DB unavailable → env-var fallback (dev/emergency)
     tokens = _load_device_tokens()
     if not tokens:
-        logger.warning("No DB token match and LIMA_DEVICE_TOKENS not configured; rejecting")
+        logger.warning("DB unavailable and LIMA_DEVICE_TOKENS not configured; rejecting")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     token_hash = _token_hash(token)

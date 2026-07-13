@@ -27,11 +27,7 @@ async def test_convert_url_to_svg_success():
     mock_response.content = img_bytes.getvalue()
     mock_response.raise_for_status = MagicMock()
 
-    with patch("xiaozhi_drawing.svg_converter.httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value.__aenter__.return_value = mock_instance
-
+    with patch("xiaozhi_drawing.svg_converter.fetch_pinned", new=AsyncMock(return_value=mock_response.content)):
         converter = SVGConverter()
         result = await converter.convert_url_to_svg("https://example.com/image.jpg")
 
@@ -65,11 +61,7 @@ async def test_convert_url_to_svg_skeleton_mode_open_paths():
     mock_response.content = img_bytes.getvalue()
     mock_response.raise_for_status = MagicMock()
 
-    with patch("xiaozhi_drawing.svg_converter.httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get = AsyncMock(return_value=mock_response)
-        mock_client.return_value.__aenter__.return_value = mock_instance
-
+    with patch("xiaozhi_drawing.svg_converter.fetch_pinned", new=AsyncMock(return_value=mock_response.content)):
         converter = SVGConverter()
         result = await converter.convert_url_to_svg("https://example.com/image.jpg", skeletonize=True)
 
@@ -82,11 +74,7 @@ async def test_convert_url_to_svg_skeleton_mode_open_paths():
 @pytest.mark.asyncio
 async def test_convert_url_to_svg_download_failed():
     """测试下载失败"""
-    with patch("xiaozhi_drawing.svg_converter.httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get = AsyncMock(side_effect=Exception("Network error"))
-        mock_client.return_value.__aenter__.return_value = mock_instance
-
+    with patch("xiaozhi_drawing.svg_converter.fetch_pinned", new=AsyncMock(side_effect=Exception("Network error"))):
         converter = SVGConverter()
         result = await converter.convert_url_to_svg("https://example.com/image.jpg")
 

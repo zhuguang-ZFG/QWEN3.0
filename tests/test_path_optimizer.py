@@ -125,3 +125,47 @@ def test_apply_multi_pass_single_pass_returns_copy() -> None:
     result = apply_multi_pass(base, passes=1, offset_mm=1.0)
     assert result == base
     assert result is not base
+
+
+def test_compress_raises_on_nan(optimizer: PathOptimizer) -> None:
+    """compress 遇 NaN 坐标应抛 ValueError。"""
+    path = [
+        {"x": 0, "y": 0, "z": 0},
+        {"x": float("nan"), "y": 0, "z": 0},
+    ]
+    with pytest.raises(ValueError):
+        optimizer.compress(path)
+
+
+def test_compress_raises_on_inf(optimizer: PathOptimizer) -> None:
+    """compress 遇 Inf 坐标应抛 ValueError。"""
+    for val in (float("inf"), float("-inf")):
+        path = [
+            {"x": 0, "y": 0, "z": 0},
+            {"x": val, "y": 0, "z": 0},
+        ]
+        with pytest.raises(ValueError):
+            optimizer.compress(path)
+
+
+def test_smooth_raises_on_nan(optimizer: PathOptimizer) -> None:
+    """smooth 遇 NaN 坐标应抛 ValueError。"""
+    path = [
+        {"x": 0, "y": 0, "z": 0},
+        {"x": 1, "y": float("nan"), "z": 0},
+        {"x": 2, "y": 0, "z": 0},
+    ]
+    with pytest.raises(ValueError):
+        optimizer.smooth(path)
+
+
+def test_smooth_raises_on_inf(optimizer: PathOptimizer) -> None:
+    """smooth 遇 Inf 坐标应抛 ValueError。"""
+    for val in (float("inf"), float("-inf")):
+        path = [
+            {"x": 0, "y": 0, "z": 0},
+            {"x": val, "y": 0, "z": 0},
+            {"x": 2, "y": 0, "z": 0},
+        ]
+        with pytest.raises(ValueError):
+            optimizer.smooth(path)

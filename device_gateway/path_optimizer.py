@@ -27,6 +27,15 @@ from typing import Any
 class PathOptimizer:
     """Simplify, smooth, and reorder device motion paths."""
 
+    @staticmethod
+    def _require_finite(path: list[dict[str, Any]]) -> None:
+        """Validate all point coordinates are finite (reject NaN/Inf)."""
+        for pt in path:
+            for axis in ("x", "y", "z"):
+                val = pt.get(axis, 0.0)
+                if not math.isfinite(val):
+                    raise ValueError(f"non-finite coordinate {axis}={val}")
+
     def compress(self, path: list[dict[str, Any]], tolerance: float = 0.5) -> list[dict[str, Any]]:
         """Simplify ``path`` using a Douglas-Peucker-like algorithm.
 
@@ -34,6 +43,7 @@ class PathOptimizer:
         segment endpoints is ``<= tolerance`` are removed. First and last
         points are always kept.
         """
+        self._require_finite(path)
         if len(path) <= 2:
             return path
         keep: set[int] = {0, len(path) - 1}
@@ -63,6 +73,7 @@ class PathOptimizer:
         Weights are ``0.25 / 0.5 / 0.25``. Endpoints are preserved; ``z`` and
         any extra keys are copied unchanged.
         """
+        self._require_finite(path)
         if len(path) < 3 or iterations <= 0:
             return path
         result: list[dict[str, Any]] = [dict(p) for p in path]

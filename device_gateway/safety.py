@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 MAX_POINTS = 128
@@ -29,7 +30,7 @@ def validate_run_path_params(params: dict[str, Any]) -> dict[str, Any]:
     if len(path) > MAX_POINTS:
         raise SafetyError("path has too many points")
     feed = params.get("feed", DEFAULT_FEED)
-    if not isinstance(feed, (int, float)) or feed <= 0 or feed > MAX_FEED:
+    if not isinstance(feed, (int, float)) or not math.isfinite(feed) or feed <= 0 or feed > MAX_FEED:
         raise SafetyError("feed is outside allowed range")
     normalized_path = []
     for point in path:

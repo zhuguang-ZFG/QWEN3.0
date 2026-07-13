@@ -147,6 +147,7 @@ def make_admin_token(user: dict[str, Any] | sqlite3.Row, expires_in: int = 86400
         "role": user["role"],
         "iat": now_ts,
         "exp": now_ts + expires_in,
+        "typ": "admin",
     }
     return jwt.encode(payload, secret, algorithm="HS256")
 
@@ -159,11 +160,19 @@ def decode_admin_token(token: str) -> dict[str, Any] | None:
     if not secret:
         return None
     try:
-        return jwt.decode(token, secret, algorithms=["HS256"])
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
         return None
+    # JWT typ isolation: reject device tokens on admin endpoints
+    token_typ = payload.get("typ")
+    if token_typ == "device":
+        _log.warning("Admin decode rejected device-typed token: %s", payload.get("sub", ""))
+        return None
+    if token_typ is None:
+        _log.warning("Admin token missing typ field  -  treating as legacy token: %s", payload.get("sub", ""))
+    return payload
 
 
 def admin_payload(user: dict[str, Any] | sqlite3.Row) -> dict[str, Any]:
