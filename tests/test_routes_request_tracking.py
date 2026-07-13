@@ -89,11 +89,34 @@ def test_record_request_updates_stats():
 
 
 def test_get_ip_location_localhost():
-    assert rt.get_ip_location("127.0.0.1") == "本地"
+    assert rt.get_ip_location("127.0.0.1") == "内网"
+    assert rt.get_ip_location("localhost") == "未知"
+    assert rt.get_ip_location("") == "未知"
 
 
 def test_get_ip_location_invalid():
     assert rt.get_ip_location("not-an-ip") == "未知"
+
+
+def test_get_ip_location_private_ipv4():
+    """RFC1918 private IPv4 must be recognised as private."""
+    assert rt.get_ip_location("10.0.0.1") == "内网"
+    assert rt.get_ip_location("192.168.1.100") == "内网"
+    assert rt.get_ip_location("172.16.0.1") == "内网"
+    assert rt.get_ip_location("172.31.255.255") == "内网"
+
+
+def test_get_ip_location_private_ipv6():
+    """ULA IPv6 must be recognised as private."""
+    assert rt.get_ip_location("fd00::1") == "内网"
+
+
+def test_get_ip_location_invalid_variants():
+    """Non-parseable strings must return 未知."""
+    assert rt.get_ip_location("not-an-ip") == "未知"
+    assert rt.get_ip_location("256.256.256.256") == "未知"
+    assert rt.get_ip_location("") == "未知"
+    assert rt.get_ip_location("localhost") == "未知"
 
 
 @patch("urllib.request.urlopen")

@@ -11,6 +11,7 @@ import os as _os
 import re
 import threading
 import time
+import ipaddress
 import urllib.request
 
 from fastapi import Request
@@ -74,11 +75,14 @@ def _fetch_ip_location(ip: str) -> str:
 @functools.lru_cache(maxsize=256)
 def get_ip_location(ip: str) -> str:
     """查询 IP 地理位置（缓存结果）。"""
-    if ip in ("127.0.0.1", "localhost", "::1", ""):
-        return "本地"
-
-    if not re.match(r"^[\d.:a-fA-F]+$", ip):
+    if ip in ("", "localhost"):
         return "未知"
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return "未知"
+    if addr.is_private:
+        return "内网"
     return _fetch_ip_location(ip)
 
 

@@ -21,14 +21,20 @@ from routes.device_app_task_payloads import (
     snapshot_payload,
     task_row_payload,
 )
+
+import logging
 from routes.device_app_task_store import (
     approve_task_row,
     dispatch_approved_task,
     insert_task_row,
     record_rejection,
     reject_task_row,
+    revert_task_to_pending,
 )
 from routes.rate_limit_helper import check_key_limit
+
+
+_log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-tasks"])
 
@@ -159,7 +165,12 @@ async def approve_task(task_id: str, request: Request, authorization: str = Head
     row_or_error, task = approve_task_row(task_id, account)
     if isinstance(row_or_error, JSONResponse):
         return row_or_error
-    dispatch = await dispatch_approved_task(task_id, row_or_error["device_id"], task)
+    try:
+        dispatch = await dispatch_approved_task(task_id, row_or_error["device_id"], task)
+    except Exception as exc:
+        revert_task_to_pending(task_id)
+        _log.warning("dispatch failed for task %s: %s %s", task_id, type(exc).__name__, exc)
+        return err(500, "dispatch failed, task reverted to pending", 500)
     data = task_row_payload(row_or_error)
     data.update(dispatch)
     data["reason"] = str_field(body, "reason", "comment") or "approved"

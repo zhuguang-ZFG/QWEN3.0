@@ -1,6 +1,16 @@
+import pytest
+
+import rate_limiter
 from device_logic.db import connect
 from device_app_helpers import client as make_client
 from device_app_helpers import headers, seed_account_and_device, seed_binding
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    rate_limiter.reset()
+    yield
+    rate_limiter.reset()
 
 
 def test_device_app_voice_review_paths(tmp_path, monkeypatch):

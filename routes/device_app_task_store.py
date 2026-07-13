@@ -87,6 +87,21 @@ async def dispatch_approved_task(task_id: str, device_id: str, task: dict[str, A
     return await dispatch_or_enqueue(device_id, task)
 
 
+def revert_task_to_pending(task_id: str) -> None:
+    """Best-effort revert an approved task back to pending after dispatch failure."""
+    try:
+        with connect() as conn:
+            cur = conn.execute(
+                "UPDATE v2_task SET status='pending', error_msg=NULL WHERE id=? AND status='approved'",
+                (task_id,),
+            )
+            if getattr(cur, "rowcount", 0) > 0:
+                conn.commit()
+                _log.warning("reverted task %s to pending after dispatch failure", task_id)
+    except Exception as exc:
+        _log.warning("revert_task_to_pending failed task=%s err=%s", task_id, exc)
+
+
 def reject_task_row(task_id: str, account: dict[str, Any], reason: str):
     with connect() as conn:
         row = conn.execute("SELECT * FROM v2_task WHERE id=?", (task_id,)).fetchone()

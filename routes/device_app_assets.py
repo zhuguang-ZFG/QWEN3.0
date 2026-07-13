@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 
+from config import settings
 from device_gateway.task_creation import project_to_motion_task_async
 from device_workflow.state import TaskState
 from device_logic.access import require_device_control
@@ -15,6 +16,7 @@ from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, ok, read_body, str_field
 from routes.device_app_task_store import insert_task_row
+from routes.rate_limit_helper import check_key_limit
 from xiaozhi_drawing.svg_validator import sanitize_svg_markup
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-assets"])
@@ -206,6 +208,13 @@ async def render_asset(asset_id: str, request: Request, authorization: str = Hea
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body
+
+    limited = check_key_limit(
+        f"device_app_task:{account['id']}",
+        settings.DEVICE.dlc_task_per_min,
+    )
+    if limited is not None:
+        return limited
 
     device_id = str_field(body, "deviceId", "device_id")
     if not device_id:

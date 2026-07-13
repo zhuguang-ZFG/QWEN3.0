@@ -85,10 +85,13 @@ def _tool_error(req_id: object, code: int, message: str) -> dict:
     }
 
 
-def _submit(client: httpx.Client, endpoint: str, payload: dict) -> dict:
+def _submit(client: httpx.Client, endpoint: str, payload: dict, idem_key: str | None = None) -> dict:
     url = f"{DLC_API_URL}{endpoint}"
+    headers = _auth_headers()
+    if idem_key is not None:
+        headers["Idempotency-Key"] = f"mcp-{idem_key}"
     try:
-        resp = client.post(url, json=payload, headers=_auth_headers())
+        resp = client.post(url, json=payload, headers=headers)
     except Exception as exc:
         logger.warning("dlc_api request failed: %s", exc)
         return {"status": "failed", "error": "dlc_api unreachable"}
@@ -115,7 +118,7 @@ def _get_json(client: httpx.Client, endpoint: str) -> dict:
 
 
 def _format_submission(client: httpx.Client, req_id: object, endpoint: str, payload: dict) -> dict:
-    result = _submit(client, endpoint, payload)
+    result = _submit(client, endpoint, payload, idem_key=str(req_id))
     if result.get("error"):
         return _tool_error(req_id, -32603, result["error"])
     summary = (

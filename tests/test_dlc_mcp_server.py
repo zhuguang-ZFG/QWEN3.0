@@ -197,6 +197,29 @@ def test_get_status_includes_bearer_token_when_configured() -> None:
     assert captured["headers"].get("Authorization") == "Bearer secret-token"
 
 
+def test_submit_includes_idempotency_key_for_dispatch() -> None:
+    """dispatch POST requests must carry Idempotency-Key: mcp-<req_id> header."""
+    captured: dict = {}
+    mock_resp = httpx.Response(200, json={"status": "queued", "task_id": "t1", "queue_depth": 1, "error": None})
+
+    class _Recorder:
+        def post(self, url, json=None, headers=None):
+            captured["url"] = url
+            captured["headers"] = headers or {}
+            return mock_resp
+
+    handle_request(
+        _Recorder(),
+        {
+            "jsonrpc": "2.0",
+            "id": 30,
+            "method": "tools/call",
+            "params": {"name": "dlc.write_text", "arguments": {"device_id": "dev-1", "text": "hi"}},
+        },
+    )
+    assert captured["headers"].get("Idempotency-Key") == "mcp-30"
+
+
 def test_submit_omits_auth_header_when_no_token() -> None:
     """No DLC_API_TOKEN → no Authorization header (dev/local behavior unchanged)."""
     captured: dict = {}

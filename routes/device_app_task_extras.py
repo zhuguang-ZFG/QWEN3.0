@@ -7,12 +7,14 @@ from typing import Any
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
+from config import settings
 from device_logic.access import require_device_control
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, read_body, str_field
 from routes.device_app_task_store import insert_task_row
 from routes.device_app_task_create import _build_app_gateway_task, _dispatch_or_wait
+from routes.rate_limit_helper import check_key_limit
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-task-extras"])
 
@@ -77,6 +79,11 @@ async def create_batch_tasks(device_id: str, request: Request, authorization: st
         return err(400, "tasks array is required", 400)
     if len(raw_tasks) > _MAX_BATCH_TASKS:
         return err(400, f"max {_MAX_BATCH_TASKS} tasks per batch", 400)
+    # Pre-check: each task in the batch consumes a quota slot.
+    for _ in raw_tasks:
+        limited = check_key_limit(f"device_app_task:{account['id']}", settings.DEVICE.dlc_task_per_min)
+        if limited is not None:
+            return limited
     results: list[dict[str, Any]] = []
     for item in raw_tasks:
         if not isinstance(item, dict):

@@ -126,6 +126,22 @@ async def test_dispatch_approved_task_no_task():
     assert result["sent"] is False
 
 
+def test_revert_task_to_pending_success():
+    """revert an approved task back to pending."""
+    row = {"id": "task-1", "device_id": "dev-1", "status": "approved"}
+    with _patch_conn(row=row, rowcount=1):
+        store.revert_task_to_pending("task-1")
+        # No exception = success
+
+
+def test_revert_task_to_pending_noop_when_not_approved():
+    """revert is a no-op if the task is not in approved state."""
+    row = {"id": "task-1", "device_id": "dev-1", "status": "pending"}
+    with _patch_conn(row=row, rowcount=0):
+        store.revert_task_to_pending("task-1")
+        # No exception = success (best-effort)
+
+
 def test_reject_task_row_success(account):
     row = {"id": "task-1", "device_id": "dev-1", "status": "pending"}
     updated = {"id": "task-1", "device_id": "dev-1", "status": "rejected"}

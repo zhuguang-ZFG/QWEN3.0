@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
 import re
@@ -181,7 +182,9 @@ class MultiDeviceCoordinator:
         regions = self.split_artwork(svg_content, len(device_ids))
         assignments = self.assign_devices(regions, device_ids)
         batch_id = task_store.next_task_id()
-        results = [self._dispatch_one(svg_content, assignment, batch_id, coordinator_id) for assignment in assignments]
+        results = [
+            await asyncio.to_thread(self._dispatch_one, svg_content, a, batch_id, coordinator_id) for a in assignments
+        ]
         return {
             "batch_id": batch_id,
             "coordinator_id": coordinator_id,

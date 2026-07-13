@@ -189,3 +189,41 @@ def test_voice_ws_rejects_oversized_frame(tmp_path, monkeypatch):
         message = websocket.receive_json()
         assert message["type"] == "error"
         assert "max size" in message["message"]
+
+
+def test_voice_ws_session_data_limit_exceeded(tmp_path, monkeypatch):
+    """Sending cumulative bytes exceeding VOICE.max_audio_bytes * 10 closes with 1009."""
+    voice_app_ws_ticket.reset()
+    voice_ws_connections.reset()
+    monkeypatch.setattr("routes.device_app_voice_ws.open_voice_stream_session", _fake_open_session)
+    monkeypatch.setattr("routes.device_app_voice_ws.VOICE", replace(VOICE, max_audio_bytes=100))
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    ticket = client.post("/device/v1/app/voice/ticket", headers=headers("a-owner")).json()["ticket"]
+
+    with client.websocket_connect(f"/device/v1/app/voice/ws?ticket={ticket}") as websocket:
+        # 11 frames x 100 bytes = 1100 > 1000 session limit
+        for _ in range(11):
+            websocket.send_bytes(b"x" * 100)
+        message = websocket.receive_json()
+        assert message["type"] == "error"
+        assert "session audio data limit exceeded" in message["message"]
+
+
+def test_voice_ws_session_data_under_limit_ok(tmp_path, monkeypatch):
+    """Cumulative bytes within VOICE.max_audio_bytes * 10 works normally."""
+    voice_app_ws_ticket.reset()
+    voice_ws_connections.reset()
+    monkeypatch.setattr("routes.device_app_voice_ws.open_voice_stream_session", _fake_open_session)
+    monkeypatch.setattr("routes.device_app_voice_ws.VOICE", replace(VOICE, max_audio_bytes=100))
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    ticket = client.post("/device/v1/app/voice/ticket", headers=headers("a-owner")).json()["ticket"]
+
+    with client.websocket_connect(f"/device/v1/app/voice/ws?ticket={ticket}") as websocket:
+        # 9 frames x 100 bytes = 900, under the 1000 session limit
+        for _ in range(9):
+            websocket.send_bytes(b"x" * 100)
+        websocket.send_text("stop")
+        transcript = websocket.receive_json()
+        assert transcript["type"] == "transcript"

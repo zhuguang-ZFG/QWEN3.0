@@ -87,5 +87,5 @@ class TestRecordRequestCountry:
                 True,
                 client_ip="127.0.0.1",
             )
-        mock_fetch.assert_not_called()  # localhost is handled before lookup
-        assert rt._stats["recent_logs"][0]["country"] == "本地"
+        mock_fetch.assert_not_called()  # private IP is handled before lookup
+        assert rt._stats["recent_logs"][0]["country"] == "内网"

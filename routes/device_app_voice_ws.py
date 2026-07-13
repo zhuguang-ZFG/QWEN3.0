@@ -62,7 +62,7 @@ async def _send_transcript(websocket: WebSocket, text: str, *, is_final: bool) -
 
 
 async def _send_asr_error(websocket: WebSocket, exc: ValueError | RuntimeError) -> None:
-    if websocket.client_state == WebSocketState.CONNECTED:
+    if websocket.application_state == WebSocketState.CONNECTED:
         await websocket.send_json({"type": "error", "message": str(exc)})
 
 
@@ -137,12 +137,22 @@ async def _handle_control_text(websocket: WebSocket, session: Any, text: str) ->
 
 
 async def _voice_receive_loop(websocket: WebSocket, session: Any, account: dict[str, Any]) -> None:
+    total_bytes = 0
+    session_limit = VOICE.max_audio_bytes * 10
     try:
-        while websocket.client_state == WebSocketState.CONNECTED:
+        while websocket.application_state == WebSocketState.CONNECTED:
             message = await websocket.receive()
             if message["type"] == "websocket.disconnect":
                 break
             if "bytes" in message and message["bytes"] is not None:
+                total_bytes += len(message["bytes"])
+                if total_bytes > session_limit:
+                    await _send_asr_error(
+                        websocket,
+                        ValueError("session audio data limit exceeded"),
+                    )
+                    await websocket.close(code=1009)
+                    break
                 if not await _handle_audio_frame(websocket, session, message["bytes"]):
                     break
                 continue
@@ -153,7 +163,7 @@ async def _voice_receive_loop(websocket: WebSocket, session: Any, account: dict[
         _log.debug("voice ws disconnected account=%s", account.get("id"))
     except Exception as exc:
         _log.warning("voice ws error account=%s: %s", account.get("id"), type(exc).__name__, exc_info=True)
-        if websocket.client_state == WebSocketState.CONNECTED:
+        if websocket.application_state == WebSocketState.CONNECTED:
             await websocket.send_json({"type": "error", "message": "ASR failed"})
 
 
@@ -163,13 +173,13 @@ async def _finalize_voice_session(websocket: WebSocket, session: Any) -> None:
     elif isinstance(session, BufferedVoiceStreamSession):
         try:
             final_text = await session.finish()
-            if final_text and websocket.client_state == WebSocketState.CONNECTED:
+            if final_text and websocket.application_state == WebSocketState.CONNECTED:
                 await _send_transcript(websocket, final_text, is_final=True)
         except (ValueError, RuntimeError) as exc:
             await _send_asr_error(websocket, exc)
         except Exception as exc:
             _log.warning("voice ws finalize failed: %s", type(exc).__name__)
-    if websocket.client_state != WebSocketState.DISCONNECTED:
+    if websocket.application_state != WebSocketState.DISCONNECTED:
         await websocket.close()
 
 

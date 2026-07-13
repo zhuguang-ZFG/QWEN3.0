@@ -220,6 +220,23 @@ def test_approve_task_success(client, auth_header):
     assert response.json()["status"] == "approved"
 
 
+def test_approve_task_dispatch_failure_returns_500_and_reverts(client, auth_header):
+    """When dispatch_approved_task raises, endpoint returns 500 and calls revert."""
+    from unittest.mock import patch
+    from routes import device_app_tasks as tasks
+
+    with (
+        patch.object(tasks, "dispatch_approved_task", side_effect=RuntimeError("redis down")),
+        patch.object(tasks, "revert_task_to_pending") as mock_revert,
+    ):
+        response = client.post("/device/v1/app/tasks/task-1/approve", json={}, headers=auth_header)
+    assert response.status_code == 500
+    data = response.json()
+    # err() returns {"code": 500, "message": "..."}
+    assert "reverted to pending" in data.get("message", "")
+    mock_revert.assert_called_once_with("task-1")
+
+
 def test_reject_task_success(client, auth_header):
     response = client.post("/device/v1/app/tasks/task-1/reject", json={"reason": "no need"}, headers=auth_header)
     assert response.status_code == 200

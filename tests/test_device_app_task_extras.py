@@ -1,11 +1,13 @@
 import pytest
 
+import rate_limiter
 from device_app_helpers import client as make_client
 from device_app_helpers import headers, seed_account_and_device, seed_binding
 
 
 @pytest.fixture(autouse=True)
 def _seed_db(tmp_path, monkeypatch):
+    rate_limiter.reset()
     client, _store = make_client(tmp_path, monkeypatch)
     seed_account_and_device()
     seed_binding()
@@ -165,3 +167,42 @@ def test_batch_rejects_missing_tasks_array(tmp_path, monkeypatch):
 
     assert response.status_code == 400
     assert "tasks array is required" in response.json()["message"]
+
+
+def test_batch_rate_limited(tmp_path, monkeypatch):
+    """Batch returns 429 when rate limit is exceeded."""
+    from fastapi.responses import JSONResponse
+    from routes import device_app_task_extras as extras
+
+    limited = JSONResponse(
+        status_code=429,
+        content={"error": {"message": "Rate limit exceeded. Try again later.", "type": "rate_limit_error"}},
+    )
+    monkeypatch.setattr(extras, "check_key_limit", lambda _key, _max: limited)
+    client, _store = _client(tmp_path, monkeypatch)
+    tasks = [{"capability": "run_path", "params": {"path": [{"x": i, "y": i, "z": 0}]}} for i in range(2)]
+    response = client.post(
+        "/device/v1/app/devices/dev-1/batch-tasks",
+        headers=headers("a-owner"),
+        json={"tasks": tasks},
+    )
+    assert response.status_code == 429
+    assert response.json()["error"]["type"] == "rate_limit_error"
+
+
+def test_batch_not_rate_limited_when_quota_ok(tmp_path, monkeypatch):
+    """Batch succeeds when rate limit is not exceeded (None return)."""
+    from routes import device_app_task_extras as extras
+
+    monkeypatch.setattr(extras, "check_key_limit", lambda _key, _max: None)
+    client, _store = _client(tmp_path, monkeypatch)
+    tasks = [{"capability": "run_path", "params": {"path": [{"x": 0, "y": 0, "z": 0}]}}]
+    response = client.post(
+        "/device/v1/app/devices/dev-1/batch-tasks",
+        headers=headers("a-owner"),
+        json={"tasks": tasks},
+    )
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["count"] == 1
+    assert data["tasks"][0]["status"] == "approved"
