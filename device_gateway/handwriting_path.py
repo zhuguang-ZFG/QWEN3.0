@@ -58,6 +58,12 @@ def try_text_to_handwriting(
     返回结构与 _try_preset_shape 一致（status/image_url/svg_path/width/height/model/error）。
     """
     text = _resolve_writing_text(prompt, device_id, device_type)
+    from dlc_core.safety import MAX_TEXT_LENGTH
+
+    if text and len(text) > MAX_TEXT_LENGTH:
+        logger.warning("handwriting text too long: %d > %d", len(text), MAX_TEXT_LENGTH)
+        return None
+
     if not text:
         return None
 

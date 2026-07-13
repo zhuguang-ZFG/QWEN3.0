@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import logging
 import secrets
@@ -41,11 +42,12 @@ def create_captcha(code: str | None = None) -> tuple[str, str]:
         code = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(CAPTCHA_CODE_LENGTH))
     code = code.upper()
     captcha_id = new_id()
+    code_hash = hashlib.sha256(code.encode()).hexdigest()
     with connect() as conn:
         _cleanup_expired()
         conn.execute(
             "INSERT INTO v2_captcha (id, code, expires_at) VALUES (?, ?, ?)",
-            (captcha_id, code, expires_at(CAPTCHA_TTL_SECONDS)),
+            (captcha_id, code_hash, expires_at(CAPTCHA_TTL_SECONDS)),
         )
         conn.commit()
     return captcha_id, code
@@ -65,7 +67,7 @@ def verify_captcha(captcha_id: str | None, captcha_code: str | None) -> JSONResp
             return err(4001, "Invalid or expired captcha", 400)
         conn.execute("DELETE FROM v2_captcha WHERE id=?", (captcha_id,))
         conn.commit()
-        if not secrets.compare_digest(row["code"].upper(), captcha_code.upper()):
+        if not secrets.compare_digest(row["code"], hashlib.sha256(captcha_code.upper().encode()).hexdigest()):
             return err(4001, "Invalid or expired captcha", 400)
     return None
 

@@ -18,11 +18,19 @@ DRAW_BACKEND_MODELS = {
     "dashscope_flux": "flux-schnell",
 }
 
+# Whitelist of DashScope wanx models that callers may request; prevents
+# arbitrary/high-cost model injection via user-supplied prefs["model"].
+ALLOWED_WANX_MODELS: frozenset[str] = frozenset(DRAW_BACKEND_MODELS.values())
+
 
 def resolve_draw_model(backend_name: str, caller_model: str) -> str:
-    """Map try_backends entry to DashScope model; caller overrides wanx only."""
+    """Map try_backends entry to DashScope model; caller overrides wanx only.
+
+    ``caller_model`` is accepted only if it appears in ``ALLOWED_WANX_MODELS``;
+    unknown values fall back to the default for the backend.
+    """
     default_model = DRAW_BACKEND_MODELS.get(backend_name, "wanx2.1-t2i-turbo")
-    if caller_model and backend_name == "dashscope_wanx":
+    if caller_model and backend_name == "dashscope_wanx" and caller_model in ALLOWED_WANX_MODELS:
         return caller_model
     return default_model
 

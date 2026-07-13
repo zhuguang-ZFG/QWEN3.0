@@ -52,12 +52,12 @@ _COMMAND_PATTERNS: list[tuple[re.Pattern, str, dict | None]] = [
     # Move commands
     (
         re.compile(
-            r"^(移动|移动到|移到|go\s*to|move\s*to)\s*x\s*(?P<x>-?\d+)\s*y\s*(?P<y>-?\d+)(\s*z\s*(?P<z>-?\d+))?"
+            r"^(移动|移动到|移到|go\s*to|move\s*to)\s*x\s*(?P<x>-?\d{1,10})\s*y\s*(?P<y>-?\d{1,10})(\s*z\s*(?P<z>-?\d{1,10}))?"
         ),
         "move_abs",
         None,
     ),
-    (re.compile(r"^move\s+x\s*(?P<dx>-?\d+)\s*y\s*(?P<dy>-?\d+)", re.I), "move_rel", None),
+    (re.compile(r"^move\s+x\s*(?P<dx>-?\d{1,10})\s*y\s*(?P<dy>-?\d{1,10})", re.I), "move_rel", None),
 ]
 
 # ── Public API ───────────────────────────────────────────────────────────────

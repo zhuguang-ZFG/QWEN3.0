@@ -139,7 +139,11 @@ async def test_timeout_triggers_fallback(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_config_model_overrides_only_primary_backend(monkeypatch):
-    """Caller model overrides wanx only; flux fallback keeps mapping model."""
+    """Caller model overrides wanx only; flux fallback keeps mapping model.
+
+    Note: caller_model must be in ALLOWED_WANX_MODELS (P1 security fix).
+    Unknown models fall back to the default for the backend.
+    """
     monkeypatch.setenv("LIMA_AUTO_FALLBACK", "1")
 
     captured_models: list[str] = []
@@ -164,10 +168,10 @@ async def test_config_model_overrides_only_primary_backend(monkeypatch):
     ):
         result = await _generate_image(
             "model override test",
-            model="custom-model-v2",
+            model="wanx2.1-t2i-turbo",
             size="512*512",
             device_id="test-model-override",
         )
 
     assert result["status"] == "success"
-    assert captured_models == ["custom-model-v2", "flux-schnell"]
+    assert captured_models == ["wanx2.1-t2i-turbo", "flux-schnell"]

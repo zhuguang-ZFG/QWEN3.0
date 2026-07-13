@@ -114,6 +114,18 @@ async def handle_device_write(
         }
     """
     logger.info(f"Device {device_id} write request: {text[:30]}... (font={font_style}, size={size})")
+    from dlc_core.safety import MAX_TEXT_LENGTH
+
+    if len(text) > MAX_TEXT_LENGTH:
+        return {
+            "status": "failed",
+            "path_data": [],
+            "preview_svg": "",
+            "width": 0,
+            "height": 0,
+            "model": "deterministic",
+            "error": f"text too long: {len(text)} > {MAX_TEXT_LENGTH}",
+        }
     try:
         scale = _resolve_font_params(font_style, size)
         path_list = text_to_path(text, origin_x=5.0, origin_y=20.0, scale=scale)
