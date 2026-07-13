@@ -2,25 +2,32 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-13 F5：MCP 幂等键内容寻址（跟进 a9e44bc7）
+
+- **改动**：`dlc_mcp/server.py` 新增 `_dispatch_idem_key(endpoint, payload)` → `sha256(canonical)[:32]`；`Idempotency-Key: mcp-<32hex>`，与 JSON-RPC id 解耦
+- **测试**：同 payload 不同 id 同 key；不同 payload 不同 key；金丝雀 digest；`tests/test_dlc_mcp_server.py` 16 passed
+- **门禁**：ruff / format / check_code_size PASS
+- **实现方**：Grok A2A（Reasonix 忙时分流）
+
 ## 2026-07-13 安全加固：batch/render 限流、voice 会话字节、approve 失败回滚、MCP 幂等头、私网 IP 不外发
 
-- **改动**（工作区 → 本批 commit）：
+- **提交**：`a9e44bc7` + docs `669be471`
+- **改动**：
   - `routes/device_app_task_extras.py`：batch-tasks 按条数预扣 `device_app_task:{account_id}`（中途 429 已扣不退回，防绕过）
   - `routes/device_app_assets.py`：render-asset 同桶单次限流
   - `device_gateway/coordinator.py`：`execute_coordinated` 经 `asyncio.to_thread` 卸阻塞派发
   - `routes/device_app_voice_ws.py`：会话累计音频 `VOICE.max_audio_bytes*10`，超限 close 1009；`client_state`→`application_state`
-  - `dlc_mcp/server.py`：`_submit` 带 `Idempotency-Key: mcp-<req_id>`
+  - `dlc_mcp/server.py`：初版 `Idempotency-Key: mcp-<req_id>`（已由 F5 内容寻址替换）
   - `routes/request_tracking.py`：`get_ip_location` 私有 IP →「内网」，非法/空 →「未知」，不外发 ip-api
   - `routes/device_app_tasks.py` + `task_store.py`：approve 后 dispatch 失败 `revert_task_to_pending` + 500
   - 测试：F1–F7 覆盖；新增 `tests/test_device_app_assets.py`；相关文件 autouse `rate_limiter.reset()`
 - **门禁**：ruff 改动文件 All checks passed；定点 pytest **92 passed**
 - **第三方复核（Grok A2A，只读）**：总体 **可以提交**；无必须返工硬伤
 - **建议后续（非阻断）**：
-  1. 高：MCP 幂等键勿只绑 JSON-RPC `req_id`（重试换 id / 进程重启撞键）
+  1. ~~高：MCP 幂等键勿只绑 JSON-RPC `req_id`~~ → **已修（F5）**
   2. 中：`revert` 与「已入队」语义对齐，避免稀有双投窗口
   3. 中：补 batch 预扣次数、voice close 1009 断言；sharing 测可选 reset
   4. 低：`render_asset` 压回 ≤50 行；`not is_global` 收紧 geo；status_ws 状态字段统一
-- **未做本批**：部署双节点（仅 commit；上线另开）
 
 ## 2026-07-12 审查 MEDIUM：否决 to_thread/hgetall；固件 user_only DoToolCall 门禁
 
