@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -198,26 +200,68 @@ def test_get_status_includes_bearer_token_when_configured() -> None:
 
 
 def test_submit_includes_idempotency_key_for_dispatch() -> None:
-    """dispatch POST requests must carry Idempotency-Key: mcp-<req_id> header."""
-    captured: dict = {}
+    """dispatch POST must carry content-addressed Idempotency-Key: mcp-<32hex>."""
+    keys: list[str] = []
     mock_resp = httpx.Response(200, json={"status": "queued", "task_id": "t1", "queue_depth": 1, "error": None})
 
     class _Recorder:
         def post(self, url, json=None, headers=None):
-            captured["url"] = url
-            captured["headers"] = headers or {}
+            keys.append((headers or {}).get("Idempotency-Key", ""))
             return mock_resp
 
-    handle_request(
-        _Recorder(),
-        {
-            "jsonrpc": "2.0",
-            "id": 30,
-            "method": "tools/call",
-            "params": {"name": "dlc.write_text", "arguments": {"device_id": "dev-1", "text": "hi"}},
-        },
+    payload_args = {"device_id": "dev-1", "text": "hi"}
+    for req_id in (30, 99):
+        handle_request(
+            _Recorder(),
+            {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "method": "tools/call",
+                "params": {"name": "dlc.write_text", "arguments": payload_args},
+            },
+        )
+    assert len(keys) == 2
+    for key in keys:
+        assert re.fullmatch(r"mcp-[0-9a-f]{32}", key), key
+    assert keys[0] == keys[1]
+
+    # Canary: expected digest from the same content-addressing algorithm.
+    endpoint = "/dlc/tasks/dispatch"
+    body = {"type": "write_text", "device_id": "dev-1", "payload": {"text": "hi"}}
+    canonical = json.dumps(
+        {"e": endpoint, "p": body},
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
     )
-    assert captured["headers"].get("Idempotency-Key") == "mcp-30"
+    expected = "mcp-" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
+    assert keys[0] == expected
+
+
+def test_idempotency_key_differs_for_different_payload() -> None:
+    """Different write_text content must produce different Idempotency-Key values."""
+    keys: list[str] = []
+    mock_resp = httpx.Response(200, json={"status": "queued", "task_id": "t1", "queue_depth": 1, "error": None})
+
+    class _Recorder:
+        def post(self, url, json=None, headers=None):
+            keys.append((headers or {}).get("Idempotency-Key", ""))
+            return mock_resp
+
+    for text in ("hi", "hello"):
+        handle_request(
+            _Recorder(),
+            {
+                "jsonrpc": "2.0",
+                "id": 30,
+                "method": "tools/call",
+                "params": {"name": "dlc.write_text", "arguments": {"device_id": "dev-1", "text": text}},
+            },
+        )
+    assert len(keys) == 2
+    assert re.fullmatch(r"mcp-[0-9a-f]{32}", keys[0])
+    assert re.fullmatch(r"mcp-[0-9a-f]{32}", keys[1])
+    assert keys[0] != keys[1]
 
 
 def test_submit_omits_auth_header_when_no_token() -> None:

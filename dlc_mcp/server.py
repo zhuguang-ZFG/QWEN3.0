@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -117,8 +118,19 @@ def _get_json(client: httpx.Client, endpoint: str) -> dict:
         return {"error": "invalid response from dlc_api"}
 
 
+def _dispatch_idem_key(endpoint: str, payload: dict) -> str:
+    """Content-addressed idempotency key (decoupled from JSON-RPC id)."""
+    canonical = json.dumps(
+        {"e": endpoint, "p": payload},
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
+
+
 def _format_submission(client: httpx.Client, req_id: object, endpoint: str, payload: dict) -> dict:
-    result = _submit(client, endpoint, payload, idem_key=str(req_id))
+    result = _submit(client, endpoint, payload, idem_key=_dispatch_idem_key(endpoint, payload))
     if result.get("error"):
         return _tool_error(req_id, -32603, result["error"])
     summary = (
