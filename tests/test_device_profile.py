@@ -19,8 +19,8 @@ from device_gateway.device_profile import (
     profile_to_dict,
     register_device_profile,
     get_device_profile,
-    reset_device_profiles_for_tests,
 )
+from device_gateway.device_profile.registry import reset_device_profiles_for_tests
 
 
 def setup_function():

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from typing import Any
 
@@ -118,6 +119,8 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
 
 
 def reset_tasks_for_tests() -> None:
+    if "pytest" not in sys.modules:
+        raise RuntimeError("reset_tasks_for_tests is only available during testing")
     from device_artifacts.store import artifact_store
 
     store_mod.task_store.reset()
@@ -129,6 +132,8 @@ def reset_tasks_for_tests() -> None:
 
 
 def install_task_store_for_tests(store: DeviceTaskStore | None = None) -> DeviceTaskStore:
+    if "pytest" not in sys.modules:
+        raise RuntimeError("install_task_store_for_tests is only available during testing")
     selected = store or InMemoryDeviceTaskStore()
     store_mod.set_task_store_for_tests(selected)
     return selected

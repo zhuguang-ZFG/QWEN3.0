@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import secrets
+import warnings
 from typing import Any
 
 from fastapi.responses import JSONResponse
@@ -10,10 +11,18 @@ from fastapi.responses import JSONResponse
 from config import settings
 from device_logic.http import err, str_field
 
+warnings.warn(
+    "device_logic.sms is deprecated; do not use in production",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 SMS_EXPIRES_SECONDS = 300
 
 
 def configured_login_code() -> str:
+    # 安全风险：settings.DEVICE.login_code 是静态全局共享口令方案（已废弃）。
+    # 所有设备共用同一口令，不可用于生产鉴权。
     return settings.DEVICE.login_code
 
 

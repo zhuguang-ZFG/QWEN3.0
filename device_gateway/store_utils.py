@@ -13,10 +13,13 @@ global+configure+set+health pattern.
 from __future__ import annotations
 
 import abc
+import logging
 import threading
 from typing import Any, Callable, Generic, TypeVar
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class DeviceStoreBase(abc.ABC):
@@ -98,4 +101,6 @@ class StoreManager(Generic[T]):
                 raise RuntimeError(f"{required_redis_var} is required when {env_var}=redis")
             self.set(redis_factory(redis_url))
         else:
+            if backend and backend != "redis":
+                logger.warning("StoreManager configured with non-redis backend: %s", backend)
             self.set(self._default_factory())

@@ -188,9 +188,17 @@ def _profile_from_shadow(shadow: dict[str, Any], fallback_id: str) -> DeviceProf
 
 
 def _check_fw_compatibility(profile: DeviceProfile, fw_rev: str) -> bool:
-    """Check if firmware revision is compatible with the profile."""
+    """Check if firmware revision is compatible with the profile.
+
+    Empty fw_rev is fail-open at this layer: legacy devices may not report a
+    firmware revision, and rejecting them wholesale would block dispatch in
+    production. The strict gate lives in
+    ``protocol_registry.assert_firmware_compatible``, which the policy engine
+    only invokes when a firmware revision is actually present.
+    """
     if not fw_rev:
-        return True  # unknown fw is accepted conservatively
+        _log.warning("device has no fw_rev; skipping profile-level firmware check (fail-open)")
+        return True
     prefixes = profile.supported_fw_prefixes
     if "" in prefixes:
         return True

@@ -15,14 +15,12 @@ from device_gateway.device_profile import (
     DeviceHistory,
     DevicePreferences,
     DeviceProfile,
-    _device_profiles,
     get_device_profile,
     infer_profile_from_artifacts,
     profile_from_dict,
     profile_from_hello_frame,
     profile_to_dict,
     register_device_profile,
-    reset_device_profiles_for_tests,
 )
 
 __all__ = [
@@ -33,12 +31,10 @@ __all__ = [
     "DeviceHistory",
     "DevicePreferences",
     "DeviceProfile",
-    "_device_profiles",
     "get_device_profile",
     "infer_profile_from_artifacts",
     "profile_from_dict",
     "profile_from_hello_frame",
     "profile_to_dict",
     "register_device_profile",
-    "reset_device_profiles_for_tests",
 ]

@@ -6,7 +6,12 @@ Defines the authoritative contract for what the LiMa cloud considers
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
+
+from device_gateway._version_compare import parse_version
+
+_log = logging.getLogger(__name__)
 
 
 class ProtocolCompatibilityError(ValueError):
@@ -57,14 +62,15 @@ class ProtocolRegistry:
         """
         if not fw_rev:
             return "unknown"
-        if fw_rev >= self.min_firmware_str:
+        if parse_version(fw_rev) >= parse_version(self.min_firmware_str):
             return "compatible"
         return "outdated"
 
     def assert_firmware_compatible(self, fw_rev: str) -> None:
         """Raise ProtocolCompatibilityError if firmware is too old."""
         if not fw_rev:
-            return  # Empty = unknown device, allow through
+            _log.warning("device has no fw_rev; rejecting (fail-closed)")
+            raise ProtocolCompatibilityError("firmware version is required but missing")
         status = self.firmware_status(fw_rev)
         if status == "outdated":
             raise ProtocolCompatibilityError(

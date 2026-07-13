@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from device_gateway.firmware_matrix import COMPATIBILITY_MATRIX
+from device_gateway._version_compare import parse_version
 from device_gateway.sessions import registry
 from device_ledger.store import ledger_store
 
@@ -141,4 +142,4 @@ class DeviceHealthScore:
 
 def _latest_firmware() -> str:
     """Return the newest known firmware version."""
-    return max(COMPATIBILITY_MATRIX.keys()) if COMPATIBILITY_MATRIX else "v1.3.0"
+    return max(COMPATIBILITY_MATRIX.keys(), key=parse_version) if COMPATIBILITY_MATRIX else "v1.3.0"

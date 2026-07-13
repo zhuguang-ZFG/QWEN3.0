@@ -11,7 +11,6 @@ from device_logic.activation import (
     ACTIVATION_TTL_SECONDS,
     check_activation_code,
     new_activation_code,
-    reset_activation_store_for_tests,
 )
 from device_logic.auth import account_payload, authorize, jwt, make_token
 from device_logic.constants import (
@@ -68,7 +67,6 @@ __all__ = [
     "parse_supply_updates",
     "read_body",
     "require_device_access",
-    "reset_activation_store_for_tests",
     "sql_set_clause",
     "str_field",
     "task_payload",

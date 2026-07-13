@@ -45,10 +45,10 @@ def _enrich_online(device: dict[str, Any]) -> dict[str, Any]:
     return device
 
 
-def get_all_devices() -> list[dict[str, Any]]:
-    """Return all persisted devices, enriched with online status."""
+def get_all_devices(limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
+    """Return persisted devices with pagination, enriched with online status."""
     with connect() as conn:
-        rows = list_device_rows(conn, account_id="", role="admin")
+        rows = list_device_rows(conn, account_id="", role="admin", limit=limit, offset=offset)
         return [_enrich_online(_device_dict(row)) for row in rows]
 
 
@@ -74,7 +74,7 @@ def get_device(device_id: str) -> dict[str, Any] | None:
             {
                 "account_id": o["id"],
                 "nickname": o["nickname"],
-                "phone": o["phone"],
+                "phone": o["phone"][:3] + "****" if o["phone"] else None,
                 "bind_mode": o["bind_mode"],
                 "bound_at": o["bound_at"],
             }

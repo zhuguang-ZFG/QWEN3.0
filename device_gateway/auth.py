@@ -64,6 +64,7 @@ def validate_device_token(device_id: str, token: str) -> bool:
     # 固件直连兜底：token 为空但设备已注册（v2_device 表存在）→ 放行。
     # 固件目前 NVS 无 token 写入点（XIAOZHI_INTEGRATION_GAP_CN.md TASK-6 铁证）。
     if (not token) and _WS_REGISTERED_DEVICE_FALLBACK and _is_registered_device(device_id):
+        _log.warning("device auth fallback activated: LIMA_WS_REGISTERED_DEVICE_FALLBACK=1")
         return True
     return False
 

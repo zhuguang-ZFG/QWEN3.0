@@ -114,9 +114,14 @@ def bind_device(
     return {"binding_id": binding_id, "device_id": device["id"], "device": device}
 
 
-def list_device_rows(conn: sqlite3.Connection, *, account_id: str, role: str) -> list[sqlite3.Row]:
+def list_device_rows(
+    conn: sqlite3.Connection, *, account_id: str, role: str, limit: int = 100, offset: int = 0
+) -> list[sqlite3.Row]:
     if role == "admin":
-        return conn.execute("SELECT * FROM v2_device ORDER BY created_at DESC").fetchall()
+        return conn.execute(
+            "SELECT * FROM v2_device ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, offset),
+        ).fetchall()
     return conn.execute(
         """
         SELECT d.*
@@ -124,8 +129,9 @@ def list_device_rows(conn: sqlite3.Connection, *, account_id: str, role: str) ->
         JOIN v2_device_binding b ON b.device_id = d.id
         WHERE b.account_id=? AND b.status='active'
         ORDER BY b.bound_at DESC
+        LIMIT ? OFFSET ?
         """,
-        (account_id,),
+        (account_id, limit, offset),
     ).fetchall()
 
 
