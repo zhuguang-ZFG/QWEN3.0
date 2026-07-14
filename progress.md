@@ -2,6 +2,15 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-14 Codex 通道排查（A2A 4941）
+
+- **CLI**：本机 `codex.exe` 从 0.141.0 升级到 **0.144.4**（sharedchat 要求新客户端）
+- **A2A wrapper**（`mcp-a2a-bridge` `5e65391`）：默认 provider 改为 `sharedchat`，从 User 环境读 `SHAREDCHAT_CODEX_API_KEY`；muyuan 作 env 可回退
+- **实测**：
+  - 曾一度 `CODEX_SMOKE_OK` 成功（sharedchat + 0.144.4）
+  - 随后 sharedchat 间歇 **403 Cloudflare region block**（cf-ray 变节点）；muyuan 对 gpt-5.4/5.5 等持续 **503 no channel**
+- **结论**：本地 key/CLI/wrapper 已对齐；**编码通道受上游配额/区域限制，非本仓 bug**。Reasonix/Claude 仍可承担实现。
+
 ## 2026-07-14 存疑清单终裁 + API Key 管理下线（092）
 
 - **终裁**：存疑 13 项全闭环——VPS 运行时查证 3 项证伪（047 `v2_account.status` DEFAULT 'active'；080 CPython 3.12.3 带 GIL；082 单 uvicorn 进程 + keyed Redis 限流已开）；代码静态判定 9 项证伪 + 1 项确认（092）
