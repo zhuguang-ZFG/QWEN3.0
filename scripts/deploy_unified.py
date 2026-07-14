@@ -35,7 +35,7 @@ from scripts.deploy_unified_common import (
     get_deploy_target,
 )
 from scripts.deploy_unified_preflight import prepare_remote_deploy, restore_remote_backup
-from scripts.deploy_unified_deploy import deploy_files
+from scripts.deploy_unified_deploy import deploy_files, remove_remote_files
 from scripts.deploy_unified_restart import restart_server
 from scripts.deploy_unified_nginx import sync_nginx_config
 
@@ -107,6 +107,12 @@ def main() -> int:
     )
     parser.add_argument("--files", nargs="+", help="Specific files to deploy")
     parser.add_argument(
+        "--remove",
+        nargs="+",
+        metavar="PATH",
+        help="Relative paths to delete on the remote under the deploy root (after upload)",
+    )
+    parser.add_argument(
         "--target",
         choices=[TARGET_ALIYUN, TARGET_JDCLOUD],
         default=TARGET_JDCLOUD,
@@ -123,11 +129,23 @@ def main() -> int:
 
     target = get_deploy_target(args.target)
     project_root = Path(__file__).resolve().parent.parent
-    files = _collect_files(args, project_root)
-    print(f"Deploying {len(files)} files ({args.slice}) to {target.name} ({target.host})...")
+    remove_paths = list(args.remove or [])
+    # --remove without --files and without explicit --slice → delete-only (no core tree upload).
+    explicit_slice = any(a == "--slice" or a.startswith("--slice=") for a in sys.argv[1:])
+    if remove_paths and not args.files and not explicit_slice:
+        files = []
+    else:
+        files = _collect_files(args, project_root)
+    if not files and not remove_paths:
+        print("nothing to deploy or remove")
+        return 1
+    if files:
+        print(f"Deploying {len(files)} files ({args.slice}) to {target.name} ({target.host})...")
+    if remove_paths:
+        print(f"Will remove {len(remove_paths)} remote path(s) on {target.name}")
 
     backup_path = ""
-    if not args.dry_run:
+    if not args.dry_run and files:
         backup_label = "unified-files" if args.files else f"unified-{args.slice}"
         try:
             preflight = prepare_remote_deploy(files, target=target, label=backup_label)
@@ -142,7 +160,25 @@ def main() -> int:
         print(f"Backup: {preflight['backup_path']}")
         backup_path = str(preflight["backup_path"])
 
-    return _execute_deploy(files, target, args, backup_path)
+    rc = 0
+    if files:
+        rc = _execute_deploy(files, target, args, backup_path)
+        if rc != 0:
+            return rc
+    if remove_paths:
+        rm = remove_remote_files(remove_paths, target=target, dry_run=args.dry_run)
+        print(f"Remove: {rm['removed']} ok, {len(rm['failed'])} failed")
+        if rm["failed"]:
+            for f in rm["failed"]:
+                print(f"  FAIL: {f}")
+            return 1
+        if files == [] and not args.dry_run and not args.no_restart:
+            print("\nRestarting server after remote remove...")
+            ok = restart_server(target=target)
+            print(f"Health: {'OK' if ok else 'FAILED'}")
+            if not ok:
+                return 1
+    return rc
 
 
 if __name__ == "__main__":

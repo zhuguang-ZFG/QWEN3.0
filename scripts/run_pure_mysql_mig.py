@@ -3,6 +3,8 @@ from pathlib import Path
 import time
 import paramiko
 
+from scripts.deploy_common import configure_ssh_host_keys
+
 HOST = "117.72.118.95"
 LOCAL = Path(__file__).resolve().parents[1] / "deploy" / "jdcloud" / "pure_mysql_mig.py"
 OUT = Path(r"D:\QWEN3.0\_mysql_mig_out.txt")
@@ -17,7 +19,7 @@ def password() -> str:
 
 def main() -> int:
     c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script, VPS host key unpinned
+    configure_ssh_host_keys(c)
     c.connect(HOST, username="root", password=password(), timeout=25, allow_agent=False, look_for_keys=False)
     sftp = c.open_sftp()
     with sftp.file("/tmp/pure_mysql_mig.py", "w") as f:

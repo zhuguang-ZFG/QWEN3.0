@@ -7,6 +7,8 @@ from pathlib import Path
 
 import paramiko
 
+from scripts.deploy_common import configure_ssh_host_keys
+
 HOST = "117.72.118.95"
 REPO = Path(__file__).resolve().parents[1]
 LOCAL = REPO / "deploy" / "jdcloud" / "migrate_newapi_sqlite_to_mysql.sh"
@@ -36,7 +38,7 @@ echo PREINSTALL_OK
 
 def _connect() -> paramiko.SSHClient:
     c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script
+    configure_ssh_host_keys(c)
     c.connect(HOST, username="root", password=password(), timeout=25, allow_agent=False, look_for_keys=False)
     return c
 

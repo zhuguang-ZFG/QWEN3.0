@@ -116,13 +116,15 @@ def _score_server_env(vals: dict[str, str]) -> tuple[int, list[str]]:
 def check_server_env() -> tuple[int, list[str]]:
     try:
         import paramiko
+
+        from scripts.deploy_common import configure_ssh_host_keys
     except ImportError:
         return 0, ["WARN  server-env skipped (paramiko not installed)"]
     password = jdcloud_password()
     if not password:
         return 0, ["WARN  server-env skipped (set LIMA_JDCLOUD_SSH_PASS or VPS.txt)"]
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script, VPS host key unpinned
+    configure_ssh_host_keys(client)
     try:
         client.connect(HOST, username="root", password=password, timeout=25, allow_agent=False, look_for_keys=False)
     except OSError as exc:

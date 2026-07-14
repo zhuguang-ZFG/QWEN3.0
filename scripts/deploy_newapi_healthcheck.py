@@ -9,6 +9,8 @@ from pathlib import Path
 
 import paramiko
 
+from scripts.deploy_common import configure_ssh_host_keys
+
 HOST = os.environ.get("LIMA_JDCLOUD_SERVER", "117.72.118.95")
 REPO = Path(__file__).resolve().parents[1]
 LOCAL = REPO / "deploy" / "jdcloud" / "newapi_healthcheck.sh"
@@ -68,7 +70,7 @@ def main() -> int:
         raise SystemExit(f"missing {LOCAL}")
     script = LOCAL.read_text(encoding="utf-8")
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script
+    configure_ssh_host_keys(client)
     client.connect(HOST, username="root", password=password(), timeout=25, allow_agent=False, look_for_keys=False)
     sftp = client.open_sftp()
     with sftp.file("/opt/newapi/healthcheck.sh", "w") as f:

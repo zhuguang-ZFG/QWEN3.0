@@ -7,6 +7,8 @@ from pathlib import Path
 
 import paramiko
 
+from scripts.deploy_common import configure_ssh_host_keys
+
 HOST = "117.72.118.95"
 
 
@@ -21,7 +23,7 @@ def password() -> str:
 
 def main() -> int:
     c = paramiko.SSHClient()
-    c.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507  # one-off ops script, VPS host key unpinned
+    configure_ssh_host_keys(c)
     c.connect(HOST, username="root", password=password(), timeout=20, allow_agent=False, look_for_keys=False)
     # Only systemd + nginx static checks — never curl chat/completions
     cmd = r"""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -197,6 +198,71 @@ def _deploy_with_sftp(files: list[str], target: DeployTarget) -> dict:
                 results["failed"].append(f"{f}: {e}")
     finally:
         sftp.close()
+        ssh.close()
+    return results
+
+
+def remove_remote_files(paths: list[str], *, target: DeployTarget, dry_run: bool = False) -> dict:
+    """Delete relative paths under target.remote_path (plus matching .pyc under __pycache__).
+
+    Used when local files were deleted and upload-only deploy would leave orphans.
+    Paths must be relative (no absolute / drive / .. segments).
+    """
+    results: dict = {"removed": 0, "failed": [], "skipped": []}
+    if not paths:
+        return results
+
+    safe: list[str] = []
+    for raw in paths:
+        rel = raw.replace("\\", "/").lstrip("/")
+        if not rel or rel.startswith("../") or "/../" in rel or ":" in rel or rel.startswith(".."):
+            results["failed"].append(f"{raw}: unsafe path")
+            continue
+        safe.append(rel)
+
+    if dry_run:
+        for rel in safe:
+            print(f"  WOULD REMOVE: {target.remote_path}/{rel}")
+            results["removed"] += 1
+        return results
+
+    ssh = paramiko.SSHClient()
+    ssh.load_system_host_keys()
+    configure_ssh_host_keys(ssh)
+    try:
+        try:
+            ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
+        except paramiko.SSHException:
+            if not target.password:
+                raise
+            ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
+
+        root = target.remote_path.rstrip("/")
+        for rel in safe:
+            remote = f"{root}/{rel}"
+            parent = os.path.dirname(remote)
+            base = os.path.basename(remote)
+            stem = base.rsplit(".", 1)[0] if "." in base else base
+            remote_q = shlex.quote(remote)
+            parent_q = shlex.quote(parent)
+            stem_q = shlex.quote(stem)
+            # Remove file + common pyc companions; missing is OK.
+            cmd = (
+                f"rm -f -- {remote_q} "
+                f"{parent_q}/__pycache__/{stem_q}.cpython-*.pyc "
+                f"{parent_q}/__pycache__/{stem_q}.pyc "
+                f"2>/dev/null; "
+                f"if [ -e {remote_q} ]; then echo FAIL; else echo OK; fi"
+            )
+            _, stdout, stderr = ssh.exec_command(cmd, timeout=30)
+            out = stdout.read().decode("utf-8", "replace").strip()
+            err = stderr.read().decode("utf-8", "replace").strip()
+            if out.endswith("OK") or out == "OK":
+                results["removed"] += 1
+                print(f"  REMOVED: {rel}")
+            else:
+                results["failed"].append(f"{rel}: {out or err or 'still exists'}")
+    finally:
         ssh.close()
     return results
 

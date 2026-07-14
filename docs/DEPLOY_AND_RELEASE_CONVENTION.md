@@ -65,6 +65,9 @@ python scripts/deploy_unified.py --target jdcloud --slice core --sync-nginx
 # 仅上传指定文件（不重启）
 python scripts/deploy_unified.py --files <file1> <file2> --no-restart
 
+# 删除远端孤儿文件（本地已删、远端仍残留时；可与 --files 联用）
+python scripts/deploy_unified.py --remove routes/foo.py device_logic/bar.py --no-restart
+
 # Dry-run（仅检查，不执行）
 python scripts/deploy_unified.py --dry-run
 ```
