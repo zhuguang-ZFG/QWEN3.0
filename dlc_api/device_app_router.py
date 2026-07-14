@@ -9,7 +9,7 @@ re-attaches the still-active mini-program routers to it.
 
 Only top-level routers are listed here. Sub-routers that are ``include_router``-ed
 by their parent are intentionally omitted to avoid double registration:
-  - ``device_app_auth_email`` / ``device_app_auth_keys`` ← included by ``device_app_auth``
+  - ``device_app_auth_email`` ← included by ``device_app_auth``
   - ``device_app_usage`` ← included by ``device_app_stats``
   - ``device_app_sharing`` ← included by ``device_app_api``
 """

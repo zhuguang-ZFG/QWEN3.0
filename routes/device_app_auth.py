@@ -25,14 +25,13 @@ from device_logic.auth_rate import allow_device_auth
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, read_body, str_field
 from device_logic.wechat_gateway import WechatLoginError, WechatMiniappGateway
-from routes import device_app_auth_email, device_app_auth_keys
+from routes import device_app_auth_email
 from routes.request_tracking import client_ip
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-auth"])
 router.include_router(device_app_auth_email.router)
-router.include_router(device_app_auth_keys.router)
 
 
 def _find_or_create_wechat_account(openid: str, nickname: str | None) -> Any:

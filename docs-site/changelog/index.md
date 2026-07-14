@@ -4,6 +4,11 @@
 
 ---
 
+## 2026-07-14 下线 API Key 管理（只发不认的死功能）
+
+- 移除 `POST/GET/DELETE /device/v1/app/keys` 三个端点（`routes/device_app_auth_keys.py`、`device_logic/api_key.py` 删除）：签发的 `sk-lima-*` 密钥全仓无验证消费方，生产访问日志零调用。
+- 同步移除控制台 `keys.html` 页面及 `devices/handwriting/usage` 三处导航卡片；`v2_api_key` 表保留不动。
+
 ## 2026-07-10 小程序语音栈加固
 
 - 设备 App 语音 REST/WS 部署京东云，`LIMA_VOICE_E2E_STRICT=1` 生产探针 6/6 PASS。

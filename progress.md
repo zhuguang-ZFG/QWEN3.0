@@ -2,6 +2,14 @@
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)
 
+## 2026-07-14 存疑清单终裁 + API Key 管理下线（092）
+
+- **终裁**：存疑 13 项全闭环——VPS 运行时查证 3 项证伪（047 `v2_account.status` DEFAULT 'active'；080 CPython 3.12.3 带 GIL；082 单 uvicorn 进程 + keyed Redis 限流已开）；代码静态判定 9 项证伪 + 1 项确认（092）
+- **092 确认项**：`sk-lima-*` API key「只发不认」——`device_logic/api_key.py` 无 verify 消费方，但 `routes/device_app_auth_keys.py` 三端点在线可达。Claude 独立复核 + VPS nginx 日志零调用（含轮转）双重佐证后用户拍板下线
+- **下线范围**：删 `routes/device_app_auth_keys.py` + `device_logic/api_key.py` + 5 个测试用例；`device_app_auth.py` 摘 include；`v2_api_key` 表保留
+- **前端联动**（Claude 与我初审均漏检，grep dist 时发现）：`chat-web/keys.html` + `js/keys.js` 删除，`devices/handwriting/usage` 三处导航卡片移除，`npm run build` 重建 dist 无残留；docs-site changelog 补下线条目
+- **门禁**：聚焦 15 passed；ruff 全过
+
 ## 2026-07-14 A2A 逐文件全项目审查 + P0/P1/P2 修复（123 文件）
 
 - **审查**：Atom/Reasonix 初审 123 文件（高 150/中 281/低 289）→ Claude/Atom/Reasonix 三路交叉复核 153 项高危（确认 119/证伪 20/存疑 14）。产物：`.tmp/a2a_review/`（QUEUE/REVIEW_REPORT/findings/cross）
