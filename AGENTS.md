@@ -36,6 +36,17 @@ server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/ → ESP32
 4. **Git** — 禁止 `git add .`；仅 stage 里程碑文件；无密钥入库
 5. **CodeGraph** — 用 `lima-codegraph`；**禁止** GitNexus
 6. **部署** — `.env` 只合并不覆盖；VPS 真实域名验证 → [`docs/DEPLOY_AND_RELEASE_CONVENTION.md`](docs/DEPLOY_AND_RELEASE_CONVENTION.md)
+7. **写字机/运动 PC 仿真门禁（必须主动）** — 凡改动会碰到 **G-code / 运动协议 / U1-Grbl / 设备下发路径与 Grbl 命令** 的代码（含 `esp32S_XYZ` 固件运动栈、gateway 组 G 码、FakeDevice 运动契约中与 host SIL 对齐的部分），Agent **必须自己**跑 fz `agent_gate`，**禁止**只 pytest 绿就声称运动/解析已验证、禁止先烧录排 parser：
+   ```powershell
+   $env:FZ_ROOT = 'D:\Users\zhugu\fz'
+   $env:GRBL_ROOT = 'D:\Users\Grbl_Esp32'   # 产品写字机树；无则仅 protocol
+   $env:QWEN_ROOT = 'D:\QWEN3.0'
+   python $env:FZ_ROOT\scripts\agent_gate.py --profile standard
+   # 失败：读 $env:FZ_ROOT\results\agent_gate_last.json
+   ```
+   - 纯云 API / 小程序 / 语音 / 与 G 码无关的改动：仍用本仓 `pytest`/`ruff`，**不**要求 agent_gate。
+   - Host SIL **≠** 纸路/BT/真机；发版仍走清单与部署约定。
+   - 仿真实现只在 **fz**（https://github.com/zhuguang-ZFG/fz），勿在 QWEN 堆 grblHAL sim 源码。
 
 ---
 
@@ -48,6 +59,8 @@ powershell -File scripts/cursor_mcp_tiers.ps1 -Tier lean
 powershell -File scripts/cursor_rules_audit.ps1
 python scripts/deploy_unified.py --target jdcloud   # 默认京东云主生产
 $env:LIMA_VOICE_E2E_STRICT='1'; python scripts/run_voice_e2e_production.py  # 语音 strict E2E
+# 运动/G-code 相关改动后必须（见硬规则 7）：
+# $env:FZ_ROOT='D:\Users\zhugu\fz'; python $env:FZ_ROOT\scripts\agent_gate.py --profile standard
 ```
 
 小程序上传流程见 [`docs/AGENTS_REFERENCE_CN.md`](docs/AGENTS_REFERENCE_CN.md#常用命令)。
