@@ -3,6 +3,7 @@ line-length = 120
 
 exclude = [
     "esp32S_XYZ",
+    ".trellis",
     ".venv310",
     ".test-tmp",
     ".tmp",

@@ -63,7 +63,7 @@ def run_ruff(paths: list[str], root: Path = ROOT) -> subprocess.CompletedProcess
             check=False,
         )
         format_result = subprocess.run(
-            [sys.executable, "-m", "ruff", "format", "--check", f"@{argfile}"],
+            [sys.executable, "-m", "ruff", "format", "--check", "--force-exclude", f"@{argfile}"],
             cwd=root,
             capture_output=True,
             text=True,
