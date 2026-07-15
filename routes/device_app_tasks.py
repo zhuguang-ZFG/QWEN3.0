@@ -7,14 +7,13 @@ from fastapi.responses import JSONResponse
 
 from device_gateway import store as store_mod
 from device_gateway.coordinator import MultiDeviceCoordinator
-from device_gateway.tasks import create_and_route_task, task_snapshot
-from device_gateway.tasks import DeviceTaskRequest
+from device_gateway.tasks import task_snapshot
 from config import settings
 from device_logic.access import require_device_access, require_device_control
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, read_body, str_field
-from routes.device_app_task_create import _create_structured_task
+from routes.device_app_task_create import _create_free_text_task, _create_structured_task
 from routes.device_app_task_payloads import (
     merge_task_lists,
     require_device_owner,
@@ -26,7 +25,6 @@ import logging
 from routes.device_app_task_store import (
     approve_task_row,
     dispatch_approved_task,
-    insert_task_row,
     record_rejection,
     reject_task_row,
     revert_task_to_pending,
@@ -59,27 +57,7 @@ async def create_task(device_id: str, request: Request, authorization: str = Hea
             return denied
     text = str_field(body, "text", "prompt", "instruction")
     if text:
-        result = await create_and_route_task(
-            DeviceTaskRequest(
-                device_id=device_id,
-                text=text,
-                request_id=str_field(body, "requestId", "request_id"),
-                source="app",
-                entrypoint="app_api",
-            )
-        )
-        db_status = "pending" if result.status == "waiting_approval" else "approved"
-        # Persist so approve/list can find free-text tasks (same table as structured).
-        if not result.task.get("error") and result.task.get("task_id"):
-            insert_task_row(device_id, account, result.task, "app", db_status, body, {})
-        return {
-            "taskId": result.task["task_id"],
-            "status": result.status,
-            "sent": result.sent,
-            "queueDepth": result.queue_depth,
-            "task": result.task,
-            "dispatchStatus": result.status,
-        }
+        return await _create_free_text_task(device_id, account, body, text)
     return await _create_structured_task(device_id, account, body)
 
 
@@ -165,10 +143,11 @@ async def approve_task(task_id: str, request: Request, authorization: str = Head
     row_or_error, task = approve_task_row(task_id, account)
     if isinstance(row_or_error, JSONResponse):
         return row_or_error
+    device_id_for_task = str(row_or_error["device_id"])
     try:
-        dispatch = await dispatch_approved_task(task_id, row_or_error["device_id"], task)
+        dispatch = await dispatch_approved_task(task_id, device_id_for_task, task)
     except Exception as exc:
-        revert_task_to_pending(task_id)
+        revert_task_to_pending(task_id, device_id=device_id_for_task)
         _log.warning("dispatch failed for task %s: %s %s", task_id, type(exc).__name__, exc)
         return err(500, "dispatch failed, task reverted to pending", 500)
     data = task_row_payload(row_or_error)

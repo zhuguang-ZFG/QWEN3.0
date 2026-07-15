@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from device_gateway.path_validator import validate_capability_params
 from device_gateway.task_creation import project_to_motion_task_async
 from device_gateway.task_events import record_task_paused, record_task_resumed
+from device_gateway.tasks import DeviceTaskRequest, create_and_route_task, enqueue_pending_task
 from device_workflow.state import TaskState
 from device_logic.gateway import dispatch_or_enqueue
 from device_logic.http import err, str_field
@@ -88,6 +89,63 @@ async def _dispatch_or_wait(
     if waiting:
         return {"sent": False, "queueDepth": 0, "dispatchStatus": "waiting_approval"}, "pending"
     return await dispatch_or_enqueue(device_id, task), "approved"
+
+
+def _free_text_payload(task: dict[str, Any], status: str, queue_depth: int) -> dict[str, Any]:
+    return {
+        "taskId": task.get("task_id"),
+        "status": status,
+        "sent": False,
+        "queueDepth": queue_depth,
+        "task": task,
+        "dispatchStatus": status,
+    }
+
+
+def _record_free_text_queued_metrics(task: dict[str, Any], queue_depth: int) -> None:
+    try:
+        from observability import prometheus_metrics
+
+        capability = str(task.get("capability", "unknown"))
+        prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")
+        prometheus_metrics.set_device_tasks_pending(queue_depth)
+    except Exception as metrics_exc:  # metrics must never break dispatch
+        _log.warning("free-text metrics update failed: %s", metrics_exc)
+
+
+async def _create_free_text_task(
+    device_id: str, account: dict[str, Any], body: dict[str, Any], text: str
+) -> dict[str, Any] | JSONResponse:
+    """Build free-text task, insert row, then enqueue (no ghost queue)."""
+    result = await create_and_route_task(
+        DeviceTaskRequest(
+            device_id=device_id,
+            text=text,
+            request_id=str_field(body, "requestId", "request_id"),
+            source="app",
+            entrypoint="app_api",
+        ),
+        enqueue=False,
+    )
+    task = result.task
+    if task.get("error") or not task.get("task_id"):
+        return _free_text_payload(task, result.status, result.queue_depth)
+    if result.status == "waiting_approval":
+        insert_task_row(device_id, account, task, "app", "pending", body, {})
+        return _free_text_payload(task, result.status, result.queue_depth)
+    try:
+        insert_task_row(device_id, account, task, "app", "approved", body, {})
+    except Exception as exc:
+        _log.warning("free-text insert_task_row failed task=%s err=%s", task.get("task_id"), exc)
+        return err(500, "failed to save task", 500)
+    try:
+        queue_depth = enqueue_pending_task(device_id, task)
+    except Exception as exc:
+        _log.warning("free-text enqueue failed task=%s err=%s", task.get("task_id"), exc)
+        mark_task_failed(str(task["task_id"]), "dispatch failed")
+        return err(500, "failed to dispatch task", 500)
+    _record_free_text_queued_metrics(task, queue_depth)
+    return _free_text_payload(task, "queued_no_delivery", queue_depth)
 
 
 async def _create_structured_task(

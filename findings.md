@@ -741,3 +741,27 @@
 - **VPS 查证 3 项全部证伪**：047 生产库 `v2_account.status` 有 `DEFAULT 'active'`+CHECK（`/opt/dlc-drawing/data/lima.db`）；080 VPS 为标准 CPython 3.12.3 带 GIL（`Py_GIL_DISABLED=None`）；082 `server_dlc` 单 uvicorn 进程无 `--workers`，且 `LIMA_DEVICE_AUTH_RATE_REDIS`/`LIMA_DEVICE_REDIS_URL` 生产已开启，keyed 限流走 Redis。
 - **代码判定 9 项证伪**：006 审批写操作无 HTTP 入口（仅测试调用，未接线属功能问题）；018 负坐标 ≥-500 系设计允许且三链路必经校验；023 配网 token（256bit+1800s+单次）系标准 bearer 设计；026 `KNOWN_PROFILES` 生产无写入点运行期恒空；040 `task_context` 为无生产调用方的死参数；065 业务失败走 error dict + FastAPI 默认 500 兜底；091 上游 `_copy_scalar_params` 已剥离 `_` 前缀键并截断、读取有 `require_device_access`；106 timeline 单任务事件量天然小、设备级 activity 已有分页；113 safe_point `not (0<=x<=MAX)` 模式对 NaN 恒拦截（与 P0 修复一致）。
 - **确认 1 项（产品决策，非安全漏洞）**：092 `device_logic/api_key.py` 签发的 `sk-lima-*` key 全仓无任何 verify 消费方（`authorize()` 纯 JWT），但 `routes/device_app_auth_keys.py` 的 create/list/delete 路由**在线可达**——用户可铸造永远验不了的 key。两选项：①下线该路由（ponytail 推荐，若无小程序 UI 依赖）；②补 `verify_key` 并接入 device auth。**2026-07-14 已拍板下线并执行**：Claude 独立复核建议下线 + VPS nginx 日志（含轮转）`/device/v1/app/keys` 零调用佐证；删 `routes/device_app_auth_keys.py` + `device_logic/api_key.py` + 5 用例，前端 `chat-web/keys.html`/`js/keys.js` 及三处导航卡片一并移除（前后端初审均漏检此前端页，教训：下线类决策需 grep dist 产物）；`v2_api_key` 表保留。
+
+## 2026-07-15 A2A residual 全项目审计（high）
+
+- **方式**：Kimi 主控 + 并发 explore/coder + Atom A2A 初审 + 社区对标（FastAPI security checklist / xiaozhi MCP）。工单：`C:/Users/zhugu/a2a_workorder_full_project_audit_20260715.md`。Claude deep-health 失败；Reasonix busy 时本地子代理兜底。
+- **门禁实测**：`ruff` 热路径 PASS；`test_repo_hygiene` PASS；`test_p13_no_silent_exception_pass_in_active_paths` **曾 FAIL**（扫到 `.claude/.cursor/.codex` hooks 的 `except Exception: pass`，非生产路径）。
+- **本轮修复（最小）**：
+  1. `tests/test_ci_gates.py`：`_P13_SKIP_DIRS` 增加 agent IDE 目录白名单。
+  2. `device_gateway/path_validator.py::_clamp_feed_value`：`math.isfinite` 拦截 NaN/Inf（`min/max` 对 NaN 会错误落到边界）。
+- **仍开 residual（未在本轮全修）**：
+  - **HIGH**：free-text 任务 `create_and_route` 后 `insert_task_row`（`routes/device_app_tasks.py:62-74`）仍可能幽灵队列；approve 失败 `revert_task_to_pending` 不卸 Redis 队列（双入队窗口，`progress` 07-13 已记）。
+  - **MED**：`access_guard.production_blocked` 名不副实；JWT 缺 `typ` 仍放行 legacy；device/admin 共享 `LIMA_JWT_SECRET`；DLC/GW 运动边界不一致；voice ticket 进程内；STATUS 文档落后。
+  - **产品 P0**：真机 E2E、微信提审、固件 `user_only` 未 OTA、`LIMA_AUTO_FALLBACK` 无真机。
+- **社区对标**：[FastAPI Security Guide](https://davidmuraya.com/blog/fastapi-security-guide/) 强调生产关 docs、限流、密钥分离、输入校验；本仓 docs 已关、限流/SSRF 已有，残余在 JWT typ/密钥域与 fail-open 运维开关。
+- **预防**：P13 扫描应 `git ls-files` 或排除 IDE 树；运动数值一律 `isfinite`；approve/revert 与 Redis 队列同事务语义。
+
+## 2026-07-15 free-text insert-before-dispatch + approve revert 卸队列
+
+- **现象**：审计 HIGH residual — (1) free-text `create_and_route_task` 先 enqueue 再 `insert_task_row`，insert 失败会幽灵队列；(2) `revert_task_to_pending` 只改 DB，approve 失败后重试可双入队。
+- **复现**：见 `tests/test_p2_no_ghost_tasks.py::TestFreeTextInsertBeforeEnqueue` 与 `test_revert_task_to_pending_removes_queue_item`。
+- **修复**：
+  1. `create_and_route_task(..., enqueue=False)` 供 app free-text 先建任务；`routes/device_app_tasks.py` insert 成功后再 `enqueue_pending_task`；enqueue 失败 `mark_task_failed`。
+  2. `revert_task_to_pending(task_id, device_id=...)` 调用 `remove_pending_task` 卸队列；approve 失败路径传 device_id。
+- **验证**：相关 42 pytest passed；ruff 改动文件 clean。
+- **预防**：任何「入队/下发」路径必须 insert-before-dispatch；revert/补偿必须同时处理 DB 与队列。

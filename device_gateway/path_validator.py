@@ -188,6 +188,9 @@ def _clamp_feed_value(raw_feed: Any) -> float:
         feed = float(raw_feed) if raw_feed is not None else 500.0
     except (TypeError, ValueError):
         feed = 500.0
+    # IEEE NaN fails all comparisons, so max/min would silently stick on bounds.
+    if not math.isfinite(feed):
+        feed = 500.0
     return max(MIN_FEED, min(MAX_FEED, feed))
 
 

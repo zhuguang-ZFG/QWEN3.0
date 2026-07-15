@@ -159,3 +159,13 @@ def test_reject_task_row_not_found(account):
 def test_record_rejection():
     store.record_rejection("task-1", "dev-1", "no need")
     store.record_motion_event.assert_called_once()
+
+
+def test_revert_task_to_pending_removes_queue_item():
+    """revert must drop the task from the device pending queue (no double enqueue on retry)."""
+    with (
+        _patch_conn(row={"id": "task-1", "device_id": "dev-1", "status": "approved"}, rowcount=1),
+        patch.object(store, "remove_pending_task", return_value=True) as mock_rm,
+    ):
+        store.revert_task_to_pending("task-1", device_id="dev-1")
+    mock_rm.assert_called_once_with("dev-1", "task-1")

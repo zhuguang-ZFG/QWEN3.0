@@ -165,6 +165,18 @@ _P13_SKIP_DIRS = frozenset(
         "data",
         ".agents",
         ".worktrees",
+        # Agent IDE hook trees (not production paths); silent pass is local tooling noise.
+        ".claude",
+        ".cursor",
+        ".codex",
+        ".kimi-code",
+        ".trellis",
+        ".omk",
+        ".reasonix",
+        ".omx",
+        ".mimocode",
+        ".joycode",
+        ".guardian",
     }
 )
 

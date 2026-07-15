@@ -61,7 +61,7 @@ def _patch_common(account):
         patch.object(tasks, "require_device_control", return_value=None),
         patch.object(tasks, "require_device_owner", return_value=None),
         patch.object(tasks.store_mod, "task_store", MagicMock()),
-        patch.object(tasks, "create_and_route_task") as mock_create_route,
+        patch.object(tasks_create, "create_and_route_task") as mock_create_route,
         patch.object(tasks_create, "project_to_motion_task_async") as mock_project,
         patch.object(tasks_create, "validate_capability_params", return_value=({}, None)),
         patch.object(tasks_create, "dispatch_or_enqueue") as mock_dispatch,

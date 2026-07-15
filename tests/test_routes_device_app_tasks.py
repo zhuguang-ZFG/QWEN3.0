@@ -89,13 +89,14 @@ def _patch_deps(account):
         patch.object(tasks, "require_device_control", return_value=None),
         patch.object(tasks, "require_device_owner", return_value=None),
         patch.object(tasks.store_mod, "task_store", MagicMock()) as mock_store,
-        patch.object(tasks, "create_and_route_task") as mock_create_route,
+        patch.object(tasks_create, "create_and_route_task") as mock_create_route,
+        patch.object(tasks_create, "enqueue_pending_task", return_value=0),
         patch.object(tasks_create, "project_to_motion_task_async") as mock_project,
         patch.object(tasks_create, "validate_capability_params", return_value=({}, None)),
         patch.object(tasks_create, "dispatch_or_enqueue", return_value={"sent": True, "queueDepth": 0}),
         patch.object(tasks, "task_snapshot", return_value=None),
-        patch.object(tasks_create, "insert_task_row") as mock_insert_structured,
-        patch.object(tasks, "insert_task_row") as mock_insert,
+        patch.object(tasks_create, "insert_task_row") as mock_insert,
+        patch.object(tasks_create, "mark_task_failed"),
         patch.object(tasks, "approve_task_row") as mock_approve,
         patch.object(tasks, "dispatch_approved_task") as mock_dispatch_approved,
         patch.object(tasks, "reject_task_row") as mock_reject,
@@ -104,8 +105,8 @@ def _patch_deps(account):
         mock_store.list_tasks_for_device.return_value = []
         mock_create_route.return_value = SimpleNamespace(
             task={"task_id": "task-1"},
-            status="approved",
-            sent=True,
+            status="created",
+            sent=False,
             queue_depth=0,
         )
         mock_project.return_value = {
@@ -116,7 +117,6 @@ def _patch_deps(account):
             "workflow_state": "ready",
         }
         mock_insert.return_value = _make_task_row()
-        mock_insert_structured.return_value = _make_task_row()
         mock_approve.return_value = (_make_task_row(status="approved"), {"task_id": "task-1"})
         mock_dispatch_approved.return_value = {"sent": True, "queueDepth": 0}
         mock_reject.return_value = _make_task_row(status="rejected")
@@ -235,7 +235,7 @@ def test_approve_task_dispatch_failure_returns_500_and_reverts(client, auth_head
     data = response.json()
     # err() returns {"code": 500, "message": "..."}
     assert "reverted to pending" in data.get("message", "")
-    mock_revert.assert_called_once_with("task-1")
+    mock_revert.assert_called_once_with("task-1", device_id="dev-1")
 
 
 def test_reject_task_success(client, auth_header):

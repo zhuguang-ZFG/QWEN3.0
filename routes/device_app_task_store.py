@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 
-from device_gateway.tasks import record_motion_event, task_snapshot
+from device_gateway.tasks import record_motion_event, remove_pending_task, task_snapshot
 from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState, WorkflowTransitionError
 from routes.device_app_task_payloads import require_device_owner
@@ -87,10 +87,19 @@ async def dispatch_approved_task(task_id: str, device_id: str, task: dict[str, A
     return await dispatch_or_enqueue(device_id, task)
 
 
-def revert_task_to_pending(task_id: str) -> None:
-    """Best-effort revert an approved task back to pending after dispatch failure."""
+def revert_task_to_pending(task_id: str, device_id: str | None = None) -> None:
+    """Best-effort revert approved→pending after dispatch failure.
+
+    Also drops any pending-queue copy so a later approve cannot double-enqueue
+    a task that was already pushed before the failure path ran.
+    """
+    resolved_device = (device_id or "").strip()
     try:
         with connect() as conn:
+            if not resolved_device:
+                row = conn.execute("SELECT device_id FROM v2_task WHERE id=?", (task_id,)).fetchone()
+                if row is not None:
+                    resolved_device = str(row["device_id"] if hasattr(row, "keys") else row[0])
             cur = conn.execute(
                 "UPDATE v2_task SET status='pending', error_msg=NULL WHERE id=? AND status='approved'",
                 (task_id,),
@@ -100,6 +109,17 @@ def revert_task_to_pending(task_id: str) -> None:
                 _log.warning("reverted task %s to pending after dispatch failure", task_id)
     except Exception as exc:
         _log.warning("revert_task_to_pending failed task=%s err=%s", task_id, exc)
+    if resolved_device:
+        try:
+            if remove_pending_task(resolved_device, task_id):
+                _log.warning("removed pending queue item task=%s device=%s after revert", task_id, resolved_device)
+        except Exception as exc:
+            _log.warning(
+                "remove_pending_task failed task=%s device=%s err=%s",
+                task_id,
+                resolved_device,
+                exc,
+            )
 
 
 def mark_task_failed(task_id: str, reason: str) -> None:

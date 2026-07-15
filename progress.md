@@ -1,3 +1,16 @@
+## 2026-07-15 HIGH residual 修复：free-text 幽灵队列 + approve 双入队
+
+- **改动**：`device_gateway/tasks.py` enqueue 可选；`routes/device_app_tasks.py` free-text insert→enqueue；`routes/device_app_task_store.py` revert 卸 pending 队列
+- **测试**：`test_p2_no_ghost_tasks` / task_store / device_app_tasks 共 42 passed
+- **未 commit**（待用户）
+
+## 2026-07-15 A2A residual 全项目审计
+
+- 工单 high + 并发 explore/Atom；Claude wrapper 健康检查失败，Reasonix 一度 busy。
+- 实测红灯：P13 silent-pass 扫到 agent hooks → 已 skip 目录修复。
+- 代码小修：path_validator feed NaN/Inf → 500 默认。
+- 报告：见 findings 同日条目；未 commit（待用户要求）。
+
 # Personal Coding Assistant Progress
 
 > 历史归档：2026-06-30 及更早条目 → [`docs/archive/progress-2026-06.md`](docs/archive/progress-2026-06.md)

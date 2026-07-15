@@ -86,11 +86,18 @@ class DeviceTaskRouteResult:
     task: dict[str, Any]
 
 
-async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteResult:
-    """Create a motion task and enqueue it.
+async def create_and_route_task(
+    request: DeviceTaskRequest,
+    *,
+    enqueue: bool = True,
+) -> DeviceTaskRouteResult:
+    """Create a motion task and optionally enqueue it.
 
     Self-hosted device WS is retired; the queue has no production consumer,
     so status is ``queued_no_delivery`` (not a false "sent/queued for delivery").
+
+    Pass ``enqueue=False`` when the caller must persist the task row first
+    (insert-before-dispatch) and will call ``enqueue_pending_task`` itself.
     """
     device_id = request.device_id.strip()
     text = request.text.strip()
@@ -111,6 +118,9 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
     # Align with structured app path: high-risk / approval-gated tasks stay pending.
     if task.get("workflow_state") == TaskState.WAITING_APPROVAL.value:
         return DeviceTaskRouteResult("waiting_approval", False, pending_count(device_id), task)
+
+    if not enqueue:
+        return DeviceTaskRouteResult("created", False, pending_count(device_id), task)
 
     queue_depth = enqueue_pending_task(device_id, task)
     prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")
