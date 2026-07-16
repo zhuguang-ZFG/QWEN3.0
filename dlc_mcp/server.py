@@ -10,6 +10,8 @@ import sys
 
 import httpx
 
+from dlc_mcp.tools import TOOLS
+
 DLC_API_URL = os.environ.get("DLC_API_URL", "http://127.0.0.1:8081")
 # dlc_api /dlc/tasks/dispatch and /dlc/devices/{id}/status require
 # verify_dlc_api_token (Authorization: Bearer <token>). Configure DLC_API_TOKEN
@@ -21,53 +23,6 @@ logger = logging.getLogger(__name__)
 
 def _auth_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {DLC_API_TOKEN}"} if DLC_API_TOKEN else {}
-
-
-TOOLS = {
-    "dlc.write_text": {
-        "description": "在绘图机上书写指定文本。需要 device_id 和 text。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "device_id": {"type": "string", "description": "目标绘图机设备 ID"},
-                "text": {"type": "string", "description": "要书写的文本"},
-            },
-            "required": ["device_id", "text"],
-        },
-    },
-    "dlc.draw_generated": {
-        "description": "根据提示词 AI 生成图像并在绘图机上绘制。需要 device_id 和 prompt。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "device_id": {"type": "string", "description": "目标绘图机设备 ID"},
-                "prompt": {"type": "string", "description": "绘画提示词"},
-            },
-            "required": ["device_id", "prompt"],
-        },
-    },
-    "dlc.draw_from_image": {
-        "description": "将指定图片 URL 矢量化并在绘图机上绘制。需要 device_id 和 image_url。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "device_id": {"type": "string", "description": "目标绘图机设备 ID"},
-                "image_url": {"type": "string", "description": "图片 URL（http/https）"},
-            },
-            "required": ["device_id", "image_url"],
-        },
-    },
-    "dlc.get_device_status": {
-        "description": "查询绘图机当前状态（在线/工作/任务/影子）。需要 device_id。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "device_id": {"type": "string", "description": "目标绘图机设备 ID"},
-            },
-            "required": ["device_id"],
-        },
-    },
-}
 
 
 def _tool_result(req_id: object, text: str) -> dict:
@@ -86,6 +41,24 @@ def _tool_error(req_id: object, code: int, message: str) -> dict:
     }
 
 
+def _http_error(resp: httpx.Response) -> dict | None:
+    """Return a stable error payload for non-success dlc_api responses."""
+    if 200 <= resp.status_code < 300:
+        return None
+    detail = ""
+    try:
+        payload = resp.json()
+        if isinstance(payload, dict):
+            detail = str(payload.get("detail") or payload.get("error") or "").strip()
+    except (ValueError, TypeError) as exc:
+        logger.debug("dlc_api response JSON parse failed: %s", exc)
+    message = f"dlc_api HTTP {resp.status_code}"
+    if detail:
+        message = f"{message}: {detail[:160]}"
+    logger.warning("dlc_api returned HTTP %s", resp.status_code)
+    return {"status": "failed", "error": message}
+
+
 def _submit(client: httpx.Client, endpoint: str, payload: dict, idem_key: str | None = None) -> dict:
     url = f"{DLC_API_URL}{endpoint}"
     headers = _auth_headers()
@@ -96,6 +69,8 @@ def _submit(client: httpx.Client, endpoint: str, payload: dict, idem_key: str | 
     except Exception as exc:
         logger.warning("dlc_api request failed: %s", exc)
         return {"status": "failed", "error": "dlc_api unreachable"}
+    if error := _http_error(resp):
+        return error
     try:
         return resp.json()
     except Exception as exc:
@@ -111,6 +86,8 @@ def _get_json(client: httpx.Client, endpoint: str) -> dict:
     except Exception as exc:
         logger.warning("dlc_api GET failed: %s", exc)
         return {"error": "dlc_api unreachable"}
+    if error := _http_error(resp):
+        return error
     try:
         return resp.json()
     except Exception as exc:
