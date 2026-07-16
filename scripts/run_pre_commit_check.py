@@ -124,19 +124,22 @@ def quick_commands(changed_paths: Sequence[str], *, python: str = sys.executable
     return commands
 
 
-def run_code_size_check(paths: Sequence[str], *, python: str = sys.executable) -> None:
-    """Run code-size check as a non-blocking warning and print the report."""
-    if not paths:
+def run_code_size_check(paths: Sequence[str], *, python: str = sys.executable, full: bool = False) -> int:
+    """Run the blocking code-size gate for changed files or the full tracked product tree."""
+    if not paths and not full:
         print("No staged Python files; skipping code-size check.", flush=True)
-        return
-    command = [python, "scripts/check_code_size.py", *paths]
+        return 0
+    command = (
+        [python, "scripts/check_code_size.py", "--git-tracked"]
+        if full
+        else [
+            python,
+            "scripts/check_code_size.py",
+            *paths,
+        ]
+    )
     print("+ " + " ".join(command), flush=True)
-    result = subprocess.run(command, cwd=ROOT, check=False)
-    if result.returncode != 0:
-        print(
-            "WARNING: code-size constraints violated (see above). This is a baseline check and does not block commits.",
-            file=sys.stderr,
-        )
+    return subprocess.run(command, cwd=ROOT, check=False).returncode
 
 
 def run_testside_f401_safety_gate(paths: Sequence[str], *, python: str = sys.executable) -> int:
@@ -216,7 +219,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         basetemp = str(Path(tempfile.gettempdir()) / f"pytest-run-precommit-full-{uuid.uuid4().hex}")
         commands.append(full_pytest_command(basetemp=basetemp))
 
-    run_code_size_check(changed_paths)
+    size_rc = run_code_size_check(changed_paths, full=args.full or args.ci)
+    if size_rc != 0:
+        return size_rc
 
     for command in commands:
         returncode = run_command(command)

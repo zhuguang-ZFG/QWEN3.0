@@ -23,7 +23,10 @@ FILE_LIMIT = 300
 FUNC_LIMIT = 50
 
 EXCLUDE_DIRS = {
+    ".venv",
     ".venv310",
+    ".trellis",
+    ".agents",
     "__pycache__",
     "node_modules",
     "reference",
@@ -52,13 +55,16 @@ EXCLUDE_DIRS = {
     ".trae",
     ".windsurf",
     "provider-probe-offline",
+    "developer_skills",
+    "skills",
+    "andrej-karpathy-skills",
     "data",
     "tmp",
 }
 
 
 def _should_skip(path: Path) -> bool:
-    return any(part in EXCLUDE_DIRS for part in path.parts)
+    return any(part in EXCLUDE_DIRS or part.startswith(".venv") for part in path.parts)
 
 
 def _walk_onerror(err: OSError) -> None:

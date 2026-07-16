@@ -84,7 +84,7 @@ def _test_and_reload(ssh: paramiko.SSHClient) -> tuple[bool, str]:
 
 def _verify_ready_probe(ssh: paramiko.SSHClient) -> tuple[bool, str]:
     """Verify /health/ready is reachable via localhost after reload."""
-    code, out, err = _ssh_exec(ssh, "curl -sS -m 10 http://127.0.0.1:8080/health/ready")
+    code, out, err = _ssh_exec(ssh, "curl -sS -m 10 http://127.0.0.1:8081/health/ready")
     if code != 0:
         return False, err or out or f"curl exit {code}"
     return True, out

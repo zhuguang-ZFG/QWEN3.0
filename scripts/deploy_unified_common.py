@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import dataclasses
-import os
 import re
+import subprocess
 import sys
 from pathlib import Path
+from pathlib import PureWindowsPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import deploy_config
@@ -23,7 +24,7 @@ class DeployTarget:
     host: str
     remote_path: str
     user: str
-    password: str
+    password: str = dataclasses.field(repr=False)
     key_path: str
 
 
@@ -62,8 +63,19 @@ def get_deploy_target(target: str | None = None) -> DeployTarget:
 
 
 CORE_FILES = [
+    "access_guard.py",
+    "app_status_ws_connections.py",
+    "app_status_ws_ticket.py",
+    "async_utils.py",
+    "dashscope_image_client.py",
+    "device_protocol_registry.py",
+    "requirements_server.txt",
     "server_dlc.py",
     "rate_limiter.py",
+    "runtime_env.py",
+    "voice_app_ws_ticket.py",
+    "voice_ws_connections.py",
+    "ws_ticket.py",
 ]
 
 # Post-P5 slimdown: only directories that still exist on disk and are reachable
@@ -79,6 +91,7 @@ CORE_DIRS = [
     "device_logic",
     "device_policy",
     "device_workflow",
+    "device_voice",
     "device_artifacts",
     "dlc_api",
     "dlc_core",
@@ -148,34 +161,79 @@ _DEPLOY_EXCLUDES = {
 }
 
 
+def _normalize_deploy_path(raw: str) -> str:
+    """Return one safe repository-relative POSIX path or raise ValueError."""
+    if not raw or any(ord(char) < 32 for char in raw):
+        raise ValueError(f"unsafe deploy path: {raw!r}")
+    if raw.startswith(("/", "\\")) or PureWindowsPath(raw).drive:
+        raise ValueError(f"absolute deploy path: {raw!r}")
+    normalized = raw.replace("\\", "/")
+    parts = normalized.split("/")
+    if any(part in {"", ".", ".."} or part.startswith(".") for part in parts):
+        raise ValueError(f"unsafe deploy path: {raw!r}")
+    if any(normalized == item or normalized.startswith(f"{item}/") for item in _DEPLOY_EXCLUDES):
+        raise ValueError(f"excluded deploy path: {raw!r}")
+    if "__pycache__" in parts or normalized.endswith((".pyc", ".pyo")):
+        raise ValueError(f"generated deploy path: {raw!r}")
+    return normalized
+
+
 def _is_runtime_path(rel: str) -> bool:
     """Return True for files that belong to the runtime deploy manifest."""
-    if not rel:
-        return False
-    parts = rel.replace("\\", "/").split("/")
-    if any(part in _DEPLOY_EXCLUDES or part.startswith(".") for part in parts):
-        return False
-    if "/__pycache__/" in rel or rel.endswith(".pyc") or rel.endswith(".pyo"):
+    try:
+        _normalize_deploy_path(rel)
+    except ValueError:
         return False
     return True
 
 
+def _git_tracked_files(project_root: Path) -> list[str]:
+    """Return repository-tracked files; deployment never consumes local ignored data."""
+    completed = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=project_root,
+        check=True,
+        capture_output=True,
+    )
+    return [item.decode("utf-8").replace("\\", "/") for item in completed.stdout.split(b"\0") if item]
+
+
+def _is_core_path(rel: str) -> bool:
+    try:
+        normalized = _normalize_deploy_path(rel)
+    except ValueError:
+        return False
+    return normalized in CORE_FILES or any(normalized.startswith(f"{directory}/") for directory in CORE_DIRS)
+
+
+def _git_diff_files(project_root: Path, before: str, after: str, *, diff_filter: str) -> list[str]:
+    """Return NUL-delimited changed paths without rename collapsing."""
+    completed = subprocess.run(
+        ["git", "diff", "--no-renames", "--name-only", "-z", f"--diff-filter={diff_filter}", before, after],
+        cwd=project_root,
+        check=True,
+        capture_output=True,
+    )
+    return [item.decode("utf-8").replace("\\", "/") for item in completed.stdout.split(b"\0") if item]
+
+
+def collect_git_range(project_root: Path, before: str, after: str) -> tuple[list[str], list[str]]:
+    """Collect validated core uploads and removals for one push range."""
+    tracked = set(_git_tracked_files(project_root))
+    uploads = _git_diff_files(project_root, before, after, diff_filter="ACMRT")
+    removals = _git_diff_files(project_root, before, after, diff_filter="D")
+    uploads = [path for path in uploads if path in tracked and _is_core_path(path)]
+    removals = [path for path in removals if _is_core_path(path)]
+    return sorted(set(uploads)), sorted(set(removals))
+
+
+def _collect_core_files(project_root: Path) -> list[str]:
+    return sorted(rel for rel in _git_tracked_files(project_root) if _is_runtime_path(rel) and _is_core_path(rel))
+
+
 def _collect_runtime_files(project_root: Path) -> list[str]:
-    """Collect all runtime files for a full-repo deploy (excluding tests/docs/data)."""
-    files: list[str] = []
-    for root, dirs, filenames in os.walk(project_root):
-        # Prune excluded directories in-place to avoid walking them.
-        dirs[:] = [d for d in dirs if d not in _DEPLOY_EXCLUDES and not d.startswith(".")]
-        for name in filenames:
-            local_path = Path(root) / name
-            rel = local_path.relative_to(project_root).as_posix()
-            if not _is_runtime_path(rel):
-                continue
-            # Skip obvious non-runtime artifacts.
-            if name.endswith((".log", ".db", ".sqlite3", ".tgz", ".tar.gz", ".zip", ".tmp")):
-                continue
-            files.append(rel)
-    return sorted(set(files))
+    """Keep the legacy ``all`` slice constrained to the production runtime allowlist."""
+    return _collect_core_files(project_root)
 
 
 def _safe_backup_label(label: str) -> str:

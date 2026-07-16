@@ -29,7 +29,7 @@ def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
 
 
 def test_main_returns_failure_without_restart_when_upload_fails(monkeypatch):
-    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py"])
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server_dlc.py"])
     monkeypatch.setattr(
         deploy_unified,
         "prepare_remote_deploy",
@@ -38,13 +38,14 @@ def test_main_returns_failure_without_restart_when_upload_fails(monkeypatch):
     monkeypatch.setattr(
         deploy_unified,
         "deploy_files",
-        lambda files, target, dry_run=False: {"uploaded": 0, "failed": ["server.py: boom"], "skipped": []},
+        lambda files, target, dry_run=False: {"uploaded": 0, "failed": ["server_dlc.py: boom"], "skipped": []},
     )
     monkeypatch.setattr(
         deploy_unified,
         "restart_server",
-        lambda target: (_ for _ in ()).throw(AssertionError("restart should not run after upload failure")),
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("restart should not run after upload failure")),
     )
+    monkeypatch.setattr(deploy_unified, "restore_remote_backup", lambda backup_path, target: True)
 
     assert deploy_unified.main() == 1
 
@@ -53,7 +54,7 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
     rollback_calls: list[str] = []
     restart_calls: list[str] = []
 
-    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py"])
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server_dlc.py"])
     monkeypatch.setattr(
         deploy_unified,
         "prepare_remote_deploy",
@@ -69,8 +70,8 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
         lambda files, target, dry_run=False: {"uploaded": 1, "failed": [], "skipped": []},
     )
 
-    def _restart(target: object) -> bool:
-        restart_calls.append("restart")
+    def _restart(target: object, **kwargs: object) -> bool:
+        restart_calls.append("prepare" if kwargs.get("prepare", True) else "rollback")
         return len(restart_calls) > 1
 
     monkeypatch.setattr(deploy_unified, "restart_server", _restart)
@@ -82,12 +83,12 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
 
     assert deploy_unified.main() == 1
     assert rollback_calls == ["/opt/dlc-drawing/backups/unit/runtime-before.tgz"]
-    assert restart_calls == ["restart", "restart"]
+    assert restart_calls == ["prepare", "rollback"]
 
 
 def test_main_dry_run_does_not_open_remote_preflight(monkeypatch):
     calls: list[str] = []
-    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py", "--dry-run"])
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server_dlc.py", "--dry-run"])
     monkeypatch.setattr(
         deploy_unified,
         "prepare_remote_deploy",
@@ -111,6 +112,7 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
     ssh = _RestartSsh()
     monkeypatch.setattr(restart_mod.paramiko, "SSHClient", lambda: ssh)
     monkeypatch.setattr(restart_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(restart_mod, "HEALTH_GRACE_AFTER_RESTART_S", 0)
 
     assert deploy_unified.restart_server(target=get_deploy_target("jdcloud")) is True
 
@@ -120,8 +122,29 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
     assert "systemctl daemon-reload" in ssh.commands
     assert "pkill" not in joined
     assert "nohup" not in joined
+    assert ".venv.next" in joined
+    assert ".venv.previous" in joined
+    assert any(remote.endswith(".service.next") for _, remote in ssh._sftp.put_calls)
+    assert any("/health/ready" in command for command in ssh.commands)
     assert any(command.startswith("curl ") for command in ssh.commands)
     assert ssh.closed is True
+
+
+def test_restart_server_without_prepare_only_restarts_and_polls(monkeypatch):
+    import scripts.deploy_unified_restart as restart_mod
+
+    ssh = _RestartSsh()
+    monkeypatch.setattr(restart_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(restart_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(restart_mod, "HEALTH_GRACE_AFTER_RESTART_S", 0)
+
+    assert deploy_unified.restart_server(target=get_deploy_target("jdcloud"), prepare=False) is True
+
+    joined = "\n".join(ssh.commands)
+    assert "systemctl restart dlc-drawing" in ssh.commands
+    assert "daemon-reload" not in joined
+    assert "pip install" not in joined
+    assert ssh._sftp.put_calls == []
 
 
 def test_parse_capacity_output():
@@ -163,7 +186,8 @@ def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
     assert result["capacity"] == {"disk_free_mb": 2048, "mem_available_mb": 512}
     assert result["backup_path"] == "/opt/dlc-drawing/backups/unit-test-20260609_010203/runtime-before.tgz"
     assert any("df -Pm" in command for command in ssh.commands)
-    assert any("tar --ignore-failed-read" in command for command in ssh.commands)
+    assert any("tar -czf" in command and "present-files.txt" in command for command in ssh.commands)
+    assert any("venv-previous-predeploy" in command for command in ssh.commands)
     assert ssh.closed is True
 
 
@@ -181,4 +205,5 @@ def test_restore_remote_backup_extracts_tar(monkeypatch):
 
     assert ok is True
     assert any("tar -xzf" in command for command in ssh.commands)
+    assert any("pre-state.tsv" in command and "systemctl daemon-reload" in command for command in ssh.commands)
     assert ssh.closed is True

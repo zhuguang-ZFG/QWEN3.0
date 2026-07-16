@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import BinaryIO
+
 
 class _Channel:
     def __init__(self, status: int = 0) -> None:
@@ -37,6 +39,7 @@ class _Sftp:
         self.dirs = {"/"}
         self.mkdir_calls: list[str] = []
         self.put_calls: list[tuple[str, str]] = []
+        self.putfo_calls: list[tuple[bytes, str]] = []
         self.closed = False
 
     def stat(self, path: str) -> object:
@@ -50,6 +53,9 @@ class _Sftp:
 
     def put(self, local: str, remote: str) -> None:
         self.put_calls.append((local, remote))
+
+    def putfo(self, source: BinaryIO, remote: str) -> None:
+        self.putfo_calls.append((source.read(), remote))
 
     def close(self) -> None:
         self.closed = True
@@ -118,7 +124,7 @@ class _PrepareSsh:
         self.commands.append(command)
         if "df -Pm" in command:
             return _Stdin(), _Stream("disk_free_mb=2048\nmem_available_mb=512\n"), _Stream()
-        if "tar --ignore-failed-read" in command:
+        if "tar -czf" in command:
             return (
                 _Stdin(),
                 _Stream("/opt/dlc-drawing/backups/unit-test-20260609_010203/runtime-before.tgz\n"),

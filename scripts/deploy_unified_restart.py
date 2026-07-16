@@ -7,6 +7,8 @@ The deploy now targets the dlc-drawing service (:8081).
 from __future__ import annotations
 
 import json
+import io
+import re
 import shlex
 import time
 from pathlib import Path
@@ -21,7 +23,8 @@ from scripts.deploy_unified_common import (
 import paramiko
 
 _SERVICE = "dlc-drawing"
-_HEALTH_URL = "http://127.0.0.1:8081/health"
+_HEALTH_URL = "http://127.0.0.1:8081/health/ready"
+_ENV_LINE_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=.*")
 
 
 def _ssh_exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
@@ -46,7 +49,102 @@ def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
     return ssh
 
 
-def _prepare_service(ssh: paramiko.SSHClient, target: DeployTarget) -> bool:
+def _merge_env_update(ssh: paramiko.SSHClient, target: DeployTarget, update_path: Path) -> bool:
+    """Append only absent keys from a validated dotenv file."""
+    try:
+        raw_lines = update_path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        print(f"env update read failed: {exc}")
+        return False
+    entries = [line for line in raw_lines if line and not line.startswith("#")]
+    if any(not _ENV_LINE_RE.fullmatch(line) for line in entries):
+        print("env update contains an invalid line; expected KEY=value")
+        return False
+    keys = [line.split("=", 1)[0] for line in entries]
+    if len(keys) != len(set(keys)):
+        print("env update contains duplicate keys")
+        return False
+    remote_env = f"{target.remote_path}/.env"
+    remote_update = f"{target.remote_path}/.env.deploy-update"
+    sftp = None
+    try:
+        sftp = ssh.open_sftp()
+        sftp.putfo(io.BytesIO(("\n".join(entries) + "\n").encode()), remote_update)
+    except Exception as exc:
+        print(f"env update upload failed: {exc}")
+        return False
+    finally:
+        if sftp is not None:
+            sftp.close()
+    command = (
+        "set -eu; "
+        f"trap 'rm -f -- {shlex.quote(remote_update)}' EXIT; "
+        f"touch {shlex.quote(remote_env)}; chmod 0600 {shlex.quote(remote_env)}; "
+        f"while IFS= read -r line; do key=${{line%%=*}}; "
+        f'grep -q "^${{key}}=" {shlex.quote(remote_env)} || printf \'%s\\n\' "$line" >> {shlex.quote(remote_env)}; '
+        f"done < {shlex.quote(remote_update)}"
+    )
+    code, _out, err = _ssh_exec(ssh, command)
+    if code != 0:
+        print(f"env update merge failed: {err}")
+        return False
+    return True
+
+
+def _install_service_unit(ssh: paramiko.SSHClient) -> bool:
+    service_local = Path(__file__).resolve().parents[1] / "deploy/aliyun/dlc-drawing.service"
+    service_remote = f"/etc/systemd/system/{_SERVICE}.service"
+    service_next = f"{service_remote}.next"
+    if not service_local.exists():
+        print(f"local service file not found: {service_local}")
+        return False
+    sftp = None
+    try:
+        sftp = ssh.open_sftp()
+        sftp.put(str(service_local), service_next)
+    except Exception as exc:
+        print(f"service file upload failed: {exc}")
+        return False
+    finally:
+        if sftp is not None:
+            sftp.close()
+    command = f"install -m 0644 {shlex.quote(service_next)} {shlex.quote(service_remote)} && rm -f {shlex.quote(service_next)}"
+    code, _out, err = _ssh_exec(ssh, command)
+    if code != 0:
+        print(f"service file install failed: {err}")
+        return False
+    return True
+
+
+def _prepare_dependencies(ssh: paramiko.SSHClient, target: DeployTarget) -> bool:
+    root = shlex.quote(target.remote_path)
+    current = shlex.quote(f"{target.remote_path}/.venv")
+    next_venv = shlex.quote(f"{target.remote_path}/.venv.next")
+    previous = shlex.quote(f"{target.remote_path}/.venv.previous")
+    requirements = shlex.quote(f"{target.remote_path}/requirements_server.txt")
+    command = (
+        f"set -eu; cd {root}; hash=$(sha256sum {requirements} | awk '{{print $1}}'); "
+        f"if [ -x {current}/bin/python ] && [ -f {current}/.lima-requirements.sha256 ] && "
+        f'grep -qx "$hash" {current}/.lima-requirements.sha256; then exit 0; fi; '
+        f"rm -rf -- {next_venv}; python3 -m venv {next_venv}; "
+        f"{next_venv}/bin/python -m pip install -r {requirements}; {next_venv}/bin/python -m pip check; "
+        f"{next_venv}/bin/python -c 'import fastapi, uvicorn'; printf '%s\\n' \"$hash\" > {next_venv}/.lima-requirements.sha256; "
+        f"rm -rf -- {previous}; "
+        f"if [ -d {current} ]; then mv -- {current} {previous}; fi; mv -- {next_venv} {current}"
+    )
+    code, _out, err = _ssh_exec(ssh, command)
+    if code != 0:
+        print(f"dependency preparation failed: {err}")
+        return False
+    return True
+
+
+def _prepare_service(
+    ssh: paramiko.SSHClient,
+    target: DeployTarget,
+    *,
+    env_update: Path | None,
+) -> bool:
     """Ensure dlc-drawing service is installed and the runtime dir has a .env.
 
     Post-P5: the new service uses a separate WorkingDirectory (/opt/dlc-drawing).
@@ -54,9 +152,6 @@ def _prepare_service(ssh: paramiko.SSHClient, target: DeployTarget) -> bool:
     directory instead of overwriting it.
     """
     legacy_env = "/opt/lima-router/.env"
-    service_local = Path("deploy/aliyun/dlc-drawing.service")
-    service_remote = f"/etc/systemd/system/{_SERVICE}.service"
-
     code, _out, err = _ssh_exec(ssh, f"mkdir -p {shlex.quote(target.remote_path)}")
     if code != 0:
         print(f"mkdir remote path failed: {err}")
@@ -70,15 +165,11 @@ def _prepare_service(ssh: paramiko.SSHClient, target: DeployTarget) -> bool:
         print(f".env setup failed: {err}")
         return False
 
-    if not service_local.exists():
-        print(f"local service file not found: {service_local}")
+    if env_update is not None and not _merge_env_update(ssh, target, env_update):
         return False
-    try:
-        sftp = ssh.open_sftp()
-        sftp.put(str(service_local), service_remote)
-        sftp.close()
-    except Exception as exc:
-        print(f"service file upload failed: {exc}")
+    if not _install_service_unit(ssh):
+        return False
+    if not _prepare_dependencies(ssh, target):
         return False
 
     code, _out, err = _ssh_exec(ssh, "systemctl daemon-reload")
@@ -111,7 +202,7 @@ def _service_is_active(ssh: paramiko.SSHClient) -> bool:
 
 
 def _health_ok(ssh: paramiko.SSHClient) -> tuple[bool, str]:
-    """Poll /health on :8081; the slimmed-down server does not expose /health/ready."""
+    """Poll the authoritative readiness endpoint on :8081."""
     code, out, err = _ssh_exec(ssh, f"curl -sS -m 30 {_HEALTH_URL}")
     last_detail = out or err or f"curl exit {code}"
     if code == 0:
@@ -149,11 +240,20 @@ def _print_health(ssh: paramiko.SSHClient) -> None:
         print(f"  health: {out[:200]}")
 
 
-def restart_server(target: DeployTarget) -> bool:
-    """Restart the dlc-drawing systemd service and wait for /health on :8081."""
+def restart_server(
+    target: DeployTarget,
+    *,
+    prepare: bool = True,
+    env_update: Path | None = None,
+) -> bool:
+    """Restart dlc-drawing and wait for readiness, optionally preparing runtime state."""
     ssh = _connect_ssh(target)
     try:
-        if not _prepare_service(ssh, target):
+        if prepare and not _prepare_service(
+            ssh,
+            target,
+            env_update=env_update,
+        ):
             return False
         if not _restart_service(ssh):
             return False
