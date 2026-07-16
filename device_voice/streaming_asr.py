@@ -48,6 +48,50 @@ class BufferedVoiceStreamSession:
         return await transcribe_audio(audio_data)
 
 
+def _build_collector(session: DashScopeLiveStreamSession) -> object:
+    """Build a DashScope RecognitionCallback bound to ``session``.
+
+    Extracted from ``_start_sync`` to keep that method under the 50-line limit.
+    The dashscope import is runtime-only (optional dependency), so the callback
+    base class is resolved here rather than at module import.
+    """
+    from dashscope.audio.asr import RecognitionCallback, RecognitionResult
+
+    class Collector(RecognitionCallback):
+        def __init__(self) -> None:
+            super().__init__()
+            self.parts: list[str] = []
+            self.latest_partial = ""
+
+        def on_event(self, result: RecognitionResult) -> None:
+            sentence = result.get_sentence()
+            if not isinstance(sentence, dict):
+                return
+            text = str(sentence.get("text") or "").strip()
+            if not text or session._loop is None or session._handler is None:
+                return
+            is_final = RecognitionResult.is_sentence_end(sentence)
+            if is_final:
+                self.parts.append(text)
+            else:
+                self.latest_partial = text
+            fut = asyncio.run_coroutine_threadsafe(session._handler(text, is_final), session._loop)
+            fut.add_done_callback(
+                lambda f: f.exception() and _log.debug("voice transcript push failed: %s", f.exception())
+            )
+
+        def on_error(self, result: RecognitionResult) -> None:
+            session._error = RuntimeError(str(result))
+            if session._done is not None:
+                session._done.set()
+
+        def on_complete(self) -> None:
+            if session._done is not None:
+                session._done.set()
+
+    return Collector()
+
+
 class DashScopeLiveStreamSession:
     """Stream PCM frames through DashScope Recognition with partial transcripts."""
 
@@ -104,40 +148,9 @@ class DashScopeLiveStreamSession:
         await asyncio.to_thread(self._close_sync)
 
     def _start_sync(self) -> None:
-        from dashscope.audio.asr import Recognition, RecognitionCallback, RecognitionResult
+        from dashscope.audio.asr import Recognition
 
-        session = self
-
-        class Collector(RecognitionCallback):
-            def __init__(self) -> None:
-                super().__init__()
-                self.parts: list[str] = []
-                self.latest_partial = ""
-
-            def on_event(self, result: RecognitionResult) -> None:
-                sentence = result.get_sentence()
-                if not isinstance(sentence, dict):
-                    return
-                text = str(sentence.get("text") or "").strip()
-                if not text or session._loop is None or session._handler is None:
-                    return
-                is_final = RecognitionResult.is_sentence_end(sentence)
-                if is_final:
-                    self.parts.append(text)
-                else:
-                    self.latest_partial = text
-                asyncio.run_coroutine_threadsafe(session._handler(text, is_final), session._loop)
-
-            def on_error(self, result: RecognitionResult) -> None:
-                session._error = RuntimeError(str(result))
-                if session._done is not None:
-                    session._done.set()
-
-            def on_complete(self) -> None:
-                if session._done is not None:
-                    session._done.set()
-
-        self._collector = Collector()
+        self._collector = _build_collector(self)
         self._error = None
         self._done = threading.Event()
         self._recognition = Recognition(

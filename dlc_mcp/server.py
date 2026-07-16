@@ -256,8 +256,8 @@ def main() -> None:
                 resp = handle_request(client, req)
             except Exception as exc:  # noqa: BLE001 - 不能让主循环崩
                 logger.warning("MCP handle_request internal error: %s", exc)
-                resp = _tool_error(None, -32603, "Internal error")
-            if resp and resp.get("id") is not None:
+                resp = _tool_error(req.get("id") if isinstance(req, dict) else None, -32603, "Internal error")
+            if resp and (resp.get("id") is not None or resp.get("error") is not None):
                 payload = json.dumps(resp, ensure_ascii=False) + "\n"
                 sys.stdout.buffer.write(payload.encode("utf-8"))
                 sys.stdout.buffer.flush()

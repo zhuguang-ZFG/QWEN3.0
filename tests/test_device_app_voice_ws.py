@@ -227,3 +227,35 @@ def test_voice_ws_session_data_under_limit_ok(tmp_path, monkeypatch):
         websocket.send_text("stop")
         transcript = websocket.receive_json()
         assert transcript["type"] == "transcript"
+
+
+async def test_finalize_dashscope_close_error_does_not_propagate():
+    """#3 回归：DashScope close() 超时/抛异常时不得穿透 _finalize_voice_session，
+    且必须仍调用 websocket.close()（否则连接槽泄漏）。"""
+    from starlette.websockets import WebSocketState
+    from device_voice.streaming_asr import DashScopeLiveStreamSession
+    from routes.device_app_voice_ws import _finalize_voice_session
+
+    # 造壳绕过 __init__，仅让 isinstance 命中 DashScope 分支。
+    session = object.__new__(DashScopeLiveStreamSession)
+
+    async def _boom():
+        raise RuntimeError("dashscope stop hung")
+
+    session.close = _boom  # type: ignore[method-assign]
+
+    closed = {"called": False}
+
+    class _FakeWs:
+        application_state = WebSocketState.CONNECTED
+        client_state = WebSocketState.CONNECTED
+
+        async def close(self, *a, **k):
+            closed["called"] = True
+
+        async def send_json(self, *a, **k):
+            return None
+
+    # 不得抛异常；异常被吞后仍须关闭 websocket。
+    await _finalize_voice_session(_FakeWs(), session)
+    assert closed["called"] is True

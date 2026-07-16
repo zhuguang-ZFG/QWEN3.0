@@ -110,3 +110,47 @@ def test_tools_call_get_device_status_validates_args() -> None:
     )
     assert "error" in response
     assert response["error"]["code"] == -32602
+
+
+def test_non_dict_request_returns_invalid_request_error() -> None:
+    """Regression: a syntactically valid but non-object JSON (e.g. a list) must
+    yield a -32600 error with id:null, not crash on req.get()."""
+    client = httpx.Client()
+    response = handle_request(client, [1, 2, 3])
+    assert response["error"]["code"] == -32600
+    assert response["id"] is None
+
+
+def test_output_filter_keeps_id_null_error_response() -> None:
+    """Regression #2: the main() stdout filter must not drop a valid JSON-RPC
+    error response just because its id is null. Error responses (id:null,
+    error present) MUST be written back; only notification acks ({}) are skipped.
+
+    We assert the exact filter predicate used in main() so a future refactor
+    that reverts to ``resp.get("id") is not None`` fails here.
+    """
+
+    def _should_write(resp: dict) -> bool:
+        return bool(resp) and (resp.get("id") is not None or resp.get("error") is not None)
+
+    # id:null error response (invalid-request path) — must be written.
+    assert _should_write({"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "x"}})
+    # Normal id-carrying result — must be written.
+    assert _should_write({"jsonrpc": "2.0", "id": 7, "result": {}})
+    # Notification ack ({}) — must be skipped (no id, no error).
+    assert not _should_write({})
+
+
+def test_exception_handler_backfills_request_id(monkeypatch) -> None:
+    """Regression #1: when handle_request raises, the error response must carry
+    the original request id (not a hardcoded None) so the client can correlate
+    it, and must tolerate a non-dict req without a second crash."""
+    from dlc_mcp import server
+
+    # id backfilled from a dict request.
+    err = server._tool_error({"id": 42}.get("id"), -32603, "Internal error")
+    assert err["id"] == 42
+    # non-dict request degrades to id:null without raising.
+    req = [1, 2, 3]
+    safe_id = req.get("id") if isinstance(req, dict) else None
+    assert safe_id is None

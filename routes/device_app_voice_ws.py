@@ -187,7 +187,10 @@ async def _voice_receive_loop(websocket: WebSocket, session: Any, account: dict[
 
 async def _finalize_voice_session(websocket: WebSocket, session: Any) -> None:
     if isinstance(session, DashScopeLiveStreamSession):
-        await asyncio.wait_for(session.close(), timeout=VOICE.asr_timeout_seconds)
+        try:
+            await asyncio.wait_for(session.close(), timeout=VOICE.asr_timeout_seconds)
+        except Exception as exc:
+            _log.warning("voice ws dashscope session close failed: %s", type(exc).__name__)
     elif isinstance(session, BufferedVoiceStreamSession):
         try:
             final_text = await asyncio.wait_for(session.finish(), timeout=VOICE.asr_timeout_seconds)
