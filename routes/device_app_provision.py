@@ -1,12 +1,10 @@
-"""LiMa native device app provision routes (pair/bind + LAN discover)."""
+"""Device discovery routes and retired insecure pre-binding endpoints."""
 
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-import os
-import secrets
 import socket
 import time
 from typing import Any
@@ -15,15 +13,11 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
 from device_logic.auth import authorize
-from device_logic.crud import bind_device
-from device_logic.db import connect
-from device_logic.errors import DeviceLogicError
-from device_logic.http import err, expires_at, new_id, now, read_body, str_field
+from device_logic.http import err, read_body, str_field
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-provision"])
 _log = logging.getLogger(__name__)
 
-_DEFAULT_DEVICE_WS_URL = "wss://chat.donglicao.com/device/v1/ws"
 _UDP_DISCOVERY_MESSAGE = b'{"cmd":"discover","proto":"lima-device-v1"}'
 _UDP_SCAN_PORTS = (5000, 8080, 1883, 12345)
 _UDP_SCAN_TIMEOUT = 2.0
@@ -93,64 +87,6 @@ def _normalize_client_device(item: Any) -> dict[str, Any] | None:
     }
 
 
-def _build_provision_response(
-    provision_id: str,
-    provision_token: str,
-    device_sn: str,
-    server_url: str,
-    wifi_ssid: str,
-) -> dict:
-    # Never echo wifi password: clients already have it; SoftAP/BLE send it
-    # device-local. Response is JWT-authenticated but still lands in logs/proxies.
-    return {
-        "provisionId": provision_id,
-        "provisionToken": provision_token,
-        "deviceSn": device_sn,
-        "serverUrl": server_url,
-        "protocol": "lima-device-v1",
-        "expiresIn": 1800,
-        "configPayload": {
-            "wifi_ssid": wifi_ssid,
-            "server_url": server_url,
-            "pair_token": provision_token,
-            "device_sn": device_sn,
-        },
-    }
-
-
-def _validate_provision_token(conn, token: str, device_sn: str):
-    row = conn.execute("SELECT * FROM v2_pair_request WHERE pair_token=? AND status='pending'", (token,)).fetchone()
-    if row is None:
-        return err(404, "provision token not found", 404)
-    if row["expires_at"] < now():
-        conn.execute("UPDATE v2_pair_request SET status='expired' WHERE id=?", (row["id"],))
-        conn.commit()
-        return err(400, "provision token expired", 400)
-    if row["device_sn"] != device_sn:
-        return err(400, "deviceSn does not match provision token", 400)
-    return row
-
-
-def _complete_provision_binding(conn, row, device_sn: str):
-    account_id = row["account_id"]
-    try:
-        bind_device(
-            conn,
-            account_id=account_id,
-            device_sn=device_sn,
-            model="esp32s3_xyz",
-            firmware_ver="",
-            hardware_ver="",
-            metadata=None,
-            new_id=new_id,
-        )
-    except DeviceLogicError as exc:
-        return err(exc.code, exc.message, exc.http_status)
-    conn.execute("UPDATE v2_pair_request SET status='completed' WHERE id=?", (row["id"],))
-    conn.commit()
-    return account_id
-
-
 @router.post("/devices/discover")
 async def discover_devices(request: Request, authorization: str = Header(default="")) -> Any:
     """Report client-discovered devices or run a best-effort server UDP scan."""
@@ -160,70 +96,24 @@ async def discover_devices(request: Request, authorization: str = Header(default
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body
-
     client_devices = body.get("devices")
     if isinstance(client_devices, list) and client_devices:
         devices = [_normalize_client_device(item) for item in client_devices]
         return {"devices": [d for d in devices if d is not None], "source": "client_report"}
-
     devices = await asyncio.to_thread(_server_udp_scan)
     return {"devices": devices, "source": "server_scan"}
 
 
 @router.post("/devices/provision")
-async def create_provision(request: Request, authorization: str = Header(default="")) -> Any:
+async def create_provision(authorization: str = Header(default="")) -> JSONResponse:
+    """Retired: the flow lacked device proof and allowed unbound-SN ownership claims."""
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
-    body = await read_body(request)
-    if isinstance(body, JSONResponse):
-        return body
-    device_sn = str_field(body, "deviceSn", "device_sn")
-    wifi_ssid = str_field(body, "wifiSsid", "ssid")
-    # wifiPassword may still be sent for client-local SoftAP/BLE; never store or echo it.
-    if not device_sn:
-        return err(400, "deviceSn is required", 400)
-    if not wifi_ssid:
-        return err(400, "wifiSsid is required", 400)
-
-    provision_id = new_id()
-    provision_token = secrets.token_urlsafe(32)
-    # Fixed env URL only — never build wss from request Host (host-header spoof).
-    server_url = (os.environ.get("LIMA_DEVICE_WS_URL") or "").strip() or _DEFAULT_DEVICE_WS_URL
-    expires = expires_at(1800)
-
-    with connect() as conn:
-        conn.execute(
-            """
-            INSERT INTO v2_pair_request
-            (id, pair_token, device_sn, account_id, wifi_ssid, server_url, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (provision_id, provision_token, device_sn, account["id"], wifi_ssid, server_url, expires),
-        )
-        conn.commit()
-
-    return _build_provision_response(provision_id, provision_token, device_sn, server_url, wifi_ssid)
+    return err(410, "provisioning flow retired; use activation-code binding", 410)
 
 
 @router.post("/devices/provision/confirm")
-async def confirm_provision(request: Request) -> Any:
-    body = await read_body(request)
-    if isinstance(body, JSONResponse):
-        return body
-    token = str_field(body, "provisionToken", "pair_token")
-    device_sn = str_field(body, "deviceSn", "device_sn")
-    if not token:
-        return err(400, "provisionToken is required", 400)
-    if not device_sn:
-        return err(400, "deviceSn is required", 400)
-
-    with connect() as conn:
-        row = _validate_provision_token(conn, token, device_sn)
-        if isinstance(row, JSONResponse):
-            return row
-        account_id = _complete_provision_binding(conn, row, device_sn)
-        if isinstance(account_id, JSONResponse):
-            return account_id
-
-    return {"deviceSn": device_sn, "status": "bound", "accountId": account_id}
+async def confirm_provision() -> JSONResponse:
+    """Retired with create_provision; bearer pair tokens were not device proof."""
+    return err(410, "provisioning flow retired; use activation-code binding", 410)

@@ -9,7 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
-from device_logic.access import device_access
+from device_logic.access import require_device_access
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, read_body, str_field
@@ -113,7 +113,7 @@ async def subscribe_notifications(
 
     with connect() as conn:
         for did in device_ids:
-            if not device_access(conn, account, did):
+            if require_device_access(conn, account, did) is not None:
                 return err(403, f"no access to device {did}", 403)
 
     sub_id = _insert_subscription(account["id"], openid, template_ids, device_ids)

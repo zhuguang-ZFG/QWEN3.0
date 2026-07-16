@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from config.voice_settings import VOICE
 from device_voice.audio_format import prepare_pcm
 from device_voice.providers.base import AsrNotConfiguredError, AsrProvider
@@ -31,7 +33,7 @@ def get_asr_provider() -> AsrProvider:
 
 async def transcribe_audio(audio_data: bytes) -> str:
     provider = get_asr_provider()
-    return await provider.transcribe(audio_data)
+    return await asyncio.wait_for(provider.transcribe(audio_data), timeout=VOICE.asr_timeout_seconds)
 
 
 async def transcribe_pcm(pcm_data: bytes, *, sample_rate: int = 16000) -> str:

@@ -33,6 +33,9 @@ class VoiceConfig:
     transcribe_per_min: int = int(os.environ.get("LIMA_VOICE_TRANSCRIBE_PER_MIN", "10"))
     ws_connect_per_min: int = int(os.environ.get("LIMA_VOICE_WS_CONNECT_PER_MIN", "0"))
     ws_max_concurrent: int = int(os.environ.get("LIMA_VOICE_WS_MAX_CONCURRENT", "3"))
+    asr_timeout_seconds: float = float(os.environ.get("LIMA_VOICE_ASR_TIMEOUT_SECONDS", "45"))
+    ws_idle_timeout_seconds: float = float(os.environ.get("LIMA_VOICE_WS_IDLE_TIMEOUT_SECONDS", "30"))
+    ws_session_timeout_seconds: float = float(os.environ.get("LIMA_VOICE_WS_SESSION_TIMEOUT_SECONDS", "300"))
     funasr_language: str = os.environ.get("LIMA_VOICE_FUNASR_LANGUAGE", "auto").strip() or "auto"
     min_pcm_bytes: int = int(os.environ.get("LIMA_VOICE_MIN_PCM_BYTES", "3200"))
     stream_pcm_frame_bytes: int = int(os.environ.get("LIMA_VOICE_STREAM_PCM_FRAME_BYTES", "1280"))

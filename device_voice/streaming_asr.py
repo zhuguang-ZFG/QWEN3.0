@@ -44,7 +44,7 @@ class BufferedVoiceStreamSession:
             return ""
         require_min_pcm_bytes(audio_data, minimum=VOICE.min_pcm_bytes)
         if self._provider is not None:
-            return await self._provider.transcribe(audio_data)
+            return await asyncio.wait_for(self._provider.transcribe(audio_data), timeout=VOICE.asr_timeout_seconds)
         return await transcribe_audio(audio_data)
 
 

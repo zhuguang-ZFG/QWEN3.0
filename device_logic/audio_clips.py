@@ -9,6 +9,10 @@ from device_logic.chat_store import persist_user_audio_clip
 from device_logic.http import new_id
 
 
+class AudioIdConflictError(ValueError):
+    """Raised when an audio ID already belongs to another device."""
+
+
 def save_device_audio_clip(
     conn: sqlite3.Connection,
     device_id: str,
@@ -21,6 +25,9 @@ def save_device_audio_clip(
 ) -> dict[str, str] | None:
     """Write audio bytes to disk and link transcript in chat history."""
     clip_id = (audio_id or "").strip() or new_id()
+    owners = conn.execute("SELECT DISTINCT device_id FROM v2_audio_record WHERE audio_id=?", (clip_id,)).fetchall()
+    if any(row["device_id"] != device_id for row in owners):
+        raise AudioIdConflictError("audioId already belongs to another device")
     storage_path = write_audio_file(
         device_id,
         clip_id,

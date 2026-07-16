@@ -259,7 +259,9 @@ def persist_user_audio_clip(
     session_id = ensure_active_session(conn, device_id)
     if session_id is None:
         return None
-    existing = conn.execute("SELECT id FROM v2_audio_record WHERE audio_id=?", (audio_id,)).fetchone()
+    existing = conn.execute(
+        "SELECT id FROM v2_audio_record WHERE audio_id=? AND device_id=?", (audio_id, device_id)
+    ).fetchone()
     if existing is None:
         insert_audio_record(
             conn,
@@ -275,9 +277,9 @@ def persist_user_audio_clip(
             """
             UPDATE v2_audio_record
             SET storage_path=?, content_type=?, duration_ms=COALESCE(?, duration_ms), session_id=?
-            WHERE audio_id=?
+            WHERE audio_id=? AND device_id=?
             """,
-            (storage_path, content_type, duration_ms, session_id, audio_id),
+            (storage_path, content_type, duration_ms, session_id, audio_id, device_id),
         )
         conn.commit()
     message_id = insert_message(conn, session_id, "user", content, audio_id=audio_id)

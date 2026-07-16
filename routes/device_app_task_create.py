@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -139,7 +140,7 @@ async def _create_free_text_task(
         _log.warning("free-text insert_task_row failed task=%s err=%s", task.get("task_id"), exc)
         return err(500, "failed to save task", 500)
     try:
-        queue_depth = enqueue_pending_task(device_id, task)
+        queue_depth = await asyncio.to_thread(enqueue_pending_task, device_id, task)
     except Exception as exc:
         _log.warning("free-text enqueue failed task=%s err=%s", task.get("task_id"), exc)
         mark_task_failed(str(task["task_id"]), "dispatch failed")

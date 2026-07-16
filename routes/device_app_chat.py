@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from config.voice_settings import VOICE
 from device_logic.access import require_device_access, require_device_control
-from device_logic.audio_clips import save_device_audio_clip
+from device_logic.audio_clips import AudioIdConflictError, save_device_audio_clip
 from device_logic.audio_store import resolve_storage_path
 from device_logic.auth import authorize
 from device_logic.chat_store import list_audio_history
@@ -81,15 +81,18 @@ async def ingest_audio_clip(device_id: str, request: Request, authorization: str
         denied = require_device_control(conn, account, device_id)
         if denied:
             return denied
-        saved = save_device_audio_clip(
-            conn,
-            device_id,
-            content,
-            audio_data,
-            content_type=content_type,
-            audio_id=audio_id,
-            duration_ms=parsed_duration,
-        )
+        try:
+            saved = save_device_audio_clip(
+                conn,
+                device_id,
+                content,
+                audio_data,
+                content_type=content_type,
+                audio_id=audio_id,
+                duration_ms=parsed_duration,
+            )
+        except AudioIdConflictError:
+            return err(409, "audioId already belongs to another device", 409)
     if saved is None:
         return err(503, "device has no bound account for chat persistence", 503)
     return saved
