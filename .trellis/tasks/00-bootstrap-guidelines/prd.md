@@ -21,8 +21,8 @@ the rest conversationally.
 
 ## Status (update the checkboxes as you complete each item)
 
-- [ ] Fill guidelines for esp32S_XYZ
-- [ ] Add code examples
+- [x] Fill guidelines for esp32S_XYZ
+- [x] Add code examples
 
 ---
 

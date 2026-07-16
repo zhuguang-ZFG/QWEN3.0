@@ -1,6 +1,8 @@
 # esp32S_XYZ Package Spec — 固件/小程序子模块
 
-> git 子模块，含小智 ESP32 server 与 `manager-mobile` 微信小程序。技术栈（C/C++ 固件、uni-app/Vue/TS 小程序）与根目录 Python 服务不同，**root 包的 Python 规范不直接套用**。
+> git 子模块，含双 MCU 固件（U1 Grbl_Esp32 运动控制 / U8 xiaozhi-esp32 能力 MCU）与 `manager-mobile` 微信小程序。技术栈（C/C++ 固件、uni-app/Vue/TS 小程序）与根目录 Python 服务不同，**root 包的 Python 规范不直接套用**。
+>
+> **固件开发规范见 [`backend/`](backend/index.md)**（双 MCU 架构、改动边界铁律、U1/U8 编码约定、Edge-D 契约、工具链）。固件代码改动前先读 `backend/index.md`。
 
 ## 改动前必做
 
@@ -28,4 +30,4 @@ cli.bat upload --project dist/build/mp-weixin --v "X.Y.Z" -d "提交说明"
 
 ## 其他
 
-本目录其余规范沿用子模块自身仓库（xiaozhi-esp32-server 上游）约定；主仓库不加额外规则。
+固件上游约定权威来源：U1 是 `firmware/u1-grbl/CodingStyle.md` + `.clang-format`；U8 是 xiaozhi-esp32 上游（从代码推断，详见 [`backend/u8-xiaozhi.md`](backend/u8-xiaozhi.md)）。固件自定代码面积极小（U1 一个机型头、U8 一个板目录），改动边界与可改文件清单见 [`backend/index.md`](backend/index.md)。
