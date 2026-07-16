@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from dataclasses import dataclass
 from typing import Any
@@ -113,18 +114,22 @@ async def create_and_route_task(
         prometheus_metrics.record_device_task_issued(capability, source)
 
     if task.get("error"):
-        return DeviceTaskRouteResult("failed", False, pending_count(device_id), task)
+        queue_depth = await asyncio.to_thread(pending_count, device_id)
+        return DeviceTaskRouteResult("failed", False, queue_depth, task)
 
     # Align with structured app path: high-risk / approval-gated tasks stay pending.
     if task.get("workflow_state") == TaskState.WAITING_APPROVAL.value:
-        return DeviceTaskRouteResult("waiting_approval", False, pending_count(device_id), task)
+        queue_depth = await asyncio.to_thread(pending_count, device_id)
+        return DeviceTaskRouteResult("waiting_approval", False, queue_depth, task)
 
     if not enqueue:
-        return DeviceTaskRouteResult("created", False, pending_count(device_id), task)
+        queue_depth = await asyncio.to_thread(pending_count, device_id)
+        return DeviceTaskRouteResult("created", False, queue_depth, task)
 
-    queue_depth = enqueue_pending_task(device_id, task)
+    queue_depth = await asyncio.to_thread(enqueue_pending_task, device_id, task)
     prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")
-    prometheus_metrics.set_device_tasks_pending(pending_count())
+    total_pending = await asyncio.to_thread(pending_count)
+    prometheus_metrics.set_device_tasks_pending(total_pending)
     return DeviceTaskRouteResult("queued_no_delivery", False, queue_depth, task)
 
 

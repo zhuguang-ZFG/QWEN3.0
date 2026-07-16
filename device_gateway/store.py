@@ -22,6 +22,10 @@ class DeviceTaskStore(Protocol):
 
     def reset(self) -> None: ...
 
+    def ping(self) -> None: ...
+
+    def close(self) -> None: ...
+
     def next_task_id(self) -> str: ...
 
     def create_task_state(self, task: dict[str, Any], status: str = "created") -> None: ...
@@ -75,6 +79,13 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
             self._counter = itertools.count(1)
             self._tasks.clear()
             self._pending_by_device.clear()
+            self._processing_by_device.clear()
+
+    def ping(self) -> None:
+        return None
+
+    def close(self) -> None:
+        return None
 
     def next_task_id(self) -> str:
         with self._lock:
