@@ -84,6 +84,7 @@ def client(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_dispatch_notification_uses_mock_notifier_and_writes_log(client, monkeypatch, tmp_path):
     _seed_account_and_device()
+    _seed_binding()
 
     with connect() as conn:
         conn.execute(
@@ -178,3 +179,35 @@ async def test_wechat_notifier_returns_failed_when_unconfigured(monkeypatch):
         {"task_name": "task", "task_id": "t-1", "completed_at": "2026-01-01T00:00:00Z"},
     )
     assert result["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_revoked_share_subscription_is_not_dispatched(client, monkeypatch):
+    _seed_account_and_device()
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO v2_device_share "
+            "(id, device_id, owner_account_id, guest_account_id, share_token, permission, status, expires_at, created_at) "
+            "VALUES ('s-1', 'dev-1', 'a-owner', 'a-other', 'token', 'view', 'revoked', "
+            "'2099-01-01T00:00:00Z', '2026-01-01T00:00:00Z')"
+        )
+        conn.execute(
+            "INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status) "
+            "VALUES ('b-shared', 'dev-1', 'a-other', 'shared', 'active')"
+        )
+        conn.execute(
+            "INSERT INTO v2_notification_subscription "
+            "(id, account_id, openid, template_ids, device_ids, created_at, updated_at, status) "
+            "VALUES ('sub-revoked', 'a-other', 'wx-other', '[\"task_completed\"]', '[\"dev-1\"]', "
+            "'2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', 'active')"
+        )
+        conn.commit()
+    sent = []
+
+    async def fake_send(**kwargs):
+        sent.append(kwargs)
+        return {"status": "sent", "wx_response": {"errcode": 0}}
+
+    monkeypatch.setattr(notifier, "send_subscribe_message", fake_send)
+    await dispatch_notification("dev-1", "task_completed", {"task_name": "private"})
+    assert sent == []

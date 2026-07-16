@@ -1,4 +1,4 @@
-"""Tests for device app provision and discover routes."""
+"""Tests for device discovery and retired insecure pre-binding routes."""
 
 from device_app_helpers import client as make_client
 from device_app_helpers import headers
@@ -22,7 +22,6 @@ def _seed_account():
 def test_discover_with_client_reported_devices(tmp_path, monkeypatch):
     client, _store = _provision_client(tmp_path, monkeypatch)
     _seed_account()
-
     response = client.post(
         "/device/v1/app/devices/discover",
         headers=headers("a-owner"),
@@ -34,133 +33,33 @@ def test_discover_with_client_reported_devices(tmp_path, monkeypatch):
             ]
         },
     )
-
     assert response.status_code == 200, response.text
-    data = response.json()
-    assert data["source"] == "client_report"
-    devices = data["devices"]
-    assert len(devices) == 2
-    assert devices[0]["deviceSn"] == "SN-01"
+    assert [item["deviceSn"] for item in response.json()["devices"]] == ["SN-01", "SN-02"]
 
 
-def test_provision_returns_token(tmp_path, monkeypatch):
+def test_provision_requires_auth_before_retired_response(tmp_path, monkeypatch):
+    client, _store = _provision_client(tmp_path, monkeypatch)
+    assert client.post("/device/v1/app/devices/provision").status_code == 401
+
+
+def test_provision_is_retired_to_prevent_unbound_sn_claim(tmp_path, monkeypatch):
     client, _store = _provision_client(tmp_path, monkeypatch)
     _seed_account()
-
     response = client.post(
         "/device/v1/app/devices/provision",
         headers=headers("a-owner"),
-        json={"deviceSn": "SN-PAIR-01", "wifiSsid": "MyWiFi", "wifiPassword": "secret"},
+        json={"deviceSn": "SN-UNBOUND", "wifiSsid": "MyWiFi"},
     )
-
-    assert response.status_code == 200, response.text
-    data = response.json()
-    assert data["deviceSn"] == "SN-PAIR-01"
-    assert data["provisionToken"]
-    assert data["serverUrl"] == "wss://chat.donglicao.com/device/v1/ws"
-    assert data["configPayload"]["wifi_ssid"] == "MyWiFi"
-    assert "wifi_password" not in data["configPayload"]
-    assert "secret" not in response.text
-    assert data["configPayload"]["pair_token"] == data["provisionToken"]
-    assert data["configPayload"]["server_url"] == data["serverUrl"]
+    assert response.status_code == 410
+    assert "activation-code binding" in response.json()["message"]
 
 
-def test_provision_server_url_ignores_host_header(tmp_path, monkeypatch):
+def test_provision_confirm_is_retired_even_with_self_issued_token(tmp_path, monkeypatch):
     client, _store = _provision_client(tmp_path, monkeypatch)
-    _seed_account()
-    monkeypatch.delenv("LIMA_DEVICE_WS_URL", raising=False)
-
-    response = client.post(
-        "/device/v1/app/devices/provision",
-        headers={**headers("a-owner"), "Host": "evil.example.com"},
-        json={"deviceSn": "SN-PAIR-HOST", "wifiSsid": "MyWiFi", "wifiPassword": "secret"},
-    )
-
-    assert response.status_code == 200, response.text
-    data = response.json()
-    assert data["serverUrl"] == "wss://chat.donglicao.com/device/v1/ws"
-    assert "evil.example.com" not in data["serverUrl"]
-
-
-def test_provision_server_url_from_env(tmp_path, monkeypatch):
-    client, _store = _provision_client(tmp_path, monkeypatch)
-    _seed_account()
-    monkeypatch.setenv("LIMA_DEVICE_WS_URL", "wss://custom.example.com/device/v1/ws")
-
-    response = client.post(
-        "/device/v1/app/devices/provision",
-        headers=headers("a-owner"),
-        json={"deviceSn": "SN-PAIR-ENV", "wifiSsid": "MyWiFi", "wifiPassword": "secret"},
-    )
-
-    assert response.status_code == 200, response.text
-    assert response.json()["serverUrl"] == "wss://custom.example.com/device/v1/ws"
-
-
-def test_confirm_provision_binds_device(tmp_path, monkeypatch):
-    client, _store = _provision_client(tmp_path, monkeypatch)
-    _seed_account()
-
-    pair_response = client.post(
-        "/device/v1/app/devices/provision",
-        headers=headers("a-owner"),
-        json={"deviceSn": "SN-PAIR-02", "wifiSsid": "MyWiFi"},
-    )
-    assert pair_response.status_code == 200, pair_response.text
-    provision_token = pair_response.json()["provisionToken"]
-
-    confirm_response = client.post(
-        "/device/v1/app/devices/provision/confirm",
-        json={"provisionToken": provision_token, "deviceSn": "SN-PAIR-02"},
-    )
-
-    assert confirm_response.status_code == 200, confirm_response.text
-    data = confirm_response.json()
-    assert data["status"] == "bound"
-    assert data["deviceSn"] == "SN-PAIR-02"
-    assert data["accountId"] == "a-owner"
-
-
-def test_confirm_invalid_provision_token_returns_404(tmp_path, monkeypatch):
-    client, _store = _provision_client(tmp_path, monkeypatch)
-    _seed_account()
-
     response = client.post(
         "/device/v1/app/devices/provision/confirm",
-        json={"provisionToken": "invalid-token", "deviceSn": "SN-PAIR-03"},
+        json={"provisionToken": "attacker-created-token", "deviceSn": "SN-UNBOUND"},
     )
-
-    assert response.status_code == 404
-    assert response.json()["code"] == 404
-
-
-def test_confirm_expired_provision_token_returns_400(tmp_path, monkeypatch):
-    client, _store = _provision_client(tmp_path, monkeypatch)
-    _seed_account()
-
+    assert response.status_code == 410
     with connect() as conn:
-        conn.execute(
-            """
-            INSERT INTO v2_pair_request
-            (id, pair_token, device_sn, account_id, wifi_ssid, server_url, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                "pair-expired",
-                "expired-token-12345",
-                "SN-PAIR-04",
-                "a-owner",
-                "WiFi",
-                "wss://example.com/device/v1/ws",
-                "2020-01-01T00:00:00Z",
-            ),
-        )
-        conn.commit()
-
-    response = client.post(
-        "/device/v1/app/devices/provision/confirm",
-        json={"provisionToken": "expired-token-12345", "deviceSn": "SN-PAIR-04"},
-    )
-
-    assert response.status_code == 400
-    assert response.json()["code"] == 400
+        assert conn.execute("SELECT 1 FROM v2_device WHERE device_sn='SN-UNBOUND'").fetchone() is None

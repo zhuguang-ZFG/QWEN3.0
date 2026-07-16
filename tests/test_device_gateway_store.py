@@ -77,3 +77,17 @@ def test_remove_pending_task_drops_only_matching_task():
     assert store.remove_pending_task("dev-1", t1["task_id"]) is False
     assert store.remove_pending_task("dev-unknown", t2["task_id"]) is False
     assert store.pending_count("dev-2") == 1
+
+
+def test_reset_clears_processing_and_lifecycle_methods_are_noops():
+    store = InMemoryDeviceTaskStore()
+    task = _task(store.next_task_id())
+    store.enqueue_pending_task("dev-1", task)
+    assert store.pop_pending_tasks("dev-1") == [task]
+
+    store.reset()
+
+    assert store.ack_processing("dev-1", task["task_id"]) is False
+    assert store.recover_stale_processing("dev-1", timeout_sec=-1) == 0
+    assert store.ping() is None
+    assert store.close() is None

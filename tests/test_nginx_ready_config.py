@@ -41,7 +41,7 @@ def test_health_ready_location_exists(conf_path: Path):
 def test_health_ready_proxies_to_app(conf_path: Path):
     text = conf_path.read_text(encoding="utf-8")
     block = _extract_location_block(text, "/health/ready")
-    assert "proxy_pass http://127.0.0.1:8080" in block
+    assert "proxy_pass http://127.0.0.1:8081" in block
 
 
 @pytest.mark.parametrize("conf_path", [_SOURCE_CONF, _VPS_CONF], ids=["source", "vps_snapshot"])

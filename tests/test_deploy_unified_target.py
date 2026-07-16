@@ -14,7 +14,7 @@ def _unit_target() -> DeployTarget:
 
 def test_main_accepts_target_aliyun(monkeypatch):
     captured: list[str] = []
-    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py", "--target", "aliyun"])
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server_dlc.py", "--target", "aliyun"])
     monkeypatch.setattr(
         deploy_unified,
         "prepare_remote_deploy",

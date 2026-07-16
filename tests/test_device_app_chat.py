@@ -172,3 +172,28 @@ def test_ingest_audio_clip_denies_guest_without_share(client):
         },
     )
     assert response.status_code == 403
+
+
+def test_ingest_audio_clip_rejects_audio_id_owned_by_other_device(client):
+    _seed()
+    with connect() as conn:
+        conn.execute("INSERT INTO v2_device (id, device_sn, model) VALUES ('dev-2', 'SN-APP-02', 'esp32s3_xyz')")
+        conn.execute(
+            "INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status) "
+            "VALUES ('b-2', 'dev-2', 'a-owner', 'owner', 'active')"
+        )
+        conn.execute(
+            "INSERT INTO v2_audio_record (id, device_id, audio_id, created_at) "
+            "VALUES ('rec-victim', 'dev-1', 'shared-audio-id', '2026-01-01T00:00:00Z')"
+        )
+        conn.commit()
+    response = client.post(
+        "/device/v1/app/devices/dev-2/audio-clips",
+        headers=_headers("a-owner"),
+        json={"content": "replacement", "audioBase64": "UklGRg==", "audioId": "shared-audio-id"},
+    )
+    assert response.status_code == 409
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM v2_audio_record WHERE id='rec-victim'").fetchone()
+    assert row["device_id"] == "dev-1"
+    assert row["storage_path"] is None
