@@ -199,6 +199,20 @@ async def create_asset(request: Request, authorization: str = Header(default="")
     return ok({"assetId": asset_id, "title": title, "status": "created"})
 
 
+def _asset_render_response(task: dict[str, Any], asset_id: str, status: str, dispatch: dict[str, Any]) -> JSONResponse:
+    """Build the standard render response for an asset."""
+    return ok(
+        {
+            "taskId": task["task_id"],
+            "assetId": asset_id,
+            "status": status,
+            "dispatchStatus": dispatch.get("dispatchStatus"),
+            "queueDepth": dispatch.get("queueDepth"),
+            "sent": dispatch.get("sent"),
+        }
+    )
+
+
 @router.post("/assets/{asset_id}/render")
 async def render_asset(asset_id: str, request: Request, authorization: str = Header(default="")):
     account = authorize(authorization)
@@ -243,13 +257,4 @@ async def render_asset(asset_id: str, request: Request, authorization: str = Hea
     dispatch = await dispatch_or_enqueue(device_id, task)
     insert_task_row(device_id, account, task, "api", status, {"assetId": asset_id}, task.get("params", {}))
 
-    return ok(
-        {
-            "taskId": task["task_id"],
-            "assetId": asset_id,
-            "status": status,
-            "dispatchStatus": dispatch.get("dispatchStatus"),
-            "queueDepth": dispatch.get("queueDepth"),
-            "sent": dispatch.get("sent"),
-        }
-    )
+    return _asset_render_response(task, asset_id, status, dispatch)

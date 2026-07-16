@@ -47,6 +47,30 @@ def _resolve_writing_text(prompt: str, device_id: str | None, device_type: str |
     return text
 
 
+def _handwriting_result(
+    result: dict[str, Any],
+    status: str,
+    error: str | None,
+    *,
+    preset: bool = False,
+    font: str | None = None,
+) -> dict[str, Any]:
+    """Build a standard handwriting result dict for success or bounds-failure."""
+    d: dict[str, Any] = {
+        "status": status,
+        "image_url": "",
+        "svg_path": result["svg_path"] if status == "success" else "",
+        "width": result["width"],
+        "height": result["height"],
+        "model": "handwriting:font",
+        "error": error,
+        "preset": preset,
+    }
+    if status == "success":
+        d["font"] = font
+    return d
+
+
 def try_text_to_handwriting(
     prompt: str,
     device_id: str | None,
@@ -77,27 +101,8 @@ def try_text_to_handwriting(
     motion_err = _check_motion_bounds(result["svg_path"])
     if motion_err:
         logger.warning("手写体路径越界: %s", motion_err)
-        return {
-            "status": "failed",
-            "image_url": "",
-            "svg_path": "",
-            "width": result["width"],
-            "height": result["height"],
-            "model": "handwriting:font",
-            "error": f"Motion bounds precheck failed: {motion_err}",
-            "preset": False,
-        }
-    return {
-        "status": "success",
-        "image_url": "",
-        "svg_path": result["svg_path"],
-        "width": result["width"],
-        "height": result["height"],
-        "model": "handwriting:font",
-        "error": None,
-        "preset": False,
-        "font": result.get("font"),
-    }
+        return _handwriting_result(result, "failed", f"Motion bounds precheck failed: {motion_err}", preset=False)
+    return _handwriting_result(result, "success", None, preset=False, font=result.get("font"))
 
 
 def _check_motion_bounds(svg_path: str) -> str | None:

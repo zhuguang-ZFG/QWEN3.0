@@ -90,6 +90,19 @@ def _compute_bounds(path_list: list[dict]) -> tuple[int, int]:
     return int(max(xs) - min(xs)) + 20, int(max(ys) - min(ys)) + 20
 
 
+def _failed_write_result(error: str) -> dict[str, Any]:
+    """Return a standard failed response dict for device write errors."""
+    return {
+        "status": "failed",
+        "path_data": [],
+        "preview_svg": "",
+        "width": 0,
+        "height": 0,
+        "model": "deterministic",
+        "error": error,
+    }
+
+
 async def handle_device_write(
     text: str, device_id: str | None = None, font_style: str = "default", size: str = "medium"
 ) -> dict[str, Any]:
@@ -117,15 +130,7 @@ async def handle_device_write(
     from dlc_core.safety import MAX_TEXT_LENGTH
 
     if len(text) > MAX_TEXT_LENGTH:
-        return {
-            "status": "failed",
-            "path_data": [],
-            "preview_svg": "",
-            "width": 0,
-            "height": 0,
-            "model": "deterministic",
-            "error": f"text too long: {len(text)} > {MAX_TEXT_LENGTH}",
-        }
+        return _failed_write_result(f"text too long: {len(text)} > {MAX_TEXT_LENGTH}")
     try:
         scale = _resolve_font_params(font_style, size)
         path_list = text_to_path(text, origin_x=5.0, origin_y=20.0, scale=scale)
@@ -142,12 +147,4 @@ async def handle_device_write(
 
     except Exception as e:
         logger.error(f"Device write failed: {e}")
-        return {
-            "status": "failed",
-            "path_data": [],
-            "preview_svg": "",
-            "width": 0,
-            "height": 0,
-            "model": "deterministic",
-            "error": str(e),
-        }
+        return _failed_write_result(str(e))

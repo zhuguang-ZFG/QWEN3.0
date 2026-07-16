@@ -14,8 +14,8 @@ from pathlib import Path
 import paramiko
 
 from config import deploy_config
-from scripts.deploy_common import configure_ssh_host_keys
 from scripts.deploy_unified_common import DeployTarget
+from scripts.deploy_unified_restart import _connect_ssh
 
 
 def ensure_remote_dir(sftp: paramiko.SFTPClient, remote_dir: str) -> None:
@@ -171,15 +171,7 @@ def _deploy_with_sftp(files: list[str], target: DeployTarget) -> dict:
     project_root = Path(__file__).resolve().parent.parent
     results = {"uploaded": 0, "failed": [], "skipped": []}
 
-    ssh = paramiko.SSHClient()
-    ssh.load_system_host_keys()
-    configure_ssh_host_keys(ssh)
-    try:
-        ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
-    except paramiko.SSHException:
-        if not target.password:
-            raise
-        ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
+    ssh = _connect_ssh(target)
 
     sftp = ssh.open_sftp()
     try:
@@ -202,6 +194,28 @@ def _deploy_with_sftp(files: list[str], target: DeployTarget) -> dict:
     return results
 
 
+def _safe_remote_rel(raw: str) -> str | None:
+    """Normalize a raw path for remote use; return None if unsafe."""
+    rel = raw.replace("\\", "/").lstrip("/")
+    if not rel or rel.startswith("../") or "/../" in rel or ":" in rel or rel.startswith(".."):
+        return None
+    return rel
+
+
+def _build_rm_command(remote: str, parent: str, stem: str) -> str:
+    """Build rm command for a remote file and its __pycache__ companions."""
+    remote_q = shlex.quote(remote)
+    parent_q = shlex.quote(parent)
+    stem_q = shlex.quote(stem)
+    return (
+        f"rm -f -- {remote_q} "
+        f"{parent_q}/__pycache__/{stem_q}.cpython-*.pyc "
+        f"{parent_q}/__pycache__/{stem_q}.pyc "
+        f"2>/dev/null; "
+        f"if [ -e {remote_q} ]; then echo FAIL; else echo OK; fi"
+    )
+
+
 def remove_remote_files(paths: list[str], *, target: DeployTarget, dry_run: bool = False) -> dict:
     """Delete relative paths under target.remote_path (plus matching .pyc under __pycache__).
 
@@ -214,8 +228,8 @@ def remove_remote_files(paths: list[str], *, target: DeployTarget, dry_run: bool
 
     safe: list[str] = []
     for raw in paths:
-        rel = raw.replace("\\", "/").lstrip("/")
-        if not rel or rel.startswith("../") or "/../" in rel or ":" in rel or rel.startswith(".."):
+        rel = _safe_remote_rel(raw)
+        if rel is None:
             results["failed"].append(f"{raw}: unsafe path")
             continue
         safe.append(rel)
@@ -226,34 +240,15 @@ def remove_remote_files(paths: list[str], *, target: DeployTarget, dry_run: bool
             results["removed"] += 1
         return results
 
-    ssh = paramiko.SSHClient()
-    ssh.load_system_host_keys()
-    configure_ssh_host_keys(ssh)
+    ssh = _connect_ssh(target)
     try:
-        try:
-            ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
-        except paramiko.SSHException:
-            if not target.password:
-                raise
-            ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
-
         root = target.remote_path.rstrip("/")
         for rel in safe:
             remote = f"{root}/{rel}"
             parent = os.path.dirname(remote)
             base = os.path.basename(remote)
             stem = base.rsplit(".", 1)[0] if "." in base else base
-            remote_q = shlex.quote(remote)
-            parent_q = shlex.quote(parent)
-            stem_q = shlex.quote(stem)
-            # Remove file + common pyc companions; missing is OK.
-            cmd = (
-                f"rm -f -- {remote_q} "
-                f"{parent_q}/__pycache__/{stem_q}.cpython-*.pyc "
-                f"{parent_q}/__pycache__/{stem_q}.pyc "
-                f"2>/dev/null; "
-                f"if [ -e {remote_q} ]; then echo FAIL; else echo OK; fi"
-            )
+            cmd = _build_rm_command(remote, parent, stem)
             _, stdout, stderr = ssh.exec_command(cmd, timeout=30)
             out = stdout.read().decode("utf-8", "replace").strip()
             err = stderr.read().decode("utf-8", "replace").strip()

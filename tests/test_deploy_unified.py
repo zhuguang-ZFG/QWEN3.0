@@ -11,13 +11,13 @@ from tests._deploy_mocks import _DeploySsh, _PrepareSsh, _RestartSsh, _Sftp
 
 
 def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
-    import scripts.deploy_unified_deploy as deploy_mod
+    import scripts.deploy_unified_restart as restart_mod
 
     monkeypatch.setenv("LIMA_DEPLOY_USE_TAR", "0")
     sftp = _Sftp()
     ssh = _DeploySsh(sftp)
-    monkeypatch.setattr(deploy_mod.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(deploy_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(restart_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(restart_mod, "configure_ssh_host_keys", lambda client: None)
 
     result = deploy_unified.deploy_files(["scripts/deploy_unified.py"], target=get_deploy_target("jdcloud"))
 
