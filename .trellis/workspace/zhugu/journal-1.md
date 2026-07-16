@@ -98,3 +98,68 @@ A2A 8-agent 对 working-tree diff 复核出 8 findings（7 CONFIRMED + 1 REFUTED
 
 - 后续新开发者将获得 `00-join-<slug>` onboarding 任务（非 bootstrap）
 - 固件规范里标注的未落地项（抬笔保护/独立急停/龙门矫正）为独立实施任务
+
+---
+
+
+## Session 3: A2A 舰队 code-review DEBUG — 两批复核（3 真 bug 修复 + 16 条证伪/降级）
+
+**Date**: 2026-07-16
+**Task**: code review DEBUG（P2 加固 31 文件）
+**Package**: root
+**Branch**: `main`
+
+### Summary
+
+对 P2 加固涉及的 31 个 Python 文件做两批 A2A 舰队 code review（Reasonix 4944 / AtomCode 4940 / Kimi 4945 三节点并行，我逐条亲验把关）。第一批深审 6 个最高风险文件，报 9 条全部真实（严重度夸大），修 3 条真 bug；第二批复核其余 11 个运行时关键文件，报 16 条经亲验全部证伪或降级为设计权衡，真 bug 0 条。code review 任务收敛。
+
+### 第一批：真 bug 修复（commit `f390cac6`）
+
+| 位置 | 问题 | 修复 |
+|------|------|------|
+| `dlc_mcp/server.py:259` | 异常分支硬编码 `_tool_error(None,...)` 丢失 req id，配合 L260 过滤器致内部错误响应被静默丢弃 | 回填 `req.get("id") if isinstance(req,dict) else None` |
+| `dlc_mcp/server.py:260` | 输出过滤器 `id is not None` 吞掉合法的 id:null 错误响应（-32600 Invalid Request），违反 JSON-RPC | 加 `or resp.get("error") is not None`；notification `{}` 仍正确跳过 |
+| `routes/device_app_voice_ws.py:190` | DashScope 分支 `wait_for(session.close())` 无 try/except，超时异常穿透跳过 ws.close 致连接槽泄漏 | 包 try/except Exception + warning |
+| `device_voice/streaming_asr.py:129` | 丢弃 `run_coroutine_threadsafe` 的 future，_handler 异常静默 | 保存 future + done_callback 记 debug |
+
+连带：`_start_sync` 因 +2 行 done_callback 达 51 行超 50 门禁 → 抽 `_build_collector` 模块级工厂重构，降到 17 行。
+
+新增 4 个回归测试锁 bug（3 dlc_mcp + 1 voice finalize）。ruff + 尺寸门禁 + 全量 1787 passed / 0 failed（git stash 确定性验证测试零丢失）。
+
+### 第二批：16 条全证伪/降级（无需改动）
+
+三节点复核 11 文件（device_gateway 队列/存储、dlc_core/dispatch、device_logic 核心、dlc_api），共报 3 P0 + 6 P1 + 若干 P2，逐条亲验：
+
+- **Kimi `chat_store.get_messages` 越权读 P0** → 证伪：全仓库零调用方（死代码），无攻击面
+- **Kimi `list_audio_history` 越权读 P0** → 证伪：唯一调用方 `device_app_chat.py:43` 已 `require_device_access`
+- **Kimi `persist_audio_clip` 越权写 P1** → 证伪：调用方 L81 已 `require_device_control`
+- **AtomCode `routes.py:198` CancelledError 泄漏幂等键 P2** → 证伪：CancelledError 保留幂等键是**故意正确**的语义（不确定是否送达设备时必须保守，释放键才会导致重复下发）
+- **Reasonix 队列 3×P1（幽灵任务/requeue 丢失/ack TOCTOU）** → 降级：均为 at-least-once 队列已知设计权衡，有 `recover_stale_processing` + L145 反双花守卫兜底
+- 其余（dispatch 锁无界 / notifications N+1 / hgetall 无分页）→ 上轮已知或单-worker 下非问题
+
+### 关键经验（写入以避免重复 review）
+
+- **A2A 高危报告必须亲验，尤其 P0**：本 session 两批对比鲜明——第一批（自包含的 correctness bug）9 条全真；第二批（强依赖跨文件设计意图的授权/幂等/队列原子性）3 P0+1 P2 全假。根因：A2A agent 只拿孤立文件，缺调用方视野 + 架构上下文，把「API 层已鉴权的 storage 函数」和「正确的保守幂等设计」误报成高危。
+- **A2A transcript 泄漏**：Kimi 节点返回混入大量思考过程（它自己在 transcript 里已纠结 storage vs API 层鉴权，仍报 P0），只取 VERDICT 行、丢弃噪音。
+- **11 文件复核结论 = 无需改动**，下次勿重复 review：`redis_store_queue.py` `redis_store.py` `tasks.py` `dispatch.py` `gateway.py` `routes.py` `deps.py` `chat_store.py` `notifications.py` `audio_clips.py`。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f390cac6` | fix: 修复 MCP 静默吞响应 + voice WS 异常穿透（A2A 舰队修复，逐行审核） |
+
+### Testing
+
+- [OK] 全量 1787 passed / 3 skipped / 0 failed（`.venv310` Python 3.10）
+- [OK] ruff check + format + 代码尺寸门禁全绿
+- [OK] git stash 确定性验证：基线 1783 collected → 现 1787（净增 4 回归测试，零丢失）
+
+### Status
+
+[OK] **Completed** — code review 收敛，真 bug 全修，main 已 push origin
+
+### Next Steps
+
+- 第二批 11 文件确认无需改动，不再重复 review
+- 竞态类防御性改进（idempotency L1 误删窗口 / to_thread 不可取消 / 无锁 TOCTOU）如需处理应单独开任务，避免为极低概率问题引入新复杂度

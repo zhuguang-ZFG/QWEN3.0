@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 2
+- **Total Sessions**: 3
 - **Last Active**: 2026-07-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~80 | Active |
+| `journal-1.md` | ~165 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -30,6 +30,8 @@
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
 | 1 | 2026-07-16 | P2 代码审查 + A2A 舰队复核修复 + 60+ 存量落盘 | `d873b917`, `4f7e2aa0`, `2f1ee951`, `f7089f1a`, `1ad558d6`, `bfc44c46`, `e8f1588d`, `2e7745f1`, `3f4f06b9`, `248ba3cc` | `fix/code-review-p2-hardening` |
+| 2 | 2026-07-16 | 00-bootstrap-guidelines — 填充 esp32S_XYZ 固件后端规范 | `8589c6e6`, `8715d89c` | `main` |
+| 3 | 2026-07-16 | Code review DEBUG 二轮 — A2A 舰队复核 + 逐条亲验 | `f390cac6` | `main` |
 <!-- @@@/auto:session-history -->
 
 ---
