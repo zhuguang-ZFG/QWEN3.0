@@ -179,6 +179,9 @@ class DeviceConfig:
     dlc_image_per_min: int = int(os.environ.get("LIMA_DLC_IMAGE_PER_MIN", "5") or "5")
     dlc_image_task_per_min: int = int(os.environ.get("LIMA_DLC_IMAGE_TASK_PER_MIN", "6") or "6")
     dlc_idempotency_ttl: int = int(os.environ.get("LIMA_DLC_IDEMPOTENCY_TTL", "600") or "600")
+    status_ws_ticket_per_min: int = int(os.environ.get("LIMA_STATUS_WS_TICKET_PER_MIN", "20") or "20")
+    status_ws_max_concurrent: int = int(os.environ.get("LIMA_STATUS_WS_MAX_CONCURRENT", "3") or "3")
+    status_ws_session_seconds: int = int(os.environ.get("LIMA_STATUS_WS_SESSION_SECONDS", "900") or "900")
     activation_code: str = os.environ.get("LIMA_XIAOZHI_ACTIVATION_CODE", "").strip()
     login_code: str = os.environ.get("LIMA_XIAOZHI_LOGIN_CODE", "").strip()
     captcha_required: bool = os.environ.get("LIMA_XIAOZHI_CAPTCHA_REQUIRED", "").strip().lower() in {"1", "true", "yes"}

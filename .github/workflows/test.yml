@@ -67,5 +67,5 @@ jobs:
         env:
           PYTHONUTF8: "1"
         run: |
-          bandit -r routes/ scripts/ lima_mcp_stdio/ -s B310,B324,B604,B608,B601,B108 -ll
+          bandit -r routes/ scripts/ dlc_api/ dlc_core/ dlc_mcp/ device_gateway/ device_logic/ device_voice/ config/ common/ -s B310,B324,B604,B608,B601,B108 -ll
           pip-audit -r requirements_server.txt

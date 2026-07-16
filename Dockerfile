@@ -15,7 +15,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 COPY --from=builder /install /usr/local
 
 WORKDIR /app
-COPY . .
+# CNT-01: copy only production runtime trees (not full workspace dump)
+COPY server_dlc.py access_guard.py runtime_env.py rate_limiter.py async_utils.py \
+     app_status_ws_connections.py app_status_ws_ticket.py voice_app_ws_ticket.py \
+     voice_ws_connections.py ws_ticket.py device_protocol_registry.py \
+     dashscope_image_client.py requirements_server.txt ./
+COPY routes/ routes/
+COPY device_gateway/ device_gateway/
+COPY device_ledger/ device_ledger/
+COPY device_memory/ device_memory/
+COPY device_intelligence/ device_intelligence/
+COPY device_logic/ device_logic/
+COPY device_policy/ device_policy/
+COPY device_workflow/ device_workflow/
+COPY device_voice/ device_voice/
+COPY device_artifacts/ device_artifacts/
+COPY dlc_api/ dlc_api/
+COPY dlc_core/ dlc_core/
+COPY dlc_mcp/ dlc_mcp/
+COPY integrations/ integrations/
+COPY observability/ observability/
+COPY xiaozhi_drawing/ xiaozhi_drawing/
+COPY config/ config/
+COPY common/ common/
+COPY client_keys/ client_keys/
 
 RUN chown -R lima:lima /app && chmod -R o-w /app
 

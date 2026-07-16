@@ -66,15 +66,12 @@ jobs:
           JDCLOUD_HOST: ${{ secrets.JDCLOUD_HOST }}
         run: |
           ssh-keyscan -H "${{ secrets.JDCLOUD_HOST }}" >> ~/.ssh/known_hosts
-          files=$(git diff --name-only --diff-filter=ACMRT HEAD~1 HEAD -- \
-            ':!docs/*' ':!tests/*' ':!.github/*' ':!*.md' ':!*.log' ':!*.db' ':!*.sqlite3' \
-            '*.py' '*.pyi' '*.html' '*.js' '*.css' '*.json' '*.txt' '*.toml' '*.yaml' '*.yml' '*.svg' '*.png' '*.jpg' | tr '\n' ' ')
-          if [ -n "$files" ]; then
-            echo "Deploying changed runtime files: $files"
-            python scripts/deploy_unified.py --target jdcloud --files $files
-          else
-            echo "No runtime files changed; skipping core deploy"
+          before="${{ github.event.before }}"
+          after="${{ github.sha }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            before=$(git rev-list --max-parents=0 "$after")
           fi
+          python scripts/deploy_unified.py --target jdcloud --git-range "$before" "$after"
 
 
       - name: Verify production deployment

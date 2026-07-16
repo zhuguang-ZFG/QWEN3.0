@@ -56,3 +56,23 @@ andrej-karpathy-skills/
 *.md
 !README.md
 !AGENTS.md
+# Full-repo audit CNT-01: keep local noise out of image context
+logs/
+*.exe
+*.wav
+*.mp3
+*.ogg
+nginx.exe
+.review_manifest.txt
+provider-probe-offline/
+developer_skills/
+skills/
+.trellis/
+docs-site/
+chat-web/
+donglicao-site/
+donglicao-site-v2/
+sdk/
+packages/
+infra/
+deploy/
