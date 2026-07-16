@@ -35,7 +35,7 @@ async def dispatch_task(device_id: str, task: dict[str, Any], *, channel: str = 
          "task_id": str | None, "queue_depth": int, "error": str | None}
     """
     async with _get_lock(device_id):
-        if active_tasks_for_device(device_id):
+        if await asyncio.to_thread(active_tasks_for_device, device_id):
             return {
                 "status": "rejected",
                 "task_id": None,

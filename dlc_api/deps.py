@@ -12,6 +12,7 @@ import logging
 import os
 
 from fastapi import Header, HTTPException, status
+from runtime_env import is_production_runtime
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,18 @@ def verify_dlc_api_token(authorization: str = Header(...)) -> str:
     if device_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-    # 3. DB unavailable → env-var fallback (dev/emergency)
+    # 3. DB unavailable → env-var fallback (dev or explicit production break-glass)
+    allow_production_fallback = os.environ.get("LIMA_DLC_ALLOW_ENV_TOKEN_FALLBACK", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if is_production_runtime() and not allow_production_fallback:
+        logger.error("DB token lookup unavailable in production; rejecting without break-glass flag")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Authentication backend unavailable"
+        )
     tokens = _load_device_tokens()
     if not tokens:
         logger.warning("DB unavailable and LIMA_DEVICE_TOKENS not configured; rejecting")

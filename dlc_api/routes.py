@@ -69,6 +69,7 @@ def _quota_for(task_type: str) -> int:
 
 
 @router.get("/health")
+@router.get("/health/ready")
 async def health():
     """Lightweight health endpoint for load balancers and smoke tests."""
     base = {"service": "dlc-drawing", "version": "0.4.0-p3"}
