@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -61,7 +62,7 @@ async def _send_transcript(websocket: WebSocket, text: str, *, is_final: bool) -
     await websocket.send_json({"type": "transcript", "text": text, "is_final": is_final})
 
 
-async def _send_asr_error(websocket: WebSocket, exc: ValueError | RuntimeError) -> None:
+async def _send_asr_error(websocket: WebSocket, exc: ValueError | RuntimeError | asyncio.TimeoutError) -> None:
     if websocket.application_state == WebSocketState.CONNECTED:
         await websocket.send_json({"type": "error", "message": str(exc)})
 
@@ -99,7 +100,12 @@ async def _open_voice_session(websocket: WebSocket) -> Any | None:
         async def on_partial(text: str, is_final: bool) -> None:
             await _send_transcript(websocket, text, is_final=is_final)
 
-        await session.start(on_partial)
+        try:
+            await asyncio.wait_for(session.start(on_partial), timeout=VOICE.asr_timeout_seconds)
+        except (asyncio.TimeoutError, ValueError, RuntimeError) as exc:
+            _log.warning("voice ws session.start failed: %s", exc)
+            await websocket.close(code=1011, reason="ASR start timeout")
+            return None
     return session
 
 
@@ -112,8 +118,8 @@ async def _handle_audio_frame(websocket: WebSocket, session: Any, payload: bytes
         )
         return False
     try:
-        await session.feed(payload)
-    except ValueError as exc:
+        await asyncio.wait_for(session.feed(payload), timeout=VOICE.asr_timeout_seconds)
+    except (ValueError, asyncio.TimeoutError) as exc:
         await _send_asr_error(websocket, exc)
         return False
     return True
@@ -127,8 +133,8 @@ async def _handle_control_text(websocket: WebSocket, session: Any, text: str) ->
     if text != "stop":
         return True
     try:
-        final_text = await session.finish()
-    except (ValueError, RuntimeError) as exc:
+        final_text = await asyncio.wait_for(session.finish(), timeout=VOICE.asr_timeout_seconds)
+    except (ValueError, RuntimeError, asyncio.TimeoutError) as exc:
         await _send_asr_error(websocket, exc)
         return False
     if final_text:
@@ -139,9 +145,21 @@ async def _handle_control_text(websocket: WebSocket, session: Any, text: str) ->
 async def _voice_receive_loop(websocket: WebSocket, session: Any, account: dict[str, Any]) -> None:
     total_bytes = 0
     session_limit = VOICE.max_audio_bytes * 10
+    loop = asyncio.get_running_loop()
+    session_deadline = loop.time() + VOICE.ws_session_timeout_seconds
     try:
         while websocket.application_state == WebSocketState.CONNECTED:
-            message = await websocket.receive()
+            remaining = session_deadline - loop.time()
+            if remaining <= 0:
+                await websocket.close(code=1001, reason="voice session expired")
+                break
+            try:
+                message = await asyncio.wait_for(
+                    websocket.receive(), timeout=min(VOICE.ws_idle_timeout_seconds, remaining)
+                )
+            except asyncio.TimeoutError:
+                await websocket.close(code=1001, reason="voice session idle timeout")
+                break
             if message["type"] == "websocket.disconnect":
                 break
             if "bytes" in message and message["bytes"] is not None:
@@ -169,10 +187,10 @@ async def _voice_receive_loop(websocket: WebSocket, session: Any, account: dict[
 
 async def _finalize_voice_session(websocket: WebSocket, session: Any) -> None:
     if isinstance(session, DashScopeLiveStreamSession):
-        await session.close()
+        await asyncio.wait_for(session.close(), timeout=VOICE.asr_timeout_seconds)
     elif isinstance(session, BufferedVoiceStreamSession):
         try:
-            final_text = await session.finish()
+            final_text = await asyncio.wait_for(session.finish(), timeout=VOICE.asr_timeout_seconds)
             if final_text and websocket.application_state == WebSocketState.CONNECTED:
                 await _send_transcript(websocket, final_text, is_final=True)
         except (ValueError, RuntimeError) as exc:

@@ -13,9 +13,12 @@ from fastapi.responses import JSONResponse
 from starlette.websockets import WebSocketState
 
 import app_status_ws_ticket
+import app_status_ws_connections
+from config.settings import DEVICE
 from device_logic.access import require_device_access
 from device_logic.auth import authorize, load_active_account
 from device_logic.db import connect
+from routes.rate_limit_helper import check_key_limit
 from device_logic.http import now
 from routes.device_app_api import _build_device_status
 
@@ -31,8 +34,8 @@ def _query_token_auth_enabled() -> bool:
     return os.environ.get("LIMA_DEVICE_APP_WS_QUERY_AUTH", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-async def _authorize_ws(websocket: WebSocket, device_id: str) -> bool:
-    """Validate ticket or query-token and device access. Returns True on success."""
+async def _authorize_ws(websocket: WebSocket, device_id: str) -> dict[str, Any] | None:
+    """Validate ticket/query-token and return the authorized active account."""
     ticket = websocket.query_params.get("ticket", "").strip()
     if ticket:
         redeemed = app_status_ws_ticket.consume(ticket)
@@ -44,11 +47,11 @@ async def _authorize_ws(websocket: WebSocket, device_id: str) -> bool:
                     with connect() as conn:
                         denied = require_device_access(conn, account, device_id)
                     if denied is None:
-                        return True
-            return False
+                        return account
+            return None
 
     if not _query_token_auth_enabled():
-        return False
+        return None
 
     auth_query = websocket.query_params.get("authorization", "").strip()
     if auth_query:
@@ -58,14 +61,14 @@ async def _authorize_ws(websocket: WebSocket, device_id: str) -> bool:
         )
     token = extract_bearer_token(auth_query)
     if not token:
-        return False
+        return None
     account = authorize(f"Bearer {token}")
     if isinstance(account, dict):
         with connect() as conn:
             denied = require_device_access(conn, account, device_id)
         if denied is None:
-            return True
-    return False
+            return account
+    return None
 
 
 async def _send_status_snapshot(
@@ -133,6 +136,9 @@ async def issue_device_status_ws_ticket(
     account = authorize(f"Bearer {token}") if token else None
     if not isinstance(account, dict):
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    limited = check_key_limit(f"device_app_status_ticket:{account['id']}:{device_id}", DEVICE.status_ws_ticket_per_min)
+    if limited is not None:
+        return limited
     with connect() as conn:
         denied = require_device_access(conn, account, device_id)
     if denied is not None:
@@ -156,17 +162,27 @@ async def device_status_ws(
     # header and query-token auth in tests.
     _ = authorization
 
-    if not await _authorize_ws(websocket, device_id):
+    account = await _authorize_ws(websocket, device_id)
+    if not account:
         await websocket.close(code=1008)
         return
 
-    await websocket.accept()
+    account_id = str(account["id"])
+    if not app_status_ws_connections.try_acquire(account_id, device_id, max_concurrent=DEVICE.status_ws_max_concurrent):
+        await websocket.close(code=4429)
+        return
+
     try:
-        previous = _build_device_status(device_id)
+        await websocket.accept()
+        deadline = asyncio.get_running_loop().time() + DEVICE.status_ws_session_seconds
+        previous = await asyncio.to_thread(_build_device_status, device_id)
         await _send_status_snapshot(websocket, device_id, previous)
         while websocket.client_state == WebSocketState.CONNECTED:
+            if asyncio.get_running_loop().time() >= deadline:
+                await websocket.close(code=1001, reason="status session expired")
+                break
             await asyncio.sleep(_POLL_INTERVAL)
-            current = _build_device_status(device_id)
+            current = await asyncio.to_thread(_build_device_status, device_id)
             await _push_transition_events(websocket, device_id, previous, current)
             previous = current
             await _send_status_snapshot(websocket, device_id, current)
@@ -175,6 +191,7 @@ async def device_status_ws(
     except Exception as exc:
         _log.warning("device status ws error device=%s: %s", device_id, exc)
     finally:
+        app_status_ws_connections.release(account_id, device_id)
         try:
             if websocket.client_state != WebSocketState.DISCONNECTED:
                 await websocket.close()

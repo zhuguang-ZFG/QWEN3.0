@@ -75,8 +75,8 @@ def test_l1_release_mismatched_value_keeps_key(monkeypatch) -> None:
     assert _idem.claim_idempotency_key("dev-1:k1", "req-3") is False, "value 不匹配却清除 = 误删他人 key"
 
 
-def test_redis_available_does_not_touch_l1(monkeypatch) -> None:
-    """Redis 可用时以 Redis 为权威，L1 保持为空（不双写）。"""
+def test_redis_available_keeps_l1_recovery_barrier(monkeypatch) -> None:
+    """Redis 可用时也写 L1，避免故障恢复窗口绕过先前的 L1 claim。"""
     _reset_l1(monkeypatch)
 
     class _FakeRedis:
@@ -93,4 +93,32 @@ def test_redis_available_does_not_touch_l1(monkeypatch) -> None:
     monkeypatch.setattr(_idem, "_get_idempotency_client", lambda: (fake, "lima:dlc:idem"))
 
     assert _idem.claim_idempotency_key("dev-1:k1", "req-1") is True
-    assert _idem._l1_store == {}, "Redis 可用时不应写 L1"
+    assert "dev-1:k1" in _idem._l1_store
+
+
+def test_redis_recovery_does_not_bypass_existing_l1_claim(monkeypatch) -> None:
+    _reset_l1(monkeypatch)
+    monkeypatch.setattr(_idem, "_get_idempotency_client", lambda: None)
+    assert _idem.claim_idempotency_key("dev-1:k1", "req-1") is True
+
+    class _RecoveredRedis:
+        def set(self, *_args, **_kwargs):
+            return True
+
+    monkeypatch.setattr(_idem, "_get_idempotency_client", lambda: (_RecoveredRedis(), "idem"))
+    assert _idem.claim_idempotency_key("dev-1:k1", "req-2") is False
+
+
+def test_l1_sweep_caps_unbounded_growth(monkeypatch) -> None:
+    """成功 dispatch 的 idem_key 不重复 → L1 无界增长；惰性清扫须把条目数压在上限附近。"""
+    _no_redis(monkeypatch)
+    _reset_l1(monkeypatch)
+    clock = [100.0]
+    monkeypatch.setattr(_idem.time, "monotonic", lambda: clock[0])
+    cap = _idem._L1_MAX_ENTRIES
+
+    # 灌入远超上限的未过期条目（模拟高吞吐长跑）
+    for i in range(cap * 3):
+        _idem.claim_idempotency_key(f"dev-1:k{i}", f"req-{i}")
+
+    assert len(_idem._l1_store) <= cap, f"L1 不得无界增长: {len(_idem._l1_store)} > {cap}"

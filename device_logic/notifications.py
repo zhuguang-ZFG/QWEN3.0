@@ -12,6 +12,7 @@ from typing import Any
 
 import httpx
 
+from device_logic.access import check_share_permission, is_owner
 from device_logic.db import connect
 from device_logic.http import new_id, now
 
@@ -180,6 +181,16 @@ def _subscription_matches(row: sqlite3.Row, device_id: str, event_type: str) -> 
     return device_id in device_ids
 
 
+def _subscription_has_access(conn: sqlite3.Connection, row: sqlite3.Row, device_id: str) -> bool:
+    # 加载完整 account（含 role）以支持 admin 快路径
+    from device_logic.auth import load_active_account
+
+    account = load_active_account(row["account_id"])
+    if not isinstance(account, dict):
+        return False
+    return is_owner(conn, account, device_id) or check_share_permission(conn, device_id, row["account_id"], "view")
+
+
 async def dispatch_notification(
     device_id: str,
     event_type: str,
@@ -190,9 +201,16 @@ async def dispatch_notification(
     if not tmpl:
         return
 
-    with connect() as conn:
-        rows = conn.execute("SELECT * FROM v2_notification_subscription WHERE status='active'").fetchall()
-        matched = [r for r in rows if _subscription_matches(r, device_id, event_type)]
+    def _query_matched() -> list[sqlite3.Row]:
+        with connect() as conn:
+            rows = conn.execute("SELECT * FROM v2_notification_subscription WHERE status='active'").fetchall()
+            return [
+                row
+                for row in rows
+                if _subscription_matches(row, device_id, event_type) and _subscription_has_access(conn, row, device_id)
+            ]
+
+    matched = await asyncio.to_thread(_query_matched)
 
     if not matched:
         return

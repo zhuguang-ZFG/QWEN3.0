@@ -28,12 +28,31 @@ IDEMPOTENCY_TTL = 600
 # server_dlc:app 单 worker 启动，故 L1 覆盖单节点几乎全部流量。
 _l1_store: dict[str, tuple[str, float]] = {}
 _l1_lock = threading.Lock()
+# L1 上限：成功 dispatch 的 idem_key 几乎不重复，过期条目只在同 key 复用时覆盖，
+# 故 _l1_store 会无界增长。达上限时惰性清扫过期条目（仍超限则丢弃最旧），
+# 既保留 Redis 抖动恢复窗口的 L1 barrier，又消除长跑 OOM。
+_L1_MAX_ENTRIES = 4096
+
+
+def _l1_sweep(now: float) -> None:
+    """惰性清扫：清掉所有过期条目；仍超上限则按最旧丢弃（调用方持锁）。"""
+    if len(_l1_store) < _L1_MAX_ENTRIES:
+        return
+    for key in [k for k, (_v, exp) in _l1_store.items() if exp <= now]:
+        _l1_store.pop(key, None)
+    overflow = len(_l1_store) - _L1_MAX_ENTRIES + 1
+    if overflow > 0:
+        # 未过期条目大量堆积（罕见）：丢弃最旧的若干个腾出空间。
+        oldest = sorted(_l1_store.items(), key=lambda kv: kv[1][1])[:overflow]
+        for key, _ in oldest:
+            _l1_store.pop(key, None)
 
 
 def _l1_claim(idem_key: str, value: str, ttl: int) -> bool:
     """L1 兜底 claim：未过期条目存在则视为重复(False)，否则占用并放行(True)。"""
     now = time.monotonic()
     with _l1_lock:
+        _l1_sweep(now)
         entry = _l1_store.get(idem_key)
         if entry is not None and entry[1] > now:
             return False
@@ -92,16 +111,20 @@ def claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = IDEMPOTENCY
     dropped command, and the warning surfaces the degraded state (no silent
     degradation).
     """
+    expected = task_id or "1"
+    if not _l1_claim(idem_key, expected, ttl):
+        return False
     cached = _get_idempotency_client()
     if cached is None:
-        # Redis(L2) 不可用 → 回退 L1 进程内屏障（挡住同 worker 重复）。
-        return _l1_claim(idem_key, task_id or "1", ttl)
+        return True
     client, prefix = cached
     try:
-        claimed = client.set(f"{prefix}:{idem_key}", task_id or "1", nx=True, ex=ttl)
+        claimed = client.set(f"{prefix}:{idem_key}", expected, nx=True, ex=ttl)
     except Exception as exc:
         logger.warning("S10: idempotency SET NX failed (%s); using L1 in-process dedupe", exc)
-        return _l1_claim(idem_key, task_id or "1", ttl)
+        return True
+    if not claimed:
+        _l1_release(idem_key, expected)
     return bool(claimed)
 
 
@@ -149,6 +172,7 @@ def release_idempotency_key(idem_key: str, expected_value: str) -> None:
     client, prefix = cached
     full_key = f"{prefix}:{idem_key}"
     expected = expected_value or "1"
+    _l1_release(idem_key, expected)
     try:
         if hasattr(client, "register_script"):
             _get_cad_script(client)(keys=[full_key], args=[expected])
