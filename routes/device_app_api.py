@@ -24,6 +24,7 @@ from device_logic.access import check_share_permission, is_owner
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.device_sn import validate_device_sn
+from device_logic.device_token import rotate_device_token
 from device_gateway.sessions import registry
 from device_gateway.tasks import active_tasks_for_device
 from device_logic.http import err, new_id, now, read_body, str_field
@@ -152,6 +153,20 @@ async def bind_device(request: Request, authorization: str = Header(default=""))
     else:
         response["dlcApiTokenIssued"] = False
     return response
+
+
+@router.post("/devices/{device_id}/dlc-token/rotate")
+async def rotate_device_dlc_token(device_id: str, authorization: str = Header(default="")):
+    """Issue a new DLC API token for firmware NVS provisioning (owner only)."""
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with connect() as conn:
+        if not is_owner(conn, account, device_id):
+            return err(403, "only the device owner can rotate DLC token", 403)
+        token = rotate_device_token(conn, device_id)
+        conn.commit()
+    return {"deviceId": device_id, "dlcApiToken": token, "dlcApiTokenIssued": True}
 
 
 @router.get("/devices")

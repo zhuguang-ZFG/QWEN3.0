@@ -36,3 +36,20 @@ def ensure_device_token(conn: sqlite3.Connection, device_id: str) -> tuple[str |
         (device_id, _token_hash(token), ts, ts),
     )
     return token, True
+
+
+def rotate_device_token(conn: sqlite3.Connection, device_id: str) -> str:
+    """Replace the device DLC API token and return the new plaintext once."""
+    token = secrets.token_urlsafe(32)
+    ts = now()
+    conn.execute(
+        """
+        INSERT INTO v2_device_token (device_id, token_hash, created_at, rotated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(device_id) DO UPDATE SET
+            token_hash=excluded.token_hash,
+            rotated_at=excluded.rotated_at
+        """,
+        (device_id, _token_hash(token), ts, ts),
+    )
+    return token
