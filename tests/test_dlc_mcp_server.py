@@ -24,6 +24,26 @@ def test_tools_list_exposes_write_and_draw() -> None:
     assert "dlc.get_device_status" in names
 
 
+def test_tools_call_success_includes_is_error_false(monkeypatch) -> None:
+    def _fake_submit(_client, _endpoint, _payload, idem_key=None):
+        return {"status": "accepted", "sent": 1, "queue_depth": 0, "task_id": "task-1"}
+
+    monkeypatch.setattr("dlc_mcp.server._submit", _fake_submit)
+    client = httpx.Client()
+    response = handle_request(
+        client,
+        {
+            "jsonrpc": "2.0",
+            "id": 99,
+            "method": "tools/call",
+            "params": {"name": "dlc.write_text", "arguments": {"device_id": "dev-1", "text": "hi"}},
+        },
+    )
+    assert "error" not in response
+    assert response["result"]["isError"] is False
+    assert response["result"]["content"][0]["type"] == "text"
+
+
 def test_tools_call_write_text_validates_args() -> None:
     client = httpx.Client()
     response = handle_request(

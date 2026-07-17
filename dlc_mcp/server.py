@@ -29,7 +29,7 @@ def _tool_result(req_id: object, text: str) -> dict:
     return {
         "jsonrpc": "2.0",
         "id": req_id,
-        "result": {"content": [{"type": "text", "text": text}]},
+        "result": {"content": [{"type": "text", "text": text}], "isError": False},
     }
 
 

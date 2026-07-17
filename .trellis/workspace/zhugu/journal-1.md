@@ -301,3 +301,41 @@ outes/device_app_voice_ws.py / device_app_status_ws.py
 ### Status
 
 [OK] **Completed** — 已 archive `.trellis/tasks/archive/2026-07/07-17-status-ws-close-consume`
+
+## Session 8: Review closure（Voice ASR / MCP isError / R3 terminal）
+
+**Date**: 2026-07-17
+**Task**: Review closure — voice ASR after accept, MCP isError, task terminal events
+**Package**: root
+**Branch**: main
+
+### Summary
+
+关闭 review 三项：Voice WS 在 validate 通过、consume、accept 后才打开 ASR 会话；MCP `tools/call` 成功响应含 `isError: false`；Status WS 按 `task_snapshot` / `v2_task` 区分 `task_completed` 与 `task_failed`。
+
+### Main Changes
+
+- `device_voice/streaming_asr.py` — `validate_voice_stream_available()`
+- `routes/device_app_voice_ws.py` — 重排 validate→consume→accept→open；条件 finalize
+- `dlc_mcp/server.py` — `_tool_result` 增加 `isError: False`
+- `routes/device_app_status_ws.py` — `_resolve_task_terminal_event`
+- 测试：voice burn、MCP isError、status WS 终态过渡
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| (pending) | fix: review closure — voice ASR after accept, MCP isError, task terminal |
+
+### Testing
+
+- [OK] 指定 pytest 35 passed
+- [OK] ruff + check_code_size PASS
+
+### Status
+
+[OK] **Completed** — 已 archive `.trellis/tasks/archive/2026-07/07-17-review-closure`
+
+### Next Steps
+
+- xiaozhi MCP E2E 验证 `isError` 字段（可选）

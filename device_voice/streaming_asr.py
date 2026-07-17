@@ -212,10 +212,22 @@ def dashscope_stream_model() -> str | None:
     return None
 
 
-async def open_voice_stream_session() -> BufferedVoiceStreamSession | DashScopeLiveStreamSession:
-    """Return a streaming session matching the configured ASR provider."""
+def validate_voice_stream_available() -> None:
+    """Raise AsrNotConfiguredError when voice streaming cannot be opened."""
     if not VOICE.enabled:
         raise AsrNotConfiguredError("LIMA_VOICE_ENABLED is not set")
+    provider_name = (VOICE.asr_provider or "dashscope").strip().lower()
+    if provider_name in {"dashscope", "aliyun", "aliyun_fallback", "aliyun_nls"}:
+        api_key = VOICE_PROVIDERS.dashscope_asr.api_key or ALIYUN_API_KEY
+        model = dashscope_stream_model()
+        if api_key and model and uses_streaming_model(model):
+            return
+    get_asr_provider()
+
+
+async def open_voice_stream_session() -> BufferedVoiceStreamSession | DashScopeLiveStreamSession:
+    """Return a streaming session matching the configured ASR provider."""
+    validate_voice_stream_available()
     provider_name = (VOICE.asr_provider or "dashscope").strip().lower()
     if provider_name in {"dashscope", "aliyun", "aliyun_fallback", "aliyun_nls"}:
         api_key = VOICE_PROVIDERS.dashscope_asr.api_key or ALIYUN_API_KEY

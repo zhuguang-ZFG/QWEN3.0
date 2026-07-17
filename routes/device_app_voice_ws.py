@@ -16,7 +16,12 @@ from config.settings import SECURITY
 from config.voice_settings import VOICE
 from device_logic.auth import load_active_account
 from device_voice.asr import AsrNotConfiguredError
-from device_voice.streaming_asr import BufferedVoiceStreamSession, DashScopeLiveStreamSession, open_voice_stream_session
+from device_voice.streaming_asr import (
+    BufferedVoiceStreamSession,
+    DashScopeLiveStreamSession,
+    open_voice_stream_session,
+    validate_voice_stream_available,
+)
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-voice-ws"])
 legacy_router = APIRouter(tags=["voice-legacy-ws"])
@@ -32,7 +37,7 @@ def _ws_connect_per_min() -> int:
 
 
 def _authorize_voice_ws(websocket: WebSocket) -> dict[str, Any] | None:
-    """Peek-only ticket auth; consume happens after slot + ASR succeed."""
+    """Peek-only ticket auth; consume happens after config validate + slot."""
     ticket = websocket.query_params.get("ticket", "").strip()
     if not ticket:
         return None
@@ -88,15 +93,6 @@ async def handle_voice_stream_ws(websocket: WebSocket) -> None:
         await _run_voice_stream_ws(websocket, account)
     finally:
         voice_ws_connections.release(account_id)
-
-
-async def _create_asr_session(websocket: WebSocket) -> Any | None:
-    try:
-        return await open_voice_stream_session()
-    except AsrNotConfiguredError as exc:
-        _log.warning("voice ws unavailable: %s", exc)
-        await websocket.close(code=1013)
-        return None
 
 
 async def _start_dashscope_if_needed(websocket: WebSocket, session: Any) -> bool:
@@ -214,22 +210,29 @@ async def _finalize_voice_session(websocket: WebSocket, session: Any) -> None:
 
 
 async def _run_voice_stream_ws(websocket: WebSocket, account: dict[str, Any]) -> None:
-    """Open ASR, then consume ticket / accept; always abandon session on exit."""
-    session = await _create_asr_session(websocket)
-    if session is None:
-        return
+    """Validate config, consume ticket, accept, then open ASR session."""
+    session: Any | None = None
     try:
+        try:
+            validate_voice_stream_available()
+        except AsrNotConfiguredError as exc:
+            _log.warning("voice ws unavailable: %s", exc)
+            await websocket.close(code=1013)
+            return
+
         account_id = str(account["id"])
         if not _consume_voice_ticket(websocket, account_id):
             await websocket.close(code=4401)
             return
         await websocket.accept()
+
+        session = await open_voice_stream_session()
         if not await _start_dashscope_if_needed(websocket, session):
             return
         await _voice_receive_loop(websocket, session, account)
     finally:
-        # Covers consume race, DashScope start failure (1011), and normal exit.
-        await _finalize_voice_session(websocket, session)
+        if session is not None:
+            await _finalize_voice_session(websocket, session)
 
 
 @router.websocket("/voice/ws")

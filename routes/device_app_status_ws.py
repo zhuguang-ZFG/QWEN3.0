@@ -17,6 +17,7 @@ import app_status_ws_connections
 from config.settings import DEVICE
 from device_logic.access import require_device_access
 from device_logic.auth import authorize, load_active_account
+from device_gateway.tasks import task_snapshot
 from device_logic.db import connect
 from routes.rate_limit_helper import check_key_limit
 from device_logic.http import now
@@ -117,6 +118,28 @@ async def _send_online_transition(
     await websocket.send_json({"event": event, "payload": {"deviceId": device_id, "timestamp": now()}})
 
 
+def _resolve_task_terminal_event(task_id: str) -> str:
+    """Map a cleared active task to task_completed or task_failed."""
+    snapshot = task_snapshot(task_id)
+    if snapshot:
+        phase = str(snapshot.get("status") or "").strip().lower()
+        if phase in {"done", "completed"}:
+            return "task_completed"
+        if phase in {"failed", "cancelled", "rejected"}:
+            return "task_failed"
+
+    with connect() as conn:
+        row = conn.execute("SELECT status FROM v2_task WHERE id = ?", (task_id,)).fetchone()
+    if row is not None:
+        db_status = str(row["status"] or "").strip().lower()
+        if db_status == "completed":
+            return "task_completed"
+        if db_status in {"failed", "cancelled", "rejected"}:
+            return "task_failed"
+
+    return "task_completed"
+
+
 async def _send_task_transition(
     websocket: WebSocket,
     device_id: str,
@@ -131,9 +154,9 @@ async def _send_task_transition(
         payload = {"deviceId": device_id, "taskId": current_task, "timestamp": now()}
         await websocket.send_json({"event": "task_started", "payload": payload})
     else:
-        # TODO(M2): distinguish completed vs failed via task terminal events.
+        terminal_event = _resolve_task_terminal_event(str(previous_task or ""))
         payload = {"deviceId": device_id, "taskId": previous_task, "timestamp": now()}
-        await websocket.send_json({"event": "task_completed", "payload": payload})
+        await websocket.send_json({"event": terminal_event, "payload": payload})
 
 
 async def _push_transition_events(
