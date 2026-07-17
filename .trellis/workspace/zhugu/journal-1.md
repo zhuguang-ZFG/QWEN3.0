@@ -339,3 +339,18 @@ outes/device_app_voice_ws.py / device_app_status_ws.py
 ### Next Steps
 
 - xiaozhi MCP E2E 验证 `isError` 字段（可选）
+
+
+## Session: SoftAP device_secret portal + ensure gate
+
+**Date**: 2026-07-17
+**Task**: 07-17-softap-device-secret-align
+**Package**: esp32S_XYZ
+
+### Summary
+
+SoftAP Connect form optional device_secret/server_host; patch CC+HTML; ensure dual markers with surgical fallback. Submodule e38dd59; Trellis u8 SoftAP spec note.
+
+### Status
+
+[OK] Completed — archive/2026-07/07-17-softap-device-secret-align
