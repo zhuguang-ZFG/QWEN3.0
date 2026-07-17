@@ -70,6 +70,15 @@ UART 交叉接线（config.h，强校验项，不可回归）：
 
 > `tools/check_gpio.py` 对此有硬校验：`U8 GPIO11 = M_U1TXD → U1 RXD`，`u8_uart_tx.gpio != 11` 直接报错。改 U1 UART 引脚是高危项，曾因 TX/RX 对调导致哑通道。
 
+## SoftAP DLC device_secret（tracked patch）
+
+上游 `78/esp-wifi-connect` 在 `managed_components/`（gitignore）。DLC 需要 SoftAP `/submit` 写入 NVS `device_secret` / `server_host`，因此维护 **tracked patch**（例外于「禁止改上游」铁律，仅限该组件）：
+
+- Patch：`firmware/u8-xiaozhi/patches/esp-wifi-connect-softap-dlc.patch`（`wifi_configuration_ap.cc` + `assets/wifi_configuration.html`）
+- 门禁：`python scripts/ensure_softap_dlc_patch.py`（CC marker `SaveDlcProvisioningFields` + HTML `id="device_secret"`）；`release.py` 在 set-target 后强制调用
+- 门户：主 Connect 表单可选字段；空字符串不覆盖已有 NVS
+- 组件升级后若 patch 冲突：ensure 失败即停，勿静默跳过
+
 ## 已知未落地项（document reality，勿写成已支持）
 
 - **舵机 / 抬笔**：架构 v2 §10bis.7 要求 pause/cancel 自动抬笔；协议层 `pen_mode` 存在但 U1 侧未实现（U8 侧 `motion_executor` 也不发抬笔命令）。
