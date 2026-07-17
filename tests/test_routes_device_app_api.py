@@ -50,7 +50,13 @@ def _patch_deps(account):
         # Default device row returned by update_device_row when patched directly.
         row = _make_device_row()
         mock_update.return_value = row
-        mock_bind.return_value = {"binding_id": "bind-1", "device_id": "dev-1", "device": row}
+        mock_bind.return_value = {
+            "binding_id": "bind-1",
+            "device_id": "dev-1",
+            "device": row,
+            "dlc_api_token": "dlc-tok-abc",
+            "dlc_api_token_issued": True,
+        }
         mock_unbind.return_value = None
         yield
 
@@ -124,7 +130,10 @@ def test_bind_device_success(client, auth_header):
         headers=auth_header,
     )
     assert response.status_code == 200
-    assert response.json()["deviceId"] == "dev-1"
+    body = response.json()
+    assert body["deviceId"] == "dev-1"
+    assert body["dlcApiToken"] == "dlc-tok-abc"
+    assert body["dlcApiTokenIssued"] is True
 
 
 def test_bind_device_rate_limited(client, auth_header):

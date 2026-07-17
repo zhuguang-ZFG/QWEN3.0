@@ -141,11 +141,17 @@ async def bind_device(request: Request, authorization: str = Header(default=""))
     except DeviceLogicError as exc:
         return _device_error(exc)
     device = result["device"]
-    return {
+    response: dict[str, object] = {
         "bindingId": result["binding_id"],
         "deviceId": result["device_id"],
         "device": device_payload(device),
     }
+    if result.get("dlc_api_token_issued") and result.get("dlc_api_token"):
+        response["dlcApiToken"] = result["dlc_api_token"]
+        response["dlcApiTokenIssued"] = True
+    else:
+        response["dlcApiTokenIssued"] = False
+    return response
 
 
 @router.get("/devices")

@@ -8,6 +8,7 @@ from typing import Any
 
 from fastapi.responses import JSONResponse
 
+from device_gateway.delivery_status import apply_queued_no_delivery_fields
 from device_gateway.path_validator import validate_capability_params
 from device_gateway.task_creation import project_to_motion_task_async
 from device_gateway.task_events import record_task_paused, record_task_resumed
@@ -93,7 +94,7 @@ async def _dispatch_or_wait(
 
 
 def _free_text_payload(task: dict[str, Any], status: str, queue_depth: int) -> dict[str, Any]:
-    return {
+    payload = {
         "taskId": task.get("task_id"),
         "status": status,
         "sent": False,
@@ -101,6 +102,8 @@ def _free_text_payload(task: dict[str, Any], status: str, queue_depth: int) -> d
         "task": task,
         "dispatchStatus": status,
     }
+    apply_queued_no_delivery_fields(payload, status)
+    return payload
 
 
 def _record_free_text_queued_metrics(task: dict[str, Any], queue_depth: int) -> None:
@@ -197,4 +200,5 @@ async def _create_structured_task(
     data = task_row_payload(row)
     data.update(dispatch)
     data.update({"task": task, "taskId": task["task_id"]})
+    apply_queued_no_delivery_fields(data, str(dispatch.get("dispatchStatus", "")))
     return data

@@ -10,6 +10,7 @@ import sys
 
 import httpx
 
+from device_gateway.delivery_status import QUEUED_NO_DELIVERY_MCP_MESSAGE, QUEUED_NO_DELIVERY_STATUS
 from dlc_mcp.tools import TOOLS
 
 DLC_API_URL = os.environ.get("DLC_API_URL", "http://127.0.0.1:8081")
@@ -25,11 +26,11 @@ def _auth_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {DLC_API_TOKEN}"} if DLC_API_TOKEN else {}
 
 
-def _tool_result(req_id: object, text: str) -> dict:
+def _tool_result(req_id: object, text: str, *, is_error: bool = False) -> dict:
     return {
         "jsonrpc": "2.0",
         "id": req_id,
-        "result": {"content": [{"type": "text", "text": text}], "isError": False},
+        "result": {"content": [{"type": "text", "text": text}], "isError": is_error},
     }
 
 
@@ -110,8 +111,15 @@ def _format_submission(client: httpx.Client, req_id: object, endpoint: str, payl
     result = _submit(client, endpoint, payload, idem_key=_dispatch_idem_key(endpoint, payload))
     if result.get("error"):
         return _tool_error(req_id, -32603, result["error"])
+    status = str(result.get("status") or "")
+    if status == QUEUED_NO_DELIVERY_STATUS:
+        return _tool_result(
+            req_id,
+            f"{QUEUED_NO_DELIVERY_MCP_MESSAGE} task_id={result.get('task_id') or 'n/a'}",
+            is_error=True,
+        )
     summary = (
-        f"任务已提交: status={result.get('status')}, sent={result.get('sent')}, "
+        f"任务已提交: status={status}, sent={result.get('sent')}, "
         f"queue_depth={result.get('queue_depth')}, task_id={result.get('task_id') or 'n/a'}"
     )
     return _tool_result(req_id, summary)

@@ -44,6 +44,26 @@ def test_tools_call_success_includes_is_error_false(monkeypatch) -> None:
     assert response["result"]["content"][0]["type"] == "text"
 
 
+def test_tools_call_queued_no_delivery_is_error_true(monkeypatch) -> None:
+    def _fake_submit(_client, _endpoint, _payload, idem_key=None):
+        return {"status": "queued_no_delivery", "task_id": "task-q", "queue_depth": 1}
+
+    monkeypatch.setattr("dlc_mcp.server._submit", _fake_submit)
+    client = httpx.Client()
+    response = handle_request(
+        client,
+        {
+            "jsonrpc": "2.0",
+            "id": 100,
+            "method": "tools/call",
+            "params": {"name": "dlc.write_text", "arguments": {"device_id": "dev-1", "text": "hi"}},
+        },
+    )
+    assert "error" not in response
+    assert response["result"]["isError"] is True
+    assert "下发通道" in response["result"]["content"][0]["text"]
+
+
 def test_tools_call_write_text_validates_args() -> None:
     client = httpx.Client()
     response = handle_request(

@@ -7,6 +7,7 @@ import sqlite3
 from typing import Any
 
 from device_logic.device_sn import validate_device_sn
+from device_logic.device_token import ensure_device_token
 from device_logic.errors import DeviceLogicError
 from device_logic.updates import parse_device_updates, sql_set_clause
 
@@ -110,8 +111,15 @@ def bind_device(
         new_id=new_id,
     )
     binding_id = _ensure_owner_binding(conn, device_id=device["id"], account_id=account_id, new_id=new_id)
+    dlc_api_token, dlc_api_token_issued = ensure_device_token(conn, device["id"])
     conn.commit()
-    return {"binding_id": binding_id, "device_id": device["id"], "device": device}
+    return {
+        "binding_id": binding_id,
+        "device_id": device["id"],
+        "device": device,
+        "dlc_api_token": dlc_api_token,
+        "dlc_api_token_issued": dlc_api_token_issued,
+    }
 
 
 def list_device_rows(

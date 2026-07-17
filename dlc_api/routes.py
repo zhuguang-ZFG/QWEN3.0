@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 
 from config.settings import DEVICE, REDIS
+from device_gateway.delivery_status import QUEUED_NO_DELIVERY_STATUS, QUEUED_NO_DELIVERY_USER_MESSAGE
 from dlc_api.deps import verify_dlc_api_token
 from dlc_api.schemas import (
     DeviceStatusResponse,
@@ -207,7 +208,11 @@ async def _dispatch_and_release(body: TaskDispatchRequest, idem_full_key: str | 
         status=dispatch_result["status"],
         task_id=dispatch_result.get("task_id"),
         queue_depth=dispatch_result.get("queue_depth", 0),
-        error=dispatch_result.get("error"),
+        error=(
+            QUEUED_NO_DELIVERY_USER_MESSAGE
+            if dispatch_result.get("status") == QUEUED_NO_DELIVERY_STATUS
+            else dispatch_result.get("error")
+        ),
     )
 
 
