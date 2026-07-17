@@ -255,7 +255,7 @@ outes/device_app_voice_ws.py / device_app_status_ws.py
 
 | Hash | Message |
 |------|---------|
-| (this commit) | fix: Voice finalize 不覆盖 pre-accept close code |
+| 45b2e909 | fix: Voice finalize 不覆盖 pre-accept close code |
 
 ### Testing
 
