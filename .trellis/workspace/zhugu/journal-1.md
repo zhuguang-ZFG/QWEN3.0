@@ -234,3 +234,38 @@ outes/device_app_voice_ws.py / device_app_status_ws.py
 ### Next Steps
 
 - R3 status task_completed vs failed 另开任务（若需要）
+
+## Session 6: Voice finalize close code（review P2）
+
+**Date**: 2026-07-17
+**Task**: Voice WS finalize close code（review P2）
+**Package**: root
+**Branch**: main
+
+### Summary
+
+深度 review 遗留 P2：pre-accept 失败已 `close(4401/1011)` 后，`_finalize_voice_session` 无码 `close()` 可能覆盖 intentional code。改为仅 `CONNECTED` 时补 close；补 close-code 回归断言。
+
+### Main Changes
+
+- `routes/device_app_voice_ws.py` — finalize 条件 `!= DISCONNECTED` → `== CONNECTED`
+- `tests/test_device_app_voice_ws_ticket_burn.py` — 断言 `[4401]` / `[1011]`；FakeWs CONNECTING 护栏
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| (this commit) | fix: Voice finalize 不覆盖 pre-accept close code |
+
+### Testing
+
+- [OK] `test_device_app_voice_ws_ticket_burn.py` 5 passed
+- [OK] ruff + check_code_size PASS
+
+### Status
+
+[OK] **Completed** — 已 archive `.trellis/tasks/archive/2026-07/07-17-voice-close-code-p2`
+
+### Next Steps
+
+- P3：Status consume_if CAD、buffered 双 finish（可选）

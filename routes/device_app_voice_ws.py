@@ -206,7 +206,10 @@ async def _finalize_voice_session(websocket: WebSocket, session: Any) -> None:
             await _send_asr_error(websocket, exc)
         except Exception as exc:
             _log.warning("voice ws finalize failed: %s", type(exc).__name__)
-    if websocket.application_state != WebSocketState.DISCONNECTED:
+    # Only close if still CONNECTED (post-accept). Pre-accept failures already
+    # called close(4401/1013); DashScope start failure already close(1011).
+    # A blank close() here would overwrite those intentional codes.
+    if websocket.application_state == WebSocketState.CONNECTED:
         await websocket.close()
 
 
