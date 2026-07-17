@@ -211,19 +211,21 @@ async def _finalize_voice_session(websocket: WebSocket, session: Any) -> None:
 
 
 async def _run_voice_stream_ws(websocket: WebSocket, account: dict[str, Any]) -> None:
+    """Open ASR, then consume ticket / accept; always abandon session on exit."""
     session = await _create_asr_session(websocket)
     if session is None:
         return
-    account_id = str(account["id"])
-    if not _consume_voice_ticket(websocket, account_id):
-        await websocket.close(code=4401)
-        return
-    await websocket.accept()
-    if not await _start_dashscope_if_needed(websocket, session):
-        return
     try:
+        account_id = str(account["id"])
+        if not _consume_voice_ticket(websocket, account_id):
+            await websocket.close(code=4401)
+            return
+        await websocket.accept()
+        if not await _start_dashscope_if_needed(websocket, session):
+            return
         await _voice_receive_loop(websocket, session, account)
     finally:
+        # Covers consume race, DashScope start failure (1011), and normal exit.
         await _finalize_voice_session(websocket, session)
 
 

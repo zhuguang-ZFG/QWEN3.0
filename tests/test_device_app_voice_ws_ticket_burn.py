@@ -86,3 +86,42 @@ def test_voice_ws_success_consumes_ticket(tmp_path, monkeypatch):
     with pytest.raises(Exception):
         with client.websocket_connect(f"/device/v1/app/voice/ws?ticket={ticket}"):
             pass
+
+
+@pytest.mark.asyncio
+async def test_consume_race_abandons_dashscope_session(monkeypatch):
+    """Consume failure after ASR open must still close the DashScope session."""
+    from starlette.websockets import WebSocketState
+    from device_voice.streaming_asr import DashScopeLiveStreamSession
+    from routes.device_app_voice_ws import _run_voice_stream_ws
+
+    closed = {"session": False, "ws": False}
+    session = object.__new__(DashScopeLiveStreamSession)
+
+    async def _close():
+        closed["session"] = True
+
+    session.close = _close  # type: ignore[method-assign]
+
+    async def _open():
+        return session
+
+    monkeypatch.setattr("routes.device_app_voice_ws.open_voice_stream_session", _open)
+    monkeypatch.setattr("routes.device_app_voice_ws._consume_voice_ticket", lambda *_a, **_k: False)
+
+    class _FakeWs:
+        application_state = WebSocketState.CONNECTING
+        query_params = {"ticket": "unused"}
+
+        async def close(self, *a, **k):
+            closed["ws"] = True
+
+        async def accept(self, *a, **k):
+            raise AssertionError("must not accept when consume fails")
+
+        async def send_json(self, *a, **k):
+            return None
+
+    await _run_voice_stream_ws(_FakeWs(), {"id": "a-owner"})
+    assert closed["session"] is True
+    assert closed["ws"] is True
