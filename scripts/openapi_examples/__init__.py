@@ -89,6 +89,7 @@ from .responses_task import (
     _resp_task_timeline,
     _resp_tasks_list,
 )
+from .responses_voice import _resp_voice_ticket, _resp_voice_transcribe
 
 
 __all__ = [
@@ -173,6 +174,8 @@ _RESPONSE_BY_PATH: dict[str, Callable[[], Any]] = {
     "/device/v1/app/tasks/{task_id}/approve": _resp_task_approve,
     "/device/v1/app/tasks/{task_id}/reject": _resp_task_reject,
     "/device/v1/app/tasks/{task_id}/timeline": _resp_task_timeline,
+    "/device/v1/app/voice/transcribe": _resp_voice_transcribe,
+    "/device/v1/app/voice/ticket": _resp_voice_ticket,
 }
 
 

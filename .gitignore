@@ -394,3 +394,4 @@ ARCHITECTURE_KNOWLEDGE.md
 
 # local temp clones (not part of LiMa)
 _newapi_gh/
+.tmp_mcp_e2e/

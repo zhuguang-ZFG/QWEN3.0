@@ -36,8 +36,38 @@ yaml.SafeDumper.add_representer(CompactSeq, _compact_seq_representer)
 ROOT = Path(__file__).resolve().parent.parent
 INPUT = ROOT / "openapi_full.json"
 OUTPUT = ROOT / "docs" / "openapi.yaml"
-KEEP_V1 = {"/v1/chat/completions", "/v1/images/generations"}
+KEEP_V1 = {"/v1/chat/completions", "/v1/images/generations", "/v1/voice"}
 DUPLICATE_PREFIX = "/device/v1/app/device/v1/app/"
+
+# FastAPI does not export WebSocket routes; document them for Redoc consumers.
+_VOICE_WS_DOC = {
+    "get": {
+        "tags": ["device-app-voice-ws"],
+        "summary": "Realtime Voice WebSocket",
+        "description": (
+            "HTTP Upgrade to WebSocket for streaming ASR. "
+            "Connect with `?ticket=` from POST /device/v1/app/voice/ticket. "
+            "Send PCM binary frames (16 kHz mono), text `stop` to finalize, text `ping` for keepalive. "
+            "Server replies with JSON `{type:transcript|pong|error}`. WS does not return intent — "
+            "use REST /voice/transcribe or client-side resolve. See docs-site/api/voice.md."
+        ),
+        "parameters": [
+            {
+                "name": "ticket",
+                "in": "query",
+                "required": True,
+                "schema": {"type": "string"},
+                "example": "tk-xxxxxxxx",
+                "description": "One-time ticket (TTL 30s); consumed after successful accept.",
+            }
+        ],
+        "responses": {
+            "101": {"description": "Switching Protocols (WebSocket upgrade)"},
+            "400": {"description": "Missing or invalid ticket"},
+            "4429": {"description": "Rate limited / concurrent slot full (close code)"},
+        },
+    }
+}
 
 
 def is_public(path: str) -> bool:
@@ -108,6 +138,12 @@ def human_description(path: str, method: str) -> str:
         return "OpenAI-compatible chat completions with multi-backend routing."
     if path == "/v1/images/generations":
         return "OpenAI-compatible image generation (text-to-image)."
+    if path in {"/device/v1/app/voice/ws", "/v1/voice"}:
+        return "Realtime voice WebSocket (ASR-only); see docs-site/api/voice.md."
+    if path == "/device/v1/app/voice/transcribe":
+        return "Upload WAV/PCM audio; returns text + motion intent (no task created)."
+    if path == "/device/v1/app/voice/ticket":
+        return "Issue a one-time ticket for /device/v1/app/voice/ws or /v1/voice."
     base = path.replace("/device/v1/app/", "").replace("/", " ").replace("_", " ")
     base = re.sub(r"\{[^}]+\}", "a resource", base)
     return f"{method} {base.strip()}."
@@ -120,7 +156,12 @@ def enrich_operation(path: str, method: str, op: dict[str, Any]) -> dict[str, An
     desc = clean_text("description", op.get("description"))
     if desc:
         op["description"] = desc
-    elif path in {"/v1/chat/completions", "/v1/images/generations"}:
+    elif path in {
+        "/v1/chat/completions",
+        "/v1/images/generations",
+        "/device/v1/app/voice/transcribe",
+        "/device/v1/app/voice/ticket",
+    }:
         op["description"] = human_description(path, method)
     op.pop("operationId", None)
 
@@ -219,7 +260,18 @@ def main() -> None:
             method: enrich_operation(clean_path, method, spec["paths"][path][method]) for method in spec["paths"][path]
         }
         new_paths[clean_path] = new_methods
-    spec["paths"] = new_paths
+    for ws_path in ("/device/v1/app/voice/ws", "/v1/voice"):
+        # Do not run enrich_operation: it replaces responses with a JSON 200 example.
+        doc = {
+            method: {
+                **op,
+                "parameters": CompactSeq(op.get("parameters", [])),
+                "tags": CompactSeq(op.get("tags", [])),
+            }
+            for method, op in _VOICE_WS_DOC.items()
+        }
+        new_paths[ws_path] = doc
+    spec["paths"] = dict(sorted(new_paths.items()))
 
     used = referenced_schemas(spec)
     if "components" in spec and "schemas" in spec["components"]:

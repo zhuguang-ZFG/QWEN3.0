@@ -42,6 +42,7 @@ server_dlc.py (:8081)
 | Ponytail 硬门禁（4 长函数≤50） | ✅ | `d0d15df1`；ruff + pytest 绿 |
 | fz Host SIL（standard/deep/firmware） | ✅ | 2026-07-17；G0 PIO + G1 + release_smoke 全绿 |
 | pytest 全量 | ✅ | 2026-07-17；1784 passed / 3 skipped |
+| OpenAPI 语音端点 | ✅ | 2026-07-17；transcribe/ticket + WS 文档注入 |
 
 ---
 
@@ -50,7 +51,7 @@ server_dlc.py (:8081)
 | ID | 项 | 阻塞 |
 |----|-----|------|
 | P0-3 | 真机 E2E：录音 → 确认 → 物理设备运动 | 真机 |
-| P0-4 | 微信审核发布（v3.8.0 已上传未提审） | 运营/提审 |
+| P0-4 | 微信审核发布（仓库版本 3.9.2；清单见 docs/WECHAT_REVIEW_CHECKLIST_CN.md） | 运营/提审 |
 | P0-2 | U8 OPUS/PCM（仅设备直连语音） | 产品排期 |
 | E-2 | ESP32 端到端验证 `LIMA_AUTO_FALLBACK` draw 路径 | **暂无真机**（2026-07-12 挂起；有机后再验） |
 | G3 | HIL 纸路/BT 串口证据 | 真机 + `hil_to_gate --port COMx` |

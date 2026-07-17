@@ -2,6 +2,8 @@
 
 LiMa 设备小程序语音链路：**按住说话 REST 转写** + **实时 WS 流式 ASR**（M2）。
 
+OpenAPI 契约见 [OpenAPI 参考](/api/reference)（含 `/voice/transcribe`、`/voice/ticket`、`/voice/ws`、`/v1/voice`）。
+
 ## 按住说话（REST）
 
 ```http

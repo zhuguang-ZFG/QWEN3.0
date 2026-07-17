@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-07-17 OpenAPI 补齐语音端点
+
+- 公共 OpenAPI 增加 `POST /device/v1/app/voice/transcribe`、`POST /device/v1/app/voice/ticket`。
+- 文档化 WebSocket：`/device/v1/app/voice/ws` 与兼容别名 `/v1/voice`（FastAPI 不导出 WS，构建脚本注入）。
+- 详见 [语音交互 API](/api/voice)。
+
 ## 2026-07-14 下线 API Key 管理（只发不认的死功能）
 
 - 移除 `POST/GET/DELETE /device/v1/app/keys` 三个端点（`routes/device_app_auth_keys.py`、`device_logic/api_key.py` 删除）：签发的 `sk-lima-*` 密钥全仓无验证消费方，生产访问日志零调用。
