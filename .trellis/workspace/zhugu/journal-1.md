@@ -197,3 +197,40 @@ AST 巡检 213 文件：0 文件>300、ruff clean、6 处静默异常经复核�
 ### Next Steps
 
 - None - task complete
+
+## Session 5: WS ticket 延迟 consume（review P2）
+
+**Date**: 2026-07-17
+**Task**: WS ticket 烧票 + status 终态事件（仅 R1+R2）
+**Package**: root
+**Branch**: main
+
+### Summary
+
+第二轮 code review 发现 Voice/Status WS 在槽满/ASR 不可用时先 consume 烧票。实现延迟 consume：peek → 槽/(ASR) → consume → accept。R3 终态事件 Out of Scope。
+
+### Main Changes
+
+-
+outes/device_app_voice_ws.py / device_app_status_ws.py
+- pp_status_ws_ticket.peek
+- 烧票回归测试（拆 	est_device_app_voice_ws_ticket_burn.py 过 ≤300）
+- docs-site/api/voice.md、.trellis/spec/root/error-handling.md
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| 8d11f206 | fix: WS ticket 延迟 consume，失败路径不烧票 |
+
+### Testing
+
+- [OK] 相关 pytest 34+ passed；ruff + check_code_size PASS；trellis-check PASS
+
+### Status
+
+[OK] **Completed** — 已 archive
+
+### Next Steps
+
+- R3 status task_completed vs failed 另开任务（若需要）
