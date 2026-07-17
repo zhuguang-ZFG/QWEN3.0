@@ -13,40 +13,20 @@ import shlex
 import time
 from pathlib import Path
 
-from scripts.deploy_common import configure_ssh_host_keys
+from scripts.deploy_common import configure_ssh_host_keys  # noqa: F401 — re-export for older tests
 from scripts.deploy_unified_common import (
     HEALTH_GRACE_AFTER_RESTART_S,
     HEALTH_POLL_SECONDS,
     HEALTH_WAIT_SECONDS,
     DeployTarget,
 )
-import paramiko
+from scripts.deploy_unified_ssh import _connect_ssh, _ssh_exec
+import paramiko  # noqa: F401 — tests patch restart_mod.paramiko for historical fixtures
 
 _SERVICE = "dlc-drawing"
 _HEALTH_URL = "http://127.0.0.1:8081/health/ready"
 _ENV_LINE_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=.*")
-
-
-def _ssh_exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
-    _stdin, stdout, stderr = ssh.exec_command(command)
-    code = stdout.channel.recv_exit_status()
-    out = stdout.read().decode("utf-8", errors="replace").strip()
-    err = stderr.read().decode("utf-8", errors="replace").strip()
-    return code, out, err
-
-
-def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
-    """Open an SSH connection to the deploy target using key or password fallback."""
-    ssh = paramiko.SSHClient()
-    ssh.load_system_host_keys()
-    configure_ssh_host_keys(ssh)
-    try:
-        ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
-    except paramiko.SSHException:
-        if not target.password:
-            raise
-        ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
-    return ssh
+_PIP_TIMEOUT_S = 900
 
 
 def _merge_env_update(ssh: paramiko.SSHClient, target: DeployTarget, update_path: Path) -> bool:
@@ -132,7 +112,8 @@ def _prepare_dependencies(ssh: paramiko.SSHClient, target: DeployTarget) -> bool
         f"rm -rf -- {previous}; "
         f"if [ -d {current} ]; then mv -- {current} {previous}; fi; mv -- {next_venv} {current}"
     )
-    code, _out, err = _ssh_exec(ssh, command)
+    print("Preparing runtime dependencies (hash short-circuit or pip)...")
+    code, _out, err = _ssh_exec(ssh, command, timeout=_PIP_TIMEOUT_S)
     if code != 0:
         print(f"dependency preparation failed: {err}")
         return False

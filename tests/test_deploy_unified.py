@@ -128,10 +128,11 @@ def test_main_dry_run_does_not_open_remote_preflight(monkeypatch):
 
 def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
     import scripts.deploy_unified_restart as restart_mod
+    import scripts.deploy_unified_ssh as ssh_mod
 
     ssh = _RestartSsh()
-    monkeypatch.setattr(restart_mod.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(restart_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(ssh_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(ssh_mod, "configure_ssh_host_keys", lambda client: None)
     monkeypatch.setattr(restart_mod, "HEALTH_GRACE_AFTER_RESTART_S", 0)
 
     assert deploy_unified.restart_server(target=get_deploy_target("jdcloud")) is True
@@ -152,10 +153,11 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
 
 def test_restart_server_without_prepare_only_restarts_and_polls(monkeypatch):
     import scripts.deploy_unified_restart as restart_mod
+    import scripts.deploy_unified_ssh as ssh_mod
 
     ssh = _RestartSsh()
-    monkeypatch.setattr(restart_mod.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(restart_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(ssh_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(ssh_mod, "configure_ssh_host_keys", lambda client: None)
     monkeypatch.setattr(restart_mod, "HEALTH_GRACE_AFTER_RESTART_S", 0)
 
     assert deploy_unified.restart_server(target=get_deploy_target("jdcloud"), prepare=False) is True

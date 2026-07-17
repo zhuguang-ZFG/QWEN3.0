@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import os
+import time
 
 import paramiko
 
 from scripts.deploy_common import configure_ssh_host_keys
 from scripts.deploy_unified_common import DeployTarget
+
+_DEFAULT_EXEC_TIMEOUT_S = 120
 
 
 def connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
@@ -40,9 +43,22 @@ def connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
     return ssh
 
 
-def exec_ssh(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
-    _stdin, stdout, stderr = ssh.exec_command(command)
-    code = stdout.channel.recv_exit_status()
+def exec_ssh(
+    ssh: paramiko.SSHClient,
+    command: str,
+    *,
+    timeout: int = _DEFAULT_EXEC_TIMEOUT_S,
+) -> tuple[int, str, str]:
+    """Run a remote command; fail instead of hanging forever on stalled channels."""
+    _stdin, stdout, stderr = ssh.exec_command(command, timeout=timeout)
+    channel = stdout.channel
+    deadline = time.monotonic() + timeout
+    while not channel.exit_status_ready():
+        if time.monotonic() > deadline:
+            channel.close()
+            raise TimeoutError(f"ssh exec timed out after {timeout}s: {command[:120]}")
+        time.sleep(0.2)
+    code = channel.recv_exit_status()
     out = stdout.read().decode("utf-8", errors="replace").strip()
     err = stderr.read().decode("utf-8", errors="replace").strip()
     return code, out, err
@@ -51,3 +67,4 @@ def exec_ssh(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
 # Back-compat aliases for internal importers/tests
 _connect_ssh = connect_ssh
 _exec = exec_ssh
+_ssh_exec = exec_ssh

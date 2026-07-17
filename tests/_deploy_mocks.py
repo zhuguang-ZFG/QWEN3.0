@@ -9,10 +9,16 @@ class _Channel:
     def __init__(self, status: int = 0) -> None:
         self._status = status
 
+    def exit_status_ready(self) -> bool:
+        return True
+
     def recv_exit_status(self) -> int:
         return self._status
 
     def shutdown_write(self) -> None:
+        pass
+
+    def close(self) -> None:
         pass
 
 
@@ -76,7 +82,7 @@ class _TarDeploySsh:
     def open_sftp(self) -> _Sftp:
         return self.sftp
 
-    def exec_command(self, command: str) -> tuple[None, _Stream, _Stream]:
+    def exec_command(self, command: str, **_kwargs: object) -> tuple[None, _Stream, _Stream]:
         self.commands.append(command)
         return None, _Stream(), _Stream()
 
@@ -98,7 +104,7 @@ class _DeploySsh:
     def open_sftp(self) -> _Sftp:
         return self.sftp
 
-    def exec_command(self, command: str) -> tuple[None, _Stream, _Stream]:
+    def exec_command(self, command: str, **_kwargs: object) -> tuple[None, _Stream, _Stream]:
         raise AssertionError(f"deploy_files should not open exec channels: {command}")
 
     def close(self) -> None:
@@ -120,7 +126,7 @@ class _RestartSsh:
     def open_sftp(self) -> _Sftp:
         return self._sftp
 
-    def exec_command(self, command: str) -> tuple[None, _Stream, _Stream]:
+    def exec_command(self, command: str, **_kwargs: object) -> tuple[None, _Stream, _Stream]:
         self.commands.append(command)
         if command.startswith("curl "):
             if ":8081/health" in command:
@@ -143,7 +149,7 @@ class _PrepareSsh:
     def connect(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def exec_command(self, command: str) -> tuple[_Stdin, _Stream, _Stream]:
+    def exec_command(self, command: str, **_kwargs: object) -> tuple[_Stdin, _Stream, _Stream]:
         self.commands.append(command)
         if "df -Pm" in command:
             return _Stdin(), _Stream("disk_free_mb=2048\nmem_available_mb=512\n"), _Stream()

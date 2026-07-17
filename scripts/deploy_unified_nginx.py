@@ -8,33 +8,11 @@ from pathlib import Path
 
 import paramiko
 
-from scripts.deploy_common import configure_ssh_host_keys
 from scripts.deploy_unified_common import DeployTarget
+from scripts.deploy_unified_ssh import _connect_ssh, _ssh_exec
 
 _REMOTE_CONF_PATH = "/etc/nginx/conf.d/chat.donglicao.com.conf"
 _SOURCE_CONF_NAME = "deploy/nginx/chat.donglicao.com.conf"
-
-
-def _ssh_exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
-    _stdin, stdout, stderr = ssh.exec_command(command)
-    code = stdout.channel.recv_exit_status()
-    out = stdout.read().decode("utf-8", errors="replace").strip()
-    err = stderr.read().decode("utf-8", errors="replace").strip()
-    return code, out, err
-
-
-def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
-    """Open an SSH connection to the deploy target using key or password fallback."""
-    ssh = paramiko.SSHClient()
-    ssh.load_system_host_keys()
-    configure_ssh_host_keys(ssh)
-    try:
-        ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
-    except paramiko.SSHException:
-        if not target.password:
-            raise
-        ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
-    return ssh
 
 
 def _backup_remote_conf(ssh: paramiko.SSHClient) -> str | None:

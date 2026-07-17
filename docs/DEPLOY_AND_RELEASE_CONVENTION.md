@@ -82,6 +82,7 @@ python scripts/deploy_unified.py --dry-run
 1. 自动检查 VPS 磁盘和内存容量
 2. 在 VPS 上创建 tar 备份
 3. 默认使用 paramiko tar 批量上传（单包 SFTP + 远程解压，密码/密钥均可用），失败时回退到逐文件 SFTP
+4. 重启阶段 SSH `exec` 有超时（默认 120s；pip 准备最长 900s），避免通道僵死时无限卡住
 4. `systemctl restart dlc-drawing`（或部署脚本等价重启 `server_dlc`）
 5. 轮询 `/health`（liveness，最长 120s）与 `/health/ready`（readiness，最长 60s）等待服务完全就绪
 6. readiness 成功后打印启动阶段耗时摘要
