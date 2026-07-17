@@ -1,8 +1,12 @@
 import time
+from dataclasses import replace
 
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
+import app_status_ws_connections
+import app_status_ws_ticket
+from config.settings import DEVICE
 from device_app_helpers import client as make_client
 from device_app_helpers import headers, seed_account_and_device, seed_binding, token
 from device_gateway.sessions import DeviceSession, registry
@@ -171,3 +175,67 @@ def test_device_status_ws_online_offline_transition(tmp_path, monkeypatch):
         offline_snapshot = websocket.receive_json()
         assert offline_snapshot["event"] == "status_snapshot"
         assert offline_snapshot["payload"]["online"] is False
+
+
+def test_device_status_ws_slot_full_does_not_burn_ticket(tmp_path, monkeypatch):
+    app_status_ws_ticket.reset()
+    app_status_ws_connections.reset()
+    monkeypatch.setattr("routes.device_app_status_ws._POLL_INTERVAL", _POLL_INTERVAL)
+    monkeypatch.setattr(
+        "routes.device_app_status_ws.DEVICE",
+        replace(DEVICE, status_ws_max_concurrent=1),
+    )
+    monkeypatch.delenv("LIMA_DEVICE_APP_WS_QUERY_AUTH", raising=False)
+    client, _store = make_client(tmp_path, monkeypatch)
+    # make_client re-enables query auth; force ticket-only again.
+    monkeypatch.delenv("LIMA_DEVICE_APP_WS_QUERY_AUTH", raising=False)
+    seed_account_and_device()
+    seed_binding()
+
+    ticket_one = client.post(
+        "/device/v1/app/devices/dev-1/ws/ticket",
+        headers=headers("a-owner"),
+        json={},
+    ).json()["ticket"]
+    ticket_two = client.post(
+        "/device/v1/app/devices/dev-1/ws/ticket",
+        headers=headers("a-owner"),
+        json={},
+    ).json()["ticket"]
+
+    with client.websocket_connect(f"/device/v1/app/devices/dev-1/ws?ticket={ticket_one}") as first:
+        assert first.receive_json()["event"] == "status_snapshot"
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            with client.websocket_connect(f"/device/v1/app/devices/dev-1/ws?ticket={ticket_two}"):
+                pass
+        assert exc_info.value.code == 4429
+        assert app_status_ws_ticket.peek(ticket_two) == ("dev-1", "a-owner")
+
+    with client.websocket_connect(f"/device/v1/app/devices/dev-1/ws?ticket={ticket_two}") as websocket:
+        assert websocket.receive_json()["event"] == "status_snapshot"
+    assert app_status_ws_ticket.peek(ticket_two) is None
+
+
+def test_device_status_ws_success_consumes_ticket(tmp_path, monkeypatch):
+    app_status_ws_ticket.reset()
+    app_status_ws_connections.reset()
+    monkeypatch.setattr("routes.device_app_status_ws._POLL_INTERVAL", _POLL_INTERVAL)
+    monkeypatch.delenv("LIMA_DEVICE_APP_WS_QUERY_AUTH", raising=False)
+    client, _store = make_client(tmp_path, monkeypatch)
+    monkeypatch.delenv("LIMA_DEVICE_APP_WS_QUERY_AUTH", raising=False)
+    seed_account_and_device()
+    seed_binding()
+
+    ticket = client.post(
+        "/device/v1/app/devices/dev-1/ws/ticket",
+        headers=headers("a-owner"),
+        json={},
+    ).json()["ticket"]
+
+    with client.websocket_connect(f"/device/v1/app/devices/dev-1/ws?ticket={ticket}") as websocket:
+        assert websocket.receive_json()["event"] == "status_snapshot"
+
+    assert app_status_ws_ticket.peek(ticket) is None
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"/device/v1/app/devices/dev-1/ws?ticket={ticket}"):
+            pass

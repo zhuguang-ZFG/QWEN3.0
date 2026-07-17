@@ -32,13 +32,26 @@ def issue(device_id: str, account_id: str) -> str:
     return ticket
 
 
+def peek(ticket: str) -> tuple[str, str] | None:
+    """Return (device_id, account_id) for a valid ticket without consuming it."""
+    if not ticket:
+        return None
+    now = time.time()
+    with _lock:
+        _purge_expired(now)
+        entry = _tickets.get(ticket)
+    if entry is None or now > entry.expires_at:
+        return None
+    return entry.device_id, entry.account_id
+
+
 def consume(ticket: str) -> tuple[str, str] | None:
     if not ticket:
         return None
     now = time.time()
     with _lock:
-        entry = _tickets.pop(ticket, None)
         _purge_expired(now)
+        entry = _tickets.pop(ticket, None)
     if entry is None or now > entry.expires_at:
         return None
     return entry.device_id, entry.account_id

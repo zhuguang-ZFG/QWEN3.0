@@ -35,12 +35,12 @@ def _query_token_auth_enabled() -> bool:
 
 
 async def _authorize_ws(websocket: WebSocket, device_id: str) -> dict[str, Any] | None:
-    """Validate ticket/query-token and return the authorized active account."""
+    """Validate ticket/query-token without consuming; return active account."""
     ticket = websocket.query_params.get("ticket", "").strip()
     if ticket:
-        redeemed = app_status_ws_ticket.consume(ticket)
-        if redeemed:
-            redeemed_device_id, account_id = redeemed
+        peeked = app_status_ws_ticket.peek(ticket)
+        if peeked:
+            redeemed_device_id, account_id = peeked
             if redeemed_device_id == device_id:
                 account = load_active_account(account_id)
                 if isinstance(account, dict):
@@ -48,7 +48,7 @@ async def _authorize_ws(websocket: WebSocket, device_id: str) -> dict[str, Any] 
                         denied = require_device_access(conn, account, device_id)
                     if denied is None:
                         return account
-            return None
+        return None
 
     if not _query_token_auth_enabled():
         return None
@@ -69,6 +69,22 @@ async def _authorize_ws(websocket: WebSocket, device_id: str) -> dict[str, Any] 
         if denied is None:
             return account
     return None
+
+
+def _consume_status_ticket_if_present(
+    websocket: WebSocket,
+    device_id: str,
+    account_id: str,
+) -> bool:
+    """Consume one-time ticket after slot acquire; query-token path is a no-op."""
+    ticket = websocket.query_params.get("ticket", "").strip()
+    if not ticket:
+        return True
+    redeemed = app_status_ws_ticket.consume(ticket)
+    if not redeemed:
+        return False
+    redeemed_device_id, redeemed_account_id = redeemed
+    return redeemed_device_id == device_id and redeemed_account_id == account_id
 
 
 async def _send_status_snapshot(
@@ -173,6 +189,9 @@ async def device_status_ws(
         return
 
     try:
+        if not _consume_status_ticket_if_present(websocket, device_id, account_id):
+            await websocket.close(code=1008)
+            return
         await websocket.accept()
         deadline = asyncio.get_running_loop().time() + DEVICE.status_ws_session_seconds
         previous = await asyncio.to_thread(_build_device_status, device_id)

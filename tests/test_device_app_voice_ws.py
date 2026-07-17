@@ -141,6 +141,7 @@ def test_voice_ws_rejects_when_connect_rate_limited(tmp_path, monkeypatch):
     with pytest.raises(Exception):
         with client.websocket_connect(f"/device/v1/app/voice/ws?ticket={ticket}"):
             pass
+    assert voice_app_ws_ticket.peek(ticket) == "a-owner"
 
 
 def test_voice_ws_rejects_when_concurrent_limit_reached(tmp_path, monkeypatch):
@@ -157,6 +158,7 @@ def test_voice_ws_rejects_when_concurrent_limit_reached(tmp_path, monkeypatch):
         with pytest.raises(Exception):
             with client.websocket_connect(f"/device/v1/app/voice/ws?ticket={ticket_two}"):
                 pass
+        assert voice_app_ws_ticket.peek(ticket_two) == "a-owner"
         first.send_text("stop")
         first.receive_json()
 

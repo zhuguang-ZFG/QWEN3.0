@@ -32,6 +32,7 @@ def _ws_connect_per_min() -> int:
 
 
 def _authorize_voice_ws(websocket: WebSocket) -> dict[str, Any] | None:
+    """Peek-only ticket auth; consume happens after slot + ASR succeed."""
     ticket = websocket.query_params.get("ticket", "").strip()
     if not ticket:
         return None
@@ -40,11 +41,13 @@ def _authorize_voice_ws(websocket: WebSocket) -> dict[str, Any] | None:
         return None
     account = load_active_account(account_id)
     if not isinstance(account, dict):
-        return None  # do not consume — ticket stays for retry
-    # Atomically consume only if account is valid; invalid account leaves ticket intact.
-    if voice_app_ws_ticket.consume_if(ticket, lambda aid: aid == account_id) != account_id:
         return None
     return account
+
+
+def _consume_voice_ticket(websocket: WebSocket, account_id: str) -> bool:
+    ticket = websocket.query_params.get("ticket", "").strip()
+    return voice_app_ws_ticket.consume_if(ticket, lambda aid: aid == account_id) == account_id
 
 
 def _allow_voice_ws_connect(account_id: str) -> bool:
@@ -87,26 +90,29 @@ async def handle_voice_stream_ws(websocket: WebSocket) -> None:
         voice_ws_connections.release(account_id)
 
 
-async def _open_voice_session(websocket: WebSocket) -> Any | None:
+async def _create_asr_session(websocket: WebSocket) -> Any | None:
     try:
-        session = await open_voice_stream_session()
+        return await open_voice_stream_session()
     except AsrNotConfiguredError as exc:
         _log.warning("voice ws unavailable: %s", exc)
         await websocket.close(code=1013)
         return None
-    await websocket.accept()
-    if isinstance(session, DashScopeLiveStreamSession):
 
-        async def on_partial(text: str, is_final: bool) -> None:
-            await _send_transcript(websocket, text, is_final=is_final)
 
-        try:
-            await asyncio.wait_for(session.start(on_partial), timeout=VOICE.asr_timeout_seconds)
-        except (asyncio.TimeoutError, ValueError, RuntimeError) as exc:
-            _log.warning("voice ws session.start failed: %s", exc)
-            await websocket.close(code=1011, reason="ASR start timeout")
-            return None
-    return session
+async def _start_dashscope_if_needed(websocket: WebSocket, session: Any) -> bool:
+    if not isinstance(session, DashScopeLiveStreamSession):
+        return True
+
+    async def on_partial(text: str, is_final: bool) -> None:
+        await _send_transcript(websocket, text, is_final=is_final)
+
+    try:
+        await asyncio.wait_for(session.start(on_partial), timeout=VOICE.asr_timeout_seconds)
+    except (asyncio.TimeoutError, ValueError, RuntimeError) as exc:
+        _log.warning("voice ws session.start failed: %s", exc)
+        await websocket.close(code=1011, reason="ASR start timeout")
+        return False
+    return True
 
 
 async def _handle_audio_frame(websocket: WebSocket, session: Any, payload: bytes) -> bool:
@@ -205,8 +211,15 @@ async def _finalize_voice_session(websocket: WebSocket, session: Any) -> None:
 
 
 async def _run_voice_stream_ws(websocket: WebSocket, account: dict[str, Any]) -> None:
-    session = await _open_voice_session(websocket)
+    session = await _create_asr_session(websocket)
     if session is None:
+        return
+    account_id = str(account["id"])
+    if not _consume_voice_ticket(websocket, account_id):
+        await websocket.close(code=4401)
+        return
+    await websocket.accept()
+    if not await _start_dashscope_if_needed(websocket, session):
         return
     try:
         await _voice_receive_loop(websocket, session, account)
