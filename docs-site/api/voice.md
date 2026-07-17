@@ -27,7 +27,7 @@ wss://chat.donglicao.com/device/v1/app/voice/ws?ticket=<ticket>&device_id=<optio
 wss://chat.donglicao.com/v1/voice?ticket=<ticket>   # 小程序兼容别名
 ```
 
-可选 `device_id`：若提供，服务端校验当前账号对该设备有 owner/control 权限，否则关闭连接（`4403`）且**不消耗** ticket。WS 仍只返回 `transcript`，不因 `device_id` 持久化音频。
+可选设备绑定：`device_id` / `device-id`（query）或 `device-id`（header，对齐社区小智服务端）。若提供，服务端校验当前账号对该设备有 owner/control 权限，否则关闭连接（`4403`）且**不消耗** ticket。WS 仍只返回 `transcript`，不因设备 id 持久化音频。
 
 ### 连接流程
 

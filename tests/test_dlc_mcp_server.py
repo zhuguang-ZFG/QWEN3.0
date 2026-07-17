@@ -22,6 +22,7 @@ def test_tools_list_exposes_write_and_draw() -> None:
     assert "dlc.draw_generated" in names
     assert "dlc.draw_from_image" in names
     assert "dlc.get_device_status" in names
+    assert response["result"]["nextCursor"] == ""
 
 
 def test_tools_call_success_includes_is_error_false(monkeypatch) -> None:

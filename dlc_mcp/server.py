@@ -227,11 +227,12 @@ def handle_request(client: httpx.Client, req: dict) -> dict:
         }
 
     if method == "tools/list":
+        # Official 78/xiaozhi-esp32 mcp-protocol_zh: result includes nextCursor ("" = done).
         tools = [
             {"name": name, "description": meta["description"], "inputSchema": meta["inputSchema"]}
             for name, meta in TOOLS.items()
         ]
-        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools}}
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools, "nextCursor": ""}}
 
     if method == "tools/call":
         return _handle_tools_call(client, req_id, req.get("params", {}))

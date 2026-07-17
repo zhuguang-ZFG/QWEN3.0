@@ -57,9 +57,21 @@ def _consume_voice_ticket(websocket: WebSocket, account_id: str) -> bool:
     return voice_app_ws_ticket.consume_if(ticket, lambda aid: aid == account_id) == account_id
 
 
+def _resolve_optional_device_id(websocket: WebSocket) -> str:
+    """Community/official style: query device_id|device-id, else header device-id.
+
+    Mirrors xinnan-tech/xiaozhi-esp32-server websocket_server (query/header device-id).
+    """
+    for key in ("device_id", "device-id"):
+        value = websocket.query_params.get(key, "").strip()
+        if value:
+            return value
+    return (websocket.headers.get("device-id") or "").strip()
+
+
 def _optional_device_allowed(websocket: WebSocket, account: dict[str, Any]) -> bool:
-    """If query has device_id, require owner/control share; empty device_id always ok."""
-    device_id = websocket.query_params.get("device_id", "").strip()
+    """If a device id is present, require owner/control share; empty always ok."""
+    device_id = _resolve_optional_device_id(websocket)
     if not device_id:
         return True
     with connect() as conn:
