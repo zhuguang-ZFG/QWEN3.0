@@ -9,12 +9,11 @@ from config import deploy_config
 
 from scripts.deploy_unified_common import (
     DeployTarget,
-    _connect_ssh,
-    _exec,
     _safe_backup_label,
     capacity_result,
     parse_capacity_output,
 )
+from scripts.deploy_unified_ssh import _connect_ssh, _exec
 
 
 def check_remote_capacity(ssh, target: DeployTarget) -> dict[str, int]:

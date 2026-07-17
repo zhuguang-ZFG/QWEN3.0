@@ -76,11 +76,22 @@ def deploy_health_grace_s() -> int:
 
 
 def deploy_use_tar() -> bool:
-    return os.environ.get("LIMA_DEPLOY_USE_TAR", "").strip().lower() in {"1", "true", "yes"}
+    """Batch tar upload via paramiko SFTP (works with password or key auth).
+
+    Default on; set ``LIMA_DEPLOY_USE_TAR=0`` to force per-file SFTP.
+    """
+    raw = os.environ.get("LIMA_DEPLOY_USE_TAR", "1").strip().lower()
+    return raw not in {"0", "false", "no", "off"}
 
 
 def deploy_use_rsync() -> bool:
     return os.environ.get("LIMA_DEPLOY_USE_RSYNC", "").strip().lower() in {"1", "true", "yes"}
+
+
+def external_ssh_key_available() -> bool:
+    """True when external ssh/rsync can use key auth (BatchMode, no password prompt)."""
+    key = expanded_key_path()
+    return bool(key and os.path.exists(key))
 
 
 def deploy_pass() -> str:

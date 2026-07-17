@@ -11,9 +11,6 @@ from pathlib import PureWindowsPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import deploy_config
-from scripts.deploy_common import configure_ssh_host_keys
-
-import paramiko
 
 
 @dataclasses.dataclass(frozen=True)
@@ -266,32 +263,3 @@ def capacity_result(capacity: dict[str, int], *, min_free_mb: int, min_mem_mb: i
             "reason": f"memory available {mem_available}MB below required {min_mem_mb}MB",
         }
     return {"ok": True, "reason": "capacity ok"}
-
-
-def _connect_ssh(target: DeployTarget) -> paramiko.SSHClient:
-    """Open an SSH connection to the chosen deploy target using key or password fallback.
-
-    启用 transport keepalive（每 15 秒发心跳），避免 SFTP 大批量传输时
-    因网络空闲超时被中间设备/服务端断开（曾出现 `Socket is closed`）。
-    """
-    ssh = paramiko.SSHClient()
-    ssh.load_system_host_keys()
-    configure_ssh_host_keys(ssh)
-    try:
-        ssh.connect(target.host, username=target.user, key_filename=target.key_path, timeout=15)
-    except paramiko.SSHException:
-        if not target.password:
-            raise
-        ssh.connect(target.host, username=target.user, password=target.password, timeout=15)
-    transport = getattr(ssh, "get_transport", lambda: None)()
-    if transport is not None:
-        transport.set_keepalive(15)
-    return ssh
-
-
-def _exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
-    _stdin, stdout, stderr = ssh.exec_command(command)
-    code = stdout.channel.recv_exit_status()
-    out = stdout.read().decode("utf-8", errors="replace").strip()
-    err = stderr.read().decode("utf-8", errors="replace").strip()
-    return code, out, err

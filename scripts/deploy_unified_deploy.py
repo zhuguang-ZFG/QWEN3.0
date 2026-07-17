@@ -15,7 +15,7 @@ import paramiko
 
 from config import deploy_config
 from scripts.deploy_unified_common import DeployTarget
-from scripts.deploy_unified_restart import _connect_ssh
+from scripts.deploy_unified_ssh import _connect_ssh, _exec
 
 
 def ensure_remote_dir(sftp: paramiko.SFTPClient, remote_dir: str) -> None:
@@ -58,14 +58,6 @@ def _ssh_options(key_file: str | None, known_hosts_file: str | None) -> list[str
     if known_hosts and os.path.exists(known_hosts):
         opts += ["-o", f"UserKnownHostsFile={known_hosts}"]
     return opts
-
-
-def _ssh_base_cmd(target: DeployTarget, *, known_hosts_file: str | None = None) -> list[str]:
-    return [
-        "ssh",
-        *_ssh_options(target.key_path, known_hosts_file),
-        f"{target.user}@{target.host}",
-    ]
 
 
 def _filter_existing_files(files: list[str], project_root: Path) -> tuple[list[str], list[str]]:
@@ -120,14 +112,13 @@ def _deploy_with_rsync(files: list[str], target: DeployTarget) -> dict:
 
 
 def _deploy_with_tar(files: list[str], target: DeployTarget) -> dict:
-    """Deploy files as a tar archive over scp/ssh; avoids many small file overhead."""
+    """Deploy files as one tar.gz via paramiko SFTP + remote extract (password or key)."""
     project_root = Path(__file__).resolve().parent.parent
     existing, skipped = _filter_existing_files(files, project_root)
     if not existing:
         return {"uploaded": 0, "failed": [], "skipped": skipped}
 
-    ssh_opts = _ssh_options(target.key_path, deploy_config.expanded_known_hosts())
-    archive_name = f"lima-deploy-{os.getpid()}-{tempfile.gettempprefix()}.tar.gz"
+    archive_name = f"lima-deploy-{os.getpid()}.tar.gz"
     archive_local = Path(tempfile.gettempdir()) / archive_name
     archive_remote = f"/tmp/{archive_name}"
 
@@ -137,26 +128,25 @@ def _deploy_with_tar(files: list[str], target: DeployTarget) -> dict:
             for f in existing:
                 tar.add(project_root / f, arcname=f)
 
-        scp_cmd = ["scp", *ssh_opts, str(archive_local), f"{target.user}@{target.host}:{archive_remote}"]
-        print(f"tar: uploading archive ({archive_local.stat().st_size / 1024 / 1024:.2f} MB)...")
-        proc = subprocess.run(scp_cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600)
-        if proc.returncode != 0:
-            err = proc.stderr[-800:] if proc.stderr else proc.stdout[-800:]
-            raise RuntimeError(f"scp failed (exit {proc.returncode}): {err}")
+        ssh = _connect_ssh(target)
+        try:
+            size_mb = archive_local.stat().st_size / 1024 / 1024
+            print(f"tar: uploading archive ({size_mb:.2f} MB) via SFTP...")
+            sftp = ssh.open_sftp()
+            try:
+                sftp.put(str(archive_local), archive_remote)
+            finally:
+                sftp.close()
 
-        ssh_cmd = _ssh_base_cmd(target, known_hosts_file=deploy_config.expanded_known_hosts())
-        extract_cmd = f"mkdir -p {target.remote_path} && tar -xzf {archive_remote} -C {target.remote_path} && rm -f {archive_remote}"
-        print("tar: extracting archive on remote...")
-        proc = subprocess.run(
-            [*ssh_cmd, extract_cmd],
-            capture_output=True,
-            text=True,
-            stdin=subprocess.DEVNULL,
-            timeout=300,
-        )
-        if proc.returncode != 0:
-            err = proc.stderr[-800:] if proc.stderr else proc.stdout[-800:]
-            raise RuntimeError(f"remote extract failed (exit {proc.returncode}): {err}")
+            remote_q = shlex.quote(target.remote_path)
+            archive_q = shlex.quote(archive_remote)
+            extract_cmd = f"mkdir -p {remote_q} && tar -xzf {archive_q} -C {remote_q} && rm -f {archive_q}"
+            print("tar: extracting archive on remote...")
+            code, out, err = _exec(ssh, extract_cmd)
+            if code != 0:
+                raise RuntimeError(f"remote extract failed (exit {code}): {err or out}")
+        finally:
+            ssh.close()
 
         return {"uploaded": len(existing), "failed": [], "skipped": skipped}
     finally:
@@ -263,7 +253,7 @@ def remove_remote_files(paths: list[str], *, target: DeployTarget, dry_run: bool
 
 
 def deploy_files(files: list[str], *, target: DeployTarget, dry_run: bool = False) -> dict:
-    """Deploy a list of files to a VPS target via tar/scp, rsync, or SFTP."""
+    """Deploy a list of files to a VPS target via tar SFTP, rsync, or per-file SFTP."""
     project_root = Path(__file__).resolve().parent.parent
     results = {"uploaded": 0, "failed": [], "skipped": []}
 
@@ -283,10 +273,10 @@ def deploy_files(files: list[str], *, target: DeployTarget, dry_run: bool = Fals
         try:
             return _deploy_with_tar(files, target)
         except Exception as e:
-            print(f"tar/scp upload failed, falling back to SFTP: {e}", file=sys.stderr)
+            print(f"tar upload failed, falling back to SFTP: {e}", file=sys.stderr)
 
     use_rsync = deploy_config.deploy_use_rsync()
-    if use_rsync and _rsync_available():
+    if use_rsync and _rsync_available() and deploy_config.external_ssh_key_available():
         try:
             return _deploy_with_rsync(files, target)
         except Exception as e:

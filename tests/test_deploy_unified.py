@@ -7,23 +7,43 @@ import sys
 from scripts import deploy_unified
 from scripts.deploy_unified_common import capacity_result, get_deploy_target, parse_capacity_output
 
-from tests._deploy_mocks import _DeploySsh, _PrepareSsh, _RestartSsh, _Sftp
+from tests._deploy_mocks import _DeploySsh, _PrepareSsh, _RestartSsh, _Sftp, _TarDeploySsh
 
 
 def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
-    import scripts.deploy_unified_restart as restart_mod
+    import scripts.deploy_unified_ssh as ssh_mod
 
     monkeypatch.setenv("LIMA_DEPLOY_USE_TAR", "0")
     sftp = _Sftp()
     ssh = _DeploySsh(sftp)
-    monkeypatch.setattr(restart_mod.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(restart_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(ssh_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(ssh_mod, "configure_ssh_host_keys", lambda client: None)
 
     result = deploy_unified.deploy_files(["scripts/deploy_unified.py"], target=get_deploy_target("jdcloud"))
 
     assert result == {"uploaded": 1, "failed": [], "skipped": []}
     assert sftp.put_calls[0][1] == "/opt/dlc-drawing/scripts/deploy_unified.py"
     assert "/opt/dlc-drawing/scripts" in sftp.dirs
+    assert sftp.closed is True
+    assert ssh.closed is True
+
+
+def test_deploy_files_uses_tar_archive_via_paramiko(monkeypatch):
+    import scripts.deploy_unified_ssh as ssh_mod
+
+    monkeypatch.delenv("LIMA_DEPLOY_USE_TAR", raising=False)
+    sftp = _Sftp()
+    ssh = _TarDeploySsh(sftp)
+    monkeypatch.setattr(ssh_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(ssh_mod, "configure_ssh_host_keys", lambda client: None)
+
+    result = deploy_unified.deploy_files(["scripts/deploy_unified.py"], target=get_deploy_target("jdcloud"))
+
+    assert result == {"uploaded": 1, "failed": [], "skipped": []}
+    assert len(sftp.put_calls) == 1
+    assert sftp.put_calls[0][1].startswith("/tmp/lima-deploy-")
+    assert sftp.put_calls[0][1].endswith(".tar.gz")
+    assert any("tar -xzf" in cmd and "/opt/dlc-drawing" in cmd for cmd in ssh.commands)
     assert sftp.closed is True
     assert ssh.closed is True
 
@@ -172,12 +192,12 @@ def test_capacity_result_rejects_low_disk_or_memory():
 
 
 def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
-    import scripts.deploy_unified_common as common_mod
     import scripts.deploy_unified_preflight as preflight_mod
+    import scripts.deploy_unified_ssh as ssh_mod
 
     ssh = _PrepareSsh()
-    monkeypatch.setattr(common_mod.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(common_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(ssh_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(ssh_mod, "configure_ssh_host_keys", lambda client: None)
     monkeypatch.setattr(preflight_mod.time, "strftime", lambda fmt: "20260609_010203")
 
     result = deploy_unified.prepare_remote_deploy(["server.py"], target=get_deploy_target("jdcloud"), label="unit test")
@@ -192,12 +212,12 @@ def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
 
 
 def test_restore_remote_backup_extracts_tar(monkeypatch):
-    import scripts.deploy_unified_common as common_mod
     import scripts.deploy_unified_preflight as preflight_mod
+    import scripts.deploy_unified_ssh as ssh_mod
 
     ssh = _PrepareSsh()
-    monkeypatch.setattr(common_mod.paramiko, "SSHClient", lambda: ssh)
-    monkeypatch.setattr(common_mod, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(ssh_mod.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(ssh_mod, "configure_ssh_host_keys", lambda client: None)
 
     ok = preflight_mod.restore_remote_backup(
         "/opt/dlc-drawing/backups/unit/runtime-before.tgz", target=get_deploy_target("jdcloud")

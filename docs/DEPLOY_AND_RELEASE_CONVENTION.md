@@ -81,7 +81,7 @@ python scripts/deploy_unified.py --dry-run
 **部署流程**:
 1. 自动检查 VPS 磁盘和内存容量
 2. 在 VPS 上创建 tar 备份
-3. 默认使用 tar/scp 批量上传（环境 `LIMA_DEPLOY_USE_TAR=1`），失败时回退到 SFTP
+3. 默认使用 paramiko tar 批量上传（单包 SFTP + 远程解压，密码/密钥均可用），失败时回退到逐文件 SFTP
 4. `systemctl restart dlc-drawing`（或部署脚本等价重启 `server_dlc`）
 5. 轮询 `/health`（liveness，最长 120s）与 `/health/ready`（readiness，最长 60s）等待服务完全就绪
 6. readiness 成功后打印启动阶段耗时摘要
@@ -193,7 +193,7 @@ Gitee 镜像同步已不再是强制 closeout 步骤。`findings.md` OPS-022 已
 # VPS 部署
 LIMA_DEPLOY_KEY_PATH=~/.ssh/lima_deploy_ed25519  # SSH 私钥
 LIMA_DEPLOY_KNOWN_HOSTS=~/.ssh/known_hosts       # SSH 主机密钥
-LIMA_DEPLOY_USE_TAR=1                            # 使用 tar/scp 批量上传（推荐）
+LIMA_DEPLOY_USE_TAR=1                            # tar 批量上传（默认开启；设 0 强制逐文件 SFTP）
 LIMA_DEPLOY_NOTIFY=1                             # 保留兼容开关；Telegram 通知已退役
 
 # VPS 上运行时

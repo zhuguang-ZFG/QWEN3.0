@@ -61,6 +61,29 @@ class _Sftp:
         self.closed = True
 
 
+class _TarDeploySsh:
+    def __init__(self, sftp: _Sftp) -> None:
+        self.sftp = sftp
+        self.commands: list[str] = []
+        self.closed = False
+
+    def load_system_host_keys(self) -> None:
+        pass
+
+    def connect(self, *args: object, **kwargs: object) -> None:
+        pass
+
+    def open_sftp(self) -> _Sftp:
+        return self.sftp
+
+    def exec_command(self, command: str) -> tuple[None, _Stream, _Stream]:
+        self.commands.append(command)
+        return None, _Stream(), _Stream()
+
+    def close(self) -> None:
+        self.closed = True
+
+
 class _DeploySsh:
     def __init__(self, sftp: _Sftp) -> None:
         self.sftp = sftp

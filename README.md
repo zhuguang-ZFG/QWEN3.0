@@ -114,7 +114,7 @@ python scripts/deploy_unified.py --target jdcloud --files routes/device_app_voic
 LIMA_VOICE_E2E_STRICT=1 python scripts/run_voice_e2e_production.py
 ```
 
-部署依赖 `.env` 中的 `LIMA_DEPLOY_KEY_PATH` 与 `LIMA_DEPLOY_USE_TAR=1`。
+部署依赖 `.env` 中的 `LIMA_JDCLOUD_ROOT_PASSWORD`（或 `LIMA_DEPLOY_KEY_PATH`）；默认 tar 批量上传，无需再设 `LIMA_DEPLOY_USE_TAR=1`。
 
 详见 [`docs/DEPLOY_AND_RELEASE_CONVENTION.md`](docs/DEPLOY_AND_RELEASE_CONVENTION.md)。
 
