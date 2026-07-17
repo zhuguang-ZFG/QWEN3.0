@@ -2530,11 +2530,20 @@ paths:
           type: string
         example: tk-xxxxxxxx
         description: One-time ticket (TTL 30s); consumed after successful accept.
-      responses: &id002
+      - &id002
+        name: device_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Optional; when set, account must own or have control share (else close 4403, ticket kept).
+      responses: &id003
         '101':
           description: Switching Protocols (WebSocket upgrade)
         '400':
           description: Missing or invalid ticket
+        '4403':
+          description: device_id present but control permission denied (close code)
         '4429':
           description: Rate limited / concurrent slot full (close code)
       operationId: get_device_v1_app_voice_ws
@@ -2686,7 +2695,8 @@ paths:
         docs-site/api/voice.md.
       parameters:
       - *id001
-      responses: *id002
+      - *id002
+      responses: *id003
       operationId: get_v1_voice
 components:
   schemas:

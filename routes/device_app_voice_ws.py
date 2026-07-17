@@ -14,7 +14,9 @@ import voice_app_ws_ticket
 import voice_ws_connections
 from config.settings import SECURITY
 from config.voice_settings import VOICE
+from device_logic.access import require_device_control
 from device_logic.auth import load_active_account
+from device_logic.db import connect
 from device_voice.asr import AsrNotConfiguredError
 from device_voice.streaming_asr import (
     BufferedVoiceStreamSession,
@@ -55,6 +57,15 @@ def _consume_voice_ticket(websocket: WebSocket, account_id: str) -> bool:
     return voice_app_ws_ticket.consume_if(ticket, lambda aid: aid == account_id) == account_id
 
 
+def _optional_device_allowed(websocket: WebSocket, account: dict[str, Any]) -> bool:
+    """If query has device_id, require owner/control share; empty device_id always ok."""
+    device_id = websocket.query_params.get("device_id", "").strip()
+    if not device_id:
+        return True
+    with connect() as conn:
+        return require_device_control(conn, account, device_id) is None
+
+
 def _allow_voice_ws_connect(account_id: str) -> bool:
     if SECURITY.rate_limit_disable:
         return True
@@ -82,6 +93,9 @@ async def handle_voice_stream_ws(websocket: WebSocket) -> None:
         return
 
     account_id = str(account["id"])
+    if not _optional_device_allowed(websocket, account):
+        await websocket.close(code=4403)
+        return
     if not _allow_voice_ws_connect(account_id):
         await websocket.close(code=_WS_RATE_CLOSE)
         return

@@ -9,7 +9,8 @@
 | 项 | 值 |
 |----|-----|
 | `versionName` / `versionCode` | **3.9.2** / **392**（`manifest.config.ts`） |
-| 本地 `dist/build/mp-weixin` | 存在（最近构建约 2026-07-16） |
+| 本地 `dist/build/mp-weixin` | **2026-07-17 19:xx 已重建**（`npx uni build --platform mp-weixin` → DONE） |
+| 类型检查 | **2026-07-17** `vue-tsc --noEmit` 通过 |
 | STATUS 旧记 | 「v3.8.0 已上传未提审」——以仓库 **3.9.2** 为准，提审前请在公众平台核对「开发版本 / 审核版本」 |
 
 ## 提审前必做
@@ -19,7 +20,7 @@
    cd esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile
    npx vue-tsc --noEmit
    ```
-2. **生产构建**
+2. **生产构建**（2026-07-17 已本地通过：`DONE Build complete` → `dist/build/mp-weixin`）
    ```powershell
    npx uni build --platform mp-weixin
    ```

@@ -16,6 +16,7 @@ from openapi_examples import (
     response_example,
     synthetic_query_param,
 )
+from openapi_examples.voice_ws_doc import VOICE_WS_DOC
 
 
 class CompactSeq:
@@ -38,36 +39,6 @@ INPUT = ROOT / "openapi_full.json"
 OUTPUT = ROOT / "docs" / "openapi.yaml"
 KEEP_V1 = {"/v1/chat/completions", "/v1/images/generations", "/v1/voice"}
 DUPLICATE_PREFIX = "/device/v1/app/device/v1/app/"
-
-# FastAPI does not export WebSocket routes; document them for Redoc consumers.
-_VOICE_WS_DOC = {
-    "get": {
-        "tags": ["device-app-voice-ws"],
-        "summary": "Realtime Voice WebSocket",
-        "description": (
-            "HTTP Upgrade to WebSocket for streaming ASR. "
-            "Connect with `?ticket=` from POST /device/v1/app/voice/ticket. "
-            "Send PCM binary frames (16 kHz mono), text `stop` to finalize, text `ping` for keepalive. "
-            "Server replies with JSON `{type:transcript|pong|error}`. WS does not return intent — "
-            "use REST /voice/transcribe or client-side resolve. See docs-site/api/voice.md."
-        ),
-        "parameters": [
-            {
-                "name": "ticket",
-                "in": "query",
-                "required": True,
-                "schema": {"type": "string"},
-                "example": "tk-xxxxxxxx",
-                "description": "One-time ticket (TTL 30s); consumed after successful accept.",
-            }
-        ],
-        "responses": {
-            "101": {"description": "Switching Protocols (WebSocket upgrade)"},
-            "400": {"description": "Missing or invalid ticket"},
-            "4429": {"description": "Rate limited / concurrent slot full (close code)"},
-        },
-    }
-}
 
 
 def is_public(path: str) -> bool:
@@ -268,7 +239,7 @@ def main() -> None:
                 "parameters": CompactSeq(op.get("parameters", [])),
                 "tags": CompactSeq(op.get("tags", [])),
             }
-            for method, op in _VOICE_WS_DOC.items()
+            for method, op in VOICE_WS_DOC.items()
         }
         new_paths[ws_path] = doc
     spec["paths"] = dict(sorted(new_paths.items()))
