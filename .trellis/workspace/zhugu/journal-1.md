@@ -288,6 +288,12 @@ outes/device_app_voice_ws.py / device_app_status_ws.py
 - `routes/device_app_status_ws.py` — `_finalize_status_ws`、consume 路径
 - `tests/test_app_status_ws_ticket.py` — consume_if + close 1008 护栏
 
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| 8f184ad6 | fix: Status WS finalize close + consume_if |
+
 ### Testing
 
 - [OK] status/ticket 15 passed；ruff + check_code_size PASS
