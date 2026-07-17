@@ -325,7 +325,7 @@ outes/device_app_voice_ws.py / device_app_status_ws.py
 
 | Hash | Message |
 |------|---------|
-| (pending) | fix: review closure — voice ASR after accept, MCP isError, task terminal |
+| `31a650dd` | fix: review closure — voice ASR after accept, MCP isError, task terminal |
 
 ### Testing
 
