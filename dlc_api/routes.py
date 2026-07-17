@@ -29,6 +29,7 @@ from dlc_core import (
     handle_write,
     validate_path,
 )
+from dlc_api.idempotency import IdempotencyUnavailableError
 from dlc_api.idempotency import claim_idempotency_key as _claim_idempotency_key
 from dlc_api.idempotency import release_idempotency_key as _release_idempotency_key
 from device_gateway.image_url_validation import validate_image_url
@@ -171,8 +172,16 @@ async def dispatch_task_endpoint(
 
     # S10: dedupe replays — a repeated Idempotency-Key must not dispatch twice.
     idem_full_key = f"{caller_device_id}:{idempotency_key}" if idempotency_key else None
-    if idem_full_key and not _claim_idempotency_key(idem_full_key, body.request_id):
-        return TaskDispatchResponse(status="duplicate", error="idempotency key already used")
+    if idem_full_key:
+        try:
+            claimed = _claim_idempotency_key(idem_full_key, body.request_id)
+        except IdempotencyUnavailableError:
+            return JSONResponse(
+                status_code=503,
+                content={"status": "failed", "error": "idempotency store unavailable"},
+            )
+        if not claimed:
+            return TaskDispatchResponse(status="duplicate", error="idempotency key already used")
 
     # P2-a: the idempotency key is claimed *before* the work runs, so any failure
     # (returned or raised) must release it — see _dispatch_and_release.

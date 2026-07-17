@@ -15,6 +15,7 @@ from typing import Any
 from config import settings
 from device_logic.db import connect
 from device_logic.http import new_id
+from runtime_env import jwt_require_typ
 
 try:
     import jwt
@@ -171,6 +172,9 @@ def decode_admin_token(token: str) -> dict[str, Any] | None:
         _log.warning("Admin decode rejected device-typed token: %s", payload.get("sub", ""))
         return None
     if token_typ is None:
+        if jwt_require_typ():
+            _log.warning("Admin token missing typ field — rejected: %s", payload.get("sub", ""))
+            return None
         _log.warning("Admin token missing typ field  -  treating as legacy token: %s", payload.get("sub", ""))
     return payload
 

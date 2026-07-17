@@ -21,6 +21,8 @@
 | `DASHSCOPE_ASR_MODEL` | REST 按住说话（默认 `qwen3-asr-flash`） |
 | `LIMA_VOICE_STREAM_ASR_MODEL` | WS 流式（空=缓冲模式） |
 | `LIMA_STRUCTURED_LOGGING` | `1` 时切结构化日志 |
+| `LIMA_JWT_REQUIRE_TYP` | 显式 `0`/`1`；未设时生产默认开，拒无 `typ` 的 device/admin JWT |
+| `LIMA_RATE_LIMIT_DISABLE` | 非生产可关限流；**生产忽略**（`runtime_env.rate_limit_disabled`） |
 | `LIMA_DEPLOY_KEY_PATH` / `LIMA_DEPLOY_USE_TAR` | 部署 SSH 私钥 / 打包方式 |
 
 ## .env 与安全红线

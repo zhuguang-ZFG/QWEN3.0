@@ -63,3 +63,21 @@ class TestPooledSqliteConn:
         conn = sqlite_connect_pooled(path)
         pool_release(path, conn)
         pool_clear()
+
+    def test_new_connection_sets_wal_and_busy_timeout(self):
+        path = ".test-tmp/pool_wal.db"
+        os.makedirs(".test-tmp", exist_ok=True)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+        pool_clear()
+        conn = sqlite_connect_pooled(path)
+        try:
+            mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+            assert str(mode).lower() == "wal"
+            timeout = conn.execute("PRAGMA busy_timeout").fetchone()[0]
+            assert int(timeout) == 5000
+        finally:
+            pool_release(path, conn)
+            pool_clear()

@@ -30,7 +30,7 @@ if not VOICE.enabled:
 
 **关停/清理路径** — 单个资源失败记 warning 后继续清理其余（证据：`server_dlc.py` 优雅关停段，`logger.warning(..., exc_info=True)`）。
 
-**一次性 ticket / 短效凭证** — 鉴权校验用 `peek`；仅在即将成功进入会话（如 WebSocket `accept` 之前、槽与依赖就绪之后）再 `consume`。槽满、依赖未配置等失败路径不得烧票（证据：`device_app_voice_ws` / `device_app_status_ws` 延迟 consume，任务 `07-17-ws-ticket-status-p2`）。
+**一次性 ticket / 短效凭证** — 鉴权校验用 `peek`；失败路径（槽满、依赖未配置、ASR `session.start` 失败等）不得烧票。Voice：仅在 ASR `session.start` 成功后再 `consume`（证据：`device_app_voice_ws`，任务 `07-17-backend-prelaunch-p1`）；Status 等其它 WS 仍可在 accept 前、槽与依赖就绪后 consume（证据：`device_app_status_ws`，任务 `07-17-ws-ticket-status-p2`）。
 
 **外部 HTTP** — 统一用 httpx；图生等阻塞调用经 `asyncio.to_thread`（证据：`dashscope_image_client.py`）。
 

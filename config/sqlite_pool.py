@@ -42,7 +42,10 @@ class _ConnectionPool:
                 except Exception as exc:
                     # Best-effort close of a possibly broken connection; safe to ignore.
                     _log.warning("sqlite_pool close of stale connection failed: %s", exc)
-        return sqlite3.connect(path, check_same_thread=check_same_thread)
+        conn = sqlite3.connect(path, check_same_thread=check_same_thread)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        return conn
 
     def put(self, path: str, conn: sqlite3.Connection) -> None:
         pool = self._pool()

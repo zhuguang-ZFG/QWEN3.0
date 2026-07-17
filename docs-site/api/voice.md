@@ -48,7 +48,7 @@ Authorization: Bearer <JWT>
 ```
 
 > `expires_in` 与 `voice_app_ws_ticket.TTL_SECONDS` 一致（30 秒）；ticket **单次使用**，绑定当前账号。
-> 进入会话前失败（槽满 4429、ASR 不可用 1013 等）**不消耗** ticket，TTL 内可重试；成功 `accept` 后才消耗。
+> 进入会话前失败（槽满 4429、ASR 不可用 1013、ASR `session.start` 失败 1011 等）**不消耗** ticket，TTL 内可重试；仅在 ASR start 成功后才消耗。`device_id` 仍为可选。
 
 2. 使用 ticket 连接 WS，发送 **PCM 二进制帧**，结束时发送文本 `stop`。
 

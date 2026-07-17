@@ -95,19 +95,27 @@ def test_voice_ws_success_consumes_ticket(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_consume_race_does_not_open_dashscope_session(monkeypatch):
-    """Consume failure before ASR open must not create or close a DashScope session.
-
-    Close code must remain 4401 after finalize (no blank second close).
-    """
+async def test_consume_fail_after_start_closes_4401(monkeypatch):
+    """Consume failure after ASR start must close 4401 and teardown session."""
     from starlette.websockets import WebSocketState
+    from device_voice.streaming_asr import DashScopeLiveStreamSession
     from routes.device_app_voice_ws import _run_voice_stream_ws
 
     closed = {"session": False, "ws_codes": [], "opened": False}
+    session = object.__new__(DashScopeLiveStreamSession)
+
+    async def _close():
+        closed["session"] = True
+
+    async def _start(_on_partial):
+        return None
+
+    session.close = _close  # type: ignore[method-assign]
+    session.start = _start  # type: ignore[method-assign]
 
     async def _open():
         closed["opened"] = True
-        raise AssertionError("must not open ASR session when consume fails")
+        return session
 
     monkeypatch.setattr("routes.device_app_voice_ws.open_voice_stream_session", _open)
     monkeypatch.setattr("routes.device_app_voice_ws._consume_voice_ticket", lambda *_a, **_k: False)
@@ -119,18 +127,17 @@ async def test_consume_race_does_not_open_dashscope_session(monkeypatch):
 
         async def close(self, code: int = 1000, reason: str | None = None):
             closed["ws_codes"].append(code)
-            # Leave CONNECTING: pre-accept close(4401) must not get a blank
-            # finalize close() (default 1000) when state was not updated.
+            self.application_state = WebSocketState.DISCONNECTED
 
         async def accept(self, *a, **k):
-            raise AssertionError("must not accept when consume fails")
+            self.application_state = WebSocketState.CONNECTED
 
         async def send_json(self, *a, **k):
             return None
 
     await _run_voice_stream_ws(_FakeWs(), {"id": "a-owner"})
-    assert closed["session"] is False
-    assert closed["opened"] is False
+    assert closed["opened"] is True
+    assert closed["session"] is True
     assert closed["ws_codes"] == [4401]
 
 
@@ -141,7 +148,7 @@ async def test_dashscope_start_fail_keeps_close_1011(monkeypatch):
     from device_voice.streaming_asr import DashScopeLiveStreamSession
     from routes.device_app_voice_ws import _run_voice_stream_ws
 
-    closed = {"session": False, "ws_codes": []}
+    closed = {"session": False, "ws_codes": [], "consumed": False}
     session = object.__new__(DashScopeLiveStreamSession)
 
     async def _close():
@@ -156,8 +163,12 @@ async def test_dashscope_start_fail_keeps_close_1011(monkeypatch):
     async def _open():
         return session
 
+    def _consume(*_a, **_k):
+        closed["consumed"] = True
+        return True
+
     monkeypatch.setattr("routes.device_app_voice_ws.open_voice_stream_session", _open)
-    monkeypatch.setattr("routes.device_app_voice_ws._consume_voice_ticket", lambda *_a, **_k: True)
+    monkeypatch.setattr("routes.device_app_voice_ws._consume_voice_ticket", _consume)
     _pass_voice_validate(monkeypatch)
 
     class _FakeWs:
@@ -176,4 +187,38 @@ async def test_dashscope_start_fail_keeps_close_1011(monkeypatch):
 
     await _run_voice_stream_ws(_FakeWs(), {"id": "a-owner"})
     assert closed["session"] is True
+    assert closed["consumed"] is False
     assert closed["ws_codes"] == [1011]
+
+
+def test_voice_ws_asr_start_fail_does_not_burn_ticket(tmp_path, monkeypatch):
+    """DashScope session.start failure must leave ticket reusable."""
+    from device_voice.streaming_asr import DashScopeLiveStreamSession
+
+    voice_app_ws_ticket.reset()
+    voice_ws_connections.reset()
+    _pass_voice_validate(monkeypatch)
+
+    session = object.__new__(DashScopeLiveStreamSession)
+
+    async def _start(_on_partial):
+        raise RuntimeError("asr start boom")
+
+    async def _close():
+        return None
+
+    session.start = _start  # type: ignore[method-assign]
+    session.close = _close  # type: ignore[method-assign]
+
+    async def _open():
+        return session
+
+    monkeypatch.setattr("routes.device_app_voice_ws.open_voice_stream_session", _open)
+    client, _store = make_client(tmp_path, monkeypatch)
+    seed_account_and_device()
+    ticket = client.post("/device/v1/app/voice/ticket", headers=headers("a-owner")).json()["ticket"]
+
+    # Accept happens before start; start fail closes 1011 without burning ticket.
+    with client.websocket_connect(f"/device/v1/app/voice/ws?ticket={ticket}"):
+        pass
+    assert voice_app_ws_ticket.peek(ticket) == "a-owner"

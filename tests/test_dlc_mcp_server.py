@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 
 from dlc_mcp.server import handle_request
 
@@ -227,3 +228,26 @@ def test_exception_handler_backfills_request_id(monkeypatch) -> None:
     req = [1, 2, 3]
     safe_id = req.get("id") if isinstance(req, dict) else None
     assert safe_id is None
+
+
+def test_is_remote_dlc_api_detects_loopback() -> None:
+    from dlc_mcp.remote_token import is_remote_dlc_api
+
+    assert is_remote_dlc_api("http://127.0.0.1:8081") is False
+    assert is_remote_dlc_api("http://localhost:8081") is False
+    assert is_remote_dlc_api("http://[::1]:8081") is False
+    assert is_remote_dlc_api("https://chat.donglicao.com/dlc") is True
+
+
+def test_require_remote_api_token_exits_when_remote_and_empty(monkeypatch) -> None:
+    from dlc_mcp.remote_token import require_remote_api_token
+
+    with pytest.raises(SystemExit) as exc_info:
+        require_remote_api_token(api_url="https://api.example.com", api_token="")
+    assert exc_info.value.code == 1
+
+
+def test_require_remote_api_token_allows_loopback_empty() -> None:
+    from dlc_mcp.remote_token import require_remote_api_token
+
+    require_remote_api_token(api_url="http://127.0.0.1:8081", api_token="")

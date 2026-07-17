@@ -6,12 +6,12 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 import rate_limiter
-from config.settings import SECURITY
 from routes.request_tracking import client_ip
+from runtime_env import rate_limit_disabled
 
 
 def _disabled() -> bool:
-    return SECURITY.rate_limit_disable
+    return rate_limit_disabled()
 
 
 def check_key_limit(

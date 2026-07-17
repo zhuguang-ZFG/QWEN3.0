@@ -19,7 +19,8 @@ from dlc_api import idempotency as _idem
 
 
 def _no_redis(monkeypatch) -> None:
-    """强制 Redis 不可用（_get_idempotency_client 返回 None）。"""
+    """强制 Redis 不可用（_get_idempotency_client 返回 None）；非生产 fail-open+L1。"""
+    monkeypatch.setenv("LIMA_RUNTIME_ENV", "dev")
     monkeypatch.setattr(_idem, "_get_idempotency_client", lambda: None)
 
 
@@ -36,6 +37,18 @@ def test_l1_blocks_same_worker_duplicate_when_redis_down(monkeypatch) -> None:
 
     assert _idem.claim_idempotency_key("dev-1:k1", "req-1") is True, "首次应放行"
     assert _idem.claim_idempotency_key("dev-1:k1", "req-2") is False, "同 worker 重复应被 L1 拦截"
+
+
+def test_production_redis_down_raises_unavailable(monkeypatch) -> None:
+    """生产 + Redis 不可用 → IdempotencyUnavailableError（fail-closed）。"""
+    _no_redis(monkeypatch)
+    monkeypatch.setenv("LIMA_RUNTIME_ENV", "production")
+    _reset_l1(monkeypatch)
+    try:
+        _idem.claim_idempotency_key("dev-1:k-prod", "req-1")
+        raise AssertionError("expected IdempotencyUnavailableError")
+    except _idem.IdempotencyUnavailableError:
+        pass
 
 
 def test_l1_expires_after_ttl(monkeypatch) -> None:

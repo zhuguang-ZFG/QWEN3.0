@@ -12,7 +12,6 @@ from starlette.websockets import WebSocketState
 import rate_limiter
 import voice_app_ws_ticket
 import voice_ws_connections
-from config.settings import SECURITY
 from config.voice_settings import VOICE
 from device_logic.access import require_device_control
 from device_logic.auth import load_active_account
@@ -24,6 +23,7 @@ from device_voice.streaming_asr import (
     open_voice_stream_session,
     validate_voice_stream_available,
 )
+from runtime_env import rate_limit_disabled
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-voice-ws"])
 legacy_router = APIRouter(tags=["voice-legacy-ws"])
@@ -39,7 +39,7 @@ def _ws_connect_per_min() -> int:
 
 
 def _authorize_voice_ws(websocket: WebSocket) -> dict[str, Any] | None:
-    """Peek-only ticket auth; consume happens after config validate + slot."""
+    """Peek-only ticket auth; consume happens after ASR session.start() succeeds."""
     ticket = websocket.query_params.get("ticket", "").strip()
     if not ticket:
         return None
@@ -79,7 +79,7 @@ def _optional_device_allowed(websocket: WebSocket, account: dict[str, Any]) -> b
 
 
 def _allow_voice_ws_connect(account_id: str) -> bool:
-    if SECURITY.rate_limit_disable:
+    if rate_limit_disabled():
         return True
     key = f"device_app_voice_ws:{account_id}"
     return rate_limiter.check_keyed_rate_limit(
@@ -236,7 +236,11 @@ async def _finalize_voice_session(websocket: WebSocket, session: Any) -> None:
 
 
 async def _run_voice_stream_ws(websocket: WebSocket, account: dict[str, Any]) -> None:
-    """Validate config, consume ticket, accept, then open ASR session."""
+    """Validate, accept, start ASR; consume ticket only after start succeeds.
+
+    Same-ticket dual connect may each start ASR once before consume (low odds;
+    no hold lock — see design R3 race note).
+    """
     session: Any | None = None
     try:
         try:
@@ -246,14 +250,14 @@ async def _run_voice_stream_ws(websocket: WebSocket, account: dict[str, Any]) ->
             await websocket.close(code=1013)
             return
 
+        await websocket.accept()
+        session = await open_voice_stream_session()
+        if not await _start_dashscope_if_needed(websocket, session):
+            return  # start failed — ticket not consumed
+
         account_id = str(account["id"])
         if not _consume_voice_ticket(websocket, account_id):
             await websocket.close(code=4401)
-            return
-        await websocket.accept()
-
-        session = await open_voice_stream_session()
-        if not await _start_dashscope_if_needed(websocket, session):
             return
         await _voice_receive_loop(websocket, session, account)
     finally:

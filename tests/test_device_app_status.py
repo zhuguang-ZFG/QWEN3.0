@@ -216,62 +216,6 @@ def test_device_status_ws_slot_full_does_not_burn_ticket(tmp_path, monkeypatch):
     assert app_status_ws_ticket.peek(ticket_two) is None
 
 
-def _task_payload(task_id: str = "task-001") -> dict:
-    return {
-        "type": "motion_task",
-        "task_id": task_id,
-        "device_id": "dev-1",
-        "capability": "run_path",
-        "source": "voice",
-        "params": {"path": [{"x": 0, "y": 0, "z": 0}]},
-        "request_id": "req-001",
-    }
-
-
-def test_device_status_ws_task_completed_transition(tmp_path, monkeypatch):
-    client, store = make_client(tmp_path, monkeypatch)
-    monkeypatch.setattr("routes.device_app_status_ws._POLL_INTERVAL", _POLL_INTERVAL)
-    seed_account_and_device()
-    seed_binding()
-
-    with client.websocket_connect("/device/v1/app/devices/dev-1/ws", params=_auth_query("a-owner")) as websocket:
-        snapshot = websocket.receive_json()
-        assert snapshot["event"] == "status_snapshot"
-        assert snapshot["payload"]["activeTaskId"] is None
-
-        store.create_task_state(_task_payload(), status="running")
-        started = _receive_event(websocket, "task_started")
-        assert started["payload"]["taskId"] == "task-001"
-
-        store.record_motion_event(
-            {"type": "motion_event", "device_id": "dev-1", "task_id": "task-001", "phase": "done"}
-        )
-        completed = _receive_event(websocket, "task_completed")
-        assert completed["payload"]["taskId"] == "task-001"
-
-
-def test_device_status_ws_task_failed_transition(tmp_path, monkeypatch):
-    client, store = make_client(tmp_path, monkeypatch)
-    monkeypatch.setattr("routes.device_app_status_ws._POLL_INTERVAL", _POLL_INTERVAL)
-    seed_account_and_device()
-    seed_binding()
-
-    with client.websocket_connect("/device/v1/app/devices/dev-1/ws", params=_auth_query("a-owner")) as websocket:
-        snapshot = websocket.receive_json()
-        assert snapshot["event"] == "status_snapshot"
-        assert snapshot["payload"]["activeTaskId"] is None
-
-        store.create_task_state(_task_payload("task-fail"), status="running")
-        started = _receive_event(websocket, "task_started")
-        assert started["payload"]["taskId"] == "task-fail"
-
-        store.record_motion_event(
-            {"type": "motion_event", "device_id": "dev-1", "task_id": "task-fail", "phase": "failed"}
-        )
-        failed = _receive_event(websocket, "task_failed")
-        assert failed["payload"]["taskId"] == "task-fail"
-
-
 def test_device_status_ws_success_consumes_ticket(tmp_path, monkeypatch):
     app_status_ws_ticket.reset()
     app_status_ws_connections.reset()

@@ -354,3 +354,19 @@ SoftAP Connect form optional device_secret/server_host; patch CC+HTML; ensure du
 ### Status
 
 [OK] Completed — archive/2026-07/07-17-softap-device-secret-align
+
+
+## Session: 后端预发布 P1 加固
+
+**Date**: 2026-07-17
+**Task**: 07-17-backend-prelaunch-p1
+**Package**: root
+**Branch**: main
+
+### Summary
+
+落地预发布审查 P1 子集 S：JWT typ 生产门禁、Voice start 后烧票、幂等生产 503、SQLite WAL、生产忽略 RATE_LIMIT_DISABLE、MCP 远程空 token 启动失败、Status 未知不推 terminal。trellis-check PASS。
+
+### Status
+
+[OK] Completed — pending archive/deploy

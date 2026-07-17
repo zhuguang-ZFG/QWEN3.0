@@ -197,3 +197,37 @@ def test_dispatch_without_idempotency_key_still_works(mock_write) -> None:
     assert response.status_code == 200
     assert response.json()["status"] == "queued"
     assert mock_dispatch.await_count == 1
+
+
+@patch("dlc_api.routes.handle_write", new_callable=AsyncMock)
+def test_dispatch_idempotency_unavailable_returns_503_in_production(mock_write, monkeypatch) -> None:
+    """Production + Redis down + Idempotency-Key → 503 (fail-closed, not duplicate)."""
+    from dlc_api.idempotency import IdempotencyUnavailableError
+
+    monkeypatch.setenv("LIMA_RUNTIME_ENV", "production")
+    mock_write.return_value = {
+        "status": "success",
+        "svg_path": "M0,0",
+        "width": 10,
+        "height": 10,
+        "model": "deterministic",
+        "error": None,
+    }
+
+    def _raise(*_a, **_k):
+        raise IdempotencyUnavailableError("idempotency store unavailable")
+
+    with patch("dlc_api.routes.check_key_limit", return_value=None):
+        with patch("dlc_api.routes._claim_idempotency_key", side_effect=_raise):
+            with patch("dlc_api.routes.dispatch_task", new_callable=AsyncMock) as mock_dispatch:
+                client = TestClient(app)
+                response = client.post(
+                    "/dlc/tasks/dispatch",
+                    json=_write_body(),
+                    headers={"Authorization": "Bearer t", "Idempotency-Key": "prod-key"},
+                )
+    assert response.status_code == 503
+    body = response.json()
+    assert body.get("status") == "failed"
+    assert "idempotency" in str(body.get("error", "")).lower()
+    assert mock_dispatch.await_count == 0

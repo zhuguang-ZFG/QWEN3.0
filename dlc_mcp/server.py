@@ -11,6 +11,7 @@ import sys
 import httpx
 
 from device_gateway.delivery_status import QUEUED_NO_DELIVERY_MCP_MESSAGE, QUEUED_NO_DELIVERY_STATUS
+from dlc_mcp.remote_token import require_remote_api_token
 from dlc_mcp.tools import TOOLS
 
 DLC_API_URL = os.environ.get("DLC_API_URL", "http://127.0.0.1:8081")
@@ -270,6 +271,7 @@ def handle_request(client: httpx.Client, req: dict) -> dict:
 
 
 def main() -> None:
+    require_remote_api_token(api_url=DLC_API_URL, api_token=DLC_API_TOKEN)
     with httpx.Client(timeout=60.0) as client:
         for line in sys.stdin:
             line = line.strip()

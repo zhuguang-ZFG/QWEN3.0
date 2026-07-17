@@ -10,6 +10,7 @@ from typing import Any
 from access_guard import extract_bearer_token
 from config import settings
 from fastapi.responses import JSONResponse
+from runtime_env import jwt_require_typ
 
 from device_logic.db import connect
 from device_logic.http import err
@@ -107,6 +108,8 @@ def authorize(authorization: str) -> dict[str, Any] | JSONResponse:
     if token_typ == "admin":
         return err(401, "Unauthorized", 401)
     if token_typ is None:
+        if jwt_require_typ():
+            return err(401, "Unauthorized", 401)
         _log.warning("Device token missing typ field  -  treating as legacy token: %s", payload.get("sub", ""))
     account_id = str(payload.get("account_id") or payload.get("sub") or "")
     if not account_id:

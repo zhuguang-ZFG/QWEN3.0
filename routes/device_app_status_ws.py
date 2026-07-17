@@ -118,8 +118,8 @@ async def _send_online_transition(
     await websocket.send_json({"event": event, "payload": {"deviceId": device_id, "timestamp": now()}})
 
 
-def _resolve_task_terminal_event(task_id: str) -> str:
-    """Map a cleared active task to task_completed or task_failed."""
+def _resolve_task_terminal_event(task_id: str) -> str | None:
+    """Map a cleared active task to task_completed or task_failed; None if unknown."""
     snapshot = task_snapshot(task_id)
     if snapshot:
         phase = str(snapshot.get("status") or "").strip().lower()
@@ -137,7 +137,8 @@ def _resolve_task_terminal_event(task_id: str) -> str:
         if db_status in {"failed", "cancelled", "rejected"}:
             return "task_failed"
 
-    return "task_completed"
+    _log.warning("unknown task terminal state for task_id=%s; not pushing terminal event", task_id)
+    return None
 
 
 async def _send_task_transition(
@@ -153,10 +154,12 @@ async def _send_task_transition(
     if current_task:
         payload = {"deviceId": device_id, "taskId": current_task, "timestamp": now()}
         await websocket.send_json({"event": "task_started", "payload": payload})
-    else:
-        terminal_event = _resolve_task_terminal_event(str(previous_task or ""))
-        payload = {"deviceId": device_id, "taskId": previous_task, "timestamp": now()}
-        await websocket.send_json({"event": terminal_event, "payload": payload})
+        return
+    terminal_event = _resolve_task_terminal_event(str(previous_task or ""))
+    if terminal_event is None:
+        return
+    payload = {"deviceId": device_id, "taskId": previous_task, "timestamp": now()}
+    await websocket.send_json({"event": terminal_event, "payload": payload})
 
 
 async def _push_transition_events(

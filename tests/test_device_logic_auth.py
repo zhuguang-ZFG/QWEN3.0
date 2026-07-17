@@ -196,6 +196,7 @@ def test_decode_admin_token_accepts_legacy_no_typ(monkeypatch, caplog):
 
     caplog.set_level(logging.WARNING)
     monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-for-typ-isolation")
+    monkeypatch.setenv("LIMA_JWT_REQUIRE_TYP", "0")
     secret = admin_auth._jwt_secret()
     assert secret is not None
 

@@ -1,7 +1,7 @@
 # LiMa / DLC 项目状态
 
 > 更新日期：2026-07-17
-> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `d0d15df1`+）
+> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ backend-prelaunch-p1）
 > 公网入口：`https://chat.donglicao.com` → 京东云 `117.72.118.95`（`server_dlc` :8081）
 
 > 根目录 `STATUS.md` 与本文件内容保持同步（供 CI/人类速览）。
@@ -43,6 +43,7 @@ server_dlc.py (:8081)
 | fz Host SIL（standard/deep/firmware） | ✅ | 2026-07-17；G0 PIO + G1 + release_smoke 全绿 |
 | pytest 全量 | ✅ | 2026-07-17；1784 passed / 3 skipped |
 | OpenAPI 语音端点 | ✅ | 2026-07-17；transcribe/ticket + WS 文档注入 |
+| 后端预发布 P1 加固 | ✅ | JWT typ 门禁、Voice start 后烧票、幂等生产 503、SQLite WAL、限流生产门禁、MCP 远程空 token、Status 未知不推 terminal；任务 `07-17-backend-prelaunch-p1` |
 
 ---
 
@@ -75,6 +76,8 @@ python scripts/run_voice_e2e_production.py
 
 - ticket TTL：**30 秒**（`voice_app_ws_ticket.TTL_SECONDS`）
 - WS 仅返回 `transcript`，不含 `intent`（intent 走 REST transcribe）
+- 烧票：ASR `session.start()` **成功后**才 consume；槽满/ASR 不可用/start 失败不烧票
+- `device_id`：Voice WS 仍可选；若提供则校验 owner/control
 
 ---
 

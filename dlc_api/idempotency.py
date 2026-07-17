@@ -15,17 +15,23 @@ import time
 from typing import Any
 
 from config.settings import REDIS
+from runtime_env import is_production_runtime
 
 logger = logging.getLogger(__name__)
 
 # S10: idempotency dedupe TTL (seconds) for the Redis SET NX EX claim.
 IDEMPOTENCY_TTL = 600
 
+
+class IdempotencyUnavailableError(Exception):
+    """Raised in production when the idempotency store cannot claim a key."""
+
+
 # Two-barrier dedupe (业界模式：AWS Powertools in-progress 幂等 / Kafka 双屏障管道)。
 # 复刻本仓库 rate_limiter.py 的 L1(进程内)+L2(Redis) 分层：Redis(L2) 可用时以其
-# 为权威；Redis 不可用时回退 L1 进程内 TTL 字典，至少挡住同 worker 重复 dispatch，
-# 把 fail-open 的"完全无去重"收窄成"挡住同 worker 重复"。不翻转 fail-open 语义。
-# server_dlc:app 单 worker 启动，故 L1 覆盖单节点几乎全部流量。
+# 为权威；非生产且 Redis 不可用时回退 L1 进程内 TTL 字典（fail-open + L1）。
+# 生产路径 Redis 缺失/SET 失败 → raise（fail-closed），由路由返回 503。
+# server_dlc:app 单 worker 启动，故非生产 L1 覆盖单节点几乎全部流量。
 _l1_store: dict[str, tuple[str, float]] = {}
 _l1_lock = threading.Lock()
 # L1 上限：成功 dispatch 的 idem_key 几乎不重复，过期条目只在同 key 复用时覆盖，
@@ -103,24 +109,28 @@ def _get_idempotency_client() -> tuple[Any, str] | None:
 
 
 def claim_idempotency_key(idem_key: str, task_id: str, *, ttl: int = IDEMPOTENCY_TTL) -> bool:
-    """S10: atomically claim an idempotency key. Returns True on first use, False on replay.
+    """Atomically claim an idempotency key. True on first use, False on replay.
 
-    Uses Redis SET NX EX for cross-worker dedupe. When Redis is unavailable we
-    log a warning and allow the request through (fail-open) rather than blocking
-    a legitimate dispatch on infra failure — a duplicate is less harmful than a
-    dropped command, and the warning surfaces the degraded state (no silent
-    degradation).
+    Redis SET NX EX is the cross-worker authority. Non-production falls back to
+    L1 in-process dedupe when Redis is down (fail-open + L1). Production raises
+    ``IdempotencyUnavailableError`` instead of admitting the dispatch.
     """
     expected = task_id or "1"
     if not _l1_claim(idem_key, expected, ttl):
         return False
     cached = _get_idempotency_client()
     if cached is None:
+        if is_production_runtime():
+            _l1_release(idem_key, expected)
+            raise IdempotencyUnavailableError("idempotency store unavailable")
         return True
     client, prefix = cached
     try:
         claimed = client.set(f"{prefix}:{idem_key}", expected, nx=True, ex=ttl)
     except Exception as exc:
+        if is_production_runtime():
+            _l1_release(idem_key, expected)
+            raise IdempotencyUnavailableError("idempotency store unavailable") from exc
         logger.warning("S10: idempotency SET NX failed (%s); using L1 in-process dedupe", exc)
         return True
     if not claimed:
