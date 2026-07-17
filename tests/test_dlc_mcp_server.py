@@ -25,6 +25,38 @@ def test_tools_list_exposes_write_and_draw() -> None:
     assert response["result"]["nextCursor"] == ""
 
 
+def test_tools_list_cursor_starts_at_named_tool() -> None:
+    client = httpx.Client()
+    response = handle_request(
+        client,
+        {
+            "jsonrpc": "2.0",
+            "id": 21,
+            "method": "tools/list",
+            "params": {"cursor": "dlc.draw_generated"},
+        },
+    )
+    names = [tool["name"] for tool in response["result"]["tools"]]
+    assert names[0] == "dlc.draw_generated"
+    assert "dlc.write_text" not in names
+
+
+def test_tools_list_unknown_cursor_returns_empty() -> None:
+    client = httpx.Client()
+    response = handle_request(
+        client,
+        {"jsonrpc": "2.0", "id": 22, "method": "tools/list", "params": {"cursor": "no.such"}},
+    )
+    assert response["result"]["tools"] == []
+    assert response["result"]["nextCursor"] == ""
+
+
+def test_rejects_missing_jsonrpc_version() -> None:
+    client = httpx.Client()
+    response = handle_request(client, {"id": 23, "method": "initialize"})
+    assert response["error"]["code"] == -32600
+
+
 def test_tools_call_success_includes_is_error_false(monkeypatch) -> None:
     def _fake_submit(_client, _endpoint, _payload, idem_key=None):
         return {"status": "accepted", "sent": 1, "queue_depth": 0, "task_id": "task-1"}

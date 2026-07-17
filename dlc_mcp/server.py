@@ -186,6 +186,26 @@ TOOL_HANDLERS = {
 }
 
 
+def _handle_tools_list(req_id: object, params: object) -> dict:
+    """tools/list with optional cursor (official 78/xiaozhi-esp32 GetToolsList)."""
+    cursor = ""
+    if isinstance(params, dict):
+        raw = params.get("cursor")
+        if isinstance(raw, str):
+            cursor = raw.strip()
+    items = list(TOOLS.items())
+    if cursor:
+        names = [name for name, _meta in items]
+        if cursor not in names:
+            return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": [], "nextCursor": ""}}
+        items = items[names.index(cursor) :]
+    tools = [
+        {"name": name, "description": meta["description"], "inputSchema": meta["inputSchema"]} for name, meta in items
+    ]
+    # Payload fits one page for our tool set; empty nextCursor = done (official docs).
+    return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools, "nextCursor": ""}}
+
+
 def _handle_tools_call(client: httpx.Client, req_id: object, params: object) -> dict:
     """Dispatch a tools/call request to the appropriate DLC tool.
 
@@ -203,7 +223,7 @@ def _handle_tools_call(client: httpx.Client, req_id: object, params: object) -> 
     handler = TOOL_HANDLERS.get(name)
     if handler:
         return handler(client, req_id, args)
-    return _tool_error(req_id, -32601, "unknown tool")
+    return _tool_error(req_id, -32601, f"Unknown tool: {name}")
 
 
 def handle_request(client: httpx.Client, req: dict) -> dict:
@@ -214,6 +234,11 @@ def handle_request(client: httpx.Client, req: dict) -> dict:
         return _tool_error(None, -32600, "Invalid Request: expected JSON object")
     method = req.get("method")
     req_id = req.get("id")
+    # Official mcp_server.cc ParseMessage: require JSON-RPC 2.0.
+    if req.get("jsonrpc") != "2.0":
+        if isinstance(method, str) and method.startswith("notifications/"):
+            return {}
+        return _tool_error(req_id, -32600, 'Invalid Request: jsonrpc must be "2.0"')
 
     if method == "initialize":
         return {
@@ -227,12 +252,7 @@ def handle_request(client: httpx.Client, req: dict) -> dict:
         }
 
     if method == "tools/list":
-        # Official 78/xiaozhi-esp32 mcp-protocol_zh: result includes nextCursor ("" = done).
-        tools = [
-            {"name": name, "description": meta["description"], "inputSchema": meta["inputSchema"]}
-            for name, meta in TOOLS.items()
-        ]
-        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools, "nextCursor": ""}}
+        return _handle_tools_list(req_id, req.get("params"))
 
     if method == "tools/call":
         return _handle_tools_call(client, req_id, req.get("params", {}))
