@@ -19,6 +19,7 @@ def _args(**overrides: object) -> SimpleNamespace:
         "sync_nginx": False,
         "env_update": None,
         "slice": "core",
+        "files": None,
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -74,6 +75,28 @@ def test_delete_only_deploy_restarts_once_without_upload(monkeypatch) -> None:
 
     assert rc == 0
     assert len(restarts) == 1
+    assert restarts[0].get("prepare") is True
+
+
+def test_files_deploy_skips_prepare_by_default(monkeypatch) -> None:
+    restarts: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        deploy_unified,
+        "deploy_files",
+        lambda *args, **kwargs: {"uploaded": 1, "failed": [], "skipped": []},
+    )
+    monkeypatch.setattr(deploy_unified, "restart_server", lambda **kwargs: restarts.append(kwargs) or True)
+
+    rc = deploy_unified._execute_deploy(
+        ["routes/device_app_voice_ws.py"],
+        [],
+        get_deploy_target("jdcloud"),
+        _args(files=["routes/device_app_voice_ws.py"]),
+        "/backup/runtime-before.tgz",
+    )
+
+    assert rc == 0
+    assert restarts[0].get("prepare") is False
 
 
 def test_env_update_uses_append_only_remote_merge(monkeypatch, tmp_path: Path) -> None:

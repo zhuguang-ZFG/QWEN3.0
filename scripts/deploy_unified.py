@@ -68,6 +68,19 @@ def _collect_files(args, project_root: Path) -> list[str]:
     return list(dict.fromkeys(files))
 
 
+def _should_prepare_runtime(files: list[str], args: argparse.Namespace) -> bool:
+    """Return whether restart should reinstall service unit / pip deps.
+
+    Slice deploys always prepare. Narrow --files uploads skip prepare unless
+    requirements or env merge is part of the same deploy.
+    """
+    if getattr(args, "env_update", None):
+        return True
+    if getattr(args, "files", None) is None:
+        return True
+    return "requirements_server.txt" in files
+
+
 def _restore_after_failure(backup_path: str, target: DeployTarget, *, restart: bool) -> None:
     if not backup_path:
         return
@@ -126,7 +139,11 @@ def _execute_deploy(files: list[str], remove_paths: list[str], target: DeployTar
     if results["uploaded"] > 0 or removed > 0:
         print("\nRestarting server...")
         env_update = Path(args.env_update) if args.env_update else None
-        ok = restart_server(target=target, env_update=env_update)
+        # ponytail: --files app-code deploys skip pip/service prepare unless deps or env change
+        prepare = _should_prepare_runtime(files, args)
+        if not prepare:
+            print("  skip runtime prepare (app files only)")
+        ok = restart_server(target=target, prepare=prepare, env_update=env_update)
         print(f"Health: {'OK' if ok else 'FAILED'} (wait up to {HEALTH_WAIT_SECONDS}s)")
 
         if not ok:

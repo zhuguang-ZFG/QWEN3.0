@@ -91,7 +91,7 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
     )
 
     def _restart(target: object, **kwargs: object) -> bool:
-        restart_calls.append("prepare" if kwargs.get("prepare", True) else "rollback")
+        restart_calls.append(bool(kwargs.get("prepare", True)))
         return len(restart_calls) > 1
 
     monkeypatch.setattr(deploy_unified, "restart_server", _restart)
@@ -103,7 +103,8 @@ def test_main_rolls_back_when_health_check_fails(monkeypatch):
 
     assert deploy_unified.main() == 1
     assert rollback_calls == ["/opt/dlc-drawing/backups/unit/runtime-before.tgz"]
-    assert restart_calls == ["prepare", "rollback"]
+    # --files app deploy skips prepare; rollback restart also skips prepare
+    assert restart_calls == [False, False]
 
 
 def test_main_dry_run_does_not_open_remote_preflight(monkeypatch):
@@ -167,6 +168,20 @@ def test_restart_server_without_prepare_only_restarts_and_polls(monkeypatch):
     assert "daemon-reload" not in joined
     assert "pip install" not in joined
     assert ssh._sftp.put_calls == []
+
+
+def test_should_prepare_runtime_skips_for_app_file_deploys():
+    from types import SimpleNamespace
+
+    files_only = SimpleNamespace(files=["routes/device_app_voice_ws.py"], env_update=None)
+    with_reqs = SimpleNamespace(files=["requirements_server.txt"], env_update=None)
+    slice_mode = SimpleNamespace(files=None, env_update=None)
+    with_env = SimpleNamespace(files=["a.py"], env_update="x.env")
+
+    assert deploy_unified._should_prepare_runtime(["routes/device_app_voice_ws.py"], files_only) is False
+    assert deploy_unified._should_prepare_runtime(["requirements_server.txt"], with_reqs) is True
+    assert deploy_unified._should_prepare_runtime(["server_dlc.py"], slice_mode) is True
+    assert deploy_unified._should_prepare_runtime(["a.py"], with_env) is True
 
 
 def test_parse_capacity_output():

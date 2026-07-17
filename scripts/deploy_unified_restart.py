@@ -121,6 +121,11 @@ def _prepare_dependencies(ssh: paramiko.SSHClient, target: DeployTarget) -> bool
     probe_code, _probe_out, _probe_err = _ssh_exec(ssh, probe, timeout=30)
     if probe_code == 0:
         print(f"dependency prepare failed; keeping existing venv ({err[:200]})")
+        # Stamp hash so the next restart short-circuits instead of retrying pip.
+        stamp = (
+            f"set -eu; cd {root}; sha256sum {requirements} | awk '{{print $1}}' > {current}/.lima-requirements.sha256"
+        )
+        _ssh_exec(ssh, stamp, timeout=30)
         return True
     print(f"dependency preparation failed: {err}")
     return False
