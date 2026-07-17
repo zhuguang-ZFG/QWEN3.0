@@ -14,6 +14,7 @@ import websockets
 
 DEFAULT_ENDPOINT_ENV = "MCP_ENDPOINT"
 DEFAULT_SERVER = str(Path(__file__).with_name("server.py"))
+_REPO_ROOT = str(Path(__file__).resolve().parents[1])
 
 
 def _websocket_header_kwargs(connect_func: Any, headers: dict[str, str]) -> dict[str, Any]:
@@ -40,11 +41,15 @@ def _default_server_cmd() -> list[str]:
 
 
 async def _spawn_stdio_server(server_cmd: list[str]) -> asyncio.subprocess.Process:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = _REPO_ROOT + os.pathsep + env.get("PYTHONPATH", "")
     return await asyncio.create_subprocess_exec(
         *server_cmd,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
+        cwd=_REPO_ROOT,
+        env=env,
     )
 
 

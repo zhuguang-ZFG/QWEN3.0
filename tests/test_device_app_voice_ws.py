@@ -41,6 +41,13 @@ async def _fake_open_runtime_error_session():
     return _FakeRuntimeErrorSession()
 
 
+@pytest.fixture(autouse=True)
+def _voice_stream_available(monkeypatch):
+    import routes.device_app_voice_ws as voice_ws
+
+    monkeypatch.setattr(voice_ws, "validate_voice_stream_available", lambda: None)
+
+
 def test_voice_ws_rejects_missing_ticket(tmp_path, monkeypatch):
     client, _store = make_client(tmp_path, monkeypatch)
     seed_account_and_device()
