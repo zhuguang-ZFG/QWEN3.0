@@ -268,4 +268,30 @@ outes/device_app_voice_ws.py / device_app_status_ws.py
 
 ### Next Steps
 
-- P3：Status consume_if CAD、buffered 双 finish（可选）
+- Voice ASR pre-accept 创建时机（P2 设计项，另开任务）
+- MCP `isError: false` 需 xiaozhi.me E2E 验证后再改
+
+## Session 7: Status WS finalize close + consume_if（review P2/P3）
+
+**Date**: 2026-07-17
+**Task**: Status WS finalize close + consume_if
+**Package**: root
+**Branch**: main
+
+### Summary
+
+深度 review 落地：Status WS `_finalize_status_ws` 仅 CONNECTED 补 close；`app_status_ws_ticket.consume_if` 对称 Voice；consume 失败 close code 回归断言。
+
+### Main Changes
+
+- `app_status_ws_ticket.py` — `consume_if`
+- `routes/device_app_status_ws.py` — `_finalize_status_ws`、consume 路径
+- `tests/test_app_status_ws_ticket.py` — consume_if + close 1008 护栏
+
+### Testing
+
+- [OK] status/ticket 15 passed；ruff + check_code_size PASS
+
+### Status
+
+[OK] **Completed** — 已 archive `.trellis/tasks/archive/2026-07/07-17-status-ws-close-consume`

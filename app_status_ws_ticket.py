@@ -5,6 +5,7 @@ from __future__ import annotations
 import secrets
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 TTL_SECONDS = 30
@@ -54,6 +55,25 @@ def consume(ticket: str) -> tuple[str, str] | None:
         entry = _tickets.pop(ticket, None)
     if entry is None or now > entry.expires_at:
         return None
+    return entry.device_id, entry.account_id
+
+
+def consume_if(
+    ticket: str,
+    predicate: Callable[[str, str], bool],
+) -> tuple[str, str] | None:
+    """Consume only when predicate(device_id, account_id) is truthy."""
+    if not ticket:
+        return None
+    now = time.time()
+    with _lock:
+        _purge_expired(now)
+        entry = _tickets.get(ticket)
+        if entry is None or now > entry.expires_at:
+            return None
+        if not predicate(entry.device_id, entry.account_id):
+            return None
+        _tickets.pop(ticket, None)
     return entry.device_id, entry.account_id
 
 

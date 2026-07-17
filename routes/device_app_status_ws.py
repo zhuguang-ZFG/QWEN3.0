@@ -80,11 +80,24 @@ def _consume_status_ticket_if_present(
     ticket = websocket.query_params.get("ticket", "").strip()
     if not ticket:
         return True
-    redeemed = app_status_ws_ticket.consume(ticket)
-    if not redeemed:
-        return False
-    redeemed_device_id, redeemed_account_id = redeemed
-    return redeemed_device_id == device_id and redeemed_account_id == account_id
+    return (
+        app_status_ws_ticket.consume_if(
+            ticket,
+            lambda did, aid: did == device_id and aid == account_id,
+        )
+        is not None
+    )
+
+
+async def _finalize_status_ws(websocket: WebSocket, account_id: str, device_id: str) -> None:
+    app_status_ws_connections.release(account_id, device_id)
+    try:
+        # Only close if still CONNECTED (post-accept). Pre-accept failures already
+        # called close(1008); slot full returns before this try/finally.
+        if websocket.application_state == WebSocketState.CONNECTED:
+            await websocket.close()
+    except Exception as close_exc:
+        _log.warning("device status ws close failed device=%s: %s", device_id, close_exc)
 
 
 async def _send_status_snapshot(
@@ -210,9 +223,4 @@ async def device_status_ws(
     except Exception as exc:
         _log.warning("device status ws error device=%s: %s", device_id, exc)
     finally:
-        app_status_ws_connections.release(account_id, device_id)
-        try:
-            if websocket.client_state != WebSocketState.DISCONNECTED:
-                await websocket.close()
-        except Exception as close_exc:
-            _log.warning("device status ws close failed device=%s: %s", device_id, close_exc)
+        await _finalize_status_ws(websocket, account_id, device_id)
