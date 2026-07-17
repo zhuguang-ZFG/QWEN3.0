@@ -184,6 +184,31 @@ def test_should_prepare_runtime_skips_for_app_file_deploys():
     assert deploy_unified._should_prepare_runtime(["a.py"], with_env) is True
 
 
+def test_prepare_dependencies_soft_fallback_does_not_stamp_hash(monkeypatch):
+    import scripts.deploy_unified_restart as restart_mod
+
+    calls: list[str] = []
+
+    def _fake_exec(_ssh: object, command: str, timeout: int = 0) -> tuple[int, str, str]:
+        calls.append(command)
+        if "pip install" in command:
+            return 1, "", "pip network timeout"
+        if "import fastapi, uvicorn" in command:
+            return 0, "", ""
+        if command.startswith("rm -rf"):
+            return 0, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(restart_mod, "_ssh_exec", _fake_exec)
+    assert restart_mod._prepare_dependencies(object(), get_deploy_target("jdcloud")) is True
+    # Soft-fallback must not write a standalone stamp onto the live .venv.
+    stamp_cmds = [
+        c for c in calls if "sha256sum" in c and ".venv/.lima-requirements.sha256" in c and "pip install" not in c
+    ]
+    assert stamp_cmds == []
+    assert any(c.startswith("rm -rf") and ".venv.next" in c and "pip install" not in c for c in calls)
+
+
 def test_parse_capacity_output():
     capacity = parse_capacity_output("disk_free_mb=2048\nmem_available_mb=512\n")
 
