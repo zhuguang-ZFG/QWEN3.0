@@ -114,10 +114,16 @@ def _prepare_dependencies(ssh: paramiko.SSHClient, target: DeployTarget) -> bool
     )
     print("Preparing runtime dependencies (hash short-circuit or pip)...")
     code, _out, err = _ssh_exec(ssh, command, timeout=_PIP_TIMEOUT_S)
-    if code != 0:
-        print(f"dependency preparation failed: {err}")
-        return False
-    return True
+    if code == 0:
+        return True
+    # Pip/network flakes must not brick deploys when the current venv still imports.
+    probe = f"{current}/bin/python -c 'import fastapi, uvicorn'"
+    probe_code, _probe_out, _probe_err = _ssh_exec(ssh, probe, timeout=30)
+    if probe_code == 0:
+        print(f"dependency prepare failed; keeping existing venv ({err[:200]})")
+        return True
+    print(f"dependency preparation failed: {err}")
+    return False
 
 
 def _prepare_service(
