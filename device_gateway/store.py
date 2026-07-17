@@ -70,8 +70,7 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
         self._counter = itertools.count(1)
         self._tasks: dict[str, dict[str, Any]] = {}
         self._pending_by_device: dict[str, deque[dict[str, Any]]] = {}
-        # AUDIT-9-S3: processing queue mirrors Redis backend's LMOVE semantics,
-        # so ack/recover/abandon are testable in the InMemory backend too.
+        # AUDIT-9-S3: processing queue mirrors Redis LMOVE semantics (ack/recover/abandon tests).
         self._processing_by_device: dict[str, dict[str, dict[str, Any]]] = {}
 
     def reset(self) -> None:
