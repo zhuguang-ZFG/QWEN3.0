@@ -18,6 +18,8 @@ from device_logic.http import new_id, now
 
 _log = logging.getLogger(__name__)
 
+_background_tasks: set[asyncio.Task] = set()
+
 _WX_ACCESS_TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token"
 _WX_SUBSCRIBE_MSG_URL = "https://api.weixin.qq.com/cgi-bin/message/subscribe/send"
 
@@ -268,7 +270,9 @@ def dispatch_notification_later(
     try:
         loop = asyncio.get_running_loop()
         if loop.is_running():
-            loop.create_task(dispatch_notification(device_id, event_type, data))
+            task = loop.create_task(dispatch_notification(device_id, event_type, data))
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
         else:
             _log.warning("event loop not running; skipping notification for device=%s", device_id)
     except RuntimeError:

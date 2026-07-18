@@ -275,10 +275,14 @@ async def _try_preset_or_generate(
         if response.get("status") != "success":
             record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, response)
-    except Exception as e:
-        logger.error(f"Device draw failed: {e}")
-        record_failed_draw_prompt(device_id, prompt, error=str(e))
-        return _finalize_draw_response(device_id, prompt, _build_failed_response(config["model"], str(e)))
+    except Exception as exc:
+        if isinstance(exc, asyncio.TimeoutError):
+            logger.warning("Device draw timed out for device=%s prompt=%r", device_id, prompt)
+            record_failed_draw_prompt(device_id, prompt, error="timeout")
+            return _finalize_draw_response(device_id, prompt, _build_failed_response(config["model"], "timeout"))
+        logger.error("Device draw failed: %s", exc, exc_info=True)
+        record_failed_draw_prompt(device_id, prompt, error=str(exc))
+        return _finalize_draw_response(device_id, prompt, _build_failed_response(config["model"], str(exc)))
 
 
 async def handle_device_draw(
@@ -287,12 +291,7 @@ async def handle_device_draw(
     user_preferences: Optional[Dict[str, Any]] = None,
     image_url: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Handle a device drawing request.
-
-    Uses a caller-provided image URL when available; otherwise tries preset
-    shape matching and falls back to AI image generation via DashScope, then
-    SVG conversion and optimization.
-    """
+    """Handle a device drawing request; tries image URL, presets, then AI generation."""
     prefs = user_preferences or {}
     config = _resolve_draw_request(prefs, device_id, prompt)
     return await _try_preset_or_generate(prompt, device_id, config, image_url)

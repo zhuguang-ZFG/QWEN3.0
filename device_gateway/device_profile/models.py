@@ -102,7 +102,7 @@ class DeviceProfile:
     profile_id: str = ""
     model: str = ""
     workspace_mm: dict[str, float] = field(default_factory=lambda: {"x": 100.0, "y": 100.0, "z": 20.0})
-    max_feed: float = 1200.0
+    max_feed: float = 600.0
     max_path_points: int = 200
     capabilities: tuple[str, ...] = ("run_path", "home", "pause", "resume", "stop", "get_device_info")
     supported_fw_prefixes: tuple[str, ...] = ("",)

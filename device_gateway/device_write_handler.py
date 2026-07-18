@@ -146,5 +146,5 @@ async def handle_device_write(
         }
 
     except Exception as e:
-        logger.error(f"Device write failed: {e}")
+        logger.error("Device write failed: %s", e, exc_info=True)
         return _failed_write_result(str(e))
