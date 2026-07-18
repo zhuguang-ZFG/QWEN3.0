@@ -77,6 +77,7 @@ class DeviceTaskRequest:
     request_id: str = ""
     source: str = ""
     entrypoint: str = ""
+    voice_task: dict[str, Any] | None = None  # 预解析 voice_task；存在时跳过 transcript NL 解析
 
 
 @dataclass(frozen=True)
@@ -107,7 +108,10 @@ async def create_and_route_task(
         create_kwargs["source"] = request.source
     if request.entrypoint:
         create_kwargs["entrypoint"] = request.entrypoint
-    task = await create_task_from_transcript_async(device_id, text, **create_kwargs)
+    if request.voice_task:
+        task = await project_to_motion_task_async(device_id, request.voice_task, request.request_id or None)
+    else:
+        task = await create_task_from_transcript_async(device_id, text, **create_kwargs)
     capability = str(task.get("capability", "unknown"))
     source = str(task.get("source", request.source or "unknown"))
     if not task.get("error"):

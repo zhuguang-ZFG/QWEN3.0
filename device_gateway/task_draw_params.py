@@ -194,6 +194,13 @@ async def build_run_params_async(
     if capability == "draw_generated":
         prompt = str(params.get("prompt", ""))[:120]
         return await build_draw_generated_params(prompt, device_id, params)
+    if capability == "run_path":
+        # Pre-parsed path from dlc_api; use the already-rendered path from params.
+        return {
+            "feed": _clamp_feed(params.get("feed")),
+            "path": params.get("path", [safe_point(0, 0, 0)]),
+            "source_capability": params.get("source_capability", "run_path"),
+        }, None
     if capability == "handwriting":
         return await build_handwriting_params(params, device_id)
     if capability in CONTROL_CAPABILITIES:

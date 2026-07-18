@@ -33,6 +33,8 @@ from dlc_api.idempotency import IdempotencyUnavailableError
 from dlc_api.idempotency import claim_idempotency_key as _claim_idempotency_key
 from dlc_api.idempotency import release_idempotency_key as _release_idempotency_key
 from device_gateway.image_url_validation import validate_image_url
+from device_gateway.path_pipeline import render_svg_task
+from device_gateway.safety import DEFAULT_FEED
 from device_gateway.store import task_store_health
 from routes.rate_limit_helper import check_key_limit
 
@@ -61,6 +63,24 @@ def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None
 def _motion_task(text: str, request_id: str, entrypoint: str) -> dict[str, Any]:
     """Build a motion_task dict for dispatch_task."""
     return {"text": text, "request_id": request_id, "source": "dlc_api", "entrypoint": entrypoint}
+
+
+def _voice_motion_task(text: str, request_id: str, entrypoint: str, svg_path: str) -> dict[str, Any]:
+    """Build a motion_task with voice_task pre-parsed for the given svg_path."""
+    rendered = render_svg_task(svg_path)
+    voice_task = {
+        "capability": "run_path",
+        "params": {
+            "path": rendered["path"],
+            "feed": DEFAULT_FEED,
+            "source_capability": entrypoint,
+        },
+        "source": "dlc_api",
+        "entrypoint": entrypoint,
+    }
+    motion_task = _motion_task(text, request_id, entrypoint)
+    motion_task["voice_task"] = voice_task
+    return motion_task
 
 
 def _quota_for(task_type: str) -> int:
@@ -244,14 +264,22 @@ async def _build_dispatch_payload(
         if not prompt:
             return {"status": "failed", "error": "prompt is required"}, None
         result = await handle_draw(prompt, device_id=body.device_id, allow_dashscope=False)
-        return result, _motion_task(f"画{prompt}", body.request_id, "draw_generated")
+        if result.get("status") == "success" and result.get("svg_path"):
+            return result, _voice_motion_task(f"画{prompt}", body.request_id, "draw_generated", result["svg_path"])
+        if result.get("status") == "success":
+            return {"status": "failed", "error": "draw succeeded but produced no svg_path"}, None
+        return result, None
 
     if body.type == "draw_from_image":
         image_url, err = _validate_image_url(body.payload)
         if err or image_url is None:
             return {"status": "failed", "error": err or "image_url is required"}, None
         result = await handle_draw_from_image(image_url, device_id=body.device_id)
-        return result, _motion_task("描图", body.request_id, "draw_from_image")
+        if result.get("status") == "success" and result.get("svg_path"):
+            return result, _voice_motion_task("描图", body.request_id, "draw_from_image", result["svg_path"])
+        if result.get("status") == "success":
+            return {"status": "failed", "error": "draw succeeded but produced no svg_path"}, None
+        return result, None
 
     return {"status": "failed", "error": "unsupported type"}, None
 

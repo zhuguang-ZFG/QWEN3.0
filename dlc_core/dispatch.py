@@ -49,6 +49,7 @@ async def dispatch_task(device_id: str, task: dict[str, Any], *, channel: str = 
         source = task.get("source", "dlc_api")
         entrypoint = task.get("entrypoint", "")
 
+        voice_task = task.get("voice_task")
         result = await create_and_route_task(
             DeviceTaskRequest(
                 device_id=device_id,
@@ -56,6 +57,7 @@ async def dispatch_task(device_id: str, task: dict[str, Any], *, channel: str = 
                 request_id=request_id or "",
                 source=source,
                 entrypoint=entrypoint,
+                voice_task=voice_task,
             )
         )
 
