@@ -175,18 +175,30 @@
   async function connectStatusWs(deviceId) {
     if (ws) {
       try { ws.close(); } catch {}
+      ws = null;
     }
     try {
       const ticket = await fetchStatusTicket(deviceId);
+      // Race: user may have switched/closed drawer while ticket was in flight.
+      if (selectedDeviceId !== deviceId) {
+        console.warn("设备已切换，丢弃过期 WebSocket ticket", deviceId);
+        return;
+      }
       ws = new WebSocket(`${WS_BASE}/device/v1/app/devices/${encodeURIComponent(deviceId)}/ws?ticket=${encodeURIComponent(ticket)}`);
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
           handleWsMessage(deviceId, msg);
-        } catch {}
+        } catch (err) {
+          console.warn("设备状态 WS 消息解析失败:", err);
+        }
       };
-      ws.onerror = () => {};
-    } catch {
+      ws.onerror = () => {
+        console.warn("设备状态 WebSocket 出错", deviceId);
+      };
+    } catch (err) {
+      console.warn("设备状态 WebSocket 连接失败:", err);
+      showToast("设备状态连接失败：" + (err && err.message ? err.message : "未知错误"));
       ws = null;
     }
   }

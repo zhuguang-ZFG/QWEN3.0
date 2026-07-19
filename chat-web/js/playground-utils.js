@@ -26,12 +26,27 @@
   const LS_KEY_HISTORY = "lima_playground_history";
   const HISTORY_LIMIT = 20;
 
+  // One-shot: move legacy localStorage API key into sessionStorage, then wipe LS.
+  (function migrateAuthFromLocalStorage() {
+    const sessionVal =
+      sessionStorage.getItem(LS_KEY_AUTH) ||
+      sessionStorage.getItem(LS_KEY_AUTH_LEGACY);
+    if (!sessionVal) {
+      const legacy =
+        localStorage.getItem(LS_KEY_AUTH) ||
+        localStorage.getItem(LS_KEY_AUTH_LEGACY);
+      if (legacy) {
+        sessionStorage.setItem(LS_KEY_AUTH, legacy);
+      }
+    }
+    localStorage.removeItem(LS_KEY_AUTH);
+    localStorage.removeItem(LS_KEY_AUTH_LEGACY);
+  })();
+
   function loadAuth() {
     return (
       sessionStorage.getItem(LS_KEY_AUTH) ||
       sessionStorage.getItem(LS_KEY_AUTH_LEGACY) ||
-      localStorage.getItem(LS_KEY_AUTH) ||
-      localStorage.getItem(LS_KEY_AUTH_LEGACY) ||
       ""
     );
   }
@@ -39,6 +54,8 @@
   function saveAuth(value) {
     if (value) {
       sessionStorage.setItem(LS_KEY_AUTH, value);
+      localStorage.removeItem(LS_KEY_AUTH);
+      localStorage.removeItem(LS_KEY_AUTH_LEGACY);
     } else {
       sessionStorage.removeItem(LS_KEY_AUTH);
       sessionStorage.removeItem(LS_KEY_AUTH_LEGACY);

@@ -29,6 +29,16 @@
     return "image";
   }
 
+  /** Reject SVG text that embeds script or inline event handlers (XSS surface). */
+  function svgLooksUnsafe(text) {
+    const lower = String(text || "").toLowerCase();
+    if (lower.includes("<script")) return true;
+    if (lower.includes("javascript:")) return true;
+    // onload=, onerror=, onclick=, etc.
+    if (/\bon\w+\s*=/.test(lower)) return true;
+    return false;
+  }
+
   async function handleAssetUpload(input) {
     const token = getToken();
     if (!token) {
@@ -47,6 +57,11 @@
     try {
       const content = await readFile(file);
       const category = categoryForFile(file);
+      if (category === "svg" && svgLooksUnsafe(content)) {
+        showToast("SVG 含有脚本或事件处理器，已拒绝上传", { error: true });
+        input.value = "";
+        return;
+      }
       const title = file.name.replace(/\.[^/.]+$/, "");
       const res = await fetch(API, {
         method: "POST",

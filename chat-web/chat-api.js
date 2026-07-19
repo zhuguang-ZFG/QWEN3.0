@@ -74,11 +74,10 @@ async function generateImage(prompt) {
       throw new Error('图片地址无效');
     }
 
-    const mediaHtml = `<div class="media-card"><img src="${escapeAttr(url)}" alt="generated image" loading="lazy"></div>`;
-    const msg = addMessage('ai', mediaHtml, { model: 'lima-image' });
-    msg.querySelector('.msg-bubble').innerHTML = mediaHtml;
-    attachImageLightbox(msg.querySelector('.msg-bubble'));
-    messages.push({ role: 'assistant', content: url });
+    // Store markdown so loadSession → formatContent restores the same <img> path.
+    const md = `![generated image](${url})`;
+    addMessage('ai', md, { model: 'lima-image' });
+    messages.push({ role: 'assistant', content: md });
     saveCurrentSession();
   } catch (err) {
     hideTyping();
