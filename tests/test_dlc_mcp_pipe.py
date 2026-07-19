@@ -93,3 +93,77 @@ def test_run_bridge_resets_backoff_after_clean_session(monkeypatch) -> None:
     # Every clean end sleeps the minimum delay, never escalating.
     assert delays == [mcp_pipe._RECONNECT_MIN_DELAY] * 3
     assert calls["n"] >= 3
+
+
+class _FakeStream:
+    """A subprocess pipe whose readline blocks forever (idle stdio server)."""
+
+    async def readline(self) -> bytes:
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+
+class _FakeStdin:
+    def write(self, data: bytes) -> None:
+        pass
+
+    async def drain(self) -> None:
+        pass
+
+
+class _FakeProc:
+    def __init__(self) -> None:
+        self.stdout = _FakeStream()
+        self.stderr = _FakeStream()
+        self.stdin = _FakeStdin()
+        self.returncode: int | None = None
+
+    def terminate(self) -> None:
+        self.returncode = 0
+
+    def kill(self) -> None:
+        self.returncode = -9
+
+    async def wait(self) -> int:
+        return self.returncode or 0
+
+
+class _FakeWS:
+    """WS whose message iteration ends immediately with a clean close."""
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        raise StopAsyncIteration
+
+    async def close(self) -> None:
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc) -> None:
+        pass
+
+
+def test_run_session_returns_when_ws_closes_cleanly(monkeypatch) -> None:
+    """A clean WS close must end the session even while stdio pumps are blocked.
+
+    Regression: gather() waited for ALL pumps, so a normal-close from XiaoZhi
+    (async-for ends without raising) left the session deadlocked on subprocess
+    readline() forever and the reconnect loop never re-entered.
+    """
+    proc = _FakeProc()
+
+    async def _fake_spawn(server_cmd):
+        return proc
+
+    monkeypatch.setattr(mcp_pipe, "_spawn_stdio_server", _fake_spawn)
+    monkeypatch.setattr(mcp_pipe.websockets, "connect", lambda *a, **kw: _FakeWS())
+
+    async def _run():
+        await asyncio.wait_for(mcp_pipe._run_session("wss://x", ["python", "server.py"], "ua"), timeout=5)
+
+    asyncio.run(_run())
+    assert proc.returncode is not None  # finally-block terminated the child

@@ -69,16 +69,28 @@ function formatContent(text) {
     return key;
   });
 
+  // Extract image markdown BEFORE the global escapeHtml, same as code blocks.
+  // Matching after escaping double-escaped URLs with query strings
+  // (& → &amp; → &amp;amp;), breaking e.g. Pollinations width/height params.
+  const images = [];
+  withoutBlocks = withoutBlocks.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (match, alt, url) => {
+    const key = `__IMAGE_${images.length}__`;
+    images.push({ alt, url });
+    return key;
+  });
+
   let html = escapeHtml(withoutBlocks)
-    .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (match, alt, url) => {
-      if (!isAllowedImageUrl(url)) {
-        return `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">[图片: ${escapeHtml(alt || 'image')}]</a>`;
-      }
-      return `<div class="media-card"><img src="${escapeAttr(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
-    })
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br>');
+
+  images.forEach(({ alt, url }, i) => {
+    const key = `__IMAGE_${i}__`;
+    const rendered = isAllowedImageUrl(url)
+      ? `<div class="media-card"><img src="${escapeAttr(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`
+      : `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">[图片: ${escapeHtml(alt || 'image')}]</a>`;
+    html = html.replace(key, rendered);
+  });
 
   codeBlocks.forEach(({ lang, code }, i) => {
     const key = `__CODE_BLOCK_${i}__`;

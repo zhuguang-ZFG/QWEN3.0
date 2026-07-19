@@ -115,7 +115,7 @@ def test_route_evidence_includes_error_on_validation_failure():
 
 def test_route_evidence_scenario_on_param_validation_failure():
     original = task_creation.validate_capability_params
-    task_creation.validate_capability_params = lambda cap, params: ({}, "E_BAD_PARAMS")
+    task_creation.validate_capability_params = lambda cap, params, profile=None: ({}, "E_BAD_PARAMS")
     try:
         task = create_task_from_transcript("dev-1", "write LiMa")
         records = artifact_store.artifacts_for_task(task["task_id"], "route_evidence")

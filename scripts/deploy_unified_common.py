@@ -116,6 +116,7 @@ DEFAULT_MIN_MEM_MB = 128
 # Directories/files that should never be deployed from this script.
 _DEPLOY_EXCLUDES = {
     ".git",
+    ".venv",
     ".venv310",
     ".pytest_cache",
     ".ruff_cache",

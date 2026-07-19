@@ -76,6 +76,8 @@ def _resolve_local_module(name: str, project_root: Path) -> Path | None:
     if spec is None or spec.origin is None:
         return None
     origin = Path(spec.origin).resolve()
+    if "site-packages" in origin.parts:
+        return None
     try:
         origin.relative_to(project_root.resolve())
     except ValueError:

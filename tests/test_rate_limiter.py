@@ -96,3 +96,85 @@ class TestCheckKeyedRateLimit:
         for _ in range(5):
             check_keyed_rate_limit("key_a", max_per_window=5)
         assert check_keyed_rate_limit("key_b", max_per_window=5) is True
+
+
+class _FakePipeline:
+    def __init__(self, client, fail_expire=False):
+        self._client = client
+        self._fail_expire = fail_expire
+        self._ops = []
+
+    def incr(self, key):
+        self._ops.append(("incr", key))
+        return self
+
+    def expire(self, key, ttl):
+        self._ops.append(("expire", key, ttl))
+        return self
+
+    def execute(self):
+        results = []
+        for op in self._ops:
+            if op[0] == "incr":
+                self._client.counts[op[1]] = self._client.counts.get(op[1], 0) + 1
+                results.append(self._client.counts[op[1]])
+            else:
+                if self._fail_expire:
+                    raise ConnectionError("expire failed")
+                self._client.ttls[op[1]] = op[2]
+                results.append(True)
+        return results
+
+
+class _FakeRedisForLimiter:
+    def __init__(self, fail_expire=False):
+        self.counts = {}
+        self.ttls = {}
+        self.fail_expire = fail_expire
+
+    def pipeline(self):
+        return _FakePipeline(self, fail_expire=self.fail_expire)
+
+    def scan_iter(self, pattern):
+        return list(self.counts)
+
+    def delete(self, key):
+        self.counts.pop(key, None)
+        self.ttls.pop(key, None)
+
+
+class TestRedisKeyedPath:
+    """W5 回归：INCR+EXPIRE 必须同批执行，每个键都要有 TTL。"""
+
+    def _with_client(self, monkeypatch, client):
+        import rate_limiter as rl
+
+        rl.set_test_client(client)
+        monkeypatch.setattr(rl, "use_redis_backend", lambda: True)
+
+    def test_redis_key_always_gets_ttl(self, monkeypatch):
+        import rate_limiter as rl
+
+        client = _FakeRedisForLimiter()
+        self._with_client(monkeypatch, client)
+        try:
+            assert check_keyed_rate_limit("k1", max_per_window=2, window=60) is True
+            assert check_keyed_rate_limit("k1", max_per_window=2, window=60) is True
+            assert check_keyed_rate_limit("k1", max_per_window=2, window=60) is False
+            # 每次调用都设置 TTL，不存在无 TTL 的键。
+            assert all(k in client.ttls for k in client.counts), (client.counts, client.ttls)
+        finally:
+            rl.set_test_client(None)
+
+    def test_redis_failure_falls_back_to_memory(self, monkeypatch):
+        import rate_limiter as rl
+
+        client = _FakeRedisForLimiter(fail_expire=True)
+        self._with_client(monkeypatch, client)
+        try:
+            # pipeline 执行失败 → 返回 None → 走内存滑动窗口，不放行超限请求。
+            for _ in range(3):
+                check_keyed_rate_limit("k2", max_per_window=3, window=60)
+            assert check_keyed_rate_limit("k2", max_per_window=3, window=60) is False
+        finally:
+            rl.set_test_client(None)

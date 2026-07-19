@@ -63,6 +63,11 @@ class RedisStoreQueueMixin:
                 s["task"] = deepcopy(_t)
                 s["status"] = "dispatching"
                 s["processing_started_at"] = _ps
+                # Anti-double-spend cleanup: this is a fresh dispatch, so a
+                # subsequent ack is legitimate. Without this, recovered_at
+                # persisted forever and ack_processing rejected every ack
+                # after the first recovery (W4, 2026-07-20 review).
+                s.pop("recovered_at", None)
 
             self._cas_update(task["task_id"], _dispatch, default_state=default)
         return tasks
@@ -140,9 +145,11 @@ class RedisStoreQueueMixin:
 
         Anti-double-spend: if task was already recovered back to pending,
         reject this late ack so downstream never fires a duplicate completion.
+        recovered_at is cleared on re-dispatch (pop_pending_tasks), so only
+        acks from the stale pre-recovery worker are rejected.
         """
         state = self._read_task_state(task_id)
-        if state and state.get("recovered_at") and state.get("status") != "processing":
+        if state and state.get("recovered_at"):
             _log.warning(
                 "ack_processing rejected: task %s already recovered (status=%s)",
                 task_id,

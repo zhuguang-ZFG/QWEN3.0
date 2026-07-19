@@ -98,6 +98,19 @@ def test_merge_results_empty():
     assert summary["overall_status"] == "empty"
 
 
+def test_merge_results_counts_dispatched_as_success():
+    """W3 回归：execute_coordinated 产出 dispatched 状态，此前恒报 success_count=0。"""
+    coordinator = MultiDeviceCoordinator()
+    results = [
+        {"device_id": "d1", "task_id": "t1", "status": "dispatched"},
+        {"device_id": "d2", "task_id": "t2", "status": "dispatched"},
+    ]
+    summary = coordinator.merge_results(results)
+
+    assert summary["success_count"] == 2
+    assert summary["overall_status"] == "completed"
+
+
 @pytest.mark.asyncio
 async def test_execute_coordinated_offline_device_records_failure():
     coordinator = MultiDeviceCoordinator()
@@ -151,7 +164,9 @@ def test_batch_draw_endpoint_dispatches_to_online_devices(tmp_path, monkeypatch)
     assert data["coordinator_id"] == "coord-batch-2"
     assert len(data["results"]) == 1
     assert data["results"][0]["status"] == "dispatched"
-    assert data["summary"]["overall_status"] == "partial"
+    # W3 修复后：全部成功入队即 completed（此前 merge_results 不认 dispatched，恒报 partial）。
+    assert data["summary"]["overall_status"] == "completed"
+    assert data["summary"]["success_count"] == 1
 
     snapshot = store.task_snapshot(data["results"][0]["task_id"])
     assert snapshot is not None

@@ -21,7 +21,7 @@ from device_gateway.tasks import task_snapshot
 from device_logic.db import connect
 from routes.rate_limit_helper import check_key_limit
 from device_logic.http import now
-from routes.device_app_api import _build_device_status
+from device_gateway.device_status import build_device_status as _build_device_status
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-status"])
 

@@ -263,7 +263,7 @@ async function startCall(){
       const wsUrl=(/^wss?:\/\//i.test(base)?base:proto+'//'+base)+'?ticket='+encodeURIComponent(ticket);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
-        ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}});
+        ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));
         statusEl.textContent='已连接 · Gemini Live 通话中';
         btnCall.classList.add('active');
         startAudioCapture('gemini');

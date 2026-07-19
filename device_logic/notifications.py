@@ -113,10 +113,17 @@ class WeChatNotifier:
         page: str,
     ) -> dict[str, Any]:
         wx_data = {wx_key: {"value": data.get(data_key, "")} for wx_key, data_key in tmpl["data_keys"].items()}
+
+        # page 模板引用的 key（如 task_id）不保证在 data 里；format_map 容错，
+        # 缺 key 时留空而非抛 KeyError（后台任务里异常会无声丢失）。
+        class _Defaulting(dict):
+            def __missing__(self, key: str) -> str:
+                return ""
+
         return {
             "touser": openid,
             "template_id": tmpl["template_id"],
-            "page": page or tmpl["page"].format(**data),
+            "page": page or tmpl["page"].format_map(_Defaulting(data)),
             "data": wx_data,
             "miniprogram_state": "formal",
         }
@@ -223,7 +230,8 @@ async def dispatch_notification(
             template_key=event_type,
             data=data,
         )
-        _log_notification(device_id, event_type, row, tmpl, data, result)
+        # 同步 SQLite 写会阻塞事件循环，与上面的读路径一样丢线程池。
+        await asyncio.to_thread(_log_notification, device_id, event_type, row, tmpl, data, result)
 
 
 def _log_notification(
@@ -261,6 +269,16 @@ def _log_notification(
         _log.warning("failed to write notification log: %s", exc, exc_info=True)
 
 
+def _on_background_done(task: asyncio.Task) -> None:
+    """Retrieve and log background-dispatch exceptions instead of losing them."""
+    _background_tasks.discard(task)
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        _log.error("background notification dispatch failed: %s", exc, exc_info=exc)
+
+
 def dispatch_notification_later(
     device_id: str,
     event_type: str,
@@ -272,7 +290,7 @@ def dispatch_notification_later(
         if loop.is_running():
             task = loop.create_task(dispatch_notification(device_id, event_type, data))
             _background_tasks.add(task)
-            task.add_done_callback(_background_tasks.discard)
+            task.add_done_callback(_on_background_done)
         else:
             _log.warning("event loop not running; skipping notification for device=%s", device_id)
     except RuntimeError:

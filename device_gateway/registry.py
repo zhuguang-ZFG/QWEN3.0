@@ -8,6 +8,7 @@ thin: device ownership and persistence live in ``device_logic/crud.py`` and
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -115,7 +116,8 @@ async def restart_device(device_id: str) -> dict[str, Any]:
             "payload": {},
             "created_at": now(),
         }
-        enqueue_pending_task(device_id, task)
+        # Redis 后端的 enqueue 是同步多次往返；直接调会阻塞事件循环（W11）。
+        await asyncio.to_thread(enqueue_pending_task, device_id, task)
         return {"ok": True, "device_id": device_id, "delivered": False, "queued": True}
     except Exception as exc:  # pragma: no cover - defensive
         _log.warning("failed to queue restart for %s: %s", device_id, exc)

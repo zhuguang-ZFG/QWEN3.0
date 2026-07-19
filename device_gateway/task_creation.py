@@ -44,7 +44,13 @@ async def project_to_motion_task_async(
         return _handle_dispatch_blocked(device_id, voice_task, request_id, route_policy, capability, resolved)
 
     task = await _create_task_from_voice_task(
-        device_id, voice_task, request_id, route_policy, voice_task.get("params", {}), capability
+        device_id,
+        voice_task,
+        request_id,
+        route_policy,
+        voice_task.get("params", {}),
+        capability,
+        profile=resolved.profile,
     )
     task = apply_profile_constraints(task, resolved)
 

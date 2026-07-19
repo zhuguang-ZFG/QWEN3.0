@@ -227,3 +227,29 @@ def test_redis_store_remove_pending_task_drops_only_matching_task():
     assert store.pending_count("dev-1") == 1
     assert store.remove_pending_task("dev-1", first["task_id"]) is False
     assert store.remove_pending_task("dev-unknown", second["task_id"]) is False
+
+
+def test_redis_store_ack_after_recovery_and_redispatch_succeeds():
+    """W4 回归：recovered_at 此前永不清除，恢复后重派发的合法 ack 全被拒。
+
+    时间线：pop → 超时 → recover（置 recovered_at）→ 迟到 ack 被拒（正确）
+    → 再次 pop（重派发，应清 recovered_at）→ 新 worker ack 必须成功。
+    """
+    client = _FakeRedis()
+    store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
+    task = _task(store.next_task_id())
+
+    store.create_task_state(task)
+    store.enqueue_pending_task("dev-1", task)
+    assert store.pop_pending_tasks("dev-1", limit=1)[0]["task_id"] == task["task_id"]
+
+    client.now += 121
+    assert store.recover_stale_processing("dev-1", timeout_sec=120) == 1
+
+    # 迟到 ack（旧 worker）：必须拒绝，防重复完成。
+    assert store.ack_processing("dev-1", task["task_id"]) is False
+
+    # 重派发后新 worker 的 ack：必须成功。
+    assert store.pop_pending_tasks("dev-1", limit=1)[0]["task_id"] == task["task_id"]
+    assert store.ack_processing("dev-1", task["task_id"]) is True
+    assert client.lists["test:device:processing:dev-1"] == []

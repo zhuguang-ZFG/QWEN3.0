@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from device_intelligence import shadow_store
-from routes.device_app_api import _build_device_status
+from device_gateway.device_status import build_device_status as _build_device_status
 
 # 影子状态白名单：只暴露前端需要的公开字段，剔除 token/mac/password/secret/api_key 等。
 SHADOW_WHITELIST: frozenset[str] = frozenset(

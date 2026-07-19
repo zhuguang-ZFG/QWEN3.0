@@ -95,7 +95,10 @@ def _hourly_pattern(conn, device_id: str, start: str) -> list[int]:
     ).fetchall()
     pattern = [0] * 24
     for row in rows:
-        pattern[row["hour"]] = row["count"]
+        hour = row["hour"]
+        # NULL/畸形 created_at → strftime 返回 NULL → hour 为 None，索引会 500。
+        if hour is not None and 0 <= hour < 24:
+            pattern[hour] = row["count"]
     return pattern
 
 

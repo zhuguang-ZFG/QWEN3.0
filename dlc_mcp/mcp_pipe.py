@@ -97,11 +97,24 @@ async def _run_session(endpoint: str, server_cmd: list[str], user_agent: str) ->
     headers = {"User-Agent": user_agent}
     try:
         async with websockets.connect(endpoint, **_websocket_header_kwargs(websockets.connect, headers)) as ws:
-            await asyncio.gather(
-                _stdio_to_ws(proc, ws),
-                _ws_to_stdio(ws, proc),
-                _stderr_logger(proc),
-            )
+            # First-completed wins: a clean WS close ends _ws_to_stdio without an
+            # exception while the other pumps stay blocked on subprocess pipes, so
+            # gather() would hang the session forever. Cancel the survivors instead.
+            pumps = [
+                asyncio.ensure_future(_stdio_to_ws(proc, ws)),
+                asyncio.ensure_future(_ws_to_stdio(ws, proc)),
+                asyncio.ensure_future(_stderr_logger(proc)),
+            ]
+            try:
+                done, pending = await asyncio.wait(pumps, return_when=asyncio.FIRST_COMPLETED)
+                for task in pending:
+                    task.cancel()
+                await asyncio.gather(*pending, return_exceptions=True)
+                for task in done:
+                    task.result()  # re-raise pump errors so run_bridge backs off
+            finally:
+                for task in pumps:
+                    task.cancel()
     finally:
         if proc.returncode is None:
             proc.terminate()

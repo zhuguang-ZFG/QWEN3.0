@@ -111,6 +111,25 @@ async def _build_run_params_or_error(
     return run_params, None
 
 
+def _clamp_params_to_profile(run_params: dict[str, Any], profile: Any) -> dict[str, Any]:
+    """Clamp feed / path length to profile limits before validation.
+
+    Feed and point-count overruns are clamped (matching the downstream
+    apply_profile_constraints semantics); only workspace violations should
+    hard-reject in profile_limit_error.
+    """
+    if profile is None:
+        return run_params
+    clamped = dict(run_params)
+    feed = clamped.get("feed")
+    if isinstance(feed, (int, float)) and feed > profile.max_feed:
+        clamped["feed"] = profile.max_feed
+    path = clamped.get("path")
+    if isinstance(path, list) and len(path) > profile.max_path_points:
+        clamped["path"] = path[: profile.max_path_points]
+    return clamped
+
+
 async def _validate_params_or_error(
     device_id: str,
     voice_task: dict[str, Any],
@@ -118,9 +137,11 @@ async def _validate_params_or_error(
     route_policy: dict[str, Any],
     capability: str,
     run_params: dict[str, Any],
+    profile: Any = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Validate sanitized params or return an error task."""
-    sanitized, error = deps.validate_capability_params(capability, run_params)
+    run_params = _clamp_params_to_profile(run_params, profile)
+    sanitized, error = deps.validate_capability_params(capability, run_params, profile=profile)
     if error:
         return None, _build_error_task(
             device_id,
@@ -203,6 +224,7 @@ async def _create_task_from_voice_task(
     route_policy: dict[str, Any],
     params: dict[str, Any],
     capability: str,
+    profile: Any = None,
 ) -> dict[str, Any]:
     """Create a task from a voice task intent."""
     ctx = (device_id, voice_task, request_id, route_policy, capability)
@@ -213,7 +235,7 @@ async def _create_task_from_voice_task(
     if guard := _null_guard_error_task(*ctx, run_params, "task_build_failed", "task build failed", "task_build_failed"):
         return guard
 
-    sanitized, error_task = await _validate_params_or_error(*ctx, run_params)
+    sanitized, error_task = await _validate_params_or_error(*ctx, run_params, profile=profile)
     if error_task:
         return error_task
     if guard := _null_guard_error_task(

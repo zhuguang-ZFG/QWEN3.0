@@ -34,7 +34,7 @@ from routes.images_backends import (
 from routes.images_cache import get_cached_image, set_cached_image, should_skip_cache
 from routes.images_pollinations import build_variant, generate_pollinations_urls
 from routes.json_body import read_json_object
-from routes.request_tracking import resolve_ip_country
+from routes.request_tracking import client_ip as tracked_client_ip, resolve_ip_country
 
 router = APIRouter()
 _log = logging.getLogger(__name__)
@@ -185,9 +185,8 @@ async def image_generations(request: Request):
     if not prompt:
         raise HTTPException(status_code=400, detail="Empty prompt")
 
-    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
-        request.client.host if request.client else ""
-    )
+    # W12：复用可信代理感知的 IP 提取；裸信 XFF 会被任意客户端伪造。
+    client_ip = tracked_client_ip(request)
 
     options = _build_pollinations_options(img_req)
     try:

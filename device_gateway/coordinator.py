@@ -130,9 +130,15 @@ class MultiDeviceCoordinator:
         return assignments
 
     def merge_results(self, device_results: list[dict[str, Any]]) -> dict[str, Any]:
-        """Summarize per-device outcomes."""
+        """Summarize per-device outcomes.
+
+        Accepts both terminal statuses ("completed") and dispatch outcomes
+        ("dispatched" — task enqueued successfully); execute_coordinated feeds
+        dispatch results here, so counting only "completed" reported 0
+        successes for every real batch.
+        """
         total = len(device_results)
-        success = sum(1 for r in device_results if r.get("status") == "completed")
+        success = sum(1 for r in device_results if r.get("status") in ("completed", "dispatched"))
         failed = sum(1 for r in device_results if r.get("status") == "failed")
         overall = "completed" if total > 0 and success == total else "partial"
         if total == 0:

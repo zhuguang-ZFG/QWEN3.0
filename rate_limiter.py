@@ -80,7 +80,12 @@ def _get_redis_client() -> Any | None:
 
 
 def _check_keyed_redis(key: str, *, max_per_window: int, window: float) -> bool | None:
-    """Return True/False when Redis handled the key; None when Redis is not used."""
+    """Return True/False when Redis handled the key; None when Redis is not used.
+
+    Fixed calendar-bucket window (vs. the in-memory sliding window): a client
+    can burst up to 2x limit across a bucket boundary. Accepted trade-off for
+    a single INCR round-trip; the bucket key makes the divergence explicit.
+    """
     if not use_redis_backend():
         return None
     client = _get_redis_client()
@@ -90,9 +95,13 @@ def _check_keyed_redis(key: str, *, max_per_window: int, window: float) -> bool 
     bucket = int(time.time() // window)
     rkey = f"{_KEY_PREFIX}{key}:{bucket}"
     try:
-        count = int(client.incr(rkey))
-        if count == 1:
-            client.expire(rkey, int(window) + 1)
+        # INCR+EXPIRE in one pipeline round-trip. EXPIRE runs unconditionally:
+        # the old "expire only when count==1" left a TTL-less key (wedged over
+        # the limit forever) if the first request's EXPIRE call failed.
+        pipe = client.pipeline()
+        pipe.incr(rkey)
+        pipe.expire(rkey, int(window) + 1)
+        count = int(pipe.execute()[0])
         return count <= limit
     except Exception as exc:
         _log.warning("keyed rate limit Redis check failed: %s", type(exc).__name__)

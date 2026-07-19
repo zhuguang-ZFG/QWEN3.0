@@ -6,6 +6,7 @@
 # Test and static analysis tools (moved from requirements_server.txt)
 hypothesis~=6.156
 pyright>=1.1.411
+ruff~=0.15
 deptry~=0.20
 pytest-timeout~=2.4
 freezegun~=1.5

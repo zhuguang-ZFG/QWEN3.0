@@ -85,3 +85,30 @@ def test_inf_y_returns_error() -> None:
         result = validate_path([{"x": 5, "y": val}])
         assert result["ok"] is False
         assert any("point 0" in e for e in result["errors"]), result
+
+
+def test_z_above_workspace_returns_error() -> None:
+    """W2 回归：z 超出行程（默认 20mm）必须拒绝——笔轴超程会压穿纸面。"""
+    result = validate_path([{"x": 5, "y": 5, "z": 25}])
+    assert result["ok"] is False
+    assert any("z out of workspace" in e for e in result["errors"]), result
+
+
+def test_negative_z_returns_error() -> None:
+    """W2 回归：负 z 必须拒绝。"""
+    result = validate_path([{"x": 5, "y": 5, "z": -1}])
+    assert result["ok"] is False
+    assert any("z out of workspace" in e for e in result["errors"]), result
+
+
+def test_nan_z_returns_error() -> None:
+    """W2 回归：NaN z 应因非有限值被拒绝。"""
+    result = validate_path([{"x": 5, "y": 5, "z": float("nan")}])
+    assert result["ok"] is False
+    assert any("non-numeric z" in e for e in result["errors"]), result
+
+
+def test_missing_z_defaults_to_valid() -> None:
+    """z 缺省（笔在纸面）保持向后兼容，不拒绝。"""
+    result = validate_path([{"x": 5, "y": 5}])
+    assert result["ok"] is True, result

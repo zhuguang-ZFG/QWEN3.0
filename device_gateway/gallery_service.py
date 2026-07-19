@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import logging
@@ -195,7 +196,8 @@ async def list_images_for_app(
     offset: int,
 ) -> list[dict[str, Any]]:
     """List gallery images with stable proxy URLs (no Telegram refresh on list)."""
-    images = gallery_store.list_images(account_id, limit=limit, offset=offset)
+    # SQLite 读在异步端点里直接调会阻塞事件循环（W11）。
+    images = await asyncio.to_thread(gallery_store.list_images, account_id, limit=limit, offset=offset)
     return [with_stable_urls(image, request, account_id) for image in images]
 
 

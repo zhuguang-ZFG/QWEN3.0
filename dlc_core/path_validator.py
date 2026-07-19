@@ -38,6 +38,7 @@ def validate_path(path: list[dict], *, workspace: dict[str, float] | None = None
 
     max_x = bounds.get("x", DEFAULT_WORKSPACE_MM["x"])
     max_y = bounds.get("y", DEFAULT_WORKSPACE_MM["y"])
+    max_z = bounds.get("z", DEFAULT_WORKSPACE_MM["z"])
 
     for i, point in enumerate(path):
         if not isinstance(point, dict):
@@ -54,6 +55,12 @@ def validate_path(path: list[dict], *, workspace: dict[str, float] | None = None
             continue
         if x < 0 or x > max_x or y < 0 or y > max_y:
             errors.append(f"point {i} out of workspace bounds")
+        # Z 可选（缺省 0），但给了就必须是有效数值且在行程内——笔轴超程会压穿纸面/撞机。
+        z = point.get("z", 0)
+        if not _is_number(z):
+            errors.append(f"point {i} has non-numeric z")
+        elif z < 0 or z > max_z:
+            errors.append(f"point {i} z out of workspace bounds")
 
     if len(path) > MAX_PATH_POINTS:
         warnings.append(f"path exceeds {MAX_PATH_POINTS} points")
