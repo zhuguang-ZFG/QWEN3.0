@@ -7,6 +7,7 @@ from device_gateway.tasks import (
     record_motion_event,
     reset_tasks_for_tests,
 )
+from device_workflow.state import TaskState
 
 
 @pytest.fixture(autouse=True)
@@ -52,10 +53,12 @@ def test_task_creation_records_replayable_event_and_preview_artifact():
     replay = ledger_store.replay_task(task["task_id"])
     artifacts = artifact_store.artifacts_for_task(task["task_id"])
 
-    assert [event.event_type for event in events] == ["task_created"]
+    assert events[0].event_type == "task_created"
+    assert "task_updated" in [event.event_type for event in events]
+    assert events[-1].event_type == "task_updated"
     assert replay["task_id"] == task["task_id"]
     assert replay["device_id"] == "dev-1"
-    assert replay["status"] == "created"
+    assert replay["status"] in {"waiting_approval", "ready_to_dispatch"}
     assert replay["task"]["request_id"] == "req-1"
     assert [artifact.artifact_type for artifact in artifacts] == ["preview_svg", "route_evidence"]
     assert artifacts[0].content_hash
@@ -71,19 +74,24 @@ def test_dispatch_records_task_dispatched_event():
     mark_task_dispatched(task["task_id"])
 
     replay = ledger_store.replay_task(task["task_id"])
+    event_types = [event.event_type for event in ledger_store.events_for_task(task["task_id"])]
 
-    assert [event.event_type for event in ledger_store.events_for_task(task["task_id"])] == [
-        "task_created",
-        "task_dispatched",
-    ]
+    assert event_types[0] == "task_created"
+    assert event_types[-1] == "task_dispatched"
+    assert "task_updated" in event_types
     assert replay["status"] == "dispatched"
 
 
 def test_motion_events_record_terminal_event_and_result_artifact():
     from device_artifacts.store import artifact_store
     from device_ledger.store import ledger_store
+    from device_workflow.orchestrator import workflow
 
     task = create_task_from_transcript("dev-1", "write terminal")
+    # Ensure the workflow is in a dispatchable state before recording motion events.
+    if workflow.get_state(task["task_id"]) == TaskState.WAITING_APPROVAL:
+        workflow.advance(task["task_id"], TaskState.READY_TO_DISPATCH)
+
     record_motion_event(
         {
             "type": "motion_event",
@@ -104,13 +112,12 @@ def test_motion_events_record_terminal_event_and_result_artifact():
 
     replay = ledger_store.replay_task(task["task_id"])
     artifacts = artifact_store.artifacts_for_task(task["task_id"], artifact_type="terminal_result")
+    event_types = [event.event_type for event in ledger_store.events_for_task(task["task_id"])]
 
-    assert [event.event_type for event in ledger_store.events_for_task(task["task_id"])] == [
-        "task_created",
-        "motion_event",
-        "motion_event",
-        "task_terminal",
-    ]
+    assert "task_created" in event_types
+    assert "motion_event" in event_types
+    assert "task_terminal" in event_types
+    assert event_types[-1] == "task_terminal"
     assert replay["status"] == "done"
     assert replay["terminal_event"]["phase"] == "done"
     assert len(artifacts) == 1

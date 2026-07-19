@@ -21,7 +21,6 @@ from .task_draw_params import build_run_params_async
 from .task_recorder import (
     record_preview_artifact as _record_preview_artifact,
     record_route_evidence_artifact as _record_route_evidence_artifact,
-    record_task_created as _record_task_created,
 )
 from . import store as store_mod
 from . import task_creation as deps
@@ -63,7 +62,7 @@ def _resolve_route_context(
 
 def _run_task_simulation(task: dict[str, Any], sanitized: dict, device_id: str) -> dict[str, Any]:
     """Register, simulate, and dispatch a task."""
-    workflow.register(task["task_id"])
+    workflow.register(task["task_id"], device_id=device_id, task=task)
     workflow.advance(task["task_id"], TaskState.PLANNED)
     sim_plan = TaskPlan(
         plan_id=f"sim-{task['task_id']}",
@@ -82,7 +81,6 @@ def _run_task_simulation(task: dict[str, Any], sanitized: dict, device_id: str) 
         workflow.advance(task["task_id"], TaskState.READY_TO_DISPATCH)
         task["workflow_state"] = TaskState.READY_TO_DISPATCH.value
     store_mod.task_store.create_task_state(task, status="created")
-    _record_task_created(task, status="created")
     _record_preview_artifact(task)
     _record_route_evidence_artifact(task)
     return task

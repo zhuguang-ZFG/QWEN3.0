@@ -25,6 +25,27 @@ class LedgerStoreBackend(Protocol):
     def replay_task(self, task_id: str) -> dict[str, Any]: ...
 
 
+class _LedgerStoreProxy:
+    """Dynamic proxy that always forwards to the current manager store.
+
+    Modules that import ``ledger_store`` at import time would otherwise keep a
+    stale reference when ``configure_ledger_store_from_env()`` switches the
+    backend at runtime. The proxy stays constant and resolves the active backend
+    on every attribute access. ``__setattr__``/``__delattr__`` are also forwarded
+    so that monkey-patching (e.g. in tests) mutates the active backend rather
+    than the proxy itself.
+    """
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(ledger_manager.store, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        setattr(ledger_manager.store, name, value)
+
+    def __delattr__(self, name: str) -> None:
+        delattr(ledger_manager.store, name)
+
+
 class InMemoryLedgerStore(StoreConfigMixin):
     backend_name = "memory"
     shared_across_processes = False
@@ -59,7 +80,7 @@ class InMemoryLedgerStore(StoreConfigMixin):
 
 
 ledger_manager: StoreManager[LedgerStoreBackend] = StoreManager[LedgerStoreBackend](InMemoryLedgerStore)
-ledger_store: LedgerStoreBackend = ledger_manager.store
+ledger_store: LedgerStoreBackend = _LedgerStoreProxy()
 
 
 def ledger_store_health() -> dict[str, Any]:
@@ -67,13 +88,11 @@ def ledger_store_health() -> dict[str, Any]:
 
 
 def set_ledger_store_for_tests(store: LedgerStoreBackend) -> None:
-    global ledger_store
+    """Replace the active backend without rebinding the global proxy."""
     ledger_manager.set(store)
-    ledger_store = ledger_manager.store
 
 
 def configure_ledger_store_from_env() -> None:
-    global ledger_store
     from config.db_config import DEVICE_REDIS_URL
 
     from device_ledger.redis_store import RedisLedgerStore
@@ -83,7 +102,6 @@ def configure_ledger_store_from_env() -> None:
         DEVICE_REDIS_URL,
         RedisLedgerStore,
     )
-    ledger_store = ledger_manager.store
 
 
 def _replay_from_events(events: list[LedgerEvent], task_id: str) -> dict[str, Any]:
@@ -99,6 +117,8 @@ def _replay_from_events(events: list[LedgerEvent], task_id: str) -> dict[str, An
             status = str(event.payload.get("status", "created"))
         elif event.event_type == "task_dispatched":
             status = "dispatched"
+        elif event.event_type == "task_updated":
+            status = str(event.payload.get("state", status))
         elif event.event_type == "motion_event":
             motion_event = _payload_event(event.payload)
             status = str(motion_event.get("phase", status))

@@ -111,6 +111,8 @@ def _status_after_event(event: Any, current: str) -> str:
     payload = event.payload or {}
     if event_type == "task_created":
         return str(payload.get("status", "created"))
+    if event_type == "task_updated":
+        return str(payload.get("state", current))
     if event_type == "task_dispatched":
         return "dispatched"
     if event_type == "task_acknowledged":

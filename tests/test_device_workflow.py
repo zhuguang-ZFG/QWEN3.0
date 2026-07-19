@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import pytest
 
+from device_ledger.store import InMemoryLedgerStore, ledger_store, set_ledger_store_for_tests
+from device_workflow.orchestrator import WorkflowOrchestrator
 from device_workflow.state import (
     TaskState,
-    WorkflowTransitionError,
     VALID_TRANSITIONS,
+    WorkflowTransitionError,
 )
-from device_workflow.orchestrator import WorkflowOrchestrator
 
 
 class TestTaskStates:
@@ -79,7 +80,9 @@ class TestWorkflowOrchestrator:
     """Orchestrator manages task state and enforces transitions."""
 
     def setup_method(self) -> None:
+        ledger_store.reset()
         self.wf = WorkflowOrchestrator()
+        self.wf.reset()
 
     def test_register_task(self) -> None:
         state = self.wf.register("task-001")
@@ -159,7 +162,31 @@ class TestWorkflowOrchestrator:
         assert self.wf.get_state("task-B") == TaskState.CREATED
 
     def test_reset(self) -> None:
+        """reset() only clears the local cache; persisted ledger events remain."""
         self.wf.register("task-007")
+        self.wf.advance("task-007", TaskState.PLANNED)
         self.wf.reset()
-        with pytest.raises(WorkflowTransitionError, match="unknown"):
-            self.wf.get_state("task-007")
+        assert self.wf.get_state("task-007") == TaskState.PLANNED
+
+    def test_state_survives_ledger_store_swap(self) -> None:
+        """Truth is in the ledger store, not the orchestrator instance."""
+        self.wf.register("task-swap")
+        self.wf.advance("task-swap", TaskState.PLANNED)
+        self.wf.advance("task-swap", TaskState.SIMULATED)
+
+        events = ledger_store.events_for_task("task-swap")
+        new_store = InMemoryLedgerStore()
+        for event in events:
+            new_store.append_event(event)
+
+        set_ledger_store_for_tests(new_store)
+        try:
+            fresh_wf = WorkflowOrchestrator()
+            assert fresh_wf.get_state("task-swap") == TaskState.SIMULATED
+            assert fresh_wf.history("task-swap") == [
+                TaskState.CREATED,
+                TaskState.PLANNED,
+                TaskState.SIMULATED,
+            ]
+        finally:
+            set_ledger_store_for_tests(InMemoryLedgerStore())

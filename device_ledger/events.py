@@ -11,6 +11,7 @@ import uuid
 EVENT_TYPES = frozenset(
     {
         "task_created",
+        "task_updated",
         "task_dispatched",
         "motion_event",
         "task_terminal",

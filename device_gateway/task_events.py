@@ -47,7 +47,7 @@ def record_motion_event(event: dict[str, Any]) -> dict[str, Any]:
         recovery = _recovery_for_event(event)
         if recovery is not None:
             payload["recovery"] = asdict(recovery)
-    _advance_workflow_on_event(task_id, phase)
+    advanced = _advance_workflow_on_event(task_id, phase)
     ledger_store.append_event(
         new_event(
             event_type="motion_event",
@@ -58,14 +58,17 @@ def record_motion_event(event: dict[str, Any]) -> dict[str, Any]:
     )
     if phase in TERMINAL_PHASES:
         device_id = str(event.get("device_id", ""))
-        ledger_store.append_event(
-            new_event(
-                event_type="task_terminal",
-                task_id=task_id,
-                device_id=device_id,
-                payload={"terminal_event": event},
+        # If the workflow transition failed (e.g. out-of-order terminal event),
+        # still record a terminal ledger event so the replay remains complete.
+        if not advanced:
+            ledger_store.append_event(
+                new_event(
+                    event_type="task_terminal",
+                    task_id=task_id,
+                    device_id=device_id,
+                    payload={"terminal_event": event},
+                )
             )
-        )
         terminal_content = dict(event)
         if device_id:
             terminal_content.setdefault("device_id", device_id)
@@ -154,9 +157,10 @@ def record_motion_event_side_effects(device_id: str, message: dict[str, Any]) ->
             record_task_progress(task_id, device_id, int(progress_value))
 
 
-def _advance_workflow_on_event(task_id: str, phase: str) -> None:
+def _advance_workflow_on_event(task_id: str, phase: str) -> bool:
+    """Advance the workflow state for a motion phase; return True on success."""
     if not task_id:
-        return
+        return False
     state_map = {
         "accepted": TaskState.DISPATCHED,
         "running": TaskState.IN_PROGRESS,
@@ -166,11 +170,13 @@ def _advance_workflow_on_event(task_id: str, phase: str) -> None:
     }
     target = state_map.get(phase)
     if target is None:
-        return
+        return False
     try:
         workflow.advance(task_id, target)
+        return True
     except Exception:
         _log.warning("workflow advance failed task=%s phase=%s", task_id, phase, exc_info=True)
+        return False
 
 
 def _extract_memory_from_terminal(task_id: str, device_id: str, event: dict[str, Any]) -> None:

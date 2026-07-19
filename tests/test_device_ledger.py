@@ -9,6 +9,7 @@ import pytest
 
 from device_ledger import store as ledger_store_mod
 from device_ledger.events import new_event
+from device_ledger.projection import task_projection
 from device_ledger.redis_store import RedisLedgerStore
 
 
@@ -78,3 +79,50 @@ def test_redis_ledger_event_visible_to_second_store_instance():
     finally:
         writer.reset()
         writer.close()
+
+
+def test_task_updated_event_replays_correctly():
+    """task_updated events are reflected by the projection status."""
+    from device_ledger.store import ledger_store
+
+    ledger_store.reset()
+    task_id = "task-updated-1"
+    device_id = "dev-updated-1"
+    ledger_store.append_event(
+        new_event(
+            event_type="task_created",
+            task_id=task_id,
+            device_id=device_id,
+            payload={"task": {"task_id": task_id}, "status": "created"},
+        )
+    )
+    ledger_store.append_event(
+        new_event(
+            event_type="task_updated",
+            task_id=task_id,
+            device_id=device_id,
+            payload={
+                "state": "waiting_approval",
+                "previous_state": "simulated",
+                "reason": "needs approval",
+            },
+        )
+    )
+    ledger_store.append_event(
+        new_event(
+            event_type="task_updated",
+            task_id=task_id,
+            device_id=device_id,
+            payload={
+                "state": "ready_to_dispatch",
+                "previous_state": "waiting_approval",
+                "reason": "approved",
+            },
+        )
+    )
+
+    state = task_projection.rebuild_state(task_id)
+
+    assert state["status"] == "ready_to_dispatch"
+    assert state["event_count"] == 3
+    assert state["device_id"] == device_id
