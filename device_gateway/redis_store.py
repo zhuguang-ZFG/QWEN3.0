@@ -148,3 +148,18 @@ class RedisDeviceTaskStore(
             if len(tasks) >= limit:
                 break
         return tasks
+
+    def list_inflight_task_ids(self, limit: int = 1000) -> list[str]:
+        ids: list[str] = []
+        tasks_key = self._key("tasks")
+        for task_id, raw_state in self._redis.hscan_iter(tasks_key):
+            try:
+                state = decode_redis_json(raw_state)
+            except (UnicodeDecodeError, RuntimeError) as exc:
+                _log.warning("redis inflight task decode failed: %s", type(exc).__name__)
+                continue
+            if state.get("status") in _ACTIVE_STATUSES:
+                ids.append(task_id)
+                if len(ids) >= limit:
+                    break
+        return ids

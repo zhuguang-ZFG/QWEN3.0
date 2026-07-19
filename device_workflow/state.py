@@ -59,3 +59,22 @@ VALID_TRANSITIONS: dict[TaskState, frozenset[TaskState]] = {
     TaskState.FAILED: frozenset({TaskState.RECOVERING, TaskState.TERMINAL}),
     TaskState.CANCELLED: frozenset(),
 }
+
+# Mapping from workflow TaskState to the set of task_store.status values that are
+# considered consistent. Used during startup recovery to flag divergence without
+# auto-correcting the execution-side view.
+STATE_TO_STORE_STATUS: dict[TaskState, frozenset[str]] = {
+    TaskState.CREATED: frozenset({"created"}),
+    TaskState.PLANNED: frozenset({"created", "queued"}),
+    TaskState.SIMULATED: frozenset({"created", "queued"}),
+    TaskState.WAITING_APPROVAL: frozenset({"created", "queued", "pending"}),
+    TaskState.READY_TO_DISPATCH: frozenset({"created", "queued", "pending"}),
+    TaskState.DISPATCHED: frozenset({"dispatching", "dispatched"}),
+    TaskState.RUNNING: frozenset({"running"}),
+    TaskState.IN_PROGRESS: frozenset({"running", "processing", "progress"}),
+    TaskState.RECOVERING: frozenset({"running", "processing"}),
+    TaskState.TERMINAL: frozenset({"completed"}),
+    TaskState.COMPLETED: frozenset({"completed"}),
+    TaskState.FAILED: frozenset({"failed"}),
+    TaskState.CANCELLED: frozenset({"cancelled"}),
+}
