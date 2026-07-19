@@ -50,9 +50,14 @@ class ThreadTaskLock:
 
 
 class RedisTaskLock:
-    """Redis-backed per-task lock for multi-process/multi-worker deployments."""
+    """Redis-backed per-task lock for multi-process/multi-worker deployments.
 
-    def __init__(self, redis_client: Any, *, key_prefix: str = "lima:workflow", ttl_seconds: int = 5) -> None:
+    ``ttl_seconds`` must be larger than the longest ``register()`` /
+    ``advance()`` critical section; otherwise the lock can expire while the
+    owner is still holding it, letting another worker advance the same task.
+    """
+
+    def __init__(self, redis_client: Any, *, key_prefix: str = "lima:workflow", ttl_seconds: int = 60) -> None:
         self._redis = redis_client
         self._prefix = key_prefix.rstrip(":")
         self._ttl = ttl_seconds
@@ -79,3 +84,5 @@ class RedisTaskLock:
             self._release_script(keys=[self._key(task_id)], args=[nonce])
         except Exception:
             _log.warning("redis lock release failed for task %s", task_id, exc_info=True)
+        finally:
+            self._nonces.pop(task_id, None)

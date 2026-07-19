@@ -31,7 +31,7 @@ def extract_episode_from_terminal(
 
     capability = terminal.get("capability", terminal.get("source_capability", "unknown"))
     task_type = _classify_task_type(capability, terminal)
-    params = terminal.get("params", {})
+    params = terminal.get("params") or {}
 
     value_data: dict[str, Any] = {
         "phase": phase,

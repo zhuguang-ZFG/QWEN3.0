@@ -41,6 +41,8 @@ class WorkflowOrchestrator:
             raise WorkflowTransitionError(f"could not acquire lock for task {task_id}")
         try:
             with self._lock:
+                if self._sorted_events(task_id):
+                    raise WorkflowTransitionError(f"task already registered: {task_id}")
                 resolved_device_id = device_id or (str(task.get("device_id", "")) if task else "")
                 payload_task: dict[str, Any] = task if task is not None else {"task_id": task_id}
                 ledger_store.append_event(

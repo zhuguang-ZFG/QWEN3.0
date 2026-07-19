@@ -34,6 +34,7 @@ from routes.images_backends import (
 from routes.images_cache import get_cached_image, set_cached_image, should_skip_cache
 from routes.images_pollinations import build_variant, generate_pollinations_urls
 from routes.json_body import read_json_object
+from routes.request_tracking import resolve_ip_country
 
 router = APIRouter()
 _log = logging.getLogger(__name__)
@@ -82,8 +83,9 @@ def inject_record_request(fn):
     _record_request_fn = fn
 
 
-def _record_image_request(prompt: str, backend: str, duration_ms: int, client_ip: str) -> None:
+async def _record_image_request(prompt: str, backend: str, duration_ms: int, client_ip: str) -> None:
     if _record_request_fn:
+        country = await resolve_ip_country(client_ip) if client_ip else ""
         _record_request_fn(
             prompt[:80],
             backend,
@@ -91,6 +93,7 @@ def _record_image_request(prompt: str, backend: str, duration_ms: int, client_ip
             duration_ms,
             True,
             client_ip=client_ip,
+            country=country,
         )
 
 
@@ -199,7 +202,7 @@ async def image_generations(request: Request):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     urls = [{"url": item["url"]} for item in data_items]
-    _record_image_request(img_req.prompt[:80], backend, duration_ms, client_ip)
+    await _record_image_request(img_req.prompt[:80], backend, duration_ms, client_ip)
 
     return JSONResponse(
         {

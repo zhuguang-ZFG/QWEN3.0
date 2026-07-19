@@ -2,48 +2,56 @@
 
 from __future__ import annotations
 
+import threading
+
 from observability import prometheus_metrics as _pm
+
+_device_task_counters_lock = threading.Lock()
 
 
 def _ensure_device_task_counters() -> None:
     """Lazy-register device-task counters after the main registry is ready."""
     if "device_tasks_issued" in _pm._counters:
         return
-    registry = _pm._registry
-    if registry is None:
-        return
-    client = _pm._load_client()
-    counter = client["Counter"]
-    _pm._counters["device_tasks_issued"] = counter(
-        "lima_device_tasks_issued_total",
-        "Device tasks issued",
-        ["capability", "source"],
-        registry=registry,
-    )
-    _pm._counters["device_tasks_dispatched"] = counter(
-        "lima_device_tasks_dispatched_total",
-        "Device tasks dispatched",
-        ["capability", "status"],
-        registry=registry,
-    )
-    _pm._counters["device_task_dispatch_failures"] = counter(
-        "lima_device_task_dispatch_failures_total",
-        "Device task dispatch failures",
-        ["reason"],
-        registry=registry,
-    )
-    _pm._counters["device_task_retries"] = counter(
-        "lima_device_task_retries_total",
-        "Device task retries",
-        ["capability"],
-        registry=registry,
-    )
-    _pm._counters["device_tasks_dead_letter"] = counter(
-        "lima_device_tasks_dead_letter_total",
-        "Device tasks abandoned after max retries",
-        ["capability"],
-        registry=registry,
-    )
+    with _device_task_counters_lock:
+        # Double-checked locking: another thread may have registered while we waited.
+        if "device_tasks_issued" in _pm._counters:
+            return
+        registry = _pm._registry
+        if registry is None:
+            return
+        client = _pm._load_client()
+        counter = client["Counter"]
+        _pm._counters["device_tasks_issued"] = counter(
+            "lima_device_tasks_issued_total",
+            "Device tasks issued",
+            ["capability", "source"],
+            registry=registry,
+        )
+        _pm._counters["device_tasks_dispatched"] = counter(
+            "lima_device_tasks_dispatched_total",
+            "Device tasks dispatched",
+            ["capability", "status"],
+            registry=registry,
+        )
+        _pm._counters["device_task_dispatch_failures"] = counter(
+            "lima_device_task_dispatch_failures_total",
+            "Device task dispatch failures",
+            ["reason"],
+            registry=registry,
+        )
+        _pm._counters["device_task_retries"] = counter(
+            "lima_device_task_retries_total",
+            "Device task retries",
+            ["capability"],
+            registry=registry,
+        )
+        _pm._counters["device_tasks_dead_letter"] = counter(
+            "lima_device_tasks_dead_letter_total",
+            "Device tasks abandoned after max retries",
+            ["capability"],
+            registry=registry,
+        )
 
 
 def record_device_task_issued(capability: str, source: str) -> None:

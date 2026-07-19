@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -23,6 +24,12 @@ _record_seq = iter(range(9, 1 << 32))  # Monotonic sequence for evidence uniquen
 
 # Storage base directory
 _STORAGE_BASE = Path("device_artifacts")
+
+
+def _safe_device_id(device_id: str) -> str:
+    """Return a filesystem-safe device_id for artifact file naming."""
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", device_id)
+
 
 _log = logging.getLogger(__name__)
 
@@ -100,7 +107,7 @@ def _get_write_lock(device_id: str) -> threading.Lock:
 
 def _write_evidence(device_id: str, evidence: dict[str, Any]) -> None:
     """Write a single evidence record as JSON Lines to the device log file."""
-    log_path = _STORAGE_BASE / f"route_evidence_{device_id}.log"
+    log_path = _STORAGE_BASE / f"route_evidence_{_safe_device_id(device_id)}.log"
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps(evidence, ensure_ascii=False, default=str)

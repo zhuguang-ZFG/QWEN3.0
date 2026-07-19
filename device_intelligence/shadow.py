@@ -34,6 +34,8 @@ class DeviceShadow:
             "device_info": deepcopy(self.device_info),
             "self_check": deepcopy(self.self_check),
             "last_motion_event": deepcopy(self.last_motion_event),
+            "voiceprint_sample": deepcopy(self.voiceprint_sample),
+            "voiceprint_result": deepcopy(self.voiceprint_result),
             "desired": deepcopy(self.desired),
             "updated_at": self.updated_at,
         }

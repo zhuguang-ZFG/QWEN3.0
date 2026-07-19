@@ -179,12 +179,6 @@ async def _create_structured_task(
         _log.warning("insert_task_row failed task=%s err=%s", task["task_id"], exc)
         return err(500, "failed to save task", 500)
 
-    # Record lifecycle events after insert
-    if capability == "pause":
-        record_task_paused(str(task["task_id"]), device_id)
-    elif capability == "resume":
-        record_task_resumed(str(task["task_id"]), device_id)
-
     # Dispatch after insert
     try:
         dispatch, status = await _dispatch_or_wait(device_id, task, source, params)
@@ -192,6 +186,12 @@ async def _create_structured_task(
         _log.warning("dispatch failed after insert task=%s err=%s", task["task_id"], exc)
         mark_task_failed(str(task["task_id"]), "dispatch failed")
         return err(500, "failed to dispatch task", 500)
+
+    # Record lifecycle events after dispatch success to avoid orphan events on failure.
+    if capability == "pause":
+        record_task_paused(str(task["task_id"]), device_id)
+    elif capability == "resume":
+        record_task_resumed(str(task["task_id"]), device_id)
 
     if status != "pending":
         set_task_status(str(task["task_id"]), status)

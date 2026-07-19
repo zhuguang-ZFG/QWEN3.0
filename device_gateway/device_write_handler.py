@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,11 @@ FONT_SIZES = {
 # ── Simplification logger ───────────────────────────────────────────────────────
 
 ARTIFACT_DIR = Path("device_artifacts")
+
+
+def _safe_device_id(device_id: str) -> str:
+    """Return a filesystem-safe device_id for artifact file naming."""
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", device_id)
 
 
 def record_simplification(
@@ -60,7 +66,7 @@ def record_simplification(
         "constrained": constrained,
     }
 
-    log_path = ARTIFACT_DIR / f"simplification_{device_id}.log"
+    log_path = ARTIFACT_DIR / f"simplification_{_safe_device_id(device_id)}.log"
 
     try:
         log_path.parent.mkdir(exist_ok=True)

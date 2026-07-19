@@ -52,6 +52,7 @@ def test_task_helpers_use_replaced_store_instance():
     assert pending_count() == 1
 
     second_store = install_task_store_for_tests(InMemoryDeviceTaskStore())
+    reset_tasks_for_tests()
     second = create_task_from_transcript("dev-2", "write two")
 
     assert second["task_id"] == "task-000001"
