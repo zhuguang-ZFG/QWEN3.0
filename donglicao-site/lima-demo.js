@@ -155,11 +155,11 @@
   section.querySelectorAll('.lima-card').forEach(function(c) { observer.observe(c); });
 
   // --- Demo 1: Image Generation ---
-  const imgInput = document.getElementById('lima-img-input');
-  const imgBtn = document.getElementById('lima-img-btn');
-  const imgSpin = document.getElementById('lima-img-spin');
-  const imgResult = document.getElementById('lima-img-result');
-  const imgDl = document.getElementById('lima-img-dl');
+  const imgInput = section.querySelector('#lima-img-input');
+  const imgBtn = section.querySelector('#lima-img-btn');
+  const imgSpin = section.querySelector('#lima-img-spin');
+  const imgResult = section.querySelector('#lima-img-result');
+  const imgDl = section.querySelector('#lima-img-dl');
   let watermarkedDataUrl = '';
 
   section.querySelectorAll('#lima-card-img .lima-tag').forEach(function(t) {
@@ -216,9 +216,9 @@
   });
 
   // --- Demo 2: Chat ---
-  const chatBox = document.getElementById('lima-chat-box');
-  const chatInput = document.getElementById('lima-chat-input');
-  const chatBtn = document.getElementById('lima-chat-btn');
+  const chatBox = section.querySelector('#lima-chat-box');
+  const chatInput = section.querySelector('#lima-chat-input');
+  const chatBtn = section.querySelector('#lima-chat-btn');
 
   function appendMsg(text, isUser) {
     const div = document.createElement('div');
@@ -283,10 +283,10 @@
   chatInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') sendChat(); });
 
   // --- Demo 3: Video/Slideshow ---
-  const vidInput = document.getElementById('lima-vid-input');
-  const vidBtn = document.getElementById('lima-vid-btn');
-  const vidSpin = document.getElementById('lima-vid-spin');
-  const slideshow = document.getElementById('lima-slideshow');
+  const vidInput = section.querySelector('#lima-vid-input');
+  const vidBtn = section.querySelector('#lima-vid-btn');
+  const vidSpin = section.querySelector('#lima-vid-spin');
+  const slideshow = section.querySelector('#lima-slideshow');
   let slideInterval = null;
 
   function generateVideo() {

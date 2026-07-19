@@ -48,7 +48,7 @@
       const content = await readFile(file);
       const category = categoryForFile(file);
       const title = file.name.replace(/\.[^/.]+$/, "");
-      await fetch(API, {
+      const res = await fetch(API, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,6 +62,10 @@
           tags: [category],
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || res.statusText || `HTTP ${res.status}`);
+      }
       showToast(`素材 "${title}" 已上传到资产库`);
     } catch (err) {
       showToast("上传失败：" + (err.message || "未知错误"), { error: true });

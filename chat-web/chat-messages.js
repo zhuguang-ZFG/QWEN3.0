@@ -6,15 +6,17 @@ function renderMessage(role, content, meta) {
     welcomeScreen.style.display = 'none';
   }
 
+  // Normalize persisted role ('assistant') to CSS class ('ai') for consistent styling.
+  const uiRole = role === 'assistant' ? 'ai' : role;
   const msg = document.createElement('div');
-  msg.className = `message ${role}`;
+  msg.className = `message ${uiRole}`;
   msg.style.animationDelay = `${(messageCounter % 12) * 0.05}s`;
   messageCounter++;
 
   const avatarIcon = role === 'user'
     ? '<svg class="svg-icon"><use href="#i-user"/></svg>'
     : '<svg class="svg-icon"><use href="#i-bot"/></svg>';
-  const modelTag = meta?.model ? `<span class="msg-model">${meta.model}</span>` : '';
+  const modelTag = meta?.model ? `<span class="msg-model">${escapeHtml(meta.model)}</span>` : '';
   const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
   msg.innerHTML = `
