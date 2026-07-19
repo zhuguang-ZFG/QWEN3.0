@@ -370,3 +370,38 @@ SoftAP Connect form optional device_secret/server_host; patch CC+HTML; ensure du
 ### Status
 
 [OK] Completed — pending archive/deploy
+
+
+## Session 5: 全量审查修复收尾：子模块指针提升与任务归档
+
+**Date**: 2026-07-20
+**Task**: 全量审查修复收尾：子模块指针提升与任务归档
+**Package**: root
+**Branch**: `main`
+
+### Summary
+
+07-20-full-review-fixes 收尾：3 Blocker + 12 Warning 修复已随 8bbd5c3d 落地(ruff 全绿)；提交 esp32S_XYZ 指针提升至 500e9c6(WDT 注册修复 H2)；任务归档至 archive/2026-07。固件 WDT 设计问题(PANIC 开关、心跳间隔)仍需单独立项做硬件在环验证。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8bbd5c3d` | (see git log) |
+| `008793be` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
