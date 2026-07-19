@@ -87,6 +87,14 @@ def ledger_store_health() -> dict[str, Any]:
     return ledger_manager.health()
 
 
+def ledger_redis_client() -> Any | None:
+    """Return the underlying Redis client if the active ledger backend is Redis."""
+    store = ledger_manager.store
+    if getattr(store, "backend_name", None) == "redis":
+        return store._redis
+    return None
+
+
 def set_ledger_store_for_tests(store: LedgerStoreBackend) -> None:
     """Replace the active backend without rebinding the global proxy."""
     ledger_manager.set(store)

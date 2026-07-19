@@ -33,6 +33,17 @@ else:
 logger = logging.getLogger(__name__)
 
 
+def _configure_workflow_lock() -> None:
+    """C1 Phase 4: switch to Redis per-task locks when ledger backend is Redis."""
+    from device_ledger.store import ledger_redis_client
+    from device_workflow.lock import RedisTaskLock
+    from device_workflow.orchestrator import workflow
+
+    redis_client = ledger_redis_client()
+    if redis_client is not None:
+        workflow._lock_manager = RedisTaskLock(redis_client)
+
+
 async def _run_startup_recovery(logger: logging.Logger) -> None:
     """C1 Phase 3: background recovery of in-flight workflow tasks from ledger."""
     try:
@@ -100,6 +111,7 @@ async def lifespan(app: FastAPI):
         logger.error("ledger store configuration failed", exc_info=True)
         raise
 
+    _configure_workflow_lock()
     recovery_task = asyncio.create_task(_run_startup_recovery(logger))
     logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*, /v1/voice")
     yield
