@@ -68,7 +68,9 @@ class TestWorkflowOrchestratorConcurrency:
 
         # Ledger should contain exactly one READY_TO_DISPATCH event.
         events = ledger_store.events_for_task("task-race")
-        updated_events = [e for e in events if e.event_type == "task_updated" and e.payload.get("state") == "ready_to_dispatch"]
+        updated_events = [
+            e for e in events if e.event_type == "task_updated" and e.payload.get("state") == "ready_to_dispatch"
+        ]
         assert len(updated_events) == 1
 
     def test_advance_after_successful_lock_release_allows_next_transition(self) -> None:

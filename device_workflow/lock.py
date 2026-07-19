@@ -58,9 +58,7 @@ class RedisTaskLock:
         self._ttl = ttl_seconds
         self._nonces: dict[str, str] = {}
         self._release_script = self._redis.register_script(
-            "if redis.call('get', KEYS[1]) == ARGV[1] then "
-            "return redis.call('del', KEYS[1]) "
-            "else return 0 end"
+            "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end"
         )
 
     def _key(self, task_id: str) -> str:
@@ -68,9 +66,7 @@ class RedisTaskLock:
 
     def acquire(self, task_id: str) -> bool:
         nonce = uuid.uuid4().hex
-        acquired = bool(
-            self._redis.set(self._key(task_id), nonce, nx=True, ex=self._ttl)
-        )
+        acquired = bool(self._redis.set(self._key(task_id), nonce, nx=True, ex=self._ttl))
         if acquired:
             self._nonces[task_id] = nonce
         return acquired
