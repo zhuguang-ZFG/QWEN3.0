@@ -14,7 +14,7 @@ import device_gateway.store as _gateway_store
 from device_gateway.memory_store import InMemoryDeviceTaskStore
 from device_gateway.store import set_task_store_for_tests, task_store
 from device_ledger.store import InMemoryLedgerStore, ledger_store, ledger_manager, set_ledger_store_for_tests
-from device_workflow.orchestrator import WorkflowOrchestrator
+from device_workflow.orchestrator import WorkflowOrchestrator, workflow
 from device_workflow.startup_recovery import recover_inflight_tasks
 from device_workflow.state import TaskState
 
@@ -25,6 +25,7 @@ def _wait_for_recovery_log(caplog: pytest.LogCaptureFixture, *, timeout: float =
         if "workflow startup recovery completed" in caplog.text:
             return
         time.sleep(0.05)
+    raise TimeoutError(f"workflow startup recovery completed not seen within {timeout}s; caplog={caplog.text!r}")
 
 
 def _prepare_inflight_stores(task_id: str):
@@ -193,6 +194,7 @@ class TestLifespanStartupRecovery:
                 with TestClient(app) as client:
                     resp = client.get("/health")
                     _wait_for_recovery_log(caplog)
+                    assert workflow.get_state(task_id) == TaskState.PLANNED
         finally:
             restore()
 
@@ -203,4 +205,4 @@ class TestLifespanStartupRecovery:
             caplog.text,
         )
         assert match, f"expected recovered count in log: {caplog.text}"
-        assert int(match.group(1)) >= 1
+        assert int(match.group(1)) == 1
