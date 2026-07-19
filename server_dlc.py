@@ -36,11 +36,18 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from device_gateway.store import configure_task_store_from_env
+    from device_ledger.store import configure_ledger_store_from_env
 
     try:
         configure_task_store_from_env()
     except Exception:
         logger.error("task store configuration failed", exc_info=True)
+        raise
+    # C1 Phase 1: 生产启用 ledger Redis 后端；配置失败即中止启动（不静默回退内存）。
+    try:
+        configure_ledger_store_from_env()
+    except Exception:
+        logger.error("ledger store configuration failed", exc_info=True)
         raise
     logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*, /v1/voice")
     yield
@@ -58,6 +65,11 @@ async def lifespan(app: FastAPI):
         if getattr(_ts, "backend_name", None) == "redis":
             _ts.close()
             logger.info("已关闭 Redis 连接池")
+        from device_ledger.store import ledger_manager as _lm
+
+        if getattr(_lm.store, "backend_name", None) == "redis":
+            _lm.store.close()
+            logger.info("已关闭 ledger Redis 连接池")
     except Exception:
         logger.warning("清理异常", exc_info=True)
 

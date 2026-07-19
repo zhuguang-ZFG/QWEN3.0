@@ -23,24 +23,38 @@ def _mock_session(device_id: str, *, fail_close: bool = False) -> MagicMock:
     return s
 
 
-def _run_lifespan(sessions: list[MagicMock], *, backend_name: str = "memory") -> MagicMock:
-    """在 patch 后的 registry/task_store 下跑一次完整 lifespan，返回 mock_store。"""
+def _run_lifespan(
+    sessions: list[MagicMock],
+    *,
+    backend_name: str = "memory",
+    ledger_backend_name: str = "memory",
+) -> tuple[MagicMock, MagicMock]:
+    """在 patch 后的 registry/task_store/ledger_store 下跑一次完整 lifespan。
+
+    返回 (mock_task_store, mock_ledger_store)。
+    """
     mock_reg = MagicMock()
     mock_reg.active_sessions.return_value = sessions
     mock_store = MagicMock()
     mock_store.backend_name = backend_name
+    mock_ledger_store = MagicMock()
+    mock_ledger_store.backend_name = ledger_backend_name
 
+    from device_ledger.store import ledger_manager
     from server_dlc import app
 
     with (
         patch("device_gateway.sessions.registry", mock_reg),
         patch("device_gateway.store.task_store", mock_store),
         patch("device_gateway.store.configure_task_store_from_env") as mock_configure,
+        patch("device_ledger.store.configure_ledger_store_from_env") as mock_ledger_configure,
+        patch.object(ledger_manager, "_store", mock_ledger_store),
     ):
         with TestClient(app):
             pass  # 触发 lifespan startup + shutdown
         mock_configure.assert_called_once()
-    return mock_store
+        mock_ledger_configure.assert_called_once()
+    return mock_store, mock_ledger_store
 
 
 # ---------------------------------------------------------------------------
@@ -68,6 +82,25 @@ class TestLifespanStartup:
                 assert "redis misconfigured" in str(exc)
             else:
                 raise AssertionError("expected configure failure to abort startup")
+
+    def test_ledger_configure_failure_prevents_startup(self) -> None:
+        """C1 Phase 1: ledger 配置失败必须中止启动，不静默回退内存。"""
+        from server_dlc import app
+
+        with (
+            patch("device_gateway.store.configure_task_store_from_env"),
+            patch(
+                "device_ledger.store.configure_ledger_store_from_env",
+                side_effect=RuntimeError("ledger redis misconfigured"),
+            ),
+        ):
+            try:
+                with TestClient(app):
+                    pass
+            except RuntimeError as exc:
+                assert "ledger redis misconfigured" in str(exc)
+            else:
+                raise AssertionError("expected ledger configure failure to abort startup")
 
 
 class TestLifespanShutdown:
@@ -97,15 +130,27 @@ class TestLifespanShutdown:
 
     def test_redis_connection_closed_when_backend_is_redis(self) -> None:
         """当 task_store 后端为 redis 时，关闭 Redis 连接池。"""
-        mock_store = _run_lifespan([], backend_name="redis")
+        mock_store, _ = _run_lifespan([], backend_name="redis")
 
         mock_store.close.assert_called_once()
 
     def test_redis_not_closed_when_backend_is_memory(self) -> None:
         """当 task_store 后端为 memory 时，不调用 Redis 关闭。"""
-        mock_store = _run_lifespan([], backend_name="memory")
+        mock_store, _ = _run_lifespan([], backend_name="memory")
 
         assert not mock_store.close.called
+
+    def test_ledger_redis_connection_closed_when_backend_is_redis(self) -> None:
+        """C1 Phase 1: ledger 后端为 redis 时，关停要关闭其连接池。"""
+        _, mock_ledger_store = _run_lifespan([], ledger_backend_name="redis")
+
+        mock_ledger_store.close.assert_called_once()
+
+    def test_ledger_not_closed_when_backend_is_memory(self) -> None:
+        """ledger 后端为 memory 时不调用 close。"""
+        _, mock_ledger_store = _run_lifespan([], ledger_backend_name="memory")
+
+        assert not mock_ledger_store.close.called
 
 
 # ---------------------------------------------------------------------------

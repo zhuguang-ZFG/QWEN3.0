@@ -25,6 +25,10 @@ class RedisLedgerStore(DeviceStoreBase):
     def __init__(self, redis_url: str, *, client: Any | None = None, key_prefix: str = "lima:ledger") -> None:
         self._redis, self._prefix = connect_redis(redis_url, "RedisLedgerStore", client=client, key_prefix=key_prefix)
 
+    def close(self) -> None:
+        """Close the underlying Redis connection pool."""
+        self._redis.close()
+
     def reset(self) -> None:
         keys = list(self._redis.scan_iter(f"{self._prefix}:*"))
         if keys:
