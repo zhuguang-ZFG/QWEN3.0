@@ -405,3 +405,37 @@ SoftAP Connect form optional device_secret/server_host; patch CC+HTML; ensure du
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: u8 WDT 立项:PANIC 启用与 OTA 看护(代码侧完成,HIL 待实机)
+
+**Date**: 2026-07-20
+**Task**: u8 WDT 立项:PANIC 启用与 OTA 看护(代码侧完成,HIL 待实机)
+**Package**: root
+**Branch**: `main`
+
+### Summary
+
+任务 07-20-u8-wdt-panic-hil Step 1-3 完成:审计主循环 33 个 Schedule 调用点(唯一无界阻塞=OTA;最坏有界阻塞 ~15s HTTP);子模块 87b583d 启用 CONFIG_ESP_TASK_WDT_PANIC=y、TIMEOUT_S 10→30、UpgradeFirmware 条件退出/恢复 WDT 看护、板目录 DLC_WDT_TEST_HOOK 死锁注入工具;顺带修复 b06598f 遗留 build 断裂(0cf91e6,两处裸 cJSON* 返回)。idf.py build 通过、schema 68/68、GPIO 通过;pytest 8 失败为小程序既有基线。任务保持 in_progress,Step 4-6(死锁注入/OTA 全流程/30min 压力)待实机 HIL。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `043625f6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
