@@ -3,14 +3,50 @@
 from __future__ import annotations
 
 import logging
+import re
+import time
+from unittest.mock import patch
 
 import pytest
+from fastapi.testclient import TestClient
 
-from device_gateway.store import task_store
-from device_ledger.store import InMemoryLedgerStore, ledger_store, set_ledger_store_for_tests
+import device_gateway.store as _gateway_store
+from device_gateway.memory_store import InMemoryDeviceTaskStore
+from device_gateway.store import set_task_store_for_tests, task_store
+from device_ledger.store import InMemoryLedgerStore, ledger_store, ledger_manager, set_ledger_store_for_tests
 from device_workflow.orchestrator import WorkflowOrchestrator
 from device_workflow.startup_recovery import recover_inflight_tasks
 from device_workflow.state import TaskState
+
+
+def _wait_for_recovery_log(caplog: pytest.LogCaptureFixture, *, timeout: float = 2.5) -> None:
+    """Wait for the lifespan recovery task to log completion."""
+    for _ in range(int(timeout / 0.05)):
+        if "workflow startup recovery completed" in caplog.text:
+            return
+        time.sleep(0.05)
+
+
+def _prepare_inflight_stores(task_id: str):
+    """Create fresh stores, populate one queued task, and return a restore callable."""
+    original_task_store = _gateway_store.task_store
+    original_ledger_store = ledger_manager.store
+
+    fresh_task_store = InMemoryDeviceTaskStore()
+    set_task_store_for_tests(fresh_task_store)
+    fresh_ledger_store = InMemoryLedgerStore()
+    set_ledger_store_for_tests(fresh_ledger_store)
+
+    fresh_task_store.create_task_state({"task_id": task_id, "device_id": "dev-1"}, status="queued")
+    workflow = WorkflowOrchestrator()
+    workflow.register(task_id, device_id="dev-1", task={"task_id": task_id, "device_id": "dev-1"})
+    workflow.advance(task_id, TaskState.PLANNED)
+
+    def restore() -> None:
+        set_task_store_for_tests(original_task_store)
+        set_ledger_store_for_tests(original_ledger_store)
+
+    return fresh_task_store, fresh_ledger_store, restore
 
 
 class TestProcessRestartReplay:
@@ -127,3 +163,44 @@ class TestRecoverInflightTasks:
         result = recover_inflight_tasks(task_store, workflow, limit=2)
 
         assert result["scanned"] == 2
+
+
+class TestLifespanStartupRecovery:
+    """Lifespan startup triggers workflow recovery for in-flight tasks."""
+
+    def test_lifespan_recovers_inflight_tasks(self, monkeypatch, caplog):
+        """Pre-populated task_store + ledger are recovered during lifespan startup."""
+        from server_dlc import app
+
+        monkeypatch.setenv("LIMA_DEVICE_TASK_STORE", "memory")
+        monkeypatch.setenv("LIMA_DEVICE_LEDGER_STORE", "memory")
+        monkeypatch.setenv("LIMA_DEVICE_REDIS_URL", "")
+
+        task_id = "lifespan-recover-1"
+        fresh_task, fresh_ledger, restore = _prepare_inflight_stores(task_id)
+        try:
+            with (
+                caplog.at_level(logging.INFO),
+                patch(
+                    "device_gateway.store.configure_task_store_from_env",
+                    side_effect=lambda: set_task_store_for_tests(fresh_task),
+                ),
+                patch(
+                    "device_ledger.store.configure_ledger_store_from_env",
+                    side_effect=lambda: set_ledger_store_for_tests(fresh_ledger),
+                ),
+            ):
+                with TestClient(app) as client:
+                    resp = client.get("/health")
+                    _wait_for_recovery_log(caplog)
+        finally:
+            restore()
+
+        assert resp.status_code == 200
+        assert "workflow startup recovery completed" in caplog.text
+        match = re.search(
+            r"workflow startup recovery completed: .*['\"]recovered['\"]:\s*(\d+)",
+            caplog.text,
+        )
+        assert match, f"expected recovered count in log: {caplog.text}"
+        assert int(match.group(1)) >= 1

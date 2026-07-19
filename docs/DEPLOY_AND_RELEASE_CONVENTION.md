@@ -205,6 +205,23 @@ LIMA_RUNTIME_ENV=development               # production 会启用生产就绪检
 LIMA_RATE_LIMIT_ENABLED=0                  # 默认关闭；开启后 /health 等端点可能返回 503
 ```
 
+### C1 Workflow 持久化
+
+C1 Workflow 依赖 `device_ledger`（事件源）与 `device_gateway.store.task_store`（执行侧状态）共同实现跨进程、跨重启的任务状态恢复。
+
+- **生产多 worker 必须同时配置**：
+  - `LIMA_DEVICE_LEDGER_STORE=redis`
+  - `LIMA_DEVICE_TASK_STORE=redis`
+  - `LIMA_DEVICE_MEMORY_STORE=redis`（若使用 memory store 缓存）
+  - `LIMA_DEVICE_REDIS_URL=redis://...`
+- 只启用 ledger Redis 但 task_store 仍为 memory：进程重启后无法恢复在途任务的执行侧状态；多 worker 并发 advance 同一任务也无跨进程锁。
+- 只启用 task_store Redis 但 ledger 为 memory：启动恢复时 ledger 事件丢失，workflow 投影为空，所有在途任务会被判定为 `missing_in_ledger`。
+- `server_dlc.py` lifespan 启动时会：
+  1. 按 env 配置 task_store / ledger_store；
+  2. 当 ledger 后端为 Redis 时切换 workflow 锁为 `RedisTaskLock`；
+  3. 后台执行 `recover_inflight_tasks()`，扫描 task_store 中的非终态任务并回放 ledger 事件，日志输出 `workflow startup recovery completed`。
+- 部署后应检查 `/health` 返回 200，并确认日志中出现 `workflow startup recovery completed`。
+
 ---
 
 ## 安全红线
