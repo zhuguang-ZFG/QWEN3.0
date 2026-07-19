@@ -18,6 +18,27 @@ _log = logging.getLogger(__name__)
 _KEY_PREFIX = "lima-"
 _KEY_ID_PREFIX = "ck-"
 
+_CREATE_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS client_keys (
+    key_id TEXT PRIMARY KEY,
+    key_hash TEXT UNIQUE NOT NULL,
+    label TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at REAL NOT NULL,
+    quota_daily INTEGER NOT NULL DEFAULT 1000,
+    quota_monthly INTEGER NOT NULL DEFAULT 30000,
+    rate_limit_rpm INTEGER NOT NULL DEFAULT 20,
+    allowed_urls TEXT NOT NULL DEFAULT '["*"]',
+    request_count INTEGER NOT NULL DEFAULT 0,
+    last_used_at REAL
+)
+"""
+
+_COLUMNS = (
+    "key_id, key_hash, label, enabled, created_at, quota_daily, "
+    "quota_monthly, rate_limit_rpm, allowed_urls, request_count, last_used_at"
+)
+
 
 class ClientKeyStorageError(RuntimeError):
     """Raised when the client key store cannot be read or written."""
@@ -40,29 +61,34 @@ class ClientKeyStorage:
         try:
             Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
             with self._connection() as conn:
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS client_keys (
-                        key_id TEXT PRIMARY KEY,
-                        key_hash TEXT UNIQUE NOT NULL,
-                        key_value TEXT NOT NULL,
-                        label TEXT NOT NULL,
-                        enabled INTEGER NOT NULL DEFAULT 1,
-                        created_at REAL NOT NULL,
-                        quota_daily INTEGER NOT NULL DEFAULT 1000,
-                        quota_monthly INTEGER NOT NULL DEFAULT 30000,
-                        rate_limit_rpm INTEGER NOT NULL DEFAULT 20,
-                        allowed_urls TEXT NOT NULL DEFAULT '["*"]',
-                        request_count INTEGER NOT NULL DEFAULT 0,
-                        last_used_at REAL
-                    )
-                    """
-                )
+                conn.execute(_CREATE_TABLE_SQL)
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_client_keys_hash ON client_keys(key_hash)")
+                self._migrate_legacy_plaintext(conn)
                 conn.commit()
         except (sqlite3.Error, OSError) as exc:
             _log.error("client_keys: failed to initialize schema at %s: %s", self._db_path, exc)
             raise ClientKeyStorageError(f"Failed to initialize client key schema: {exc}") from exc
+
+    def _migrate_legacy_plaintext(self, conn: sqlite3.Connection) -> None:
+        """Drop the legacy plaintext key_value column, refreshing key_hash first."""
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(client_keys)")}
+        if "key_value" not in columns:
+            return
+        for row in conn.execute("SELECT key_id, key_value FROM client_keys").fetchall():
+            conn.execute(
+                "UPDATE client_keys SET key_hash = ? WHERE key_id = ?",
+                (_hash_token(row["key_value"]), row["key_id"]),
+            )
+        try:
+            conn.execute("ALTER TABLE client_keys DROP COLUMN key_value")
+        except sqlite3.OperationalError:
+            # Older SQLite without DROP COLUMN: rebuild via temp-table rename.
+            conn.execute("ALTER TABLE client_keys RENAME TO client_keys_legacy")
+            conn.execute(_CREATE_TABLE_SQL)
+            conn.execute(f"INSERT INTO client_keys ({_COLUMNS}) SELECT {_COLUMNS} FROM client_keys_legacy")
+            conn.execute("DROP TABLE client_keys_legacy")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_client_keys_hash ON client_keys(key_hash)")
+        _log.info("client_keys: removed legacy plaintext key_value column")
 
     def create(
         self,
@@ -77,6 +103,7 @@ class ClientKeyStorage:
         key_value = _generate_key_value()
         record = ClientKey(
             key_id=_new_key_id(key_value),
+            key_hash=_hash_token(key_value),
             key_value=key_value,
             label=label,
             enabled=True,
@@ -91,14 +118,13 @@ class ClientKeyStorage:
                 conn.execute(
                     """
                     INSERT INTO client_keys
-                    (key_id, key_hash, key_value, label, enabled, created_at,
+                    (key_id, key_hash, label, enabled, created_at,
                      quota_daily, quota_monthly, rate_limit_rpm, allowed_urls)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.key_id,
-                        _hash_token(key_value),
-                        record.key_value,
+                        record.key_hash,
                         record.label,
                         int(record.enabled),
                         record.created_at,
@@ -176,11 +202,11 @@ class ClientKeyStorage:
                 cursor = conn.execute(
                     """
                     UPDATE client_keys
-                    SET key_hash = ?, key_value = ?,
+                    SET key_hash = ?,
                         request_count = 0, last_used_at = NULL
                     WHERE key_id = ?
                     """,
-                    (_hash_token(key_value), key_value, key_id),
+                    (_hash_token(key_value), key_id),
                 )
                 conn.commit()
                 if cursor.rowcount == 0:
@@ -189,7 +215,11 @@ class ClientKeyStorage:
         except sqlite3.Error as exc:
             _log.error("client_keys: failed to regenerate key %s: %s", key_id, exc)
             raise ClientKeyStorageError(f"Failed to regenerate client key: {exc}") from exc
-        return _row_to_key(row) if row else None
+        if row is None:
+            return None
+        key = _row_to_key(row)
+        key.key_value = key_value  # one-time reveal, in-memory only
+        return key
 
     def update_usage(self, key_id: str, request_count: int, last_used_at: float) -> None:
         try:
@@ -241,7 +271,7 @@ def _decode_urls(raw: str) -> list[str]:
 def _row_to_key(row: sqlite3.Row) -> ClientKey:
     return ClientKey(
         key_id=row["key_id"],
-        key_value=row["key_value"],
+        key_hash=row["key_hash"],
         label=row["label"],
         enabled=bool(row["enabled"]),
         created_at=row["created_at"],

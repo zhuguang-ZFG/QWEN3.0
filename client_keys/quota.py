@@ -10,7 +10,6 @@ from collections import deque
 from dataclasses import dataclass, field
 
 from client_keys.models import ClientKey
-from client_keys.storage import _hash_token
 
 _log = logging.getLogger(__name__)
 
@@ -98,7 +97,7 @@ class QuotaTracker:
 
         Returns (allowed, reason). Reason is empty on success.
         """
-        token_hash = _hash_token(key.key_value)
+        token_hash = key.key_hash
         now = time.time()
         day = _now_day()
         month = _now_month()
@@ -126,7 +125,7 @@ class QuotaTracker:
     def check_key_quota(self, key: ClientKey) -> bool:
         if not key.enabled:
             return False
-        token_hash = _hash_token(key.key_value)
+        token_hash = key.key_hash
         day = _now_day()
         month = _now_month()
         try:
@@ -148,15 +147,14 @@ class QuotaTracker:
             return False
         return True
 
-    def usage_summary(self, key_value: str) -> dict:
-        token_hash = _hash_token(key_value)
+    def usage_summary(self, key_hash: str) -> dict:
         day = _now_day()
         month = _now_month()
         try:
             with self._lock, self._connection() as conn:
                 row = conn.execute(
                     "SELECT day, month, daily_count, monthly_count, last_used_at FROM client_key_usage WHERE token_hash = ?",
-                    (token_hash,),
+                    (key_hash,),
                 ).fetchone()
         except sqlite3.Error as exc:
             _log.warning("client_keys: usage summary failed: %s", exc)
@@ -169,12 +167,11 @@ class QuotaTracker:
             "last_used_at": row["last_used_at"],
         }
 
-    def clear_token(self, key_value: str) -> None:
-        token_hash = _hash_token(key_value)
-        self._rpm_windows.pop(token_hash, None)
+    def clear_token(self, key_hash: str) -> None:
+        self._rpm_windows.pop(key_hash, None)
         try:
             with self._lock, self._connection() as conn:
-                conn.execute("DELETE FROM client_key_usage WHERE token_hash = ?", (token_hash,))
+                conn.execute("DELETE FROM client_key_usage WHERE token_hash = ?", (key_hash,))
                 conn.commit()
         except sqlite3.Error as exc:
             _log.warning("client_keys: failed to clear usage for token: %s", exc)

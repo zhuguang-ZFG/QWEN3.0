@@ -69,8 +69,12 @@ def check_key_quota(key: ClientKey) -> bool:
     return quota().check_key_quota(key)
 
 
-def get_usage_summary(key_value: str) -> dict:
-    return quota().usage_summary(key_value)
+def get_usage_summary(key_hash: str) -> dict:
+    return quota().usage_summary(key_hash)
+
+
+def clear_token(key_hash: str) -> None:
+    quota().clear_token(key_hash)
 
 
 def check_allowed_urls(key: ClientKey, request_path: str) -> bool:
@@ -89,6 +93,7 @@ __all__ = [
     "QuotaTracker",
     "check_allowed_urls",
     "check_key_quota",
+    "clear_token",
     "find_client_key",
     "get_usage_summary",
     "has_client_keys",
