@@ -162,7 +162,11 @@ class DashScopeLiveStreamSession:
             language_hints=["zh", "en"],
             semantic_punctuation_enabled=False,
         )
-        self._recognition.start()
+        try:
+            self._recognition.start()
+        except Exception:
+            self._recognition = None
+            raise
         self._started = True
 
     def _feed_sync(self, chunk: bytes) -> None:
@@ -176,7 +180,6 @@ class DashScopeLiveStreamSession:
             self._recognition.stop()
         finally:
             self._done.wait(timeout=30.0)
-            self._done.set()
             self._started = False
         if self._error is not None:
             raise self._error

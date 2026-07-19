@@ -135,12 +135,21 @@ class DashScopeRecognitionProvider:
             language_hints=_LANGUAGE_HINTS,
             semantic_punctuation_enabled=False,
         )
-        recognition.start()
+        try:
+            recognition.start()
+        except Exception:
+            # start() failed: do not call stop()/wait(); the SDK cleans its own
+            # half-open connection, and on_complete/on_error will never fire,
+            # so collector.wait() would block the full 30s for nothing.
+            raise
         try:
             self._stream_pcm_chunks(recognition, payload)
         finally:
-            recognition.stop()
-        collector.wait()
+            try:
+                recognition.stop()
+            except Exception as exc:
+                _log.warning("dashscope recognition stop failed: %s", type(exc).__name__)
+            collector.wait()
         if collector.error is not None:
             raise RuntimeError(str(collector.error))
         text = "".join(collector.parts).strip() or collector.latest_partial.strip()
