@@ -44,6 +44,8 @@ server_dlc.py (:8081)
 | pytest 全量 | ✅ | 2026-07-17；1784 passed / 3 skipped |
 | OpenAPI 语音端点 | ✅ | 2026-07-17；transcribe/ticket + WS 文档注入 |
 | 后端预发布 P1 加固 | ✅ | JWT typ 门禁、Voice start 后烧票、幂等生产 503、SQLite WAL、限流生产门禁、MCP 远程空 token、Status 未知不推 terminal；任务 `07-17-backend-prelaunch-p1` |
+| GW-R3 运动/意图安全 | ✅ | bounds 再断言、非有限 feed 拒绝、handwriting fail-closed、LLM replan 拒转运动、move_abs/rel 语音链路；`9ec31f5f`…`44f81a41` |
+| Status WS M2 进度/固件推送 | ✅ | `task_progress` / `firmware_update` 事件（`routes/device_app_status_ws_push.py`） |
 
 ---
 
