@@ -68,7 +68,7 @@
 |----|------|------|
 | ~~**GW-R3-6**~~ | **已修** fail-closed：预检异常返回错误串（对齐 `device_draw_handler`） | `handwriting_path.py:108-123` |
 | ~~**GW-R3-7**~~ | ~~multi_pass **在** normalize 之后 → 可再次越界~~（**已修**，见下表） | `path_pipeline.py` render_* |
-| **GW-R3-8** | LLM planner 可将 `rejected` 改写成写画；无 estop | `intent.py` / `intent_llm_planner.py` |
+| ~~**GW-R3-8**~~ | **已修**（Option B）：`rejected` 解析不得被 LLM 改写成运动能力（write_text/draw/run_path/move_*），仅允许改写成控制类（stop/pause/home/...），恢复 GW-WH 不变量；默认仍门控于 `LIMA_DEVICE_LLM_PLANNER` | `intent.py` / `intent_llm_planner.py` |
 | **GW-R3-9** | `queued_no_delivery` 仍占 busy 至 1h | `tasks.py` / `QUEUED_MAX_AGE_SEC` |
 | ~~**GW-R3-10**~~ | **已修**（描述修正：非崩溃，NaN/Inf feed 静默钳到 MAX_FEED 2000 > 1200 安全上限）→ `task_draw_params._clamp_feed` 加 `math.isfinite` 回落 default，对齐已修的 handwriting 同名函数 | `task_draw_params.py` |
 | **GW-R3-11** | feed 上限 2000 vs safety 1200 分裂 | path_validator vs safety |

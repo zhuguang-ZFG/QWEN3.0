@@ -72,3 +72,39 @@ def test_normal_commands_unaffected_by_estop_priority():
     assert parse_command("写你好")["capability"] == "write_text"
     assert parse_command("画一个星星")["capability"] == "draw_generated"
     assert parse_command("home")["capability"] == "home"
+
+
+# ── GW-R3-8: LLM replanner must not upgrade a rejection into pen motion ───────
+
+
+def test_llm_replan_cannot_turn_rejected_into_motion(monkeypatch):
+    """GW-R3-8/GW-WH: an unrecognized (rejected) utterance must never be
+    replanned into a motion capability, even with the LLM planner enabled."""
+    from config.settings import FLAGS
+    import device_gateway.intent as intent
+
+    monkeypatch.setattr(FLAGS, "device_llm_planner", True, raising=False)
+
+    def _fake_replan(_text, _fallback):
+        return {"capability": "draw_generated", "params": {"prompt": "cat"}, "source": "llm"}
+
+    monkeypatch.setattr(intent, "_llm_replan", _fake_replan)
+    result = intent.resolve_voice_task("some unrecognized utterance")
+    # The motion replan is refused; the original rejection stands.
+    assert result["capability"] == "rejected"
+
+
+def test_llm_replan_may_turn_rejected_into_control(monkeypatch):
+    """GW-R3-8: replanning a rejected command into a control capability
+    (stop/pause/home/...) is still permitted — only motion is blocked."""
+    from config.settings import FLAGS
+    import device_gateway.intent as intent
+
+    monkeypatch.setattr(FLAGS, "device_llm_planner", True, raising=False)
+
+    def _fake_replan(_text, _fallback):
+        return {"capability": "stop", "params": {}, "source": "llm"}
+
+    monkeypatch.setattr(intent, "_llm_replan", _fake_replan)
+    result = intent.resolve_voice_task("some unrecognized utterance")
+    assert result["capability"] == "stop"

@@ -47,6 +47,23 @@ DANGEROUS_CAPABILITIES = frozenset(
     }
 )
 
+# GW-R3-8: capabilities that produce physical pen/gantry motion. When the
+# pattern parser already resolved a command to "rejected" (unrecognized
+# utterance), the LLM replanner must NOT be allowed to turn it into one of
+# these — that would undo GW-WH ("unrecognized speech must never become pen
+# motion") and could route an unmatched emergency-stop variant into drawing
+# instead of stopping. Replanning a rejected command into a control capability
+# (home/pause/resume/stop/estop/get_device_info) is still permitted.
+MOTION_CAPABILITIES = frozenset(
+    {
+        "run_path",
+        "write_text",
+        "draw_generated",
+        "move_abs",
+        "move_rel",
+    }
+)
+
 
 def _build_llm_planner_prompt(text: str) -> str:
     """Build the system/user prompt instructing the LLM to output a capability JSON."""

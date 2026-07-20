@@ -24,6 +24,7 @@ from config.settings import FLAGS
 # and tests call device_gateway.intent._llm_replan directly.
 from device_gateway.intent_llm_planner import (  # noqa: F401  re-export (prod + tests import from here)
     DANGEROUS_CAPABILITIES,
+    MOTION_CAPABILITIES,
     _llm_replan,
 )
 
@@ -193,7 +194,20 @@ def resolve_voice_task(text: str) -> dict[str, Any]:
     if result["confidence"] < 0.5 and FLAGS.device_llm_planner:
         llm_result = _llm_replan(text, result)
         if llm_result:
-            return llm_result
+            # GW-R3-8: a "rejected" parse means no pattern matched — an
+            # unrecognized (possibly emergency) utterance. GW-WH requires such
+            # input never become pen motion. The LLM may still resolve it to a
+            # control capability (stop/pause/home/...), but must not upgrade a
+            # rejection into a motion capability (write_text/draw/run_path/move).
+            if result["capability"] == "rejected" and llm_result["capability"] in MOTION_CAPABILITIES:
+                _log.warning(
+                    "device llm planner tried to replan rejected command into motion capability %s; "
+                    "refused (GW-R3-8/GW-WH). text=%r",
+                    llm_result["capability"],
+                    (text or "")[:40],
+                )
+            else:
+                return llm_result
 
     return {
         "capability": result["capability"],
