@@ -439,3 +439,40 @@ SoftAP Connect form optional device_secret/server_host; patch CC+HTML; ensure du
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: 全项目审查第二轮:五域并行修复(10 Blocker+25 Warning)
+
+**Date**: 2026-07-20
+**Task**: 全项目审查第二轮:五域并行修复(10 Blocker+25 Warning)
+**Package**: root
+**Branch**: `main`
+
+### Summary
+
+六路深度审查产出 10 Blocker(5 物理安全)+25 Warning,主线程复现最高危项。五域并行 trellis-implement 修复 + 三路 trellis-check 复核:域A固件(急停实时字符!/0x18、msg_id字符串、ota SetTimeout、tts NPE、move_abs可选z、emitter加锁;子模块449ad2d)、域B越界校验(路径生成类归一化183→98mm、退化跨度按轴scale、NaN工作区拒绝、dispatch_gen防重放、SEC-06丢弃置failed、async同步IO to_thread)、域C核心(MCP duplicate友好/子进程退避/tools/call线程池/急停直达estop+补device_protocol_registry)、域D前端(chat-api全局var冲突致聊天瘫痪、CSP blob、Turnstile竞态、WS/轮询泄漏、401处理;dist重建)、域E小程序(4xx错误透出、task_failed事件、idle回置、语音隐私竞态、socket epoch、prop名TS2345;子模块ffc15c5)。复核发现并修正:ota CreateHttp参数是模组ID非超时、application.cc type NPE、estop policy门禁遗漏。门禁:后端1928 passed/0 failed(+59测试)、ruff绿、固件build+schema、node--check、vue-tsc。固件HIL遗留项(FW-F4/F5/F2/F7、A1 phase契约、B5 gen衔接)转入07-20-u8-wdt-panic-hil Step4b。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `eb2db698` | (see git log) |
+| `7ffc2149` | (see git log) |
+| `56aa6e31` | (see git log) |
+| `67646be9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
