@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://chat.donglicao.com wss://chat.donglicao.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; upgrade-insecure-requests; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://chat.donglicao.com wss://chat.donglicao.com; script-src 'self' 'unsafe-inline' blob:; worker-src blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; upgrade-insecure-requests; base-uri 'self'; form-action 'self';">
 <meta name="theme-color" content="#000000">
 <title>LiMa 星云 AI 语音/视频通话</title>
 <style>
@@ -209,6 +209,7 @@ const statusEl=$('status'),subtitleEl=$('subtitle'),btnCall=$('btnCall'),btnEnd=
 const videoEl=$('localVideo'),placeholder=$('placeholder'),videoContainer=$('videoContainer');
 
 let ws=null,stream=null,audioCtx=null,worklet=null,frameTimer=null,playing=false;
+let connecting=false;
 let audioQueue=[],nextPlayTime=0;
 const SAMPLE_RATE_IN=16000;
 let SAMPLE_RATE_OUT=24000;
@@ -240,6 +241,10 @@ async function fetchVoiceTicket(){
 }
 
 async function startCall(){
+  // Guard against double-click race: a second click during the async connect
+  // window would fork a second mic stream + orphan WebSocket.
+  if(connecting||ws)return;
+  connecting=true;btnCall.disabled=true;
   statusEl.textContent='正在连接...';
   const mode=$('modeSelect').value;
   try{
@@ -284,7 +289,14 @@ async function startCall(){
     ws.onmessage=e=>{try{handleMessage(JSON.parse(e.data))}catch(err){}};
     ws.onclose=()=>{statusEl.textContent='连接已断开';endCall()};
     ws.onerror=()=>{statusEl.textContent='连接失败';endCall()};
-  }catch(e){statusEl.textContent='错误: '+e.message}
+  }catch(e){
+    // Release any half-acquired resources so the mic light goes off on failure.
+    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+    if(ws){ws.onclose=null;ws.onerror=null;ws.onmessage=null;try{ws.close()}catch(err){}ws=null}
+    statusEl.textContent='错误: '+e.message;
+  }finally{
+    connecting=false;btnCall.disabled=false;
+  }
 }
 
 function handleMessage(msg){
@@ -395,16 +407,19 @@ function endCall(){
   if(frameTimer){clearInterval(frameTimer);frameTimer=null}
   if(worklet){worklet.disconnect();worklet=null}
   if(audioCtx){audioCtx.close();audioCtx=null}
-  if(ws){ws.close();ws=null}
+  // Detach handlers before closing so the old socket's close/error events
+  // cannot fire endCall again and tear down a newly started call.
+  if(ws){ws.onclose=null;ws.onerror=null;ws.onmessage=null;try{ws.close()}catch(e){}ws=null}
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
   videoEl.style.display='none';placeholder.style.display='flex';
   audioQueue=[];playing=false;nextPlayTime=0;
   btnCall.classList.remove('active');
+  btnCall.disabled=false;
   videoContainer.classList.remove('speaking');
   subtitleEl.textContent='';
   statusEl.textContent='通话已结束';
 }
-btnCall.addEventListener('click',()=>{if(!ws||ws.readyState!==1)startCall()});
+btnCall.addEventListener('click',()=>{if(!connecting&&!ws)startCall()});
 btnEnd.addEventListener('click',endCall);
 </script>
 </body>

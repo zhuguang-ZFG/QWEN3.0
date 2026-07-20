@@ -64,7 +64,6 @@
   <script src="js/app-boot.js?v=taste3"></script>
   <script src="js/api.js?v=taste3"></script>
   <script src="js/auth.js?v=taste3"></script>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script>
     (function () {
       "use strict";
@@ -76,27 +75,48 @@
       const pwStrength = document.getElementById("pw-strength");
       const pwHint = document.getElementById("pw-hint");
       let turnstileToken = null;
+      let turnstileWidgetId = null;
 
-      function initTurnstile() {
+      // Explicit onload callback (?onload=onTurnstileLoad&render=explicit).
+      // Fires whenever the async api.js finishes loading — even after
+      // DOMContentLoaded — eliminating the race where the widget never
+      // rendered and register stayed disabled forever.
+      window.onTurnstileLoad = function () {
         const siteKey = window.LIMA_CONFIG && window.LIMA_CONFIG.turnstileSiteKey;
         if (!siteKey || !window.turnstile) {
           submit.disabled = false;
           return;
         }
-        window.turnstile.render("#turnstile-widget", {
+        turnstileWidgetId = window.turnstile.render("#turnstile-widget", {
           sitekey: siteKey,
           callback: function (token) {
             turnstileToken = token;
             submit.disabled = false;
+            showError("");
           },
           "expired-callback": function () { turnstileToken = null; submit.disabled = true; },
-          "error-callback": function () { turnstileToken = null; submit.disabled = true; },
+          "error-callback": function () {
+            turnstileToken = null;
+            submit.disabled = true;
+            showError("人机验证出错，正在自动重试…");
+            setTimeout(function () {
+              if (window.turnstile) {
+                // widgetId may still be null if the error fired during the
+                // initial render(); reset() with no args targets that widget.
+                try {
+                  if (turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
+                  else window.turnstile.reset();
+                } catch (e) {}
+              }
+            }, 3000);
+            return true; /* handled: retry instead of permanent failure */
+          },
         });
-      }
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initTurnstile);
-      } else {
-        initTurnstile();
+      };
+      // No site key configured → verification not required; don't hold the
+      // form hostage waiting for the CDN.
+      if (!(window.LIMA_CONFIG && window.LIMA_CONFIG.turnstileSiteKey)) {
+        submit.disabled = false;
       }
 
       /* Password strength meter */
@@ -140,5 +160,7 @@
       function showError(msg) { error.textContent = msg; error.hidden = !msg; }
     })();
   </script>
+  <!-- Loaded after the inline script so window.onTurnstileLoad is always defined first. -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
 </body>
 </html>

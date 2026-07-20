@@ -222,6 +222,7 @@
         <button class="topbar-btn" onclick="openApiKeyModal()">Key</button>
         <button class="topbar-btn" onclick="showApiInfo()">API</button>
         <button class="topbar-btn" onclick="window.open('https://donglicao.com','_blank')">官网</button>
+        <button class="topbar-btn" id="logoutBtn" hidden onclick="LiMaAuth.logout();window.location.href='login.html'">登出</button>
       </div>
     </div>
 
@@ -374,5 +375,12 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
           integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05"
           crossorigin="anonymous"></script>
+  <script>
+    // FE-6: reveal the logout entry only for logged-in sessions.
+    (function () {
+      var btn = document.getElementById('logoutBtn');
+      if (btn && window.LiMaAuth && window.LiMaAuth.isLoggedIn()) btn.hidden = false;
+    })();
+  </script>
 </body>
 </html>

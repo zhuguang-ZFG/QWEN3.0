@@ -5,60 +5,52 @@
 
   const API_BASE = "";
 
+  // Shared request core: errors carry `status`; an authenticated 401 means the
+  // session token is dead — clear it and return to login instead of letting
+  // every poller keep hammering the API with a dead token.
+  function handleUnauthorized() {
+    try {
+      if (window.LiMaAuth) window.LiMaAuth.removeToken();
+    } catch {}
+    if (!/(?:^|\/)login\.html$/.test(window.location.pathname)) {
+      window.location.href = "login.html";
+    }
+  }
+
+  async function request(method, path, body, token) {
+    const headers = {};
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (token) headers["Authorization"] = "Bearer " + token;
+    const opts = { method, headers };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    const res = await fetch(API_BASE + path, opts);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 401 && token) handleUnauthorized();
+      const err = new Error(data.message || data.error || res.statusText || "HTTP " + res.status);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
   window.LiMaAPI = {
     base: API_BASE,
 
-    async post(path, body, token) {
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = "Bearer " + token;
-      const res = await fetch(API_BASE + path, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = data.message || data.error || res.statusText;
-        throw new Error(msg);
-      }
-      return data;
+    post(path, body, token) {
+      return request("POST", path, body, token);
     },
 
-    async get(path, token) {
-      const headers = {};
-      if (token) headers["Authorization"] = "Bearer " + token;
-      const res = await fetch(API_BASE + path, { headers });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || data.error || res.statusText);
-      }
-      return data;
+    get(path, token) {
+      return request("GET", path, undefined, token);
     },
 
-    async del(path, token) {
-      const headers = {};
-      if (token) headers["Authorization"] = "Bearer " + token;
-      const res = await fetch(API_BASE + path, { method: "DELETE", headers });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || data.error || res.statusText);
-      }
-      return data;
+    del(path, token) {
+      return request("DELETE", path, undefined, token);
     },
 
-    async put(path, body, token) {
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = "Bearer " + token;
-      const res = await fetch(API_BASE + path, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.message || data.error || res.statusText);
-      }
-      return data;
+    put(path, body, token) {
+      return request("PUT", path, body, token);
     },
   };
 

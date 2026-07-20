@@ -36,6 +36,7 @@
   let statuses = {};
   let selectedDeviceId = null;
   let ws = null;
+  let wsEpoch = 0; // generation counter: stale connectStatusWs calls are discarded
   let statusPoller = null;
   let activeTaskPollers = [];
 
@@ -145,6 +146,8 @@
     drawer.classList.add("open");
 
     await connectStatusWs(deviceId);
+    // User may have switched device / closed drawer while the WS handshake ran.
+    if (selectedDeviceId !== deviceId) return;
     await renderDrawer(device);
   }
 
@@ -173,14 +176,16 @@
   }
 
   async function connectStatusWs(deviceId) {
+    const epoch = ++wsEpoch;
     if (ws) {
       try { ws.close(); } catch {}
       ws = null;
     }
     try {
       const ticket = await fetchStatusTicket(deviceId);
-      // Race: user may have switched/closed drawer while ticket was in flight.
-      if (selectedDeviceId !== deviceId) {
+      // Race: user may have switched/closed drawer (or reconnected) while the
+      // ticket was in flight; a stale resolve must not overwrite the live ws.
+      if (selectedDeviceId !== deviceId || epoch !== wsEpoch) {
         console.warn("设备已切换，丢弃过期 WebSocket ticket", deviceId);
         return;
       }
@@ -198,6 +203,7 @@
       };
     } catch (err) {
       console.warn("设备状态 WebSocket 连接失败:", err);
+      if (epoch !== wsEpoch) return; // stale failure — a newer connection owns `ws`
       showToast("设备状态连接失败：" + (err && err.message ? err.message : "未知错误"));
       ws = null;
     }
@@ -264,11 +270,12 @@
   }
 
   async function renderDrawer(device) {
-    const status = statuses[device.deviceId] || { online: false, working: false };
+    const deviceId = device.deviceId;
+    const status = statuses[deviceId] || { online: false, working: false };
     let tasksHtml = "";
     let items = [];
     try {
-      const tasksData = await LiMaAPI.get(`${TASKS_API}?device_id=${encodeURIComponent(device.deviceId)}&limit=5`, token);
+      const tasksData = await LiMaAPI.get(`${TASKS_API}?device_id=${encodeURIComponent(deviceId)}&limit=5`, token);
       items = tasksData.tasks || [];
       if (items.length === 0) {
         tasksHtml = `<div class="empty" style="padding:24px 0;">最近无任务</div>`;
@@ -278,6 +285,9 @@
     } catch {
       tasksHtml = `<div class="empty" style="padding:24px 0;">无法加载任务</div>`;
     }
+
+    // Stale render guard: drawer switched to another device while tasks loaded.
+    if (selectedDeviceId !== deviceId) return;
 
     drawerBody.innerHTML = `
       <div class="drawer-section">
@@ -298,7 +308,7 @@
       </div>
     `;
 
-    startTaskPolling(items);
+    startTaskPolling(deviceId, items);
   }
 
   async function updateTaskItem(taskId) {
@@ -306,7 +316,8 @@
       const data = await LiMaAPI.get(`${TASKS_API}/${encodeURIComponent(taskId)}`, token);
       const task = data.task || data;
       const el = drawerBody.querySelector(`.task-item[data-task-id="${CSS.escape(taskId)}"]`);
-      if (!el) return;
+      // Element gone (drawer closed/re-rendered): signal "done" so the poller stops.
+      if (!el) return true;
       const statusText = el.querySelector(".task-status-text");
       const meta = el.querySelector(".task-meta");
       if (statusText) statusText.textContent = task.status || "—";
@@ -332,7 +343,7 @@
     }
   }
 
-  function startTaskPolling(items) {
+  function startTaskPolling(deviceId, items) {
     activeTaskPollers.forEach((id) => clearInterval(id));
     activeTaskPollers = [];
     items.forEach((task) => {
@@ -340,6 +351,11 @@
       if (!taskId || !isTaskActive(task.status)) return;
       updateTaskItem(taskId);
       const id = setInterval(async () => {
+        // Drawer closed or switched to another device: stop polling immediately.
+        if (selectedDeviceId !== deviceId) {
+          clearInterval(id);
+          return;
+        }
         const done = await updateTaskItem(taskId);
         if (done) clearInterval(id);
       }, 2000);
