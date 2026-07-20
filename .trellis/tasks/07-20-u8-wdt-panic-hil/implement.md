@@ -50,8 +50,11 @@
 > 来源:`docs/reviews/2026-07-20-full-project-review-round2.md`。这些项 07-20 review-round2
 > 任务判定为"仅代码不足以闭环",转入本 HIL 任务处理。
 
-- [ ] FW-F4 run_path/plotter 读放大:`ReadU1Response` 改按行读(读到 `\n` 即返)消除 3× 超时放大;
-      PATH_END 阻塞从 240–360s 降到实际用时。这是 30s WDT panic 的直接诱因,HIL 前必做。
+- [x] FW-F4 run_path/plotter 读放大:`ReadU1Response` 改逐字节读、读到 `\n` 即返
+      (子模块 commit 见下)。消除尾部 2×timeout 空转 + 块读的 1×timeout 白等:U1 正常
+      响应(必带 `\r\n`)时几乎立即返回。**必要非充分**:首字节等待仍是 timeout_ms,
+      U1 真卡死时 PATH_END 仍会等满 120s > 30s 看门狗 → 仍需 FW-F5(长任务移出主循环)
+      才能彻底消除 panic。idf.py build 通过、schema 68/68。HIL 验证 run_path 实际时序。
 - [ ] FW-F5 长运动任务移出主循环 / 接收线程(独立 motion 任务),stop/estop 短路优先。
 - [ ] FW-F2 U1 UART0 引脚实机确认:`Serial.cpp:110 setPins(1,3)` 与硬件文档 tx=IO10/rx=IO11
       是否一致;GPIO3 与 X_DIRECTION_PIN 是否双占用。实测链路通不通。
