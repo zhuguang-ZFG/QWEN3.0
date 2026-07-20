@@ -17,6 +17,13 @@ function authHeaders() {
 function renderChatError(message, retryText) {
   // W1: drop skeleton / mid-stream AI bubble so retry does not leave orphans.
   if (typeof removeUnfinalizedAiMessage === 'function') removeUnfinalizedAiMessage();
+  // Capture the failed turn now: a later successful send would make
+  // "last user" point at the wrong turn if we resolved it at click time.
+  const failedUserEl = chatInner.querySelector('.message.user:last-of-type');
+  const failedUserMsg =
+    messages.length && messages[messages.length - 1].role === 'user'
+      ? messages[messages.length - 1]
+      : null;
   const msgEl = addMessage('ai', message);
   msgEl.dataset.finalized = '1';
   const bubble = msgEl.querySelector('.msg-bubble');
@@ -28,9 +35,11 @@ function renderChatError(message, retryText) {
   btn.addEventListener('click', () => {
     if (isStreaming) return;
     msgEl.remove();
-    const lastUser = chatInner.querySelector('.message.user:last-of-type');
-    if (lastUser) lastUser.remove();
-    if (messages.length && messages[messages.length - 1].role === 'user') messages.pop();
+    if (failedUserEl) failedUserEl.remove();
+    if (failedUserMsg) {
+      const i = messages.indexOf(failedUserMsg);
+      if (i !== -1) messages.splice(i, 1);
+    }
     sendMessageWithText(retryText);
   });
   bubble.appendChild(document.createElement('div')).appendChild(btn);
@@ -90,6 +99,9 @@ async function generateImage(prompt) {
     // Store markdown so loadSession → formatContent restores the same <img> path.
     const md = `![generated image](${url})`;
     addMessage('ai', md, { model: 'lima-image' });
+    // W1: settle the image bubble so a later failed turn's removeUnfinalizedAiMessage()
+    // does not treat this successful result as an orphan and delete it.
+    finalizeLastMessage();
     messages.push({ role: 'assistant', content: md });
     saveCurrentSession();
   } catch (err) {
