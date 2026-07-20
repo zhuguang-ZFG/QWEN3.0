@@ -83,7 +83,7 @@
 
 - [x] AC1 Tier 0 五项全部修复,肉眼可验(用户逐页看)。
 - [x] AC2 Tier 1 全部落地;Tier 2 尽力,未完成项在收尾时列出(M36/M45)。
-- [ ] AC3 门禁:小程序 `npx vue-tsc --noEmit` 0 error(**发版前补跑**);chat-web 改动 .js `node --check` 全绿;
+- [x] AC3 门禁:小程序 `npx vue-tsc --noEmit` 0 error;chat-web 改动 .js `node --check` 全绿（2026-07-20 复核通过）;
       vm 共享上下文/dist 重建发版前补。
 - [x] AC4 不引入新色/新 token 值(仅复用既有 token)。
 - [x] AC5 敏感操作(转让/暂停/接受/回原点/撤销分享/拒绝审批)全部有二次确认。

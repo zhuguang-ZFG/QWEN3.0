@@ -1,7 +1,7 @@
 # LiMa / DLC 项目状态
 
-> 更新日期：2026-07-17
-> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `0ecd2fa3`）
+> 更新日期：2026-07-20
+> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `3b95bdf8`；含 GW-R3 安全链 + 工作区隔离规则）
 > 公网入口：`https://chat.donglicao.com` → 京东云 `117.72.118.95`（`server_dlc` :8081）
 
 > 根目录 `STATUS.md` 与本文件内容保持同步（供 CI/人类速览）。
@@ -44,6 +44,8 @@ server_dlc.py (:8081)
 | pytest 全量 | ✅ | 2026-07-17；1784 passed / 3 skipped |
 | OpenAPI 语音端点 | ✅ | 2026-07-17；transcribe/ticket + WS 文档注入 |
 | 后端预发布 P1 加固 | ✅ | JWT typ 门禁、Voice start 后烧票、幂等生产 503、SQLite WAL、限流生产门禁、MCP 远程空 token、Status 未知不推 terminal；任务 `07-17-backend-prelaunch-p1` |
+| GW-R3 运动/意图安全 | ✅ | bounds 再断言、非有限 feed 拒绝、handwriting fail-closed、LLM replan 拒转运动、move_abs/rel 语音链路；`9ec31f5f`…`44f81a41` |
+| Status WS M2 进度/固件推送 | ✅ | `task_progress` / `firmware_update` 事件（`routes/device_app_status_ws_push.py`） |
 
 ---
 

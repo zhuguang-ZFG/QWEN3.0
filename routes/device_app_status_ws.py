@@ -22,6 +22,12 @@ from device_logic.db import connect
 from routes.rate_limit_helper import check_key_limit
 from device_logic.http import now
 from device_gateway.device_status import build_device_status as _build_device_status
+from routes.device_app_status_ws_push import (
+    enrich_status_for_ws as _enrich_status_for_ws,
+    public_status_payload as _public_status_payload,
+    send_firmware_update as _send_firmware_update,
+    send_task_progress as _send_task_progress,
+)
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-status"])
 
@@ -106,7 +112,7 @@ async def _send_status_snapshot(
     device_id: str,
     status: dict[str, Any],
 ) -> None:
-    await websocket.send_json({"event": "status_snapshot", "payload": status})
+    await websocket.send_json({"event": "status_snapshot", "payload": _public_status_payload(status)})
 
 
 async def _send_online_transition(
@@ -171,8 +177,8 @@ async def _push_transition_events(
     if current["online"] != previous["online"]:
         await _send_online_transition(websocket, device_id, current["online"])
     await _send_task_transition(websocket, device_id, previous, current)
-    # TODO(M2): push task_progress events from task store / session.
-    # TODO(M2): push firmware_update events when device reports new fw_rev.
+    await _send_task_progress(websocket, device_id, previous, current)
+    await _send_firmware_update(websocket, device_id, previous, current)
 
 
 @router.post("/devices/{device_id}/ws/ticket")
@@ -233,14 +239,14 @@ async def device_status_ws(
             return
         await websocket.accept()
         deadline = asyncio.get_running_loop().time() + DEVICE.status_ws_session_seconds
-        previous = await asyncio.to_thread(_build_device_status, device_id)
+        previous = _enrich_status_for_ws(await asyncio.to_thread(_build_device_status, device_id))
         await _send_status_snapshot(websocket, device_id, previous)
         while websocket.client_state == WebSocketState.CONNECTED:
             if asyncio.get_running_loop().time() >= deadline:
                 await websocket.close(code=1001, reason="status session expired")
                 break
             await asyncio.sleep(_POLL_INTERVAL)
-            current = await asyncio.to_thread(_build_device_status, device_id)
+            current = _enrich_status_for_ws(await asyncio.to_thread(_build_device_status, device_id))
             await _push_transition_events(websocket, device_id, previous, current)
             previous = current
             await _send_status_snapshot(websocket, device_id, current)

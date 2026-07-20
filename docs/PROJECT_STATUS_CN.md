@@ -1,7 +1,7 @@
 # LiMa / DLC 项目状态
 
-> 更新日期：2026-07-17
-> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `0ecd2fa3`）
+> 更新日期：2026-07-20
+> 生产版本：`dlc-drawing 0.4.0-p3`（`main` @ `3b95bdf8`；含 GW-R3 安全链 + 工作区隔离规则）
 > 公网入口：`https://chat.donglicao.com` → 京东云 `117.72.118.95`（`server_dlc` :8081）
 
 > 根目录 `STATUS.md` 与本文件内容保持同步（供 CI/人类速览）。
