@@ -98,12 +98,25 @@ class _FakeRedis:
             self.lists.pop(key, None)
 
 
+def _params_for(capability: str) -> dict:
+    """Capability-appropriate params that pass SEC-06's validate_capability_params
+    re-check (GW-R3-4): draw_generated needs a prompt, run_path needs an in-bounds
+    path, control caps need nothing, write_text/handwriting need text."""
+    if capability == "draw_generated":
+        return {"prompt": "cat"}
+    if capability == "run_path":
+        return {"path": [{"x": 10.0, "y": 10.0, "z": 0.0}], "feed": 500}
+    if capability in ("write_text", "handwriting"):
+        return {"text": "你好"}
+    return {}
+
+
 def _valid_task(task_id="task-000001", device_id="dev-1", capability="write_text"):
     return {
         "task_id": task_id,
         "device_id": device_id,
         "capability": capability,
-        "params": {"text": "你好"},
+        "params": _params_for(capability),
         "source": "voice",
     }
 

@@ -47,17 +47,6 @@ DANGEROUS_CAPABILITIES = frozenset(
     }
 )
 
-# Capabilities that produce physical pen/gantry motion (honest full set).
-MOTION_CAPABILITIES = frozenset(
-    {
-        "run_path",
-        "write_text",
-        "draw_generated",
-        "move_abs",
-        "move_rel",
-    }
-)
-
 # GW-R3-8 / GW-R3-12: capabilities the LLM must NOT resolve a "rejected" parse
 # into. A rejected parse means no pattern matched (unrecognized utterance);
 # turning that into a drawing command would undo GW-WH ("unrecognized speech

@@ -24,7 +24,6 @@ from config.settings import FLAGS
 # and tests call device_gateway.intent._llm_replan directly.
 from device_gateway.intent_llm_planner import (  # noqa: F401  re-export (prod + tests import from here)
     DANGEROUS_CAPABILITIES,
-    MOTION_CAPABILITIES,
     _REPLAN_BLOCKED_CAPABILITIES,
     _llm_replan,
 )

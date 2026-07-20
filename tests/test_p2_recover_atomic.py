@@ -89,7 +89,13 @@ def test_recover_still_requeues_via_atomic_path():
 
     client = _FakeRedis()
     store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
-    task = {"task_id": store.next_task_id(), "device_id": "dev-1", "capability": "write_text"}
+    # GW-R3-4: SEC-06 pop re-validates params, so write_text needs a valid text.
+    task = {
+        "task_id": store.next_task_id(),
+        "device_id": "dev-1",
+        "capability": "write_text",
+        "params": {"text": "hi"},
+    }
     store.create_task_state(task)
     store.enqueue_pending_task("dev-1", task)
     client.now += 300
