@@ -9,6 +9,7 @@ import time as _time
 from typing import Any
 
 from device_gateway.redis_store_helpers import _ACTIVE_STATUSES, QUEUED_MAX_AGE_SEC
+from device_gateway.redis_store_queue import _strict_dispatch_gen
 from device_gateway.store_utils import StoreConfigMixin
 
 
@@ -158,12 +159,15 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
             state = self._tasks.get(task_id)
             # GW-WC / GW-R3-2: reject stale or gen-less acks after re-dispatch.
             # Leave the processing entry alone — it belongs to the current gen.
+            # The gen-less rejection is gated (see _strict_dispatch_gen): today
+            # firmware omits dispatch_gen, so strict mode would loop every
+            # recovered task. Enable only once motion_event echoes the gen (B5).
             if state is not None:
                 current_gen = int(state.get("dispatch_gen", 0))
                 if dispatch_gen is not None:
                     if int(dispatch_gen) != current_gen:
                         return False
-                elif current_gen > 0:
+                elif current_gen > 0 and _strict_dispatch_gen():
                     return False
             entry = processing.pop(task_id, None)
             if entry is None:

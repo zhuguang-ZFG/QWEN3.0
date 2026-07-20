@@ -12,7 +12,6 @@ from typing import Any
 
 from device_gateway.model_routing import CONTROL_CAPABILITIES
 from device_gateway.protocol_families import MotionErrorCode
-from device_gateway.safety import DEFAULT_WORKSPACE_MM
 from device_intelligence.safety import profile_limit_error
 from device_intelligence.schemas import DeviceProfile
 
@@ -47,30 +46,30 @@ VALID_PRIMARY_STRATEGIES = frozenset(
 VALID_ARTIFACT_REQUIRED = frozenset({"none", "preview_svg", "vector_path"})
 
 
-def _axis_value_error(val: Any, axis: str, profile: DeviceProfile | None) -> str | None:
-    """Return error code if a single axis value is illegal for the given profile."""
+def _axis_value_error(val: Any) -> str | None:
+    """Return error code if a single axis value is illegal (finite, in ±500)."""
     if not isinstance(val, (int, float)):
         return MotionErrorCode.E_BAD_PARAMS.value
     # AUDIT-10-V1：NaN/Inf 绕过边界校验（IEEE 754 NaN 比较全 False）。
     if not math.isfinite(val):
         return MotionErrorCode.E_BAD_PARAMS.value
-    # Absolute hard limit (defense in depth) even when a profile is present.
+    # Absolute hard limit (defense in depth), applied with or without a profile.
+    # GW-R3-5 previously clamped no-profile coords to DEFAULT_WORKSPACE_MM
+    # (100mm), but real product firmware advertises 300x300x80mm — this pre-check
+    # runs before the profile is resolved (device_app_task_create), so it hard-
+    # rejected legitimate coords in (100, 300]. Profile-aware [0, workspace]
+    # enforcement still happens in profile_limit_error once the profile resolves.
     if val < MIN_POINT_COORD or val > MAX_POINT_COORD:
         return MotionErrorCode.E_BAD_PARAMS.value
-    # GW-R3-5: no profile → conservative product workspace [0, DEFAULT_WORKSPACE].
-    if profile is None:
-        max_axis = float(DEFAULT_WORKSPACE_MM[axis])
-        if val < 0 or val > max_axis:
-            return MotionErrorCode.E_BAD_PARAMS.value
     return None
 
 
-def _path_points_error(path: list, profile: DeviceProfile | None) -> str | None:
+def _path_points_error(path: list) -> str | None:
     for point in path:
         if not isinstance(point, dict):
             return MotionErrorCode.E_BAD_PARAMS.value
         for axis in ("x", "y", "z"):
-            err = _axis_value_error(point.get(axis, 0), axis, profile)
+            err = _axis_value_error(point.get(axis, 0))
             if err:
                 return err
     return None
@@ -104,7 +103,7 @@ def validate_run_path_params(params: dict, profile: DeviceProfile | None = None)
         return {}, MotionErrorCode.E_MISSING_PATH.value
     if len(path) > MAX_PATH_POINTS:
         return {}, MotionErrorCode.E_BAD_PARAMS.value
-    point_error = _path_points_error(path, profile)
+    point_error = _path_points_error(path)
     if point_error:
         return {}, point_error
     feed, feed_error = _parse_feed_value(params.get("feed", 500.0))

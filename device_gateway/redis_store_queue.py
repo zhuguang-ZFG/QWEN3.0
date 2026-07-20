@@ -16,6 +16,18 @@ from device_gateway.redis_store_helpers import (
 _log = logging.getLogger(__name__)
 
 
+def _strict_dispatch_gen() -> bool:
+    """GW-R3-2 rollout gate: reject gen-less acks only when firmware echoes gen.
+
+    Off by default — current firmware omits dispatch_gen (B5 pending), so
+    strict rejection would loop every recovered task. Read lazily so the flag
+    can be flipped without a settings re-import.
+    """
+    from config.settings import FLAGS
+
+    return bool(getattr(FLAGS, "strict_dispatch_gen", False))
+
+
 class RedisStoreQueueMixin:
     """Queue lifecycle methods extracted to keep redis_store.py under the size gate."""
 
@@ -187,9 +199,12 @@ class RedisStoreQueueMixin:
                     # Do NOT touch the processing queue: after a re-dispatch the
                     # entry there belongs to the current generation's worker.
                     return False
-            elif current_gen > 0:
+            elif current_gen > 0 and _strict_dispatch_gen():
                 # GW-R3-2: after recover/re-dispatch, gen-less acks must not
                 # LREM the current processing entry (stale workers omit gen).
+                # Gated: today firmware omits dispatch_gen, so strict mode would
+                # reject every legitimate recovered-task ack (loop). Enable only
+                # once motion_event echoes the generation (B5).
                 _log.warning(
                     "ack_processing rejected: task %s missing dispatch_gen (current=%s)",
                     task_id,

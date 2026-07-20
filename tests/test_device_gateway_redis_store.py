@@ -250,10 +250,34 @@ def test_redis_store_ack_after_recovery_and_redispatch_succeeds():
     # 迟到 ack（旧 worker）：必须拒绝，防重复完成。
     assert store.ack_processing("dev-1", task["task_id"]) is False
 
-    # 重派发后新 worker 的 ack：必须携带当前 dispatch_gen（GW-R3-2）。
+    # 重派发后新 worker 的 ack：默认（strict_dispatch_gen 关闭，固件尚未回带
+    # dispatch_gen，B5 未完成）gen-less ack 必须成功，否则每个 recovered 任务死循环。
     re_popped = store.pop_pending_tasks("dev-1", limit=1)[0]
     assert re_popped["task_id"] == task["task_id"]
-    # gen-less ack after re-dispatch must not clear the current processing entry.
+    assert store.ack_processing("dev-1", task["task_id"]) is True
+    assert client.lists["test:device:processing:dev-1"] == []
+
+
+def test_redis_strict_dispatch_gen_rejects_genless_ack_after_redispatch(monkeypatch):
+    """GW-R3-2 (strict mode): once firmware echoes dispatch_gen (B5), a gen-less
+    ack after re-dispatch must not LREM the current worker's processing entry.
+    """
+    from config.settings import FLAGS
+
+    monkeypatch.setattr(FLAGS, "strict_dispatch_gen", True, raising=False)
+    client = _FakeRedis()
+    store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
+    task = _task(store.next_task_id())
+    store.create_task_state(task)
+    store.enqueue_pending_task("dev-1", task)
+    store.pop_pending_tasks("dev-1", limit=1)
+
+    client.now += 121
+    assert store.recover_stale_processing("dev-1", timeout_sec=120) == 1
+
+    re_popped = store.pop_pending_tasks("dev-1", limit=1)[0]
+    # gen-less ack after re-dispatch is rejected under strict mode.
     assert store.ack_processing("dev-1", task["task_id"]) is False
+    # ack carrying the live generation is accepted.
     assert store.ack_processing("dev-1", task["task_id"], dispatch_gen=re_popped.get("_dispatch_gen")) is True
     assert client.lists["test:device:processing:dev-1"] == []

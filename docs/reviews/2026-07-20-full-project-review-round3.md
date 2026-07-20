@@ -169,8 +169,8 @@ assert len(svg_path_to_motion("M0 0 L 10 0 20 10 30 0")) == 2  # GW-WF should be
 |----|------|------|
 | GW-R3-1 | **已修** | `validate_run_path_params` 拒 NaN/Inf feed |
 | GW-R3-3 | **已修** | workspace 归一化 + `profile_limit_error` 拒非有限工作区 |
-| GW-R3-5 | **已修** | 无 profile 时强制 `[0, DEFAULT_WORKSPACE]` |
-| GW-R3-2 | **已修** | `dispatch_gen>0` 时拒 gen-less ack（redis + memory） |
+| GW-R3-5 | **已修（修正）** | 无 profile 预检回落 ±500 硬限（真实固件 300×300×80mm，初版 100mm 硬拒合法坐标）；`[0, workspace]` 仍由 profile 解析后 `profile_limit_error` 强制 |
+| GW-R3-2 | **已修（门控）** | strict 拒 gen-less ack 由 `LIMA_STRICT_DISPATCH_GEN` 门控，默认关闭；固件回带 `dispatch_gen`（B5）前开启会让每个 recovered 任务死循环 |
 | GW-R3-4 | **已修** | SEC-06 `validate_task_schema` 重跑 `validate_capability_params` |
 | RT-R3-1 | **已修** | 模板 execute insert → dispatch → 失败 mark_task_failed |
 

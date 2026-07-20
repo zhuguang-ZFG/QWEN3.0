@@ -74,6 +74,10 @@ class FeatureFlags:
     memory_embed: bool = os.environ.get("LIMA_MEMORY_EMBED", "1").strip().lower() in {"1", "true", "yes"}
     verify_host: bool = os.environ.get("LIMA_VERIFY_HOST", "1").strip().lower() in {"1", "true", "yes"}
     device_llm_planner: bool = os.environ.get("LIMA_DEVICE_LLM_PLANNER", "0") == "1"
+    # GW-R3-2 rollout gate: reject gen-less acks after a re-dispatch. Keep OFF
+    # until firmware echoes dispatch_gen in motion_event (B5); today every real
+    # device omits it, so strict mode would loop every recovered task forever.
+    strict_dispatch_gen: bool = os.environ.get("LIMA_STRICT_DISPATCH_GEN", "0") == "1"
     allow_http_backends: bool = os.environ.get("LIMA_ALLOW_HTTP_BACKENDS", "").strip().lower() in {
         "1",
         "true",

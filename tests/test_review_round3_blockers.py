@@ -25,8 +25,19 @@ def test_r3_3_nan_workspace_profile_rejected() -> None:
     assert err == "E_BAD_PARAMS"
 
 
-def test_r3_5_no_profile_rejects_400mm() -> None:
-    _, err = validate_run_path_params({"path": [{"x": 400, "y": 0, "z": 0}], "feed": 500})
+def test_r3_5_no_profile_allows_300mm_hardware_coord() -> None:
+    """GW-R3-5 (revised): no-profile pre-check falls back to the ±500 hard limit.
+
+    Real product firmware advertises a 300x300x80mm workspace, so a coord in
+    (100, 500] must not be rejected before the profile resolves. Profile-aware
+    [0, workspace] enforcement still runs in profile_limit_error downstream.
+    """
+    _, err = validate_run_path_params({"path": [{"x": 300, "y": 0, "z": 0}], "feed": 500})
+    assert err is None
+
+
+def test_r3_5_no_profile_still_rejects_beyond_hard_limit() -> None:
+    _, err = validate_run_path_params({"path": [{"x": 600, "y": 0, "z": 0}], "feed": 500})
     assert err == "E_BAD_PARAMS"
 
 
@@ -37,7 +48,7 @@ def test_r3_4_sec06_rejects_oob_path_on_queue() -> None:
                 "task_id": "t-oob",
                 "device_id": "dev-1",
                 "capability": "run_path",
-                "params": {"path": [{"x": 400, "y": 0, "z": 0}], "feed": 500},
+                "params": {"path": [{"x": 9999, "y": 0, "z": 0}], "feed": 500},
             }
         )
         is False

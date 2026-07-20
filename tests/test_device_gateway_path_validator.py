@@ -52,9 +52,31 @@ def test_validate_run_path_params_rejects_nan_feed():
     assert error == "E_BAD_PARAMS"
 
 
-def test_validate_run_path_params_rejects_default_workspace_oob_without_profile():
-    """GW-R3-5: without profile, enforce [0, DEFAULT_WORKSPACE] not only ±500."""
-    _, error = validate_run_path_params({"path": [{"x": 400, "y": 0, "z": 0}], "feed": 500})
+def test_validate_run_path_params_allows_large_coord_without_profile():
+    """GW-R3-5 fix: no-profile pre-check falls back to the ±500 hard limit.
+
+    Real product firmware advertises a 300x300x80mm workspace; the app-create
+    pre-check runs before the profile resolves, so clamping to the 100mm
+    DEFAULT_WORKSPACE_MM here rejected legitimate coords. Profile-aware
+    [0, workspace] enforcement still happens once the profile is resolved
+    (see the profile test below).
+    """
+    _, error = validate_run_path_params({"path": [{"x": 250, "y": 0, "z": 0}], "feed": 500})
+    assert error is None
+
+
+def test_validate_run_path_params_still_rejects_beyond_hard_limit_without_profile():
+    """GW-R3-5 fix: the absolute ±500 defense-in-depth limit still applies."""
+    _, error = validate_run_path_params({"path": [{"x": 600, "y": 0, "z": 0}], "feed": 500})
+    assert error == "E_BAD_PARAMS"
+
+
+def test_validate_run_path_params_enforces_profile_workspace_when_resolved():
+    """Profile-aware [0, workspace] enforcement rejects coords outside the box."""
+    from device_intelligence.schemas import DeviceProfile
+
+    profile = DeviceProfile(profile_id="small", model="small", workspace_mm={"x": 100, "y": 100, "z": 20})
+    _, error = validate_run_path_params({"path": [{"x": 250, "y": 0, "z": 0}], "feed": 500}, profile=profile)
     assert error == "E_BAD_PARAMS"
 
 
