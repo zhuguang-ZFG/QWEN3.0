@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from device_intelligence import shadow_store
@@ -41,7 +42,9 @@ async def get_device_status(device_id: str) -> dict[str, Any]:
             "shadow": dict,
         }
     """
-    status = _build_device_status(device_id)
+    # CORE-O3: build_device_status hits the task store synchronously (Redis
+    # HGETALL); keep it off the event loop like dispatch.py already does.
+    status = await asyncio.to_thread(_build_device_status, device_id)
     raw_shadow = shadow_store.snapshot(device_id) or {}
     return {
         "device_id": device_id,

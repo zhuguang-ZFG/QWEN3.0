@@ -6,12 +6,12 @@ import hashlib
 import json
 import logging
 import os
-import sys
 
 import httpx
 
 from device_gateway.delivery_status import QUEUED_NO_DELIVERY_MCP_MESSAGE, QUEUED_NO_DELIVERY_STATUS
 from dlc_mcp.remote_token import require_remote_api_token
+from dlc_mcp.stdio_loop import run_stdio_loop
 from dlc_mcp.tools import TOOLS
 
 DLC_API_URL = os.environ.get("DLC_API_URL", "http://127.0.0.1:8081")
@@ -110,6 +110,11 @@ def _dispatch_idem_key(endpoint: str, payload: dict) -> str:
 
 def _format_submission(client: httpx.Client, req_id: object, endpoint: str, payload: dict) -> dict:
     result = _submit(client, endpoint, payload, idem_key=_dispatch_idem_key(endpoint, payload))
+    # CORE-O1: "duplicate" = the same instruction replayed within the dlc_api
+    # idempotency TTL (dlc_api/idempotency.py). That is an idempotent success,
+    # not an internal error — reply with a friendly notice instead of -32603.
+    if str(result.get("status") or "") == "duplicate":
+        return _tool_result(req_id, "该指令刚刚已提交过，正在处理中，无需重复下发。")
     if result.get("error"):
         return _tool_error(req_id, -32603, result["error"])
     status = str(result.get("status") or "")
@@ -272,26 +277,11 @@ def handle_request(client: httpx.Client, req: dict) -> dict:
 
 def main() -> None:
     require_remote_api_token(api_url=DLC_API_URL, api_token=DLC_API_TOKEN)
+    # CORE-O5/CORE-Y1: the stdio read loop lives in dlc_mcp.stdio_loop — slow
+    # tools/call requests run on a thread pool so this process keeps answering
+    # broker pings, and malformed JSON lines get a -32700 reply (never silent).
     with httpx.Client(timeout=60.0) as client:
-        for line in sys.stdin:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                req = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            # P1 #5：handle_request 必须纳入 try，任何畸形请求/内部异常
-            # 都返回错误响应，不能让主循环退出（否则 mcp_pipe 频繁重连）。
-            try:
-                resp = handle_request(client, req)
-            except Exception as exc:  # noqa: BLE001 - 不能让主循环崩
-                logger.warning("MCP handle_request internal error: %s", exc)
-                resp = _tool_error(req.get("id") if isinstance(req, dict) else None, -32603, "Internal error")
-            if resp and (resp.get("id") is not None or resp.get("error") is not None):
-                payload = json.dumps(resp, ensure_ascii=False) + "\n"
-                sys.stdout.buffer.write(payload.encode("utf-8"))
-                sys.stdout.buffer.flush()
+        run_stdio_loop(client, handle_request)
 
 
 if __name__ == "__main__":

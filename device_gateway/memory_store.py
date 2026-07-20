@@ -8,7 +8,7 @@ import itertools
 import time as _time
 from typing import Any
 
-from device_gateway.redis_store_helpers import _ACTIVE_STATUSES
+from device_gateway.redis_store_helpers import _ACTIVE_STATUSES, QUEUED_MAX_AGE_SEC
 from device_gateway.store_utils import StoreConfigMixin
 
 
@@ -66,6 +66,8 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
             }
 
     def active_tasks_for_device(self, device_id: str) -> list[dict[str, Any]]:
+        # GW-WG: lazily reclaim over-age queued tasks where "busy" is computed.
+        self.expire_stale_queued(device_id)
         with self._lock:
             active: list[dict[str, Any]] = []
             for state in self._tasks.values():
@@ -76,8 +78,35 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
                     active.append(deepcopy(task))
             return active
 
+    def expire_stale_queued(self, device_id: str, max_age_sec: float = QUEUED_MAX_AGE_SEC) -> int:
+        """GW-WG: age out queued tasks that no delivery channel will ever pop."""
+        with self._lock:
+            queue = self._pending_by_device.get(device_id)
+            if not queue:
+                return 0
+            now = _time.time()
+            kept: deque[dict[str, Any]] = deque()
+            count = 0
+            while queue:
+                task = queue.popleft()
+                enqueued_at = float(task.get("_enqueued_at") or 0)
+                if enqueued_at > 0 and now - enqueued_at > max_age_sec:
+                    state = self._tasks.get(str(task.get("task_id", "")))
+                    if state and state.get("status") == "queued":
+                        state["status"] = "expired"
+                    count += 1
+                    continue
+                kept.append(task)
+            if kept:
+                self._pending_by_device[device_id] = kept
+            else:
+                self._pending_by_device.pop(device_id, None)
+            return count
+
     def enqueue_pending_task(self, device_id: str, task: dict[str, Any]) -> int:
         with self._lock:
+            # Mirror the Redis backend's enqueue timestamp (used by GW-WG expiry).
+            task["_enqueued_at"] = _time.time()
             self._pending_by_device.setdefault(device_id, deque()).append(task)
             state = self._tasks.setdefault(task["task_id"], {"task": task, "status": "created", "events": []})
             state["task"] = task
@@ -100,6 +129,9 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
                 state = self._tasks.setdefault(tid, {"task": task, "status": "queued", "events": []})
                 state["status"] = "dispatching"
                 state["processing_started_at"] = now
+                # GW-WC: stamp the dispatch generation so acks can be matched
+                # against the generation active at dispatch time.
+                task["_dispatch_gen"] = int(state.get("dispatch_gen", 0))
             if not queue:
                 self._pending_by_device.pop(device_id, None)
             return tasks
@@ -120,13 +152,19 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
             if state:
                 state["status"] = "dispatched"
 
-    def ack_processing(self, device_id: str, task_id: str) -> bool:
+    def ack_processing(self, device_id: str, task_id: str, dispatch_gen: int | None = None) -> bool:
         with self._lock:
             processing = self._processing_by_device.get(device_id, {})
+            state = self._tasks.get(task_id)
+            # GW-WC: reject acks whose dispatch generation no longer matches
+            # (task was recovered and possibly re-dispatched since). Leave the
+            # processing entry alone — it belongs to the current generation.
+            if state is not None and dispatch_gen is not None:
+                if int(dispatch_gen) != int(state.get("dispatch_gen", 0)):
+                    return False
             entry = processing.pop(task_id, None)
             if entry is None:
                 return False
-            state = self._tasks.get(task_id)
             if state:
                 state.pop("processing_started_at", None)
             return True
@@ -147,6 +185,8 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
                     state = self._tasks.get(tid)
                     if state:
                         state["status"] = "queued"
+                        # GW-WC: bump generation so stale acks stay rejected.
+                        state["dispatch_gen"] = int(state.get("dispatch_gen", 0)) + 1
                         state.pop("processing_started_at", None)
                     recovered.append(tid)
             return len(recovered)

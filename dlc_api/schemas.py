@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TaskPreviewRequest(BaseModel):
@@ -65,6 +65,11 @@ class DeviceStatusResponse(BaseModel):
 
 class TaskValidateRequest(BaseModel):
     """Request to validate a motion path against safety rules."""
+
+    # CORE-O4: pydantic v2 accepts NaN/Infinity floats by default; a NaN
+    # workspace bound defeats every boundary comparison downstream. Reject
+    # non-finite numbers at the parsing layer.
+    model_config = ConfigDict(allow_inf_nan=False)
 
     path: list[dict[str, Any]] = Field(..., min_length=1)
     workspace: dict[str, float] | None = None

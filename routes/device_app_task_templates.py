@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
 
+from config import settings
 from device_logic.access import is_owner, require_device_access, require_device_control
 from device_logic.auth import authorize
 from device_logic.db import connect
@@ -20,6 +21,7 @@ from routes.device_app_task_create import (
     _build_app_gateway_task,
     _dispatch_or_wait,
 )
+from routes.rate_limit_helper import check_key_limit
 
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-templates"])
 
@@ -151,6 +153,10 @@ async def execute_task_template(template_id: str, request: Request, authorizatio
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
+    # RT-W1: template execute dispatches a device task — same budget as create_task.
+    limited = check_key_limit(f"device_app_task:{account['id']}", settings.DEVICE.dlc_task_per_min)
+    if limited is not None:
+        return limited
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body

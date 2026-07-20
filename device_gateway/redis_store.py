@@ -86,6 +86,9 @@ class RedisDeviceTaskStore(
         }
 
     def active_tasks_for_device(self, device_id: str) -> list[dict[str, Any]]:
+        # GW-WG: lazily reclaim over-age queued tasks right where "busy" is
+        # computed, so a dead queue entry cannot hold the device busy forever.
+        self.expire_stale_queued(device_id)
         if self._task_index_enabled():
             return self._active_tasks_indexed(device_id)
         return self._active_tasks_hgetall(device_id)

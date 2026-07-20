@@ -58,9 +58,15 @@ def test_redis_client_has_socket_timeout():
 
 
 def test_mcp_main_handles_arbitrary_exception(monkeypatch):
-    """main() 处理畸形 JSON（合法 JSON 但非对象）时不能退出主循环。"""
+    """stdio 读循环处理畸形 JSON（合法 JSON 但非对象）时不能退出主循环。
+
+    CORE-O5/CORE-Y1(2026-07-20 第二轮审查)后,读循环从 server.main() 抽到
+    dlc_mcp.stdio_loop.run_stdio_loop;本测试守护"非对象请求不崩循环"的行为,
+    monkeypatch 目标随之改到 stdio_loop 模块。
+    """
     import io
     from dlc_mcp import server as mcp_server
+    from dlc_mcp import stdio_loop
 
     # 模拟 stdin 依次输入：非对象 JSON、空行、合法 initialize
     fake_stdin = io.StringIO('["not", "an", "object"]\n\n{"jsonrpc":"2.0","id":1,"method":"initialize"}\n')
@@ -71,12 +77,12 @@ def test_mcp_main_handles_arbitrary_exception(monkeypatch):
         def __init__(self) -> None:
             self.buffer = io.BytesIO()
 
-    monkeypatch.setattr(mcp_server.sys, "stdin", fake_stdin)
-    monkeypatch.setattr(mcp_server.sys, "stdout", _BufferedStdout())
+    monkeypatch.setattr(stdio_loop.sys, "stdin", fake_stdin)
+    monkeypatch.setattr(stdio_loop.sys, "stdout", _BufferedStdout())
 
-    # main() 必须正常跑完，不抛任何异常（旧代码会因为 list.get 崩溃）。
-    # 不吞任何异常字符串——stub 已提供完整 buffer，任何异常都是真实回归。
-    mcp_server.main()
+    # run_stdio_loop 必须正常跑完，不抛任何异常（旧代码会因为 list.get 崩溃）。
+    # 非对象 JSON 走 handle_request 得 -32600，畸形行得 -32700，循环不退出。
+    stdio_loop.run_stdio_loop(httpx_client_stub(), mcp_server.handle_request)
 
 
 def test_mcp_handle_request_rejects_non_dict():

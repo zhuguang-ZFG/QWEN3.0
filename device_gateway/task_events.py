@@ -130,7 +130,11 @@ def process_motion_event_core(device_id: str, message: dict[str, Any]) -> dict[s
 
     summary = record_motion_event(message)
     shadow_store.update_motion_event(message)
-    ack_processing_task(device_id, message["task_id"])
+    # GW-WC: pass through the dispatch generation when the channel echoes it;
+    # acks carrying a stale generation (pre-recovery worker) are rejected.
+    raw_gen = message.get("dispatch_gen", message.get("_dispatch_gen"))
+    dispatch_gen = int(raw_gen) if isinstance(raw_gen, (int, float)) and not isinstance(raw_gen, bool) else None
+    ack_processing_task(device_id, message["task_id"], dispatch_gen=dispatch_gen)
     record_motion_event_observability(message, device_id)
     return summary
 

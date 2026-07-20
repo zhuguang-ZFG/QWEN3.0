@@ -21,7 +21,8 @@ def seed_device_unbound(device_id: str = "dev-2", device_sn: str = "SN-APP-02") 
 
 
 SAMPLE_SVG = (
-    '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><g><rect width="200" height="200"/></g></svg>'
+    '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">'
+    '<g><path d="M 0 0 L 200 0 L 200 200 L 0 200 Z"/></g></svg>'
 )
 
 
@@ -171,9 +172,14 @@ def test_batch_draw_endpoint_dispatches_to_online_devices(tmp_path, monkeypatch)
     snapshot = store.task_snapshot(data["results"][0]["task_id"])
     assert snapshot is not None
     task = snapshot["task"]
-    assert task["capability"] == "draw_svg"
+    # GW-WA 回归：coordinator 任务必须走白名单 capability（run_path），
+    # 旧 "draw_svg" 在 SEC-06 白名单外，Redis 模式被静默丢弃却报成功。
+    assert task["capability"] == "run_path"
     assert task["batch_id"] == data["batch_id"]
-    assert "svg" in task["params"]
+    assert task["params"]["path"], "coordinator task must carry a validated motion path"
+    from device_gateway.redis_store_helpers import validate_task_schema
+
+    assert validate_task_schema(task) is True
 
 
 def test_batch_draw_endpoint_offline_device_records_failure(tmp_path, monkeypatch):

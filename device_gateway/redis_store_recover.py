@@ -21,6 +21,23 @@ class RedisStoreRecoverMixin:
     task or health check to recover from process crashes.
     """
 
+    def _mark_recovered(self, task_id: str, now: float) -> None:
+        """AUDIT-9-S4: CAS-protected status update after an atomic requeue.
+
+        Anti-double-spend: mark recovered_at so ack_processing can detect
+        stale workers and reject late acks; bump dispatch_gen (GW-WC) so acks
+        carrying the old generation stay rejected even after re-dispatch
+        clears recovered_at.
+        """
+
+        def _recover(s, _ts=now):
+            s["status"] = "queued"
+            s["recovered_at"] = str(_ts)
+            s["dispatch_gen"] = int(s.get("dispatch_gen", 0)) + 1
+            s.pop("processing_started_at", None)
+
+        self._cas_update(task_id, _recover)  # type: ignore[attr-defined]
+
     def recover_stale_processing(self, device_id: str, timeout_sec: float = 120.0) -> int:
         proc_key = self._processing_key(device_id)  # type: ignore[attr-defined]
         pending_key = self._queue_key(device_id)  # type: ignore[attr-defined]
@@ -50,18 +67,7 @@ class RedisStoreRecoverMixin:
                     moved = requeue_item_atomic(self._redis, proc_key, pending_key, item, ttl)  # type: ignore[attr-defined]
                     if moved:
                         if state:
-                            # AUDIT-9-S4: CAS-protected status update.
-                            # Anti-double-spend: mark recovered_at so ack_processing
-                            # can detect stale workers and reject late acks.
-                            _now = now
-                            self._cas_update(  # type: ignore[attr-defined]
-                                task_id,
-                                lambda s: (
-                                    s.__setitem__("status", "queued"),
-                                    s.__setitem__("recovered_at", str(_now)),
-                                    s.pop("processing_started_at", None),
-                                ),
-                            )
+                            self._mark_recovered(task_id, now)
                         count += 1
             except Exception as exc:
                 _log.warning(

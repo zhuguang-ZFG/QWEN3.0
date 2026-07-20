@@ -4,8 +4,10 @@ Upgrades the first-slice keyword mapping to a small pattern-based parser
 that extracts structured intents from natural-language commands.
 
 A gated LLM-backed planner (LIMA_DEVICE_LLM_PLANNER=1) can override
-low-confidence parses. Until that gate is opened, unknown commands fall
-back to write_text with an explicit explanation.
+low-confidence parses. Until that gate is opened, unknown commands are
+rejected (capability="rejected", no motion task) with an explicit
+explanation — GW-WH: an unrecognized utterance must never be turned into
+pen motion (the old write_text fallback did exactly that).
 """
 
 from __future__ import annotations
@@ -26,6 +28,14 @@ from device_gateway.intent_llm_planner import (  # noqa: F401  re-export (prod +
 )
 
 _log = logging.getLogger(__name__)
+
+# ── Emergency stop (GW-WH) ───────────────────────────────────────────────────
+# Emergency semantics get absolute priority over every other pattern (and the
+# fallback): any utterance containing 急停 / 紧急停止 / the common ASR
+# mishearing 估停 / estop / e-stop / emergency [stop] resolves to the estop
+# control command. Substring search is intentional — for emergency phrasing,
+# stopping is the fail-safe direction.
+_EMERGENCY_STOP_RE = re.compile(r"急停|紧急停止|估停|\be[-_ ]?stop\b|\bemergency(?:\s+stop)?\b", re.I)
 
 # ── Command patterns ─────────────────────────────────────────────────────────
 # Each pattern is (regex, capability, param_map_fn)
@@ -75,7 +85,19 @@ def resolve_direct_device_command(text: str) -> dict[str, Any] | None:
         "继续": "resume",
         "resume": "resume",
         "停止": "stop",
+        "停": "stop",
+        "停下": "stop",
+        "停下来": "stop",
+        "快停": "stop",
         "stop": "stop",
+        # GW-WH: emergency stop variants (估停 = common ASR mishearing of 急停).
+        "急停": "estop",
+        "紧急停止": "estop",
+        "估停": "estop",
+        "estop": "estop",
+        "e-stop": "estop",
+        "emergency": "estop",
+        "emergency stop": "estop",
         "设备信息": "get_device_info",
     }
     if normalized in control_map:
@@ -120,17 +142,16 @@ def parse_command(text: str) -> dict[str, Any]:
         {"capability": "...", "params": {...}, "source": "voice",
          "confidence": 0.0–1.0, "explanation": "..."}
 
-    If no pattern matches, returns a low-confidence fallback with an
-    explicit explanation of why the command was rejected.
+    If no pattern matches, returns a low-confidence "rejected" result (no
+    motion task is generated) with an explicit explanation.
     """
     stripped = (text or "").strip()
     if not stripped:
-        return _make_result(
-            "write_text",
-            {"text": "hello"},
-            0.0,
-            "empty command, falling back to write_text",
-        )
+        return _make_result("rejected", {}, 0.0, "empty command: nothing to execute")
+
+    # GW-WH: emergency stop outranks every other pattern, including fallback.
+    if _EMERGENCY_STOP_RE.search(stripped):
+        return _make_result("estop", {}, 1.0, "emergency stop keyword matched: estop")
 
     direct = resolve_direct_device_command(stripped)
     if direct:
@@ -149,11 +170,15 @@ def parse_command(text: str) -> dict[str, Any]:
                 f"pattern matched: {capability}",
             )
 
+    # GW-WH: low-confidence fallback must NOT generate a motion task — the old
+    # write_text fallback turned unknown speech (e.g. an unmatched emergency
+    # phrase) into physical pen movement. "rejected" fails capability
+    # validation downstream, so the task is refused and needs clarification.
     return _make_result(
-        "write_text",
-        {"text": stripped[:40]},
+        "rejected",
+        {},
         0.1,
-        f"unknown command '{stripped[:40]}', falling back to write_text",
+        f"unknown command '{stripped[:40]}': no pattern matched, rejected (needs clarification)",
     )
 
 

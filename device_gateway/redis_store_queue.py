@@ -6,7 +6,12 @@ from copy import deepcopy
 import logging
 from typing import Any
 
-from device_gateway.redis_store_helpers import decode_redis_json, encode_redis_json, validate_task_schema
+from device_gateway.redis_store_helpers import (
+    QUEUED_MAX_AGE_SEC,
+    decode_redis_json,
+    encode_redis_json,
+    validate_task_schema,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -27,21 +32,14 @@ class RedisStoreQueueMixin:
         self._cas_update(task["task_id"], _enqueue, default_state=default)
         return queue_depth
 
-    def pop_pending_tasks(self, device_id: str, limit: int = 16) -> list[dict[str, Any]]:
-        """Atomically move tasks from pending to processing queue using LMOVE.
+    def _gate_popped_tasks(self, device_id: str, raw_tasks: list[str]) -> list[dict[str, Any]]:
+        """SEC-06: gate popped tasks against the capability/field allowlist.
 
-        Tasks are moved to a processing queue. Call ack_processing() after
-        the device confirms receipt, or let recover_stale_processing() re-queue
-        orphaned tasks after a timeout.
+        A malicious Redis RPUSH bypasses HTTP validation; drop rejected tasks
+        from the processing queue so they are never forwarded to firmware, and
+        mark their state failed (GW-WA/WB) so they cannot linger as active
+        "queued" ghosts that keep the device busy while callers saw success.
         """
-        raw_tasks = self._lmove_many(
-            self._queue_key(device_id),
-            self._processing_key(device_id),
-            limit,
-        )
-        # SEC-06: gate every popped task against the capability/field allowlist.
-        # A malicious Redis RPUSH bypasses HTTP validation; drop rejected tasks
-        # from the processing queue so they are never forwarded to firmware.
         tasks: list[dict[str, Any]] = []
         for item in raw_tasks:
             task = decode_redis_json(item)
@@ -55,6 +53,29 @@ class RedisStoreQueueMixin:
                 task.get("task_id"),
             )
             self._redis.lrem(self._processing_key(device_id), 1, item)
+            dropped_id = task.get("task_id")
+            if dropped_id:
+
+                def _mark_failed(s):
+                    s["status"] = "failed"
+                    s["error"] = "sec06_capability_rejected"
+
+                self._cas_update(dropped_id, _mark_failed)
+        return tasks
+
+    def pop_pending_tasks(self, device_id: str, limit: int = 16) -> list[dict[str, Any]]:
+        """Atomically move tasks from pending to processing queue using LMOVE.
+
+        Tasks are moved to a processing queue. Call ack_processing() after
+        the device confirms receipt, or let recover_stale_processing() re-queue
+        orphaned tasks after a timeout.
+        """
+        raw_tasks = self._lmove_many(
+            self._queue_key(device_id),
+            self._processing_key(device_id),
+            limit,
+        )
+        tasks = self._gate_popped_tasks(device_id, raw_tasks)
         processing_started_at = self._redis.time()[0] if tasks else 0
         for task in tasks:
             default = {"task": deepcopy(task), "status": "queued", "events": []}
@@ -69,7 +90,10 @@ class RedisStoreQueueMixin:
                 # after the first recovery (W4, 2026-07-20 review).
                 s.pop("recovered_at", None)
 
-            self._cas_update(task["task_id"], _dispatch, default_state=default)
+            state = self._cas_update(task["task_id"], _dispatch, default_state=default)
+            # GW-WC: stamp the dispatch generation onto the outgoing task so
+            # the eventual ack can prove it belongs to this dispatch.
+            task["_dispatch_gen"] = int(state.get("dispatch_gen", 0)) if state else 0
         return tasks
 
     def requeue_pending_tasks(self, device_id: str, tasks: list[dict[str, Any]]) -> int:
@@ -140,15 +164,28 @@ class RedisStoreQueueMixin:
                 return bool(self._redis.lrem(key, 1, item))
         return False
 
-    def ack_processing(self, device_id: str, task_id: str) -> bool:
+    def ack_processing(self, device_id: str, task_id: str, dispatch_gen: int | None = None) -> bool:
         """Remove a task from the processing queue after device ack.
 
-        Anti-double-spend: if task was already recovered back to pending,
-        reject this late ack so downstream never fires a duplicate completion.
-        recovered_at is cleared on re-dispatch (pop_pending_tasks), so only
-        acks from the stale pre-recovery worker are rejected.
+        Anti-double-spend (GW-WC): when the caller provides ``dispatch_gen``
+        (stamped on the task at pop time), it must match the stored
+        generation — a re-dispatch bumps the generation, so acks from stale
+        pre-recovery workers are rejected even after recovered_at is cleared.
+        Callers without a generation fall back to the recovered_at check.
         """
         state = self._read_task_state(task_id)
+        if state is not None and dispatch_gen is not None:
+            current_gen = int(state.get("dispatch_gen", 0))
+            if int(dispatch_gen) != current_gen:
+                _log.warning(
+                    "ack_processing rejected: task %s stale dispatch_gen %s != %s",
+                    task_id,
+                    dispatch_gen,
+                    current_gen,
+                )
+                # Do NOT touch the processing queue: after a re-dispatch the
+                # entry there belongs to the current generation's worker.
+                return False
         if state and state.get("recovered_at"):
             _log.warning(
                 "ack_processing rejected: task %s already recovered (status=%s)",
@@ -162,6 +199,43 @@ class RedisStoreQueueMixin:
             # AUDIT-9-S4: CAS-protected pop of processing_started_at.
             self._cas_update(task_id, lambda s: s.pop("processing_started_at", None))
         return removed
+
+    def expire_stale_queued(self, device_id: str, max_age_sec: float = QUEUED_MAX_AGE_SEC) -> int:
+        """GW-WG: age out queued tasks that no delivery channel will ever pop.
+
+        Removes over-age items from the pending queue and marks their state
+        "expired" (terminal) so they stop holding the device "busy" forever.
+        """
+        queue_key = self._queue_key(device_id)
+        now = float(self._redis.time()[0])
+        count = 0
+        for item in self._redis.lrange(queue_key, 0, -1):
+            try:
+                task = decode_redis_json(item)
+                enqueued_at = float(task.get("_enqueued_at") or 0)
+            except Exception as exc:
+                _log.warning("expire_stale_queued device=%s: corrupt queue item ignored: %s", device_id, exc)
+                continue
+            if enqueued_at <= 0 or now - enqueued_at <= max_age_sec:
+                continue
+            if not self._redis.lrem(queue_key, 1, item):
+                continue
+            task_id = task.get("task_id")
+            if task_id:
+
+                def _expire(s):
+                    if s.get("status") == "queued":
+                        s["status"] = "expired"
+
+                self._cas_update(task_id, _expire)
+            count += 1
+            _log.warning(
+                "GW-WG: expired stale queued task device=%s task=%s age=%.0fs",
+                device_id,
+                task_id,
+                now - enqueued_at,
+            )
+        return count
 
     def abandon_processing_task(self, device_id: str, task_id: str) -> bool:
         """Remove a task from the processing queue without re-queueing it."""

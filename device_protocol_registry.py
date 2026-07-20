@@ -33,6 +33,12 @@ class ProtocolRegistry:
                 "pause",
                 "resume",
                 "stop",
+                # GW-WH: voice-layer 急停 resolves to "estop"; without this entry
+                # the policy engine's protocol gate rejected every estop task
+                # ("capability not supported") and the emergency stop never
+                # reached dispatch. Firmware-level availability is still gated
+                # per-version by device_gateway/firmware_matrix.py (>= v1.3.0).
+                "estop",
                 "get_device_info",
                 "self_check",
             }

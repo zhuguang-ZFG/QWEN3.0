@@ -8,6 +8,9 @@ import math
 import re
 from typing import Any
 
+from device_gateway.path_pipeline import PathNormalizationError, render_svg_task
+from device_gateway.path_validator import validate_capability_params
+from device_gateway.safety import DEFAULT_FEED
 from device_gateway.sessions import registry
 from device_gateway.store import task_store
 
@@ -16,6 +19,7 @@ _log = logging.getLogger(__name__)
 _SVG_SIZE_RE = re.compile(r'width\s*=\s*"([0-9.]+)"', re.IGNORECASE)
 _SVG_HEIGHT_RE = re.compile(r'height\s*=\s*"([0-9.]+)"', re.IGNORECASE)
 _SVG_VIEWBOX_RE = re.compile(r'viewBox\s*=\s*"([^"]+)"', re.IGNORECASE)
+_SVG_PATH_D_RE = re.compile(r'<path[^>]*\bd\s*=\s*"([^"]+)"', re.IGNORECASE)
 
 
 def _fallback_parse_svg_bounds(svg_content: str) -> dict[str, float]:
@@ -150,6 +154,31 @@ class MultiDeviceCoordinator:
             "overall_status": overall,
         }
 
+    def _region_motion_params(self, clipped_svg: str) -> tuple[dict[str, Any] | None, str | None]:
+        """GW-WA: convert a clipped SVG region into validated run_path params.
+
+        The old "draw_svg" capability was not on the SEC-06 allowlist: Redis
+        mode silently dropped the task while reporting success. Route through
+        the regular render + validate pipeline instead.
+        """
+        d_strings = _SVG_PATH_D_RE.findall(clipped_svg)
+        if not d_strings:
+            return None, "no drawable path data in svg region"
+        try:
+            rendered = render_svg_task(" ".join(d_strings))
+        except PathNormalizationError as exc:
+            return None, f"path normalization failed: {exc}"
+        params = {
+            "path": rendered["path"],
+            "feed": DEFAULT_FEED,
+            "source_capability": "draw_svg",
+            "preview_svg": rendered.get("preview_svg", ""),
+        }
+        sanitized, error = validate_capability_params("run_path", params)
+        if error:
+            return None, f"validation failed: {error}"
+        return sanitized, None
+
     def _dispatch_one(
         self,
         svg_content: str,
@@ -167,13 +196,17 @@ class MultiDeviceCoordinator:
             return {"device_id": device_id, "status": "failed", "error": "device_offline"}
 
         clipped_svg = self._clip_svg(svg_content, region)
+        params, error = self._region_motion_params(clipped_svg)
+        if error or params is None:
+            return {"device_id": device_id, "status": "failed", "error": error or "region build failed"}
         task = {
             "task_id": task_store.next_task_id(),
             "device_id": device_id,
             "batch_id": batch_id,
             "coordinator_id": coordinator_id,
-            "capability": "draw_svg",
-            "params": {"svg": clipped_svg, "region": assignment},
+            "capability": "run_path",
+            "region": region,
+            "params": params,
         }
         enqueue_pending_task(device_id, task)
         return {"device_id": device_id, "task_id": task["task_id"], "status": "dispatched"}

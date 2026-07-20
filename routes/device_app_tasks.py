@@ -174,11 +174,21 @@ async def reject_task(task_id: str, request: Request, authorization: str = Heade
     return data
 
 
+# RT-W2: hard cap on the raw SVG accepted by batch-draw. Conservative subset of
+# the 1MB xiaozhi_drawing svg_validator ceiling — plotter artwork stays far
+# below this; anything larger is abuse or a client bug.
+_BATCH_DRAW_SVG_MAX_BYTES = 256 * 1024
+
+
 @router.post("/devices/batch-draw")
 async def batch_draw(request: Request, authorization: str = Header(default="")):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
+    # RT-W2: batch-draw fans out to N devices — same per-account task budget.
+    limited = check_key_limit(f"device_app_task:{account['id']}", settings.DEVICE.dlc_task_per_min)
+    if limited is not None:
+        return limited
     body = await read_body(request)
     if isinstance(body, JSONResponse):
         return body
@@ -188,6 +198,8 @@ async def batch_draw(request: Request, authorization: str = Header(default="")):
     coordinator_id = str_field(body, "coordinator_id", "coordinatorId")
     if not isinstance(device_ids, list) or not device_ids or not svg or not coordinator_id:
         return err(400, "device_ids (non-empty list), svg and coordinator_id are required", 400)
+    if len(svg.encode("utf-8")) > _BATCH_DRAW_SVG_MAX_BYTES:
+        return err(413, f"svg exceeds max size {_BATCH_DRAW_SVG_MAX_BYTES} bytes", 413)
 
     with connect() as conn:
         for device_id in device_ids:

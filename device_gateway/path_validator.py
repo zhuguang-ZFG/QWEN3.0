@@ -148,12 +148,11 @@ def validate_capability_params(
             "feed": _clamp_feed_value(params.get("feed")),
             "source_capability": str(params.get("source_capability", capability)),
         }
-        # Server-generated paths target DEFAULT_WORKSPACE_MM (100mm); the
-        # conservative fallback profile (60mm) would reject the server's own
-        # output. Profile workspace enforcement therefore applies only to
-        # client-supplied run_path below; generated paths are capped later by
-        # apply_profile_constraints (point count / feed).
-        path_error = _maybe_preserve_path(params, None, sanitized)
+        # GW-B1: generated paths are normalized to the resolved profile
+        # workspace upstream (_normalize_generated_path), so profile workspace
+        # enforcement now applies to them too — no more "generator honesty"
+        # exemption that let 183mm text through a 60mm workspace check.
+        path_error = _maybe_preserve_path(params, profile, sanitized)
         if path_error:
             return {}, path_error
     else:

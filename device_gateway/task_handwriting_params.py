@@ -10,7 +10,7 @@ from typing import Any
 from integrations.autohanding.client import AutohandingRateLimitError
 from observability import prometheus_metrics
 
-from .path_pipeline import render_svg_task, text_to_svg_path
+from .path_pipeline import PathNormalizationError, render_svg_task, text_to_svg_path
 from .path_validator import MAX_FEED, MIN_FEED
 from .safety import DEFAULT_FEED
 
@@ -117,7 +117,11 @@ async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> t
         _log.warning("autohanding failed for task mode, trying local fallback: %s", exc)
         if _is_ascii(text):
             _record_handwriting("fallback", start_ms, fallback=True)
-            return _build_local_fallback_params(text, _clamp_feed(params.get("feed"))), None
+            try:
+                return _build_local_fallback_params(text, _clamp_feed(params.get("feed"))), None
+            except PathNormalizationError as norm_exc:
+                _record_handwriting("failed", start_ms)
+                return {}, f"path normalization failed: {norm_exc}"
         _record_handwriting("failed", start_ms)
         return {}, f"autohanding error: {exc}"
 
@@ -126,5 +130,10 @@ async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> t
         _record_handwriting("vectorization_failed", start_ms)
         return {}, svg_result.get("error") or "handwriting vectorization failed"
 
+    try:
+        run_params = _build_handwriting_run_params(str(svg_result["svg_path"]), text, _clamp_feed(params.get("feed")))
+    except PathNormalizationError as norm_exc:
+        _record_handwriting("failed", start_ms)
+        return {}, f"path normalization failed: {norm_exc}"
     _record_handwriting("success", start_ms)
-    return _build_handwriting_run_params(str(svg_result["svg_path"]), text, _clamp_feed(params.get("feed"))), None
+    return run_params, None

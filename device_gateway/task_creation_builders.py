@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from device_intelligence.schemas import TaskPlan
@@ -10,6 +11,9 @@ from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState
 
 from .model_routing import CONTROL_CAPABILITIES
+from .path_pipeline import PathNormalizationError, _normalize_path_to_workspace
+from .path_validator import _PATH_GENERATING_CAPABILITIES
+from .safety import DEFAULT_WORKSPACE_MM
 from .task_creation_errors import (
     _build_error_task,
     _handle_dispatch_blocked,
@@ -109,6 +113,31 @@ async def _build_run_params_or_error(
             "draw_generation_failed",
         )
     return run_params, None
+
+
+def _normalize_generated_path(
+    run_params: dict[str, Any], capability: str, profile: Any
+) -> tuple[dict[str, Any], str | None]:
+    """GW-B1: fit server-generated paths inside the resolved profile workspace.
+
+    write_text/draw_generated/handwriting paths previously skipped workspace
+    normalization entirely; long text reached 183mm and was dispatched to
+    60-100mm machines. Returns (params, error). Normalization failure is a
+    hard reject, never a silent clamp.
+    """
+    if capability not in _PATH_GENERATING_CAPABILITIES:
+        return run_params, None
+    path = run_params.get("path")
+    if not isinstance(path, list) or not path:
+        return run_params, None
+    workspace = profile.workspace_mm if profile is not None else DEFAULT_WORKSPACE_MM
+    try:
+        normalized = _normalize_path_to_workspace(path, width=float(workspace["x"]), height=float(workspace["y"]))
+    except PathNormalizationError as exc:
+        return run_params, str(exc)
+    out = dict(run_params)
+    out["path"] = normalized
+    return out, None
 
 
 def _clamp_params_to_profile(run_params: dict[str, Any], profile: Any) -> dict[str, Any]:
@@ -235,6 +264,12 @@ async def _create_task_from_voice_task(
     if guard := _null_guard_error_task(*ctx, run_params, "task_build_failed", "task build failed", "task_build_failed"):
         return guard
 
+    run_params, norm_error = _normalize_generated_path(run_params, capability, profile)
+    if norm_error:
+        return _build_error_task(
+            *ctx, "E_BAD_PARAMS", f"path normalization failed: {norm_error}", "failed", "validation_failed"
+        )
+
     sanitized, error_task = await _validate_params_or_error(*ctx, run_params, profile=profile)
     if error_task:
         return error_task
@@ -251,4 +286,6 @@ async def _create_task_from_voice_task(
     ):
         return guard
 
-    return _assemble_motion_task(*ctx, sanitized, policy_dict)
+    # GW-WD: simulation + task-store writes are synchronous (Redis/SQLite);
+    # keep them off the event loop.
+    return await asyncio.to_thread(_assemble_motion_task, *ctx, sanitized, policy_dict)

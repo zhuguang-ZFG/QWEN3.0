@@ -91,6 +91,16 @@ _RECONNECT_MIN_DELAY = 1.0
 _RECONNECT_MAX_DELAY = 30.0
 
 
+class StdioServerExitedError(RuntimeError):
+    """Stdio MCP server exited on its own (e.g. import error at startup).
+
+    CORE-O2: a child that dies immediately makes the session *look* clean
+    (stdout EOF -> we close the WS ourselves), which used to reset the
+    reconnect delay and hot-loop a respawn every second. Raising instead sends
+    run_bridge down the exponential-backoff branch.
+    """
+
+
 async def _run_session(endpoint: str, server_cmd: list[str], user_agent: str) -> None:
     """Run one bridge session: spawn a fresh stdio server, connect, pump until WS closes."""
     proc = await _spawn_stdio_server(server_cmd)
@@ -115,6 +125,12 @@ async def _run_session(endpoint: str, server_cmd: list[str], user_agent: str) ->
             finally:
                 for task in pumps:
                     task.cancel()
+        # CORE-O2: pumps ended without an error. If the child already died
+        # (returncode set, or stdout at EOF before the watcher reaped it), the
+        # session was ended by the child — not a clean peer close. Raise so
+        # run_bridge backs off instead of resetting the delay.
+        if proc.returncode is not None or (proc.stdout is not None and proc.stdout.at_eof()):
+            raise StdioServerExitedError(f"stdio server exited early (returncode={proc.returncode})")
     finally:
         if proc.returncode is None:
             proc.terminate()

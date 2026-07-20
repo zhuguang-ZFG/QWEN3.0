@@ -27,16 +27,17 @@ def test_resolves_draw_generated_voice_task():
     assert "explanation" in task
 
 
-def test_resolve_voice_task_unknown_falls_back_with_low_confidence():
+def test_resolve_voice_task_unknown_is_rejected_without_motion():
+    # GW-WH: unknown speech must not become pen motion (old write_text fallback).
     task = resolve_voice_task("xyzzy something weird")
-    assert task["capability"] == "write_text"
-    assert task["params"]["text"] == "xyzzy something weird"
+    assert task["capability"] == "rejected"
+    assert task["params"] == {}
 
 
-def test_resolve_voice_task_empty_returns_hello():
+def test_resolve_voice_task_empty_is_rejected():
     task = resolve_voice_task("")
-    assert task["capability"] == "write_text"
-    assert task["params"]["text"] == "hello"
+    assert task["capability"] == "rejected"
+    assert task["params"] == {}
 
 
 def test_transcript_projects_to_bounded_run_path_motion_task():

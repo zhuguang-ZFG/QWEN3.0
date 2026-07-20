@@ -73,8 +73,8 @@ def mark_task_dispatched(task_id: str) -> None:
         _log.warning("workflow advance skipped for legacy/missing task_id=%s", task_id, exc_info=True)
 
 
-def ack_processing_task(device_id: str, task_id: str) -> bool:
-    return store_mod.task_store.ack_processing(device_id, task_id)
+def ack_processing_task(device_id: str, task_id: str, dispatch_gen: int | None = None) -> bool:
+    return store_mod.task_store.ack_processing(device_id, task_id, dispatch_gen=dispatch_gen)
 
 
 def recover_stale_processing(device_id: str, timeout_sec: float = 120.0) -> int:

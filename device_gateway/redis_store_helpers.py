@@ -241,3 +241,8 @@ class RedisStoreHelpers:
 # Include queue/dispatch pipeline so busy checks and status WS "working" see
 # tasks that occupy the device before a motion phase is reported.
 _ACTIVE_STATUSES = frozenset({"queued", "dispatching", "dispatched", "running", "processing", "progress", "accepted"})
+
+# GW-WG: the self-hosted delivery channel is retired, so queued tasks may never
+# be popped; without an age limit they hold the device "busy" forever. Queued
+# tasks older than this are lazily expired by expire_stale_queued().
+QUEUED_MAX_AGE_SEC = 3600.0

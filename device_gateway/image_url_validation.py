@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import ipaddress
 import os
 import socket
@@ -63,3 +64,8 @@ def validate_image_url(image_url: str) -> tuple[str | None, str | None]:
         return None, "image_url resolves to a blocked (private) address"
 
     return url, None
+
+
+async def validate_image_url_async(image_url: str) -> tuple[str | None, str | None]:
+    """GW-WD: DNS resolution (getaddrinfo) is blocking — run validation off-loop."""
+    return await asyncio.to_thread(validate_image_url, image_url)

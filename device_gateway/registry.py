@@ -8,7 +8,6 @@ thin: device ownership and persistence live in ``device_logic/crud.py`` and
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -88,37 +87,29 @@ async def restart_device(device_id: str) -> dict[str, Any]:
     """Request an online device to restart.
 
     If the device has an active WebSocket session, send the restart command
-    directly. Otherwise queue the command for the next time the device connects
-    by creating a system restart task in the device task store.
+    directly. Otherwise report an honest failure: the legacy "queue for next
+    connect" fallback enqueued a task without a valid capability, which the
+    SEC-06 gate drops on pop — the restart never reached any device while the
+    queued state kept the device "busy" and the API reported success (GW-WB).
     """
     session = session_registry.get(device_id)
-    if session is not None:
-        try:
-            await session.send_json(
-                {
-                    "type": "system/restart",
-                    "device_id": device_id,
-                    "ts": now(),
-                }
-            )
-            return {"ok": True, "device_id": device_id, "delivered": True}
-        except Exception as exc:  # pragma: no cover - defensive
-            _log.warning("failed to send restart to %s: %s", device_id, exc)
-
-    # Fallback: enqueue a restart task for next connect.
-    try:
-        from device_gateway.tasks import enqueue_pending_task
-
-        task = {
-            "task_id": f"restart-{device_id}-{now()}",
+    if session is None:
+        return {
+            "ok": False,
             "device_id": device_id,
-            "type": "system/restart",
-            "payload": {},
-            "created_at": now(),
+            "delivered": False,
+            "queued": False,
+            "error": "device_offline",
         }
-        # Redis 后端的 enqueue 是同步多次往返；直接调会阻塞事件循环（W11）。
-        await asyncio.to_thread(enqueue_pending_task, device_id, task)
-        return {"ok": True, "device_id": device_id, "delivered": False, "queued": True}
-    except Exception as exc:  # pragma: no cover - defensive
-        _log.warning("failed to queue restart for %s: %s", device_id, exc)
-        raise RuntimeError(f"device {device_id} is offline and restart could not be queued") from exc
+    try:
+        await session.send_json(
+            {
+                "type": "system/restart",
+                "device_id": device_id,
+                "ts": now(),
+            }
+        )
+        return {"ok": True, "device_id": device_id, "delivered": True}
+    except Exception as exc:
+        _log.warning("failed to send restart to %s: %s", device_id, exc)
+        raise RuntimeError(f"restart delivery to device {device_id} failed") from exc

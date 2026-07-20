@@ -102,6 +102,10 @@ class _FakeStream:
         await asyncio.Event().wait()
         raise AssertionError("unreachable")
 
+    def at_eof(self) -> bool:
+        # CORE-O2: _run_session probes stdout EOF to detect a self-exited child.
+        return False
+
 
 class _FakeStdin:
     def write(self, data: bytes) -> None:

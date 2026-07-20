@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any
 
 import html
+import math
 
 from device_gateway.path_data import (
     FONT_CHAR_W,
@@ -30,6 +31,14 @@ from device_gateway.path_data import (
 from device_gateway.path_optimizer import PathOptimizer, apply_multi_pass
 from device_gateway.safety import DEFAULT_WORKSPACE_MM
 from device_gateway.svg_parser import svg_path_to_motion
+
+
+class PathNormalizationError(ValueError):
+    """Raised when a generated path cannot be fit inside the workspace.
+
+    GW-B2: out-of-workspace coordinates must be rejected loudly, never
+    silently dispatched to the stepper hardware.
+    """
 
 
 def text_to_path(
@@ -134,6 +143,11 @@ def render_text_task(
 ) -> dict[str, Any]:
     """Render a write_text intent into a motion task params dict with preview."""
     path = text_to_path(text[:40])
+    # GW-B1: text paths must pass workspace normalization like SVG paths do —
+    # long text otherwise runs to 183mm+ and is dispatched out of bounds.
+    path = _normalize_path_to_workspace(
+        path, width=float(DEFAULT_WORKSPACE_MM["x"]), height=float(DEFAULT_WORKSPACE_MM["y"])
+    )
     if passes > 1:
         path = apply_multi_pass(path, passes, offset_mm)
     if optimize:
@@ -149,7 +163,11 @@ def render_text_task(
 def _normalize_path_to_workspace(
     path: list[dict[str, float]], width: float = 100.0, height: float = 100.0, margin: float = 2.0
 ) -> list[dict[str, float]]:
-    """Scale and translate a path so all points fit inside [0, width] x [0, height]."""
+    """Scale and translate a path so all points fit inside [0, width] x [0, height].
+
+    Raises PathNormalizationError when any normalized point still falls outside
+    the workspace (e.g. non-finite input coordinates).
+    """
     if not path:
         return path
     xs = [pt["x"] for pt in path]
@@ -160,15 +178,23 @@ def _normalize_path_to_workspace(
     span_y = max_y - min_y
     available_w = width - 2 * margin
     available_h = height - 2 * margin
-    if span_x <= 0 or span_y <= 0:
-        scale = 1.0
-    else:
-        scale = min(available_w / span_x, available_h / span_y, 1.0)
+    # GW-B2: degenerate spans (pure horizontal/vertical lines) must still be
+    # scaled on the non-degenerate axis — per-axis min instead of scale=1.0.
+    scale_x = available_w / span_x if span_x > 0 else math.inf
+    scale_y = available_h / span_y if span_y > 0 else math.inf
+    scale = min(scale_x, scale_y, 1.0)
     origin_x = margin - min_x * scale
     origin_y = margin - min_y * scale
-    return [
+    normalized = [
         {"x": round(origin_x + pt["x"] * scale, 2), "y": round(origin_y + pt["y"] * scale, 2), "z": 0} for pt in path
     ]
+    # GW-B2: post-translation assertion — reject instead of silently dispatching.
+    for idx, pt in enumerate(normalized):
+        if not (0 <= pt["x"] <= width and 0 <= pt["y"] <= height):
+            raise PathNormalizationError(
+                f"normalized point {idx} ({pt['x']},{pt['y']}) outside workspace {width}x{height}mm"
+            )
+    return normalized
 
 
 def render_svg_task(
@@ -196,7 +222,10 @@ def precheck_draw_motion_path(d_string: str) -> str | None:
     """Return an error message when motion coordinates exceed workspace; else None."""
     if not d_string or not d_string.strip():
         return "empty svg path"
-    rendered = render_svg_task(d_string)
+    try:
+        rendered = render_svg_task(d_string)
+    except PathNormalizationError as exc:
+        return str(exc)
     path = rendered.get("path") or []
     if not path:
         return "empty motion path"
