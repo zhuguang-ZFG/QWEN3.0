@@ -112,24 +112,19 @@ def test_device_status_ws_firmware_update_event(tmp_path, monkeypatch):
     seed_account_and_device()
     seed_binding()
 
-    class _Sess:
-        def __init__(self, fw: str):
-            self.fw_rev = fw
-            self.protocol_version = "1"
-            self.connected_at = "t0"
-
-    states = {"fw": "1.0.0"}
+    states = {"fw": "1.0.0", "online": True}
 
     def _status(device_id: str) -> dict:
+        fw = states["fw"] if states["online"] else None
         return {
             "deviceId": device_id,
-            "online": True,
-            "connectedAt": "t0",
+            "online": states["online"],
+            "connectedAt": "t0" if states["online"] else None,
             "working": False,
             "activeTaskId": None,
-            "firmwareVersion": states["fw"],
-            "protocolVersion": "1",
-            "lastSeenAt": "t0",
+            "firmwareVersion": fw,
+            "protocolVersion": "1" if states["online"] else None,
+            "lastSeenAt": "t0" if states["online"] else None,
         }
 
     monkeypatch.setattr("routes.device_app_status_ws._build_device_status", _status)
@@ -143,6 +138,45 @@ def test_device_status_ws_firmware_update_event(tmp_path, monkeypatch):
         fw_evt = _receive_event(websocket, "firmware_update")
         assert fw_evt["payload"]["firmwareVersion"] == "1.1.0"
         assert fw_evt["payload"]["previousFirmwareVersion"] == "1.0.0"
+
+
+def test_device_status_ws_reconnect_same_fw_no_firmware_update(tmp_path, monkeypatch):
+    """Offline clears firmwareVersion; coming back with same rev must not emit OTA."""
+    client, _store = make_client(tmp_path, monkeypatch)
+    monkeypatch.setattr("routes.device_app_status_ws._POLL_INTERVAL", _POLL_INTERVAL)
+    seed_account_and_device()
+    seed_binding()
+
+    states = {"fw": "1.0.0", "online": True}
+
+    def _status(device_id: str) -> dict:
+        online = states["online"]
+        return {
+            "deviceId": device_id,
+            "online": online,
+            "connectedAt": "t0" if online else None,
+            "working": False,
+            "activeTaskId": None,
+            "firmwareVersion": states["fw"] if online else None,
+            "protocolVersion": "1" if online else None,
+            "lastSeenAt": "t0" if online else None,
+        }
+
+    monkeypatch.setattr("routes.device_app_status_ws._build_device_status", _status)
+
+    with client.websocket_connect("/device/v1/app/devices/dev-1/ws", params=_auth_query("a-owner")) as websocket:
+        assert websocket.receive_json()["event"] == "status_snapshot"
+        states["online"] = False
+        offline = _receive_event(websocket, "device_offline")
+        assert offline["event"] == "device_offline"
+        states["online"] = True
+        online = _receive_event(websocket, "device_online")
+        assert online["event"] == "device_online"
+        # Drain a few snapshots; firmware_update must not appear for same rev.
+        deadline = time.monotonic() + 0.5
+        while time.monotonic() < deadline:
+            msg = websocket.receive_json()
+            assert msg.get("event") != "firmware_update", msg
 
 
 def test_resolve_task_terminal_event_unknown_returns_none(monkeypatch, caplog):

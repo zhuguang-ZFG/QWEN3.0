@@ -15,6 +15,19 @@ def public_status_payload(status: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in status.items() if not str(k).startswith("_")}
 
 
+def _coerce_progress(raw: Any) -> int | None:
+    """Accept int-like progress in 0..100; reject bool and out-of-range values."""
+    if isinstance(raw, bool) or raw is None:
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if value < 0 or value > 100:
+        return None
+    return value
+
+
 def progress_for_task(task_id: str) -> int | None:
     """Latest progress percent from motion events on the task store, if any."""
     snapshot = task_snapshot(task_id)
@@ -24,10 +37,9 @@ def progress_for_task(task_id: str) -> int | None:
     for event in reversed(list(events)):
         if not isinstance(event, dict) or "progress" not in event:
             continue
-        try:
-            return int(event["progress"])
-        except (TypeError, ValueError):
-            return None
+        coerced = _coerce_progress(event["progress"])
+        if coerced is not None:
+            return coerced
     return None
 
 
@@ -70,10 +82,14 @@ async def send_firmware_update(
     previous: dict[str, Any],
     current: dict[str, Any],
 ) -> None:
-    """Push firmware_update when the device reports a new fw_rev string."""
+    """Push firmware_update only when an already-known version string changes.
+
+    Offline snapshots use firmwareVersion=None; reconnecting with the same
+    fw_rev must not look like an OTA (review W1).
+    """
     prev_fw = previous.get("firmwareVersion")
     cur_fw = current.get("firmwareVersion")
-    if not cur_fw or cur_fw == prev_fw:
+    if prev_fw is None or not cur_fw or cur_fw == prev_fw:
         return
     payload = {
         "deviceId": device_id,
