@@ -220,4 +220,14 @@ async def build_run_params_async(
         return await build_handwriting_params(params, device_id)
     if capability in CONTROL_CAPABILITIES:
         return {"source_capability": capability}, None
+    if capability in ("move_abs", "move_rel"):
+        # GW-R3-12: point-to-point motion. Pass scalar axis params through
+        # untouched (no path generation); validate_capability_params enforces
+        # bounds/jog limits downstream. Copy only the axis + feed scalars.
+        move_keys = ("x", "y", "z") if capability == "move_abs" else ("dx", "dy", "dz")
+        passthrough: dict[str, Any] = {"source_capability": capability}
+        for key in (*move_keys, "feed"):
+            if key in params:
+                passthrough[key] = params[key]
+        return passthrough, None
     return {"feed": DEFAULT_FEED, "path": [safe_point(0, 0, 0)], "source_capability": capability}, None

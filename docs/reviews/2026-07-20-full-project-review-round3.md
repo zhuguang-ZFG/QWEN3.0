@@ -72,7 +72,7 @@
 | **GW-R3-9** | `queued_no_delivery` 仍占 busy 至 1h | `tasks.py` / `QUEUED_MAX_AGE_SEC` |
 | ~~**GW-R3-10**~~ | **已修**（描述修正：非崩溃，NaN/Inf feed 静默钳到 MAX_FEED 2000 > 1200 安全上限）→ `task_draw_params._clamp_feed` 加 `math.isfinite` 回落 default，对齐已修的 handwriting 同名函数 | `task_draw_params.py` |
 | **GW-R3-11** | feed 上限 2000 vs safety 1200 分裂 | path_validator vs safety |
-| **GW-R3-12** | intent 解析 move_*，CAPABILITY 无 → 恒拒 | intent + path_validator |
+| ~~**GW-R3-12**~~ | **已接通**（方向 A）：move_abs/move_rel 全链路打通（allowlist + 校验 + 投影 + 路由），加服务端工作区/±1mm 校验，语音模糊移动放行 | intent + path_validator + task_creation |
 | **GW-WF** | SVG 隐式坐标序列丢失；相对 m 后隐式 l 不完整 | `svg_parser._handle_ml` |
 | **RT-R3-2** | batch-draw 限流 1 次 / N 设备，无 device_ids 上限 | `device_app_tasks.py` |
 | **RT-R3-3** | app `/tasks/preview` 无限流（可触发重路径生成） | `device_app_task_extras.py` |
@@ -173,6 +173,10 @@ assert len(svg_path_to_motion("M0 0 L 10 0 20 10 30 0")) == 2  # GW-WF should be
 | GW-R3-2 | **已修（门控）** | strict 拒 gen-less ack 由 `LIMA_STRICT_DISPATCH_GEN` 门控，默认关闭；固件回带 `dispatch_gen`（B5）前开启会让每个 recovered 任务死循环 |
 | GW-R3-4 | **已修** | SEC-06 `validate_task_schema` 重跑 `validate_capability_params` |
 | GW-R3-7 | **已修** | render_text/svg 在 multi_pass/optimizer 之后复检工作区边界（`_assert_path_within_workspace`）；normalize-time 断言只在 +X 平移前跑，多道 offset 可越界后静默下发 |
+| GW-R3-6 | **已修** | 手写 bounds 预检异常改 fail-closed（返回错误串），对齐 `device_draw_handler`，不再 `return None` 当作通过 |
+| GW-R3-10 | **已修** | `task_draw_params._clamp_feed` 加 `math.isfinite`，NaN/Inf 回落 default 而非静默钳到 MAX_FEED 2000（> 1200 安全上限） |
+| GW-R3-8 | **已修（并入 R3-12）** | LLM replan 守卫收窄为 `_REPLAN_BLOCKED_CAPABILITIES`（画类）；`rejected` 不可改写成 run_path/write_text/draw，但**可**改写成 move / 控制类 |
+| GW-R3-12 | **已修（接通）** | move_abs/move_rel 全链路接通：四处 allowlist + `CAPABILITY_PATH_MAP` + `_validate_move_params`（move_abs 服务端 [0,workspace]/±500 校验、move_rel ±1mm jog）+ 投影层 passthrough（不再改写成 run_path）+ 语音模糊控制放行；不需审批直接下发 |
 | RT-R3-1 | **已修** | 模板 execute insert → dispatch → 失败 mark_task_failed |
 
-回归：`tests/test_review_round3_blockers.py` + 既有 redis/path_validator/template 套件。
+回归：`tests/test_review_round3_blockers.py`、`tests/test_move_capability_e2e.py` + 既有 redis/path_validator/template/intent 套件。

@@ -28,6 +28,8 @@ APP_TASK_CAPABILITIES = frozenset(
         "draw_generated",
         "draw_image",
         "handwriting",
+        "move_abs",
+        "move_rel",
         "home",
         "pause",
         "resume",

@@ -18,7 +18,16 @@ class DeviceProfile:
     workspace_mm: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_WORKSPACE_MM))
     max_feed: float = 1200.0
     max_path_points: int = 200
-    capabilities: tuple[str, ...] = ("run_path", "home", "pause", "resume", "stop", "get_device_info")
+    capabilities: tuple[str, ...] = (
+        "run_path",
+        "move_abs",
+        "move_rel",
+        "home",
+        "pause",
+        "resume",
+        "stop",
+        "get_device_info",
+    )
     supported_fw_prefixes: tuple[str, ...] = ("",)
     profile_version: str = "1"
     fw_rev: str = ""

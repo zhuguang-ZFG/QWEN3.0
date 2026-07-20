@@ -77,9 +77,10 @@ def test_normal_commands_unaffected_by_estop_priority():
 # ── GW-R3-8: LLM replanner must not upgrade a rejection into pen motion ───────
 
 
-def test_llm_replan_cannot_turn_rejected_into_motion(monkeypatch):
+def test_llm_replan_cannot_turn_rejected_into_drawing(monkeypatch):
     """GW-R3-8/GW-WH: an unrecognized (rejected) utterance must never be
-    replanned into a motion capability, even with the LLM planner enabled."""
+    replanned into a drawing capability (write_text/draw/run_path), even with
+    the LLM planner enabled — that would undo GW-WH."""
     from config.settings import FLAGS
     import device_gateway.intent as intent
 
@@ -90,8 +91,25 @@ def test_llm_replan_cannot_turn_rejected_into_motion(monkeypatch):
 
     monkeypatch.setattr(intent, "_llm_replan", _fake_replan)
     result = intent.resolve_voice_task("some unrecognized utterance")
-    # The motion replan is refused; the original rejection stands.
+    # The drawing replan is refused; the original rejection stands.
     assert result["capability"] == "rejected"
+
+
+def test_llm_replan_may_turn_rejected_into_move(monkeypatch):
+    """GW-R3-12: fuzzy voice positioning is a wanted feature — the LLM may
+    resolve a rejected parse into move_abs/move_rel (bounded server-side and
+    by the firmware motion lock), unlike drawing capabilities."""
+    from config.settings import FLAGS
+    import device_gateway.intent as intent
+
+    monkeypatch.setattr(FLAGS, "device_llm_planner", True, raising=False)
+
+    def _fake_replan(_text, _fallback):
+        return {"capability": "move_abs", "params": {"x": 10, "y": 20}, "source": "llm"}
+
+    monkeypatch.setattr(intent, "_llm_replan", _fake_replan)
+    result = intent.resolve_voice_task("go roughly to the middle")
+    assert result["capability"] == "move_abs"
 
 
 def test_llm_replan_may_turn_rejected_into_control(monkeypatch):

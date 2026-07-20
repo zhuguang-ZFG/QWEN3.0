@@ -26,6 +26,12 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
     "write_text": frozenset({"path", "feed", "text"}),
     "draw_generated": frozenset({"path", "feed", "prompt"}),
     "handwriting": frozenset({"path", "feed", "text"}),
+    # GW-R3-12: point-to-point motion. move_abs positions to an absolute
+    # [0, workspace] target; move_rel is a ±1mm-per-axis jog (firmware limit).
+    # Coordinates are scalars (x/y/z, dx/dy/dz), not a path array — validated by
+    # _validate_move_params, not the path/feed run_path route.
+    "move_abs": frozenset({"x", "y"}),
+    "move_rel": frozenset({"dx", "dy"}),
     "home": frozenset(),
     "pause": frozenset(),
     "resume": frozenset(),
@@ -37,6 +43,17 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
 # Capabilities that compute their own motion path from other inputs (text/image).
 # For these, `path` is not required at validation time; feed still gets clamped.
 _PATH_GENERATING_CAPABILITIES = frozenset({"write_text", "draw_generated", "handwriting"})
+
+# GW-R3-12: point-to-point motion capabilities. Coordinates are scalars, not a
+# path array, so they take a dedicated validation route (_validate_move_params)
+# with server-side workspace bounds — the firmware also re-checks, but the
+# scalar path bypassed profile_limit_error's path-only checks entirely.
+_MOVE_CAPABILITIES = frozenset({"move_abs", "move_rel"})
+
+# Firmware limit (motion_executor.cc): move_rel is a jog — each axis step is
+# constrained to [-MAX_REL_STEP, MAX_REL_STEP] mm. Reject larger deltas here so
+# the caller gets a structured error instead of a firmware-side rejection.
+MAX_REL_STEP = 1.0
 
 # Valid route_policy values per Edge-C schema
 VALID_ROUTE_ROLES = frozenset({"device_control", "device_write", "device_draw", "device_vector", "device_unknown"})
@@ -166,6 +183,13 @@ def validate_capability_params(
         return {
             "source_capability": str(params.get("source_capability", capability)),
         }, None
+
+    if capability in _MOVE_CAPABILITIES:
+        # Lazy import breaks the cycle: move_validator imports coord constants
+        # and _parse_feed_value from this module (GW-R3-12 size-gate split).
+        from device_gateway.move_validator import validate_move_params
+
+        return validate_move_params(capability, params, profile)
 
     if capability in _PATH_GENERATING_CAPABILITIES:
         sanitized: dict[str, Any] = {

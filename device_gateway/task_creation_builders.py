@@ -12,7 +12,7 @@ from device_workflow.state import TaskState
 
 from .model_routing import CONTROL_CAPABILITIES
 from .path_pipeline import PathNormalizationError, _normalize_path_to_workspace
-from .path_validator import _PATH_GENERATING_CAPABILITIES
+from .path_validator import _MOVE_CAPABILITIES, _PATH_GENERATING_CAPABILITIES
 from .safety import DEFAULT_WORKSPACE_MM
 from .task_creation_errors import (
     _build_error_task,
@@ -230,11 +230,15 @@ def _assemble_motion_task(
     policy_dict: dict[str, Any],
 ) -> dict[str, Any]:
     """Assemble the final motion task and run simulation."""
+    # GW-R3-12: move_abs/move_rel dispatch to firmware under their own capability
+    # name (cap_norm == "move_abs"/"move_rel"); they carry scalar coordinates, not
+    # a path, so they must NOT be rewritten to run_path like drawing intents are.
+    passthrough = capability in CONTROL_CAPABILITIES or capability in _MOVE_CAPABILITIES
     task = {
         "type": "motion_task",
         "task_id": _next_task_id(),
         "device_id": device_id,
-        "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
+        "capability": capability if passthrough else "run_path",
         "source": voice_task.get("source", "voice"),
         "entrypoint": voice_task.get("entrypoint", voice_task.get("source", "voice")),
         "params": sanitized,

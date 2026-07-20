@@ -47,13 +47,7 @@ DANGEROUS_CAPABILITIES = frozenset(
     }
 )
 
-# GW-R3-8: capabilities that produce physical pen/gantry motion. When the
-# pattern parser already resolved a command to "rejected" (unrecognized
-# utterance), the LLM replanner must NOT be allowed to turn it into one of
-# these — that would undo GW-WH ("unrecognized speech must never become pen
-# motion") and could route an unmatched emergency-stop variant into drawing
-# instead of stopping. Replanning a rejected command into a control capability
-# (home/pause/resume/stop/estop/get_device_info) is still permitted.
+# Capabilities that produce physical pen/gantry motion (honest full set).
 MOTION_CAPABILITIES = frozenset(
     {
         "run_path",
@@ -61,6 +55,23 @@ MOTION_CAPABILITIES = frozenset(
         "draw_generated",
         "move_abs",
         "move_rel",
+    }
+)
+
+# GW-R3-8 / GW-R3-12: capabilities the LLM must NOT resolve a "rejected" parse
+# into. A rejected parse means no pattern matched (unrecognized utterance);
+# turning that into a drawing command would undo GW-WH ("unrecognized speech
+# must never become pen motion") and could route an unmatched emergency-stop
+# variant into drawing instead of stopping. Point-to-point move (move_abs/
+# move_rel) is intentionally NOT blocked: fuzzy voice positioning is a wanted
+# feature, moves are bounded server-side (workspace / ±1mm jog) and gated by the
+# firmware motion lock, and control capabilities (stop/pause/home/...) remain
+# allowed so an ambiguous stop-like phrase can still halt the machine.
+_REPLAN_BLOCKED_CAPABILITIES = frozenset(
+    {
+        "run_path",
+        "write_text",
+        "draw_generated",
     }
 )
 

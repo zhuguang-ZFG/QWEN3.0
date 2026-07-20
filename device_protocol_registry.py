@@ -39,6 +39,12 @@ class ProtocolRegistry:
                 # reached dispatch. Firmware-level availability is still gated
                 # per-version by device_gateway/firmware_matrix.py (>= v1.3.0).
                 "estop",
+                # GW-R3-12: voice/app move commands. move_abs = absolute
+                # positioning to [0, workspace]; move_rel = per-axis [-1,1]mm
+                # jog. Firmware-level availability is gated per-version by
+                # device_gateway/firmware_matrix.py.
+                "move_abs",
+                "move_rel",
                 "get_device_info",
                 "self_check",
             }

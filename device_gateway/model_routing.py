@@ -150,6 +150,11 @@ def _classify_capability(capability: str, params: dict) -> dict[str, Any]:
         return _policy("device_draw", True, "image_then_vector", "vector_path")
     if capability == "run_path":
         return _policy("device_vector", False, "provided_path", "preview_svg")
+    # GW-R3-12: point-to-point motion is deterministic and needs no model —
+    # same route class as control commands (validate_route_policy requires
+    # device_control to be deterministic + model-free, which move satisfies).
+    if capability in ("move_abs", "move_rel"):
+        return _policy("device_control", False, "deterministic", "none")
     return _policy("device_unknown", True, "planner_required", "none")
 
 

@@ -143,7 +143,7 @@ def _conservative_profile(device_id: str) -> DeviceProfile:
         workspace_mm=dict(CONSERVATIVE_WORKSPACE_MM),
         max_feed=CONSERVATIVE_MAX_FEED,
         max_path_points=CONSERVATIVE_MAX_PATH_POINTS,
-        capabilities=("home", "pause", "resume", "run_path", "stop"),
+        capabilities=("home", "move_abs", "move_rel", "pause", "resume", "run_path", "stop"),
         supported_fw_prefixes=("",),
         profile_version="0",
         fw_rev="",
