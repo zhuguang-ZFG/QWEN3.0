@@ -78,13 +78,24 @@
   }
 
   async function loadDevices() {
+    // W22: skeleton placeholders while the grid loads.
+    emptyState.hidden = true;
+    grid.innerHTML = new Array(3).fill('<div class="skeleton skeleton-card"></div>').join("");
     try {
       const data = await LiMaAPI.get(DEVICES_API, token);
       devices = data.devices || [];
       await loadStatuses();
       renderGrid();
     } catch (err) {
-      showToast("加载设备失败：" + (err.message || "未知错误"));
+      // W22: in-page failure state with a retry action (toast alone is not recoverable).
+      grid.innerHTML =
+        '<div class="empty-illust" style="grid-column:1/-1;">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+          '<p>加载设备失败：' + escapeHtml(err.message || "未知错误") + '</p>' +
+          '<button class="btn-secondary" id="retryLoadDevices" style="margin-top:14px;">重新加载</button>' +
+        '</div>';
+      var retryBtn = document.getElementById("retryLoadDevices");
+      if (retryBtn) retryBtn.addEventListener("click", loadDevices);
     }
   }
 
@@ -374,12 +385,17 @@
   }
 
   async function submitBind() {
+    // W23: async-entry guard — a second click during the POST is ignored.
+    if (confirmBind.disabled) return;
     const sn = bindSn.value.trim();
     const code = bindCode.value.trim();
     if (!sn || !code) {
       showToast("请输入设备 SN 和激活码");
       return;
     }
+    confirmBind.disabled = true;
+    const originalLabel = confirmBind.textContent;
+    confirmBind.textContent = "绑定中…";
     try {
       await LiMaAPI.post(`${DEVICES_API}/bind`, { deviceSn: sn, activationCode: code }, token);
       closeBindModal();
@@ -387,6 +403,9 @@
       await loadDevices();
     } catch (err) {
       showToast("绑定失败：" + (err.message || "未知错误"));
+    } finally {
+      confirmBind.disabled = false;
+      confirmBind.textContent = originalLabel;
     }
   }
 
@@ -417,6 +436,11 @@
 
   async function submitUnbind() {
     if (!selectedDeviceId) return;
+    // W23: async-entry guard — a second click during the POST is ignored.
+    if (confirmUnbind.disabled) return;
+    confirmUnbind.disabled = true;
+    const originalLabel = confirmUnbind.textContent;
+    confirmUnbind.textContent = "解绑中…";
     try {
       await LiMaAPI.post(`${DEVICES_API}/${encodeURIComponent(selectedDeviceId)}/unbind`, {}, token);
       closeUnbindModal();
@@ -425,6 +449,9 @@
       await loadDevices();
     } catch (err) {
       showToast("解绑失败：" + (err.message || "未知错误"));
+    } finally {
+      confirmUnbind.disabled = false;
+      confirmUnbind.textContent = originalLabel;
     }
   }
 
@@ -432,6 +459,9 @@
   drawerOverlay.addEventListener("click", closeDetailDrawer);
   unbindBtn.addEventListener("click", openUnbindModal);
   addDeviceBtn.addEventListener("click", openBindModal);
+  // W26: empty state offers the bind action directly.
+  var emptyBindBtn = document.getElementById("emptyBindBtn");
+  if (emptyBindBtn) emptyBindBtn.addEventListener("click", openBindModal);
   cancelBind.addEventListener("click", closeBindModal);
   confirmBind.addEventListener("click", submitBind);
   cancelUnbind.addEventListener("click", closeUnbindModal);

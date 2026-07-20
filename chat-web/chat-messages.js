@@ -30,7 +30,7 @@ function renderMessage(role, content, meta) {
   chatInner.appendChild(msg);
   attachCodeCopy(msg);
   attachImageLightbox(msg);
-  scrollToBottom();
+  scrollToBottom(true);
   return msg;
 }
 
@@ -161,8 +161,28 @@ function attachImageLightbox(root) {
   });
 }
 
-function scrollToBottom() {
-  chatArea.scrollTop = chatArea.scrollHeight;
+// ─── SCROLL (W8) ───
+// Autoscroll only when the user is already near the bottom (<80px); when they
+// scroll up to read, streaming must not yank the view — show a pill instead.
+const scrollLatestBtn = document.getElementById('scrollLatestBtn');
+
+function chatIsNearBottom() {
+  return chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < 80;
+}
+
+function scrollToBottom(force) {
+  if (force || chatIsNearBottom()) {
+    chatArea.scrollTop = chatArea.scrollHeight;
+    if (scrollLatestBtn) scrollLatestBtn.hidden = true;
+  } else if (scrollLatestBtn) {
+    scrollLatestBtn.hidden = false;
+  }
+}
+
+if (scrollLatestBtn) {
+  chatArea.addEventListener('scroll', () => {
+    if (chatIsNearBottom()) scrollLatestBtn.hidden = true;
+  });
 }
 
 function showTyping(text) {
@@ -175,10 +195,12 @@ function hideTyping() {
   typingIndicator.classList.remove('active');
 }
 
-function updateLastMessage(text) {
+function updateLastMessage(text, opts) {
   const lastMsg = chatInner.querySelector('.message.ai:last-of-type .msg-bubble');
   if (lastMsg) {
-    lastMsg.innerHTML = formatContent(text);
+    // W10: blinking caret at the tail while the answer is still streaming.
+    const cursor = opts && opts.streaming ? '<span class="stream-cursor">▍</span>' : '';
+    lastMsg.innerHTML = formatContent(text) + cursor;
     attachCodeCopy(lastMsg.parentElement);
     attachImageLightbox(lastMsg.parentElement);
     scrollToBottom();
@@ -215,8 +237,34 @@ function highlightAndRender(root) {
 function finalizeLastMessage() {
   const lastMsg = chatInner.querySelector('.message.ai:last-of-type');
   if (lastMsg) {
+    // W1: mark settled so fail/abort cleanup can tell skeleton/stream from real turns.
+    lastMsg.dataset.finalized = '1';
+    const cursor = lastMsg.querySelector('.stream-cursor');
+    if (cursor) cursor.remove();
     highlightAndRender(lastMsg);
   }
+}
+
+// W1: drop the in-flight AI bubble (skeleton / mid-stream) so retry/error doesn't stack.
+function removeUnfinalizedAiMessage() {
+  const lastMsg = chatInner.querySelector('.message.ai:last-of-type');
+  if (lastMsg && lastMsg.dataset.finalized !== '1') lastMsg.remove();
+}
+
+// W1: user hit stop — keep any tokens already shown; skeleton-only becomes a short notice.
+function settleAbortedAiMessage() {
+  const lastMsg = chatInner.querySelector('.message.ai:last-of-type');
+  if (!lastMsg || lastMsg.dataset.finalized === '1') return;
+  const bubble = lastMsg.querySelector('.msg-bubble');
+  if (bubble) {
+    if (bubble.querySelector('.skeleton')) {
+      bubble.textContent = '（已停止生成）';
+    } else {
+      const cursor = bubble.querySelector('.stream-cursor');
+      if (cursor) cursor.remove();
+    }
+  }
+  lastMsg.dataset.finalized = '1';
 }
 
 

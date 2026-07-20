@@ -12,6 +12,31 @@ function authHeaders() {
   return headers;
 }
 
+// W11: error rendered where it happened, with an in-bubble retry that replays
+// the failed user turn (removes the failed bubble + message so nothing dupes).
+function renderChatError(message, retryText) {
+  // W1: drop skeleton / mid-stream AI bubble so retry does not leave orphans.
+  if (typeof removeUnfinalizedAiMessage === 'function') removeUnfinalizedAiMessage();
+  const msgEl = addMessage('ai', message);
+  msgEl.dataset.finalized = '1';
+  const bubble = msgEl.querySelector('.msg-bubble');
+  if (!bubble || retryText == null) return msgEl;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'msg-retry-btn';
+  btn.textContent = '重试';
+  btn.addEventListener('click', () => {
+    if (isStreaming) return;
+    msgEl.remove();
+    const lastUser = chatInner.querySelector('.message.user:last-of-type');
+    if (lastUser) lastUser.remove();
+    if (messages.length && messages[messages.length - 1].role === 'user') messages.pop();
+    sendMessageWithText(retryText);
+  });
+  bubble.appendChild(document.createElement('div')).appendChild(btn);
+  return msgEl;
+}
+
 async function generateImage(prompt) {
   if (isStreaming) return;
   isStreaming = true;
@@ -70,8 +95,7 @@ async function generateImage(prompt) {
   } catch (err) {
     hideTyping();
     if (err.name !== 'AbortError') {
-      addMessage('ai', `图片生成失败：${err.message}。请检查网络连接或稍后重试。`);
-      showToast(`图片生成失败：${err.message}`, { error: true });
+      renderChatError(`图片生成失败：${err.message}。请检查网络连接或稍后重试。`, '/image ' + prompt);
     }
   }
 
@@ -161,6 +185,15 @@ async function sendMessage() {
 
     addMessage('ai', '', { model: '...' });
 
+    // W10: skeleton lines inside the pending bubble until the first token lands.
+    const pendingBubble = chatInner.querySelector('.message.ai:last-of-type .msg-bubble');
+    if (pendingBubble) {
+      pendingBubble.innerHTML =
+        '<div class="skeleton skeleton-text long"></div>' +
+        '<div class="skeleton skeleton-text medium"></div>' +
+        '<div class="skeleton skeleton-text short"></div>';
+    }
+
     let buffer = '';
     while (true) {
       const { done, value } = await reader.read();
@@ -179,8 +212,10 @@ async function sendMessage() {
           const json = JSON.parse(data);
           const delta = json.choices?.[0]?.delta?.content || '';
           if (json.model) modelName = json.model;
-          fullText += delta;
-          updateLastMessage(fullText);
+          if (delta) {
+            fullText += delta;
+            updateLastMessage(fullText, { streaming: true });
+          }
         } catch (e) {
           console.warn('Failed to parse SSE data line:', data, e);
         }
@@ -192,6 +227,9 @@ async function sendMessage() {
       if (modelTag) modelTag.textContent = modelName;
     }
 
+    // Final render without the streaming caret (also clears the skeleton
+    // if the stream produced no tokens at all).
+    updateLastMessage(fullText);
     finalizeLastMessage();
     messages.push({ role: 'assistant', content: fullText });
     saveCurrentSession();
@@ -199,8 +237,12 @@ async function sendMessage() {
   } catch (err) {
     hideTyping();
     if (err.name !== 'AbortError') {
-      addMessage('ai', `请求出错：${err.message}。请检查网络连接或稍后再试。`);
-      showToast(`请求出错：${err.message}`, { error: true });
+      // W11: network failures and HTTP errors get distinct, actionable copy.
+      const isHttpError = /^HTTP \d+/.test(err.message || '');
+      const friendly = isHttpError
+        ? `服务暂时不可用（${err.message}），请稍后重试。`
+        : `网络连接异常（${err.message || '未知错误'}），请检查网络后重试。`;
+      renderChatError(friendly, text);
     }
   }
 

@@ -56,7 +56,12 @@
         <div class="playground-controls">
           <div class="pg-control">
             <label for="pgAuth">Authorization (Bearer Token)</label>
-            <input type="text" id="pgAuth" placeholder="sk-..." autocomplete="off">
+            <div class="pg-input-vis-wrap">
+              <input type="password" id="pgAuth" placeholder="sk-..." autocomplete="off">
+              <button type="button" class="pg-vis-toggle" data-pg-vis="pgAuth" aria-label="显示 Key">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
           </div>
 
           <div class="pg-control-row">
@@ -140,7 +145,12 @@
     <div class="modal">
       <div class="modal-title" id="pgKeyModalTitle">设置 API Key</div>
       <div class="modal-desc">输入 Bearer Token（可选）。留空则清除已保存的 Key。</div>
-      <input type="text" class="modal-input" id="pgKeyModalInput" placeholder="sk-..." autocomplete="off">
+      <div class="pg-input-vis-wrap" style="margin-bottom:18px;">
+        <input type="password" class="modal-input" id="pgKeyModalInput" placeholder="sk-..." autocomplete="off" style="margin-bottom:0;">
+        <button type="button" class="pg-vis-toggle" data-pg-vis="pgKeyModalInput" aria-label="显示 Key">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
       <div class="modal-actions">
         <button class="modal-btn" id="pgKeyModalCancel">取消</button>
         <button class="modal-btn primary" id="pgKeyModalSave">保存</button>

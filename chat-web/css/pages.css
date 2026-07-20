@@ -1,3 +1,26 @@
+/* ─── Shared page buttons (W50: single source of truth; formerly duplicated
+   in devices/handwriting page styles, where the broken --accent-2 lived) ─── */
+.btn-primary {
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--accent), var(--violet));
+  color: #fff; font-weight: 600; cursor: pointer;
+  font-family: inherit;
+}
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+.btn-secondary {
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card-hover); color: var(--text);
+  cursor: pointer; font-family: inherit;
+}
+.btn-danger {
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  border: 1px solid rgba(244, 63, 94, .4);
+  background: rgba(244, 63, 94, .1); color: var(--rose-light);
+  cursor: pointer; font-family: inherit;
+}
+
 /* ─── Device tile enhancements ─── */
 .device-tile {
   position: relative;

@@ -15,6 +15,7 @@
     .handwriting-main { flex:1; padding:32px; position:relative; z-index:1; max-width:1200px; margin:0 auto; width:100%; }
     .handwriting-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
     .handwriting-header h1 { font-size:1.5rem; }
+    .handwriting-header-left { display:flex; align-items:center; gap:10px; }
     .handwriting-form { display:grid; gap:18px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; }
     .form-group { display:flex; flex-direction:column; gap:8px; }
     .form-group label { font-size:.85rem; color:var(--text-muted); }
@@ -29,9 +30,8 @@
     .slider-value { min-width:36px; text-align:right; font-variant-numeric:tabular-nums; color:var(--text-muted); }
     .mode-toggle { display:inline-flex; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
     .mode-toggle button { padding:8px 16px; background:transparent; color:var(--text-muted); border:none; cursor:pointer; }
-    .mode-toggle button.active { background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; }
-    .btn-primary { padding:10px 18px; border-radius:var(--radius-sm); border:1px solid transparent; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:#fff; font-weight:600; cursor:pointer; }
-    .btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+    .mode-toggle button.active { background:linear-gradient(135deg, var(--accent), var(--violet)); color:#fff; }
+    /* W50: .btn-primary moved to css/pages.css (single source). */
     .result-area { margin-top:24px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; min-height:120px; }
     .result-area:empty { display:none; }
     .result-title { font-weight:600; margin-bottom:12px; }
@@ -43,13 +43,25 @@
     .result-details pre { background:rgba(0,0,0,.2); padding:12px; border-radius:var(--radius-sm); overflow:auto; font-size:.8rem; max-height:300px; }
     .loading { display:flex; align-items:center; gap:10px; color:var(--text-muted); }
     .spinner { width:18px; height:18px; border:2px solid rgba(255,255,255,.1); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; }
+    /* S6: submit-button spinner — white on primary gradient, no inline styles */
+    .btn-spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px;
+    }
     @keyframes spin { to { transform:rotate(360deg); } }
     @media (max-width:640px) { .handwriting-main { padding:20px; } }
   </style>
 </head>
 <body>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="handwriting-layout">
-    <aside class="sidebar" style="width:var(--sidebar-w); flex-shrink:0;">
+    <aside class="sidebar" id="sidebar" style="width:var(--sidebar-w); flex-shrink:0;">
       <div class="sidebar-header">
         <div class="sidebar-brand">
           <div class="brand-mark"><svg class="svg-icon"><use href="icons.svg#i-sparkles"/></svg></div>
@@ -75,7 +87,12 @@
 
     <main class="handwriting-main">
       <div class="handwriting-header">
-        <h1>仿手写生成</h1>
+        <div class="handwriting-header-left">
+          <button class="menu-toggle" id="menuToggle" aria-label="打开侧边栏">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+          </button>
+          <h1>仿手写生成</h1>
+        </div>
         <div class="mode-toggle">
           <button type="button" id="modePreview" class="active">预览 SVG</button>
           <button type="button" id="modeTask">下发设备</button>
@@ -127,6 +144,7 @@
         <div class="form-group" id="deviceWrap" hidden>
           <label for="deviceSelect">目标设备</label>
           <select id="deviceSelect"></select>
+          <div class="result-meta" id="deviceHint" hidden>暂无可用设备，<a href="devices.html" style="color:var(--accent-light);">去绑定设备</a></div>
         </div>
 
         <div>
@@ -146,5 +164,20 @@
   <script src="js/api.js?v=taste3"></script>
   <script src="js/auth.js?v=taste3"></script>
   <script src="js/handwriting.js?v=taste3"></script>
+  <script>
+    // T0-W3: mobile sidebar toggle (mirrors index.html behaviour).
+    (function () {
+      var sb = document.getElementById("sidebar");
+      var ov = document.getElementById("sidebarOverlay");
+      var tg = document.getElementById("menuToggle");
+      if (!sb || !ov || !tg) return;
+      function toggleSidebar() {
+        sb.classList.toggle("open");
+        ov.classList.toggle("open");
+      }
+      tg.addEventListener("click", toggleSidebar);
+      ov.addEventListener("click", toggleSidebar);
+    })();
+  </script>
 </body>
 </html>

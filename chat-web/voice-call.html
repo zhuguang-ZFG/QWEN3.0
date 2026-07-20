@@ -12,6 +12,7 @@
   --accent:#06b6d4;
   --accent-light:#22d3ee;
   --accent-glow:rgba(6,182,212,0.35);
+  --violet:#8b5cf6; /* T0-W2: .btn-call.active references it; was undefined on this standalone page */
   --bg:#000000;
   --bg-elevated:#0a0a0a;
   --text:#f5f5f7;
@@ -61,6 +62,26 @@ body::before{
   opacity:.9;
   z-index:1;
 }
+/* W43: error state rendered on the status line itself */
+.status.error{color:var(--red);opacity:1}
+/* W45: back to console */
+.back-link{
+  position:absolute;
+  top:max(20px,env(safe-area-inset-top));
+  left:16px;
+  z-index:2;
+  color:var(--text-muted);
+  text-decoration:none;
+  font-size:.8rem;
+  padding:7px 14px;
+  border-radius:20px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  transition:color .2s ease;
+}
+.back-link:hover{color:var(--text)}
 .video-container{
   position:relative;
   width:min(280px,72vw);
@@ -154,6 +175,12 @@ body::before{
   background:linear-gradient(135deg,var(--accent),var(--violet));
   box-shadow:0 6px 30px rgba(6,182,212,0.4),0 0 0 1px rgba(255,255,255,0.1) inset;
 }
+/* W42: visible feedback while the connection handshake runs */
+.btn-call.connecting{
+  opacity:.75;
+  animation:vcFadePulse 1.2s ease-in-out infinite;
+}
+@keyframes vcFadePulse{0%,100%{opacity:.9}50%{opacity:.5}}
 .btn-call:active{transform:scale(.92)}
 .btn-end{
   width:52px;
@@ -163,6 +190,11 @@ body::before{
   box-shadow:0 4px 20px rgba(255,68,58,.35),0 0 0 1px rgba(255,255,255,0.08) inset;
 }
 .btn-end:active{transform:scale(.92)}
+/* W44: end button is inert until a call is running */
+.btn-end:disabled{opacity:.35;cursor:not-allowed}
+.btn-end:disabled:active{transform:none}
+/* W46: mode cannot be switched mid-call */
+.mode-select:disabled{opacity:.5;cursor:not-allowed}
 .btn svg{width:26px;height:26px;fill:#fff}
 .btn-label{
   position:absolute;
@@ -178,6 +210,7 @@ body::before{
 </style>
 </head>
 <body>
+<a class="back-link" href="index.html" aria-label="返回控制台">‹ 返回</a>
 <div class="brand">LiMa 星云 AI 语音/视频通话</div>
 <select class="mode-select" id="modeSelect">
   <option value="gemini">Gemini 实时通话</option>
@@ -192,11 +225,11 @@ body::before{
 </div>
 <div class="subtitle" id="subtitle"></div>
 <div class="controls">
-  <button class="btn btn-end" id="btnEnd" title="结束通话">
+  <button class="btn btn-end" id="btnEnd" title="结束通话" aria-label="结束通话" disabled>
     <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 010-1.36C3.46 8.84 7.46 7 12 7s8.54 1.84 11.71 4.72c.18.18.29.44.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28a11.3 11.3 0 00-2.67-1.85.996.996 0 01-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
   </button>
   <div style="position:relative">
-    <button class="btn btn-call" id="btnCall">
+    <button class="btn btn-call" id="btnCall" aria-label="开始语音/视频通话">
       <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
     </button>
     <span class="btn-label">语音/视频通话</span>
@@ -245,6 +278,10 @@ async function startCall(){
   // window would fork a second mic stream + orphan WebSocket.
   if(connecting||ws)return;
   connecting=true;btnCall.disabled=true;
+  btnCall.classList.add('connecting');            // W42: connecting pulse
+  btnEnd.disabled=false;                          // W44: allow aborting a hanging connect
+  $('modeSelect').disabled=true;                  // W46: lock mode during call
+  statusEl.classList.remove('error');
   statusEl.textContent='正在连接...';
   const mode=$('modeSelect').value;
   try{
@@ -270,6 +307,8 @@ async function startCall(){
       ws.onopen=()=>{
         ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));
         statusEl.textContent='已连接 · Gemini Live 通话中';
+        statusEl.classList.remove('error');
+        btnCall.classList.remove('connecting');
         btnCall.classList.add('active');
         startAudioCapture('gemini');
         startFrameCapture();
@@ -282,18 +321,24 @@ async function startCall(){
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
         statusEl.textContent='已连接 · 本地语音对话';
+        statusEl.classList.remove('error');
+        btnCall.classList.remove('connecting');
         btnCall.classList.add('active');
         startAudioCapture('local');
       };
     }
     ws.onmessage=e=>{try{handleMessage(JSON.parse(e.data))}catch(err){}};
     ws.onclose=()=>{statusEl.textContent='连接已断开';endCall()};
-    ws.onerror=()=>{statusEl.textContent='连接失败';endCall()};
+    ws.onerror=()=>{statusEl.textContent='连接失败，请稍后点击绿色按钮重试';statusEl.classList.add('error');endCall()};
   }catch(e){
     // Release any half-acquired resources so the mic light goes off on failure.
     if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
     if(ws){ws.onclose=null;ws.onerror=null;ws.onmessage=null;try{ws.close()}catch(err){}ws=null}
-    statusEl.textContent='错误: '+e.message;
+    statusEl.textContent='错误: '+e.message+'，请检查网络后重试';
+    statusEl.classList.add('error');
+    btnCall.classList.remove('connecting');
+    btnEnd.disabled=true;
+    $('modeSelect').disabled=false;
   }finally{
     connecting=false;btnCall.disabled=false;
   }
@@ -315,7 +360,7 @@ function handleMessage(msg){
     videoContainer.classList.add('speaking');
     return;
   }
-  if(msg.type==='error'){statusEl.textContent='错误: '+msg.message;return}
+  if(msg.type==='error'){statusEl.textContent='错误: '+msg.message;statusEl.classList.add('error');return}
   if(msg.serverContent?.modelTurn?.parts){
     for(const p of msg.serverContent.modelTurn.parts){
       if(p.inlineData?.mimeType?.includes('audio')){
@@ -414,9 +459,13 @@ function endCall(){
   videoEl.style.display='none';placeholder.style.display='flex';
   audioQueue=[];playing=false;nextPlayTime=0;
   btnCall.classList.remove('active');
+  btnCall.classList.remove('connecting');
   btnCall.disabled=false;
+  btnEnd.disabled=true;                                    // W44
+  document.getElementById('modeSelect').disabled=false;    // W46
   videoContainer.classList.remove('speaking');
   subtitleEl.textContent='';
+  statusEl.classList.remove('error'); // S5: clear error styling on normal hang-up
   statusEl.textContent='通话已结束';
 }
 btnCall.addEventListener('click',()=>{if(!connecting&&!ws)startCall()});

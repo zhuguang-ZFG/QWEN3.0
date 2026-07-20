@@ -34,13 +34,25 @@
   }
 
   async function loadDevices() {
+    // W17: skeleton placeholders on first paint.
+    if (!devices.length) {
+      list.innerHTML = '<div class="skeleton skeleton-card" style="margin-bottom:6px;"></div><div class="skeleton skeleton-card"></div>';
+    }
     try {
       const data = await LiMaAPI.get(API, token);
       devices = data.devices || [];
       await loadStatuses();
       render();
     } catch (err) {
-      list.innerHTML = `<div class="device-card" style="cursor:default;"><div class="device-card-top"><div class="device-meta"><div class="device-sub">无法加载设备</div></div></div></div>`;
+      // W17: failure card is clickable to retry instead of a dead label.
+      list.innerHTML = `<div class="device-card" id="sidebarDevRetry" role="button" tabindex="0"><div class="device-card-top"><div class="device-icon ai"><svg class="svg-icon"><use href="icons.svg#i-bot"/></svg></div><div class="device-meta"><div class="device-name">无法加载设备</div><div class="device-sub">点击重试</div></div></div></div>`;
+      const retryCard = document.getElementById("sidebarDevRetry");
+      if (retryCard) {
+        retryCard.addEventListener("click", loadDevices);
+        retryCard.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); loadDevices(); }
+        });
+      }
     }
   }
 

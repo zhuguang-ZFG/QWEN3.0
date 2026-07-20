@@ -280,27 +280,13 @@
 .pw-strength[data-level="4"] + .pw-strength-hint { color: var(--green); }
 
 /* ─── Enhanced Toast (P1) ─── */
+/* W51: base .toast (fixed positioning, show/error states) lives in common.css.
+   Only the icon/progress layout extras remain here. */
 .toast {
   display: flex; align-items: center; gap: 10px;
   max-width: 380px;
-  padding: 14px 18px;
-  border-radius: 14px;
-  background: rgba(20, 20, 26, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: var(--text);
-  font-size: 13px; line-height: 1.5;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4);
-  transform: translateY(24px) scale(0.96);
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.35s var(--ease-out);
-  z-index: 2000;
   overflow: hidden;
-  position: relative;
 }
-.toast.show { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
 .toast-icon {
   width: 20px; height: 20px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
@@ -321,6 +307,17 @@
 .toast.error .toast-icon { color: var(--rose-light); }
 .toast.warning .toast-icon { color: var(--amber-light); }
 .toast.info .toast-icon { color: var(--accent-light); }
+
+/* ─── Password visibility toggle (W33) — reuses pages.css .key-toggle-vis ─── */
+.auth-input-wrap.pw-wrap input { padding-right: 48px; }
+.auth-input-wrap .key-toggle-vis {
+  position: absolute; right: 8px; top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+/* ─── Turnstile placeholder (W34): reserve height so the card doesn't jump ─── */
+.turnstile-widget { min-height: 65px; }
 
 /* ─── Auth page mobile ─── */
 @media (max-width: 480px) {

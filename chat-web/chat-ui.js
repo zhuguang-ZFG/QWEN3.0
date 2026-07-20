@@ -45,6 +45,10 @@ function autoResize(el) {
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
+    // W6: while streaming, Enter must not fall through to handleSendClick's
+    // abort branch (it silently cancelled the answer and dropped the draft).
+    // Stopping generation stays click-only.
+    if (isStreaming) return;
     if (inputField.value.trim()) handleSendClick();
   }
 }
@@ -67,6 +71,7 @@ let voiceRecognition = null;
 let voiceStartTime = 0;
 let voiceHoldActive = false;
 let voiceFinalTranscript = '';
+let voiceDraftSnapshot = ''; // W14: restore the typed draft if the hold is cancelled
 
 function setVoiceListening(listening) {
   micBtn?.classList.toggle('listening', listening);
@@ -137,6 +142,7 @@ function onVoicePointerDown(e) {
   e.preventDefault();
   voiceHoldActive = true;
   voiceStartTime = Date.now();
+  voiceDraftSnapshot = inputField.value;
   startVoiceRecognition();
 }
 
@@ -146,7 +152,8 @@ function onVoicePointerUp(e) {
   if (held < 500) {
     voiceHoldActive = false;
     stopVoiceRecognition();
-    inputField.value = '';
+    // W14: a too-short press used to wipe the whole input — put the draft back.
+    inputField.value = voiceDraftSnapshot;
     autoResize(inputField);
     showToast('按住时间太短，已取消', { duration: 1500 });
     return;
@@ -174,6 +181,8 @@ function handleSendClick() {
     isStreaming = false;
     setSendLoading(false);
     hideTyping();
+    // W1: settle partial answer (or skeleton → notice) so it is not left "streaming".
+    if (typeof settleAbortedAiMessage === 'function') settleAbortedAiMessage();
     return;
   }
   sendMessage();
@@ -264,3 +273,13 @@ function confirmApiKey() {
   if (pendingApiKeyCallback) pendingApiKeyCallback(key);
   else location.reload();
 }
+
+// W15/W21: Esc closes modals and the lightbox (aligned with playground behaviour).
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const apiKeyModal = document.getElementById('apiKeyModal');
+  const apiInfoModal = document.getElementById('apiInfoModal');
+  if (apiKeyModal && apiKeyModal.classList.contains('open')) closeApiKeyModal();
+  else if (apiInfoModal && apiInfoModal.classList.contains('open')) closeApiInfoModal();
+  else if (lightbox.classList.contains('open')) closeLightbox();
+});

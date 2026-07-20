@@ -22,8 +22,11 @@
     .history-item { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .history-item.active { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.08); }
     .history-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .history-delete { width:20px; height:20px; display:flex; align-items:center; justify-content:center; border-radius:4px; border:none; background:transparent; color:var(--text-muted); cursor:pointer; font-size:14px; line-height:1; }
-    .history-delete:hover { background:rgba(239,68,68,.15); color:#ef4444; }
+    /* W13: 28×28 touch target; hover-revealed on desktop, always visible on touch */
+    .history-delete { width:28px; height:28px; margin:-4px -6px -4px 0; display:flex; align-items:center; justify-content:center; border-radius:8px; border:none; background:transparent; color:var(--text-muted); cursor:pointer; font-size:15px; line-height:1; opacity:0; transition:opacity .15s var(--ease-out); }
+    .history-item:hover .history-delete, .history-delete:focus-visible { opacity:1; }
+    .history-delete:hover { background:rgba(244,63,94,.15); color:var(--rose-light); }
+    @media (pointer:coarse) { .history-delete { opacity:1; } }
     .mic-btn { position:relative; transition:transform .15s; }
     .mic-btn.listening { color:var(--accent); transform:scale(1.1); animation:micPulse 1.2s ease-in-out infinite; }
     @keyframes micPulse { 0%,100% { box-shadow:0 0 0 0 rgba(6,182,212,.4); } 50% { box-shadow:0 0 0 8px rgba(6,182,212,0); } }
@@ -221,7 +224,7 @@
       <div class="topbar-right">
         <button class="topbar-btn" onclick="openApiKeyModal()">Key</button>
         <button class="topbar-btn" onclick="showApiInfo()">API</button>
-        <button class="topbar-btn" onclick="window.open('https://donglicao.com','_blank')">官网</button>
+        <button class="topbar-btn" id="officialSiteBtn" onclick="window.open('https://donglicao.com','_blank')">官网</button>
         <button class="topbar-btn" id="logoutBtn" hidden onclick="LiMaAuth.logout();window.location.href='login.html'">登出</button>
       </div>
     </div>
@@ -284,13 +287,13 @@
             onkeydown="handleKey(event)"
             oninput="autoResize(this)"></textarea>
           <div class="input-actions">
-            <button class="input-pill" onclick="insertImageCommand()" title="插入 /image 命令">
+            <button class="input-pill" onclick="insertImageCommand()" title="插入 /image 命令" aria-label="插入 /image 命令">
               <svg class="svg-icon"><use href="icons.svg#i-image"/></svg>
-              /image
+              <span class="pill-label">/image</span>
             </button>
-            <button class="input-pill" onclick="document.getElementById('assetUpload').click()" title="上传素材到资产库">
+            <button class="input-pill" onclick="document.getElementById('assetUpload').click()" title="上传素材到资产库" aria-label="上传素材到资产库">
               <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              上传
+              <span class="pill-label">上传</span>
             </button>
             <input type="file" id="assetUpload" accept=".svg,.png,.jpg,.jpeg,.gif,.webp" style="display:none" onchange="handleAssetUpload(this)">
             <button class="mic-btn" id="micBtn" title="按住说话" aria-label="按住说话">
@@ -305,8 +308,10 @@
             <path d="m21.854 2.147-10.94 10.939"/>
           </svg>
           <span class="spinner"></span>
+          <span class="stop-square" aria-hidden="true"></span>
         </button>
       </div>
+      <button class="input-pill scroll-latest-pill" id="scrollLatestBtn" hidden onclick="scrollToBottom(true)" aria-label="回到最新消息">↓ 回到最新</button>
       <div class="input-hint">
         LiMa 星云 · 兼容 OpenAI API ·
         <a href="https://donglicao.com" target="_blank" rel="noopener noreferrer">donglicao.com</a>
@@ -323,9 +328,9 @@
   <div class="toast" id="toast"></div>
 
   <!-- API KEY MODAL -->
-  <div class="modal-overlay" id="apiKeyModal" onclick="if(event.target===this)closeApiKeyModal()">
+  <div class="modal-overlay" id="apiKeyModal" role="dialog" aria-modal="true" aria-labelledby="apiKeyModalTitle" onclick="if(event.target===this)closeApiKeyModal()">
     <div class="modal">
-      <div class="modal-title">设置 API Key（可选）</div>
+      <div class="modal-title" id="apiKeyModalTitle">设置 API Key（可选）</div>
       <div class="modal-desc">LiMa 星云免费聊天无需 Key。如需使用自己的 Key，可在此设置；留空则清除已保存的 Key。Key 仅保存在浏览器本地。</div>
       <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-..." onkeydown="if(event.key==='Enter')confirmApiKey()">
       <div class="modal-actions">
@@ -336,9 +341,9 @@
   </div>
 
   <!-- API INFO MODAL -->
-  <div class="modal-overlay" id="apiInfoModal" onclick="if(event.target===this)closeApiInfoModal()">
+  <div class="modal-overlay" id="apiInfoModal" role="dialog" aria-modal="true" aria-labelledby="apiInfoModalTitle" onclick="if(event.target===this)closeApiInfoModal()">
     <div class="modal">
-      <div class="modal-title">LiMa 星云 API 接入指南</div>
+      <div class="modal-title" id="apiInfoModalTitle">LiMa 星云 API 接入指南</div>
       <div class="modal-desc">
         端点：<code>https://chat.donglicao.com/v1/chat/completions</code><br>
         模型：<code>lima</code>，协议兼容 OpenAI。<br>

@@ -29,6 +29,7 @@
     modeTask: document.getElementById("modeTask"),
     deviceSelect: document.getElementById("deviceSelect"),
     deviceWrap: document.getElementById("deviceWrap"),
+    deviceHint: document.getElementById("deviceHint"),
     submit: document.getElementById("generateBtn"),
     result: document.getElementById("resultArea"),
     loading: document.getElementById("loading"),
@@ -38,6 +39,7 @@
   let maxTextLength = 3500;
   let currentMode = "preview";
   let devices = [];
+  let lastResultHtml = ""; // W30: last successful preview, restored on failure
 
   function showToast(message, duration) {
     if (window.LiMaToast) {
@@ -52,9 +54,24 @@
   // P3.2: canonical escaping lives in js/utils.js (window.LiMaUtils).
   const escapeHtml = window.LiMaUtils.escapeHtml;
 
+  // W28/W29: submit button reflects mode + device availability in one place.
+  function updateSubmitState() {
+    els.submit.disabled = currentMode === "task" && devices.length === 0;
+    els.submit.textContent = currentMode === "preview" ? "生成 SVG 预览" : "下发到设备";
+  }
+
   function setLoading(on) {
-    els.submit.disabled = on;
     els.loading.hidden = !on;
+    if (on) {
+      // W28/S6: button-local spinner class (self-contained CSS on this page).
+      els.submit.disabled = true;
+      els.submit.innerHTML =
+        '<span class="btn-spinner" aria-hidden="true"></span>生成中…';
+      lastResultHtml = els.result.innerHTML;
+      els.result.innerHTML = '<div class="skeleton" style="min-height:120px;"></div>';
+    } else {
+      updateSubmitState();
+    }
   }
 
   function fillSelect(select, options) {
@@ -104,6 +121,9 @@
           els.deviceSelect.appendChild(opt);
         });
       }
+      // W29: no devices → disable submit in task mode + show the bind hint.
+      if (els.deviceHint) els.deviceHint.hidden = devices.length !== 0;
+      updateSubmitState();
     } catch (err) {
       showToast("加载设备失败：" + (err.message || "未知错误"));
     }
@@ -126,7 +146,7 @@
     els.modePreview.classList.toggle("active", mode === "preview");
     els.modeTask.classList.toggle("active", mode === "task");
     els.deviceWrap.hidden = mode !== "task";
-    els.submit.textContent = mode === "preview" ? "生成 SVG 预览" : "下发到设备";
+    updateSubmitState();
   }
 
   function collectPayload() {
@@ -190,6 +210,8 @@
 
   async function onSubmit(event) {
     event.preventDefault();
+    // W28: async-entry guard — ignore re-submits while a request is in flight.
+    if (els.submit.disabled) return;
     const payload = collectPayload();
     if (!payload.text) {
       showToast("请输入要转换的文字");
@@ -207,7 +229,24 @@
         await handleTask(payload);
       }
     } catch (err) {
-      els.result.innerHTML = `<div class="result-error">失败：${escapeHtml(err.message || "未知错误")}</div>`;
+      // W30: keep the last successful preview and surface a retryable error.
+      els.result.innerHTML = lastResultHtml || "";
+      els.result.querySelectorAll(".result-error").forEach(function (n) { n.remove(); });
+      const errBox = document.createElement("div");
+      errBox.className = "result-error";
+      errBox.style.marginBottom = "12px";
+      errBox.textContent = "失败：" + (err.message || "未知错误");
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "btn-secondary";
+      retry.style.marginLeft = "10px";
+      retry.textContent = "重试";
+      retry.addEventListener("click", function () {
+        if (els.form.requestSubmit) els.form.requestSubmit();
+        else els.form.dispatchEvent(new Event("submit", { cancelable: true }));
+      });
+      errBox.appendChild(retry);
+      els.result.prepend(errBox);
     } finally {
       setLoading(false);
     }

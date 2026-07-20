@@ -282,6 +282,17 @@
     els.copyCurlBtn.addEventListener("click", () => U.copyCurl(ctx));
     Ui.bindKeyModal(ctx);
 
+    // W38: show/hide toggles for the API Key inputs (CSP forbids inline JS).
+    document.querySelectorAll("[data-pg-vis]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const input = document.getElementById(btn.dataset.pgVis);
+        if (!input) return;
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        btn.setAttribute("aria-label", show ? "隐藏 Key" : "显示 Key");
+      });
+    });
+
     document.addEventListener("keydown", handleKeyDown);
     window.addEventListener("resize", handleResize);
   }

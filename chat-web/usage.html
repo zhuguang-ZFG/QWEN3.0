@@ -15,6 +15,7 @@
     .usage-main { flex:1; padding:32px; position:relative; z-index:1; max-width:1200px; margin:0 auto; width:100%; }
     .usage-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
     .usage-header h1 { font-size:1.5rem; }
+    .usage-header-left { display:flex; align-items:center; gap:10px; }
     .period-select { padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-input); color:var(--text); }
     .summary-cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px; }
     .summary-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
@@ -40,8 +41,9 @@
   </style>
 </head>
 <body>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="usage-layout">
-    <aside class="sidebar" style="width:var(--sidebar-w); flex-shrink:0;">
+    <aside class="sidebar" id="sidebar" style="width:var(--sidebar-w); flex-shrink:0;">
       <div class="sidebar-header">
         <div class="sidebar-brand">
           <div class="brand-mark"><svg class="svg-icon"><use href="icons.svg#i-sparkles"/></svg></div>
@@ -64,7 +66,12 @@
 
     <main class="usage-main">
       <div class="usage-header">
-        <h1>用量统计</h1>
+        <div class="usage-header-left">
+          <button class="menu-toggle" id="menuToggle" aria-label="打开侧边栏">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+          </button>
+          <h1>用量统计</h1>
+        </div>
         <select class="period-select" id="periodSelect" aria-label="时间范围">
           <option value="7">近 7 天</option>
           <option value="30" selected>近 30 天</option>
@@ -83,7 +90,7 @@
         <div class="summary-card card-cost"><div class="label">预估费用</div><div class="value" id="estimatedCost">—</div></div>
       </div>
 
-      <div class="chart-grid">
+      <div class="chart-grid" id="chartGrid">
         <div class="chart-card"><h3>每日 Token 消耗</h3><div id="tokenChart" class="chart"></div></div>
         <div class="chart-card"><h3>每日请求次数</h3><div id="requestChart" class="chart"></div></div>
         <div class="chart-card"><h3>能力分布</h3><div id="capabilityChart" class="chart"></div></div>
@@ -108,5 +115,20 @@
   <script src="js/api.js?v=taste3"></script>
   <script src="js/auth.js?v=taste3"></script>
   <script src="js/usage.js?v=taste3"></script>
+  <script>
+    // T0-W3: mobile sidebar toggle (mirrors index.html behaviour).
+    (function () {
+      var sb = document.getElementById("sidebar");
+      var ov = document.getElementById("sidebarOverlay");
+      var tg = document.getElementById("menuToggle");
+      if (!sb || !ov || !tg) return;
+      function toggleSidebar() {
+        sb.classList.toggle("open");
+        ov.classList.toggle("open");
+      }
+      tg.addEventListener("click", toggleSidebar);
+      ov.addEventListener("click", toggleSidebar);
+    })();
+  </script>
 </body>
 </html>

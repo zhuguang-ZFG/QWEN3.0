@@ -311,6 +311,99 @@
   font-size: 13px;
 }
 
+/* W38: API Key visibility toggle */
+.pg-input-vis-wrap { position: relative; }
+.pg-input-vis-wrap input { padding-right: 40px; }
+.pg-vis-toggle {
+  position: absolute; right: 6px; top: 50%;
+  transform: translateY(-50%);
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(255, 255, 255, .04);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s var(--ease-out);
+}
+.pg-vis-toggle:hover {
+  border-color: rgba(6, 182, 212, .3);
+  color: var(--accent-light);
+  background: rgba(6, 182, 212, .08);
+}
+.pg-vis-toggle svg { width: 14px; height: 14px; }
+
+/* Modal (same pattern as chat.css .modal — chat.css is not loaded on this
+   page, so the Key modal needs its own copy to render as an overlay). */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: none; align-items: center; justify-content: center;
+  z-index: 3000;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-out);
+}
+.modal-overlay.open { display: flex; opacity: 1; }
+.modal {
+  width: 100%; max-width: 400px;
+  background: rgba(20, 20, 28, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(6, 182, 212, 0.05);
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.3s var(--ease-out);
+}
+.modal-overlay.open .modal { transform: scale(1) translateY(0); }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.01em; }
+.modal-desc { font-size: 13.5px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.6; }
+.modal-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 18px;
+  transition: all 0.25s var(--ease-out);
+}
+.modal-input:focus {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1);
+  background: rgba(0, 0, 0, 0.5);
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+.modal-btn {
+  padding: 10px 18px;
+  border-radius: 980px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  font-weight: 500;
+}
+.modal-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+.modal-btn.primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--violet) 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.35);
+}
+.modal-btn.primary:hover {
+  background: linear-gradient(135deg, var(--accent-light) 0%, var(--violet-light) 100%);
+  box-shadow: 0 6px 24px rgba(6, 182, 212, 0.45);
+  transform: translateY(-1px);
+}
+
 /* Monaco overrides to fit theme */
 .monaco-editor, .monaco-editor .overflow-guard, .monaco-editor .margin, .monaco-editor .monaco-editor-background { border-radius: 0 0 var(--pg-radius) var(--pg-radius); }
 
@@ -319,7 +412,10 @@
     grid-template-columns: 1fr;
     overflow-y: auto;
   }
-  .playground-panel { min-height: 0; }
+  /* T0-W4: in single-column flow the absolutely-positioned Monaco editor
+     collapsed to 0 height — keep a usable minimum. */
+  .playground-panel { min-height: auto; }
+  .playground-editor-wrap { min-height: 240px; }
   .playground-history { max-height: none; }
   .playground-history-list { grid-template-columns: 1fr; }
 }

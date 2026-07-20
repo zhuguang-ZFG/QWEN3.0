@@ -18,6 +18,7 @@
   const pager = document.getElementById("pager");
   const usageEmpty = document.getElementById("usageEmpty");
   const summaryCards = document.getElementById("summaryCards");
+  const chartGrid = document.getElementById("chartGrid");
 
   let currentDays = 30;
   let currentPage = 1;
@@ -111,6 +112,10 @@
   const escapeHtml = window.LiMaUtils.escapeHtml;
 
   async function loadUsage() {
+    // W49: summary skeleton while the request is in flight.
+    [totalTokens, totalRequests, estimatedCost].forEach(function (el) {
+      el.innerHTML = '<span class="skeleton skeleton-text medium" style="display:inline-block;width:90px;height:20px;margin:0;"></span>';
+    });
     try {
       var query = "?days=" + currentDays + "&page=" + currentPage + "&page_size=" + currentPageSize;
       var data = await LiMaAPI.get(API_PATH + query, token);
@@ -120,9 +125,12 @@
       if (hasData) {
         usageEmpty.hidden = true;
         summaryCards.hidden = false;
+        chartGrid.hidden = false;
       } else {
+        // W49: no data → hide the three empty charts instead of showing husks.
         usageEmpty.hidden = false;
         summaryCards.hidden = true;
+        chartGrid.hidden = true;
       }
 
       totalTokens.textContent = formatNumber(summary.totalTokens);
@@ -131,13 +139,27 @@
 
       renderDailyCharts(data.daily || []);
       renderCapabilityChart(data.byCapability || []);
+      if (hasData) {
+        // Charts sized while hidden collapse to 0 — re-measure after unhiding.
+        tokenChart.resize();
+        requestChart.resize();
+        capabilityChart.resize();
+      }
       var details = data.details || {};
       renderDetails(details.items || [], details.page || 1, details.pageSize || currentPageSize, details.total || 0);
     } catch (err) {
       console.error(err);
       usageEmpty.hidden = false;
       summaryCards.hidden = true;
-      detailsBody.innerHTML = '<tr><td colspan="4" class="empty">加载失败：' + escapeHtml(err.message || "未知错误") + '</td></tr>';
+      chartGrid.hidden = true;
+      totalTokens.textContent = "—";
+      totalRequests.textContent = "—";
+      estimatedCost.textContent = "—";
+      detailsBody.innerHTML = '<tr><td colspan="4" class="empty">加载失败：' + escapeHtml(err.message || "未知错误") +
+        '<br><button class="btn-secondary" id="usageRetryBtn" style="margin-top:12px;">重试</button></td></tr>';
+      pager.innerHTML = "";
+      var retryBtn = document.getElementById("usageRetryBtn");
+      if (retryBtn) retryBtn.addEventListener("click", loadUsage);
     }
   }
 

@@ -505,7 +505,9 @@
 
 .input-wrapper { flex: 1; position: relative; }
 .input-field {
-  width: 100%; padding: 0.8rem 4rem 0.8rem 1.25rem;
+  /* W5: right padding must clear the /image + 上传 pills and the mic button
+     (≈200px) so typed text never slides underneath them. */
+  width: 100%; padding: 0.8rem 13rem 0.8rem 1.25rem;
   border-radius: 28px;
   background: var(--bg-input);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -599,8 +601,58 @@
   display: none;
 }
 .send-btn.loading svg { display: none; }
-.send-btn.loading .spinner { display: block; }
+/* W2/W7: loading = stop affordance only; spinner would stack under the square. */
+.send-btn.loading .spinner { display: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* W7: visible "stop generating" affordance while streaming */
+.send-btn .stop-square {
+  display: none;
+  width: 9px; height: 9px; border-radius: 2px;
+  background: #fff;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.send-btn.loading .stop-square { display: block; }
+.send-btn.loading:hover::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: 50%;
+  background: rgba(244, 63, 94, .18);
+  pointer-events: none;
+}
+
+/* W8: "back to latest" pill shown when autoscroll is suppressed */
+.scroll-latest-pill {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  top: -46px; z-index: 6;
+  background: rgba(20, 20, 28, .92);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+}
+
+/* W10: streaming caret at the tail of the growing AI bubble */
+.stream-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--accent-light);
+  animation: fadePulse 1.2s ease-in-out infinite;
+}
+@keyframes fadePulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* W11: in-bubble retry action for failed requests */
+.msg-retry-btn {
+  margin-top: 8px;
+  height: 30px; padding: 0 14px;
+  border-radius: 980px;
+  border: 1px solid rgba(244, 63, 94, .3);
+  background: rgba(244, 63, 94, .1);
+  color: var(--rose-light);
+  font-size: 12px; font-family: inherit; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.msg-retry-btn:hover { background: rgba(244, 63, 94, .18); }
 
 .input-hint {
   text-align: center; font-size: 0.68rem;
@@ -665,29 +717,7 @@
 .msg-bubble pre code { background: none; padding: 0; border: none; }
 
 /* ─── TOAST ─── */
-.toast {
-  position: fixed;
-  bottom: max(28px, calc(env(safe-area-inset-bottom) + 28px));
-  right: 28px;
-  max-width: 340px;
-  padding: 14px 18px;
-  border-radius: 14px;
-  background: rgba(20, 20, 26, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.5;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4);
-  transform: translateY(24px) scale(0.96);
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.35s var(--ease-out);
-  z-index: 2000;
-}
-.toast.show { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
-.toast.error { border-color: rgba(248, 113, 113, 0.3); box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4), 0 0 20px rgba(248, 113, 113, 0.05); }
+/* W51: base .toast moved to common.css (single source). */
 
 /* ─── MODAL ─── */
 .modal-overlay {
@@ -783,10 +813,24 @@
   .menu-toggle { display: flex; }
   .quick-grid { grid-template-columns: 1fr; }
   .input-area { padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom)); }
+  /* W5: icon-only pills on touch layouts so the textarea keeps room for text */
+  .input-pill .pill-label { display: none; }
+  .input-actions .input-pill { width: 36px; padding: 0; justify-content: center; }
+  .input-field { padding-right: 8.5rem; }
   .welcome h2 { font-size: 1.4rem; }
   .msg-body { max-width: 92%; }
   .topbar { padding: 0 14px; height: 48px; }
   .chat-inner { padding: 0 1rem; }
+}
+
+/* W9: 375px-class topbar overflow — drop low-value chrome, ellipsize title */
+@media (max-width: 640px) {
+  #topbarBadge { display: none; }
+  #officialSiteBtn { display: none; }
+  .topbar-title {
+    max-width: 96px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 }
 
 
