@@ -5,6 +5,13 @@ from __future__ import annotations
 import math
 from types import SimpleNamespace
 
+import pytest
+
+from device_gateway.path_pipeline import (
+    PathNormalizationError,
+    _assert_path_within_workspace,
+    render_svg_task,
+)
 from device_gateway.path_validator import validate_run_path_params
 from device_gateway.redis_store_helpers import validate_task_schema
 from device_intelligence.safety import profile_limit_error
@@ -73,3 +80,18 @@ def test_r3_1_finite_feed_still_ok() -> None:
     sanitized, err = validate_run_path_params({"path": [{"x": 1, "y": 1, "z": 0}], "feed": 500})
     assert err is None
     assert math.isfinite(sanitized["feed"])
+
+
+def test_r3_7_post_transform_assertion_rejects_out_of_bounds() -> None:
+    """GW-R3-7: the post-transform assertion must reject a point a multi_pass
+    offset pushed past the workspace (normalize-time check ran before the shift).
+    """
+    pushed = [{"x": 99.0, "y": 10.0, "z": 0}, {"x": 130.0, "y": 10.0, "z": 0}]
+    with pytest.raises(PathNormalizationError):
+        _assert_path_within_workspace(pushed, 100.0, 100.0, stage="test")
+
+
+def test_r3_7_normal_render_still_within_bounds() -> None:
+    """GW-R3-7: a normal single-pass render stays in bounds (no false trip)."""
+    result = render_svg_task("M 0 0 L 30 0 L 30 30 L 0 30 Z")
+    assert all(0.0 <= p["x"] <= 100.0 and 0.0 <= p["y"] <= 100.0 for p in result["path"])

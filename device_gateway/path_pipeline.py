@@ -153,6 +153,12 @@ def render_text_task(
     if optimize:
         optimizer = PathOptimizer()
         path = optimizer.smooth(optimizer.compress(path))
+    # GW-R3-7: multi_pass shifts +X and the optimizer may reshape after the
+    # normalize-time check — re-assert bounds so a pass offset can never push
+    # a point past the workspace and dispatch silently out of bounds.
+    _assert_path_within_workspace(
+        path, float(DEFAULT_WORKSPACE_MM["x"]), float(DEFAULT_WORKSPACE_MM["y"]), stage="text post-transform"
+    )
     return {
         "path": path,
         "preview_svg": preview_svg(path, title=f'text: "{text[:20]}"'),
@@ -189,12 +195,28 @@ def _normalize_path_to_workspace(
         {"x": round(origin_x + pt["x"] * scale, 2), "y": round(origin_y + pt["y"] * scale, 2), "z": 0} for pt in path
     ]
     # GW-B2: post-translation assertion — reject instead of silently dispatching.
-    for idx, pt in enumerate(normalized):
+    _assert_path_within_workspace(normalized, width, height, stage="normalize")
+    return normalized
+
+
+def _assert_path_within_workspace(
+    path: list[dict[str, float]],
+    width: float = 100.0,
+    height: float = 100.0,
+    *,
+    stage: str = "render",
+) -> None:
+    """GW-B2 / GW-R3-7: reject any point outside [0, width] x [0, height].
+
+    Called both after normalization and again after post-normalize transforms
+    (multi_pass shifts +X, optimizer may reshape) so a pass offset can no longer
+    push coordinates past the workspace and dispatch silently out of bounds.
+    """
+    for idx, pt in enumerate(path):
         if not (0 <= pt["x"] <= width and 0 <= pt["y"] <= height):
             raise PathNormalizationError(
-                f"normalized point {idx} ({pt['x']},{pt['y']}) outside workspace {width}x{height}mm"
+                f"{stage} point {idx} ({pt['x']},{pt['y']}) outside workspace {width}x{height}mm"
             )
-    return normalized
 
 
 def render_svg_task(
@@ -211,6 +233,9 @@ def render_svg_task(
     if optimize:
         optimizer = PathOptimizer()
         path = optimizer.smooth(optimizer.compress(path))
+    # GW-R3-7: re-assert bounds after multi_pass/optimizer so a pass offset can
+    # never silently dispatch a point past the workspace (matches normalize dims).
+    _assert_path_within_workspace(path, stage="svg post-transform")
     return {
         "path": path,
         "preview_svg": preview_svg(path, title=f"svg path — {len(path)} pts"),

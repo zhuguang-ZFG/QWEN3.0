@@ -67,7 +67,7 @@
 | ID | 摘要 | 位置 |
 |----|------|------|
 | **GW-R3-6** | 手写 bounds 预检 `except` 返回 None = 跳过（fail-open） | `handwriting_path.py:108-116` |
-| **GW-R3-7** | multi_pass **在** normalize 之后 → 可再次越界 | `path_pipeline.py` render_* |
+| ~~**GW-R3-7**~~ | ~~multi_pass **在** normalize 之后 → 可再次越界~~（**已修**，见下表） | `path_pipeline.py` render_* |
 | **GW-R3-8** | LLM planner 可将 `rejected` 改写成写画；无 estop | `intent.py` / `intent_llm_planner.py` |
 | **GW-R3-9** | `queued_no_delivery` 仍占 busy 至 1h | `tasks.py` / `QUEUED_MAX_AGE_SEC` |
 | **GW-R3-10** | draw `_clamp_feed` 遇 NaN 抛 ValueError | `task_draw_params.py:23-29` |
@@ -172,6 +172,7 @@ assert len(svg_path_to_motion("M0 0 L 10 0 20 10 30 0")) == 2  # GW-WF should be
 | GW-R3-5 | **已修（修正）** | 无 profile 预检回落 ±500 硬限（真实固件 300×300×80mm，初版 100mm 硬拒合法坐标）；`[0, workspace]` 仍由 profile 解析后 `profile_limit_error` 强制 |
 | GW-R3-2 | **已修（门控）** | strict 拒 gen-less ack 由 `LIMA_STRICT_DISPATCH_GEN` 门控，默认关闭；固件回带 `dispatch_gen`（B5）前开启会让每个 recovered 任务死循环 |
 | GW-R3-4 | **已修** | SEC-06 `validate_task_schema` 重跑 `validate_capability_params` |
+| GW-R3-7 | **已修** | render_text/svg 在 multi_pass/optimizer 之后复检工作区边界（`_assert_path_within_workspace`）；normalize-time 断言只在 +X 平移前跑，多道 offset 可越界后静默下发 |
 | RT-R3-1 | **已修** | 模板 execute insert → dispatch → 失败 mark_task_failed |
 
 回归：`tests/test_review_round3_blockers.py` + 既有 redis/path_validator/template 套件。
