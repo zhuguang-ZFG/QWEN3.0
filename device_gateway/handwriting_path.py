@@ -106,11 +106,18 @@ def try_text_to_handwriting(
 
 
 def _check_motion_bounds(svg_path: str) -> str | None:
-    """路径越界预检（复用 path_pipeline，避免循环导入延迟导入）。"""
+    """路径越界预检（复用 path_pipeline，避免循环导入延迟导入）。
+
+    GW-R3-6: 预检自身异常（导入失败/未预期 bug）此前 `return None` = 当作通过
+    （fail-open），与本模块 GW-B2「越界必须大声拒绝」矛盾，且与姊妹实现
+    device_draw_handler._check_motion_bounds（不吞异常）分叉。改为 fail-closed：
+    异常返回错误串，让上层走 failed 分支。PathNormalizationError 已在
+    precheck_draw_motion_path 内部转为字符串，不会到这里。
+    """
     try:
         from device_gateway.path_pipeline import precheck_draw_motion_path
 
         return precheck_draw_motion_path(svg_path)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("motion bounds 预检失败（跳过）: %s", exc)
-        return None
+        logger.warning("motion bounds 预检异常，fail-closed 拒绝: %s", exc)
+        return f"motion bounds precheck error: {exc}"

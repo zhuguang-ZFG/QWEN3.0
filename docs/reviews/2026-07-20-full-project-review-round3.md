@@ -66,7 +66,7 @@
 
 | ID | 摘要 | 位置 |
 |----|------|------|
-| **GW-R3-6** | 手写 bounds 预检 `except` 返回 None = 跳过（fail-open） | `handwriting_path.py:108-116` |
+| ~~**GW-R3-6**~~ | **已修** fail-closed：预检异常返回错误串（对齐 `device_draw_handler`） | `handwriting_path.py:108-123` |
 | ~~**GW-R3-7**~~ | ~~multi_pass **在** normalize 之后 → 可再次越界~~（**已修**，见下表） | `path_pipeline.py` render_* |
 | **GW-R3-8** | LLM planner 可将 `rejected` 改写成写画；无 estop | `intent.py` / `intent_llm_planner.py` |
 | **GW-R3-9** | `queued_no_delivery` 仍占 busy 至 1h | `tasks.py` / `QUEUED_MAX_AGE_SEC` |

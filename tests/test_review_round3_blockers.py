@@ -108,3 +108,19 @@ def test_r3_10_draw_clamp_feed_rejects_nonfinite() -> None:
     assert _clamp_feed(float("-inf")) == DEFAULT_FEED
     # finite values still clamp normally
     assert _clamp_feed(999) == 999
+
+
+def test_r3_6_handwriting_bounds_precheck_fails_closed(monkeypatch) -> None:
+    """GW-R3-6: when the bounds precheck itself raises (import/bug), the
+    handwriting path must fail closed (return an error) instead of returning
+    None (= treated as in-bounds and dispatched)."""
+    import device_gateway.path_pipeline as pp
+    from device_gateway.handwriting_path import _check_motion_bounds
+
+    def _boom(_svg: str) -> str | None:
+        raise RuntimeError("precheck exploded")
+
+    monkeypatch.setattr(pp, "precheck_draw_motion_path", _boom)
+    result = _check_motion_bounds("M 0 0 L 10 10")
+    assert result is not None
+    assert "error" in result
