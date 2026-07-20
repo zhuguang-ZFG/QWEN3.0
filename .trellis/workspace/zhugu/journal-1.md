@@ -476,3 +476,37 @@ SoftAP Connect form optional device_secret/server_host; patch CC+HTML; ensure du
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: WDT 任务 FW-F4:ReadU1Response 逐字节读消除读放大(代码侧,HIL 待硬件)
+
+**Date**: 2026-07-20
+**Task**: WDT 任务 FW-F4:ReadU1Response 逐字节读消除读放大(代码侧,HIL 待硬件)
+**Package**: root
+**Branch**: `main`
+
+### Summary
+
+推进 07-20-u8-wdt-panic-hil Step 4b 中唯一可无硬件闭环的项 FW-F4:U1 私有协议响应均以 \r\n 结尾,ReadU1Response 改逐字节读、读到 \n 即返,消除旧'2 轮空闲判结束'尾部 2×timeout 空转 + 块读凑不满 128 字节的 1×timeout 白等;PATH_END(120s 超时)正常响应从白等 240s 降到几乎立即返回。子模块 2ea622e,父仓库指针 bump(6c983886)。idf.py build 通过、schema 68/68。必要非充分:首字节仍等 timeout_ms,U1 真卡死时 PATH_END 仍等满 120s>30s 看门狗,需 FW-F5(长任务移出主循环)才彻底消 panic。剩余 Step 4b(FW-F5 执行架构/FW-F2 UART 引脚/FW-F7 HOME 超时/A1 phase 跨层 schema/B5 gen 回带)全部需真机 HIL 或跨层设计,无硬件不做。任务保持 in_progress 等硬件,不归档。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6c983886` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
