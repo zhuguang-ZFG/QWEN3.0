@@ -29,6 +29,7 @@ Implementation matches PRD Tier 0 + Tier 1 direction. Review found **3 Warnings*
 
 ## Residual (user / next)
 
-- AC6 visual pass page-by-page (chat-web + 小程序)
-- Tier 2 leftovers if any (voiceprint radius, privacy SectionCard, etc. per research inventory)
+- AC6 visual pass page-by-page — checklist: `.trellis/tasks/07-20-07-20-ui-polish/ac6-visual-checklist.md`
+- M36 (voiceprint radius) + M45 (privacy SectionCard) + vue-tsc (device-detail scrollOffset) closed in 2026-07-20 follow-up
+- Tier 2 leftovers if any (see tech-debt backlog)
 - Submodule branch at commit time: `fix/review-2026-07-20-h2-wdt-tasks` (mobile UI only in this change set)

@@ -50,6 +50,7 @@ async function generateImage(prompt) {
   if (isStreaming) return;
   isStreaming = true;
   abortController = new AbortController();
+  const epoch = streamEpoch;
   inputField.value = '';
   inputField.style.height = 'auto';
   setSendLoading(true);
@@ -71,6 +72,9 @@ async function generateImage(prompt) {
       }),
     });
 
+    // Session switch / stop bumped epoch — do not touch the new session's DOM.
+    if (epoch !== streamEpoch) return;
+
     hideTyping();
 
     if (!response.ok) {
@@ -84,6 +88,7 @@ async function generateImage(prompt) {
     }
 
     const json = await response.json();
+    if (epoch !== streamEpoch) return;
     const url = json.data && json.data[0] && json.data[0].url;
     if (!url) throw new Error('返回结果中没有图片地址');
     if (!isAllowedImageUrl(url)) throw new Error('图片地址来源不在白名单');
@@ -105,15 +110,18 @@ async function generateImage(prompt) {
     messages.push({ role: 'assistant', content: md });
     saveCurrentSession();
   } catch (err) {
+    if (epoch !== streamEpoch) return;
     hideTyping();
     if (err.name !== 'AbortError') {
       renderChatError(`图片生成失败：${err.message}。请检查网络连接或稍后重试。`, '/image ' + prompt);
     }
   }
 
-  isStreaming = false;
-  abortController = null;
-  setSendLoading(false);
+  if (epoch === streamEpoch) {
+    isStreaming = false;
+    abortController = null;
+    setSendLoading(false);
+  }
 }
 
 async function sendMessage() {
@@ -128,6 +136,7 @@ async function sendMessage() {
 
   isStreaming = true;
   abortController = new AbortController();
+  const epoch = streamEpoch;
   inputField.value = '';
   inputField.style.height = 'auto';
   setSendLoading(true);
@@ -176,6 +185,7 @@ async function sendMessage() {
       }
     }
     response = await fallbackIfNeeded(response);
+    if (epoch !== streamEpoch) return;
 
     hideTyping();
 
@@ -208,6 +218,10 @@ async function sendMessage() {
 
     let buffer = '';
     while (true) {
+      if (epoch !== streamEpoch) {
+        try { reader.cancel(); } catch {}
+        return;
+      }
       const { done, value } = await reader.read();
       if (done) break;
 
@@ -216,6 +230,10 @@ async function sendMessage() {
       buffer = lines.pop() || '';
 
       for (const line of lines) {
+        if (epoch !== streamEpoch) {
+          try { reader.cancel(); } catch {}
+          return;
+        }
         if (!line.startsWith('data: ')) continue;
         const data = line.slice(6).trim();
         if (data === '[DONE]') continue;
@@ -234,6 +252,8 @@ async function sendMessage() {
       }
     }
 
+    if (epoch !== streamEpoch) return;
+
     if (modelName) {
       const modelTag = chatInner.querySelector('.message.ai:last-of-type .msg-model');
       if (modelTag) modelTag.textContent = modelName;
@@ -247,6 +267,7 @@ async function sendMessage() {
     saveCurrentSession();
 
   } catch (err) {
+    if (epoch !== streamEpoch) return;
     hideTyping();
     if (err.name !== 'AbortError') {
       // W11: network failures and HTTP errors get distinct, actionable copy.
@@ -258,9 +279,11 @@ async function sendMessage() {
     }
   }
 
-  isStreaming = false;
-  abortController = null;
-  setSendLoading(false);
+  if (epoch === streamEpoch) {
+    isStreaming = false;
+    abortController = null;
+    setSendLoading(false);
+  }
 }
 
 function sendMessageWithText(text) {

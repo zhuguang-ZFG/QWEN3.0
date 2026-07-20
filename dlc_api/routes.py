@@ -32,7 +32,7 @@ from dlc_core import (
 from dlc_api.idempotency import IdempotencyUnavailableError
 from dlc_api.idempotency import claim_idempotency_key as _claim_idempotency_key
 from dlc_api.idempotency import release_idempotency_key as _release_idempotency_key
-from device_gateway.image_url_validation import validate_image_url
+from device_gateway.image_url_validation import validate_image_url_async
 from device_gateway.path_pipeline import render_svg_task
 from device_gateway.safety import DEFAULT_FEED
 from device_gateway.store import task_store_health
@@ -56,8 +56,9 @@ def _preview_from_result(result: dict[str, Any]) -> TaskPreviewResponse:
     )
 
 
-def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None]:
-    return validate_image_url(str(payload.get("image_url", "")))
+async def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None]:
+    """DNS (getaddrinfo) is blocking — always run off the event loop (GW-WD)."""
+    return await validate_image_url_async(str(payload.get("image_url", "")))
 
 
 def _motion_task(text: str, request_id: str, entrypoint: str) -> dict[str, Any]:
@@ -167,7 +168,7 @@ async def preview_task(
         return _preview_from_result(result)
 
     if body.type == "draw_from_image":
-        image_url, err = _validate_image_url(body.payload)
+        image_url, err = await _validate_image_url(body.payload)
         if err or image_url is None:
             return TaskPreviewResponse(status="failed", error=err or "image_url is required")
         result = await handle_draw_from_image(image_url, device_id=body.device_id)
@@ -271,7 +272,7 @@ async def _build_dispatch_payload(
         return result, None
 
     if body.type == "draw_from_image":
-        image_url, err = _validate_image_url(body.payload)
+        image_url, err = await _validate_image_url(body.payload)
         if err or image_url is None:
             return {"status": "failed", "error": err or "image_url is required"}, None
         result = await handle_draw_from_image(image_url, device_id=body.device_id)

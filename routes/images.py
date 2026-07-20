@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from access_guard import require_private_api_key
-from device_gateway.image_url_validation import validate_image_url
+from device_gateway.image_url_validation import validate_image_url_async
 from observability import prometheus_metrics as _prom_metrics
 from routes.images_backends import (
     IMAGE_BACKEND,
@@ -117,7 +117,8 @@ def _build_pollinations_options(img_req: ImageRequest) -> dict:
 
 async def _try_i2i_backend(prompt: str, image_url: str, size: str, n: int) -> tuple[list[dict], str]:
     # SEC-04: never forward private/non-allowlisted hosts to DashScope.
-    validated, url_err = validate_image_url(image_url)
+    # GW-WD: DNS resolution blocks the event loop — use the async wrapper.
+    validated, url_err = await validate_image_url_async(image_url)
     if url_err or validated is None:
         raise ValueError(url_err or "invalid image_url")
     data_items = await _generate_via_dashscope_i2i(prompt, validated, size, n)

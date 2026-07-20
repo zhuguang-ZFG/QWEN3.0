@@ -2,8 +2,25 @@
 let messages = [];
 let isStreaming = false;
 let abortController = null;
+// Bumped when a stream is aborted (stop / switch session / new chat / delete).
+// In-flight sendMessage/generateImage ignore late SSE tokens after a bump.
+let streamEpoch = 0;
 function getApiKey() {
   return sessionStorage.getItem('lima-api-key') || '';
+}
+
+/** Abort in-flight generation and settle the UI so session switches cannot corrupt data. */
+function abortActiveStreamIfAny() {
+  if (!isStreaming && !abortController) return;
+  streamEpoch += 1;
+  if (abortController) {
+    try { abortController.abort(); } catch {}
+  }
+  isStreaming = false;
+  abortController = null;
+  setSendLoading(false);
+  hideTyping();
+  if (typeof settleAbortedAiMessage === 'function') settleAbortedAiMessage();
 }
 
 const chatArea = document.getElementById('chatArea');
@@ -177,12 +194,8 @@ function setSendLoading(loading) {
 
 function handleSendClick() {
   if (isStreaming && abortController) {
-    abortController.abort();
-    isStreaming = false;
-    setSendLoading(false);
-    hideTyping();
-    // W1: settle partial answer (or skeleton → notice) so it is not left "streaming".
-    if (typeof settleAbortedAiMessage === 'function') settleAbortedAiMessage();
+    // Same path as session switch: epoch bump + settle so late tokens are dropped.
+    abortActiveStreamIfAny();
     return;
   }
   sendMessage();
@@ -207,6 +220,8 @@ function selectDevice(el, name) {
 }
 
 function newChat() {
+  // Mid-stream new chat used to keep writing tokens into the new empty session.
+  abortActiveStreamIfAny();
   saveCurrentSession();
   messages = [];
   currentSessionId = null;

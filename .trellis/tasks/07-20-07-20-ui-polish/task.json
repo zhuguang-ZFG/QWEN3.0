@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "Code done + review W1-W3/S1-S6 fixed. Residual: AC3 vue-tsc, AC6 visual, M36/M45. See docs/reviews/2026-07-20-ui-polish-code-review.md",
+  "notes": "Tier0/1 + W1-W3/S1-S6 done. M36/M45 + vue-tsc fixed 2026-07-20 follow-up. AC6 checklist: ac6-visual-checklist.md",
   "meta": {}
 }

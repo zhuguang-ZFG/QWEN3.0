@@ -351,7 +351,11 @@ function loadSession(id) {
   const sessions = getSessions();
   const session = sessions.find((s) => s.id === id);
   if (!session) return;
+  if (id === currentSessionId && !isStreaming) return;
 
+  // Review recheck: streaming tokens kept writing into the newly loaded session
+  // and saveCurrentSession() poisoned localStorage. Abort + settle first.
+  if (typeof abortActiveStreamIfAny === 'function') abortActiveStreamIfAny();
   saveCurrentSession();
   messages = session.messages.slice();
   currentSessionId = session.id;
@@ -372,6 +376,9 @@ function loadSession(id) {
 }
 
 function deleteSession(id) {
+  if (id === currentSessionId && typeof abortActiveStreamIfAny === 'function') {
+    abortActiveStreamIfAny();
+  }
   let sessions = getSessions();
   sessions = sessions.filter((s) => s.id !== id);
   setSessions(sessions);
