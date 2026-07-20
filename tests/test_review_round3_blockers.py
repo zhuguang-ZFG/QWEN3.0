@@ -1,0 +1,64 @@
+"""Round-3 blocker regressions (GW-R3-1/3/4/5 + SEC-06 + ack gen)."""
+
+from __future__ import annotations
+
+import math
+from types import SimpleNamespace
+
+from device_gateway.path_validator import validate_run_path_params
+from device_gateway.redis_store_helpers import validate_task_schema
+from device_intelligence.safety import profile_limit_error
+
+
+def test_r3_1_nan_feed_rejected() -> None:
+    _, err = validate_run_path_params({"path": [{"x": 1, "y": 1, "z": 0}], "feed": float("nan")})
+    assert err == "E_BAD_PARAMS"
+
+
+def test_r3_3_nan_workspace_profile_rejected() -> None:
+    profile = SimpleNamespace(
+        workspace_mm={"x": float("nan"), "y": 100.0, "z": 20.0},
+        max_feed=1200,
+        max_path_points=200,
+    )
+    err = profile_limit_error({"path": [{"x": 1, "y": 1, "z": 0}], "feed": 100}, profile)
+    assert err == "E_BAD_PARAMS"
+
+
+def test_r3_5_no_profile_rejects_400mm() -> None:
+    _, err = validate_run_path_params({"path": [{"x": 400, "y": 0, "z": 0}], "feed": 500})
+    assert err == "E_BAD_PARAMS"
+
+
+def test_r3_4_sec06_rejects_oob_path_on_queue() -> None:
+    assert (
+        validate_task_schema(
+            {
+                "task_id": "t-oob",
+                "device_id": "dev-1",
+                "capability": "run_path",
+                "params": {"path": [{"x": 400, "y": 0, "z": 0}], "feed": 500},
+            }
+        )
+        is False
+    )
+
+
+def test_r3_4_sec06_accepts_in_bounds_run_path() -> None:
+    assert (
+        validate_task_schema(
+            {
+                "task_id": "t-ok",
+                "device_id": "dev-1",
+                "capability": "run_path",
+                "params": {"path": [{"x": 10, "y": 10, "z": 0}], "feed": 500},
+            }
+        )
+        is True
+    )
+
+
+def test_r3_1_finite_feed_still_ok() -> None:
+    sanitized, err = validate_run_path_params({"path": [{"x": 1, "y": 1, "z": 0}], "feed": 500})
+    assert err is None
+    assert math.isfinite(sanitized["feed"])

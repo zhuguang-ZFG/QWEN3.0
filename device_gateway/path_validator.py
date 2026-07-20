@@ -12,6 +12,7 @@ from typing import Any
 
 from device_gateway.model_routing import CONTROL_CAPABILITIES
 from device_gateway.protocol_families import MotionErrorCode
+from device_gateway.safety import DEFAULT_WORKSPACE_MM
 from device_intelligence.safety import profile_limit_error
 from device_intelligence.schemas import DeviceProfile
 
@@ -46,6 +47,46 @@ VALID_PRIMARY_STRATEGIES = frozenset(
 VALID_ARTIFACT_REQUIRED = frozenset({"none", "preview_svg", "vector_path"})
 
 
+def _axis_value_error(val: Any, axis: str, profile: DeviceProfile | None) -> str | None:
+    """Return error code if a single axis value is illegal for the given profile."""
+    if not isinstance(val, (int, float)):
+        return MotionErrorCode.E_BAD_PARAMS.value
+    # AUDIT-10-V1：NaN/Inf 绕过边界校验（IEEE 754 NaN 比较全 False）。
+    if not math.isfinite(val):
+        return MotionErrorCode.E_BAD_PARAMS.value
+    # Absolute hard limit (defense in depth) even when a profile is present.
+    if val < MIN_POINT_COORD or val > MAX_POINT_COORD:
+        return MotionErrorCode.E_BAD_PARAMS.value
+    # GW-R3-5: no profile → conservative product workspace [0, DEFAULT_WORKSPACE].
+    if profile is None:
+        max_axis = float(DEFAULT_WORKSPACE_MM[axis])
+        if val < 0 or val > max_axis:
+            return MotionErrorCode.E_BAD_PARAMS.value
+    return None
+
+
+def _path_points_error(path: list, profile: DeviceProfile | None) -> str | None:
+    for point in path:
+        if not isinstance(point, dict):
+            return MotionErrorCode.E_BAD_PARAMS.value
+        for axis in ("x", "y", "z"):
+            err = _axis_value_error(point.get(axis, 0), axis, profile)
+            if err:
+                return err
+    return None
+
+
+def _parse_feed_value(raw: Any) -> tuple[float | None, str | None]:
+    """AUDIT-10-V2 / GW-R3-1: finite feed in [MIN_FEED, MAX_FEED] or error."""
+    try:
+        feed = float(raw if raw is not None else 500.0)
+    except (TypeError, ValueError):
+        return None, MotionErrorCode.E_BAD_PARAMS.value
+    if not math.isfinite(feed) or feed < MIN_FEED or feed > MAX_FEED:
+        return None, MotionErrorCode.E_BAD_PARAMS.value
+    return feed, None
+
+
 def validate_run_path_params(params: dict, profile: DeviceProfile | None = None) -> tuple[dict, str | None]:
     """Validate motion task run_path parameters.
 
@@ -63,28 +104,12 @@ def validate_run_path_params(params: dict, profile: DeviceProfile | None = None)
         return {}, MotionErrorCode.E_MISSING_PATH.value
     if len(path) > MAX_PATH_POINTS:
         return {}, MotionErrorCode.E_BAD_PARAMS.value
-
-    for point in path:
-        if not isinstance(point, dict):
-            return {}, MotionErrorCode.E_BAD_PARAMS.value
-        for axis in ("x", "y", "z"):
-            val = point.get(axis, 0)
-            if not isinstance(val, (int, float)):
-                return {}, MotionErrorCode.E_BAD_PARAMS.value
-            # AUDIT-10-V1：NaN/Inf 绕过边界校验（IEEE 754 NaN 比较全 False）。
-            # NaN 坐标下发物理机械臂会导致 G-code 未定义行为，可能撞机。
-            if not math.isfinite(val):
-                return {}, MotionErrorCode.E_BAD_PARAMS.value
-            if val < MIN_POINT_COORD or val > MAX_POINT_COORD:
-                return {}, MotionErrorCode.E_BAD_PARAMS.value
-
-    # AUDIT-10-V2：feed 转换加 try/except，非数字返回结构化错误而非抛异常。
-    try:
-        feed = float(params.get("feed", 500.0))
-    except (TypeError, ValueError):
-        return {}, MotionErrorCode.E_BAD_PARAMS.value
-    if feed < MIN_FEED or feed > MAX_FEED:
-        return {}, MotionErrorCode.E_BAD_PARAMS.value
+    point_error = _path_points_error(path, profile)
+    if point_error:
+        return {}, point_error
+    feed, feed_error = _parse_feed_value(params.get("feed", 500.0))
+    if feed_error or feed is None:
+        return {}, feed_error or MotionErrorCode.E_BAD_PARAMS.value
 
     return {
         "path": path,

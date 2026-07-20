@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 import json
+import math
 from typing import Any
 
 DEFAULT_WORKSPACE_MM = {"x": 100.0, "y": 100.0, "z": 20.0}
@@ -94,7 +95,8 @@ def _normalize_workspace(workspace_mm: dict[str, Any]) -> dict[str, float]:
     normalized: dict[str, float] = {}
     for axis in ("x", "y", "z"):
         value = float(workspace_mm.get(axis, DEFAULT_WORKSPACE_MM[axis]))
-        if value <= 0:
-            raise ValueError(f"workspace_mm.{axis} must be positive")
+        # GW-R3-3 / CORE-O4: NaN/Inf make every bounds comparison fail-open.
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f"workspace_mm.{axis} must be a finite positive number")
         normalized[axis] = value
     return normalized

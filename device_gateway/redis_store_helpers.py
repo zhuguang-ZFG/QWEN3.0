@@ -89,15 +89,23 @@ def validate_task_schema(task: dict[str, Any]) -> bool:
 
     Rejects tasks whose capability is not on the allowlist, or that are
     missing the ``task_id`` / ``device_id`` fields needed to track and route
-    them. This is the last gate before a Redis-sourced task reaches a device.
+    them. Also re-validates motion params (GW-R3-4) so a direct Redis RPUSH
+    cannot bypass HTTP bounds/NaN checks.
     """
     if not isinstance(task, dict):
         return False
-    if task.get("capability") not in _ALLOWED_TASK_CAPABILITIES:
+    capability = task.get("capability")
+    if capability not in _ALLOWED_TASK_CAPABILITIES:
         return False
     if not task.get("task_id") or not task.get("device_id"):
         return False
-    return True
+    # GW-R3-4: capability allowlist alone is not enough — re-run path/feed
+    # validation so queue is a real trust boundary.
+    from device_gateway.path_validator import validate_capability_params
+
+    params = task.get("params") if isinstance(task.get("params"), dict) else {}
+    _, error = validate_capability_params(str(capability), params)
+    return error is None
 
 
 class RedisStoreHelpers:

@@ -90,12 +90,13 @@ class _FakeRedis:
 
 
 def _task(task_id, device_id="dev-1"):
+    # SEC-06 (GW-R3-4) re-validates params on pop — fixtures must be in-bounds.
     return {
         "type": "motion_task",
         "task_id": task_id,
         "device_id": device_id,
         "capability": "run_path",
-        "params": {"path": []},
+        "params": {"path": [{"x": 10.0, "y": 10.0, "z": 0.0}], "feed": 500},
     }
 
 
@@ -249,7 +250,10 @@ def test_redis_store_ack_after_recovery_and_redispatch_succeeds():
     # 迟到 ack（旧 worker）：必须拒绝，防重复完成。
     assert store.ack_processing("dev-1", task["task_id"]) is False
 
-    # 重派发后新 worker 的 ack：必须成功。
-    assert store.pop_pending_tasks("dev-1", limit=1)[0]["task_id"] == task["task_id"]
-    assert store.ack_processing("dev-1", task["task_id"]) is True
+    # 重派发后新 worker 的 ack：必须携带当前 dispatch_gen（GW-R3-2）。
+    re_popped = store.pop_pending_tasks("dev-1", limit=1)[0]
+    assert re_popped["task_id"] == task["task_id"]
+    # gen-less ack after re-dispatch must not clear the current processing entry.
+    assert store.ack_processing("dev-1", task["task_id"]) is False
+    assert store.ack_processing("dev-1", task["task_id"], dispatch_gen=re_popped.get("_dispatch_gen")) is True
     assert client.lists["test:device:processing:dev-1"] == []

@@ -174,17 +174,27 @@ class RedisStoreQueueMixin:
         Callers without a generation fall back to the recovered_at check.
         """
         state = self._read_task_state(task_id)
-        if state is not None and dispatch_gen is not None:
+        if state is not None:
             current_gen = int(state.get("dispatch_gen", 0))
-            if int(dispatch_gen) != current_gen:
+            if dispatch_gen is not None:
+                if int(dispatch_gen) != current_gen:
+                    _log.warning(
+                        "ack_processing rejected: task %s stale dispatch_gen %s != %s",
+                        task_id,
+                        dispatch_gen,
+                        current_gen,
+                    )
+                    # Do NOT touch the processing queue: after a re-dispatch the
+                    # entry there belongs to the current generation's worker.
+                    return False
+            elif current_gen > 0:
+                # GW-R3-2: after recover/re-dispatch, gen-less acks must not
+                # LREM the current processing entry (stale workers omit gen).
                 _log.warning(
-                    "ack_processing rejected: task %s stale dispatch_gen %s != %s",
+                    "ack_processing rejected: task %s missing dispatch_gen (current=%s)",
                     task_id,
-                    dispatch_gen,
                     current_gen,
                 )
-                # Do NOT touch the processing queue: after a re-dispatch the
-                # entry there belongs to the current generation's worker.
                 return False
         if state and state.get("recovered_at"):
             _log.warning(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Header, Query, Request
@@ -13,16 +14,17 @@ from device_logic.access import is_owner, require_device_access, require_device_
 from device_logic.auth import authorize
 from device_logic.db import connect
 from device_logic.http import err, new_id, now, ok, read_body, str_field
-from routes.device_app_task_payloads import task_row_payload
-from routes.device_app_task_store import insert_task_row
 from routes.device_app_task_create import (
     APP_TASK_CAPABILITIES,
     APP_TASK_SOURCES,
     _build_app_gateway_task,
     _dispatch_or_wait,
 )
+from routes.device_app_task_payloads import task_row_payload
+from routes.device_app_task_store import insert_task_row, mark_task_failed, set_task_status
 from routes.rate_limit_helper import check_key_limit
 
+_log = logging.getLogger(__name__)
 router = APIRouter(prefix="/device/v1/app", tags=["device-app-templates"])
 
 _TEMPLATE_CATEGORIES = frozenset({"recent", "favorite", "custom"})
@@ -148,19 +150,35 @@ def _bump_template_use_count(template_id: str) -> None:
         conn.commit()
 
 
-@router.post("/tasks/templates/{template_id}/execute")
-async def execute_task_template(template_id: str, request: Request, authorization: str = Header(default="")):
-    account = authorize(authorization)
-    if isinstance(account, JSONResponse):
-        return account
-    # RT-W1: template execute dispatches a device task — same budget as create_task.
-    limited = check_key_limit(f"device_app_task:{account['id']}", settings.DEVICE.dlc_task_per_min)
-    if limited is not None:
-        return limited
-    body = await read_body(request)
-    if isinstance(body, JSONResponse):
-        return body
+async def _insert_then_dispatch_template(
+    template_id: str,
+    device_id: str,
+    account: dict[str, Any],
+    task: dict[str, Any],
+    source: str,
+    body: dict[str, Any],
+    params: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], str] | JSONResponse:
+    """RT-R3-1: insert audit row before enqueue; fail closed on either step."""
+    try:
+        db_row = insert_task_row(device_id, account, task, source, "pending", body, params)
+    except Exception as exc:
+        _log.warning("insert_task_row failed template=%s task=%s err=%s", template_id, task.get("task_id"), exc)
+        return err(500, "failed to save task", 500)
+    try:
+        dispatch, status = await _dispatch_or_wait(device_id, task, source, params)
+    except Exception as exc:
+        _log.warning("dispatch failed after insert template=%s task=%s err=%s", template_id, task.get("task_id"), exc)
+        mark_task_failed(str(task["task_id"]), "dispatch failed")
+        return err(500, "failed to dispatch task", 500)
+    if status != "pending":
+        set_task_status(str(task["task_id"]), status)
+        db_row = dict(db_row) if not isinstance(db_row, dict) else {**db_row, "status": status}
+    return db_row, dispatch, status
 
+
+def _load_template_for_execute(template_id: str, account: dict[str, Any], body: dict[str, Any]):
+    """Load template + resolve target; return (row, device_id, source) or JSONResponse."""
     with connect() as conn:
         row = conn.execute("SELECT * FROM v2_task_template WHERE id=?", (template_id,)).fetchone()
     if row is None:
@@ -168,31 +186,50 @@ async def execute_task_template(template_id: str, request: Request, authorizatio
     denied = _require_template_owner(account, row)
     if denied:
         return denied
-
     device_id, source = _resolve_template_target(body, row)
     if isinstance(device_id, JSONResponse):
         return device_id
-    # type narrowing only — source is guaranteed str on the non-error path
     assert source is not None  # noqa: S101
-
     with connect() as conn:
         denied = require_device_control(conn, account, device_id)
         if denied:
             return denied
+    return row, device_id, source
 
+
+@router.post("/tasks/templates/{template_id}/execute")
+async def execute_task_template(template_id: str, request: Request, authorization: str = Header(default="")):
+    account = authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    # RT-W1: template execute — same budget as create_task.
+    limited = check_key_limit(f"device_app_task:{account['id']}", settings.DEVICE.dlc_task_per_min)
+    if limited is not None:
+        return limited
+    body = await read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    loaded = _load_template_for_execute(template_id, account, body)
+    if isinstance(loaded, JSONResponse):
+        return loaded
+    row, device_id, source = loaded
     params = json.loads(row["params"]) if row["params"] else {}
-    request_id = str_field(body, "requestId", "request_id")
     task, error = await _build_app_gateway_task(
-        device_id, row["capability"], params, source, request_id, str(account.get("id", ""))
+        device_id,
+        row["capability"],
+        params,
+        source,
+        str_field(body, "requestId", "request_id"),
+        str(account.get("id", "")),
     )
     if error:
         return error
     assert task is not None
-
-    dispatch, status = await _dispatch_or_wait(device_id, task, source, params)
-    db_row = insert_task_row(device_id, account, task, source, status, body, params)
+    result = await _insert_then_dispatch_template(template_id, device_id, account, task, source, body, params)
+    if isinstance(result, JSONResponse):
+        return result
+    db_row, dispatch, _status = result
     _bump_template_use_count(template_id)
-
     data = task_row_payload(db_row)
     data.update(dispatch)
     data["task"] = task

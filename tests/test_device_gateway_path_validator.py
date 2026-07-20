@@ -46,6 +46,18 @@ def test_validate_run_path_params_rejects_invalid_feed():
     assert error == "E_BAD_PARAMS"
 
 
+def test_validate_run_path_params_rejects_nan_feed():
+    """GW-R3-1: NaN feed must not pass range checks."""
+    _, error = validate_run_path_params({"path": [{"x": 0, "y": 0, "z": 0}], "feed": float("nan")})
+    assert error == "E_BAD_PARAMS"
+
+
+def test_validate_run_path_params_rejects_default_workspace_oob_without_profile():
+    """GW-R3-5: without profile, enforce [0, DEFAULT_WORKSPACE] not only ±500."""
+    _, error = validate_run_path_params({"path": [{"x": 400, "y": 0, "z": 0}], "feed": 500})
+    assert error == "E_BAD_PARAMS"
+
+
 def test_validate_capability_params_rejects_unknown_capability():
     _, error = validate_capability_params("laser_engrave", {"path": [{"x": 0, "y": 0}], "feed": 500})
     assert error == "E_UNSUPPORTED_CAPABILITY"

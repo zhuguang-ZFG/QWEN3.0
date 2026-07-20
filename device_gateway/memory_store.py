@@ -156,11 +156,14 @@ class InMemoryDeviceTaskStore(StoreConfigMixin):
         with self._lock:
             processing = self._processing_by_device.get(device_id, {})
             state = self._tasks.get(task_id)
-            # GW-WC: reject acks whose dispatch generation no longer matches
-            # (task was recovered and possibly re-dispatched since). Leave the
-            # processing entry alone — it belongs to the current generation.
-            if state is not None and dispatch_gen is not None:
-                if int(dispatch_gen) != int(state.get("dispatch_gen", 0)):
+            # GW-WC / GW-R3-2: reject stale or gen-less acks after re-dispatch.
+            # Leave the processing entry alone — it belongs to the current gen.
+            if state is not None:
+                current_gen = int(state.get("dispatch_gen", 0))
+                if dispatch_gen is not None:
+                    if int(dispatch_gen) != current_gen:
+                        return False
+                elif current_gen > 0:
                     return False
             entry = processing.pop(task_id, None)
             if entry is None:

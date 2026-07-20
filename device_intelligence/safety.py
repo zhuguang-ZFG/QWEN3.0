@@ -24,6 +24,11 @@ def validate_profile_compatibility(profile: DeviceProfile, fw_rev: str) -> str |
 def profile_limit_error(params: dict[str, Any], profile: DeviceProfile | None) -> str | None:
     if profile is None:
         return None
+    # GW-R3-3: non-finite workspace axes defeat every outside-check comparison.
+    for axis in ("x", "y", "z"):
+        bound = profile.workspace_mm.get(axis) if isinstance(profile.workspace_mm, dict) else None
+        if not isinstance(bound, (int, float)) or not math.isfinite(bound) or float(bound) <= 0:
+            return MotionErrorCode.E_BAD_PARAMS.value
     path = params.get("path")
     if isinstance(path, list) and len(path) > profile.max_path_points:
         return MotionErrorCode.E_BAD_PARAMS.value
@@ -47,6 +52,9 @@ def _point_outside_workspace(point: dict[str, Any], profile: DeviceProfile) -> b
         # AUDIT-10-V1：NaN/Inf 绕过比较（IEEE 754），物理安全关键——必须拦截。
         if not math.isfinite(value):
             return True
-        if float(value) < 0 or float(value) > profile.workspace_mm[axis]:
+        bound = profile.workspace_mm[axis]
+        if not isinstance(bound, (int, float)) or not math.isfinite(bound):
+            return True
+        if float(value) < 0 or float(value) > float(bound):
             return True
     return False
