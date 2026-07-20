@@ -152,6 +152,35 @@ Internet → Cloudflare → 京东云 117.72.118.95 (nginx → server_dlc :8081,
 - **禁止** `git add .`；禁止暂存凭证、`.env`、`.lima-data/`
 - 禁止未经用户许可 force-push / reset
 
+### 多 Agent 工作区隔离
+
+多 CLI / A2A 舰队并行时，**同一工作目录**共享 `index`、工作区文件、`HEAD`、`stash`。叠写会导致「假 commit」、冲突标记漂移、status 行数乱跳——通常不是 hook 在改文件，而是多个 Agent 写了同一主树。
+
+| 角色 | 路径 | 允许 |
+|------|------|------|
+| 集成主树 | `D:\QWEN3.0`（`main`） | 只读排查、fetch、人工 merge/发版、单会话独占写、跑测试 |
+| 任务 worktree | `C:\Users\zhugu\.a2a-sandboxes\<slug>` 或项目 `.worktrees/` | Agent 改代码、commit、跑针对该树的测试 |
+| 他人 stash | `git stash list` 中非本任务条目 | **禁止** `pop`/`apply` 到脏主树；需要时复制到本任务 worktree 再处理 |
+
+**硬约定：**
+
+1. **写代码 → 先 worktree**。示例：
+   ```powershell
+   $slug = "feat-xxx"
+   git -C D:\QWEN3.0 worktree add -b "agent/$slug" "C:\Users\zhugu\.a2a-sandboxes\$slug" main
+   # Agent cwd = sandbox；完成后 commit → PR/cherry-pick → worktree remove
+   ```
+2. **A2A**：`A2A_AUTO_WORKTREE=1`、`A2A_WORKTREE_REPO=D:/QWEN3.0`、`A2A_OWNS_STRICT=1`（`start-a2a-bridge.ps1` 默认；也可用 `scripts/a2a_profile.ps1 -Profile safe -Persist`）。
+3. **路径租约**：并行任务声明 `owns:`；重叠时严格模式拒绝，不要靠 stash 当多任务队列。
+4. **状态校验**（写后 / 宣称 commit 后）：
+   ```powershell
+   git rev-parse HEAD
+   git cat-file -t <hash>
+   git log -1 --oneline
+   git status --porcelain
+   ```
+5. **生命周期**：任务结束删除 worktree 与对应 `a2a/*` / `agent/*` 分支；`git worktree prune` 清僵尸登记。主树看到冲突标记时先停写，再 `checkout -- <file>` 或在隔离树解决。
+
 ## 里程碑协作协议
 
 1. 用户实现里程碑切片

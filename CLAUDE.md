@@ -18,6 +18,7 @@ server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/ → ESP32
 2. 单文件 ≤300 行，单函数 ≤50 行
 3. Ponytail 第一：最小变更；硬门禁（pytest、ruff、无静默吞异常）不可省
 4. 代码图：**CodeGraph / lima-codegraph**；禁止 GitNexus
+5. 主树 `D:\QWEN3.0` 默认只读集成；写代码用独立 worktree（见 `AGENTS.md` 硬规则 8）
 
 ## 关键文档
 

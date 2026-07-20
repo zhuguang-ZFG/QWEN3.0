@@ -47,6 +47,12 @@ server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/ → ESP32
    - 纯云 API / 小程序 / 语音 / 与 G 码无关的改动：仍用本仓 `pytest`/`ruff`，**不**要求 agent_gate。
    - Host SIL **≠** 纸路/BT/真机；发版仍走清单与部署约定。
    - 仿真实现只在 **fz**（https://github.com/zhuguang-ZFG/fz），勿在 QWEN 堆 grblHAL sim 源码。
+8. **主树只读 / 一 Agent 一 worktree（防多会话漂移）** — `D:\QWEN3.0` 的 `main` 工作区是**集成台**，不是并行写盘场：
+   - **写代码**（改业务文件、commit）：必须在独立 git worktree（推荐 `C:\Users\zhugu\.a2a-sandboxes\<slug>` 或 `git worktree add`），禁止两个 Agent 同时 `cwd=D:\QWEN3.0` 写。
+   - **主树允许**：只读排查、`status`/`log`/`diff`/`fetch`、人工 merge/发版、跑测试；**禁止**在主树对别人的 stash `pop`/`apply`。
+   - **A2A 舰队**：依赖 `A2A_AUTO_WORKTREE=1` + `A2A_OWNS_STRICT=1`（bridge 启动默认）；任务声明 `owns:` 路径，重叠硬拒绝。
+   - **宣称 commit 成功前**只信：`git rev-parse HEAD` + `git cat-file -t <hash>` + `git log -1`；禁止把过期 shell stdout 当真理。
+   - 任务结束：`worktree remove` + 删 `a2a/*` 分支；定期 `git worktree prune`。细节 → [`docs/AGENTS_REFERENCE_CN.md`](docs/AGENTS_REFERENCE_CN.md#多-agent-工作区隔离)。
 
 ---
 
