@@ -95,3 +95,16 @@ def test_r3_7_normal_render_still_within_bounds() -> None:
     """GW-R3-7: a normal single-pass render stays in bounds (no false trip)."""
     result = render_svg_task("M 0 0 L 30 0 L 30 30 L 0 30 Z")
     assert all(0.0 <= p["x"] <= 100.0 and 0.0 <= p["y"] <= 100.0 for p in result["path"])
+
+
+def test_r3_10_draw_clamp_feed_rejects_nonfinite() -> None:
+    """GW-R3-10: NaN/Inf feed must fall back to the default, not silently clamp to
+    MAX_FEED (2000, above the 1200 safety cap). Aligns draw with handwriting."""
+    from device_gateway.safety import DEFAULT_FEED
+    from device_gateway.task_draw_params import _clamp_feed
+
+    assert _clamp_feed(float("nan")) == DEFAULT_FEED
+    assert _clamp_feed(float("inf")) == DEFAULT_FEED
+    assert _clamp_feed(float("-inf")) == DEFAULT_FEED
+    # finite values still clamp normally
+    assert _clamp_feed(999) == 999

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from typing import Any
 
 from .device_draw_handler import handle_device_draw
@@ -25,6 +26,11 @@ def _clamp_feed(raw: Any, default: int = DEFAULT_FEED) -> int:
     try:
         val = float(raw)
     except (TypeError, ValueError):
+        return default
+    # GW-R3-10: NaN/Inf survive min()/max() (IEEE 754 comparisons are all False),
+    # so a non-finite feed would silently clamp to MAX_FEED. Reject to default,
+    # matching the already-guarded sibling in task_handwriting_params._clamp_feed.
+    if not math.isfinite(val):
         return default
     return int(max(MIN_FEED, min(MAX_FEED, val)))
 
