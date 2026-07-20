@@ -1,5 +1,15 @@
 # Step 1 审计:主循环阻塞路径清单(2026-07-20)
 
+> **⚠️ 修正(2026-07-20 全项目深度审查第 6 路发现)**:本审计"U1 UART 命令默认 120ms
+> 超时,安全"的结论**错误**。漏掉了:①`motion_executor.cc:443-445` PATH_END 等待
+> 超时 120000ms;②`ReadU1Response`(u1_protocol_client.cc:41-65)每次调用实际消耗
+> ≈3×timeout(uart_read_bytes 凑不满 128 字节等满超时 + 2 轮 idle)→ PATH_END 实际
+> 阻塞 240–360s,每个 PATH_SEG ≈2.4s(13 段即超 30s)。而 MCP 工具体统一 Schedule
+> 到主循环执行 → **run_path / plotter 类语音绘图必然触发 30s WDT panic 重启,且
+> U8 重启后 U1 继续无人监管地画**。"最坏有界阻塞 ~15s → 30s 超时"的结论对这些
+> 能力不成立。WDT 任务在 HIL 前必须先解决:读放大消除(按行读)+ 长运动任务移出
+> 主循环(或分段喂狗),否则 AC2/AC3 无法通过。详见全项目审查报告(固件 F4/F5)。
+
 主循环任务(WDT 注册)执行的代码 = 主循环事件处理 + 全部 `Schedule()` 回调 +
 全部 MCP 工具体(`mcp_server.cc:560` 统一 Schedule 到主循环)。
 逐一核对 33 个 `Schedule(` 调用点 + 主循环事件分支,按最坏阻塞时长分类:

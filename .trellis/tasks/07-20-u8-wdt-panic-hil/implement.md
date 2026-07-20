@@ -45,6 +45,26 @@
 - [ ] 烧录调试固件,触发死锁挂钩 → 10s 内 panic 重启,`esp_reset_reason()==ESP_RST_TASK_WDT`。
 - [ ] 重启后语音/绘图功能正常。串口日志存 `research/hil-deadlock.log`。
 
+## Step 4b — 并入本任务的第二轮审查固件遗留项(需 HIL / 执行架构)
+
+> 来源:`docs/reviews/2026-07-20-full-project-review-round2.md`。这些项 07-20 review-round2
+> 任务判定为"仅代码不足以闭环",转入本 HIL 任务处理。
+
+- [ ] FW-F4 run_path/plotter 读放大:`ReadU1Response` 改按行读(读到 `\n` 即返)消除 3× 超时放大;
+      PATH_END 阻塞从 240–360s 降到实际用时。这是 30s WDT panic 的直接诱因,HIL 前必做。
+- [ ] FW-F5 长运动任务移出主循环 / 接收线程(独立 motion 任务),stop/estop 短路优先。
+- [ ] FW-F2 U1 UART0 引脚实机确认:`Serial.cpp:110 setPins(1,3)` 与硬件文档 tx=IO10/rx=IO11
+      是否一致;GPIO3 与 X_DIRECTION_PIN 是否双占用。实测链路通不通。
+- [ ] FW-F7 HOME 超时:U1 同步 `$H` 完成才回帧,U8 只等 ~750ms 恒报 timeout;
+      U1 改先 ack 后异步 result,或 U8 超时提到 30s+ 轮询状态。
+- [ ] **A1 phase 契约缺口**(第二轮域 A 复核遗留):STOP/ESTOP 的 motion_event 当前仍报
+      `phase:"done"`(`dlc_motor_control_p1_ai_board.cc:550-563`),而回执体已改诚实(signal_sent)。
+      需 HIL 加 U1 状态帧确认后再发终态事件:done=确认停车、failed=超时未确认;
+      或跨 edge_b/edge_c schema + 网关联合扩展 phase 枚举加 `signal_sent`。
+      **在此之前云端不得把 stop 任务的 done 当作"已停机"消费。**
+- [ ] B5 衔接:固件 motion_event 回带 `dispatch_gen` 字段(后端已就位,当前不带走旧防重放语义);
+      回带后服务端 dispatch generation 防重放才严格生效。
+
 ## Step 5 — HIL:OTA 与压力(需硬件)
 
 - [ ] MCP 路径 OTA 真实固件包全流程成功,无 WDT 触发(AC2),日志存档。
@@ -54,7 +74,9 @@
 ## Step 6 — 收尾
 
 - [ ] 关闭/剥离调试挂钩后出正式 build,复验编译门禁。
-- [ ] 决策与数据写入 `.trellis/spec/esp32S_XYZ/`(AC5),更新固件 docs。
+- [ ] 决策与数据写入 `.trellis/spec/esp32S_XYZ/`(AC5),更新固件 docs;
+      并修正 spec `backend/u8-xiaozhi.md` 红线行"超时禁 0":CreateHttp 参数是模组连接ID非超时,
+      应表述为 `SetTimeout(ms)` per-operation(第二轮 A4 复核发现)。
 - [ ] bump 父仓库子模块指针,常规提交流程(Phase 3.4),归档任务。
 
 ## 验证命令速查
