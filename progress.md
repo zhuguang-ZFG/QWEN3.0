@@ -2,6 +2,14 @@
 
 > 更早条目已删除；需要时查 git history（`ac230614` 前含完整 progress 归档）。
 
+## 2026-07-21 生产瘦身 + 部署验证 + 文档同步（e8a5ee2d）
+
+- 公网 502：nginx 从死掉的 lima-router :8080 改指 server_dlc :8081（fbf53993）。
+- nginx DLC-only：仅 health/dlc/device/voice；退役路径 410（e8a5ee2d，模板 deploy/nginx/chat.donglicao.com.conf）。
+- VPS 深度瘦身（京东云 + 阿里云）：卸 new-api / probe·监控 / code-server / 旁路代理；保留 DLC（阿里云另留 dlc-mcp）与京东云 Redis/MySQL/cloudflared。
+- 部署验证：双机 dlc-drawing 健康；机内 :8081 可靠；公网经 Cloudflare 偶发 401/EOF 与边缘抖动，不以单次公网失败否定机内健康。
+- 文档：STATUS / PROJECT_STATUS / JDCLOUD_RUNTIME / ALIYUN_DLC_ENTRY / ARCHITECTURE / DEPLOY 与 HEAD 对齐。
+
 ## 2026-07-21 CR 跟进 W1–W4（draw 顺序 / hello 三轴 / production env）
 
 - 描图：optimize → validate → precheck（避免 raw 像素路径在缩放前被拒）。

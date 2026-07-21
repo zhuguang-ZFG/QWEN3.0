@@ -55,9 +55,12 @@ ESP32 绘图/写字机云端控制平面：路径生成、任务下发、设备 
 
 ## 部署
 
-`python scripts/deploy_unified.py --target jdcloud` → 京东云 `117.72.118.95`。
-约定见 [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md)。
+- 主生产：`python scripts/deploy_unified.py --target jdcloud` → 京东云 `117.72.118.95`（nginx → :8081；DLC-only）
+- 辅节点：`--target aliyun` → `47.112.162.80`（`dlc-drawing` + `dlc-mcp`）
+- 公网：`https://chat.donglicao.com`（Cloudflare → 京东云）
+- 约定见 [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md)
+- 运行时：[`ops/JDCLOUD_RUNTIME_STATUS.md`](ops/JDCLOUD_RUNTIME_STATUS.md) · [`ops/ALIYUN_DLC_ENTRY.md`](ops/ALIYUN_DLC_ENTRY.md)
 
 ## 已退役
 
-旧 `server.py` / `routing_engine*` / 多后端 chat 栈 — 代码与文档均已删除，查 git history。
+旧 `server.py` / `routing_engine*` / 多后端 chat 栈 / VPS 上的 new-api·probe·code-server — 代码与运维面均已删，查 git history。

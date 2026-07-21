@@ -1,6 +1,6 @@
 # LiMa 自动部署与发布约定
 
-> 更新日期：2026-06-26
+> 更新日期：2026-07-21
 > 权威文档。CLAUDE.md / AGENTS.md 中的相关描述以此为准。
 
 ## 核心原则
@@ -126,7 +126,7 @@ LIMA_VOICE_E2E_STRICT=1 python scripts/verify_production_deploy.py
 3. 最小化修复 → 重新部署 → 重跑 smoke / `LIMA_VOICE_E2E_STRICT=1 python scripts/run_voice_e2e_production.py`
 4. 仍失败则 rollback: 从 `/opt/dlc-drawing/backups/<label>/runtime-before.tgz` 恢复
 
-阿里云 pilot（`--target aliyun`）仍可能使用 `/opt/lima-router` 与 `lima-router` 服务 — 勿与京东云主生产混淆。
+阿里云（`--target aliyun`）为 DLC + MCP 辅节点（`dlc-drawing` / `dlc-mcp`），**不是** 公网 `chat.donglicao.com` 主入口；主入口始终为京东云 nginx → :8081。旧 `lima-router` 已从双机卸载。
 
 ### Step 5: 证据落盘
 
