@@ -1,62 +1,36 @@
-# 5 分钟接入
+# 快速开始（DLC）
 
-本指南帮助开发者从零开始在 5 分钟内完成首次 LiMa API 调用。
+> 更新日期：2026-07-21
+> 本仓对外能力是 **绘图/写字/设备/小程序语音**，不是多后端 Chat Completions。
 
-## 前置条件
+## 前置
 
-- 一个 LiMa API Key（见 [获取 API Key](/guide/api-key)）
-- `curl` 或任意 HTTP 客户端 / SDK
-- Python 3.10+（可选，用于运行 Python 示例）
+- DLC API token 或小程序账号体系（见 [认证](/api/authentication)）
+- 设备联调见仓库 `docs/DEVICE_DEVELOPER_GUIDE_CN.md`
 
-## 三步接入
-
-### 1. 保存 API Key
-
-::: code-group
-```bash [Bash]
-export LIMA_API_KEY="your_lima_api_key"
-```
-```powershell [PowerShell]
-$env:LIMA_API_KEY="your_lima_api_key"
-```
-:::
-
-### 2. 发送第一个请求
+## 1. 健康检查
 
 ```bash
-curl -s https://chat.donglicao.com/v1/chat/completions \
-  -H "Authorization: Bearer $LIMA_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "lima-1.3",
-    "messages": [{"role": "user", "content": "你好，LiMa"}],
-    "max_tokens": 512
-  }'
+curl -sS https://chat.donglicao.com/health
 ```
 
-### 3. 接收响应
+## 2. 小程序语音（转写）
 
-```json
-{
-  "id": "chatcmpl-xxxxxxxx",
-  "object": "chat.completion",
-  "created": 1718880000,
-  "model": "lima-1.3",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "你好！我是 LiMa，很高兴为你服务。"
-      },
-      "finish_reason": "stop"
-    }
-  ]
-}
+见 [语音 API](/api/voice)：`POST /device/v1/app/voice/transcribe` 或 ticket 后连 `/v1/voice`。
+
+## 3. 设备任务
+
+见 [设备控制](/api/device-control) 与仓库 `docs/openapi.yaml`。
+
+## 4. 设备 WSS 投递
+
+```text
+POST /device/v1/ws/ticket → wss://…/device/v1/ws?ticket=…
+→ hello → drain → motion_task
 ```
 
-## 下一步
+详情：`docs/DEVICE_WS_TOKEN_DEPRECATION_CN.md`。
 
-- 了解 [认证方式](/api/authentication)
-- 查看 [Chat Completions 完整参数](/api/chat-completions)
-- 尝试 [图像生成](/api/image-generations)
+## 对话 / LLM
+
+由 **小智官方云** 提供；本站不再维护 `/v1/chat/completions` 接入指南。

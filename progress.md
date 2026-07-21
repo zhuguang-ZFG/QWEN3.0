@@ -2,6 +2,12 @@
 
 > 更早条目已删除；需要时查 git history（`ac230614` 前含完整 progress 归档）。
 
+## 2026-07-21 文档再检查与第三轮清理
+
+- 修死链：ONLINE_DISTRIBUTIONS / xiaozhi_api_openapi / system-slimdown / JDCLOUD_NEWAPI。
+- `JDCLOUD_RUNTIME_STATUS`、`lima-slimdown-design`、`XIAOZHI_INTEGRATION_GAP`、写字机稳定性计划压成现行摘要。
+- docs-site：首页/getting-started/chat/images/认证改为 DLC 定位；chat completions 标退役。
+
 ## 2026-07-21 文档深度精简（第二轮）
 
 - 删除 `docs/reference/`、`research/`、`plans/`、过期 ops（NewAPI/审计）、dated model_admission、dated release_evidence、大部分 superpowers specs/plans、xiaozhi-cloud 长篇编号设计。

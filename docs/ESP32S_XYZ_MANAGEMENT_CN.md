@@ -104,9 +104,8 @@ corepack pnpm run build:mp-weixin
 
 当此产品开始使用 LiMa 托管的后端端点时，记录在：
 
-- `docs/ONLINE_DISTRIBUTIONS_CN.md` 用于公共/私有端点所有权；
-- `infra/vps/` 用于如果 VPS 服务更改时的消毒 nginx/systemd 快照；
-- `STATUS.md` 用于短期运维快照；
+- `STATUS.md` / `docs/ARCHITECTURE.md` 用于公网入口与模块边界；
+- `infra/vps/` 用于 VPS nginx/systemd 快照（若变更）；
 - `STATUS.md` / `progress.md` / `findings.md` 用于跨会话状态；
 - `progress.md` 用于按时间顺序的关闭证据。
 

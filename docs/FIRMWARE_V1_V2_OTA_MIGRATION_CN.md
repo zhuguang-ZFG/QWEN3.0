@@ -108,5 +108,5 @@ OTA 包无法携带新分区表；Bootloader 仍按旧表解析，写入 v2 应�
 ## 相关文档
 
 - 子模块：`esp32S_XYZ/firmware/u8-xiaozhi/partitions/v2/README.md`
-- 云端设备 API：`docs/xiaozhi_api_openapi.yaml`（`/device/v1/app/*`）
+- 云端设备 API：`docs/openapi.yaml` 与 `docs-site/api/device-control.md`（`/device/v1/app/*`）
 - 部署：`docs/DEPLOY_AND_RELEASE_CONVENTION.md`

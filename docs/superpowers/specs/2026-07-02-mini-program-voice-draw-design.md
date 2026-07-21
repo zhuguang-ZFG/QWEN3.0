@@ -8,7 +8,7 @@
   - 文档：`docs-site/api/voice.md`、`STATUS.md` 已同步
 - **未验证**：真机端到端（真实录音→确认→物理设备运动）— 见 backlog **P0-3**
 - **待办**：微信审核 **P0-4**；U8 OPUS/PCM **P0-2**（仅设备直连语音）
-- **前置**: 系统瘦身已完成（`2026-07-02-system-slimdown-design.md`），基线已清理
+- **前置**: 系统瘦身已完成（见 `docs/ARCHITECTURE.md` / `docs/xiaozhi-cloud/lima-slimdown-design.md` 结论）
 - **范围**: 小程序端补齐语音交互，驱动绘图机（draw_generated）和写字机（write_text）
 - **读者**: 实施 agent。本文档自包含，无需额外上下文。
 

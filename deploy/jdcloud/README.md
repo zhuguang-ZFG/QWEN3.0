@@ -42,7 +42,7 @@ python scripts/deploy_unified.py --target jdcloud --slice core
 - 数据库: 宿主机 MySQL 8.0（`newapi` 库，用户 `newapi`）
 - 缓存: 宿主机 Redis 7.0
 - 公网入口: `https://api.donglicao.com`（Cloudflare → 阿里云反代 → 京东云）
-- 详细 runbook: `docs/ops/JDCLOUD_NEWAPI_DEPLOY.md`
+- 运行时职责: `docs/ops/JDCLOUD_RUNTIME_STATUS.md`；new-api 脚本见本目录 `install_newapi.sh` 等
 
 ## Local-Only Files
 

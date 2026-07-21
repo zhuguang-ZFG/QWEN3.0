@@ -1,52 +1,18 @@
 # 认证方式
 
-LiMa 公开 API 采用 **Bearer Token** 鉴权。
+> 更新日期：2026-07-21
 
-## 请求头
+## DLC / 设备
 
-```http
-Authorization: Bearer <LIMA_API_KEY>
-Content-Type: application/json
-```
+| 场景 | 方式 |
+|------|------|
+| DLC HTTP（`/dlc/*`） | Bearer DLC API token（见部署环境变量） |
+| 小程序 App API | 小程序登录 JWT / 设备绑定态 |
+| 设备 WSS | `POST /device/v1/ws/ticket` 后 `?ticket=`（推荐）或 Header Bearer |
+| 小程序语音 WS | `voice` ticket（30s TTL） |
 
-## 密钥类型
+## 已退役
 
-| 类型 | Header | 适用端点 |
-|------|--------|----------|
-| 公开 API Key | `Bearer lima-xxx` | `/v1/chat/completions`、`/v1/images/generations`、`/v1/models` |
-| 私有 API Key | `Bearer lima-private-xxx` | `/device/v1/*`、运维、后端管理 |
+公开「`lima-xxx` 调 `/v1/chat/completions`」多后端聊天密钥模型已退役。对话走小智官方云。
 
-公开端点通过 `access_guard.require_public_or_private_api_key` 校验，因此公开 Key 或私有 Key 均可访问。
-
-## cURL 示例
-
-```bash
-curl -s https://chat.donglicao.com/v1/models \
-  -H "Authorization: Bearer $LIMA_API_KEY"
-```
-
-## 响应示例
-
-```json
-{
-  "object": "list",
-  "data": [
-    {"id": "claude-opus-4-7", "object": "model", "owned_by": "anthropic"},
-    {"id": "gpt-5.4", "object": "model", "owned_by": "openai"},
-    {"id": "lima-1.3", "object": "model", "owned_by": "donglicao"}
-  ]
-}
-```
-
-## 失败示例
-
-```json
-{
-  "error": {
-    "message": "Unauthorized",
-    "type": "authentication_error"
-  }
-}
-```
-
-> 获取 Key 详见 [获取 API Key](/guide/api-key)。
+详情：仓库 `docs/DEVICE_WS_TOKEN_DEPRECATION_CN.md`、`docs/DEPLOY_AND_RELEASE_CONVENTION.md`。
