@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from device_gateway.device_profile import DeviceProfile
+from device_gateway.path_workspace import is_complete_profile
 from device_intelligence.schemas import DEFAULT_WORKSPACE_MM
 
 _log = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ def get_profile(profile_id: str) -> DeviceProfile | None:
 
 
 def _profile_for_device_id(device_id: str) -> DeviceProfile | None:
-    """Look up a complete profile keyed by device_id (runtime registry, then KNOWN)."""
+    """Look up a profile keyed by device_id (runtime registry, then KNOWN)."""
     if not device_id:
         return None
     try:
@@ -74,30 +75,27 @@ def resolve_profile(
 ) -> ResolvedProfile:
     """Resolve a device profile for routing decisions.
 
-    Priority:
-    1. Registered profile by profile_id
-    2. Runtime/device registry or KNOWN profile matched by device_id
-    3. Shadow store profile data
-    4. Conservative defaults (missing data = safe fallback)
-
-    Returns a ResolvedProfile with routing hints and completeness flag.
+    Priority: profile_id → device_id registry/KNOWN → shadow → conservative.
+    ``complete`` requires non-empty profile_id + positive finite workspace, and
+    is never set for shadow-only or conservative fallbacks.
     """
     profile = get_profile(profile_id) if profile_id else None
-    complete = profile is not None
+    from_shadow = False
 
     if profile is None and device_id:
         by_device = _profile_for_device_id(device_id)
         if by_device is not None:
             profile = by_device
-            complete = True
 
     if profile is None and shadow_profile:
-        # Shadow fills workspace/limits but stays incomplete (routing still gated).
         profile = _profile_from_shadow(shadow_profile, profile_id or device_id)
+        from_shadow = profile is not None
 
     if profile is None:
         profile = _conservative_profile(device_id or "unknown")
 
+    # Shadow may carry a usable workspace but stays incomplete for routing gates.
+    complete = (not from_shadow) and is_complete_profile(profile)
     fw_compatible = _check_fw_compatibility(profile, fw_rev)
     routing_hints = _compute_routing_hints(profile, complete, fw_compatible)
 

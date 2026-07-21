@@ -59,7 +59,7 @@ server_dlc.py (:8081)
 | E-2 | ESP32 端到端验证 `LIMA_AUTO_FALLBACK` draw 路径 | **暂无真机**（2026-07-12 挂起；有机后再验） |
 | G3 | HIL 纸路/BT 串口证据 | 真机 + `hil_to_gate --port COMx` |
 | **投递 M1+M2** | ✅ M1：`/device/v1/ws` ticket+hello+drain，在线入队→`sent`。M2：`delivery_reaper` 僵尸会话驱逐 + processing 超时回收并尝试再推送。离线仍 `queued_no_delivery`。固件需连 DLC WSS 并 hello。 | 真机联调（P0-3） |
-| **工作区 profile** | ✅ `resolve_workspace_mm`：explicit → complete profile（`profile_id` / `device_id` 运行时 registry / KNOWN.device_id）→ product 300×300×80 → DEFAULT；draw/handwriting/coordinator/dlc 透传 `device_id`。Shadow 仍 incomplete（路由门控）。 | 生产设备 shadow→registry 写入真实 workspace |
+| **工作区 profile** | ✅ `resolve_workspace_mm`：explicit → complete profile（`profile_id` + 正有限 workspace；device registry / KNOWN）→ product 300 → DEFAULT；非法/残缺 workspace 忽略。bare registry / shadow 保持 incomplete（路由门控）。 | 生产 hello/shadow→registry 写入完整 profile |
 
 详见 [`superpowers/specs/2026-07-02-backlog-planning.md`](superpowers/specs/2026-07-02-backlog-planning.md)。
 

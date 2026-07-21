@@ -63,6 +63,46 @@ def test_runtime_registry_profile_by_device_id_wins():
     assert ws == {"x": 180.0, "y": 120.0, "z": 30.0}
 
 
+def test_bare_registry_profile_stays_incomplete_uses_product_canvas():
+    """Empty profile_id must not open routing gates or claim a custom canvas."""
+    from device_gateway.profiles import resolve_profile
+
+    register_device_profile(DeviceProfile(device_id="hello-bare", profile_id="", model=""))
+    resolved = resolve_profile(device_id="hello-bare")
+    assert resolved.complete is False
+    assert resolved.routing_hints.get("prefer_preset") is True
+    ws = resolve_workspace_mm(device_id="hello-bare")
+    assert ws["x"] == PRODUCT_WRITING_WORKSPACE_MM["x"]
+
+
+def test_zero_workspace_profile_not_complete():
+    from device_gateway.profiles import resolve_profile
+
+    register_profile(
+        DeviceProfile(
+            device_id="zero-dev",
+            profile_id="zero-ws",
+            model="test",
+            workspace_mm={"x": 0.0, "y": 0.0, "z": 0.0},
+            max_feed=1000.0,
+            max_path_points=100,
+            capabilities=("run_path",),
+            supported_fw_prefixes=("",),
+        )
+    )
+    resolved = resolve_profile(device_id="zero-dev")
+    assert resolved.complete is False
+    ws = resolve_workspace_mm(device_id="zero-dev")
+    assert ws["x"] == PRODUCT_WRITING_WORKSPACE_MM["x"]
+
+
+def test_invalid_explicit_workspace_falls_back():
+    ws = resolve_workspace_mm({"x": "nope", "y": 60.0, "z": 10.0})
+    assert ws["x"] == DEFAULT_WORKSPACE_MM["x"]
+    partial = resolve_workspace_mm({"x": 50.0})
+    assert partial["x"] == DEFAULT_WORKSPACE_MM["x"]
+
+
 def test_explicit_profile_object_wins():
     register_profile(
         DeviceProfile(

@@ -52,6 +52,28 @@ def test_registered_profile_is_complete():
     assert resolved.routing_hints["max_complexity"] == "normal"
 
 
+def test_registered_profile_with_non_positive_workspace_is_incomplete():
+    # Gateway DeviceProfile allows constructing a bad workspace; completeness rejects it.
+    from device_gateway.device_profile import DeviceProfile as GatewayDeviceProfile
+
+    profile = GatewayDeviceProfile(
+        device_id="dev-1",
+        profile_id="u8-bad-ws",
+        model="U8",
+        workspace_mm={"x": 0.0, "y": 100.0, "z": 20.0},
+        max_feed=1200.0,
+        max_path_points=200,
+        capabilities=("run_path",),
+        supported_fw_prefixes=("",),
+    )
+    register_profile(profile)
+
+    resolved = resolve_profile(profile_id="u8-bad-ws", device_id="dev-1")
+
+    assert resolved.complete is False
+    assert resolved.routing_hints.get("prefer_preset") is True
+
+
 def test_registered_profile_not_found_falls_back_to_conservative():
     register_profile(DeviceProfile(profile_id="u8-standard", model="U8"))
 
