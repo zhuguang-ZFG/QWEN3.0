@@ -2,6 +2,13 @@
 
 > 更早条目已删除；需要时查 git history（`ac230614` 前含完整 progress 归档）。
 
+## 2026-07-21 CR 剩余项：draw workspace / hello profile / B1 / P0-3 清单
+
+- draw：`draw_svg_stage` 用 `resolve_workspace_mm` 作 validate/optimize 目标（去 200/180 硬编码）。
+- hello：`register_device_profile(profile_from_hello_frame)`；默认 product 画布，可带 workspace_mm。
+- B1：生产禁止 `LIMA_WS_REGISTERED_DEVICE_FALLBACK` 除非 `LIMA_WS_FALLBACK_ALLOW_PRODUCTION=1`（启动 fail）。
+- P0-3：`docs/DEVICE_E2E_CHECKLIST_CN.md` + `scripts/check_device_delivery_readiness.py`（云端预检；真机仍需人）。
+
 ## 2026-07-21 CR 跟进 W1/W5/W2
 
 - W1：`try_deliver_and_classify` — offline=`queued_no_delivery`，在线 drain 失败=`queued`，成功=`sent`；异常打 warning 日志。

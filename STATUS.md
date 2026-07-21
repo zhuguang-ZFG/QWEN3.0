@@ -35,6 +35,9 @@ ESP32    → /device/v1/ws?ticket=（hello → drain → motion_task）
 | Status WS M2 进度/固件推送 | ✅ |
 | 设备投递 M1+M2（WSS + reaper） | ✅ |
 | 工作区 profile（complete 收紧 + 校验） | ✅ |
+| hello→register_device_profile | ✅ |
+| draw SVG 目标跟 workspace | ✅ |
+| 生产禁止裸开 WS empty-token fallback | ✅ |
 | 文档 archive 清理 + 深度精简 | ✅ |
 
 ---
@@ -43,11 +46,11 @@ ESP32    → /device/v1/ws?ticket=（hello → drain → motion_task）
 
 | ID | 项 | 阻塞 |
 |----|-----|------|
-| P0-3 | 真机 E2E（语音→运动 + WSS 投递） | 真机 |
+| P0-3 | 真机 E2E（语音→运动 + WSS 投递） | 真机；清单 `docs/DEVICE_E2E_CHECKLIST_CN.md` |
 | P0-4 | 微信提审 | 运营 |
 | P0-2 | U8 OPUS/PCM 设备语音 | 产品 |
 | E-2 / G3 | draw 真机 / HIL 纸路 | 真机 |
-| Profile 接线 | hello→register_device_profile | 产品 |
+| 固件 token | 写入 NVS 后关闭 `LIMA_WS_REGISTERED_DEVICE_FALLBACK` | 固件 |
 
 详见 [`docs/superpowers/specs/2026-07-02-backlog-planning.md`](docs/superpowers/specs/2026-07-02-backlog-planning.md)。
 

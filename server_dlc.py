@@ -110,6 +110,14 @@ async def lifespan(app: FastAPI):
         logger.error("ledger store configuration failed", exc_info=True)
         raise
 
+    try:
+        from device_gateway.auth import assert_device_auth_safe_for_runtime
+
+        assert_device_auth_safe_for_runtime()
+    except Exception:
+        logger.error("device auth runtime safety check failed", exc_info=True)
+        raise
+
     _configure_workflow_lock()
     recovery_task = asyncio.create_task(_run_startup_recovery(logger))
     try:

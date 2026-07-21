@@ -52,30 +52,33 @@ async def issue_ws_ticket(
     return JSONResponse({"ticket": issue_device_ws_ticket(device_id, token), "expires_in": TTL_SECONDS})
 
 
+async def _reject_hello(websocket: WebSocket, code: str, message: str, request_id: Any) -> None:
+    await send_ws_error(websocket, ProtocolError(code, message, request_id))
+    await websocket.close(code=1008)
+
+
+def _register_hello_profile(device_id: str, message: dict[str, Any]) -> None:
+    try:
+        from device_gateway.device_profile import profile_from_hello_frame, register_device_profile
+
+        register_device_profile(profile_from_hello_frame(device_id, message))
+    except Exception as exc:
+        _log.warning("hello profile registration failed device=%s: %s", device_id, exc, exc_info=True)
+
+
 async def _handle_hello(websocket: WebSocket, message: dict[str, Any]) -> tuple[str | None, DeviceSession | None, bool]:
     device_id = str(message.get("device_id", "")).strip()
     request_id = message.get("request_id")
     if not device_id:
-        await send_ws_error(websocket, ProtocolError("E_BAD_PARAMS", "hello requires device_id", request_id))
-        await websocket.close(code=1008)
+        await _reject_hello(websocket, "E_BAD_PARAMS", "hello requires device_id", request_id)
         return None, None, False
-
     bound = ticket_device_id(websocket)
     if bound and bound != device_id:
-        await send_ws_error(
-            websocket,
-            ProtocolError("E_UNAUTHORIZED_DEVICE", "device ticket does not match device_id", request_id),
-        )
-        await websocket.close(code=1008)
+        await _reject_hello(websocket, "E_UNAUTHORIZED_DEVICE", "device ticket does not match device_id", request_id)
         return None, None, False
-
     token = extract_ws_token(websocket)
     if not validate_device_token(device_id, token):
-        await send_ws_error(
-            websocket,
-            ProtocolError("E_UNAUTHORIZED_DEVICE", "device token is invalid", request_id),
-        )
-        await websocket.close(code=1008)
+        await _reject_hello(websocket, "E_UNAUTHORIZED_DEVICE", "device token is invalid", request_id)
         return None, None, False
 
     session = DeviceSession(
@@ -87,8 +90,7 @@ async def _handle_hello(websocket: WebSocket, message: dict[str, Any]) -> tuple[
     )
     previous = registry.register(session)
     if previous == "too_many":
-        await send_ws_error(websocket, ProtocolError("E_TOO_MANY", "too many device sessions", request_id))
-        await websocket.close(code=1008)
+        await _reject_hello(websocket, "E_TOO_MANY", "too many device sessions", request_id)
         return None, None, False
     if isinstance(previous, DeviceSession) and previous.websocket is not websocket:
         try:
@@ -97,10 +99,10 @@ async def _handle_hello(websocket: WebSocket, message: dict[str, Any]) -> tuple[
             _log.warning("close superseded websocket device=%s: %s", device_id, exc)
 
     record_device_connected(device_id)
+    _register_hello_profile(device_id, message)
     await session.send_json(hello_ack(device_id, protocol_version=session.protocol_version))
-    if not await drain_pending_tasks(session):
-        return device_id, session, False
-    return device_id, session, True
+    keep = await drain_pending_tasks(session)
+    return device_id, session, keep
 
 
 async def _handle_message(

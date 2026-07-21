@@ -12,35 +12,44 @@ from device_gateway.device_profile.models import DeviceCapability, DeviceHistory
 _log = logging.getLogger(__name__)
 
 
-def profile_from_hello_frame(
-    device_id: str,
-    hello: dict[str, Any],
-) -> DeviceProfile:
-    """Build a DeviceProfile from a device hello/connect frame.
+def _workspace_from_hello(hello: dict[str, Any]) -> dict[str, float]:
+    """Prefer hello.workspace_mm when valid; else product writing canvas."""
+    from device_gateway.path_workspace import workspace_axes_ok
+    from device_gateway.profiles import PRODUCT_WRITING_WORKSPACE_MM
 
-    Expected hello frame keys:
-      compute_level        — "low" / "medium" / "high" (default "low")
-      memory_mb            — int (default 512)
-      supported_features   — list[str] (default ["vector_path", "text"])
-      latency_sensitive    — bool (default True)
-      quality_priority     — "speed" / "quality" / "balanced" (default "speed")
-      cost_sensitivity     — "low" / "medium" / "high" (default "low")
-    """
+    raw = hello.get("workspace_mm")
+    if isinstance(raw, dict):
+        try:
+            ws = {
+                "x": float(raw.get("x", PRODUCT_WRITING_WORKSPACE_MM["x"])),
+                "y": float(raw.get("y", PRODUCT_WRITING_WORKSPACE_MM["y"])),
+                "z": float(raw.get("z", PRODUCT_WRITING_WORKSPACE_MM["z"])),
+            }
+            if workspace_axes_ok(ws):
+                return ws
+        except (TypeError, ValueError):
+            pass
+    return {
+        "x": float(PRODUCT_WRITING_WORKSPACE_MM["x"]),
+        "y": float(PRODUCT_WRITING_WORKSPACE_MM["y"]),
+        "z": float(PRODUCT_WRITING_WORKSPACE_MM["z"]),
+    }
+
+
+def _capability_prefs_history(hello: dict[str, Any]) -> tuple[DeviceCapability, DevicePreferences, DeviceHistory]:
     caps = hello.get("capability", hello)
     cap = DeviceCapability(
         compute_level=str(caps.get("compute_level", "low")),
         memory_mb=int(caps.get("memory_mb", 512)),
         supported_features=tuple(caps.get("supported_features", ("vector_path", "text"))),
     )
-
     prefs_data = hello.get("preferences", hello)
     prefs = DevicePreferences(
         latency_sensitive=bool(prefs_data.get("latency_sensitive", True)),
         quality_priority=str(prefs_data.get("quality_priority", "speed")),
         cost_sensitivity=str(prefs_data.get("cost_sensitivity", "low")),
     )
-
-    hist_data = hello.get("history", {})
+    hist_data = hello.get("history", {}) if isinstance(hello.get("history"), dict) else {}
 
     def _safe_tuple(key: str) -> tuple[str, ...]:
         raw = hist_data.get(key, ())
@@ -53,8 +62,62 @@ def profile_from_hello_frame(
         success_rate=float(hist_data.get("success_rate", 0.0)),
         total_tasks=int(hist_data.get("total_tasks", 0)),
     )
+    return cap, prefs, hist
 
-    return DeviceProfile(device_id=device_id, capability=cap, preferences=prefs, history=hist)
+
+def _limits_from_hello(hello: dict[str, Any]) -> tuple[float, int, tuple[str, ...]]:
+    caps_list = hello.get("capabilities")
+    if isinstance(caps_list, (list, tuple)) and caps_list:
+        capabilities = tuple(str(c) for c in caps_list)
+    else:
+        capabilities = (
+            "run_path",
+            "home",
+            "pause",
+            "resume",
+            "stop",
+            "get_device_info",
+            "write_text",
+            "draw_generated",
+        )
+    try:
+        max_path_points = int(hello.get("max_path_points", 200))
+        if max_path_points <= 0:
+            max_path_points = 200
+    except (TypeError, ValueError):
+        max_path_points = 200
+    try:
+        max_feed = float(hello.get("max_feed", 2000.0))
+        if max_feed <= 0:
+            max_feed = 2000.0
+    except (TypeError, ValueError):
+        max_feed = 2000.0
+    return max_feed, max_path_points, capabilities
+
+
+def profile_from_hello_frame(device_id: str, hello: dict[str, Any]) -> DeviceProfile:
+    """Build a DeviceProfile from hello so register_device_profile can complete path gen."""
+    cap, prefs, hist = _capability_prefs_history(hello)
+    max_feed, max_path_points, capabilities = _limits_from_hello(hello)
+    profile_id = str(hello.get("profile_id") or f"hello-{device_id}").strip() or f"hello-{device_id}"
+    fw_rev = str(hello.get("fw_rev") or hello.get("firmwareVersion") or "")
+    return DeviceProfile(
+        device_id=device_id,
+        capability=cap,
+        preferences=prefs,
+        history=hist,
+        profile_id=profile_id[:80],
+        model=str(hello.get("model") or "esp32_writing_machine"),
+        workspace_mm=_workspace_from_hello(hello),
+        max_feed=max_feed,
+        max_path_points=max_path_points,
+        capabilities=capabilities,
+        supported_fw_prefixes=("",),
+        profile_version="1",
+        fw_rev=fw_rev,
+        hw_rev=str(hello.get("hw_rev") or ""),
+        limits={"max_points": max_path_points},
+    )
 
 
 def infer_profile_from_artifacts(

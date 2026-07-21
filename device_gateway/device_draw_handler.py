@@ -8,9 +8,8 @@ from device_gateway.device_draw_config import resolve_draw_model
 from device_gateway.model_routing import try_backends
 from device_gateway.handwriting_path import try_text_to_handwriting
 from xiaozhi_drawing.svg_converter import SVGConverter
-from xiaozhi_drawing.svg_validator import validate_svg_path
-from xiaozhi_drawing.path_optimizer import optimize_svg_path
 from xiaozhi_drawing.preset_shapes import get_preset_svg
+from device_gateway.draw_svg_stage import optimize_draw_svg, validate_draw_svg
 
 from device_gateway.device_profile.registry import get_device_profile
 from device_gateway.draw_prompt_enhancer import (
@@ -128,35 +127,6 @@ async def _convert_image_to_svg(image_url: str) -> Dict[str, Any]:
     return await converter.convert_url_to_svg(image_url, skeletonize=True, reorder_strokes=True)
 
 
-def _validate_svg(svg_result: Dict[str, Any]) -> tuple[Any, str]:
-    """Validate SVG path and return (validation, error_message)."""
-    svg_path = svg_result["svg_path"]
-    validation = validate_svg_path(svg_path, workspace=(200, 200))
-    if not validation.valid:
-        logger.warning("SVG validation failed: %s", validation.errors)
-        return validation, f"SVG validation failed: {', '.join(validation.errors)}"
-    return validation, ""
-
-
-def _optimize_svg_path(svg_path: Any, svg_result: Dict[str, Any]) -> Any:
-    """Optimize SVG path and log statistics."""
-    optimization = optimize_svg_path(
-        svg_path,
-        tolerance=2.0,
-        target_size=(180, 180),
-        close=not svg_result.get("skeleton_applied", False),
-    )
-    if svg_result.get("skeleton_applied"):
-        logger.info("Skeleton SVG optimized as open strokes (method=%s)", svg_result.get("thinning_method"))
-    logger.info(
-        "Path optimized: %s -> %s points (%.1f%% reduction)",
-        optimization.original_points,
-        optimization.optimized_points,
-        optimization.reduction_ratio * 100,
-    )
-    return optimization
-
-
 def _check_motion_bounds(optimization: Any, *, device_id: Optional[str] = None) -> str | None:
     """Return an error string if the optimized path exceeds motion bounds."""
     bounds_err = precheck_draw_motion_path(optimization.optimized_path, device_id=device_id)
@@ -171,11 +141,11 @@ async def _convert_and_optimize(image_url: str, model: str, *, device_id: Option
     if svg_result["status"] != "success":
         return _build_partial_response(image_url, 0, 0, model, error=f"SVG conversion failed: {svg_result['error']}")
 
-    validation, error = _validate_svg(svg_result)
+    _validation, error = validate_draw_svg(svg_result, device_id=device_id)
     if error:
         return _build_partial_response(image_url, svg_result["width"], svg_result["height"], model, error=error)
 
-    optimization = _optimize_svg_path(svg_result["svg_path"], svg_result)
+    optimization = optimize_draw_svg(svg_result["svg_path"], svg_result, device_id=device_id)
     bounds_err = _check_motion_bounds(optimization, device_id=device_id)
     if bounds_err:
         return _build_partial_response(

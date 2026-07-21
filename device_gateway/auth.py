@@ -14,7 +14,27 @@ _log = logging.getLogger(__name__)
 # 开启后，token 为空但 device_id 是已注册设备（v2_device 表存在）时放行。
 # 安全默认关闭：知道 device_id 即可空 token 连入 /device/v1/ws 是 CRITICAL 风险。
 # U8 真机需运维在 .env 中显式设置 LIMA_WS_REGISTERED_DEVICE_FALLBACK=1。
+# 生产禁止仅靠 fallback：须 LIMA_WS_FALLBACK_ALLOW_PRODUCTION=1 才允许启动。
 _WS_REGISTERED_DEVICE_FALLBACK = os.environ.get("LIMA_WS_REGISTERED_DEVICE_FALLBACK", "0") == "1"
+
+
+def assert_device_auth_safe_for_runtime() -> None:
+    """Refuse production boot when empty-token WS fallback is enabled without override."""
+    if not _WS_REGISTERED_DEVICE_FALLBACK:
+        return
+    env = os.environ.get("LIMA_RUNTIME_ENV", "").strip().lower()
+    allow = os.environ.get("LIMA_WS_FALLBACK_ALLOW_PRODUCTION", "0").strip() in {"1", "true", "yes", "on"}
+    if env == "production" and not allow:
+        raise RuntimeError(
+            "LIMA_WS_REGISTERED_DEVICE_FALLBACK=1 is forbidden when LIMA_RUNTIME_ENV=production "
+            "unless LIMA_WS_FALLBACK_ALLOW_PRODUCTION=1 (temporary ops escape hatch). "
+            "Prefer LIMA_DEVICE_TOKENS=device_id=token and firmware token write."
+        )
+    if env == "production" and allow:
+        _log.critical(
+            "SECURITY RISK: device WS empty-token fallback allowed in production "
+            "(LIMA_WS_FALLBACK_ALLOW_PRODUCTION=1); remove as soon as firmware stores tokens"
+        )
 
 
 def configured_device_tokens() -> dict[str, str]:
