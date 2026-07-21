@@ -50,14 +50,14 @@ PRESET_KEYWORDS = {
 }
 
 
-def _try_preset_shape(prompt: str) -> Optional[Dict[str, Any]]:
+def _try_preset_shape(prompt: str, *, device_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Detect preset shape keywords and return its SVG if matched."""
     for shape, keywords in PRESET_KEYWORDS.items():
         if any(kw in prompt.lower() for kw in keywords):
             logger.info(f"Detected preset shape: {shape}")
             result = get_preset_svg(shape, size=180)
             if result["status"] == "success":
-                err = precheck_draw_motion_path(result["svg_path"])  # no device_id at preset stage
+                err = precheck_draw_motion_path(result["svg_path"], device_id=device_id)
                 if err:
                     logger.warning("Preset motion bounds precheck failed: %s", err)
                     return _build_failed_response(f"preset:{shape}", f"Motion bounds precheck failed: {err}")
@@ -157,18 +157,15 @@ def _optimize_svg_path(svg_path: Any, svg_result: Dict[str, Any]) -> Any:
     return optimization
 
 
-def _check_motion_bounds(optimization: Any) -> str | None:
+def _check_motion_bounds(optimization: Any, *, device_id: Optional[str] = None) -> str | None:
     """Return an error string if the optimized path exceeds motion bounds."""
-    bounds_err = precheck_draw_motion_path(optimization.optimized_path)
+    bounds_err = precheck_draw_motion_path(optimization.optimized_path, device_id=device_id)
     if bounds_err:
         logger.warning("Draw motion bounds precheck failed: %s", bounds_err)
     return bounds_err
 
 
-async def _convert_and_optimize(
-    image_url: str,
-    model: str,
-) -> Dict[str, Any]:
+async def _convert_and_optimize(image_url: str, model: str, *, device_id: Optional[str] = None) -> Dict[str, Any]:
     """Convert image to SVG, validate, optimize and return the final payload."""
     svg_result = await _convert_image_to_svg(image_url)
     if svg_result["status"] != "success":
@@ -179,7 +176,7 @@ async def _convert_and_optimize(
         return _build_partial_response(image_url, svg_result["width"], svg_result["height"], model, error=error)
 
     optimization = _optimize_svg_path(svg_result["svg_path"], svg_result)
-    bounds_err = _check_motion_bounds(optimization)
+    bounds_err = _check_motion_bounds(optimization, device_id=device_id)
     if bounds_err:
         return _build_partial_response(
             image_url,
@@ -213,7 +210,7 @@ from device_gateway.device_draw_config import _resolve_draw_request  # noqa: F40
 async def _convert_provided_image(image_url: str, config: dict, device_id: str | None, prompt: str) -> dict[str, Any]:
     """Convert a caller-provided image URL to an optimized draw path."""
     try:
-        response = await _convert_and_optimize(image_url, config["model"])
+        response = await _convert_and_optimize(image_url, config["model"], device_id=device_id)
         if response.get("status") != "success":
             record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, response)
@@ -230,7 +227,9 @@ def _try_fast_paths(
     font_name: str | None = None,
 ) -> dict[str, Any] | None:
     """Try preset shape then handwriting font path; return first match or None."""
-    return _try_preset_shape(prompt) or try_text_to_handwriting(prompt, device_id, device_type, font_name=font_name)
+    return _try_preset_shape(prompt, device_id=device_id) or try_text_to_handwriting(
+        prompt, device_id, device_type, font_name=font_name
+    )
 
 
 async def _try_preset_or_generate(
@@ -271,7 +270,7 @@ async def _try_preset_or_generate(
             )
 
         generated_image_url = result["images"][0]["url"]
-        response = await _convert_and_optimize(generated_image_url, config["model"])
+        response = await _convert_and_optimize(generated_image_url, config["model"], device_id=device_id)
         if response.get("status") != "success":
             record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, response)

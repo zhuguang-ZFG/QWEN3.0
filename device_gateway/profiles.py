@@ -46,6 +46,24 @@ def get_profile(profile_id: str) -> DeviceProfile | None:
     return KNOWN_PROFILES.get(profile_id)
 
 
+def _profile_for_device_id(device_id: str) -> DeviceProfile | None:
+    """Look up a complete profile keyed by device_id (runtime registry, then KNOWN)."""
+    if not device_id:
+        return None
+    try:
+        from device_gateway.device_profile.registry import get_device_profile
+
+        registered = get_device_profile(device_id)
+        if registered is not None:
+            return registered
+    except Exception:
+        _log.warning("get_device_profile failed for device_id=%s", device_id, exc_info=True)
+    for known in KNOWN_PROFILES.values():
+        if getattr(known, "device_id", None) == device_id:
+            return known
+    return None
+
+
 def resolve_profile(
     *,
     profile_id: str = "",
@@ -58,15 +76,23 @@ def resolve_profile(
 
     Priority:
     1. Registered profile by profile_id
-    2. Shadow store profile data
-    3. Conservative defaults (missing data = safe fallback)
+    2. Runtime/device registry or KNOWN profile matched by device_id
+    3. Shadow store profile data
+    4. Conservative defaults (missing data = safe fallback)
 
     Returns a ResolvedProfile with routing hints and completeness flag.
     """
     profile = get_profile(profile_id) if profile_id else None
     complete = profile is not None
 
+    if profile is None and device_id:
+        by_device = _profile_for_device_id(device_id)
+        if by_device is not None:
+            profile = by_device
+            complete = True
+
     if profile is None and shadow_profile:
+        # Shadow fills workspace/limits but stays incomplete (routing still gated).
         profile = _profile_from_shadow(shadow_profile, profile_id or device_id)
 
     if profile is None:

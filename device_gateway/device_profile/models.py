@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from device_intelligence.schemas import DEFAULT_WORKSPACE_MM
 from device_intelligence.schemas import DeviceProfile as DeviceIntelligenceProfile
 
 # ── Constants ──────────────────────────────────────────────────────────────
@@ -101,7 +102,7 @@ class DeviceProfile:
     history: DeviceHistory = field(default_factory=DeviceHistory)
     profile_id: str = ""
     model: str = ""
-    workspace_mm: dict[str, float] = field(default_factory=lambda: {"x": 100.0, "y": 100.0, "z": 20.0})
+    workspace_mm: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_WORKSPACE_MM))
     max_feed: float = 600.0
     max_path_points: int = 200
     capabilities: tuple[str, ...] = ("run_path", "home", "pause", "resume", "stop", "get_device_info")

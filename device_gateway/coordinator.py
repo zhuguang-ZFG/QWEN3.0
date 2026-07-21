@@ -154,7 +154,9 @@ class MultiDeviceCoordinator:
             "overall_status": overall,
         }
 
-    def _region_motion_params(self, clipped_svg: str) -> tuple[dict[str, Any] | None, str | None]:
+    def _region_motion_params(
+        self, clipped_svg: str, *, device_id: str | None = None
+    ) -> tuple[dict[str, Any] | None, str | None]:
         """GW-WA: convert a clipped SVG region into validated run_path params.
 
         The old "draw_svg" capability was not on the SEC-06 allowlist: Redis
@@ -165,7 +167,7 @@ class MultiDeviceCoordinator:
         if not d_strings:
             return None, "no drawable path data in svg region"
         try:
-            rendered = render_svg_task(" ".join(d_strings))
+            rendered = render_svg_task(" ".join(d_strings), device_id=device_id)
         except PathNormalizationError as exc:
             return None, f"path normalization failed: {exc}"
         params = {
@@ -196,7 +198,7 @@ class MultiDeviceCoordinator:
             return {"device_id": device_id, "status": "failed", "error": "device_offline"}
 
         clipped_svg = self._clip_svg(svg_content, region)
-        params, error = self._region_motion_params(clipped_svg)
+        params, error = self._region_motion_params(clipped_svg, device_id=device_id)
         if error or params is None:
             return {"device_id": device_id, "status": "failed", "error": error or "region build failed"}
         task = {
