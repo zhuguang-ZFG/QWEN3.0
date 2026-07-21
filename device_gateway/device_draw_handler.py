@@ -136,16 +136,21 @@ def _check_motion_bounds(optimization: Any, *, device_id: Optional[str] = None) 
 
 
 async def _convert_and_optimize(image_url: str, model: str, *, device_id: Optional[str] = None) -> Dict[str, Any]:
-    """Convert image to SVG, validate, optimize and return the final payload."""
+    """Convert → optimize into workspace → validate/precheck (avoid rejecting raw pixel paths)."""
     svg_result = await _convert_image_to_svg(image_url)
     if svg_result["status"] != "success":
         return _build_partial_response(image_url, 0, 0, model, error=f"SVG conversion failed: {svg_result['error']}")
 
-    _validation, error = validate_draw_svg(svg_result, device_id=device_id)
+    # Optimize first so large image-space paths scale into the device canvas before
+    # bbox validation (W1). Then validate + motion precheck on the scaled path.
+    optimization = optimize_draw_svg(svg_result["svg_path"], svg_result, device_id=device_id)
+    _validation, error = validate_draw_svg(
+        {"svg_path": optimization.optimized_path},
+        device_id=device_id,
+    )
     if error:
         return _build_partial_response(image_url, svg_result["width"], svg_result["height"], model, error=error)
 
-    optimization = optimize_draw_svg(svg_result["svg_path"], svg_result, device_id=device_id)
     bounds_err = _check_motion_bounds(optimization, device_id=device_id)
     if bounds_err:
         return _build_partial_response(

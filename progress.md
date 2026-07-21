@@ -2,6 +2,13 @@
 
 > 更早条目已删除；需要时查 git history（`ac230614` 前含完整 progress 归档）。
 
+## 2026-07-21 CR 跟进 W1–W4（draw 顺序 / hello 三轴 / production env）
+
+- 描图：optimize → validate → precheck（避免 raw 像素路径在缩放前被拒）。
+- hello `workspace_mm` 须 x/y/z 齐全，否则 product 300。
+- 部署约定：`LIMA_RUNTIME_ENV=production`；readiness 提示公网探测只看本地 env。
+- 测试：`test_draw_svg_stage`、`test_hello_workspace_complete`。
+
 ## 2026-07-21 CR 剩余项：draw workspace / hello profile / B1 / P0-3 清单
 
 - draw：`draw_svg_stage` 用 `resolve_workspace_mm` 作 validate/optimize 目标（去 200/180 硬编码）。

@@ -201,8 +201,9 @@ LIMA_DEPLOY_NOTIFY=1                             # 保留兼容开关；Telegram
 LIMA_DRY_RUN=1                             # 默认关闭真实执行
 LIMA_ALLOW_SHELL=0                         # 默认关闭 shell
 LIMA_ALLOW_NETWORK=0                       # 默认关闭网络
-LIMA_RUNTIME_ENV=development               # production 会启用生产就绪检查
+LIMA_RUNTIME_ENV=production                # 公网 VPS 必须 production（B1 鉴权门依赖此值）
 LIMA_RATE_LIMIT_ENABLED=0                  # 默认关闭；开启后 /health 等端点可能返回 503
+# LIMA_WS_REGISTERED_DEVICE_FALLBACK=0     # 生产禁止=1，除非临时 ALLOW_PRODUCTION
 ```
 
 ### C1 Workflow 持久化

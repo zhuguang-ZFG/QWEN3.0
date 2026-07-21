@@ -13,18 +13,14 @@ _log = logging.getLogger(__name__)
 
 
 def _workspace_from_hello(hello: dict[str, Any]) -> dict[str, float]:
-    """Prefer hello.workspace_mm when valid; else product writing canvas."""
+    """Prefer complete hello.workspace_mm (x/y/z all present + valid); else product canvas."""
     from device_gateway.path_workspace import workspace_axes_ok
     from device_gateway.profiles import PRODUCT_WRITING_WORKSPACE_MM
 
     raw = hello.get("workspace_mm")
-    if isinstance(raw, dict):
+    if isinstance(raw, dict) and all(k in raw for k in ("x", "y", "z")):
         try:
-            ws = {
-                "x": float(raw.get("x", PRODUCT_WRITING_WORKSPACE_MM["x"])),
-                "y": float(raw.get("y", PRODUCT_WRITING_WORKSPACE_MM["y"])),
-                "z": float(raw.get("z", PRODUCT_WRITING_WORKSPACE_MM["z"])),
-            }
+            ws = {"x": float(raw["x"]), "y": float(raw["y"]), "z": float(raw["z"])}
             if workspace_axes_ok(ws):
                 return ws
         except (TypeError, ValueError):

@@ -51,12 +51,21 @@ def _post_json(url: str, payload: dict, headers: dict[str, str], timeout: float 
             return exc.code, body
 
 
-def check_local_env() -> list[str]:
-    """Return list of problem strings for local process env (not remote)."""
+def check_local_env(*, base_url: str = "") -> list[str]:
+    """Return list of problem strings for local process env (not remote VPS env)."""
     problems: list[str] = []
     env = os.environ.get("LIMA_RUNTIME_ENV", "").strip().lower()
     fallback = os.environ.get("LIMA_WS_REGISTERED_DEVICE_FALLBACK", "0").strip() in {"1", "true", "yes", "on"}
     allow = os.environ.get("LIMA_WS_FALLBACK_ALLOW_PRODUCTION", "0").strip() in {"1", "true", "yes", "on"}
+    public_base = base_url.startswith("https://") and "127.0.0.1" not in base_url and "localhost" not in base_url
+    if not env:
+        msg = "WARN: LIMA_RUNTIME_ENV unset (production VPS must set LIMA_RUNTIME_ENV=production)"
+        if public_base:
+            msg = (
+                "WARN: LIMA_RUNTIME_ENV unset while probing a public URL — "
+                "this script only sees *local* env; SSH the VPS and require LIMA_RUNTIME_ENV=production"
+            )
+        problems.append(msg)
     if fallback and env == "production" and not allow:
         problems.append(
             "local env: LIMA_WS_REGISTERED_DEVICE_FALLBACK=1 forbidden in production without "
@@ -81,8 +90,8 @@ def main() -> int:
     base = args.base_url.rstrip("/")
     exit_code = 0
 
-    print("== local env ==")
-    for line in check_local_env():
+    print("== local env (not remote VPS) ==")
+    for line in check_local_env(base_url=base):
         print(" ", line)
         if line.startswith("local env:"):
             exit_code = 1

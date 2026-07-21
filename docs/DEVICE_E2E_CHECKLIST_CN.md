@@ -16,6 +16,7 @@ python scripts/check_device_delivery_readiness.py --base-url http://127.0.0.1:80
 检查项：
 
 - [ ] `GET /health` → ok（若期望 Redis 则 backend=redis）
+- [ ] VPS 上 **`LIMA_RUNTIME_ENV=production`**（未设则 B1 生产门不生效）
 - [ ] `LIMA_WS_REGISTERED_DEVICE_FALLBACK` 在 production 为 0，或已显式 `LIMA_WS_FALLBACK_ALLOW_PRODUCTION=1`（临时）
 - [ ] `LIMA_DEVICE_TOKENS` 含该 device_id（推荐，避免空 token）
 - [ ] `POST /device/v1/ws/ticket` 用 Bearer 设备 token 可取 ticket
