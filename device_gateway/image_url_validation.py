@@ -38,12 +38,27 @@ def _resolve_hostname(hostname: str) -> list[str]:
     return [str(info[4][0]) for info in socket.getaddrinfo(hostname, None)]
 
 
+def _http_image_urls_allowed() -> bool:
+    """Plain http image fetch is off by default (MITM). Opt in via env."""
+    return os.environ.get("LIMA_ALLOW_HTTP_IMAGE_URL", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def validate_image_url(image_url: str) -> tuple[str | None, str | None]:
     """Return (image_url, error_msg). Exactly one is non-None."""
     url = image_url.strip()
     if not url:
         return None, "image_url is required"
-    if not url.startswith(("https://", "http://")):
+    if url.startswith("https://"):
+        pass
+    elif url.startswith("http://"):
+        if not _http_image_urls_allowed():
+            return None, "image_url must use https (set LIMA_ALLOW_HTTP_IMAGE_URL=1 to allow http)"
+    else:
         return None, "image_url must be an http(s) URL"
 
     hostname = (urlparse(url).hostname or "").lower()

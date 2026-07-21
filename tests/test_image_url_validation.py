@@ -31,3 +31,19 @@ def test_allow_verify_host(monkeypatch: pytest.MonkeyPatch) -> None:
     url, err = iv.validate_image_url("https://chat.donglicao.com/device/v1/app/gallery/x/file")
     assert err is None
     assert url is not None
+
+
+def test_reject_http_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("LIMA_ALLOW_HTTP_IMAGE_URL", raising=False)
+    monkeypatch.setattr(iv, "_resolve_hostname", lambda _host: ["149.154.167.220"])
+    url, err = iv.validate_image_url("http://api.telegram.org/file/bot123/img.png")
+    assert url is None
+    assert err and "https" in err.lower()
+
+
+def test_allow_http_when_env_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LIMA_ALLOW_HTTP_IMAGE_URL", "1")
+    monkeypatch.setattr(iv, "_resolve_hostname", lambda _host: ["149.154.167.220"])
+    url, err = iv.validate_image_url("http://api.telegram.org/file/bot123/img.png")
+    assert err is None
+    assert url is not None

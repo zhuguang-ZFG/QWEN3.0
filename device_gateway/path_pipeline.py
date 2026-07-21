@@ -226,8 +226,12 @@ def render_svg_task(
     optimize: bool = True,
 ) -> dict[str, Any]:
     """Render an SVG path string into a motion task params dict with preview."""
+    # Same workspace as render_text_task — do not rely on function defaults (100)
+    # so changing DEFAULT_WORKSPACE_MM cannot fork SVG vs text silently.
+    ws_x = float(DEFAULT_WORKSPACE_MM["x"])
+    ws_y = float(DEFAULT_WORKSPACE_MM["y"])
     path = svg_path_to_motion(d_string[:2000])
-    path = _normalize_path_to_workspace(path)
+    path = _normalize_path_to_workspace(path, width=ws_x, height=ws_y)
     if passes > 1:
         path = apply_multi_pass(path, passes, offset_mm)
     if optimize:
@@ -235,7 +239,7 @@ def render_svg_task(
         path = optimizer.smooth(optimizer.compress(path))
     # GW-R3-7: re-assert bounds after multi_pass/optimizer so a pass offset can
     # never silently dispatch a point past the workspace (matches normalize dims).
-    _assert_path_within_workspace(path, stage="svg post-transform")
+    _assert_path_within_workspace(path, ws_x, ws_y, stage="svg post-transform")
     return {
         "path": path,
         "preview_svg": preview_svg(path, title=f"svg path — {len(path)} pts"),
