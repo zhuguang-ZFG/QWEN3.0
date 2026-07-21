@@ -99,6 +99,18 @@ def test_constant_time_comparison(monkeypatch):
     assert validate_device_token("dev1", "SECRET123") is False
 
 
+def test_validate_accepts_db_token_when_env_empty(monkeypatch):
+    """v2_device_token (same store as /dlc/*) authorizes device WS."""
+    monkeypatch.setattr(DEVICE, "tokens", "")
+    monkeypatch.setattr(
+        "device_gateway.auth.lookup_device_id_by_token",
+        lambda token: "dev-db" if token == "db-secret" else None,
+    )
+    assert validate_device_token("dev-db", "db-secret") is True
+    assert validate_device_token("other", "db-secret") is False
+    assert validate_device_token("dev-db", "wrong") is False
+
+
 def test_registered_device_fallback_default_off(monkeypatch):
     """By default the registered-device fallback is disabled for security."""
     from device_gateway import auth

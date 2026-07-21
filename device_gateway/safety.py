@@ -5,7 +5,10 @@ from __future__ import annotations
 import math
 from typing import Any
 
-MAX_POINTS = 128
+# Single source of truth with path_data / path_validator (was 128 vs 200 split).
+from device_gateway.path_data import MAX_PATH_POINTS
+
+MAX_POINTS = MAX_PATH_POINTS
 MAX_FEED = 1200
 DEFAULT_FEED = 900
 # Product writing-machine canvas (U8). Unknown devices without profile use this

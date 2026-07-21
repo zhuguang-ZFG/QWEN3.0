@@ -67,19 +67,30 @@ def _quota_for(task_type: str) -> int:
     return DEVICE.dlc_task_per_min
 
 
-@router.get("/health")
-@router.get("/health/ready")
-async def health():
-    """Lightweight health endpoint for load balancers and smoke tests."""
-    base = {"service": "dlc-drawing", "version": "0.4.0-p3"}
+def _task_store_backend() -> str:
     try:
-        backend = task_store_health().get("backend", "memory")
+        return task_store_health().get("backend", "memory")
     except Exception:
         logger.warning("task_store_health 调用失败，按 memory 处理", exc_info=True)
-        backend = "memory"
-    deps: dict[str, str] = {"task_store": backend}
+        return "memory"
 
-    # Honest probe: env expects Redis but store still memory → misconfigured.
+
+def _reaper_dep() -> str:
+    try:
+        from device_gateway.delivery_reaper import reapers_running
+
+        return "up" if reapers_running() else "down"
+    except Exception:
+        logger.warning("delivery reaper status check failed", exc_info=True)
+        return "unknown"
+
+
+def _degraded(base: dict[str, Any], deps: dict[str, str]) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"status": "degraded", **base, "dependencies": deps})
+
+
+def _store_unhealthy(backend: str) -> bool:
+    """True when env expects Redis but store is wrong or Redis ping fails."""
     store_pref = os.environ.get("LIMA_DEVICE_TASK_STORE", "").strip().lower()
     env_wants_redis = store_pref == "redis" or bool(REDIS.device_redis_url)
     if env_wants_redis and backend != "redis":
@@ -87,23 +98,44 @@ async def health():
             "env expects Redis (LIMA_DEVICE_TASK_STORE/LIMA_DEVICE_REDIS_URL) but backend is %s",
             backend,
         )
-        return JSONResponse(
-            status_code=503,
-            content={"status": "degraded", **base, "dependencies": deps},
-        )
+        return True
+    if backend != "redis":
+        return False
+    try:
+        from device_gateway.store import task_store
 
-    if backend == "redis":
-        try:
-            from device_gateway.store import task_store
+        task_store.ping()
+        return False
+    except Exception:
+        logger.warning("Redis ping 失败", exc_info=True)
+        return True
 
-            task_store.ping()
-        except Exception:
-            logger.warning("Redis ping 失败", exc_info=True)
-            return JSONResponse(
-                status_code=503,
-                content={"status": "degraded", **base, "dependencies": deps},
-            )
+
+def _health_payload(*, ready: bool) -> dict[str, Any] | JSONResponse:
+    """Shared health body. ready=True also requires delivery reapers when production."""
+    base = {"service": "dlc-drawing", "version": "0.4.0-p3"}
+    backend = _task_store_backend()
+    deps: dict[str, str] = {"task_store": backend, "delivery_reapers": _reaper_dep()}
+    if _store_unhealthy(backend):
+        return _degraded(base, deps)
+    if ready and deps["delivery_reapers"] == "down":
+        from runtime_env import is_production_runtime
+
+        if is_production_runtime():
+            return _degraded(base, deps)
     return {"status": "ok", **base, "dependencies": deps}
+
+
+@router.get("/health")
+async def health():
+    """Liveness: process up + store probe (reapers reported but not required)."""
+    return _health_payload(ready=False)
+
+
+@router.get("/health/ready")
+async def health_ready():
+    """Readiness: store healthy; production also requires delivery reapers."""
+    return _health_payload(ready=True)
 
 
 @router.get("/dlc/devices/{device_id}/status", response_model=DeviceStatusResponse)

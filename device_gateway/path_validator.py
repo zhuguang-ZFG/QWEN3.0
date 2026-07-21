@@ -11,11 +11,11 @@ import math
 from typing import Any
 
 from device_gateway.model_routing import CONTROL_CAPABILITIES
+from device_gateway.path_data import MAX_PATH_POINTS
 from device_gateway.protocol_families import MotionErrorCode
 from device_intelligence.safety import profile_limit_error
 from device_intelligence.schemas import DeviceProfile
 
-MAX_PATH_POINTS = 200
 MAX_POINT_COORD = 500.0
 MIN_POINT_COORD = -500.0
 MAX_FEED = 2000.0

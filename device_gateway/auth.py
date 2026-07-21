@@ -7,6 +7,7 @@ import os
 from hmac import compare_digest
 
 from config.settings import DEVICE
+from device_logic.device_token import lookup_device_id_by_token
 
 _log = logging.getLogger(__name__)
 
@@ -75,12 +76,31 @@ def _is_registered_device(device_id: str) -> bool:
         return False
 
 
-def validate_device_token(device_id: str, token: str) -> bool:
+def _token_matches_env(device_id: str, token: str) -> bool:
     expected = configured_device_tokens().get(device_id)
     if not expected and device_id == DEVICE.digital_human_default_device_id:
         expected = DEVICE.digital_human_default_token
     if expected and token:
         return compare_digest(expected, token)
+    return False
+
+
+def _token_matches_db(device_id: str, token: str) -> bool:
+    """Accept tokens issued into v2_device_token (same store as /dlc/*)."""
+    resolved = lookup_device_id_by_token(token)
+    if not isinstance(resolved, str):
+        return False
+    # device_id is not a secret; equality is enough. Length-guard compare_digest.
+    if len(resolved) != len(device_id):
+        return False
+    return compare_digest(resolved, device_id)
+
+
+def validate_device_token(device_id: str, token: str) -> bool:
+    if token and _token_matches_env(device_id, token):
+        return True
+    if token and _token_matches_db(device_id, token):
+        return True
     # 固件直连兜底：token 为空但设备已注册（v2_device 表存在）→ 放行。
     # 固件目前 NVS 无 token 写入点（XIAOZHI_INTEGRATION_GAP_CN.md TASK-6 铁证）。
     if (not token) and _WS_REGISTERED_DEVICE_FALLBACK and _is_registered_device(device_id):

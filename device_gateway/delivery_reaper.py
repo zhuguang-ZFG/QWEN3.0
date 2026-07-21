@@ -66,12 +66,19 @@ async def _zombie_session_loop() -> None:
             _log.warning("zombie session reaper failed: %s", exc, exc_info=True)
 
 
+def reapers_running() -> bool:
+    """True when both stale-processing and zombie-session loops are alive."""
+    return _stale_task is not None and not _stale_task.done() and _zombie_task is not None and not _zombie_task.done()
+
+
 async def start_delivery_reapers() -> None:
     global _stale_task, _zombie_task
     if _stale_task is None or _stale_task.done():
         _stale_task = asyncio.create_task(_stale_processing_loop())
     if _zombie_task is None or _zombie_task.done():
         _zombie_task = asyncio.create_task(_zombie_session_loop())
+    if not reapers_running():
+        raise RuntimeError("delivery reapers failed to start (tasks not running)")
     _log.info("device delivery reapers started (stale processing + zombie sessions)")
 
 

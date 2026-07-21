@@ -160,8 +160,10 @@ class TestValidateRunPathParams:
 
 
 def test_constants():
-    """Safety constants have expected values."""
-    assert MAX_POINTS == 128
+    """Safety constants have expected values (aligned with path_data.MAX_PATH_POINTS)."""
+    from device_gateway.path_data import MAX_PATH_POINTS
+
+    assert MAX_POINTS == MAX_PATH_POINTS == 200
     assert MAX_FEED == 1200
     assert DEFAULT_FEED == 900
 

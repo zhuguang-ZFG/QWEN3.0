@@ -125,6 +125,11 @@ async def lifespan(app: FastAPI):
 
         await start_delivery_reapers()
     except Exception:
+        from runtime_env import is_production_runtime
+
+        if is_production_runtime():
+            logger.error("delivery reapers failed to start (production fail-closed)", exc_info=True)
+            raise
         logger.warning("delivery reapers failed to start", exc_info=True)
     logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*, /device/v1/ws, /v1/voice")
     yield
