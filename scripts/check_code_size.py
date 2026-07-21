@@ -60,11 +60,18 @@ EXCLUDE_DIRS = {
     "andrej-karpathy-skills",
     "data",
     "tmp",
+    ".tmp",
 }
 
 
 def _should_skip(path: Path) -> bool:
-    return any(part in EXCLUDE_DIRS or part.startswith(".venv") for part in path.parts)
+    if any(part in EXCLUDE_DIRS or part.startswith(".venv") for part in path.parts):
+        return True
+    # Local one-off patches / scratch scripts (often gitignored) must not fail CI.
+    name = path.name
+    if name.startswith("_tmp") or name.startswith("tmp_"):
+        return True
+    return False
 
 
 def _walk_onerror(err: OSError) -> None:

@@ -95,8 +95,8 @@ async def create_and_route_task(
 ) -> DeviceTaskRouteResult:
     """Create a motion task and optionally enqueue it.
 
-    Self-hosted device WS is retired; the queue has no production consumer,
-    so status is ``queued_no_delivery`` (not a false "sent/queued for delivery").
+    After enqueue, M1 tries online WSS push. Offline → ``queued_no_delivery``;
+    online but incomplete drain → ``queued``; success → ``sent``.
 
     Pass ``enqueue=False`` when the caller must persist the task row first
     (insert-before-dispatch) and will call ``enqueue_pending_task`` itself.
@@ -139,19 +139,15 @@ async def _enqueue_and_try_deliver(
     capability: str,
 ) -> DeviceTaskRouteResult:
     """Enqueue then push to online device WS if present (M1)."""
+    from device_gateway.delivery_status import try_deliver_and_classify
+
     queue_depth = await asyncio.to_thread(enqueue_pending_task, device_id, task)
     total_pending = await asyncio.to_thread(pending_count)
     prometheus_metrics.set_device_tasks_pending(total_pending)
-    try:
-        from routes.device_gateway_dispatch import try_deliver_pending
-
-        delivered = await try_deliver_pending(device_id)
-    except Exception:
-        delivered = False
-    if delivered:
-        return DeviceTaskRouteResult("sent", True, queue_depth, task)
-    prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")
-    return DeviceTaskRouteResult("queued_no_delivery", False, queue_depth, task)
+    sent, status = await try_deliver_and_classify(device_id)
+    if not sent:
+        prometheus_metrics.record_device_task_dispatched(capability, status)
+    return DeviceTaskRouteResult(status, sent, queue_depth, task)
 
 
 def reset_tasks_for_tests() -> None:

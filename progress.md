@@ -2,6 +2,12 @@
 
 > 更早条目已删除；需要时查 git history（`ac230614` 前含完整 progress 归档）。
 
+## 2026-07-21 CR 跟进 W1/W5/W2
+
+- W1：`try_deliver_and_classify` — offline=`queued_no_delivery`，在线 drain 失败=`queued`，成功=`sent`；异常打 warning 日志。
+- W5：`check_code_size` 排除 `.tmp` / `_tmp*` 脚本。
+- W2：`safe_point`/`validate_run_path_params` 支持 `workspace_mm`；coordinator 校验传入 complete profile。
+
 ## 2026-07-21 文档再检查与第三轮清理
 
 - 修死链：ONLINE_DISTRIBUTIONS / xiaozhi_api_openapi / system-slimdown / JDCLOUD_NEWAPI。

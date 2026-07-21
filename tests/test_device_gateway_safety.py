@@ -57,6 +57,13 @@ class TestSafePoint:
         assert result["y"] == 300.0
         assert result["z"] == 80.0
 
+    def test_custom_workspace_bounds(self):
+        """Optional workspace_mm tightens safe_point limits."""
+        small = {"x": 100.0, "y": 100.0, "z": 20.0}
+        assert safe_point(50.0, 50.0, workspace_mm=small)["x"] == 50.0
+        with pytest.raises(SafetyError):
+            safe_point(150.0, 0.0, workspace_mm=small)
+
     def test_zero_is_safe(self):
         """Origin is always safe."""
         result = safe_point(0.0, 0.0)

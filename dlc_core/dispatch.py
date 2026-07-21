@@ -31,7 +31,8 @@ async def dispatch_task(device_id: str, task: dict[str, Any], *, channel: str = 
         channel: reserved for future transport selection (mqtt/ws).
 
     Returns:
-        {"status": "sent" | "queued" | "queued_no_delivery" | "rejected" | "failed",
+        {"status": "sent" | "queued" | "queued_no_delivery" | "waiting_approval"
+         | "rejected" | "failed",
          "task_id": str | None, "queue_depth": int, "error": str | None}
     """
     async with _get_lock(device_id):

@@ -35,6 +35,10 @@ def test_build_gateway_task_records_issued():
 async def test_dispatch_or_enqueue_records_queued(sample_task):
     with (
         patch("device_gateway.tasks.enqueue_pending_task", return_value=1),
+        patch(
+            "device_gateway.delivery_status.try_deliver_and_classify",
+            return_value=(False, "queued_no_delivery"),
+        ),
         patch("observability.prometheus_metrics.record_device_task_dispatched") as mock_dispatched,
         patch("observability.prometheus_metrics.set_device_tasks_pending") as mock_pending,
     ):
@@ -44,6 +48,25 @@ async def test_dispatch_or_enqueue_records_queued(sample_task):
     assert result["sent"] is False
     mock_dispatched.assert_called_once_with("home", "queued_no_delivery")
     mock_pending.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_dispatch_or_enqueue_online_partial_is_queued_not_no_delivery(sample_task):
+    """Online session but incomplete drain must not claim queued_no_delivery."""
+    with (
+        patch("device_gateway.tasks.enqueue_pending_task", return_value=1),
+        patch(
+            "device_gateway.delivery_status.try_deliver_and_classify",
+            return_value=(False, "queued"),
+        ),
+        patch("observability.prometheus_metrics.record_device_task_dispatched") as mock_dispatched,
+        patch("observability.prometheus_metrics.set_device_tasks_pending"),
+    ):
+        result = await dispatch_or_enqueue("dev-1", sample_task)
+
+    assert result["dispatchStatus"] == "queued"
+    assert result["sent"] is False
+    mock_dispatched.assert_called_once_with("home", "queued")
 
 
 @pytest.mark.asyncio
@@ -59,6 +82,10 @@ async def test_create_and_route_task_records_created_and_queued():
     with (
         patch.object(tasks_mod, "create_task_from_transcript_async", return_value=task),
         patch.object(tasks_mod, "enqueue_pending_task", return_value=1),
+        patch(
+            "device_gateway.delivery_status.try_deliver_and_classify",
+            return_value=(False, "queued_no_delivery"),
+        ),
         patch("observability.prometheus_metrics.record_device_task_issued") as mock_issued,
         patch("observability.prometheus_metrics.record_device_task_dispatched") as mock_dispatched,
         patch("observability.prometheus_metrics.set_device_tasks_pending") as mock_pending,

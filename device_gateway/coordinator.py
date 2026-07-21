@@ -176,7 +176,14 @@ class MultiDeviceCoordinator:
             "source_capability": "draw_svg",
             "preview_svg": rendered.get("preview_svg", ""),
         }
-        sanitized, error = validate_capability_params("run_path", params)
+        profile = None
+        if device_id:
+            from device_gateway.profiles import resolve_profile
+
+            resolved = resolve_profile(device_id=device_id)
+            if resolved.complete:
+                profile = resolved.profile
+        sanitized, error = validate_capability_params("run_path", params, profile=profile)
         if error:
             return None, f"validation failed: {error}"
         return sanitized, None
