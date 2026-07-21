@@ -10,7 +10,7 @@
 | 报告日期 | YYYY-MM-DD |
 | 评测人 / Agent | |
 | 关联路线图 | 阶段 2 — 按角色准入 AI 绘图/写字模型 |
-| 上一版报告 | `docs/model_admission/2026-06-12-device-drawing-writing.md` |
+| 上一版报告 | （可选）上一日期文件名；旧报告见 git history |
 
 ## 准入标准（全角色通用）
 
