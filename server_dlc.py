@@ -4,9 +4,8 @@ Run:
     python -m uvicorn server_dlc:app --host 127.0.0.1 --port 8081
 
 This is the slimmed-down production server for the XiaoZhi + DLC architecture.
-It registers the DLC drawing routes plus the WeChat mini-program device-app
-API (`/device/v1/app/*`). It does NOT register the retired LiMa
-chat/admin/voice/provider or self-hosted device-gateway WS routes.
+It registers the DLC drawing routes, mini-program device-app API
+(`/device/v1/app/*`), and M1 device delivery WS (`/device/v1/ws`).
 """
 
 from __future__ import annotations
@@ -113,9 +112,21 @@ async def lifespan(app: FastAPI):
 
     _configure_workflow_lock()
     recovery_task = asyncio.create_task(_run_startup_recovery(logger))
-    logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*, /v1/voice")
+    try:
+        from device_gateway.delivery_reaper import start_delivery_reapers
+
+        await start_delivery_reapers()
+    except Exception:
+        logger.warning("delivery reapers failed to start", exc_info=True)
+    logger.info("DLC server started - /health, /dlc/*, /device/v1/app/*, /device/v1/ws, /v1/voice")
     yield
     # --- 优雅关停：取消后台恢复任务 + 关闭 WebSocket 会话 + Redis 连接池 ---
+    try:
+        from device_gateway.delivery_reaper import stop_delivery_reapers
+
+        await stop_delivery_reapers()
+    except Exception:
+        logger.warning("delivery reapers failed to stop", exc_info=True)
     await _cancel_background_task(recovery_task)
     await _close_backend_pools(logger)
 

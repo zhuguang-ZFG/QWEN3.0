@@ -58,7 +58,7 @@ server_dlc.py (:8081)
 | P0-2 | U8 OPUS/PCM（仅设备直连语音） | 产品排期 |
 | E-2 | ESP32 端到端验证 `LIMA_AUTO_FALLBACK` draw 路径 | **暂无真机**（2026-07-12 挂起；有机后再验） |
 | G3 | HIL 纸路/BT 串口证据 | 真机 + `hil_to_gate --port COMx` |
-| **投递 M1** | ✅ `/device/v1/ws` hello+drain；在线入队→`sent` 推送 `motion_task`；离线仍 `queued_no_delivery`。真机需连 DLC WSS。 | 真机联调 |
+| **投递 M1+M2** | ✅ WSS 推送 + reaper（僵尸会话 / stale processing）。离线 `queued_no_delivery`。 | 真机联调 |
 
 详见 [`superpowers/specs/2026-07-02-backlog-planning.md`](superpowers/specs/2026-07-02-backlog-planning.md)。
 
