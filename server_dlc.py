@@ -134,4 +134,7 @@ add_request_id_middleware(app)
 app.include_router(dlc_router)
 app.include_router(images_router.router)
 register_device_app_routes(app)
+from routes.device_ws import router as device_ws_router  # noqa: E402
+
+app.include_router(device_ws_router)
 app.include_router(legacy_router)

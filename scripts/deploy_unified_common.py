@@ -73,6 +73,7 @@ CORE_FILES = [
     "voice_app_ws_ticket.py",
     "voice_ws_connections.py",
     "ws_ticket.py",
+    "device_ws_ticket.py",
 ]
 
 # Post-P5 slimdown: only directories that still exist on disk and are reachable

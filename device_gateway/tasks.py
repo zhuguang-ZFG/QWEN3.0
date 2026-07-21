@@ -130,10 +130,27 @@ async def create_and_route_task(
         queue_depth = await asyncio.to_thread(pending_count, device_id)
         return DeviceTaskRouteResult("created", False, queue_depth, task)
 
+    return await _enqueue_and_try_deliver(device_id, task, capability)
+
+
+async def _enqueue_and_try_deliver(
+    device_id: str,
+    task: dict[str, Any],
+    capability: str,
+) -> DeviceTaskRouteResult:
+    """Enqueue then push to online device WS if present (M1)."""
     queue_depth = await asyncio.to_thread(enqueue_pending_task, device_id, task)
-    prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")
     total_pending = await asyncio.to_thread(pending_count)
     prometheus_metrics.set_device_tasks_pending(total_pending)
+    try:
+        from routes.device_gateway_dispatch import try_deliver_pending
+
+        delivered = await try_deliver_pending(device_id)
+    except Exception:
+        delivered = False
+    if delivered:
+        return DeviceTaskRouteResult("sent", True, queue_depth, task)
+    prometheus_metrics.record_device_task_dispatched(capability, "queued_no_delivery")
     return DeviceTaskRouteResult("queued_no_delivery", False, queue_depth, task)
 
 

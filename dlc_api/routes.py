@@ -232,7 +232,12 @@ async def _dispatch_and_release(body: TaskDispatchRequest, idem_full_key: str | 
             _release_idempotency_key(idem_full_key, body.request_id)
         raise
     # Keep claim for any accepted queue state (incl. honest no-delivery queue).
-    if idem_full_key and dispatch_result.get("status") not in {"sent", "queued", "queued_no_delivery"}:
+    # Keep claim for accepted delivery states (sent online push, queued, or offline hold).
+    if idem_full_key and dispatch_result.get("status") not in {
+        "sent",
+        "queued",
+        "queued_no_delivery",
+    }:
         _release_idempotency_key(idem_full_key, body.request_id)
     return TaskDispatchResponse(
         status=dispatch_result["status"],

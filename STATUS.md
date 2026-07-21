@@ -58,7 +58,7 @@ server_dlc.py (:8081)
 | P0-2 | U8 OPUS/PCM（仅设备直连语音） | 产品排期 |
 | E-2 | ESP32 端到端验证 `LIMA_AUTO_FALLBACK` draw 路径 | **暂无真机**（2026-07-12 挂起；有机后再验） |
 | G3 | HIL 纸路/BT 串口证据 | 真机 + `hil_to_gate --port COMx` |
-| **投递** | 自托管设备 WS 已退役：`create_and_route_task` / `dispatch_or_enqueue` **恒** `queued_no_delivery`；仓库内 **无生产 `pop_pending_tasks` 消费者**（仅测试调用）。MCP/dlc_api「下发成功」= 入队记账，**不等于笔已动**。需恢复投递通道或外部 consumer 后再谈真机闭环。 | 架构/产品 |
+| **投递 M1** | ✅ 最小通道已恢复：`POST /device/v1/ws/ticket` + `WS /device/v1/ws`（hello → register → drain）；入队后 `try_deliver_pending` 若设备在线则推送 `motion_task` 并返回 `sent`。离线仍 `queued_no_delivery`。固件需连 DLC WSS 并 hello（token/`LIMA_DEVICE_TOKENS`）。 | 真机联调（P0-3） |
 
 详见 [`superpowers/specs/2026-07-02-backlog-planning.md`](superpowers/specs/2026-07-02-backlog-planning.md)。
 
