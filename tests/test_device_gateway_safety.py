@@ -38,24 +38,24 @@ class TestSafePoint:
     def test_out_of_workspace_x_raises(self):
         """X beyond workspace raises SafetyError."""
         with pytest.raises(SafetyError):
-            safe_point(200.0, 10.0)
+            safe_point(400.0, 10.0)
 
     def test_out_of_workspace_y_raises(self):
         """Y beyond workspace raises SafetyError."""
         with pytest.raises(SafetyError):
-            safe_point(10.0, 200.0)
+            safe_point(10.0, 400.0)
 
     def test_out_of_workspace_z_raises(self):
         """Z beyond workspace raises SafetyError."""
         with pytest.raises(SafetyError):
-            safe_point(10.0, 10.0, z=50.0)
+            safe_point(10.0, 10.0, z=100.0)
 
     def test_boundary_is_safe(self):
         """Workspace boundary coordinates should be safe."""
-        result = safe_point(100.0, 100.0, z=20.0)
-        assert result["x"] == 100.0
-        assert result["y"] == 100.0
-        assert result["z"] == 20.0
+        result = safe_point(300.0, 300.0, z=80.0)
+        assert result["x"] == 300.0
+        assert result["y"] == 300.0
+        assert result["z"] == 80.0
 
     def test_zero_is_safe(self):
         """Origin is always safe."""

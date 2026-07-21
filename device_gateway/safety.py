@@ -8,7 +8,10 @@ from typing import Any
 MAX_POINTS = 128
 MAX_FEED = 1200
 DEFAULT_FEED = 900
-DEFAULT_WORKSPACE_MM = {"x": 100.0, "y": 100.0, "z": 20.0}
+# Product writing-machine canvas (U8). Unknown devices without profile use this
+# for path generation; incomplete routing still uses CONSERVATIVE_WORKSPACE_MM
+# in profiles.py (60mm) for policy hints only.
+DEFAULT_WORKSPACE_MM = {"x": 300.0, "y": 300.0, "z": 80.0}
 
 
 class SafetyError(ValueError):

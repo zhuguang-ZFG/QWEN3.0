@@ -63,7 +63,7 @@ def _assert_run_path_voice_task(req: DeviceTaskRequest) -> None:
 
 
 @patch("dlc_core.dispatch.active_tasks_for_device", return_value=[])
-@patch("dlc_api.routes.handle_draw_from_image", new_callable=AsyncMock)
+@patch("dlc_api.motion_payload.handle_draw_from_image", new_callable=AsyncMock)
 @patch("dlc_core.dispatch.create_and_route_task", new_callable=AsyncMock)
 def test_dispatch_draw_from_image_sends_run_path(
     mock_create_route: AsyncMock,
@@ -103,7 +103,7 @@ def test_dispatch_draw_from_image_sends_run_path(
     _assert_run_path_voice_task(mock_create_route.await_args.args[0])
 
 
-@patch("dlc_api.routes.handle_draw_from_image", new_callable=AsyncMock)
+@patch("dlc_api.motion_payload.handle_draw_from_image", new_callable=AsyncMock)
 def test_dispatch_draw_from_image_fallback_on_failure(
     mock_draw_from_image: AsyncMock,
 ) -> None:

@@ -77,8 +77,13 @@ async def _vectorize_handwriting_png(png_bytes: bytes) -> dict[str, Any]:
     )
 
 
-def _build_local_fallback_params(text: str, feed: int = DEFAULT_FEED) -> dict[str, Any]:
-    rendered = text_to_svg_path(text)
+def _build_local_fallback_params(
+    text: str,
+    feed: int = DEFAULT_FEED,
+    *,
+    device_id: str | None = None,
+) -> dict[str, Any]:
+    rendered = text_to_svg_path(text, device_id=device_id)
     return {
         "feed": feed,
         "path": rendered["path"],
@@ -89,8 +94,14 @@ def _build_local_fallback_params(text: str, feed: int = DEFAULT_FEED) -> dict[st
     }
 
 
-def _build_handwriting_run_params(svg_path: str, text: str, feed: int = DEFAULT_FEED) -> dict[str, Any]:
-    rendered = render_svg_task(svg_path)
+def _build_handwriting_run_params(
+    svg_path: str,
+    text: str,
+    feed: int = DEFAULT_FEED,
+    *,
+    device_id: str | None = None,
+) -> dict[str, Any]:
+    rendered = render_svg_task(svg_path, device_id=device_id)
     return {
         "feed": feed,
         "path": rendered["path"],
@@ -100,7 +111,7 @@ def _build_handwriting_run_params(svg_path: str, text: str, feed: int = DEFAULT_
     }
 
 
-async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> tuple[dict[str, Any], str | None]:
+async def build_handwriting_params(params: dict[str, Any], device_id: str) -> tuple[dict[str, Any], str | None]:
     """Build device run params from autohanding.com handwriting preview."""
     text = str(params.get("text", "")).strip()
     if not text:
@@ -118,7 +129,10 @@ async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> t
         if _is_ascii(text):
             _record_handwriting("fallback", start_ms, fallback=True)
             try:
-                return _build_local_fallback_params(text, _clamp_feed(params.get("feed"))), None
+                return (
+                    _build_local_fallback_params(text, _clamp_feed(params.get("feed")), device_id=device_id),
+                    None,
+                )
             except PathNormalizationError as norm_exc:
                 _record_handwriting("failed", start_ms)
                 return {}, f"path normalization failed: {norm_exc}"
@@ -131,7 +145,12 @@ async def build_handwriting_params(params: dict[str, Any], _device_id: str) -> t
         return {}, svg_result.get("error") or "handwriting vectorization failed"
 
     try:
-        run_params = _build_handwriting_run_params(str(svg_result["svg_path"]), text, _clamp_feed(params.get("feed")))
+        run_params = _build_handwriting_run_params(
+            str(svg_result["svg_path"]),
+            text,
+            _clamp_feed(params.get("feed")),
+            device_id=device_id,
+        )
     except PathNormalizationError as norm_exc:
         _record_handwriting("failed", start_ms)
         return {}, f"path normalization failed: {norm_exc}"

@@ -26,10 +26,11 @@ def test_precheck_rejects_empty_motion(mock_render):
 @patch("device_gateway.path_pipeline.render_svg_task")
 def test_precheck_rejects_out_of_bounds_point(mock_render):
     mock_render.return_value = {
-        "path": [{"x": 150.0, "y": 50.0, "z": 0.0}],
+        "path": [{"x": 350.0, "y": 50.0, "z": 0.0}],
         "point_count": 1,
+        "workspace_mm": {"x": 300.0, "y": 300.0, "z": 80.0},
     }
     err = precheck_draw_motion_path("M0,0")
     assert err is not None
     assert "outside workspace" in err
-    assert "150" in err
+    assert "350" in err

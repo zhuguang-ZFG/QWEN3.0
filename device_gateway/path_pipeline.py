@@ -17,7 +17,7 @@ are enforced at the pipeline boundary.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any  # used by workspace_mm / profile kwargs
 
 import html
 import math
@@ -29,16 +29,12 @@ from device_gateway.path_data import (
     clamp_path,
 )
 from device_gateway.path_optimizer import PathOptimizer, apply_multi_pass
-from device_gateway.safety import DEFAULT_WORKSPACE_MM
+from device_gateway.path_workspace import resolve_workspace_mm
 from device_gateway.svg_parser import svg_path_to_motion
 
 
 class PathNormalizationError(ValueError):
-    """Raised when a generated path cannot be fit inside the workspace.
-
-    GW-B2: out-of-workspace coordinates must be rejected loudly, never
-    silently dispatched to the stepper hardware.
-    """
+    """Raised when a generated path cannot fit the workspace (GW-B2)."""
 
 
 def text_to_path(
@@ -47,49 +43,32 @@ def text_to_path(
     origin_y: float = 20.0,
     scale: float = 2.0,
 ) -> list[dict[str, float]]:
-    """Convert ASCII text to a polyline motion path using the built-in stroke font.
-
-    Returns a list of {"x": ..., "y": ..., "z": 0} points suitable for
-    run_path dispatch. Pen-up transitions between glyphs and segments
-    are encoded as consecutive identical points (the U8 controller
-    interprets these as rapid moves).
-    """
+    """ASCII stroke-font polyline; pen-up = consecutive identical points."""
     path: list[dict[str, float]] = []
     pen_down = False
     cursor_x = origin_x
-
     for ch in text:
         glyph = _FONT_GLYPHS.get(ch, _FONT_GLYPHS.get("?"))
         if not glyph:
             cursor_x += FONT_CHAR_W * scale
             continue
-
         for item in glyph:
             if len(item) == 3 and item[0] is None:
-                # Pen-up: move to position without drawing
                 if pen_down and path:
                     pen_down = False
                 px = cursor_x + float(item[1]) * scale
                 py = origin_y - float(item[2]) * scale
                 path.append({"x": round(px, 2), "y": round(py, 2), "z": 0})
             else:
-                # Pen-down: draw line to position
                 px = cursor_x + float(item[0]) * scale
                 py = origin_y - float(item[1]) * scale
                 path.append({"x": round(px, 2), "y": round(py, 2), "z": 0})
                 pen_down = True
-
         cursor_x += FONT_CHAR_W * scale
-
     return clamp_path(path)
 
 
 def _motion_path_to_svg_d(path: list[dict[str, float]]) -> str:
-    """Convert a polyline motion path into an SVG path `d` string.
-
-    Consecutive identical points are treated as pen-up moves (rapid moves),
-    so the next distinct point starts a new stroke with `M`.
-    """
     if not path:
         return ""
     parts: list[str] = []
@@ -107,19 +86,22 @@ def _motion_path_to_svg_d(path: list[dict[str, float]]) -> str:
 
 
 def _path_bounds_with_margin(path: list[dict[str, float]], margin: float = 2.0) -> tuple[int, int]:
-    """Return a (width, height) bounding box that contains every point."""
     if not path:
         return int(margin * 2), int(margin * 2)
     xs = [pt["x"] for pt in path]
     ys = [pt["y"] for pt in path]
-    width = int(max(xs) + margin)
-    height = int(max(ys) + margin)
-    return max(width, 1), max(height, 1)
+    return max(int(max(xs) + margin), 1), max(int(max(ys) + margin), 1)
 
 
-def text_to_svg_path(text: str) -> dict[str, Any]:
+def text_to_svg_path(
+    text: str,
+    *,
+    workspace_mm: dict[str, Any] | None = None,
+    device_id: str | None = None,
+    profile: Any = None,
+) -> dict[str, Any]:
     """Render ASCII text to an SVG path suitable for plotter preview."""
-    rendered = render_text_task(text[:80])
+    rendered = render_text_task(text[:80], workspace_mm=workspace_mm, device_id=device_id, profile=profile)
     path = rendered["path"]
     d_string = _motion_path_to_svg_d(path)
     width, height = _path_bounds_with_margin(path)
@@ -140,14 +122,17 @@ def render_text_task(
     passes: int = 1,
     offset_mm: float = 0.5,
     optimize: bool = True,
+    *,
+    workspace_mm: dict[str, Any] | None = None,
+    device_id: str | None = None,
+    profile: Any = None,
 ) -> dict[str, Any]:
     """Render a write_text intent into a motion task params dict with preview."""
+    ws = resolve_workspace_mm(workspace_mm, device_id=device_id, profile=profile)
     path = text_to_path(text[:40])
     # GW-B1: text paths must pass workspace normalization like SVG paths do —
     # long text otherwise runs to 183mm+ and is dispatched out of bounds.
-    path = _normalize_path_to_workspace(
-        path, width=float(DEFAULT_WORKSPACE_MM["x"]), height=float(DEFAULT_WORKSPACE_MM["y"])
-    )
+    path = _normalize_path_to_workspace(path, width=ws["x"], height=ws["y"])
     if passes > 1:
         path = apply_multi_pass(path, passes, offset_mm)
     if optimize:
@@ -156,13 +141,12 @@ def render_text_task(
     # GW-R3-7: multi_pass shifts +X and the optimizer may reshape after the
     # normalize-time check — re-assert bounds so a pass offset can never push
     # a point past the workspace and dispatch silently out of bounds.
-    _assert_path_within_workspace(
-        path, float(DEFAULT_WORKSPACE_MM["x"]), float(DEFAULT_WORKSPACE_MM["y"]), stage="text post-transform"
-    )
+    _assert_path_within_workspace(path, ws["x"], ws["y"], stage="text post-transform")
     return {
         "path": path,
         "preview_svg": preview_svg(path, title=f'text: "{text[:20]}"'),
         "point_count": len(path),
+        "workspace_mm": ws,
     }
 
 
@@ -224,14 +208,15 @@ def render_svg_task(
     passes: int = 1,
     offset_mm: float = 0.5,
     optimize: bool = True,
+    *,
+    workspace_mm: dict[str, Any] | None = None,
+    device_id: str | None = None,
+    profile: Any = None,
 ) -> dict[str, Any]:
     """Render an SVG path string into a motion task params dict with preview."""
-    # Same workspace as render_text_task — do not rely on function defaults (100)
-    # so changing DEFAULT_WORKSPACE_MM cannot fork SVG vs text silently.
-    ws_x = float(DEFAULT_WORKSPACE_MM["x"])
-    ws_y = float(DEFAULT_WORKSPACE_MM["y"])
+    ws = resolve_workspace_mm(workspace_mm, device_id=device_id, profile=profile)
     path = svg_path_to_motion(d_string[:2000])
-    path = _normalize_path_to_workspace(path, width=ws_x, height=ws_y)
+    path = _normalize_path_to_workspace(path, width=ws["x"], height=ws["y"])
     if passes > 1:
         path = apply_multi_pass(path, passes, offset_mm)
     if optimize:
@@ -239,28 +224,34 @@ def render_svg_task(
         path = optimizer.smooth(optimizer.compress(path))
     # GW-R3-7: re-assert bounds after multi_pass/optimizer so a pass offset can
     # never silently dispatch a point past the workspace (matches normalize dims).
-    _assert_path_within_workspace(path, ws_x, ws_y, stage="svg post-transform")
+    _assert_path_within_workspace(path, ws["x"], ws["y"], stage="svg post-transform")
     return {
         "path": path,
         "preview_svg": preview_svg(path, title=f"svg path — {len(path)} pts"),
         "point_count": len(path),
+        "workspace_mm": ws,
     }
 
 
-def precheck_draw_motion_path(d_string: str) -> str | None:
+def precheck_draw_motion_path(
+    d_string: str,
+    *,
+    workspace_mm: dict[str, Any] | None = None,
+    device_id: str | None = None,
+    profile: Any = None,
+) -> str | None:
     """Return an error message when motion coordinates exceed workspace; else None."""
     if not d_string or not d_string.strip():
         return "empty svg path"
+    ws = resolve_workspace_mm(workspace_mm, device_id=device_id, profile=profile)
     try:
-        rendered = render_svg_task(d_string)
+        rendered = render_svg_task(d_string, workspace_mm=ws, device_id=device_id, profile=profile)
     except PathNormalizationError as exc:
         return str(exc)
     path = rendered.get("path") or []
     if not path:
         return "empty motion path"
-    max_x = float(DEFAULT_WORKSPACE_MM["x"])
-    max_y = float(DEFAULT_WORKSPACE_MM["y"])
-    max_z = float(DEFAULT_WORKSPACE_MM["z"])
+    max_x, max_y, max_z = ws["x"], ws["y"], ws["z"]
     for idx, pt in enumerate(path):
         x = float(pt.get("x", 0.0))
         y = float(pt.get("y", 0.0))

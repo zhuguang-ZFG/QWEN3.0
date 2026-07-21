@@ -57,7 +57,7 @@ def _try_preset_shape(prompt: str) -> Optional[Dict[str, Any]]:
             logger.info(f"Detected preset shape: {shape}")
             result = get_preset_svg(shape, size=180)
             if result["status"] == "success":
-                err = precheck_draw_motion_path(result["svg_path"])
+                err = precheck_draw_motion_path(result["svg_path"])  # no device_id at preset stage
                 if err:
                     logger.warning("Preset motion bounds precheck failed: %s", err)
                     return _build_failed_response(f"preset:{shape}", f"Motion bounds precheck failed: {err}")

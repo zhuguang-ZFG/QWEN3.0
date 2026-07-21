@@ -73,7 +73,7 @@ def test_preview_write_text(mock_write) -> None:
     mock_write.assert_awaited_once_with("你好")
 
 
-@patch("dlc_api.routes.handle_draw", new_callable=AsyncMock)
+@patch("dlc_api.motion_payload.handle_draw", new_callable=AsyncMock)
 def test_dispatch_draw_generated(mock_draw) -> None:
     mock_draw.return_value = {
         "status": "success",

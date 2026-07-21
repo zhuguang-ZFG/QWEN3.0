@@ -98,14 +98,14 @@ def try_text_to_handwriting(
         logger.warning("字体转路径失败，回退到生图: %s", result.get("error"))
         return None
 
-    motion_err = _check_motion_bounds(result["svg_path"])
+    motion_err = _check_motion_bounds(result["svg_path"], device_id=device_id)
     if motion_err:
         logger.warning("手写体路径越界: %s", motion_err)
         return _handwriting_result(result, "failed", f"Motion bounds precheck failed: {motion_err}", preset=False)
     return _handwriting_result(result, "success", None, preset=False, font=result.get("font"))
 
 
-def _check_motion_bounds(svg_path: str) -> str | None:
+def _check_motion_bounds(svg_path: str, *, device_id: str | None = None) -> str | None:
     """路径越界预检（复用 path_pipeline，避免循环导入延迟导入）。
 
     GW-R3-6: 预检自身异常（导入失败/未预期 bug）此前 `return None` = 当作通过
@@ -117,7 +117,7 @@ def _check_motion_bounds(svg_path: str) -> str | None:
     try:
         from device_gateway.path_pipeline import precheck_draw_motion_path
 
-        return precheck_draw_motion_path(svg_path)
+        return precheck_draw_motion_path(svg_path, device_id=device_id)
     except Exception as exc:  # noqa: BLE001
         logger.warning("motion bounds 预检异常，fail-closed 拒绝: %s", exc)
         return f"motion bounds precheck error: {exc}"

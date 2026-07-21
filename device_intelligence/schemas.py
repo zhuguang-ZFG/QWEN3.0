@@ -8,7 +8,7 @@ import json
 import math
 from typing import Any
 
-DEFAULT_WORKSPACE_MM = {"x": 100.0, "y": 100.0, "z": 20.0}
+DEFAULT_WORKSPACE_MM = {"x": 300.0, "y": 300.0, "z": 80.0}
 
 
 @dataclass(frozen=True)

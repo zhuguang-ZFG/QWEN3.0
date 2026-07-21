@@ -32,9 +32,8 @@ from dlc_core import (
 from dlc_api.idempotency import IdempotencyUnavailableError
 from dlc_api.idempotency import claim_idempotency_key as _claim_idempotency_key
 from dlc_api.idempotency import release_idempotency_key as _release_idempotency_key
+from dlc_api.motion_payload import build_dispatch_payload as _build_dispatch_payload
 from device_gateway.image_url_validation import validate_image_url_async
-from device_gateway.path_pipeline import render_svg_task
-from device_gateway.safety import DEFAULT_FEED
 from device_gateway.store import task_store_health
 from routes.rate_limit_helper import check_key_limit
 
@@ -59,29 +58,6 @@ def _preview_from_result(result: dict[str, Any]) -> TaskPreviewResponse:
 async def _validate_image_url(payload: dict[str, Any]) -> tuple[str | None, str | None]:
     """DNS (getaddrinfo) is blocking — always run off the event loop (GW-WD)."""
     return await validate_image_url_async(str(payload.get("image_url", "")))
-
-
-def _motion_task(text: str, request_id: str, entrypoint: str) -> dict[str, Any]:
-    """Build a motion_task dict for dispatch_task."""
-    return {"text": text, "request_id": request_id, "source": "dlc_api", "entrypoint": entrypoint}
-
-
-def _voice_motion_task(text: str, request_id: str, entrypoint: str, svg_path: str) -> dict[str, Any]:
-    """Build a motion_task with voice_task pre-parsed for the given svg_path."""
-    rendered = render_svg_task(svg_path)
-    voice_task = {
-        "capability": "run_path",
-        "params": {
-            "path": rendered["path"],
-            "feed": DEFAULT_FEED,
-            "source_capability": entrypoint,
-        },
-        "source": "dlc_api",
-        "entrypoint": entrypoint,
-    }
-    motion_task = _motion_task(text, request_id, entrypoint)
-    motion_task["voice_task"] = voice_task
-    return motion_task
 
 
 def _quota_for(task_type: str) -> int:
@@ -249,45 +225,6 @@ async def _dispatch_and_release(body: TaskDispatchRequest, idem_full_key: str | 
             else dispatch_result.get("error")
         ),
     )
-
-
-async def _build_dispatch_payload(
-    body: TaskDispatchRequest,
-) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    """Generate path and build motion_task for the given dispatch request.
-
-    Returns (dlc_core_result, motion_task). motion_task is None for unsupported types.
-    """
-    if body.type == "write_text":
-        text = str(body.payload.get("text", "")).strip()
-        if not text:
-            return {"status": "failed", "error": "text is required"}, None
-        result = await handle_write(text)
-        return result, _motion_task(f"写{text}", body.request_id, "write_text")
-
-    if body.type == "draw_generated":
-        prompt = str(body.payload.get("prompt", "")).strip()
-        if not prompt:
-            return {"status": "failed", "error": "prompt is required"}, None
-        result = await handle_draw(prompt, device_id=body.device_id, allow_dashscope=False)
-        if result.get("status") == "success" and result.get("svg_path"):
-            return result, _voice_motion_task(f"画{prompt}", body.request_id, "draw_generated", result["svg_path"])
-        if result.get("status") == "success":
-            return {"status": "failed", "error": "draw succeeded but produced no svg_path"}, None
-        return result, None
-
-    if body.type == "draw_from_image":
-        image_url, err = await _validate_image_url(body.payload)
-        if err or image_url is None:
-            return {"status": "failed", "error": err or "image_url is required"}, None
-        result = await handle_draw_from_image(image_url, device_id=body.device_id)
-        if result.get("status") == "success" and result.get("svg_path"):
-            return result, _voice_motion_task("描图", body.request_id, "draw_from_image", result["svg_path"])
-        if result.get("status") == "success":
-            return {"status": "failed", "error": "draw succeeded but produced no svg_path"}, None
-        return result, None
-
-    return {"status": "failed", "error": "unsupported type"}, None
 
 
 @router.post("/dlc/tasks/validate", response_model=TaskValidateResponse)

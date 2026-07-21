@@ -95,8 +95,13 @@ async def _resolve_gallery_draw_image(
     return image_url, gallery_image_id, None
 
 
-def _svg_path_draw_params(prompt: str, user_feed: float) -> dict[str, Any]:
-    rendered = render_svg_task(prompt)
+def _svg_path_draw_params(
+    prompt: str,
+    user_feed: float,
+    *,
+    device_id: str | None = None,
+) -> dict[str, Any]:
+    rendered = render_svg_task(prompt, device_id=device_id)
     return {
         "feed": user_feed,
         "path": rendered["path"],
@@ -130,8 +135,9 @@ def _finalize_draw_run_params(
     result: dict[str, Any],
     gallery_image_id: str | None,
     provided_image_url: str | None,
+    device_id: str | None = None,
 ) -> dict[str, Any]:
-    rendered = render_svg_task(str(result["svg_path"]))
+    rendered = render_svg_task(str(result["svg_path"]), device_id=device_id)
     run_params: dict[str, Any] = {
         "feed": user_feed,
         "path": rendered["path"],
@@ -157,7 +163,7 @@ async def build_draw_generated_params(
     user_feed = _clamp_feed(params.get("feed"))
     if _looks_like_svg_path(prompt):
         try:
-            return _svg_path_draw_params(prompt, user_feed), None
+            return _svg_path_draw_params(prompt, user_feed, device_id=device_id), None
         except PathNormalizationError as exc:
             return {}, f"path normalization failed: {exc}"
 
@@ -185,6 +191,7 @@ async def build_draw_generated_params(
             result=result,
             gallery_image_id=gallery_image_id,
             provided_image_url=provided_image_url,
+            device_id=device_id,
         )
     except PathNormalizationError as exc:
         return {}, f"path normalization failed: {exc}"
@@ -196,7 +203,7 @@ async def build_run_params_async(
 ) -> tuple[dict[str, Any], str | None]:
     if capability == "write_text":
         try:
-            rendered = render_text_task(str(params.get("text", "")))
+            rendered = render_text_task(str(params.get("text", "")), device_id=device_id)
         except PathNormalizationError as exc:
             return {}, f"path normalization failed: {exc}"
         return {

@@ -30,6 +30,11 @@ CONSERVATIVE_WORKSPACE_MM = {"x": 60.0, "y": 60.0, "z": 10.0}
 
 KNOWN_PROFILES: dict[str, DeviceProfile] = {}
 
+# Product writing machine (U8 / 写字机) — used when profile_id matches or callers
+# pass this id. Path generation uses workspace_mm so 300mm machines are not
+# forced into the 100mm DEFAULT canvas.
+PRODUCT_WRITING_WORKSPACE_MM = {"x": 300.0, "y": 300.0, "z": 80.0}
+
 
 def register_profile(profile: DeviceProfile) -> None:
     """Register a known device profile by profile_id."""
@@ -226,5 +231,42 @@ def _compute_routing_hints(
 # ── Module reset (for tests) ──────────────────────────────────────────────
 
 
+def _register_builtin_profiles() -> None:
+    """Register product writing-machine profile (300×300×80)."""
+    if "writing-machine-300" in KNOWN_PROFILES:
+        return
+    try:
+        register_profile(
+            DeviceProfile(
+                device_id="",
+                profile_id="writing-machine-300",
+                model="esp32_writing_machine",
+                workspace_mm=dict(PRODUCT_WRITING_WORKSPACE_MM),
+                max_feed=2000.0,
+                max_path_points=200,
+                capabilities=(
+                    "home",
+                    "move_abs",
+                    "move_rel",
+                    "pause",
+                    "resume",
+                    "run_path",
+                    "stop",
+                    "write_text",
+                    "draw_generated",
+                    "handwriting",
+                ),
+                supported_fw_prefixes=("",),
+                profile_version="1",
+            )
+        )
+    except (TypeError, ValueError) as exc:
+        _log.warning("builtin product profile registration failed: %s", exc)
+
+
 def reset_profiles_for_tests() -> None:
     KNOWN_PROFILES.clear()
+    _register_builtin_profiles()
+
+
+_register_builtin_profiles()

@@ -63,17 +63,19 @@ def test_task_validate_request_rejects_inf_workspace_at_parse():
 
 
 def test_horizontal_line_scaled_into_workspace():
-    """复现基线：修前 render_svg_task('M 0 0 L 400 0') 输出 x∈[2,197]。"""
+    """Large SVG path fits product DEFAULT workspace (300×300)."""
     result = render_svg_task("M 0 0 L 400 0")
+    ws = result["workspace_mm"]
     xs = [p["x"] for p in result["path"]]
     ys = [p["y"] for p in result["path"]]
-    assert max(xs) <= 100.0 and min(xs) >= 0.0
-    assert max(ys) <= 100.0 and min(ys) >= 0.0
+    assert max(xs) <= ws["x"] and min(xs) >= 0.0
+    assert max(ys) <= ws["y"] and min(ys) >= 0.0
 
 
 def test_vertical_line_scaled_into_workspace():
     result = render_svg_task("M 0 0 L 0 400")
-    assert all(0.0 <= p["y"] <= 100.0 and 0.0 <= p["x"] <= 100.0 for p in result["path"])
+    ws = result["workspace_mm"]
+    assert all(0.0 <= p["y"] <= ws["y"] and 0.0 <= p["x"] <= ws["x"] for p in result["path"])
 
 
 def test_normalize_single_point_stays_in_workspace():
@@ -91,12 +93,13 @@ def test_normalize_rejects_nan_coordinates():
 
 
 def test_render_text_long_text_within_default_workspace():
-    """复现基线：修前 render_text_task('HELLO WORLD ABC') max_x=183mm。"""
+    """Long text stays inside resolved product workspace."""
     result = render_text_task("HELLO WORLD ABC")
+    ws = result["workspace_mm"]
     xs = [p["x"] for p in result["path"]]
     ys = [p["y"] for p in result["path"]]
-    assert max(xs) <= 100.0 and min(xs) >= 0.0
-    assert max(ys) <= 100.0 and min(ys) >= 0.0
+    assert max(xs) <= ws["x"] and min(xs) >= 0.0
+    assert max(ys) <= ws["y"] and min(ys) >= 0.0
 
 
 def test_render_text_short_text_size_not_regressed():
