@@ -1,84 +1,63 @@
-# LiMa 文档索引
+# LiMa 鏂囨。绱㈠紩
 
-> 更新日期：2026-07-10
-> 项目定位：DLC 绘图服务 —— 为 ESP32 绘图机/写字机提供云端路径生成、任务下发、设备管理，通过 MCP 与小智官方云（xiaozhi.me）集成。
->
-> **瘦身声明**：旧多后端 AI 路由系统（server.py + routing_engine + router_v3 + chat/admin/voice/provider 探测）已在 P4/P5 瘦身中物理删除。当前生产入口为 `server_dlc:8081`。凡本索引未列出、且描述上述旧系统的文档，均已归入 `archive/`，仅作历史审计，不得作为当前决策依据。
+> 鏇存柊鏃ユ湡锛?026-07-21
+> 椤圭洰瀹氫綅锛欴LC 缁樺浘鏈嶅姟 鈥斺€?ESP32 缁樺浘/鍐欏瓧浜戠璺緞鐢熸垚銆佷换鍔′笅鍙戙€佽澶?WSS 鎶曢€掞紱MCP 瀵规帴灏忔櫤浜戙€?
+> 鐢熶骇鍏ュ彛锛歚server_dlc:8081`銆傛棫澶氬悗绔?AI 璺敱绯荤粺宸插垹闄わ紱杩囨湡鏂囨。宸叉竻鍑轰粨搴擄紙git history 鍙煡锛夈€?
+## 蹇呰椤哄簭锛堟柊鍗忎綔鑰咃級
 
-## 必读顺序（新协作者）
+1. [`../STATUS.md`](../STATUS.md) / [`PROJECT_STATUS_CN.md`](PROJECT_STATUS_CN.md) 鈥?褰撳墠鐘舵€?
+2. [`../AGENTS.md`](../AGENTS.md) 鈥?浠ｇ爜瑙勮寖銆佸懡浠ゃ€丟it/閮ㄧ讲
+3. [`ARCHITECTURE.md`](ARCHITECTURE.md) 鈥?鏋舵瀯涓庢ā鍧楄竟鐣?
+4. [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) 鈥?璁惧鑱旇皟鍏ュ彛
+5. [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) 鈥?閮ㄧ讲涓庡彂甯?
 
-1. [`../STATUS.md`](../STATUS.md) / [`PROJECT_STATUS_CN.md`](PROJECT_STATUS_CN.md) — 当前项目状态（二者同步）
-2. [`../AGENTS.md`](../AGENTS.md) — 代码规范、命令、Git/部署约定、真实架构
-3. [`ARCHITECTURE.md`](ARCHITECTURE.md) — 瘦身后系统架构与模块边界
-4. [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) — 设备开发、联调、验证入口
-5. [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) — 部署与发布约定
-
-## 快速入口
-
-| 目标 | 文档 | 状态 |
-| --- | --- | --- |
-| 语音 API（公开文档） | [`../docs-site/api/voice.md`](../docs-site/api/voice.md) | ✅ 活跃（2026-07-10） |
-| 语音设计规格 | [`superpowers/specs/2026-07-02-mini-program-voice-draw-design.md`](superpowers/specs/2026-07-02-mini-program-voice-draw-design.md) | ✅ 后端完成，真机待验 |
-| 遗留待办 | [`superpowers/specs/2026-07-02-backlog-planning.md`](superpowers/specs/2026-07-02-backlog-planning.md) | ✅ 活跃 |
-| 当前状态 | [`../STATUS.md`](../STATUS.md) / [`PROJECT_STATUS_CN.md`](PROJECT_STATUS_CN.md) | ✅ 2026-07-10 |
-| 开发约定 | [`../AGENTS.md`](../AGENTS.md) / [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
-| 真实架构总览 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | ✅ 活跃（2026-07-06 重写） |
-| 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) | ✅ 活跃（含 draw_generated 热路径） |
-| 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃（含历史快照，顶部有退役标注） |
-| 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
-| 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) | ✅ 活跃 |
-| 第一开发原则（Ponytail） | [`AGENTS_PONYTAIL.md`](AGENTS_PONYTAIL.md) | ✅ 活跃 |
-| 第二开发原则（设计） | [`AGENTS_DESIGN_PRINCIPLES.md`](AGENTS_DESIGN_PRINCIPLES.md) | ✅ 活跃 |
-| ECC 开发流程 | [`ECC_WORKFLOW_CN.md`](ECC_WORKFLOW_CN.md) | ✅ 活跃 |
-| 历史执行进展 | [`../progress.md`](../progress.md) | 可选 |
-| 事实发现日志 | [`../findings.md`](../findings.md) | 可选（append-only） |
-| 语音 TDD 证据 | [`testing/device_app_voice.tdd.md`](testing/device_app_voice.tdd.md) | ✅ 2026-07-10 |
-
-## 架构与设备
-
-| 主题 | 文档 |
+## 蹇€熷叆鍙?
+| 鐩爣 | 鏂囨。 |
 | --- | --- |
-| 系统总览 | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
-| 语音 API | [`../docs-site/api/voice.md`](../docs-site/api/voice.md) |
-| 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) |
-| ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT_CN.md`](ESP32S_XYZ_MANAGEMENT_CN.md) |
-| 小智云集成缺口 | [`XIAOZHI_INTEGRATION_GAP_CN.md`](XIAOZHI_INTEGRATION_GAP_CN.md) |
-| 小智云 + DLC 瘦身设计 | [`xiaozhi-cloud/lima-slimdown-design.md`](xiaozhi-cloud/lima-slimdown-design.md) |
-| 写字机稳定性计划 | [`WRITING_PLOTTER_STABILITY_PLAN.md`](WRITING_PLOTTER_STABILITY_PLAN.md) |
+| 褰撳墠鐘舵€?| [`../STATUS.md`](../STATUS.md) |
+| 鏋舵瀯 | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| 璇煶 API | [`../docs-site/api/voice.md`](../docs-site/api/voice.md) |
+| 璁惧 WSS ticket | [`DEVICE_WS_TOKEN_DEPRECATION_CN.md`](DEVICE_WS_TOKEN_DEPRECATION_CN.md) |
+| 璁惧寮€鍙?| [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) |
+| 鍙戝竷绾﹀畾 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
+| 鍙戝竷闂ㄧ娓呭崟 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
+| Ponytail 鍘熷垯 | [`AGENTS_PONYTAIL.md`](AGENTS_PONYTAIL.md) |
+| 璁捐鍘熷垯 | [`AGENTS_DESIGN_PRINCIPLES.md`](AGENTS_DESIGN_PRINCIPLES.md) |
+| Agent 瀹屾暣瑙勮寖 | [`AGENTS_REFERENCE_CN.md`](AGENTS_REFERENCE_CN.md) |
+| 寰俊鎻愬 | [`WECHAT_REVIEW_CHECKLIST_CN.md`](WECHAT_REVIEW_CHECKLIST_CN.md) |
+| 寰呭姙 backlog | [`superpowers/specs/2026-07-02-backlog-planning.md`](superpowers/specs/2026-07-02-backlog-planning.md) |
+| 璇煶璁捐 | [`superpowers/specs/2026-07-02-mini-program-voice-draw-design.md`](superpowers/specs/2026-07-02-mini-program-voice-draw-design.md) |
+| 璇煶 TDD | [`testing/device_app_voice.tdd.md`](testing/device_app_voice.tdd.md) |
 
-## 运维与发布
-
-| 主题 | 文档 |
+## 鏋舵瀯涓庤澶?
+| 涓婚 | 鏂囨。 |
 | --- | --- |
-| 部署与发布约定 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
-| 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
-| 工作区卫生 | [`WORKSPACE_HYGIENE.md`](WORKSPACE_HYGIENE.md) |
-| 在线分发 | [`ONLINE_DISTRIBUTIONS_CN.md`](ONLINE_DISTRIBUTIONS_CN.md) |
-| 阿里云 DLC 入口 Runbook | [`ops/ALIYUN_DLC_ENTRY.md`](ops/ALIYUN_DLC_ENTRY.md) |
-| JDCloud 运行状态 | [`ops/JDCLOUD_RUNTIME_STATUS.md`](ops/JDCLOUD_RUNTIME_STATUS.md) |
-| AI→Motion 发布证据模板 | [`release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`](release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md) |
+| 绯荤粺鎬昏 | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| ESP32S 绠＄悊 | [`ESP32S_XYZ_MANAGEMENT_CN.md`](ESP32S_XYZ_MANAGEMENT_CN.md) |
+| ESP32 闆嗘垚 | [`ESP32S_XYZ_INTEGRATION_GUIDE.md`](ESP32S_XYZ_INTEGRATION_GUIDE.md) |
+| 灏忔櫤闆嗘垚缂哄彛 | [`XIAOZHI_INTEGRATION_GAP_CN.md`](XIAOZHI_INTEGRATION_GAP_CN.md) |
+| 灏忔櫤浜戣璁″寘 | [`xiaozhi-cloud/`](xiaozhi-cloud/) |
+| 鍐欏瓧鏈虹ǔ瀹氭€?| [`WRITING_PLOTTER_STABILITY_PLAN.md`](WRITING_PLOTTER_STABILITY_PLAN.md) |
 
-## 历史、归档与已过时
-
-以下保留以供审计，但**不应作为当前决策依据**。旧多后端路由系统相关文档集中归档在 `archive/strategic-plans-2026-06/`：
-
-| 主题 | 位置 | 说明 |
-| --- | --- | --- |
-| 旧系统架构（多后端路由） | [`archive/strategic-plans-2026-06/ARCHITECTURE_OLD_20260626.md`](archive/strategic-plans-2026-06/ARCHITECTURE_OLD_20260626.md) | 瘦身前架构 |
-| 旧请求管线权威说明 | [`archive/strategic-plans-2026-06/REQUEST_PIPELINE_AUTHORITY_CN.md`](archive/strategic-plans-2026-06/REQUEST_PIPELINE_AUTHORITY_CN.md) | routing_engine 18 步流水线 |
-| 旧 AI 绘图/写字模型路由指南 | [`archive/strategic-plans-2026-06/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_OLD_20260616.md`](archive/strategic-plans-2026-06/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_OLD_20260616.md) | 多后端路由时代 |
-| 旧可观测事件模型 | [`archive/strategic-plans-2026-06/OBSERVABILITY_EVENTS_OLD_20260524.md`](archive/strategic-plans-2026-06/OBSERVABILITY_EVENTS_OLD_20260524.md) | 引用已删 routing_engine |
-| 旧阿里云 pilot 部署 | [`archive/strategic-plans-2026-06/ALIYUN_PILOT_DEPLOY_ARCHIVED.md`](archive/strategic-plans-2026-06/ALIYUN_PILOT_DEPLOY_ARCHIVED.md) | lima-router-pilot 已退役 |
-| 历史进展归档 | [`archive/progress-2026-05.md`](archive/progress-2026-05.md) | 2026-05-31 之前的 progress |
-| 里程碑计划/规格快照 | [`superpowers/plans/`](superpowers/plans/)、[`superpowers/specs/`](superpowers/specs/) | 带日期，完成后归档 |
-| 发布证据快照 | [`release_evidence/`](release_evidence/) | 带日期的历史发布证据 |
-| 模型准入报告 | [`model_admission/`](model_admission/) | 带日期的历史准入评测 |
-| 外部参考资料 | [`reference/`](reference/) | 外部项目/论文参考 |
-
-## 工作日志
-
-| 主题 | 文档 |
+## 杩愮淮涓庡彂甯?
+| 涓婚 | 鏂囨。 |
 | --- | --- |
-| 执行进展 | [`../progress.md`](../progress.md) |
-| 事实发现 | [`../findings.md`](../findings.md) |
-| 历史进展（2026-05） | [`archive/progress-2026-05.md`](archive/progress-2026-05.md) |
+| 閮ㄧ讲绾﹀畾 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
+| 闃块噷浜?DLC 鍏ュ彛 | [`ops/ALIYUN_DLC_ENTRY.md`](ops/ALIYUN_DLC_ENTRY.md) |
+| JDCloud 杩愯鐘舵€?| [`ops/JDCLOUD_RUNTIME_STATUS.md`](ops/JDCLOUD_RUNTIME_STATUS.md) |
+| 鍙戝竷璇佹嵁 | [`release_evidence/`](release_evidence/) |
+| 宸ヤ綔鍖哄崼鐢?| [`WORKSPACE_HYGIENE.md`](WORKSPACE_HYGIENE.md) |
+
+## 宸ヤ綔鏃ュ織锛堟椿璺冿級
+
+| 涓婚 | 鏂囨。 |
+| --- | --- |
+| 鎵ц杩涘睍 | [`../progress.md`](../progress.md) |
+| 浜嬪疄鍙戠幇 | [`../findings.md`](../findings.md) |
+| 杩戞湡璇勫 | [`reviews/`](reviews/) |
+
+## 鏂囨。鍗敓
+
+- **杩囨湡鏂囨。**锛氱洿鎺ュ垹闄わ紝涓嶈 `docs/archive/`锛涢渶瑕佹椂鐢?git history 鎭㈠銆?
+- **娲昏穬绱㈠紩**锛氬彧鍒楁湰椤佃〃鏍间腑鐨勮矾寰勶紱鏈垪鍑轰笖鎻忚堪鏃у鍚庣璺敱鐨勫唴瀹逛竴寰嬫棤鏁堛€?
+- **鍚屾**锛氭敼鐘舵€佹椂鍚屾椂鏇存柊 `STATUS.md` 涓?`PROJECT_STATUS_CN.md`銆?

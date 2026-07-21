@@ -1,163 +1,140 @@
-# LiMa 系统瘦身设计文档
+# LiMa 绯荤粺鐦﹁韩璁捐鏂囨。
 
-- **日期**: 2026-07-02
-- **状态**: 已批准，执行中
-- **触发**: 用户提出「小程序交互复杂化了，不能一键登录？」+「后端是不是过度设计」
-- **范围**: 固件（U8/U1）、后端（Python）、文档、小程序 —— 全四维度
-- **原则**: 先做减法，后做加法。YAGNI 优先于功能扩张。
-
+- **鏃ユ湡**: 2026-07-02
+- **鐘舵€?*: 宸叉壒鍑嗭紝鎵ц涓?- **瑙﹀彂**: 鐢ㄦ埛鎻愬嚭銆屽皬绋嬪簭浜や簰澶嶆潅鍖栦簡锛屼笉鑳戒竴閿櫥褰曪紵銆?銆屽悗绔槸涓嶆槸杩囧害璁捐銆?- **鑼冨洿**: 鍥轰欢锛圲8/U1锛夈€佸悗绔紙Python锛夈€佹枃妗ｃ€佸皬绋嬪簭 鈥斺€?鍏ㄥ洓缁村害
+- **鍘熷垯**: 鍏堝仛鍑忔硶锛屽悗鍋氬姞娉曘€俌AGNI 浼樺厛浜庡姛鑳芥墿寮犮€?
 ---
 
-## 一、核心结论
+## 涓€銆佹牳蹇冪粨璁?
+鍥涚淮搴﹂噺鍖栧鏌ョ粨璁猴細**杩囧害璁捐绯荤粺鎬у瓨鍦紝浣嗗垎甯冧笉鍧囥€?* 涓変釜鍙嶅鍑虹幇鐨勬ā寮忥細
 
-四维度量化审查结论：**过度设计系统性存在，但分布不均。** 三个反复出现的模式：
+1. **涓烘病璧拌繃鐨勮矾寤烘ˉ**锛堟姇鏈哄缓璁撅級鈥斺€?鎵嬫満鍙?SMS 閴存潈绔偣銆乁1 鐨?WebUI銆? 涓０鐮佸櫒椹卞姩
+2. **鍚屼竴姒傚康鏁ｈ惤澶氬**锛堢鐗囧寲锛夆€斺€?`routing_engine` 鎷?9 鏂囦欢銆佺粯鍥?UI 鍋?3 濂椼€丳onytail 瑙勫垯閲嶅 6 浠?3. **姝讳唬鐮佽垗涓嶅緱鍒?*锛堝爢绉級鈥斺€?98MB node_modules銆?52 琛?DEPRECATED銆?21 鏂囦欢 archive
 
-1. **为没走过的路建桥**（投机建设）—— 手机号+SMS 鉴权端点、U1 的 WebUI、6 个声码器驱动
-2. **同一概念散落多处**（碎片化）—— `routing_engine` 拆 9 文件、绘图 UI 做 3 套、Ponytail 规则重复 6 份
-3. **死代码舍不得删**（堆积）—— 98MB node_modules、352 行 DEPRECATED、121 文件 archive
-
-**先做减法的理由**：在给一个已有过度设计倾向的系统再加新功能（如语音控制）之前，先清理基线，降低维护面和认知负担，避免新工作建立在错误前提上。
-
+**鍏堝仛鍑忔硶鐨勭悊鐢?*锛氬湪缁欎竴涓凡鏈夎繃搴﹁璁″€惧悜鐨勭郴缁熷啀鍔犳柊鍔熻兘锛堝璇煶鎺у埗锛変箣鍓嶏紝鍏堟竻鐞嗗熀绾匡紝闄嶄綆缁存姢闈㈠拰璁ょ煡璐熸媴锛岄伩鍏嶆柊宸ヤ綔寤虹珛鍦ㄩ敊璇墠鎻愪笂銆?
 ---
 
-## 二、四维度量化证据
+## 浜屻€佸洓缁村害閲忓寲璇佹嵁
 
-### 2.1 固件 🔴 最严重
+### 2.1 鍥轰欢 馃敶 鏈€涓ラ噸
 
-| 证据 | 位置 | 量级 |
+| 璇佹嵁 | 浣嶇疆 | 閲忕骇 |
 |------|------|------|
-| U1 提交了 node_modules | `esp32S_XYZ/firmware/u1-grbl/embedded/node_modules` | **98 MB** |
-| U1 编译进 WiFi/BT WebUI | `Grbl_Esp32/src/WebUI/` 26 文件 | **6,410 行** |
-| U1 未用驱动常编译 | `Spindles/`(13) + `Motors/`(10) | 实际只用 PWM + StandardStepper |
-| U8 音频协议自相矛盾 | `websocket_protocol.cc:233` 声明 PCM，`audio_service.cc:406` 永远 OPUS | **潜在 bug** |
-| U8 死依赖 TMCStepper | `platformio.ini`；`dlc_motor_control_p1.h:19`「无 Trinamic UART」 | 死库 |
-| U8 误导读 | `u8-xiaozhi/README.md` 宣传声纹/3D-Speaker | 代码零实现 |
+| U1 鎻愪氦浜?node_modules | `esp32S_XYZ/firmware/u1-grbl/embedded/node_modules` | **98 MB** |
+| U1 缂栬瘧杩?WiFi/BT WebUI | `Grbl_Esp32/src/WebUI/` 26 鏂囦欢 | **6,410 琛?* |
+| U1 鏈敤椹卞姩甯哥紪璇?| `Spindles/`(13) + `Motors/`(10) | 瀹為檯鍙敤 PWM + StandardStepper |
+| U8 闊抽鍗忚鑷浉鐭涚浘 | `websocket_protocol.cc:233` 澹版槑 PCM锛宍audio_service.cc:406` 姘歌繙 OPUS | **娼滃湪 bug** |
+| U8 姝讳緷璧?TMCStepper | `platformio.ini`锛沗dlc_motor_control_p1.h:19`銆屾棤 Trinamic UART銆?| 姝诲簱 |
+| U8 璇璇?| `u8-xiaozhi/README.md` 瀹ｄ紶澹扮汗/3D-Speaker | 浠ｇ爜闆跺疄鐜?|
 
-正面：项目自有代码（`motion_executor.cc`、U8 协议处理、物理边界校验）很干净。过度设计全是继承的上游质量，没砍干净。
-
-### 2.2 文档 🟠 数量级最大
-
-| 证据 | 量级 |
+姝ｉ潰锛氶」鐩嚜鏈変唬鐮侊紙`motion_executor.cc`銆乁8 鍗忚澶勭悊銆佺墿鐞嗚竟鐣屾牎楠岋級寰堝共鍑€銆傝繃搴﹁璁″叏鏄户鎵跨殑涓婃父璐ㄩ噺锛屾病鐮嶅共鍑€銆?
+### 2.2 鏂囨。 馃煚 鏁伴噺绾ф渶澶?
+| 璇佹嵁 | 閲忕骇 |
 |------|------|
-| `progress.md` append-only 日志 | **11,580 行**，与 STATUS.md/findings.md 三处重复 |
-| `docs/archive/` 堆放场 | **121 文件 / 38,380 行**，占 docs/ 文件数一半 |
-| 8 个 agent 配置树并存 | ~9,300 行 agent 指令；Ponytail 重复 6 处，ECC 重复 4 处 |
-| `.claude/skills/gitnexus/` | 6 个 SKILL.md 教用 GitNexus，AGENTS.md:294 明确禁止 —— 冲突 |
-| 5 份重叠战略规划 | 3,255 行；V2 计划验收项未勾选、测试数（3730）对不上现状（4285）—— 遗弃 |
-| STATUS.md 内部矛盾 | 1448 行「Telegram ✅已退役」vs 76-90 行当新功能 |
-| 三个「权威」文档互相打架 | REQUEST_PIPELINE / DEPLOY_CONVENTION / AGENTS.md 都自称权威 |
-| 断链引用 | AGENTS.md:254 `reference/ECC`、:319 `reference/ponytail/` —— **均不存在**（已核实） |
+| `progress.md` append-only 鏃ュ織 | **11,580 琛?*锛屼笌 STATUS.md/findings.md 涓夊閲嶅 |
+| `docs/archive/` 鍫嗘斁鍦猴紙宸蹭簬 2026-07-21 鏁存爲鍒犻櫎锛?| 鍘?~121 鏂囦欢锛涚幇杩囨湡鏂囨。鐩存帴鍒犻櫎 |
+| 8 涓?agent 閰嶇疆鏍戝苟瀛?| ~9,300 琛?agent 鎸囦护锛汸onytail 閲嶅 6 澶勶紝ECC 閲嶅 4 澶?|
+| `.claude/skills/gitnexus/` | 6 涓?SKILL.md 鏁欑敤 GitNexus锛孉GENTS.md:294 鏄庣‘绂佹 鈥斺€?鍐茬獊 |
+| 5 浠介噸鍙犳垬鐣ヨ鍒?| 3,255 琛岋紱V2 璁″垝楠屾敹椤规湭鍕鹃€夈€佹祴璇曟暟锛?730锛夊涓嶄笂鐜扮姸锛?285锛夆€斺€?閬楀純 |
+| STATUS.md 鍐呴儴鐭涚浘 | 1448 琛屻€孴elegram 鉁呭凡閫€褰广€峷s 76-90 琛屽綋鏂板姛鑳?|
+| 涓変釜銆屾潈濞併€嶆枃妗ｄ簰鐩告墦鏋?| REQUEST_PIPELINE / DEPLOY_CONVENTION / AGENTS.md 閮借嚜绉版潈濞?|
+| 鏂摼寮曠敤 | AGENTS.md:254 `reference/ECC`銆?319 `reference/ponytail/` 鈥斺€?**鍧囦笉瀛樺湪**锛堝凡鏍稿疄锛?|
 
-### 2.3 后端 🟡 概念碎片化，非臃肿
-
-| 证据 | 量级 |
+### 2.3 鍚庣 馃煛 姒傚康纰庣墖鍖栵紝闈炶噧鑲?
+| 璇佹嵁 | 閲忕骇 |
 |------|------|
-| 文件尺寸纪律 | 423 文件中**仅 1 个超 300 行** —— 纪律好 |
-| `routing_engine` 拆 9 个根文件 | 1,009 行，读一个决策要开 14+ 文件 |
-| `routing_executor` 拆 5 个、`intent` 概念散 4+1 | 概念碎片化 |
-| 两个并行选型包 | `router_v3/`(484) + `routing_selector/`(454) + `route_scorer.py`(213) = 1,151 行散 3 处 |
-| 352 行已声明废弃但仍编译 | `capability_matrix.py`(187) + `speculative_policy.py`(126) + `routes/eval_internal.py`(39) |
-| Telegram 代码 216 行未标退役 | `integrations/telegram_bot/`（gallery 依赖，**已核实**） |
-| 47 个文件含 `except:pass/continue` | 违反硬规则，含热路径 |
-| 文档吹 2.5 倍 | AGENTS.md 说 context_pipeline「43 模块」，实际 17 |
+| 鏂囦欢灏哄绾緥 | 423 鏂囦欢涓?*浠?1 涓秴 300 琛?* 鈥斺€?绾緥濂?|
+| `routing_engine` 鎷?9 涓牴鏂囦欢 | 1,009 琛岋紝璇讳竴涓喅绛栬寮€ 14+ 鏂囦欢 |
+| `routing_executor` 鎷?5 涓€乣intent` 姒傚康鏁?4+1 | 姒傚康纰庣墖鍖?|
+| 涓や釜骞惰閫夊瀷鍖?| `router_v3/`(484) + `routing_selector/`(454) + `route_scorer.py`(213) = 1,151 琛屾暎 3 澶?|
+| 352 琛屽凡澹版槑搴熷純浣嗕粛缂栬瘧 | `capability_matrix.py`(187) + `speculative_policy.py`(126) + `routes/eval_internal.py`(39) |
+| Telegram 浠ｇ爜 216 琛屾湭鏍囬€€褰?| `integrations/telegram_bot/`锛坓allery 渚濊禆锛?*宸叉牳瀹?*锛?|
+| 47 涓枃浠跺惈 `except:pass/continue` | 杩濆弽纭鍒欙紝鍚儹璺緞 |
+| 鏂囨。鍚?2.5 鍊?| AGENTS.md 璇?context_pipeline銆?3 妯″潡銆嶏紝瀹為檯 17 |
 
-### 2.4 小程序 🟢 不是最重
-
-| 证据 | 量级 |
+### 2.4 灏忕▼搴?馃煝 涓嶆槸鏈€閲?
+| 璇佹嵁 | 閲忕骇 |
 |------|------|
-| 登录**本身就是一键登录** | `pages/v2/login/index.vue` `uni.login`→`v2Login`，无门禁 —— 直觉对，归因错 |
-| 绘图/写字能力做 3 遍 | create.vue(937) + device-detail write-draw-panel + device-list quick-draw |
-| 3 个首页重叠 | device-list / index(智能体=WorkshopHome) / mine |
-| 3 个后端鉴权端点死代码 | `auth/register`、`auth/sms-verification`、`auth/captcha` 前端零引用 |
-| settings 是 744 行杂物袋 | 6 语言含德/越/葡（臆测） |
-| 4 个法律页 = 1,885 行 | privacy/agreement × zh/en |
-| 「配网」是永久 tab | 一次性 onboarding 却占永久位 |
+| 鐧诲綍**鏈韩灏辨槸涓€閿櫥褰?* | `pages/v2/login/index.vue` `uni.login`鈫抈v2Login`锛屾棤闂ㄧ 鈥斺€?鐩磋瀵癸紝褰掑洜閿?|
+| 缁樺浘/鍐欏瓧鑳藉姏鍋?3 閬?| create.vue(937) + device-detail write-draw-panel + device-list quick-draw |
+| 3 涓椤甸噸鍙?| device-list / index(鏅鸿兘浣?WorkshopHome) / mine |
+| 3 涓悗绔壌鏉冪鐐规浠ｇ爜 | `auth/register`銆乣auth/sms-verification`銆乣auth/captcha` 鍓嶇闆跺紩鐢?|
+| settings 鏄?744 琛屾潅鐗╄ | 6 璇█鍚痉/瓒?钁★紙鑷嗘祴锛?|
+| 4 涓硶寰嬮〉 = 1,885 琛?| privacy/agreement 脳 zh/en |
+| 銆岄厤缃戙€嶆槸姘镐箙 tab | 涓€娆℃€?onboarding 鍗村崰姘镐箙浣?|
 
 ---
 
-## 三、瘦身优先级清单（20 项）
+## 涓夈€佺槮韬紭鍏堢骇娓呭崟锛?0 椤癸級
 
-### P0 —— 安全删除/修复（8 项，1.5 天）
+### P0 鈥斺€?瀹夊叏鍒犻櫎/淇锛? 椤癸紝1.5 澶╋級
 
-| # | 项 | 动作 | 验证 |
+| # | 椤?| 鍔ㄤ綔 | 楠岃瘉 |
 |---|----|------|------|
-| P0-1 | 删 U1 的 98MB node_modules | 移除 + .gitignore | 子模块体积降；platformio 仍编译 |
-| P0-2 | U1 关 WiFi/BT 编译开关 | 默认 env 加 `-DDISABLE_WIFI` | 编译产物 < 原 70%；U1 仍响应 UART 命令 |
-| P0-3 | 修 U8 音频协议矛盾 | 调研后端 ASR 实际格式，统一 hello 与 audio_service | 端到端语音冒烟 |
-| P0-4 | ~~删 3 个 DEPRECATED 后端文件~~ → **修正为：修正矛盾标记** | 核查发现 `speculative_policy.py`/`capability_matrix.py` 标 DEPRECATED 但实际是热路径依赖（被 `speculative.py`/`complexity.py`/测试使用）。**不能删**。改为修正顶部注释，明确「coding 退役，模块本身未退役」。`eval_internal.py` 确为退役态（返回 410，测试依赖），保持原状 | grep 标记与实际一致；pytest 全绿 |
-| P0-5 | Telegram 标退役（gallery 依赖，不删） | 标 `# DEPRECATED`；AGENTS.md 注明 gallery 待迁移 | grep 梳理调用链 |
-| P0-6 | 修 AGENTS.md 3 处断链 | reference/ECC→.claude/ecc；reference/ponytail/ 删段或改 | grep 引用全可达 |
-| P0-7 | 修 STATUS.md Telegram 矛盾 | 1448 行改为「bot 通知退役，gallery 存储复用 TG Bot API」 | STATUS 自洽 |
-| P0-8 | 删 `.claude/skills/gitnexus/` | 删 6 个子 skill | find 无 gitnexus skill 残留 |
+| P0-1 | 鍒?U1 鐨?98MB node_modules | 绉婚櫎 + .gitignore | 瀛愭ā鍧椾綋绉檷锛沺latformio 浠嶇紪璇?|
+| P0-2 | U1 鍏?WiFi/BT 缂栬瘧寮€鍏?| 榛樿 env 鍔?`-DDISABLE_WIFI` | 缂栬瘧浜х墿 < 鍘?70%锛沀1 浠嶅搷搴?UART 鍛戒护 |
+| P0-3 | 淇?U8 闊抽鍗忚鐭涚浘 | 璋冪爺鍚庣 ASR 瀹為檯鏍煎紡锛岀粺涓€ hello 涓?audio_service | 绔埌绔闊冲啋鐑?|
+| P0-4 | ~~鍒?3 涓?DEPRECATED 鍚庣鏂囦欢~~ 鈫?**淇涓猴細淇鐭涚浘鏍囪** | 鏍告煡鍙戠幇 `speculative_policy.py`/`capability_matrix.py` 鏍?DEPRECATED 浣嗗疄闄呮槸鐑矾寰勪緷璧栵紙琚?`speculative.py`/`complexity.py`/娴嬭瘯浣跨敤锛夈€?*涓嶈兘鍒?*銆傛敼涓轰慨姝ｉ《閮ㄦ敞閲婏紝鏄庣‘銆宑oding 閫€褰癸紝妯″潡鏈韩鏈€€褰广€嶃€俙eval_internal.py` 纭负閫€褰规€侊紙杩斿洖 410锛屾祴璇曚緷璧栵級锛屼繚鎸佸師鐘?| grep 鏍囪涓庡疄闄呬竴鑷达紱pytest 鍏ㄧ豢 |
+| P0-5 | Telegram 鏍囬€€褰癸紙gallery 渚濊禆锛屼笉鍒狅級 | 鏍?`# DEPRECATED`锛汚GENTS.md 娉ㄦ槑 gallery 寰呰縼绉?| grep 姊崇悊璋冪敤閾?|
+| P0-6 | 淇?AGENTS.md 3 澶勬柇閾?| reference/ECC鈫?claude/ecc锛況eference/ponytail/ 鍒犳鎴栨敼 | grep 寮曠敤鍏ㄥ彲杈?|
+| P0-7 | 淇?STATUS.md Telegram 鐭涚浘 | 1448 琛屾敼涓恒€宐ot 閫氱煡閫€褰癸紝gallery 瀛樺偍澶嶇敤 TG Bot API銆?| STATUS 鑷唇 |
+| P0-8 | 鍒?`.claude/skills/gitnexus/` | 鍒?6 涓瓙 skill | find 鏃?gitnexus skill 娈嬬暀 |
 
-### P1 —— 低风险整理（7 项，2 天）
+### P1 鈥斺€?浣庨闄╂暣鐞嗭紙7 椤癸紝2 澶╋級
 
-| # | 项 | 动作 |
+| # | 椤?| 鍔ㄤ綔 |
 |---|----|------|
-| P1-9 | 合并 5 份战略文档归档 | 未完成项并入本文档；原文档 git mv 到 `docs/archive/strategic-plans-2026-06/` |
-| P1-10 | 截断 progress.md | 保留近 30 天；历史 git mv 到 archive；顶部加索引 |
-| P1-11 | 清理 docs/archive/ | retired/*.py 移出 docs 树；加 README 说明规则 |
-| P1-12 | 合并 8 agent 配置树 | 以 AGENTS.md 为单一源；重复规则改指针 |
-| P1-13 | routing_engine 9 文件归包 | 新建 `routing_engine/` 包，移入，保 facade |
-| P1-14 | routing_executor 5 文件归包 | 新建 `routing_executor/` 包 |
-| P1-15 | 修 AGENTS.md 模块数 | 「43 模块」→ 实际 17 |
+| P1-9 | 鍚堝苟 5 浠芥垬鐣ユ枃妗ｅ綊妗?| 鏈畬鎴愰」骞跺叆鏈枃妗ｏ紱鍘熷綊妗ｅ凡浜?2026-07-21 鍒犻櫎 |
+| P1-10 | 鎴柇 progress.md | 椤堕儴娉ㄦ槑鍘嗗彶宸插垹闄わ紱浠呬繚鐣欒繎鏈熸潯鐩?|
+| P1-11 | 娓呯悊 docs/archive/ | 鉁?鏁存爲鍒犻櫎锛涜繃鏈熸枃妗ｇ洿鎺?rm |
+| P1-12 | 鍚堝苟 8 agent 閰嶇疆鏍?| 浠?AGENTS.md 涓哄崟涓€婧愶紱閲嶅瑙勫垯鏀规寚閽?|
+| P1-13 | routing_engine 9 鏂囦欢褰掑寘 | 鏂板缓 `routing_engine/` 鍖咃紝绉诲叆锛屼繚 facade |
+| P1-14 | routing_executor 5 鏂囦欢褰掑寘 | 鏂板缓 `routing_executor/` 鍖?|
+| P1-15 | 淇?AGENTS.md 妯″潡鏁?| 銆?3 妯″潡銆嶁啋 瀹為檯 17 |
 
-### P2 —— 中风险重构（5 项，3.5 天，必须 TDD）
-
-| # | 项 | 动作 |
+### P2 鈥斺€?涓闄╅噸鏋勶紙5 椤癸紝3.5 澶╋紝蹇呴』 TDD锛?
+| # | 椤?| 鍔ㄤ綔 |
 |---|----|------|
-| P2-16 | 删小程序 3 个死鉴权端点 | 删 register/sms-verification/captcha 路由+逻辑 |
-| P2-17 | 合并 create.vue 嵌套 tab | 统一到 device-detail 2 步流 |
-| P2-18 | 合并 3 个首页 | tabbar 5→3-4 |
-| P2-19 | settings 瘦身 | 语言裁到 zh_CN+en；拆分杂物段 |
-| P2-20 | 审查 47 个 except:pass | 逐一补 logger.warning 或记 PONYTAIL-DEBT |
+| P2-16 | 鍒犲皬绋嬪簭 3 涓閴存潈绔偣 | 鍒?register/sms-verification/captcha 璺敱+閫昏緫 |
+| P2-17 | 鍚堝苟 create.vue 宓屽 tab | 缁熶竴鍒?device-detail 2 姝ユ祦 |
+| P2-18 | 鍚堝苟 3 涓椤?| tabbar 5鈫?-4 |
+| P2-19 | settings 鐦﹁韩 | 璇█瑁佸埌 zh_CN+en锛涙媶鍒嗘潅鐗╂ |
+| P2-20 | 瀹℃煡 47 涓?except:pass | 閫愪竴琛?logger.warning 鎴栬 PONYTAIL-DEBT |
 
 ---
 
-## 四、执行顺序
+## 鍥涖€佹墽琛岄『搴?
+- **绗?1 鍛?*锛歅0 鍏ㄩ儴 鈫?P1 鏂囨。鍘婚噸(9-11,15) 鈫?P1 agent 鏍?12)
+- **绗?2 鍛?*锛歅1 鍚庣鍖呭綊鎷?13,14) 鈫?P2 鍒犳绔偣(16) 鈫?P2 settings(19)
+- **绗?3 鍛?*锛歅2 UI 鍚堝苟(17,18) 鈫?P2 寮傚父瀹℃煡(20)
 
-- **第 1 周**：P0 全部 → P1 文档去重(9-11,15) → P1 agent 树(12)
-- **第 2 周**：P1 后端包归拢(13,14) → P2 删死端点(16) → P2 settings(19)
-- **第 3 周**：P2 UI 合并(17,18) → P2 异常审查(20)
-
-每项独立 commit 可回滚；P2 必须 TDD；每个 P 级完成后更新 STATUS/progress/findings。
-
+姣忛」鐙珛 commit 鍙洖婊氾紱P2 蹇呴』 TDD锛涙瘡涓?P 绾у畬鎴愬悗鏇存柊 STATUS/progress/findings銆?
 ---
 
-## 五、不做的事（YAGNI 边界）
-
-- ❌ 不重写 routing pipeline（13 步有文档、单职责、不超限 —— 合理设计）
-- ❌ 不动 backends_registry（170+ 后端必要规模）
-- ❌ 不全删 archive（只做结构整理）
-- ❌ 不在本文档加新功能（语音控制等留待瘦身后另起 spec）
-
+## 浜斻€佷笉鍋氱殑浜嬶紙YAGNI 杈圭晫锛?
+- 鉂?涓嶉噸鍐?routing pipeline锛?3 姝ユ湁鏂囨。銆佸崟鑱岃矗銆佷笉瓒呴檺 鈥斺€?鍚堢悊璁捐锛?- 鉂?涓嶅姩 backends_registry锛?70+ 鍚庣蹇呰瑙勬ā锛?- 鉂?涓嶅叏鍒?archive锛堝彧鍋氱粨鏋勬暣鐞嗭級
+- 鉂?涓嶅湪鏈枃妗ｅ姞鏂板姛鑳斤紙璇煶鎺у埗绛夌暀寰呯槮韬悗鍙﹁捣 spec锛?
 ---
 
-## 六、风险与回滚
+## 鍏€侀闄╀笌鍥炴粴
 
-| 风险 | 缓解 |
+| 椋庨櫓 | 缂撹В |
 |------|------|
-| 删 DEPRECATED 有隐藏依赖 | 删前 `codegraph impact` + grep；保留 commit 可回滚 |
-| U1 关 WiFi 后 OTA/调试失效 | 保留源文件只改编译开关；需要时单 env 重开 |
-| 小程序 UI 合并破坏习惯 | P2-17/18 前与用户确认；保留旧页面一个版本期 |
-| 文档归档后找不到历史 | archive/ 加 README 索引；progress 顶部留指针 |
+| 鍒?DEPRECATED 鏈夐殣钘忎緷璧?| 鍒犲墠 `codegraph impact` + grep锛涗繚鐣?commit 鍙洖婊?|
+| U1 鍏?WiFi 鍚?OTA/璋冭瘯澶辨晥 | 淇濈暀婧愭枃浠跺彧鏀圭紪璇戝紑鍏筹紱闇€瑕佹椂鍗?env 閲嶅紑 |
+| 灏忕▼搴?UI 鍚堝苟鐮村潖涔犳儻 | P2-17/18 鍓嶄笌鐢ㄦ埛纭锛涗繚鐣欐棫椤甸潰涓€涓増鏈湡 |
+| 鏂囨。褰掓。鍚庢壘涓嶅埌鍘嗗彶 | archive/ 鍔?README 绱㈠紩锛沺rogress 椤堕儴鐣欐寚閽?|
 
-通用回滚：每项独立 commit，`git revert <sha>` 即可。
-
+閫氱敤鍥炴粴锛氭瘡椤圭嫭绔?commit锛宍git revert <sha>` 鍗冲彲銆?
 ---
 
-## 七、验收标准
-
-**P0 完成**：node_modules 不存在；U1 编译产物 < 原 70%；U8 音频协议一致；后端无 DEPRECATED 残留；AGENTS.md 引用全可达；STATUS 无矛盾；无 gitnexus skill。
-
-**P1 完成**：docs/ 根战略文档 ≤ 2 份；progress.md < 500 行；Ponytail 命中点 ≤ 2；routing_engine/executor 各自为包；模块数与实际一致。
-
-**P2 完成**：后端无 register/sms/captcha 路由；绘图/写字 ≤ 3 步；tabbar ≤ 4；settings < 400 行；47 个 except:pass 审查完毕。
-
+## 涓冦€侀獙鏀舵爣鍑?
+**P0 瀹屾垚**锛歯ode_modules 涓嶅瓨鍦紱U1 缂栬瘧浜х墿 < 鍘?70%锛沀8 闊抽鍗忚涓€鑷达紱鍚庣鏃?DEPRECATED 娈嬬暀锛汚GENTS.md 寮曠敤鍏ㄥ彲杈撅紱STATUS 鏃犵煕鐩撅紱鏃?gitnexus skill銆?
+**P1 瀹屾垚**锛歞ocs/ 鏍规垬鐣ユ枃妗?鈮?2 浠斤紱progress.md < 500 琛岋紱Ponytail 鍛戒腑鐐?鈮?2锛況outing_engine/executor 鍚勮嚜涓哄寘锛涙ā鍧楁暟涓庡疄闄呬竴鑷淬€?
+**P2 瀹屾垚**锛氬悗绔棤 register/sms/captcha 璺敱锛涚粯鍥?鍐欏瓧 鈮?3 姝ワ紱tabbar 鈮?4锛泂ettings < 400 琛岋紱47 涓?except:pass 瀹℃煡瀹屾瘯銆?
 ---
 
-## 八、与现有文档的关系
-
-- **本文档取代**：5 份战略规划文档中重叠的诊断/改进部分（P1-9 执行后归档）
-- **本文档不取代**：STATUS.md、findings.md、AGENTS.md、REQUEST_PIPELINE_AUTHORITY_CN.md
-- **后续**：瘦身后若启动语音控制等功能，另起 spec，引用本文档作为「基线已清理」前提
+## 鍏€佷笌鐜版湁鏂囨。鐨勫叧绯?
+- **鏈枃妗ｅ彇浠?*锛? 浠芥垬鐣ヨ鍒掓枃妗ｄ腑閲嶅彔鐨勮瘖鏂?鏀硅繘閮ㄥ垎锛圥1-9 鎵ц鍚庡綊妗ｏ級
+- **鏈枃妗ｄ笉鍙栦唬**锛歋TATUS.md銆乫indings.md銆丄GENTS.md銆丷EQUEST_PIPELINE_AUTHORITY_CN.md
+- **鍚庣画**锛氱槮韬悗鑻ュ惎鍔ㄨ闊虫帶鍒剁瓑鍔熻兘锛屽彟璧?spec锛屽紩鐢ㄦ湰鏂囨。浣滀负銆屽熀绾垮凡娓呯悊銆嶅墠鎻?

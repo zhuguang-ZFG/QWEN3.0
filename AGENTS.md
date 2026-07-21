@@ -15,7 +15,7 @@ server_dlc.py → dlc_api/ → dlc_core/ → device_gateway/ → ESP32
 小智 MCP → dlc_mcp/     小程序 → /device/v1/app/*
 ```
 
-**已删除（勿找代码）**：`routing_engine*`、旧 `server.py` 聊天栈、`context_pipeline` 主路径等 — 见 `docs/archive/`。
+**已删除（勿找代码）**：`routing_engine*`、旧 `server.py` 聊天栈、`context_pipeline` 主路径等 — 历史文档已清出仓库，查 git history。
 
 | 模块 | 路径 |
 |------|------|

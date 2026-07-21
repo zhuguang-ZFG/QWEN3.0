@@ -231,5 +231,5 @@ python -m pytest tests/test_routing_engine.py -q
 
 - [ ] `STATUS.md` 已更新（若里程碑级）
 - [ ] `progress.md` 已附本文件链接与 pytest 摘要
-- [ ] `docs/LIMA_MEMORY_CN.md` 已记录跨会话事实（若有）
+- [ ] `STATUS.md` / `progress.md` 已记录跨会话事实（若有）
 - [ ] 仅 stage 本切片相关文件后 commit

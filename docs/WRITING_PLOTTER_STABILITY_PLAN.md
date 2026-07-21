@@ -1,7 +1,7 @@
 # LiMa AI 写字/绘图机稳定后端改进计划
 
 > 制定时间：2026-06-29
-> 依据：当前代码审查 + `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` + `docs/archive/strategic-plans-2026-06/PROJECT_OPTIMIZATION_ROADMAP_CN.md`
+> 依据：当前代码审查 + `docs/ARCHITECTURE.md` + `STATUS.md`
 > 目标：让 LiMa 从"功能可用"演进为写字/绘图机可长期依赖的稳定云端后端。
 
 ---
@@ -168,7 +168,7 @@ python scripts/deploy_unified.py --slice core
 |---|---|
 | **缓存** | M15/M18 之后引入 handwriting/draw 结果缓存，降低 API 成本。 |
 | **限流** | 为 `/device/v1/app/handwriting` 和 `/device/v1/app/images/generations` 增加 per-device + per-account 限流。 |
-| **文档同步** | 每关闭一个里程碑，同步 `STATUS.md`、`progress.md`、`docs/LIMA_MEMORY_CN.md`。 |
+| **文档同步** | 每关闭一个里程碑，同步 `STATUS.md`、`progress.md`。 |
 | **子模块边界** | U1/U8 固件侧的 `route_policy` 消费与拒绝逻辑仍在 `esp32S_XYZ`；LiMa 侧只保证云端契约正确，不越界修改固件。 |
 
 ---

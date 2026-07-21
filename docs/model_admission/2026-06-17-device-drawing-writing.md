@@ -261,4 +261,4 @@ python -m pytest tests/test_routing_engine.py -q --tb=short
 
 - 每个新评测周期复制 `TEMPLATE.md` 并更新日期。
 - fixture 或实现变更后重新运行 `eval_device_model_role.py`。
-- 关闭切片时同步更新 `STATUS.md` / `progress.md` / `docs/LIMA_MEMORY_CN.md`。
+- 关闭切片时同步更新 `STATUS.md` / `progress.md`。

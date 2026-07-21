@@ -1,767 +1,765 @@
 # LiMa Findings
 
-> 历史归档：2026-06 及更早非审计条目 → [`docs/archive/findings-2026-06-CN.md`](docs/archive/findings-2026-06-CN.md)
-> AUDIT 审计批次：2026-06-28/29 AUDIT-1~12 → [`docs/archive/findings-2026-06-audit-CN.md`](docs/archive/findings-2026-06-audit-CN.md)
->
-> ⚠️ 新发现请按「五问法」记录：现象？复现？根因？修复？如何预防？
-
-## 2026-07-09 静态分析门禁修复：pyright 0 errors / pytest 全绿
-
-- **现象**：`pyright dlc_api dlc_core dlc_mcp routes` 报 3 errors + 26 warnings；`pytest` 中 `tests/test_ci_gates.py::test_p13_no_silent_exception_pass_in_active_paths` 因 `esp32S_XYZ/.../node_modules/` 内断裂软链接导致 `FileNotFoundError` 失败。
-- **复现**：
-  - `pyright` 直接运行报大量 `reportMissingImports`（fastapi/httpx 等），因为 `pyrightconfig.json` 未声明 `venv`。
-  - 用 `.venv310/Scripts/python.exe -m pyright --pythonpath .venv310/Scripts/python.exe` 复现真实类型错误。
-  - `pytest tests/test_ci_gates.py` 在 `rglob("*.py")` 时命中 `node_modules/.pnpm/esbuild@0.20.2/node_modules/@esbuild/darwin-arm64` 断裂软链接。
-- **根因**：
-  1. `pyrightconfig.json` 缺少 `venvPath`/`venv`。
-  2. `dlc_api/routes.py` 中 `_resolve_hostname` 返回类型、`image_url` 的 `Optional` 窄化、`check_key_limit` 返回 `JSONResponse` 与声明返回类型冲突。
-  3. `routes/request_tracking.py` 仍惰性 import 已删除的 `observability.events`。
-  4. `dlc_api/deps.py` 在模块导入失败时使用裸 `except Exception` 且无日志。
-  5. `tests/test_ci_gates.py::_p13_scan_paths` 使用 `sorted(ROOT.rglob("*.py"))`，对断裂软链接目录无容错。
-- **修复（本轮已做）**：
-  1. `pyrightconfig.json`：添加 `"venvPath": ".", "venv": ".venv310"`。
-  2. `dlc_api/routes.py`：`_resolve_hostname` 结果转 `str`；`preview_task`/`dispatch_task_endpoint` 返回类型加入 `JSONResponse`；`draw_from_image` 分支显式检查 `image_url is not None`。
-  3. `dlc_api/deps.py`：在 import fallback 的 `except Exception` 块中记录 `logger.warning`。
-  4. `routes/request_tracking.py`：移除对 `observability.events` 的依赖，内联实现 `_sanitize_text`（脱敏 bearer/token/api_key/password/长 hex）。
-  5. `dlc_mcp/server.py`：对 `params.get("name")` 做 `isinstance(name, str)` 校验。
-  6. `routes/device_app_task_templates.py`：在 `_resolve_template_target` 返回后加 `assert source is not None`。
-  7. `dlc_mcp/mcp_pipe.py`：`_websocket_header_kwargs` 返回类型改为 `dict[str, Any]`；websocket 句柄类型改为 `Any`。
-  8. `dlc_api/middleware.py`：`add_body_size_limit` 的 `app` 参数类型从 `object` 改为 `FastAPI`。
-  9. `tests/test_ci_gates.py`：`_p13_scan_paths` 改用 `os.walk(..., followlinks=False, onerror=...)` 并剪枝跳过目录，避免触碰 `node_modules` 内断裂软链接。
-- **验证**：
-  - `ruff check .` / `scripts/run_ruff_check.py`：通过。
-  - `python scripts/check_code_size.py`：通过。
-  - `pyright dlc_api dlc_core dlc_mcp routes`：**0 errors, 0 warnings**。
-  - `pytest`：**1391 passed, 3 skipped**（剩余 3 条为 FastAPI `@app.on_event` 废弃警告，非错误）。
-- **如何预防**：
-  - 保持 `pyrightconfig.json` 与项目 venv 同步；提交前运行 `pyright` 而非仅 `ruff`。
-  - 新代码避免 `except Exception:` 裸块；至少记录 warning 并说明原因。
-  - 删除退役模块时同步清理惰性 import 与 facade 文件。
-  - 测试中使用 `os.walk`/`rglob` 扫描仓库时启用 `followlinks=False` 并处理 `OSError`。
-
-## 2026-07-06 设备网关 WS 下发链去留：已闭环（用户确认无存量设备 → 已退役）
-
-- **2026-07-06 闭环结论**：用户明确确认「研发阶段，无线上存量设备依赖 `chat.donglicao.com` 的 `/device/v1/ws`」，阻塞点解除。自托管 WS/MQTT 任务下发死代码链已物理退役：删除 `mqtt_client/mqtt_handlers/mqtt_topics/health/notifier/attestation/protocol/protocol_frames/protocol_validators/protocol_negotiator`、`routes/device_gateway_dispatch.py`、`routes/device_gateway_helpers.py`，并将 `device_logic/gateway.py::dispatch_or_enqueue` 与 `device_gateway/tasks.py::create_and_route_task` 简化为纯 `enqueue_pending_task`（生产本就恒 queued，行为等价）。保留 `protocol_families.py` 与全部绘图核心。下方原始调查记录保留作历史证据。
-
-- **问题**：`routes/device_gateway*.py`（约 1248 行）+ `device_logic/gateway.py` + `device_gateway/notifier.py`/`mqtt_handlers.py` 的任务下发链，在生产入口 `server_dlc.py` 下是否为死代码。这是仓库最大一块潜在瘦身目标。
-- **已查清的代码事实（仓库内可确定）**：
-  1. 服务端唯一任务下发链依赖 WS 端点 `/device/v1/ws`（`dispatch_task_to_session` → `session.send_json`；`drain_pending_tasks`；`publish_task_available_safe` 只是跨进程唤醒信号，非第二通道）。
-  2. `server_dlc.py` / `dlc_api.app` 只注册 `dlc_router`，**未注册** `/device/v1/ws`；`server.py`/`routes/route_registry.py` 已删除 → 该端点生产不可达。
-  3. 固件目标架构（设计文档 §1.2/§2.3）：语音走 xiaozhi.me 官方云 → MCP → `self.plotter.*`/`self.motor.run_path` HTTP 调 `dlc_api`，设备本地执行，**不从服务端拉任务**。
-  4. **但**固件仍保留 WS/MQTT 的 `motion_task` 接收能力（`application.cc:588 HandleMotionTaskJson`），协议由 OTA config 动态选择（`InitializeProtocol`：`HasMqttConfig`→MqttProtocol，否则 WebsocketProtocol）；WS 音频通道默认 URL `wss://chat.donglicao.com/device/v1/ws`（`websocket_protocol.cc:94`）。
-- **阻塞点（仓库代码无法回答的运行时事实）**：`routes/device_gateway*` 是否可删，取决于**线上存量设备的 OTA config 实际指向哪个服务器**：
-  - 若全部设备已迁移 xiaozhi.me 官方云 → WS 网关是死代码，可删。
-  - 若有设备 OTA config 仍指向 `chat.donglicao.com` 自托管 WS/MQTT 语音 → 删服务端会**断掉真实硬件的语音+任务下发**，不可逆。
-- **删除代价**：`routes/device_gateway*` 被 230 个测试文件引用，深度嵌入，非孤立死代码。删除需连带处理 230 测试 + gateway/notifier/mqtt 整条链。
-- **结论**：属高风险不可逆操作（影响真实设备语音链路），按 Ponytail 不可妥协边界 + 系统高风险操作规则，**必须先确认线上 OTA config 现状**再决定，不能靠读代码赌。
-- **需要的输入**：线上设备 OTA config 的 `websocket.url`/`mqtt` 指向统计（xiaozhi.me vs chat.donglicao.com 的设备占比），或明确"自托管语音已全部退役、无存量设备依赖 chat.donglicao.com 的 /device/v1/ws"。
-
-## 2026-07-06 系统瘦身残留审计：仓库与 VPS 分叉 + 死代码物理删除
-
-- **现象**：STATUS.md 声称「P5 瘦身后约 280 py 文件 / ~18000 行」，实测 git 跟踪应用 py = **356 文件 / 41922 行**——数字差 76 文件 / 翻倍行数。仓库里有大量从 `server_dlc.py` 生产路径不可达的死代码。
-- **根因（仓库与 VPS 分叉）**：
-  - VPS 生产服务 `lima-router.service`（`infra/vps/systemd/lima-router.service`）ExecStart = `uvicorn server:app`，但 `server.py` 已在 P4/P5 删除。
-  - `deploy_unified_restart.py:43` 仍 `systemctl restart lima-router`（旧服务名）。
-  - `deploy_unified_common.py::CORE_FILES` 仍列 `server.py` + 旧路由模块（`routing_engine`、`router_v3`、`health_tracker` 等），`CORE_DIRS` 仍列已删目录（`context_pipeline`、`session_memory`、`code_context`、`device_voice`、`backends_registry`、`channel_retirement`）。
-  - **推论**：VPS 上运行的是旧版完整代码（未被覆盖删除），仓库与生产已分叉。`deploy_unified.py` 若以旧清单执行会在 VPS 上找不到文件而失败。
-- **修复（本轮已做）**：
-  1. 物理删除三项零风险死代码（生产零引用，仅 .worktrees 旧副本引用）：
-     - `integrations/cloud_services.py`（全仓库零 import）
-     - `reference/grbl_fix/`（17 文件，一次性固件修复脚本，无 importer）
-     - `device_support/`（2 文件，仅被审计脚本列举目录名）
-  2. 清理三处脚本对 `device_support` 的字符串引用：`scripts/guardian_full_scan.py`、`scripts/coverage/analyzer.py`、`scripts/codegraph_orphans.py`
-  3. `deploy_unified_common.py::CORE_FILES`/`CORE_DIRS` 对齐到 `server_dlc.py` 实际可达的模块清单（移除已删旧路由/旧目录，新增 `dlc_api`/`dlc_core`/`dlc_mcp`/`device_intelligence`/`device_logic` 等）
-- **待办（需用户确认后操作）**：
-  1. **VPS 部署同步**：确认 VPS 是否运行旧代码 → 部署新 `server_dlc.py` + 新 `dlc-drawing.service` → 切换服务名 `lima-router`→`dlc-drawing`。这是部署操作，不能仅改仓库。
-  2. **设备网关 WSS 路由注册**：`server_dlc.py`/`dlc_api.app` 只注册了 `dlc_router`，**未注册 `routes/device_gateway.py` 的 `/ws` WebSocket 端点**。设备通过WSS取Redis队列任务的半条链没有对外端点。需确认是 WSS 路由漏注册（需补注册），还是设备通过别的方式取任务（HTTP轮询/MQTT），再决定是否物理删除 `routes/device_gateway*`。
-  3. `sdk/`（5 文件，对外 Python SDK）是否保留——属交付物，非服务端死代码。
-  4. ~~`observability/` 13 个非 prometheus 模块是否删除~~ **（2026-07-06 已删，见下）**。
-  5. `routes/` 中 ~54 个未注册路由模块的去留取决于"WSS 是否需注册"。
-
-- **续（本轮第二切片）物理删除 observability ops-metrics 死子系统**：
-  - 证据：`server.py`/`server_lifespan.py`/`server_bootstrap.py` 全已删；`server_dlc.py` 无 lifespan，只挂 startup 日志。`observability/__init__.py` 为空，所有生产引用均为 `from observability import prometheus_metrics`；`prometheus_metrics.py` 只依赖 4 个 `prometheus_*` 子模块，零引用下列死模块。
-  - 删除（13 模块）：`telemetry_aggregator`、`backend_telemetry`、`cli_telemetry`、`jsonl_store`、`alert_evaluator`、`routing_guard`、`gray_metrics`、`metrics`、`events`、`probe_state`、`stack_dump`、`structured_logging`、`prometheus_exporter`。
-  - 删除 `routes/ops_metrics/`（整组，唯一外部引用是 `alert_evaluator.py` 函数体内惰性 import，已随之删除）。
-  - 删除 6 个对应测试：`test_alert_evaluator`、`test_cli_telemetry`、`test_jsonl_store`、`test_observability_metrics`、`test_telemetry_aggregator`、`test_observability_trace_buffer` + `tests/ops_metrics_helpers.py`。
-  - 保留：`prometheus_metrics`、`prometheus_device_task_metrics`、`prometheus_handwriting_metrics`、`prometheus_image_metrics`、`prometheus_startup_metrics`、`correlation`（生产可达）。
-  - 残留死配置（本轮未动，避免扩大改动面）：`config/node_role.py::alert_evaluator_enabled/structured_logging_enabled`、`config/settings_core.py::structured_logging/routing_guard_*` 字段零消费方，留待后续统一清理。
-- **预防**：P4/P5 物理删除后必须同步更新部署脚本的文件清单和服务入口，否则仓库与 VPS 分叉导致"声称瘦身的文件在生产还在跑"。
-
-## 2026-07-06 §13 安全审计续：S3 限流 + S10 幂等去重（dlc_api）
-
-- **S3（`/dlc/tasks/*` 无速率限制，🟠 中等）**
-  - **现象**：`/dlc/tasks/preview` 与 `/dlc/tasks/dispatch` 无任何限流；`draw_from_image` 高 CPU/费用，可被单设备刷爆做 DoS。
-  - **复现**：同一 Bearer token 高频调 `/dlc/tasks/preview`（type=draw_from_image），服务端无节流全部受理。
-  - **根因**：dlc_api 是瘦身后新入口，未接入主 `server.py` 上的限流中间件；`dlc_api/app.py` 无任何全局中间件。
-  - **修复**：复用现成 `routes/rate_limit_helper.check_key_limit`（内存滑动窗口，Redis 自动切换），按 `caller_device_id` 限流。配额加到 `config/settings_core.py::DeviceConfig`：`dlc_task_per_min`（默认 30）、`dlc_image_per_min`（默认 8，`draw_from_image` 专用低配额）。`_quota_for(task_type)` 按类型选配额。超限返回 429 `rate_limit_error`。
-  - **预防**：新增公网端点必须显式接入 `check_key_limit`/`check_ip_limit`；重 CPU 操作单列低配额。测试用 autouse fixture `rate_limiter.reset()` 防止限流状态跨用例泄漏（否则同 device_id 多次调用会耗尽配额致 KeyError）。
-
-- **S10（dispatch 无重放保护，🟠 中等）**
-  - **现象**：静态 Bearer token 无 nonce/timestamp，重放同一 dispatch 请求可重复下发运动指令。
-  - **复现**：同一请求体 POST 两次 `/dlc/tasks/dispatch`，设备执行两次。
-  - **根因**：dispatch 端点未做幂等去重；`task_id` 由 `next_task_id()` 自增生成，非幂等键。
-  - **修复**：dispatch 端点读 `Idempotency-Key` header，`_claim_idempotency_key` 用 Redis `SET NX EX`（TTL 600s，key 前缀 `lima:dlc:idem`）原子首次占用；重放返回 `status="duplicate"`。无 header 时保持旧行为（向后兼容）。
-  - **降级决策**：Redis 不可用时 **fail-open**（放行 + `logger.warning`），理由：重复派发比丢失合法指令危害小，且 warning 显式暴露降级状态（遵守「禁止静默降级」硬规则）。
-  - **预防**：固件/MCP 侧下发运动指令时应带 `Idempotency-Key`；幂等 key 由 `caller_device_id` + header 值组合，防跨设备碰撞。
-
-## 2026-07-06 §13 安全审计闭环：SEC-06 队列投毒 + SEC-04 SSRF 加固 + v2_device_token 建表
-
-- **SEC-06（Redis 任务队列投毒，🔴 严重）**
-  - **现象**：`pop_pending_tasks` 把 Redis pending 队列里的任务 `decode_redis_json` 后直接经 `device_gateway_dispatch.py:154 session.send_json(pending_task)` 透传给固件，全程无 capability/字段校验。
-  - **复现**：任何拥有 Redis 写权限者 `RPUSH lima:device:pending:<id> '{"capability":"delete_everything",...}'` → 固件收到并可能执行恶意运动指令。
-  - **根因**：pop 路径信任 Redis 内容；enqueue 侧的 HTTP 校验（`routes/device_gateway.py::_validate_task_body`、`APP_TASK_CAPABILITIES`）被 Redis 直写绕过。
-  - **修复**：`device_gateway/redis_store_helpers.py` 新增纯函数 `validate_task_schema` + `_ALLOWED_TASK_CAPABILITIES`（对齐 `APP_TASK_CAPABILITIES` 并含 `draw_from_image`）。`redis_store.pop_pending_tasks` 逐条 gate，拒绝的任务从 processing 队列 `lrem` 移除并 `logger.warning`，绝不下发。
-  - **预防**：信任边界原则——任何来自 Redis/外部存储的任务在下发前必须过 allowlist；新增 capability 时同步更新此 allowlist 与 `APP_TASK_CAPABILITIES`。
-- **SEC-04（draw_from_image SSRF，🔴 严重）**
-  - **现象**：`dlc_api/routes.py::_validate_image_url` 只拒绝字面量私网 IP，接受任意 HTTPS 主机；公网域名解析到私网 IP（DNS rebinding）可绕过。
-  - **根因**：无主机白名单 + 无 DNS 解析后二次校验。
-  - **修复**：三层顺序——(1) 字面量私网 IP 拒绝；(2) 主机白名单 `ALLOWED_IMAGE_HOSTS={"api.telegram.org"}`（图库唯一来源）；(3) 新增 `_resolve_hostname`（可测试注入点）解析后若命中私网 IP 则拒绝。
-  - **预防**：服务端下载类接口默认走「白名单 + 解析后私网拒绝」双闸；新增可信图源时只扩白名单，不放开任意主机。
-  - **契约变更**：旧 `test_dlc_api.py` 用 `example.com` 断言 success 的 3 个用例是不安全行为的固化，已改用 `api.telegram.org` + 注入 `_resolve_hostname` 返回公网 IP；重复的 SSRF 用例合并进 `test_sec04_ssrf_hardening.py`。
-- **S1/S7（v2_device_token 表缺失）**
-  - **现象**：`dlc_api/deps.py` 设计为 DB 优先鉴权，但 `v2_device_token` 表从未接入迁移，生产环境 `_lookup_token_from_db` 恒返回 None → 实际只走 `LIMA_DEVICE_TOKENS` env fallback。
-  - **修复**：`device_logic/db_migrations.py::_DDL_STATEMENTS` 末尾追加 `v2_device_token` 建表 + `idx_v2_device_token_hash` 唯一索引，随其他 v2_* 表幂等 bootstrap。
-  - **预防**：设计文档中的 DDL 必须同步落到 `_DDL_STATEMENTS`，否则消费方代码的 DB 分支形同虚设。
-- **门禁**：全量 `pytest` **1565 passed / 3 skipped / 0 failed**；`ruff check` + `ruff format --check` clean；`check_code_size` PASS。新增聚焦测试：`test_sec06_redis_schema_gate.py`（8）、`test_sec04_ssrf_hardening.py`（6）、`test_v2_device_token_migration.py`（4）。
-- **教训**：写 SEC-06 测试时最初用了缺 `capability` 的简化 task fixture，导致 gate 上线后误伤既有 `test_device_gateway_redis_store.py`。核对生产 `_assemble_motion_task` 确认真实任务必带 `capability`（控制能力或 fallback `run_path`）后，修正的是测试 fixture 而非削弱 gate——安全 gate 正确时，应让不真实的旧测试向生产结构对齐。
-
-## 2026-07-05 DLC VPS 部署：认证格式不兼容 + 公网路由未通
-
-- **现象**：DLC 服务部署到 Aliyun VPS 后，`/dlc/tasks/validate` 带认证仍返回 401 "Not authenticated"；公网 `https://chat.donglicao.com/dlc/*` 返回 405。
-- **根因 1（认证）**：VPS `.env` 中 `LIMA_DEVICE_TOKENS=dev-test-1=fRAI52A3...` 使用 `device_id=token` 格式（device-gateway 兼容），但 DLC 代码 `_load_device_tokens()` 只解析 `token:device_id` 格式（`:` 分隔）。`=` 格式的条目被跳过，导致 env 回退为空。
-- **修复**：更新 `_load_device_tokens()` 同时支持 `:` 和 `=` 分隔符。新增 2 个测试覆盖。重新部署后认证通过。
-- **根因 2（公网 405）**：`chat.donglicao.com` DNS 解析到 Cloudflare（198.18.2.214），通过 Cloudflare Tunnel 路由到 JDCloud（117.72.118.95）。DLC 服务部署在 Aliyun（47.112.162.80:8081），JDCloud 上无 DLC 服务和 nginx `/dlc/` 路由。nginx 在 JDCloud 上找不到匹配的 location，返回 405。
-- **修复状态**：未修复。JDCloud SSH 认证失败（`deploy_config.jdcloud_password()` 未配置或已过期）。需用户提供 JDCloud 凭据或配置 Cloudflare 路由。
-- **预防**：部署前检查 VPS `.env` 中变量格式与代码解析逻辑的一致性；多 VPS 架构部署时确认 DNS/CDN 路由路径。
-
-## 2026-07-04 M4 全项目重构：P3 技术债发现与修复
-
-- **小程序**：
-  - 超时魔法数字散落 8 处（alova 15000、chat 120000、login 30000、health 3000、BLE 10000、SoftAP 3000/15000），数值靠上下文推断、调优需逐一 grep。抽 `src/config/timeouts.ts`（8 个 `*_TIMEOUT_MS` / `*_COOLDOWN_MS` 常量）后单点引用，`rg "timeout: [0-9]"` 归零。
-  - 非微信端流式自 P0.4 起为 fail-loud 占位（`throw new Error('...only on mp-weixin...')`）。完整实现：`fetch` + `response.body.getReader()` 读取 SSE，`AbortController` 支持 abort，与微信端共用 `parseSSEBuffer` 避免分叉。H5/App 现在可真实流式对话。
-  - 三个超大组件（761/691/667 行）脚本逻辑密集，拆分后模板/样式逐字节不变（`git show HEAD:./path | sed -n '/<template>/,$p'` 与工作区 diff 为空验证）。`device-detail` 拆 `useDeviceEvents`（WS 事件+进度+自检）+ `useDeviceActions`（任务派发+耗材+转移+分享+解绑），通过 setter 共享 `latestPhase`/`infoLoading` 避免状态二份。`voiceprint` 拆 CRUD + 音频试听两个 composable。`ultrasonic-config` 把 AFSK DSP 抽成纯函数 `afskAudio.ts`（可单测）+ `useUltrasonicAudio`（播放生命周期）。
-  - `chat/chat.vue`(635) 与 `index/index.vue`(604) 超标但脚本已精简（244/130 行），臃肿来自模板+样式。**2026-07-04 已清理（D1/D2）**：脚本抽 composable（chat → `useChatMessages`/`useChatStream`/`useChatHelpers`；index → `useHomeData`/`useHomeNavigation`/`useTaskFormatters`），样式抽独立 `.scss`（`<style src="./x.scss">`）。模板与样式内容逐字节不变（`git show HEAD:./path` 切片与工作区 diff 为空验证），只改 `<script>` 与 `<style src>`。两文件降到 130/238 行，全部 <300。**2026-07-04 已清理（D1/D2）**：脚本进一步抽 composable + 独立 `.scss`（635→130、604→238），模板/样式 byte-identical（`git show HEAD:<path>` 截取 `<template>`/`<style>` 区段与工作区 diff 为空），无需视觉验证即可保证零回归。
-- **Chat Web**：
-  - `escapeHtml` 在 7 个文件有本地拷贝，实现不一致（playground-utils 转义 backtick、devices/keys/usage 不转义、chat-messages 转义 `'`）—— XSS 面不一致。收敛到 `js/utils.js`（`window.LiMaUtils`，覆盖 `& < > " ' \``）后 8 个 HTML 页面加载顺序调整，所有消费点 alias 到 `LiMaUtils`。
-  - 引入 esbuild 0.25.12（避开 0.24.x dev-server 漏洞 GHSA-67mh-4wv8-2f99）做 minify pass：`hash-assets.mjs` 在复制后、哈希前对每个 JS/CSS `transform({minify:true})`，styles.css 68KB→49KB。`chat-web/package.json` + `node_modules`/`package-lock.json` 加入 `.gitignore`。
-  - `styles.css` 2060 行按页面拆分作为债务延后——esbuild minify 已解决 payload 体积，盲拆共享 CSS 风险高于收益。**2026-07-04 已清理（D3）**：按注释区块边界切成 `css/common.css`（全局 reset/变量/滚动条/焦点/微交互）+ `css/chat.css` + `css/playground.css` + `css/auth.css` + `css/pages.css`，各 HTML 页面按需组合加载（common 恒先加载）。`hash-assets.mjs` 适配 `css/*.css` minify+哈希，`deploy_chat_web.py` FILES 用 `css/*.css` 取代 `styles.css`。**CDN 教训复现**：部署后新 `css/*` 路径被 Cloudflare 负缓存命中 404，且旧 HTML 仍引用 `styles.css`；因 deploy 只上传 FILES、从不删除远端旧文件，origin 上 `styles.css`(68KB) 仍在——缓存 HTML 用户走旧兜底、新用户走拆分 CSS，CF ~4h 缓存窗口内两态都不破。验证：origin HTTPS（`--resolve` 绕 CDN）5 个 CSS 全 200，旧 `styles.css` 仍 200。**2026-07-04 已清理（D3）**：拆为 `css/{common,chat,playground,auth,pages}.css` 五份，各 HTML 只加载 common + 相关分片（首屏无关规则不再下载）。`hash-assets.mjs` 扩展为对 `css/` 子目录做 minify+hash+HTML 重写。**部署踩坑**：`deploy_chat_web.py` 只 SFTP 上传 FILES 清单、从不删除 origin 旧文件，因此旧 `styles.css`（68KB）仍留在 origin 兜底 CDN 缓存的旧 HTML；Cloudflare 对新 `css/*` 路径先返回负缓存 404，约 4h 后转 HIT 200。新旧两态在过渡窗口都能正常渲染，无需 CF purge 权限。
-- **固件**：
-  - `ota.cc` 的 `IsAllowedOtaHost`/`IsAllowedEndpointUrl`/`IsLowerHexSha256`/`IsLikelyBase64` 是安全关键纯函数（P0.9 端点白名单），但无单测。新增 `test_u8_ota_allowlist.cpp`（25 用例，含 evil-suffix 绕过 `chat.donglicao.com.evil.com` 必须被拒）。`mqtt_protocol.cc` 的 `DecodeHexString`/`CharToHex` 新增 `test_u8_mqtt_hex_decode.cpp`（10 用例）。两者接入 CI `firmware-native-tests` job。
-- **教训**：
-  - composable 提取时，跨 composable 共享的状态（如 `latestPhase`、`infoLoading`）必须由「拥有」方暴露 setter，消费方通过 setter 写入，不能各存一份 ref——否则事件流更新的是 events 的 ref，actions 读的是自己的 ref，UI 不刷新。
-  - 经典脚本（IIFE + script-tag）去重时，`const` 在全局作用域会与后续脚本的 `function` 同名声明冲突；去重后必须删除所有重复声明，只留一处 alias。
-  - 纯 DSP 逻辑（AFSK 调制/WAV 编码）抽成 framework-free 模块后可独立单测，比留在 Vue 组件里更安全——`afskAudio.ts` 的输出是确定性的 base64，可直接断言。
-  - 固件 native 单测采用「纯逻辑重实现」模式（不 include ESP-IDF 头），代价是双份代码；若 ota.cc 逻辑变更需同步更新测试拷贝。权衡：可原生编译 vs 维护双份。
-
-- **后端**：
-  - `http_caller.py` 为 thin re-export 门面，若下游子模块（`http_sync`/`http_async`/`http_stream` 等）改名或删符号，历史 `from http_caller import X` 会在运行时才 `ImportError`。新增 `tests/test_http_caller_reexports.py` 参数化断言全部公开符号仍可导入，把回归提前到测试期。
-  - `probe_loop.py`（对 dead/suspicious 主动探活）与 `backend_probe_loop.py`（全量批次周期探活）职责相近、命名相似，易混淆。已在两者 docstring 顶部加交叉引用说明各自触发条件与区别。
-  - `requirements_dev.txt` 强制 `httpx2~=2.5` 只为消 starlette testclient 弃用警告，却引入第二套 httpx 实现、增大依赖面。评估后移除；testclient 在 httpx 0.28 下功能正常，仅保留一条弃用 warning（无害）。
-  - `.env.example` 的 `LIMA_ADMIN_TOKEN`/`LIMA_API_KEY` 占位符形似真实密钥，去敏化为 `<set-your-*>` 格式，降低误提交/误用面。
-- **Chat Web**：
-  - `chat-web/_headers`（含 HSTS/nosniff/缓存策略）已存在，但 `deploy_chat_web.py` 的 `FILES` 未包含它，导致部署后 nginx 不下发这些头。已把 `_headers` 加入上传列表。
-- **小程序**：
-  - `manifest.config.ts` 与 `pages.config.ts` 各自复制了一份 `getMode()`（解析 `--mode` 命令行参数），重复逻辑。抽到 `scripts/get-mode.ts` 单点导出，两处引用。
-  - `unpackage/res/icons/*.png`（17 个 App 打包图标，仅 5+App 端用）被 git 跟踪，污染仓库；`git rm` 后 `.gitignore` 增加 `unpackage/` 忽略。
-  - `src/static/app/icons/1024x1024.png`（458KB）用 Pillow `optimize=True` 压缩到 433KB（RGBA PNG 无损压缩上限有限；进一步需转格式或降分辨率，暂不激进处理）。
-  - `src/i18n/{zh_CN,en}.ts` 各 800+ 行手工维护，key 容易漂移。新增 `scripts/check-i18n-keys.mjs` 校验中英 key 集合一致（当前 803 keys 对齐），挂到 `package.json` 脚本。
-  - `tabbarList.ts` 遗留 TODO 与 `utils/index.ts` 大量注释掉的 `console.log` 调试残留，已清理。
-  - 依赖冗余：未使用的 `@tanstack/vue-query`（`main.ts` 已移除 `VueQueryPlugin`）及 8 个非目标平台 `@dcloudio/uni-mp-*`（alipay/baidu/jd/kuaishou/lark/qq/toutiao/xhs）已移除；macOS 专用 `@esbuild/darwin-*` / `@rollup/rollup-darwin-x64` 也移除，减少安装体积与锁冲突。
-  - **miniprogram-ci 上传失败（`TypeError: _lruCache is not a constructor`）**：现象——清理依赖并 `pnpm install` 后，`upload:mp-weixin` 在编译阶段抛此错。复现——`node -e "require('@babel/helper-compilation-targets')"`。根因——依赖清理触发 pnpm 重解析，`@babel/helper-compilation-targets`（要求 `lru-cache@^5` 的具名默认导出）被提升到 `lru-cache@11`（v11 无默认导出、构造签名变更）。修复——在 `pnpm-workspace.yaml` 加 `overrides: '@babel/helper-compilation-targets>lru-cache': ^5.1.1`（注意 pnpm 10 已不再读 `package.json` 的 `pnpm.overrides` 字段），`pnpm install` 后锁定 `lru-cache@5.1.1`。预防——依赖清理后必须重跑一次 `build`+`upload` 冒烟；传递依赖版本漂移用 workspace `overrides` 钉死，不要依赖提升顺序。
-- **固件**：
-  - U1 `platformio.ini` 引用 `board_build.partitions = min_spiffs.csv`，但该文件依赖 Arduino-ESP32 框架内置路径，在跨机器/CI 环境可能解析失败。已将标准 `min_spiffs.csv` 入库到 `firmware/u1-grbl/extra/min_spiffs.csv` 并改本地引用。
-  - U8 默认日志级别在 `sdkconfig.defaults` 未显式设置，默认可能是 VERBOSE/DEBUG，生产串口日志冗余。新增 `CONFIG_LOG_DEFAULT_LEVEL_INFO=y` 统一裁剪。
-- **文档**：
-  - `docs/getting-started.md` 前置条件表仍写「Java JDK | 21 | manager-api 编译」，CI 章节仍列「Java 测试 — manager-api 76+ 测试」。实际上 manager-api 已迁移至 LiMa 主项目，已清理避免误导新成员。
-- **教训**：
-  - re-export 门面模块必须配「符号完整性测试」，否则重构子模块时门面会静默腐化，只有生产导入才暴露。
-  - 静态资源头文件（`_headers`）与部署脚本 `FILES` 列表是两处易脱节的配置，任何新增静态策略文件都要同步进部署清单。
-  - i18n 多语言文件适合用「key 一致性」脚本做 CI 门禁，比人工 review 可靠。
-  - 固件构建工具链（PlatformIO/ESP-IDF）与 Python 版本强绑定，本地环境损坏时无法即时验证，应在 CI 中固化编译矩阵。
-
-## 2026-07-03 M1 全项目审计：P0 安全/正确性发现与修复
-
-- **CRITICAL 级（小程序/固件侧）**：
-  - 上传私钥 `private.wxbf3c1e0013b46343.key` 存在于工作区，但 `git log --all` 确认**未进入 git 历史**。风险：本地泄露；已加 README 保管提示。
-  - 生产 `NODE_ENV = 'development'` 导致 vite 压缩/tree-shake 失效；已修正为 `production`。
-  - `vite.config.ts` 裸 `console.log` 打印全量 env；已移除。
-- **HIGH 级**：
-  - 后端静默降级：`xiaozhi_drawing/pipeline.py` 存在 `except ImportError: pass`（AGENTS.md 硬规则精确禁止模式）；已改为 `logger.warning`。
-  - CI 门禁盲区：`tests/test_ci_gates.py` 仅扫 `device_gateway/` + `routes/` + 根路由文件，遗漏 `xiaozhi_drawing/`、`context_pipeline/`、`session_memory/` 等；已改为排除式扫描，并补 `.worktrees` 到 skip 集合。
-  - 小程序非微信端流式静默失败：无轮询实现却假装支持；已改为 fail-loud。
-  - Chat Web 图片生成 XSS 面：只校验协议未校验域名；已加白名单。
-  - U1 OTA 无签名/弱认证：默认禁用 WebUI OTA 入口（403）。
-  - U8 端点无签名下发：OTA 服务器可推送任意 mqtt/websocket 端点；已加白名单。
-  - 固件文档滞后：服务端组件已删除但 Dockerfile/README 仍指向；已清理。
-- **M1 遗留项**：
-  - `deploy_chat_web.py` 因远程 `/var/www/chat` 目录不存在而失败。根因：脚本未在部署前 `mkdir -p`。建议：要么运维手动创建，要么在 P2 阶段把 `mkdir -p {REMOTE_DIR}` 加进 `deploy_chat_web.py` 并重新部署。
-  - `.worktrees/` 中 `feat-device-task-metrics` 与 `feat-handwriting-resilience` 分支仍含静默降级，但当前未进入主分支；这些 worktree 未来合并前需清理。
-- **教训**：
-  - 排除式 CI 扫描比包含式更健壮；但需把 `.worktrees` 明确加入 skip 集合，避免把特性分支未完成债务误判为 main 回归。
-  - 前端构建日志是 secret 泄露面；`vite.config.ts` 的 `console.log` 会被 CI 完整记录，且不受 `esbuild.drop` 约束。
-  - 固件服务端迁移后，必须同步删除 Dockerfile 并更新历史 README，否则新成员会按错误文档操作。
-
-## 2026-07-03 M2 全项目审计：P1 质量/文档/测试发现与修复
-
-- **后端质量**：
-  - `session_memory` 迁移重试、`observability/jsonl_store` 日志轮转、`context_pipeline/chroma_vector_store` 降级等路径原先只 `logger.debug` 或无日志，AGENTS.md 硬规则要求「禁止静默降级」至少 `logger.warning`；已统一改为 warning 并说明 fallback 原因。
-- **Chat Web**：
-  - 域名配置分散在 `index.html` 与 `js/app-boot.js` 两处，运维切换 Chat Web 入口时需改两处，易遗漏；已收敛到 `window.LiMaConfig` 单点配置。
-  - 部署脚本 `deploy_chat_web.py` 未处理远程目标目录缺失，新 VPS 首次部署即失败；已加 `mkdir -p` 支持多级目录（`js/` 子目录）。
-- **小程序（uni-app）**：
-  - 类型债务：`utils/index.ts` 大量 `any`、无 `SubPackage` 类型、`deepClone` 类型不精确；已收敛类型。
-  - 死代码：`store/config.ts` 无引用、`store/user.ts` 重复清除 `userInfo`、`utils/platform.ts` 依赖未定义宏；已删除/清理。
-  - API 层不统一：`chatCompletion` 仍使用原生 `uni.request`，与项目整体 alova 封装不一致；已迁移到 `http.Post`。
-  - 安全开关：`manifest.config.ts` 与 `src/manifest.json` 的 `urlCheck` 在真机/生产环境为 `false`，可能放行未校验 URL；已改为 `true`。
-  - 测试覆盖：manager-mobile 无单元测试；已引入 `vitest` 3.2.6 + `jsdom` 并覆盖 `deepClone` 纯函数。
-- **固件**：
-  - U8 `main/CMakeLists.txt` 包含 ml307/nt26/dual_network/rndis/esp_video 等非目标板源码，增加构建面与误触发风险；已移除。
-  - U1 `platformio.ini` 的 `[env]` 默认 `board = esp32` 与下方 `release_esp32s3` 覆盖关系未注释，新成员易误读默认配置；已补充说明。
-  - 边缘协议 schema 文件无版本号，向后兼容难追踪；已统一加 `schema_version: "1.0.0"`。
-  - `docs/schemas/edge_*` README 仍指向旧固件服务端，未说明已迁移至 LiMa `device_gateway`；已加迁移横幅。
-- **教训**：
-  - 小程序 manifest 双文件（`manifest.config.ts` + `src/manifest.json`）需同步维护，否则版本 bump 或安全开关会丢失。
-  - 子模块内嵌套目录若含独立 git 仓库，提交前要确认当前 working tree 属于哪个仓库，避免把指针提交错仓库。
-  - 前端引入测试框架时需注意与现有 vite 大版本兼容（vitest 4.x 与 vite 5 冲突），应锁定小版本。
-
-
-## 2026-07-03 U 批：routes/device_gateway_ws_handlers.py hello 握手机制抽到 device_gateway_hello_helpers.py
-
-- **稳定单例顶层导入安全，但「属性替换」patch 仍须迁移目标模块**：`attestation_verifier` 经 ripgrep 确认无 `set_*_for_tests`/`install_*_for_tests` 接口——是稳定单例（S 批稳定 vs 可替换单例判定法），新模块顶层 `from device_gateway.attestation import verifier as attestation_verifier` 安全。但 8 处测试用 `monkeypatch.setattr(handlers, "attestation_verifier", isolated_verifier)` / `patch.object(handlers, "attestation_verifier", ...)` **替换模块属性为隔离 verifier**——`_check_attestation` 抽到 `hello_helpers` 后从 `hello_helpers` 查 `attestation_verifier`，patch 若仍指 `handlers` 则替换了旧模块的属性、新模块读到的还是全局 verifier，测试隔离失效。教训：**稳定单例的「顶层导入」只解决 R 批 from-import 绑定陷阱（swap 接口）；「属性替换式 patch」（monkeypatch.setattr 模块属性）仍须随符号迁移重指目标模块**。两类风险独立，判定法互补：ripgrep `set_*_for_tests` 判 swap 接口（决定导入方式），ripgrep `monkeypatch.setattr\|patch.object` 判属性替换（决定 patch 目标迁移）。
-- **公共入口留守 + 私有 helper 抽离的零调用方改动模式**：`handle_hello` 作为公共入口留在 ws_handlers，5 个私有 `_` helper 搬到 `hello_helpers`。`test_routes_device_gateway_ws.py` 的 `patch.object(dgws, "handle_hello", ...)` 绑定 WS 路由模块 `device_gateway_ws`（从 `hello_handlers` 导入 `handle_hello` 的下游），patch 的是路由模块的绑定名而非 handlers 模块——抽离 helper 不动 `handle_hello` 自身的定义位置，此类 patch 不受影响。对比 R/S 批整端点搬迁需修局部 app `include_router` + 路由模块 patch 目标，**「公共入口留守 + helper 抽离」是路由/状态模块的低风险拆分姿势**：调用方（含 patch 调用方的测试）零改动，仅需迁移 patch helper 内部依赖的测试。
-
-## 2026-07-03 T 批：device_gateway intent.py LLM planner 子域抽到 intent_llm_planner.py
-
-- **re-export 保持 backward compatibility**：LLM planner 子域搬走后，`DANGEROUS_CAPABILITIES`（生产 `prompt_engineering/layers.py` 导入）和 `_llm_replan`（测试 `dgi._llm_replan(...)` 调用）必须仍可从 `device_gateway.intent` 访问。用 `from device_gateway.intent_llm_planner import DANGEROUS_CAPABILITIES, _llm_replan  # noqa: F401  re-export` 保持——`is` 同一对象身份（非拷贝），特征化测试用 `assert dgi.DANGEROUS_CAPABILITIES is planner.DANGEROUS_CAPABILITIES` 锁定。教训：**抽离被外部依赖的符号时，re-export + noqa: F401 + 特征化测试三件套保证 backward compatibility 不破**。F401 全局门禁会拦未标注的 re-export，`# noqa: F401  re-export` 注释是必需的。
-- **纯函数子域抽离 vs 路由/状态类抽离风险对比**：T 批（intent.py 纯函数）零 router/monkeypatch 风险——4 测试文件只 patch 全局 `http_caller.call_api`（抽离后仍生效，因 `_llm_replan` 内部仍 `import http_caller` 调 `call_api`）。对比 R/S 批路由抽离需修局部 app `include_router` + `patch.object` 目标迁移，纯函数抽离只需 re-export + 改导入源。教训：**优先选纯函数子域抽离（零 router 风险），路由/状态类抽离留到纯函数空间耗尽后**。
-
-## 2026-07-03 S 批：routes/device_gateway.py events 端点抽离到 device_gateway_events_routes.py
-
-- **稳定单例 vs 可替换单例的导入策略**：R 批 lesson 是"`set_*_for_tests` 可替换单例必须延迟导入"。S 批验证了反面：`shadow_store` 和 `process_motion_event_core` 是稳定模块级单例（ripgrep 确认无 `set_*_for_tests` / `install_*_for_tests` / `monkeypatch` swap），顶层导入安全。模块 docstring 显式记录此区别，避免未来误把稳定单例也改延迟导入（增加无谓复杂度）或误把可替换单例用顶层导入（重蹈 R 批回归）。判断法：ripgrep `set_<name>_for_tests\|install_<name>_for_tests\|monkeypatch.*<name>` 全库无命中 → 稳定单例可顶层导入；有命中 → 必须延迟导入。
-- **patch.object 目标随模块迁移**：`test_routes_device_gateway.py` 的 5 个 events 测试用 `patch.object(dg, "validate_uplink", ...)` patch `routes.device_gateway` 模块属性。events 端点移到 `device_gateway_events_routes` 后，`validate_uplink`/`process_motion_event_core`/`shadow_store`/`ProtocolError` 不在 `dg` 上——`AttributeError: <module 'routes.device_gateway'> does not have the attribute 'validate_uplink'`。修正：patch 目标改指 `events_routes` 模块（`from routes import device_gateway_events_routes as events_routes` + `patch.object(events_routes, "validate_uplink", ...)`）。教训：**路由端点迁移到新模块时，所有 `patch.object(旧模块, "依赖名", ...)` 必须同步改指新模块**，否则 AttributeError。
-
-## 2026-07-03 R 批：routes/device_gateway.py 查询端点抽离到 device_gateway_query_routes.py
-
-- **Python 模块级 `from import` 绑定陷阱**：新模块 `device_gateway_query_routes` 初版用顶层 `from device_gateway.store import task_store` 绑定模块级单例。但 `install_task_store_for_tests()` / `set_task_store_for_tests()` 用 `global task_store` 替换 `device_gateway.store` 模块的 `task_store` 属性指向**新对象**——已顶层 `from import` 的模块仍持有**旧对象引用**，导致测试 `test_sessions.py::test_registry_remove_zombies_requeues_outstanding_tasks` 调 `install_task_store_for_tests()` 后，后续 `test_task_list_returns_tasks` 的 `create_task_from_transcript` 写入新实例、`device_gateway_query_routes` 读旧实例，`count=0` 回归。修正：4 个运行时单例（`task_store`/`task_snapshot`/`artifact_store`/`artifacts_for_device`）改回**函数内延迟导入**，每次调用重新解析模块属性拿当前实例——与原 `routes/device_gateway.py` 行为一致。教训：**涉及 `set_*_for_tests` 可替换单例的导入，必须用延迟导入（函数内 `from ... import ...`），不能用顶层 `from import`**，否则测试隔离回归。
-- **局部 app 测试需同步 include 新 router**：5 个测试文件用 `app = FastAPI(); app.include_router(dg.router)` 构造局部客户端（不走 `server.app` 完整注册），抽离新 router 后这些测试需手动加 `app.include_router(query_router)`。用 `server.app` 的测试（`test_registration.py`、`test_json_body_contract.py`）自动获得新路由无需改。POST-only 测试无需改。教训：**FastAPI 路由抽离时，必须审计所有局部 `app.include_router()` 测试客户端**，不只是 `server.app` 集成测试。
-- **`APIRoute.path` 含 prefix 拼接**：特征化测试断言新模块 router 路径时，`APIRoute.path` 返回完整路径（含 `prefix="/device/v1"` 拼接），不是相对路径 `/tasks/{task_id}` 而是 `/device/v1/tasks/{task_id}`。断言须用完整路径。
-
-## 2026-07-03 Q 批：device_gateway profiles.py 约束施加抽离到 profile_constraints.py
-
-- **粗粒度尺寸目标耗尽后的发现手段**：P 批闭环后 `check_code_size.py` 全过（0 个 >300 行文件、0 个 >50 行函数），需换更细发现手段。CodeGraph 孤儿审计（`codegraph_orphans.py --fanin`）标 `context_compressor.py` 为 ORPHAN，但 `find` + `grep` 全库核实磁盘已不存在——是 CodeGraph 数据库陈旧，非真死代码目标。教训：**CodeGraph 孤儿标记必须 ripgrep 二次核实**（与 G1b F401 审计 agent 不可信同一原则），图数据库可能滞后于磁盘。最终用"行数逼近上限扫描"定位 `profiles.py` 295 行（距 300 仅 5 行）为最值得抽离目标。
-- **TYPE_CHECKING 规避循环引用**：`profile_constraints` 需引用 `profiles.ResolvedProfile` 做类型注解，但 `profiles` → `device_profile` 链若 `profile_constraints` 运行时导入 `profiles` 会形成 `profile_constraints → profiles → device_profile` 与 `task_creation → profile_constraints → profiles` 的潜在环。解法：`ResolvedProfile` 仅在 `if TYPE_CHECKING:` 块下导入，运行时不导入、pyright 仍解析类型。pyright 0 errors 实证规避成功——此模式适用于"纯函数模块需引用上游 dataclass 类型但不需运行时调用"的抽离场景。
-- **F401 全局门禁副带收益**：抽离 3 函数后 `profiles.py` 的 `import json` 和 `from device_gateway.device_write_handler import record_simplification` 随之变死（K2+L+M+N 批启用的 F401 全局门禁会拦），第一时间清理——证明 F401 门禁在重构时主动暴露死导入，而非等到 CI 报错。
-
-## 2026-07-03 P 批：本地 pre-commit 加 ruff format --check 守护 + 副 `_run` cwd 透传真 bug 修复
-
-- **根因**：O-3 调试历程暴露本地 pre-commit 入口 `scripts/run_ruff_check.py` 只跑 `ruff check`，CI 跑 `ruff check` + `ruff format --check` 两步——两端命令集合不对称，切片 spacing 漂移、Optional[X]→X|None 整理、EOL newline 等只破 format 不破 check 的差异在本地静默放行、到 CI 才暴露，每次都要补 fix commit + push retry。
-- **修复**：`run_ruff_check.py::run_ruff` 改为聚合 `ruff check` + `ruff format --check` 两次 subprocess，第一非零 returncode 即阻塞，stdout/stderr 透传组合；docstring 解释来历 + lesson learned O-3 链接。
-- **首次启用即实证价值**：本地空 staging 跑 pre-commit 立即抓出 2 处早已该 format 的长行漂移（`deploy/jdcloud/deploy_jd.py` 长 URL、`tests/device_gateway/test_ws_lifecycle.py` 长函数签名），P 批顺手 format 清掉。
-- **副带 P-1 → 抓出 `_run` cwd 透传真 bug (P-2)**：P-1 push commit `c16a4f9d` 触发 CI `Type check changed Python files` 步骤，因 `deploy_jd.py` 被 diff 命中触发 pyright，发现 line 34 `_run("sha256sum -c prometheus.sha256", cwd=INSTALL_DIR)` 传 `cwd=` 但 `_run` 函数签名只有 `check`、`cwd` 被静默忽略——`sha256sum -c` 实际在错误工作目录跑。这是**潜伏已久的真 bug**，校验在错误目录跑可能误判通过。给 `_run` 加 `cwd: Path | None = None` 参数透传 `subprocess.run(..., cwd=cwd)`，pyright 0 errors。
-- **教训 (CI 「Type check changed Python files」 是隐式宽覆盖扫描)**：本地只在 `--full` pre-commit 或 user-changed 时跑 pyright 在指定文件，CI 的 `Type check changed Python files` 是 `git diff --name-only HEAD~1..HEAD --diff-filter=ACMRT` 每次自动扫**所有动过的 .py** —— 单一文件可能即使不是改动核心，只要被 diff 命中就 pyright。这是隐藏的"宽覆盖 pyright 扫描"。今后涉及工具脚本（不在权威文件清单）改动应本地手动跑 `pyright <改动文件>` 与 CI 同步，否则 pyright 失败往往伪装成「CI 又红了」回环 retry 浪费。
-- **教训 (CI/本地守护对称原则)**：CI workflow 与本地守护脚本必须跑 **同一套** 命令集合（ruff check + ruff format --check），否则本地绿 CI 红会反复发生。重构 grep 双方文件 `.github/workflows/test.yml` 与 `scripts/run_ruff_check.py` 比对 ruff 命令是审守护对称的最简方法。
-
-## 2026-07-03 P 批：本地 pre-commit 加 ruff format --check 守护（CI 与本地守护对称）
-
-- **根因**：O-3 调试历程暴露本地 pre-commit 入口 `scripts/run_ruff_check.py` 只跑 `ruff check`，CI 跑 `ruff check` + `ruff format --check` 两步——两端命令集合不对称，切片 spacing 漂移、Optional[X]→X|None 整理、EOL newline 等只破 format 不破 check 的差异在本地静默放行、到 CI 才暴露，每次都要补 fix commit + push retry。
-- **修复**：`run_ruff_check.py::run_ruff` 改为聚合 `ruff check` + `ruff format --check` 两次 subprocess，第一非零 returncode 即阻塞，stdout/stderr 透传组合；docstring 解释来历 + lesson learned O-3 链接。
-- **首次启用即实证价值**：本地空 staging 跑 pre-commit 立即抓出 2 处早已该 format 的长行漂移（`deploy/jdcloud/deploy_jd.py` 长 URL、`tests/device_gateway/test_ws_lifecycle.py` 长函数签名），P 批顺手 format 清掉。
-- **教训 (CI/本地守护对称原则)**：CI workflow 与本地守护脚本必须跑 **同一套** 命令集合，否则「本地绿 CI 红」将反复发生，每次测试 CI 来确认 commit 行为是慢反馈。重构 grep 双方文件 `.github/workflows/test.yml` 与 `scripts/run_ruff_check.py` 比对 ruff 命令是审守护对称的最简方法。今后若 CI 加新 lint rule（如 Ruff 更新带新 rule），同步加进本地守护。
-
-## 2026-07-03 O 批 CI 修复：pyright authority-files 步骤指向已迁移的 routing_engine 包
-
-- **根因**：K2+L+M+N 推 push 后 GitHub Actions Tests workflow 失败。逐步定位到 `Type check authority files` 步骤 `pyright server.py routing_engine.py routes/chat_endpoints.py` 报 `File or directory "routing_engine.py" does not exist`（exit 4）。`routing_engine.py` 早已在历次抽离中拆成 `routing_engine/` 包（`__init__.py` 为权威 `route()` 入口 + `route_pipeline.py`/`execute_strategy.py`/`intent.py`/`post.py` 等子模块），但 CI 的 authority-files pyright 步骤硬编码了旧单文件路径。
-- **关键澄清**：CI 的 pytest / F401 安全门 / testside_f401_safety_gate 全部通过（`4395 passed, 17 skipped`；`pytest --collect-only OK`）—— 即 K2+L+M+N 的 F401 全局门禁与 N 批 pypinyin pin 在 CI 上真实生效（H1/I/J 集测在 CI 上因新装 pypinyin 不再被 importorskip 跳过，skipped 数下降）。失败**仅**在 pyright authority 步骤的过时路径，与瘦身改动无关。
-- **修复**：`.github/workflows/test.yml` authority 步骤 `routing_engine.py` → `routing_engine/__init__.py`；顺带更正 3 处其它过时引用 —— `scripts/repo_stats.py` KEY_FILES、`scripts/deploy_unified_common.py` CORE_FILES + phase_a SLICE_FILES。core slice 部署用 `_collect_runtime_files()` 动态收集不受影响（888 files 一直成功），过时引用仅影响 repo stats 显示与极少用的 phase_a slice，非阻塞但一并更正保工具准确。
-- **教训**：模块从单文件拆成包时，必须全仓 grep `<旧模块>.py` 字面量引用（CI workflow、部署清单、stats 脚本、文档），而非只改 import。`--diff-filter=ACMRT` 已使 changed-files pyright 步骤天然排除删除文件，但硬编码 authority 清单是盲点——authority 清单应改用包路径或 glob。
-
-## 2026-07-03 深度瘦身 K2+L+M+N 合批结项：F401 全局门禁启用 + 闭环 + CI 同步
-
-- **K2 教训 (e) 型态「fixture 间接依赖链」新发现**：G1b 记录的 F401 失败四型态 (a)(b)(c)(d) 之外，本批又发现第 (e) 型态 —— 「pytest fixture 间接依赖 fixture 链」。`import fake_u1` 在测试函数签名 (`test_xxx(lima_client, fake_device_server)`) 没出现，但 helper 模块下 `@pytest.fixture\ndef fake_device_server(fake_u1: dict)` 依赖 `fake_u1` 作为 fixture 参数；pytest 收集 test 时通过 fixture 依赖图 resolve `fake_device_server` 又递归 resolve 它的 `fake_u1` 参数，需要 `fake_u1` 名字在 helper 模块的 namespace 里可见，而 import 就是为了让 helper 模块加载到 sys.modules 完成 fixture 注册。删了立即 `fixture 'fake_u1' not found`。修复：尽管理论上 import 不必保留（pytest 应自行发现 fixture），实证删 import 即错——保留 import + `# noqa: F401  pytest fixture, transitively required` 注释释明。
-- **L 批 grep-误报 lesson**：ruff F401 报告里附带的 dashed-name bare token 用 `\b...\b` grep 验证会命中**字符串字面量 / 注释 / 函数名** —— `pytest` 命中 `"pytest"` 字符串比较 `"pytest"`、`json` 命中 httpx keyword `json={...}`、`asyncio` 命中 `@pytest.mark.asyncio` 装饰器名（**那不是 asyncio 模块用法**）、`http.client` 命中 docstring "WebSocket client"、`sys` 命中 `via sys.modules` 注释。本批 audit 脚本 grep 显示 6 risky 实际全可删。教训：grep `\bNAME\b` 作为 F401 真死判断不够，需配合上下文人工识别（字符串字面量 vs 真模块用法），但配合 ruff --fix 的 pure 删除模式（ruff 不删 active import），可大胆 `ruff --fix` 后立即 pytest 验证。
-- **M 批生产侧 exclude reference lesson**：reference/grbl_fix/ 5 个 F401 在 `sys.state` 等 C++ 代码字符串字面量里被 ruff 识为活，但 module sys 真死。决策按 AGENTS.md「禁止暂存参考仓库」改为在 `ruff.toml` `exclude = ["reference/**"]` 直接豁免，不删 F401。这与生产路径 F401 gate 启用后不冲突——exclude 的目录 ruff 完全不扫，对主线行为产线零影响。
-- **M 批 ruff format 副作用 lesson**：`ruff --fix --select F401 .` 不会改 format，但本批紧跟的 `ruff format .` 一并规范化了 23 个生产 / tests 文件（EOL 缺尾 newline / 单→双空行 / Optional[X]→X|None 等 G1b 后周期早应做过的格式化）。这些 silent 升级 G1b 时是否有意保留 NO，本批一并打平。教训：每次格式化 repo-wide 各种 small NIT 改动，应单独 commit 或明确记录到 progress，避免 noise 混进 F401 逻辑批的 commit。本批遵守「K2+L+M+N 合一 commit」原则一次过。
-- **里程碑意义**：F401 全局 gate 启用 = 从 G1b 提出的「四型态具名失效 + lesson learned」到现在的工程闭环。今后 TDD 抽离批次会有 ruff 全 repo F401 0 报告做 baseline 守护，新的死 import 引入会立即被本地 commit + CI 双门拒收，不再有 F401 静默死代码潜逃空间。H2 的 F401 安全门 (`pytest --collect-only`) 与 M 的 ruff F401 全局 gate 形成两层防线 —— ruff 第一道静态过滤，pytest 收集动态验证字符串匹配/fixture 间接依赖 (d)/(e) 型态。
-
-## 2026-07-03 深度瘦身 K 批次结项：测试侧 mixed 桶 10 文件 39 个真死 imported-name 逐文件清理
-
-- **K 批次审计 agent 不可全信 lesson**：本批再次证明「依靠 Explore/general-purpose agent 给出的 F401 归桶分类绝不可直接作为删除依据」。审计 agent 在 mixed / domain dead 两桶里把 `fake_device_server`/`fake_u1`/`lima_client`/`accept_share`/`client`/`seed_guest` 归为「domain dead imports 可删」—— 但这 6 名都是 G1b 已显式记录的 (d) 「pytest fixture 字符串匹配注入」型态（在测试函数签名作为参数名出现、pytest 收集期注入、ruff 看不见），删了会再现 18 ERROR。**教训**：F401 批量清理的 grader 必须是「亲自 Read + ripgrep 含 `@pytest`/`pytest.`/fixture 名/builtin 装饰器等多重 grep」人工审视，agent 报告只能作为初始引导而非最终删除清单。本批用此方法把 plan 锁定的 37 个删名扩展到 39 个（补了 `os` 与 `verifier as attestation_verifier` 两个我之前 Read 时漏审的真死名）。
-- **K 批次 monkeypatch.setattr 字符串属性 ≠ import 别名 lesson**：`test_device_attestation.py` 中 `attestation_verifier` 字符串出现在 `monkeypatch.setattr(handlers, "attestation_verifier", ...)` 多处，第一反应会认为 import 别名 `verifier as attestation_verifier` 是必需的；实际 `setattr` 的第二参数只是属性名字符串，handlers 自己有 `attestation_verifier` 属性，本文件 import 的别名并不被引用，删安全。这种「import 别名 = 已存在 attribute 名」的字符串字面量引用是另一种 F401 隐蔽活跃假象。
-- **K 批次新形态「局部变量遮蔽 import」lesson**：`test_provider_automation_model_entry.py` 中 `from provider_automation_helpers import entry` module 与文件内每个测试函数的 `entry = ProviderModelEntry(...)` 局部变量同名，所有 `entry.xxx` 都用局部实例、永远不引用 module import。这意味着 module import 真死可删，但需 visualize 全文件每个 `entry` 出现位置的上下文（`entry = ProviderModelEntry(...)` 分配行 vs `entry.xxx` 使用行）才能区分二者。ruff 默认把 import `entry` 视为活（因为名字 `entry` 在文件中出现），实际是遮蔽假活 —— ruff 此处表现尚算正确报了 F401，但人工审视要小心局部变量同名遮蔽带来的视觉混淆。
-- **K 批次不动 6 文件 (d) 注入型态说明**：fake_u1_cloud 4 文件 (`test_fake_u1_cloud_draw_svg.py` / `home` / `rejection` / `write_text`) 与 device_app_sharing 2 文件 (`test_device_app_sharing.py` / `_permissions.py`) 的 `fake_device_server`/`fake_u1`/`lima_client`/`accept_share`/`client`/`seed_guest` 在测试函数签名参数出现，属 (d) pytest fixture 注入型态。这两类真正永久解法：(a) 在 helper 模块 (`fake_u1_helpers.py` / `device_app_sharing_helpers.py`) 的 `# noqa: F401` 上注明 re-export/fixture 用途；(b) 在消费测试文件直接 `# noqa: F401` 后跟 `# fixture injected by pytest` 释明。本批暂留 K2 批处理。
-- **K 批次效果**：测试侧 F401 总数从 141 减到 102（删 39）；含 F401 文件数从 91 减到 81（删文件内全部 F401 的进入 0 报告状态）。门禁全程绿，无运行时行为变化。
-
-## 2026-07-03 深度瘦身 J 批次结项：唤醒词握手层抽离到 accept_websocket_upgrade 纯函数
-
-- **J 批次 accept_websocket_upgrade 接缝设计结论**：抽离不另起新模块（Ponytail YAGNI：能不拆就不拆）——握手协议就放在 http_server.py 顶部模块层级，与 `build_handler_class` 工厂并列；接受 duck-typed `handler` 参数注入 `.headers.get / .send_response / .send_header / .end_headers / .send_error / .connection / .wfile` 七个实例 API，返回 `(reader, writer)` 或 `None`（已 send_error 后）。**关键设计点**：_RDONLY 直引 `SimpleHTTPRequestHandler` 类型注解就够（不需要顶层属性 + lazy `_resolve_*()` 兜底链模式，因为 handler 是从类外部注入而不是要在 importlib 无父包环境里相对导入），相比 `websocket_session / bridge_request_handler` 的 callback 注入模式更简单。`_handle_websocket` 从 >20 行收紧到 ~9 行接缝（`upgraded = accept_websocket_upgrade(self)` → `None 则 return` → `reader, writer = upgraded` → `serve_websocket_session(...)`）。
-- **J 批次契约特征化测试 lesson learned**：I 批次 plan 在候选清单里提到「Sec-WebSocket-Version 不校验」是潜在改进点，本批 TDD RED-first 把它显式化为特征化测试 `test_websocket_handshake_succeeds_without_sec_websocket_version`——用 `ws_handshake(include_version=False)` 触发握手，断言还能 101 + 收到 bridge_connected ready frame。**教训**：纯结构重构步骤里若有「未来可改进 X」的契约盲点，先把现状显式写成特征化测试，是把隐性契约转成显式契约、避免将来悄悄收紧校验时 silent break 浏览器/客户端的最廉价手段。本测试若将来引入 Version 13 严校验会变红，由改 PR 显式决策契约方向，而非静默回归。
-- **J 批次进度同 I 批次一致**：full 4427 → 4428 passed（恰好 +1）、check_code_size PASS、ruff + pyright 全过、http_server.py 170 → 187 行（结构 +17 行新函数 / -9 行 _handle_websocket，净 +1 行，远低于 300 限）。
-
-## 2026-07-03 深度瘦身 I 批次结项：唤醒词 http_server 类工厂抽离 + 握手错误路径特征化测试
-
-- **I 批次死代码诊断结论**：F2 抽离 `frame_codec`、G2 抽离 `bridge_request_handler`、H1 抽离 `websocket_session` 后，`data/digital-human/wakeword_runtime/runtime/http_server.py` 的 `_build_server` 内嵌 `TestRuntimeHandler` 类残留 **7 个一行 delegator wrapper 方法**（`_build_wakeword_config_message` / `_handle_bridge_request` / `_save_wakeword_config` / `_receive_websocket_message` / `_read_exact` / `_send_websocket_text` / `_send_websocket_frame`），方法体都只是 `return <已抽离模块的顶层函数>(...)`，但因 `_handle_websocket` 改成直接调 `websocket_session.serve_websocket_session(...) / bridge_request_handler.handle_bridge_request(...)` 等顶层函数，**全仓 ripgrep `self._<method>` 0 命中**，确认是纯死代码。**教训**：每一次「抽离纯函数模块 + 把调用点委托到顶层」的重构收尾必须 grep `self._<method>` 审计遗留 delegator，否则会静默残留无消费者的一行包装直至下次人工巡察——本批 7 个 wrapper 累积已 ~6 月（跨越 F2/G2/H1 三批，每批抽离后未立即清 delegator，全部留到本批一次性销账）。**改进**：未来抽离批次步骤应固化「5 解析调用点 → 6 调用点委托到顶层函数 → 7 grep `self._<原wrapper>` 删 delegator」三步成链条。
-- **I 批次类工厂抽离结论**：原 `_build_server` 把 `class TestRuntimeHandler(SimpleHTTPRequestHandler)` 嵌在闭包体内只捕获 `test_root / event_bridge / schedule_restart` 三个自由变量。抽到模块级 `build_handler_class(test_root, event_bridge, schedule_restart) -> type[SimpleHTTPRequestHandler]` 后——(1) 与三个姐妹模块（`frame_codec` / `bridge_request_handler` / `websocket_session`）「模块级纯函数」风格对齐，handler 类也可在 `http_server.build_handler_class(...)` 直接构造/单测而无需实例化 `TestRuntimeHttpServer`；(2) `_build_server` 收缩到 4 行「调工厂 + ThreadingHTTPServer + daemon_threads + return」；(3) 闭包捕获不变（仍是同 3 个 deps），无新运行时行为，纯结构重构。**保留不抽的部分**：`_handle_websocket` 握手路径仍强依赖 `self.headers / self.send_response / self.send_error / self.wfile / self.connection`，本轮不动；并在模块顶部 ponytail docstring 标注上限「握手层强依赖 SimpleHTTPRequestHandler 实例 API」+ 升级路径「换 wsproto/starlette 框架后将握手层一并下沉」。
-- **I 批次握手错误路径特征化测试结论**：H1 端到端集测只覆盖 happy-path 101 握手（通过 support helper `ws_handshake` 的隐式 `"101" in status_line` + `Sec-WebSocket-Accept` 校验），**两 BAD_REQUEST 分支（无 Upgrade 头、无 Sec-WebSocket-Key 头）此前零覆盖**。本批以特征化测试（非新功能、锁现有契约）补 2 个 http.client 测试，跑过即绿，使下一步类工厂抽离有完整回归网。**意义**：TDD 在纯结构重构场景下「先 RED 不可能、改用特征化测试锁现有契约」是正确变体——这是 TDD-not-an-ideology 的可证实用法。
-- **I 批次 from-import 收敛结论**：删 7 个 wrapper 后唯一引用 `read_exact` / `send_frame` 的代码消失，把 `from .frame_codec import compute_accept, read_exact, receive_message, send_frame, send_text` 收敛到 `from .frame_codec import compute_accept, receive_message, send_text`（3 个），减小模块接口表面积、消除 F401 风险。
-
-## 2026-07-03 深度瘦身 H1+H2 批次结项：测试侧 F401 安全门工具化 + 唤醒词 WebSocket 会话抽离
-
-- **H2 F401 安全门工具化结论**：基于 G1b lesson learned（四类具名失效型态，特别是 pytest fixture 字符串匹配 (d) 类对 ruff 完全不可见）建仓化安全门：新建 `scripts/testside_f401_safety_gate.py`——本门在 pre-commit 流程中当且仅当 staged 文件含 `tests/*.py` 时触发 `python -m pytest --collect-only -q`，若收集失败（含 ERROR 等级）按 ERROR 行解析出失败测试文件，跳过 baseline-skip 文件后打印失败列表 + 四型态提示 + 收集尾 30 行 triage 输出，返回非零阻止提交。**设计要点**：(1) 触发型态判定用「file path 是否在 tests/ 子树」简单前缀，不依赖 git staged 列表的 pandas 化；(2) `--baseline-skip-from` 接受已知破损文件清单（不与 stdin 冲突），让渐进清理批可豁免旧债；(3) main() 函数经 `_build_argparser()` + `_print_blocked()` 拆分保持每个函数 ≤50 行通过 check_code_size；(4) 集成入 `run_pre_commit_check.py` 的 `run_testside_f401_safety_gate()`，置于其他快速检查之后、`--full` pytest 之前，保证 fixture-removal 类失败被快速捕获而非慢跑后才察觉。10 个 gate 单测验证纯 helper 行为（path 过滤、ERROR 解析、baseline 过滤、main 早早返回路径），不调用 pytest 本身避免依赖。**意义**：把 G1b 的「人工 lesson learned」永久固化为门禁，使下一批测试侧 F401 清理工作时即便是不同执行人，也能在误删 fixture 时直接被本地 commit 拒收，不再依赖运行时 pytest 才发现 18 errors 类型的灾难。
-- **H1 wakeword WebSocket 会话抽离结论（了结 G2 「`_handle_websocket` 仍需先补端到端测试」遗留）**：以 TDD 方式补 `tests/test_wakeword_session_integration.py`（5 个端到端集成测试）：用 importlib + sys.modules alias package（`wakeword_runtime_pkg.{runtime,bridge}` 合成包）让 hyphen 路径 `data/digital-human/...` 可导入；fixture 在 ephemeral port 0 起 TestRuntimeHttpServer + 内嵌 plumbing（seed config.json/models/keywords.txt），测试驱动 raw socket + http.client + 手写 RFC6455 client handshake 跑 `/health`、握手 Ready 帧、`set_wakeword_config` round-trip、restart、unknown type fallback 五例。`pytest.importorskip("pypinyin")` 跳过外部依赖缺失环境以保证集测可跑。集成测试通过后（守住现有行为），抽 `_handle_websocket` 内嵌 46 行事件循环体（post-handshake 的 client_queue.add → greeting → 双向轮询 → finally remove）到 `websocket_session.py`（99 行纯函数模块 `serve_websocket_session(reader, writer, bridge, test_root, schedule_restart, send_text_writer, receive_reader_writer)`），http_server 仅保留 HTTP/WebSocket 握手（强 self.send_response/headers 依赖），178→164。沿用 frame_codec/bridge_request_handler 模式：`handle_bridge_request` 与 `build_wakeword_config_message` 顶层属性（非 from-import）链入由 http_server.py import 后 setattr 真实实现；测试可 setattr 注入 fake。集成测试在抽离前后全过，证明运行时行为不变。**关键 lesson learned 沉淀**：导入 plumbing（cosmetic alias package 注册 + http_server 加载 + WS frame helpers 计 130+ 行）必须在独立 `_wakeword_integration_support.py`（pytest 不收集因 `_` 前缀），保持 test 主文件 193 行 / support 191 行双双 ≤300；并验证 check_code_size 不漏判 scripts/testside_f401_safety_gate.py（73 行 main 函数拆 helper 通过 50 限）—— 两起台护在 H1+H2 落地中 ÷ 落林 met 限制反弹。
-- **门禁全程绿**：`ruff check .` / `ruff format --check` clean（仅格式化本批新增/修改的 4 个 production G2/H1 文件 + 6 个 H2 测试/脚本文件）；`scripts/check_code_size.py` PASS（0 文件 >300、0 函数 >50，需拆 `_print_blocked` 与 `_build_argparser` 后通过）；`pyright` 本批 4 个相关文件 0 errors 0 warnings；全量 `pytest --tb=short -q` → **4425 passed / 3 skipped / 2 deselected / 0 failed**（较 G1+G2 的 4410 +15，与 H2 +10 gate 单测 + H1 +5 集成测试 一致）。pypinyin==0.55.0 已 pin 入 `.venv310` 测试环境（与 `data/digital-human/wakeword_runtime/requirements.txt` 一致）使 H1 集成测试可正常运行。
-
-## 2026-07-03 深度瘦身 G1+G2 批次结项：台账销账 + 测试侧 F401 精选 + 唤醒词桥接请求抽离
-
-- **G1a PONYTAIL-DEBT 台账销账结论**：`check_code_size.py 残留 12 个 51-54 行函数`条目经独立 AST 扫描（51-55 行范围、全仓非排除目录）确认实际已 **0 个超限函数**（E6-E9 等早批已清理），条目陈旧。删除条目并补「已结清」记录，无代码改动。**教训**：PONYTAIL-DEBT 触发条件「触发下一个生产函数超 50 行时一并清理」始终未触发，但债务实际已被前批隐式清偿，台账与代码事实脱节 6 个月以上。台账需周期性自检（如 CI 阶段对每个「当前标记」条目跑一次 AST 验证），不能只等触发条件。
-- **G1b 测试侧 F401 精选清理结论**：测试侧 F401 共 202 处，分两群：(1) port-target / 隐式 fixture 用法（`pytest`/`os`/`time`/`unittest.mock.{MagicMock,AsyncMock,patch}`/`asyncio`/`importlib`/`builtins`/`threading` 共 ~80，多为 ruff 看不到的间接使用）—— 保留；(2) domain dead imports（`device_voice.exceptions.{AuthenticationError,ConfigurationError,VoiceProviderError}`、`device_gateway.attestation.*`、`client_keys.models.ClientKey`、`chat_models.{ChatRequest,Message}` 等 ~120，可安全删）。本批采用 STYPE 分类清理：49 个 STYPE_CLEAN 文件（safe-only）经 F1 别名感知审计全过 0 danger，逐文件 `ruff --fix` 移除共 84 处。剩 143 处为 KEEP-infra + mixed 文件留待后续批逐文件人工核对。
-- **G1b 二轮 + 三轮审计盲点 + 修复**：F1 提炼的「别名访问」具名失效风险再加上 pytest 用 conftest 把 `tests/` 加到 sys.path，消费者写 `from fake_u1_helpers import ...`（**前缀基名**而非 dotted path `tests.fake_u1_helpers`）。审计脚本的 `module == file_dotted_path` 严格相等漏掉此模式，`tests/fake_u1_helpers.py` 经 `--fix` 误删 `motion_task_to_u1_commands` 后下游 `test_fake_u1_protocol_translation.py` 收集失败。**修复**：恢复 import 附 `# noqa: E402,F401`，说明 re-export。
-- **三轮审计盲点（pytest fixture 字符串匹配）+ 修复**：恢复后仍 18 ERROR：`test_device_app_sharing.py`/`test_device_app_sharing_permissions.py` 用 `accept_share`/`client`/`seed_guest` 作 pytest fixture（在测试函数签名声明为参数），`test_fake_u1_cloud_*.py` 4 文件用 `fake_device_server`/`fake_u1`/`lima_client` 作 fixture。pytest 在**收集期**通过参数名字符串匹配发现 fixture，**对静态分析完全不可见** —— ruff 看不出这些 import 是 fixture 注入而非死导入。我的 INFRA_KEEP 列表只覆盖 `pytest`/`patch` 等内建 fixture，未覆盖测试模块自定义 fixture。修复：回退 6 个消费测试文件到 HEAD。**关键教训**：测试侧 F401 具名失效有四种型态 —— (a) `from <module_dotted> import <name>` 直引；(b) 模块别名访问 `<alias>.<name>`；(c) pytest sys.path 根基名引用 `from <baseline> import <name>`；**(d) pytest fixture 字符串匹配注入**（import 名作为测试函数参数名，由 pytest 收集期发现，ruff 完全不可见）。统一经验：**「批量 F401 清理安全门 = 删除前先 `pytest --collect-only` 通过全测试套件」**，而非单靠静态审计；或在 INFRA_KEEP 列表里把所有 `@pytest.fixture` 注解函数名 + 所有测试函数签名参数名全部动态加入 KEEP 集合。
-- **G2 唤醒词桥接请求 handler 抽离结论**：F2 抽离 WebSocket 帧编解码后，http_server.py 嵌套类内剩余 44 行 `_handle_bridge_request`（捕获 `test_root`/`schedule_restart` 闭包，结构清晰）是合适的下一抽离粒度。以 TDD 方式补 6 个 RED 测试（importlib 加载、含 fake save_wakeword_config 注入验证 publish/build_message 契约、save 异常降级路径、restart 调度、unknown/empty 类型 fallback），新建 `bridge_request_handler.py`（121 行纯函数模块，`handle_bridge_request` 主入口 + 2 个 helper）。**关键解耦**：`save_wakeword_config` 不在顶层 from-import（避 importlib 无父包相对导入失败），改为顶层 `save_wakeword_config: Any = None` + `_resolve_save()` 延迟相对导入兜底；http_server.py 在 import 后 `bridge_request_handler.save_wakeword_config = save_wakeword_config` 显式链入真实实现，测试用 `setattr` 注入 fake。`WakewordEventBridge` 类型注解改 `Any`（duck-typed 避开 F821）。http_server.py 213→178 行，闭包依赖与 `_handle_websocket` 事件循环不动。**遗留**：`_handle_websocket`（46 行，与 `client_queue` 紧耦合）仍需先补端到端 WebSocket 集成测试再考虑抽离。
-- **门禁全程绿**：`ruff check .` / `ruff format --check` clean（仅格式化本批改动的 4 个 G2 文件 + 7 个 G1b 测试文件因 `--fix` 后 ruff format 建议合并括号）；`scripts/check_code_size.py` PASS（0 文件 >300、0 函数 >50）；`pyright` 本批 3 个相关文件 0 errors 0 warnings；全量 `pytest --tb=short -q` → **4410 passed / 3 skipped / 2 deselected / 0 failed**（较 F1+F2 的 4404 +6 = G2 新增 6 个 bridge_request 测试）。
-
-## 2026-07-03 深度瘦身 F1+F2 批次结项：死导入清理 + 唤醒词 WebSocket 帧编解码抽离
-
-- **F1 生产路径 F401 死导入清理（精选策略）结论**：`ruff --select F401` 全库 341 处分布无序，但测试侧 ~253 处多为 patch-target 导入（曾导致 85 个收集错误），本批**只动生产侧**。采用「AST 审计 + 别名感知 + noqa 保留 re-export」两轮策略：第一轮扫测试 `from <module> import <name>` 与点号 `<module>.<name>`，识别 9 个 must-keep re-export，标 `# noqa: F401` 后逐文件 `ruff --fix`；首轮跑 pytest 出现 12 failed / 22 errors，根因是 server_bootstrap.MODEL_ID（被 server.py 生产侧 `from server_bootstrap import MODEL_ID` 重新引用）等 re-export 实际经**模块别名访问**（`dg._reset_for_tests()`、`_a.BACKENDS`、`hs.flush_pending_save()`、`text_to_path.list_handwriting_fonts()`），第一轮纯文本扫描漏检。第二轮「别名绑定 → 别名点号访问」双向解析审计覆盖全仓未改文件，补出 9 个 must-keep，全用 noqa 恢复后门禁转绿。**关键教训**：模块别名（`import M.sub as A` / `from pkg import sub`）会把 re-export 使用方从源模块全名变成短别名，单测「import 一次 = 可被 patch」不是高危机型态；「re-export 被下游模块别名访问」才是更高危且更隐蔽型态。安全审计必须同桌双向解析。统计：清理 ~97 处（91 真死导入 + 17 noqa 保留 re-export，少数原有重叠）。剩余测试侧 F401 ~253 处留待后续单独批逐文件人工核对。
-- **F2 唤醒词 WebSocket 帧编解码抽离结论**：E8 批次曾保守地把自我/socket 依赖的 WebSocket 帧实现留在内嵌 handler 中（无测覆盖、不敢盲拆）。本次以 TDD 方式补齐：先全 16 个 RED 测试（`tests/test_wakeword_frame_codec.py`，用 importlib.spec_from_file_location 加载避开 hyphen 路径不可直接 import 问题，覆盖 compute_accept RFC6455 范例向量、read_exact 短 EOF、receive_message masked/unmasked 解掩码/ping 自动 pong/close 抛 ConnectionAbortedError/pong 忽略/未知 opcode/126 扩展长度/空载荷、send_frame <126/126/127 三种长度编码、round-trip），再新建 `data/digital-human/wakeword_runtime/runtime/frame_codec.py`（118 行纯 stdlib 函数模块包含 compute_accept/read_exact/receive_message/send_frame/send_text 五个纯函数，模块头附 ponytail 注释说明上限「仅 RFC6455 最小帧子集，无分片/RSV」与升级路径「换用 wsproto」），最后 REFACTOR http_server.py 委托：`_handle_websocket` accept 计算、`_receive_websocket_message`、`_read_exact`、`_send_websocket_text`、`_send_websocket_frame` 全部委托 frame_codec。**闭包依赖 `test_root`/`event_bridge`/`schedule_restart` 与 `_handle_websocket` 事件循环主逻辑不动**，仅 codec 抽离；WebSocket 帧读写仍由 `self.connection`（reader）/`self.wfile`（writer）传递，运行时行为不变。http_server 274→212，新模块 118 行附 ponytail: 标记。**正式了结 E8 遗留**「WebSocket 帧实现仍为内嵌 284 行函数，未来需补测后再考虑拆分」。
-- **F3 test_jdcloud_push_probe.py 贴顶下移结论**：300 行贴顶的测试文件尝试提取 `monkeypatch_post` shared-feature 合并 3 处 `monkeypatch.setattr(push_probe_results, "_post_payload", ...)`：实测反而增至 305 行（fixture 定义净增 11 行，仅每个 test 删 3 行），未达瘦身目标，**回退**保持 300 行现状（贴顶但未破门禁，符合 ≤300 限额）。下次若需进一步降行，需用更紧凑 fixture + 函数尾部断言合并，或重排测试以合并相似前缀，但收益微小，优先级低。
-- **门禁全程绿**：`ruff check .` clean；`ruff format --check` clean（仅格式化本批改动的 4 个 routes/router_v3 文件，未触碰既有 10 个 pre-existing format-dirty 文件以避免污染 diff）；`scripts/check_code_size.py` PASS（0 文件 >300、0 函数 >50）；`pyright` 对本批改动的 8 个生产文件 0 errors（仅 `routes/device_gateway.py` 2 个与 F1 无关的既有 JSONResponse.get 误警，与 HEAD 相同）；全量 `pytest --tb=short -q` → **4404 passed / 3 skipped / 2 deselected / 0 failed**（较 E6-E9 的 4388 +16，与 F2 新增 16 个 frame codec 测试一致）。
-
-## 2026-07-02 深度瘦身 E6-E9 批次结项：长函数/退役端点/唤醒词抽离/台账同步
-
-- **E7 eval_internal 退役端点移除结论**：`routes/eval_internal.py` 自 v3.0 起为 410 Gone 桩（`/internal/v1/eval/call`，原用于 FRP 本地代理直连后端评估，编码能力退役后保留作占位）。经全库 grep 核实，生产代码与测试中仅路由注册 + 退役测试两处引用，**无任何运行时调用方**。确认安全删除：文件删除 + `route_registry.py` 注册行移除 + `test_eval_internal_is_retired` 测试移除。删除后 `route_registry` import OK，23 个 routing authority 测试全过（删除前 23→删除后 22，与移除单测一致）。
-- **E8 唤醒词运行时抽离结论**：`data/digital-human/wakeword_runtime/runtime/http_server.py` 是独立运行的唤醒词本地 HTTP 服务（含内嵌 `TestRuntimeHandler` + WebSocket 帧实现）。该文件位于 `data/` 目录（被 `check_code_size.py` 排除审计）且**无任何测试覆盖**。本次仅抽离「无 socket/self 依赖的纯逻辑」（配置读/写/拼音转换）到 `wakeword_config.py`，保留强依赖 `self.connection` 的 WebSocket 帧逻辑在内嵌 handler 中以免破坏未经测试的闭包语义。http_server 347→274，新模块 96 行并附 `ponytail:` 标记记录 pypinyin 依赖上限。**遗留**：WebSocket 帧实现仍为内嵌 284 行函数，未来需补测后再考虑拆分。
-- **E9 PONYTAIL-DEBT 台账同步结论**：核对源码后发现台账中 6 条标记对应代码已物理移除（capability_matrix/task_creation/task_events/mqtt_client/quota 的 lazy-import 解耦已落地、chat-web config.js 文件已不存），属「已结清但台账未销账」的脱节。同步删除 6 条失效条目、修正 3 条偏移行号、补录 1 条新标记。**教训**：台账应与每次解耦落地同步销账，否则会累积失真。
-- **门禁**：ruff/format clean；pyright 0 errors（pypinyin 可选依赖 warning 与抽离前一致）；check_code_size PASS；全量 pytest **4388 passed / 3 skipped / 2 deselected**（exit 0，149.56s）。
-- **下一步**：commit/push origin → VPS 部署 + 公网冒烟。
-
-## 2026-07-02 系统瘦身 P2-17/18/19/20 + 参考改善 T1/T2 全部闭环
-
-- **范围**：P2-17/18（UI 合并）、P2-19（settings 瘦身）、P2-20（except:pass 审查）+ T1-1（语义分类器）、T1-2（管道架构）、T1-3（Hershey 字体）、T2-2（健康探针）、T2-3（任务时间线）、T2-1（FluidNC 迁移准备）
-- **P2-20 发现**：83 处 `except:pass/continue` 中仅 3 处是真正的宽泛异常静默吞掉（违反硬规则 #1），其余 80 处是特定异常类型（`json.JSONDecodeError`、`KeyError` 等）的合法控制流。审查脚本需区分 `except Exception:` 与 `except SpecificError:` 才能准确识别违规。
-- **P2-19 发现**：6 种语言中 4 种（de/vi/pt_BR/zh_TW）是臆测添加——无实际用户、翻译不完整、i18n 键覆盖率低。裁到 zh_CN+en 后无任何功能损失。
-- **P2-17/18 发现**：mine 页面本质是「设置页的子集」——声纹入口、退出登录、关于、设置跳转，全部可合并进 settings。WorkshopHome 与 device-list 数据源相同（`v2GetDevices`），Hero 卡片设计相似，合并为零信息损失。write-draw-panel 已是 2 步简化流，create/ 是高级模式，两者并存合理。
-- **T1-1 发现**：n-gram TF-IDF 方案在不引入 sentence-transformers 重型依赖的前提下实现了毫秒级语义匹配（< 1ms），准确率覆盖核心意图（coding/chat/explanation/translation）。比正则规则维护成本低一个量级。
-- **T2-3 发现**：Ledger 事件流已天然支持时间线查询，无需 schema 变更——`events_for_task` 已有事件记录，只需聚合视图层。
-- **验证**：Python 4391 passed / 0 failed；ruff check clean；pyright 0 errors；vue-tsc 0 errors；mp-weixin 编译成功。
-
-## 2026-07-02 小程序 UI 审查配合核实纠偏：三项指控两项伪判一项属实（BACKLOG-P2-1）
-
-- **背景**：瘦身审查报告提三项 UI 指控（create 937 行嵌套两层 tab、3 首页重叠、settings 744 行杂物），并附「chat 与 create 重叠」隐含问题。逐项核实源码后真伪分明。
-- **属实项**：`create.vue` 937 行嵌套两层 tab — **属实**。`mode`(ai-draw/image-draw) + `aiSubMode`(text/image) 两层切换，且两路走不同 API（`generateImage` 云生图 vs `v2SubmitTask` 设备任务），合成 937 行（script 254 + template 240 + style 430，style 占 46% 大头）。应拆两页，已拆（M2）。
-- **部分属实项**：3 首页重叠 — **部分属实**。mine 统计卡（设备/在线/任务 3 数字）与 index 智能体页 Hero 设备卡的数据重复；mine「设备管理」「设备配网」两菜单跳底栏已有的 tab（多 1 步冗余跳转）。已去重（M3：mine 删统计+删冗余菜单，转纯账号页；index Hero「设备 X 台」改为「在线 X/总 Y 台」吸收在线统计）。
-- **伪判项 1：settings 744 行「杂物」** — **不属实**。逐区块核实，全部是设置页职责（网络设置/缓存管理/隐私权限/通知订阅/注销账号/关于我们/语言设置），无一非设置功能混入。臃肿源于 7 个 section 的标题+卡片壳样式重复未抽组件，加 `useConfigStore`/`systemInfo` 2 处死代码。已抽 `SectionCard` 组件去样式重复 + 删死代码（M1），744→655 行。
-- **伪判项 2：chat 与 create 重叠** — **不属实**。chat 用 `chatCompletionStream`(文本流式 LLM)、create 用 `generateImage`+`v2SubmitTask`(生图/设备任务)，零交叉导入，入口逻辑不重复。不动。
-- **教训**：审查「行数/嵌套层数」计数可信，但「杂物/重叠」定性不可信。改 UI 前必须逐区块核实每个功能点的归属（是否真在该页职责范围、是否真与它页重复），不能按行数或审查措辞盲改。
-
-## 2026-07-02 agent 配置树合并纠偏：审查「8 棵树 9300 行重复」多数被 gitignore 不入库（BACKLOG-P1-4）
-
-- **背景**：瘦身审查报告称「~9300 行 agent 指令跨 8 棵配置树（`.agent`/`.claude`/`.kimi-code`/`.cursor`/`.joycode`/`andrej-karpathy-skills`/根），Ponytail 规则重复 6 处」，建议合并。
-- **纠偏结论**：8 棵树中 **5 棵被 `.gitignore` 忽略、不入库**（`.agent`=行361、`.claude`=行130、`.kimi-code`=行28、`.continue`=行363、`andrej-karpathy-skills`=行47）——这些是各 IDE/Agent 工具的**本地私有配置**，重复是工具生态正常现象，不应也不能「合并」。
-- **真正入库的 agent 树**仅 5 个：`.cursor`(2 rules)、`.joycode`(2 memory)、`skills`(14)、`AGENTS.md`、`CLAUDE.md`。其中真正冗余的只有 `.cursor/rules/` 两份：
-  - `ponytail.mdc`（`alwaysApply:true`）与 `docs/AGENTS_PONYTAIL.md`（被 `AGENTS.md` 引用为权威 Ponytail 顾问规则源）内容重复。
-  - `ecc-workflow.mdc`（`alwaysApply:true`）与 `docs/ECC_WORKFLOW_CN.md`（被 `AGENTS.md` 引用为权威 ECC 流程源）内容重复。
-- **处置**：删除 `.cursor/rules/ponytail.mdc` + `ecc-workflow.mdc`，`AGENTS.md` 保持单一权威源；保留 `.cursor/rules/lima-*.mdc`（未入库的本地 Cursor 私有 rules，不影响入库面）。
-- **教训**：审查把「本地工具私有配置」也算入「跨树重复」是口径错误。合并前必须 `git ls-files <tree>` 区分入库与本地私有——后者重复无害、前者才是可统一项。
-
-## 2026-07-02 静默降级审查纠偏：审查报告「16 处」实际一等生产路径仅 4 处（BACKLOG-P1-2）
-
-- **背景**：瘦身审查报告称生产路径有 16 处 `except: pass/continue` 静默降级，点名 `voice_pipeline_ws.py`/`mqtt_client.py`/`store_voiceprint.py` 各 2 处。用 Explore 子代理逐点实地核查。
-- **纠偏结论**：审查的「计数」准确（这些文件确各有 2 处 pure-swallow），但「严重度」错误——被点名的 6 处**全部合规**：
-  - `voice_pipeline_ws.py`：`asyncio.TimeoutError`→continue（队列轮询超时，正常循环）、`asyncio.CancelledError`→pass（关闭时等待已取消 worker）；两处广义 `except Exception`（L123/L131）不是吞——它们 `_send_error` 后 return，worker 广义 handler（L169）有 `warning(exc_info=True)`。
-  - `mqtt_client.py`：`asyncio.CancelledError`→pass（stop 时任务取消，兄弟 `except Exception`（L105）有 warning）、`asyncio.TimeoutError`→pass（消息泵 `wait_for` 超时后 drain，惯用法）；`except ImportError`（L187）不是静默——前面有两条 `_log.info`。
-  - `store_voiceprint.py`：两处 `sqlite3.OperationalError`→pass 均是 schema 迁移幂等（`# column may not exist yet` / `# Column already exists`），有注释；所有广义 `except Exception`（L51/L150/L185/L208）都有 warning。
-- **真正违反 AGENTS.md「禁止静默降级」的一等生产路径 = 4 处**（广义 `except Exception` 裸吞、零日志），本轮已全部修复补日志：
-  - `routing_executor_parallel.py`（并行降级执行器）、`speculative_execution.py`（推测竞速内层 future）、`observability/jsonl_store.py`（读遥测文件）、`provider_automation/adapters/cloudflare.py`（编码评分循环）。
-- **边界项（本轮不改，记录待排期）**：`packages/provider-probe-offline/provider_probe/reverse/auth_detector.py:64`、`pricing_probe.py:74` 各 1 处——冷离线提供商探测工具，不在生产请求路径，风险低。若后续要求「全仓零裸吞」再统一处理。
-- **教训**：修静默降级不能按 grep pattern 计数盲改。窄化异常（`asyncio.TimeoutError`/`sqlite3.OperationalError`/`json.JSONDecodeError`）做控制流是合规的；只有「广义 `except Exception` + 无日志 + 无重抛」才是违规。审查报告的计数可作线索，严重度判定必须逐点复核。
-
-## 2026-07-02 系统瘦身审查：四维度过度设计诊断 + DEPRECATED 标记误标发现
-
-- **背景**：用户质疑「小程序交互复杂化」+「后端过度设计」。对固件/后端/文档/小程序四维度做了量化审查，确认过度设计系统性存在。详见 `docs/superpowers/specs/2026-07-02-system-slimdown-design.md`。
-- **关键发现（误标 bug）**：`speculative_policy.py` 和 `capability_matrix.py` 顶部标 `# DEPRECATED v3.0 — coding capability retired`，但实际：
-  - `speculative_policy.py` 的 `AFFINITY`/`classify_complexity`/`get_affinity_backends` 被 `speculative.py`（请求流水线推测执行步骤）和 `context_pipeline/complexity.py` **活跃 import 使用** —— 是热路径，非死代码。
-  - `capability_matrix.py` 的 `classify_intent` 仍被 `tests/test_capability_matrix_intent.py` 测试。
-  - **直接删除会导致生产崩溃**。真实情况是「coding 能力退役，但模块本身未退役」。
-- **处理**：已修正两个文件的顶部注释，明确区分「coding 退役」与「模块退役」。`routes/eval_internal.py` 确为退役态（返回 410，测试断言），保持原状。
-- **教训**：「DEPRECATED」标记的语义必须精确 —— 标记某个能力的退役 ≠ 标记整个文件可删。删前必须 grep 调用方 + codegraph impact 双重确认。
-- **其他 P0 已完成**：修 AGENTS.md 3 处断链（reference/ECC→.claude/ecc、reference/ponytail/ 不存在）；修 STATUS.md Telegram 措辞矛盾（通知通道退役 vs gallery 存储 API 复用，两者不同）；删 `.claude/skills/gitnexus/`（与 AGENTS.md「禁止 GitNexus」冲突）；P0-2 U8 音频协议已选方案 A 并改代码。
-- **U8 音频协议矛盾（P0-2，已选方案 A，代码已改）**：用户选择方案 A「固件改 PCM」。已在 U8 固件实现上下行 PCM 透传，同时保留 MQTT/Xiaozhi 的 OPUS 编解码路径不破坏：
-  - `AudioStreamPacket` 新增 `format` 字段（默认 `"opus"`）；
-  - `protocol.h` 新增 `UsesPcm()` 接口，`WebsocketProtocol` 返回 `true`，`MqttProtocol` 继承默认 `false`；
-  - `application.cc` 在协议初始化后调用 `audio_service_.SetSendPcm(protocol_->UsesPcm())`；
-  - `websocket_protocol.cc` 对下行音频包设置 `format="pcm"`；
-  - `audio_service.cc` 的 `OpusCodecTask` 中：上行按 `send_pcm_` 选择 PCM 透传或 OPUS 编码；下行按 `packet->format` 选择 PCM 透传或 OPUS 解码；`PlaySound` 保持 `format="opus"`。
-  - **结果**：U8 连接 LiMa 时，hello 帧 `format="pcm"` 与实际发送格式一致；后端无需新增 OPUS 解码依赖。待实际烧录 U8 后验证实时语音/TTS 回放的端到端效果。
-- **BACKLOG-P0-1 已关闭**：`deploy_unified.py` 已支持 `--target {aliyun,jdcloud}`，默认 `jdcloud`，避免默认部署到旧 Aliyun pilot 而生产入口在 JDCloud 的错误。详见 `progress.md` 同日期条目。
-
-## 2026-07-01 前端匿名聊天请求已分流至阿里云 pilot
-
-- **结论**：chat-web、`www.donglicao.com` playground、manager-mobile H5 的匿名简单聊天请求现在会发送到 `https://aliyun.donglicao.com/v1/chat/completions`，由阿里云 `lima-router-pilot`（仅免费后端）处理。
-- **实现机制**：
-  - **chat-web**：`chat-web/js/app-config.js` 运行时判断无 API Key + 默认模型 + 无 tools/图片时选择 pilot；`chat-api.js` 统一通过 `LiMaConfig.getApiUrl()` 获取 URL；`sendMessage()` 在 pilot 返回 429/503/5xx 或网络错误时自动回退主节点一次。
-  - **官网 playground**：`donglicao-site-v2/app/developer/playground/page.tsx` 在 API Key 为空且 endpoint/model 为默认 chat 时自动切换 baseUrl。
-  - **manager-mobile**：`utils/index.ts` 新增 `getChatBaseUrl()`，未登录且默认模型时返回 `aliyun.donglicao.com`；`api/chat/chat.ts` 流式/非流式 chat 均使用该 baseUrl。
-  - CSP `connect-src` 已增加 `https://aliyun.donglicao.com`。
-- **部署**：
-  - GitHub Actions `Deploy Chat Web` / `Deploy Next.js Site` workflow 已自动部署到 Cloudflare Pages。
-  - 京东云 `/opt/lima-router/chat-web` 源文件已同步，作为 FastAPI `/chat/` 静态回源。
-  - 京东云 tunnel 入口由直连 `:8080` 改为 `https://127.0.0.1:443`（跳过 TLS 校验），恢复 nginx 作为入口，从而支持 `/mobile/` H5 目录。
-  - manager-mobile H5 构建 base 设为 `/mobile/` 并通过 `scp -r` 部署到 `/var/www/chat/mobile/`。
-- **验证**：
-  - `https://app.donglicao.com/` 与 `https://www.donglicao.com/developer/playground/` 均引用 `aliyun.donglicao.com`。
-  - `https://chat.donglicao.com/mobile/index.html` 返回 H5 入口，资源路径以 `/mobile/assets/` 开头。
-  - 直接 POST `aliyun.donglicao.com/v1/chat/completions`（Origin: chat.donglicao.com）返回 200，CORS 正常，后端为 `pollinations_openai`。
-- **风险与后续**：
-  - Cloudflare Worker 兜底/灰度方案已实施并验证：新增 `cloudflare/workers/chat-router.js`，部署到 `chat.donglicao.com/v1/chat/completions*`；无 Authorization 的匿名 chat 由 Worker 代理到 pilot（响应头 `X-Lima-Backend: aliyun`），pilot 异常时自动回源京东云（`X-Lima-Backend: jdcloud`）。
-  - manager-mobile 微信小程序包尚未重新上传发版；H5 已部署。
-
-## 2026-07-01 全栈深度质量检查（LiMa + Web + chat-web + 小程序 + 固件）
-
-### 检查范围与结果
-
-- **LiMa 后端**：pytest 4249 passed / 0 failed；ruff clean；pyright 0 errors；code size PASS（修复后）。
-- **donglicao-site-v2**（Next.js 官网）：XSS 0、密钥泄漏 0、SEO 正确、apex→www 重定向安全。发现 1 个 MEDIUM：`public/_headers` 缺 CSP/HSTS/X-Frame-Options（仅 X-Content-Type-Options + Referrer-Policy），加固版仅存在于未启用的 `nginx-headers.conf.example`。
-- **chat-web**（Cloudflare Pages 前端）：Turnstile 服务端验证正确（fail-closed）、SRI 完整、无密钥泄漏。发现 5 个 MEDIUM：(1) `_headers` 无 HSTS；(2) `'unsafe-inline' script-src` + sessionStorage token 提升 XSS 影响；(3) Turnstile site key 配置但 secret 缺失时静默放行；(4) `hash-assets.mjs` 遗漏根级 `chat-*.js`（immutable 缓存无 bust）；(5) devices.js status 插值未 escape（当前数据安全）。
-- **小程序 manager-mobile**：Bearer bug 已修复、AppID 一致、HTTPS/WSS 全覆盖。发现 4 个 MEDIUM：(1) 设备转移 unionid 发送为 `toPhone` 字段（后端契约待核实）；(2) 上传文件类型验证被注释掉；(3) 登录态基于 accountId 而非 token（可能误跳转登录）；(4) 非 WeChat 端 chat streaming fallback 为死代码。
-- **固件 esp32S_XYZ**：AUDIT-12 全部 6 项控制（OTA 签名/URL 白名单/WS 鉴权/坐标边界/日志脱敏）均 PRESENT 且无回归。发现 1 个 MEDIUM：`McpServer::DoToolCall` 跳过 `user_only` 执行门禁（未认证本地 WS 可 `tools/call self.reboot` DoS，固件安装仍被 F1 签名门禁阻断）。4 个 LOW：control_ws_token 无写入者（默认开放）、token 比较非常量时间、activation 失败日志含完整响应体、IDF floor 5.5.2 可升 5.5.3。
-
-### 本次修复（3 项）
-
-1. **`config/settings_core.py` 301 行 → 280 行**（违反 ≤300 硬规则）：提取 `get_key_pool_raw`/`resolve_backend_key`/`get_env` 三个纯函数到新 `config/settings_helpers.py`；`config/settings.py` 更新导入源。code size 检查从 FAIL → PASS。
-2. **Turnstile fail-open 警告**（`device_logic/turnstile.py`）：当 `TURNSTILE_SITE_KEY` 已配置但 `TURNSTILE_SECRET_KEY` 为空时，启动日志输出 `WARNING`（之前静默放行，无任何日志）。
-3. **死代码清理**（`server_lifespan_phases.py`）：移除 `start_auto_indexer`/`stop_auto_indexer` 定义（commit `ba3d64ee` 已移除调用但保留了函数定义）。
-
-### 待跟进项（需独立排期）
-
-- ~~**donglicao-site-v2 `_headers`**~~：✅ 已完成（2026-07-01 第二轮修复：补 CSP/HSTS/X-Frame-Options/Permissions-Policy）。
-- ~~**chat-web `hash-assets.mjs`**~~：✅ 已完成（2026-07-01 第二轮修复：扩展哈希覆盖根级 `chat-*.js`）。
-- ~~**chat-web `_headers`**~~：✅ 已完成（2026-07-01 第二轮修复：补 HSTS）。
-- ~~**6 个 SAFE dependabot PR**~~：✅ 已手动应用（fastapi 0.138.2、python-multipart 0.0.32、pyright 1.1.411、pytest-timeout 2.4、httpx 0.28.1、websockets 16.0）。
-- **小程序设备转移 `toPhone` 字段**：核实后端契约是否期望 unionid。
-- **固件 `DoToolCall` user_only 门禁**：在执行路径增加 `user_only` 检查。
-- **4 个 RISKY dependabot PR**（torch/torchaudio/dashscope/onnxruntime）建议关闭。
-- **7 个需独立审查 PR**（eslint-10/typescript-6/types-node-26/react/tailwindcss/vue/wrangler-action/setup-node）。
-
-### 第二轮修复（2026-07-01，commit 49f55b61）
-
-- **`client_keys/storage.py`**：`update_usage()` 改为 raise `ClientKeyStorageError`（不再静默吞 sqlite3.Error）；`import json` 提到模块级。
-- **`access_guard.py`**：`_dynamic_auth_configured` 从 bare `Exception` 收窄为 `(ImportError, AttributeError)`。
-- **`device_logic/wechat_gateway.py`**：`response.json()` 移入 try/except（ValueError 捕获）；`import time` 提到模块级。
-- **`routes/client_keys.py`**：4 个 mutation 端点返回 typed `KeyMutationResponse`（`response_model_exclude_none=True`）。
-- **合并重复测试**：`test_security_headers.py` 删除，唯一 `csp_is_strict` 测试并入 `test_routes_security_headers.py`。
-
-## 2026-07-01 Dependabot / pip-audit 依赖漏洞修复
-
-- **扫描结果**：本地 `.venv310` 运行 `pip-audit --local` 发现 5 个包共 17 个已知漏洞：
-  - `cryptography 48.0.0` → GHSA-537c-gmf6-5ccf（OpenSSL 静态链接漏洞）
-  - `Pillow 10.4.0` → CVE-2026-25990 / CVE-2026-40192 / CVE-2026-42308 / CVE-2026-42310 / CVE-2026-42311
-  - `pip 23.0.1` → CVE-2023-5752 / CVE-2025-8869 / CVE-2026-1703 / CVE-2026-3219 / CVE-2026-6357 / CVE-2026-8643
-  - `python-multipart 0.0.30` → CVE-2026-53540（负 Content-Length 导致无界读取）
-  - `starlette 1.2.1` → CVE-2026-54282 / CVE-2026-54283（urlencoded 表单限制绕过、URL 主机欺骗）
-- **修复操作**：
-  - 升级本地 venv：`pip==26.1.2`, `cryptography==48.0.1`, `Pillow==12.2.0`, `python-multipart==0.0.31`, `starlette==1.3.1`。
-  - 收紧 `requirements_server.txt`：
+> 2026-06 鍙婃洿鏃?findings / AUDIT 鎵规宸蹭粠浠撳簱鍒犻櫎锛坓it history 鍙煡锛夈€傛湰鏂囦欢浠呬繚鐣欒繎鏈熸潯鐩€?
+> 鈿狅笍 鏂板彂鐜拌鎸夈€屼簲闂硶銆嶈褰曪細鐜拌薄锛熷鐜帮紵鏍瑰洜锛熶慨澶嶏紵濡備綍棰勯槻锛?
+
+## 2026-07-09 闈欐€佸垎鏋愰棬绂佷慨澶嶏細pyright 0 errors / pytest 鍏ㄧ豢
+
+- **鐜拌薄**锛歚pyright dlc_api dlc_core dlc_mcp routes` 鎶?3 errors + 26 warnings锛沗pytest` 涓?`tests/test_ci_gates.py::test_p13_no_silent_exception_pass_in_active_paths` 鍥?`esp32S_XYZ/.../node_modules/` 鍐呮柇瑁傝蒋閾炬帴瀵艰嚧 `FileNotFoundError` 澶辫触銆?
+- **澶嶇幇**锛?
+  - `pyright` 鐩存帴杩愯鎶ュぇ閲?`reportMissingImports`锛坒astapi/httpx 绛夛級锛屽洜涓?`pyrightconfig.json` 鏈０鏄?`venv`銆?
+  - 鐢?`.venv310/Scripts/python.exe -m pyright --pythonpath .venv310/Scripts/python.exe` 澶嶇幇鐪熷疄绫诲瀷閿欒銆?
+  - `pytest tests/test_ci_gates.py` 鍦?`rglob("*.py")` 鏃跺懡涓?`node_modules/.pnpm/esbuild@0.20.2/node_modules/@esbuild/darwin-arm64` 鏂杞摼鎺ャ€?
+- **鏍瑰洜**锛?
+  1. `pyrightconfig.json` 缂哄皯 `venvPath`/`venv`銆?
+  2. `dlc_api/routes.py` 涓?`_resolve_hostname` 杩斿洖绫诲瀷銆乣image_url` 鐨?`Optional` 绐勫寲銆乣check_key_limit` 杩斿洖 `JSONResponse` 涓庡０鏄庤繑鍥炵被鍨嬪啿绐併€?
+  3. `routes/request_tracking.py` 浠嶆儼鎬?import 宸插垹闄ょ殑 `observability.events`銆?
+  4. `dlc_api/deps.py` 鍦ㄦā鍧楀鍏ュけ璐ユ椂浣跨敤瑁?`except Exception` 涓旀棤鏃ュ織銆?
+  5. `tests/test_ci_gates.py::_p13_scan_paths` 浣跨敤 `sorted(ROOT.rglob("*.py"))`锛屽鏂杞摼鎺ョ洰褰曟棤瀹归敊銆?
+- **淇锛堟湰杞凡鍋氾級**锛?
+  1. `pyrightconfig.json`锛氭坊鍔?`"venvPath": ".", "venv": ".venv310"`銆?
+  2. `dlc_api/routes.py`锛歚_resolve_hostname` 缁撴灉杞?`str`锛沗preview_task`/`dispatch_task_endpoint` 杩斿洖绫诲瀷鍔犲叆 `JSONResponse`锛沗draw_from_image` 鍒嗘敮鏄惧紡妫€鏌?`image_url is not None`銆?
+  3. `dlc_api/deps.py`锛氬湪 import fallback 鐨?`except Exception` 鍧椾腑璁板綍 `logger.warning`銆?
+  4. `routes/request_tracking.py`锛氱Щ闄ゅ `observability.events` 鐨勪緷璧栵紝鍐呰仈瀹炵幇 `_sanitize_text`锛堣劚鏁?bearer/token/api_key/password/闀?hex锛夈€?
+  5. `dlc_mcp/server.py`锛氬 `params.get("name")` 鍋?`isinstance(name, str)` 鏍￠獙銆?
+  6. `routes/device_app_task_templates.py`锛氬湪 `_resolve_template_target` 杩斿洖鍚庡姞 `assert source is not None`銆?
+  7. `dlc_mcp/mcp_pipe.py`锛歚_websocket_header_kwargs` 杩斿洖绫诲瀷鏀逛负 `dict[str, Any]`锛泈ebsocket 鍙ユ焺绫诲瀷鏀逛负 `Any`銆?
+  8. `dlc_api/middleware.py`锛歚add_body_size_limit` 鐨?`app` 鍙傛暟绫诲瀷浠?`object` 鏀逛负 `FastAPI`銆?
+  9. `tests/test_ci_gates.py`锛歚_p13_scan_paths` 鏀圭敤 `os.walk(..., followlinks=False, onerror=...)` 骞跺壀鏋濊烦杩囩洰褰曪紝閬垮厤瑙︾ `node_modules` 鍐呮柇瑁傝蒋閾炬帴銆?
+- **楠岃瘉**锛?
+  - `ruff check .` / `scripts/run_ruff_check.py`锛氶€氳繃銆?
+  - `python scripts/check_code_size.py`锛氶€氳繃銆?
+  - `pyright dlc_api dlc_core dlc_mcp routes`锛?*0 errors, 0 warnings**銆?
+  - `pytest`锛?*1391 passed, 3 skipped**锛堝墿浣?3 鏉′负 FastAPI `@app.on_event` 搴熷純璀﹀憡锛岄潪閿欒锛夈€?
+- **濡備綍棰勯槻**锛?
+  - 淇濇寔 `pyrightconfig.json` 涓庨」鐩?venv 鍚屾锛涙彁浜ゅ墠杩愯 `pyright` 鑰岄潪浠?`ruff`銆?
+  - 鏂颁唬鐮侀伩鍏?`except Exception:` 瑁稿潡锛涜嚦灏戣褰?warning 骞惰鏄庡師鍥犮€?
+  - 鍒犻櫎閫€褰规ā鍧楁椂鍚屾娓呯悊鎯版€?import 涓?facade 鏂囦欢銆?
+  - 娴嬭瘯涓娇鐢?`os.walk`/`rglob` 鎵弿浠撳簱鏃跺惎鐢?`followlinks=False` 骞跺鐞?`OSError`銆?
+
+## 2026-07-06 璁惧缃戝叧 WS 涓嬪彂閾惧幓鐣欙細宸查棴鐜紙鐢ㄦ埛纭鏃犲瓨閲忚澶?鈫?宸查€€褰癸級
+
+- **2026-07-06 闂幆缁撹**锛氱敤鎴锋槑纭‘璁ゃ€岀爺鍙戦樁娈碉紝鏃犵嚎涓婂瓨閲忚澶囦緷璧?`chat.donglicao.com` 鐨?`/device/v1/ws`銆嶏紝闃诲鐐硅В闄ゃ€傝嚜鎵樼 WS/MQTT 浠诲姟涓嬪彂姝讳唬鐮侀摼宸茬墿鐞嗛€€褰癸細鍒犻櫎 `mqtt_client/mqtt_handlers/mqtt_topics/health/notifier/attestation/protocol/protocol_frames/protocol_validators/protocol_negotiator`銆乣routes/device_gateway_dispatch.py`銆乣routes/device_gateway_helpers.py`锛屽苟灏?`device_logic/gateway.py::dispatch_or_enqueue` 涓?`device_gateway/tasks.py::create_and_route_task` 绠€鍖栦负绾?`enqueue_pending_task`锛堢敓浜ф湰灏辨亽 queued锛岃涓虹瓑浠凤級銆備繚鐣?`protocol_families.py` 涓庡叏閮ㄧ粯鍥炬牳蹇冦€備笅鏂瑰師濮嬭皟鏌ヨ褰曚繚鐣欎綔鍘嗗彶璇佹嵁銆?
+
+- **闂**锛歚routes/device_gateway*.py`锛堢害 1248 琛岋級+ `device_logic/gateway.py` + `device_gateway/notifier.py`/`mqtt_handlers.py` 鐨勪换鍔′笅鍙戦摼锛屽湪鐢熶骇鍏ュ彛 `server_dlc.py` 涓嬫槸鍚︿负姝讳唬鐮併€傝繖鏄粨搴撴渶澶т竴鍧楁綔鍦ㄧ槮韬洰鏍囥€?
+- **宸叉煡娓呯殑浠ｇ爜浜嬪疄锛堜粨搴撳唴鍙‘瀹氾級**锛?
+  1. 鏈嶅姟绔敮涓€浠诲姟涓嬪彂閾句緷璧?WS 绔偣 `/device/v1/ws`锛坄dispatch_task_to_session` 鈫?`session.send_json`锛沗drain_pending_tasks`锛沗publish_task_available_safe` 鍙槸璺ㄨ繘绋嬪敜閱掍俊鍙凤紝闈炵浜岄€氶亾锛夈€?
+  2. `server_dlc.py` / `dlc_api.app` 鍙敞鍐?`dlc_router`锛?*鏈敞鍐?* `/device/v1/ws`锛沗server.py`/`routes/route_registry.py` 宸插垹闄?鈫?璇ョ鐐圭敓浜т笉鍙揪銆?
+  3. 鍥轰欢鐩爣鏋舵瀯锛堣璁℃枃妗?搂1.2/搂2.3锛夛細璇煶璧?xiaozhi.me 瀹樻柟浜?鈫?MCP 鈫?`self.plotter.*`/`self.motor.run_path` HTTP 璋?`dlc_api`锛岃澶囨湰鍦版墽琛岋紝**涓嶄粠鏈嶅姟绔媺浠诲姟**銆?
+  4. **浣?*鍥轰欢浠嶄繚鐣?WS/MQTT 鐨?`motion_task` 鎺ユ敹鑳藉姏锛坄application.cc:588 HandleMotionTaskJson`锛夛紝鍗忚鐢?OTA config 鍔ㄦ€侀€夋嫨锛坄InitializeProtocol`锛歚HasMqttConfig`鈫扢qttProtocol锛屽惁鍒?WebsocketProtocol锛夛紱WS 闊抽閫氶亾榛樿 URL `wss://chat.donglicao.com/device/v1/ws`锛坄websocket_protocol.cc:94`锛夈€?
+- **闃诲鐐癸紙浠撳簱浠ｇ爜鏃犳硶鍥炵瓟鐨勮繍琛屾椂浜嬪疄锛?*锛歚routes/device_gateway*` 鏄惁鍙垹锛屽彇鍐充簬**绾夸笂瀛橀噺璁惧鐨?OTA config 瀹為檯鎸囧悜鍝釜鏈嶅姟鍣?*锛?
+  - 鑻ュ叏閮ㄨ澶囧凡杩佺Щ xiaozhi.me 瀹樻柟浜?鈫?WS 缃戝叧鏄浠ｇ爜锛屽彲鍒犮€?
+  - 鑻ユ湁璁惧 OTA config 浠嶆寚鍚?`chat.donglicao.com` 鑷墭绠?WS/MQTT 璇煶 鈫?鍒犳湇鍔＄浼?*鏂帀鐪熷疄纭欢鐨勮闊?浠诲姟涓嬪彂**锛屼笉鍙€嗐€?
+- **鍒犻櫎浠ｄ环**锛歚routes/device_gateway*` 琚?230 涓祴璇曟枃浠跺紩鐢紝娣卞害宓屽叆锛岄潪瀛ょ珛姝讳唬鐮併€傚垹闄ら渶杩炲甫澶勭悊 230 娴嬭瘯 + gateway/notifier/mqtt 鏁存潯閾俱€?
+- **缁撹**锛氬睘楂橀闄╀笉鍙€嗘搷浣滐紙褰卞搷鐪熷疄璁惧璇煶閾捐矾锛夛紝鎸?Ponytail 涓嶅彲濡ュ崗杈圭晫 + 绯荤粺楂橀闄╂搷浣滆鍒欙紝**蹇呴』鍏堢‘璁ょ嚎涓?OTA config 鐜扮姸**鍐嶅喅瀹氾紝涓嶈兘闈犺浠ｇ爜璧屻€?
+- **闇€瑕佺殑杈撳叆**锛氱嚎涓婅澶?OTA config 鐨?`websocket.url`/`mqtt` 鎸囧悜缁熻锛坸iaozhi.me vs chat.donglicao.com 鐨勮澶囧崰姣旓級锛屾垨鏄庣‘"鑷墭绠¤闊冲凡鍏ㄩ儴閫€褰广€佹棤瀛橀噺璁惧渚濊禆 chat.donglicao.com 鐨?/device/v1/ws"銆?
+
+## 2026-07-06 绯荤粺鐦﹁韩娈嬬暀瀹¤锛氫粨搴撲笌 VPS 鍒嗗弶 + 姝讳唬鐮佺墿鐞嗗垹闄?
+
+- **鐜拌薄**锛歋TATUS.md 澹扮О銆孭5 鐦﹁韩鍚庣害 280 py 鏂囦欢 / ~18000 琛屻€嶏紝瀹炴祴 git 璺熻釜搴旂敤 py = **356 鏂囦欢 / 41922 琛?*鈥斺€旀暟瀛楀樊 76 鏂囦欢 / 缈诲€嶈鏁般€備粨搴撻噷鏈夊ぇ閲忎粠 `server_dlc.py` 鐢熶骇璺緞涓嶅彲杈剧殑姝讳唬鐮併€?
+- **鏍瑰洜锛堜粨搴撲笌 VPS 鍒嗗弶锛?*锛?
+  - VPS 鐢熶骇鏈嶅姟 `lima-router.service`锛坄infra/vps/systemd/lima-router.service`锛塃xecStart = `uvicorn server:app`锛屼絾 `server.py` 宸插湪 P4/P5 鍒犻櫎銆?
+  - `deploy_unified_restart.py:43` 浠?`systemctl restart lima-router`锛堟棫鏈嶅姟鍚嶏級銆?
+  - `deploy_unified_common.py::CORE_FILES` 浠嶅垪 `server.py` + 鏃ц矾鐢辨ā鍧楋紙`routing_engine`銆乣router_v3`銆乣health_tracker` 绛夛級锛宍CORE_DIRS` 浠嶅垪宸插垹鐩綍锛坄context_pipeline`銆乣session_memory`銆乣code_context`銆乣device_voice`銆乣backends_registry`銆乣channel_retirement`锛夈€?
+  - **鎺ㄨ**锛歏PS 涓婅繍琛岀殑鏄棫鐗堝畬鏁翠唬鐮侊紙鏈瑕嗙洊鍒犻櫎锛夛紝浠撳簱涓庣敓浜у凡鍒嗗弶銆俙deploy_unified.py` 鑻ヤ互鏃ф竻鍗曟墽琛屼細鍦?VPS 涓婃壘涓嶅埌鏂囦欢鑰屽け璐ャ€?
+- **淇锛堟湰杞凡鍋氾級**锛?
+  1. 鐗╃悊鍒犻櫎涓夐」闆堕闄╂浠ｇ爜锛堢敓浜ч浂寮曠敤锛屼粎 .worktrees 鏃у壇鏈紩鐢級锛?
+     - `integrations/cloud_services.py`锛堝叏浠撳簱闆?import锛?
+     - `reference/grbl_fix/`锛?7 鏂囦欢锛屼竴娆℃€у浐浠朵慨澶嶈剼鏈紝鏃?importer锛?
+     - `device_support/`锛? 鏂囦欢锛屼粎琚璁¤剼鏈垪涓剧洰褰曞悕锛?
+  2. 娓呯悊涓夊鑴氭湰瀵?`device_support` 鐨勫瓧绗︿覆寮曠敤锛歚scripts/guardian_full_scan.py`銆乣scripts/coverage/analyzer.py`銆乣scripts/codegraph_orphans.py`
+  3. `deploy_unified_common.py::CORE_FILES`/`CORE_DIRS` 瀵归綈鍒?`server_dlc.py` 瀹為檯鍙揪鐨勬ā鍧楁竻鍗曪紙绉婚櫎宸插垹鏃ц矾鐢?鏃х洰褰曪紝鏂板 `dlc_api`/`dlc_core`/`dlc_mcp`/`device_intelligence`/`device_logic` 绛夛級
+- **寰呭姙锛堥渶鐢ㄦ埛纭鍚庢搷浣滐級**锛?
+  1. **VPS 閮ㄧ讲鍚屾**锛氱‘璁?VPS 鏄惁杩愯鏃т唬鐮?鈫?閮ㄧ讲鏂?`server_dlc.py` + 鏂?`dlc-drawing.service` 鈫?鍒囨崲鏈嶅姟鍚?`lima-router`鈫抈dlc-drawing`銆傝繖鏄儴缃叉搷浣滐紝涓嶈兘浠呮敼浠撳簱銆?
+  2. **璁惧缃戝叧 WSS 璺敱娉ㄥ唽**锛歚server_dlc.py`/`dlc_api.app` 鍙敞鍐屼簡 `dlc_router`锛?*鏈敞鍐?`routes/device_gateway.py` 鐨?`/ws` WebSocket 绔偣**銆傝澶囬€氳繃WSS鍙朢edis闃熷垪浠诲姟鐨勫崐鏉￠摼娌℃湁瀵瑰绔偣銆傞渶纭鏄?WSS 璺敱婕忔敞鍐岋紙闇€琛ユ敞鍐岋級锛岃繕鏄澶囬€氳繃鍒殑鏂瑰紡鍙栦换鍔★紙HTTP杞/MQTT锛夛紝鍐嶅喅瀹氭槸鍚︾墿鐞嗗垹闄?`routes/device_gateway*`銆?
+  3. `sdk/`锛? 鏂囦欢锛屽澶?Python SDK锛夋槸鍚︿繚鐣欌€斺€斿睘浜や粯鐗╋紝闈炴湇鍔＄姝讳唬鐮併€?
+  4. ~~`observability/` 13 涓潪 prometheus 妯″潡鏄惁鍒犻櫎~~ **锛?026-07-06 宸插垹锛岃涓嬶級**銆?
+  5. `routes/` 涓?~54 涓湭娉ㄥ唽璺敱妯″潡鐨勫幓鐣欏彇鍐充簬"WSS 鏄惁闇€娉ㄥ唽"銆?
+
+- **缁紙鏈疆绗簩鍒囩墖锛夌墿鐞嗗垹闄?observability ops-metrics 姝诲瓙绯荤粺**锛?
+  - 璇佹嵁锛歚server.py`/`server_lifespan.py`/`server_bootstrap.py` 鍏ㄥ凡鍒狅紱`server_dlc.py` 鏃?lifespan锛屽彧鎸?startup 鏃ュ織銆俙observability/__init__.py` 涓虹┖锛屾墍鏈夌敓浜у紩鐢ㄥ潎涓?`from observability import prometheus_metrics`锛沗prometheus_metrics.py` 鍙緷璧?4 涓?`prometheus_*` 瀛愭ā鍧楋紝闆跺紩鐢ㄤ笅鍒楁妯″潡銆?
+  - 鍒犻櫎锛?3 妯″潡锛夛細`telemetry_aggregator`銆乣backend_telemetry`銆乣cli_telemetry`銆乣jsonl_store`銆乣alert_evaluator`銆乣routing_guard`銆乣gray_metrics`銆乣metrics`銆乣events`銆乣probe_state`銆乣stack_dump`銆乣structured_logging`銆乣prometheus_exporter`銆?
+  - 鍒犻櫎 `routes/ops_metrics/`锛堟暣缁勶紝鍞竴澶栭儴寮曠敤鏄?`alert_evaluator.py` 鍑芥暟浣撳唴鎯版€?import锛屽凡闅忎箣鍒犻櫎锛夈€?
+  - 鍒犻櫎 6 涓搴旀祴璇曪細`test_alert_evaluator`銆乣test_cli_telemetry`銆乣test_jsonl_store`銆乣test_observability_metrics`銆乣test_telemetry_aggregator`銆乣test_observability_trace_buffer` + `tests/ops_metrics_helpers.py`銆?
+  - 淇濈暀锛歚prometheus_metrics`銆乣prometheus_device_task_metrics`銆乣prometheus_handwriting_metrics`銆乣prometheus_image_metrics`銆乣prometheus_startup_metrics`銆乣correlation`锛堢敓浜у彲杈撅級銆?
+  - 娈嬬暀姝婚厤缃紙鏈疆鏈姩锛岄伩鍏嶆墿澶ф敼鍔ㄩ潰锛夛細`config/node_role.py::alert_evaluator_enabled/structured_logging_enabled`銆乣config/settings_core.py::structured_logging/routing_guard_*` 瀛楁闆舵秷璐规柟锛岀暀寰呭悗缁粺涓€娓呯悊銆?
+- **棰勯槻**锛歅4/P5 鐗╃悊鍒犻櫎鍚庡繀椤诲悓姝ユ洿鏂伴儴缃茶剼鏈殑鏂囦欢娓呭崟鍜屾湇鍔″叆鍙ｏ紝鍚﹀垯浠撳簱涓?VPS 鍒嗗弶瀵艰嚧"澹扮О鐦﹁韩鐨勬枃浠跺湪鐢熶骇杩樺湪璺?銆?
+
+## 2026-07-06 搂13 瀹夊叏瀹¤缁細S3 闄愭祦 + S10 骞傜瓑鍘婚噸锛坉lc_api锛?
+
+- **S3锛坄/dlc/tasks/*` 鏃犻€熺巼闄愬埗锛岎煙?涓瓑锛?*
+  - **鐜拌薄**锛歚/dlc/tasks/preview` 涓?`/dlc/tasks/dispatch` 鏃犱换浣曢檺娴侊紱`draw_from_image` 楂?CPU/璐圭敤锛屽彲琚崟璁惧鍒风垎鍋?DoS銆?
+  - **澶嶇幇**锛氬悓涓€ Bearer token 楂橀璋?`/dlc/tasks/preview`锛坱ype=draw_from_image锛夛紝鏈嶅姟绔棤鑺傛祦鍏ㄩ儴鍙楃悊銆?
+  - **鏍瑰洜**锛歞lc_api 鏄槮韬悗鏂板叆鍙ｏ紝鏈帴鍏ヤ富 `server.py` 涓婄殑闄愭祦涓棿浠讹紱`dlc_api/app.py` 鏃犱换浣曞叏灞€涓棿浠躲€?
+  - **淇**锛氬鐢ㄧ幇鎴?`routes/rate_limit_helper.check_key_limit`锛堝唴瀛樻粦鍔ㄧ獥鍙ｏ紝Redis 鑷姩鍒囨崲锛夛紝鎸?`caller_device_id` 闄愭祦銆傞厤棰濆姞鍒?`config/settings_core.py::DeviceConfig`锛歚dlc_task_per_min`锛堥粯璁?30锛夈€乣dlc_image_per_min`锛堥粯璁?8锛宍draw_from_image` 涓撶敤浣庨厤棰濓級銆俙_quota_for(task_type)` 鎸夌被鍨嬮€夐厤棰濄€傝秴闄愯繑鍥?429 `rate_limit_error`銆?
+  - **棰勯槻**锛氭柊澧炲叕缃戠鐐瑰繀椤绘樉寮忔帴鍏?`check_key_limit`/`check_ip_limit`锛涢噸 CPU 鎿嶄綔鍗曞垪浣庨厤棰濄€傛祴璇曠敤 autouse fixture `rate_limiter.reset()` 闃叉闄愭祦鐘舵€佽法鐢ㄤ緥娉勬紡锛堝惁鍒欏悓 device_id 澶氭璋冪敤浼氳€楀敖閰嶉鑷?KeyError锛夈€?
+
+- **S10锛坉ispatch 鏃犻噸鏀句繚鎶わ紝馃煚 涓瓑锛?*
+  - **鐜拌薄**锛氶潤鎬?Bearer token 鏃?nonce/timestamp锛岄噸鏀惧悓涓€ dispatch 璇锋眰鍙噸澶嶄笅鍙戣繍鍔ㄦ寚浠ゃ€?
+  - **澶嶇幇**锛氬悓涓€璇锋眰浣?POST 涓ゆ `/dlc/tasks/dispatch`锛岃澶囨墽琛屼袱娆°€?
+  - **鏍瑰洜**锛歞ispatch 绔偣鏈仛骞傜瓑鍘婚噸锛沗task_id` 鐢?`next_task_id()` 鑷鐢熸垚锛岄潪骞傜瓑閿€?
+  - **淇**锛歞ispatch 绔偣璇?`Idempotency-Key` header锛宍_claim_idempotency_key` 鐢?Redis `SET NX EX`锛圱TL 600s锛宬ey 鍓嶇紑 `lima:dlc:idem`锛夊師瀛愰娆″崰鐢紱閲嶆斁杩斿洖 `status="duplicate"`銆傛棤 header 鏃朵繚鎸佹棫琛屼负锛堝悜鍚庡吋瀹癸級銆?
+  - **闄嶇骇鍐崇瓥**锛歊edis 涓嶅彲鐢ㄦ椂 **fail-open**锛堟斁琛?+ `logger.warning`锛夛紝鐞嗙敱锛氶噸澶嶆淳鍙戞瘮涓㈠け鍚堟硶鎸囦护鍗卞灏忥紝涓?warning 鏄惧紡鏆撮湶闄嶇骇鐘舵€侊紙閬靛畧銆岀姝㈤潤榛橀檷绾с€嶇‖瑙勫垯锛夈€?
+  - **棰勯槻**锛氬浐浠?MCP 渚т笅鍙戣繍鍔ㄦ寚浠ゆ椂搴斿甫 `Idempotency-Key`锛涘箓绛?key 鐢?`caller_device_id` + header 鍊肩粍鍚堬紝闃茶法璁惧纰版挒銆?
+
+## 2026-07-06 搂13 瀹夊叏瀹¤闂幆锛歋EC-06 闃熷垪鎶曟瘨 + SEC-04 SSRF 鍔犲浐 + v2_device_token 寤鸿〃
+
+- **SEC-06锛圧edis 浠诲姟闃熷垪鎶曟瘨锛岎煍?涓ラ噸锛?*
+  - **鐜拌薄**锛歚pop_pending_tasks` 鎶?Redis pending 闃熷垪閲岀殑浠诲姟 `decode_redis_json` 鍚庣洿鎺ョ粡 `device_gateway_dispatch.py:154 session.send_json(pending_task)` 閫忎紶缁欏浐浠讹紝鍏ㄧ▼鏃?capability/瀛楁鏍￠獙銆?
+  - **澶嶇幇**锛氫换浣曟嫢鏈?Redis 鍐欐潈闄愯€?`RPUSH lima:device:pending:<id> '{"capability":"delete_everything",...}'` 鈫?鍥轰欢鏀跺埌骞跺彲鑳芥墽琛屾伓鎰忚繍鍔ㄦ寚浠ゃ€?
+  - **鏍瑰洜**锛歱op 璺緞淇′换 Redis 鍐呭锛沞nqueue 渚х殑 HTTP 鏍￠獙锛坄routes/device_gateway.py::_validate_task_body`銆乣APP_TASK_CAPABILITIES`锛夎 Redis 鐩村啓缁曡繃銆?
+  - **淇**锛歚device_gateway/redis_store_helpers.py` 鏂板绾嚱鏁?`validate_task_schema` + `_ALLOWED_TASK_CAPABILITIES`锛堝榻?`APP_TASK_CAPABILITIES` 骞跺惈 `draw_from_image`锛夈€俙redis_store.pop_pending_tasks` 閫愭潯 gate锛屾嫆缁濈殑浠诲姟浠?processing 闃熷垪 `lrem` 绉婚櫎骞?`logger.warning`锛岀粷涓嶄笅鍙戙€?
+  - **棰勯槻**锛氫俊浠昏竟鐣屽師鍒欌€斺€斾换浣曟潵鑷?Redis/澶栭儴瀛樺偍鐨勪换鍔″湪涓嬪彂鍓嶅繀椤昏繃 allowlist锛涙柊澧?capability 鏃跺悓姝ユ洿鏂版 allowlist 涓?`APP_TASK_CAPABILITIES`銆?
+- **SEC-04锛坉raw_from_image SSRF锛岎煍?涓ラ噸锛?*
+  - **鐜拌薄**锛歚dlc_api/routes.py::_validate_image_url` 鍙嫆缁濆瓧闈㈤噺绉佺綉 IP锛屾帴鍙椾换鎰?HTTPS 涓绘満锛涘叕缃戝煙鍚嶈В鏋愬埌绉佺綉 IP锛圖NS rebinding锛夊彲缁曡繃銆?
+  - **鏍瑰洜**锛氭棤涓绘満鐧藉悕鍗?+ 鏃?DNS 瑙ｆ瀽鍚庝簩娆℃牎楠屻€?
+  - **淇**锛氫笁灞傞『搴忊€斺€?1) 瀛楅潰閲忕缃?IP 鎷掔粷锛?2) 涓绘満鐧藉悕鍗?`ALLOWED_IMAGE_HOSTS={"api.telegram.org"}`锛堝浘搴撳敮涓€鏉ユ簮锛夛紱(3) 鏂板 `_resolve_hostname`锛堝彲娴嬭瘯娉ㄥ叆鐐癸級瑙ｆ瀽鍚庤嫢鍛戒腑绉佺綉 IP 鍒欐嫆缁濄€?
+  - **棰勯槻**锛氭湇鍔＄涓嬭浇绫绘帴鍙ｉ粯璁よ蛋銆岀櫧鍚嶅崟 + 瑙ｆ瀽鍚庣缃戞嫆缁濄€嶅弻闂革紱鏂板鍙俊鍥炬簮鏃跺彧鎵╃櫧鍚嶅崟锛屼笉鏀惧紑浠绘剰涓绘満銆?
+  - **濂戠害鍙樻洿**锛氭棫 `test_dlc_api.py` 鐢?`example.com` 鏂█ success 鐨?3 涓敤渚嬫槸涓嶅畨鍏ㄨ涓虹殑鍥哄寲锛屽凡鏀圭敤 `api.telegram.org` + 娉ㄥ叆 `_resolve_hostname` 杩斿洖鍏綉 IP锛涢噸澶嶇殑 SSRF 鐢ㄤ緥鍚堝苟杩?`test_sec04_ssrf_hardening.py`銆?
+- **S1/S7锛坴2_device_token 琛ㄧ己澶憋級**
+  - **鐜拌薄**锛歚dlc_api/deps.py` 璁捐涓?DB 浼樺厛閴存潈锛屼絾 `v2_device_token` 琛ㄤ粠鏈帴鍏ヨ縼绉伙紝鐢熶骇鐜 `_lookup_token_from_db` 鎭掕繑鍥?None 鈫?瀹為檯鍙蛋 `LIMA_DEVICE_TOKENS` env fallback銆?
+  - **淇**锛歚device_logic/db_migrations.py::_DDL_STATEMENTS` 鏈熬杩藉姞 `v2_device_token` 寤鸿〃 + `idx_v2_device_token_hash` 鍞竴绱㈠紩锛岄殢鍏朵粬 v2_* 琛ㄥ箓绛?bootstrap銆?
+  - **棰勯槻**锛氳璁℃枃妗ｄ腑鐨?DDL 蹇呴』鍚屾钀藉埌 `_DDL_STATEMENTS`锛屽惁鍒欐秷璐规柟浠ｇ爜鐨?DB 鍒嗘敮褰㈠悓铏氳銆?
+- **闂ㄧ**锛氬叏閲?`pytest` **1565 passed / 3 skipped / 0 failed**锛沗ruff check` + `ruff format --check` clean锛沗check_code_size` PASS銆傛柊澧炶仛鐒︽祴璇曪細`test_sec06_redis_schema_gate.py`锛?锛夈€乣test_sec04_ssrf_hardening.py`锛?锛夈€乣test_v2_device_token_migration.py`锛?锛夈€?
+- **鏁欒**锛氬啓 SEC-06 娴嬭瘯鏃舵渶鍒濈敤浜嗙己 `capability` 鐨勭畝鍖?task fixture锛屽鑷?gate 涓婄嚎鍚庤浼ゆ棦鏈?`test_device_gateway_redis_store.py`銆傛牳瀵圭敓浜?`_assemble_motion_task` 纭鐪熷疄浠诲姟蹇呭甫 `capability`锛堟帶鍒惰兘鍔涙垨 fallback `run_path`锛夊悗锛屼慨姝ｇ殑鏄祴璇?fixture 鑰岄潪鍓婂急 gate鈥斺€斿畨鍏?gate 姝ｇ‘鏃讹紝搴旇涓嶇湡瀹炵殑鏃ф祴璇曞悜鐢熶骇缁撴瀯瀵归綈銆?
+
+## 2026-07-05 DLC VPS 閮ㄧ讲锛氳璇佹牸寮忎笉鍏煎 + 鍏綉璺敱鏈€?
+
+- **鐜拌薄**锛欴LC 鏈嶅姟閮ㄧ讲鍒?Aliyun VPS 鍚庯紝`/dlc/tasks/validate` 甯﹁璇佷粛杩斿洖 401 "Not authenticated"锛涘叕缃?`https://chat.donglicao.com/dlc/*` 杩斿洖 405銆?
+- **鏍瑰洜 1锛堣璇侊級**锛歏PS `.env` 涓?`LIMA_DEVICE_TOKENS=dev-test-1=fRAI52A3...` 浣跨敤 `device_id=token` 鏍煎紡锛坉evice-gateway 鍏煎锛夛紝浣?DLC 浠ｇ爜 `_load_device_tokens()` 鍙В鏋?`token:device_id` 鏍煎紡锛坄:` 鍒嗛殧锛夈€俙=` 鏍煎紡鐨勬潯鐩璺宠繃锛屽鑷?env 鍥為€€涓虹┖銆?
+- **淇**锛氭洿鏂?`_load_device_tokens()` 鍚屾椂鏀寔 `:` 鍜?`=` 鍒嗛殧绗︺€傛柊澧?2 涓祴璇曡鐩栥€傞噸鏂伴儴缃插悗璁よ瘉閫氳繃銆?
+- **鏍瑰洜 2锛堝叕缃?405锛?*锛歚chat.donglicao.com` DNS 瑙ｆ瀽鍒?Cloudflare锛?98.18.2.214锛夛紝閫氳繃 Cloudflare Tunnel 璺敱鍒?JDCloud锛?17.72.118.95锛夈€侱LC 鏈嶅姟閮ㄧ讲鍦?Aliyun锛?7.112.162.80:8081锛夛紝JDCloud 涓婃棤 DLC 鏈嶅姟鍜?nginx `/dlc/` 璺敱銆俷ginx 鍦?JDCloud 涓婃壘涓嶅埌鍖归厤鐨?location锛岃繑鍥?405銆?
+- **淇鐘舵€?*锛氭湭淇銆侸DCloud SSH 璁よ瘉澶辫触锛坄deploy_config.jdcloud_password()` 鏈厤缃垨宸茶繃鏈燂級銆傞渶鐢ㄦ埛鎻愪緵 JDCloud 鍑嵁鎴栭厤缃?Cloudflare 璺敱銆?
+- **棰勯槻**锛氶儴缃插墠妫€鏌?VPS `.env` 涓彉閲忔牸寮忎笌浠ｇ爜瑙ｆ瀽閫昏緫鐨勪竴鑷存€э紱澶?VPS 鏋舵瀯閮ㄧ讲鏃剁‘璁?DNS/CDN 璺敱璺緞銆?
+
+## 2026-07-04 M4 鍏ㄩ」鐩噸鏋勶細P3 鎶€鏈€哄彂鐜颁笌淇
+
+- **灏忕▼搴?*锛?
+  - 瓒呮椂榄旀硶鏁板瓧鏁ｈ惤 8 澶勶紙alova 15000銆乧hat 120000銆乴ogin 30000銆乭ealth 3000銆丅LE 10000銆丼oftAP 3000/15000锛夛紝鏁板€奸潬涓婁笅鏂囨帹鏂€佽皟浼橀渶閫愪竴 grep銆傛娊 `src/config/timeouts.ts`锛? 涓?`*_TIMEOUT_MS` / `*_COOLDOWN_MS` 甯搁噺锛夊悗鍗曠偣寮曠敤锛宍rg "timeout: [0-9]"` 褰掗浂銆?
+  - 闈炲井淇＄娴佸紡鑷?P0.4 璧蜂负 fail-loud 鍗犱綅锛坄throw new Error('...only on mp-weixin...')`锛夈€傚畬鏁村疄鐜帮細`fetch` + `response.body.getReader()` 璇诲彇 SSE锛宍AbortController` 鏀寔 abort锛屼笌寰俊绔叡鐢?`parseSSEBuffer` 閬垮厤鍒嗗弶銆侶5/App 鐜板湪鍙湡瀹炴祦寮忓璇濄€?
+  - 涓変釜瓒呭ぇ缁勪欢锛?61/691/667 琛岋級鑴氭湰閫昏緫瀵嗛泦锛屾媶鍒嗗悗妯℃澘/鏍峰紡閫愬瓧鑺備笉鍙橈紙`git show HEAD:./path | sed -n '/<template>/,$p'` 涓庡伐浣滃尯 diff 涓虹┖楠岃瘉锛夈€俙device-detail` 鎷?`useDeviceEvents`锛圵S 浜嬩欢+杩涘害+鑷锛? `useDeviceActions`锛堜换鍔℃淳鍙?鑰楁潗+杞Щ+鍒嗕韩+瑙ｇ粦锛夛紝閫氳繃 setter 鍏变韩 `latestPhase`/`infoLoading` 閬垮厤鐘舵€佷簩浠姐€俙voiceprint` 鎷?CRUD + 闊抽璇曞惉涓や釜 composable銆俙ultrasonic-config` 鎶?AFSK DSP 鎶芥垚绾嚱鏁?`afskAudio.ts`锛堝彲鍗曟祴锛? `useUltrasonicAudio`锛堟挱鏀剧敓鍛藉懆鏈燂級銆?
+  - `chat/chat.vue`(635) 涓?`index/index.vue`(604) 瓒呮爣浣嗚剼鏈凡绮剧畝锛?44/130 琛岋級锛岃噧鑲挎潵鑷ā鏉?鏍峰紡銆?*2026-07-04 宸叉竻鐞嗭紙D1/D2锛?*锛氳剼鏈娊 composable锛坈hat 鈫?`useChatMessages`/`useChatStream`/`useChatHelpers`锛沬ndex 鈫?`useHomeData`/`useHomeNavigation`/`useTaskFormatters`锛夛紝鏍峰紡鎶界嫭绔?`.scss`锛坄<style src="./x.scss">`锛夈€傛ā鏉夸笌鏍峰紡鍐呭閫愬瓧鑺備笉鍙橈紙`git show HEAD:./path` 鍒囩墖涓庡伐浣滃尯 diff 涓虹┖楠岃瘉锛夛紝鍙敼 `<script>` 涓?`<style src>`銆備袱鏂囦欢闄嶅埌 130/238 琛岋紝鍏ㄩ儴 <300銆?*2026-07-04 宸叉竻鐞嗭紙D1/D2锛?*锛氳剼鏈繘涓€姝ユ娊 composable + 鐙珛 `.scss`锛?35鈫?30銆?04鈫?38锛夛紝妯℃澘/鏍峰紡 byte-identical锛坄git show HEAD:<path>` 鎴彇 `<template>`/`<style>` 鍖烘涓庡伐浣滃尯 diff 涓虹┖锛夛紝鏃犻渶瑙嗚楠岃瘉鍗冲彲淇濊瘉闆跺洖褰掋€?
+- **Chat Web**锛?
+  - `escapeHtml` 鍦?7 涓枃浠舵湁鏈湴鎷疯礉锛屽疄鐜颁笉涓€鑷达紙playground-utils 杞箟 backtick銆乨evices/keys/usage 涓嶈浆涔夈€乧hat-messages 杞箟 `'`锛夆€斺€?XSS 闈笉涓€鑷淬€傛敹鏁涘埌 `js/utils.js`锛坄window.LiMaUtils`锛岃鐩?`& < > " ' \``锛夊悗 8 涓?HTML 椤甸潰鍔犺浇椤哄簭璋冩暣锛屾墍鏈夋秷璐圭偣 alias 鍒?`LiMaUtils`銆?
+  - 寮曞叆 esbuild 0.25.12锛堥伩寮€ 0.24.x dev-server 婕忔礊 GHSA-67mh-4wv8-2f99锛夊仛 minify pass锛歚hash-assets.mjs` 鍦ㄥ鍒跺悗銆佸搱甯屽墠瀵规瘡涓?JS/CSS `transform({minify:true})`锛宻tyles.css 68KB鈫?9KB銆俙chat-web/package.json` + `node_modules`/`package-lock.json` 鍔犲叆 `.gitignore`銆?
+  - `styles.css` 2060 琛屾寜椤甸潰鎷嗗垎浣滀负鍊哄姟寤跺悗鈥斺€攅sbuild minify 宸茶В鍐?payload 浣撶Н锛岀洸鎷嗗叡浜?CSS 椋庨櫓楂樹簬鏀剁泭銆?*2026-07-04 宸叉竻鐞嗭紙D3锛?*锛氭寜娉ㄩ噴鍖哄潡杈圭晫鍒囨垚 `css/common.css`锛堝叏灞€ reset/鍙橀噺/婊氬姩鏉?鐒︾偣/寰氦浜掞級+ `css/chat.css` + `css/playground.css` + `css/auth.css` + `css/pages.css`锛屽悇 HTML 椤甸潰鎸夐渶缁勫悎鍔犺浇锛坈ommon 鎭掑厛鍔犺浇锛夈€俙hash-assets.mjs` 閫傞厤 `css/*.css` minify+鍝堝笇锛宍deploy_chat_web.py` FILES 鐢?`css/*.css` 鍙栦唬 `styles.css`銆?*CDN 鏁欒澶嶇幇**锛氶儴缃插悗鏂?`css/*` 璺緞琚?Cloudflare 璐熺紦瀛樺懡涓?404锛屼笖鏃?HTML 浠嶅紩鐢?`styles.css`锛涘洜 deploy 鍙笂浼?FILES銆佷粠涓嶅垹闄よ繙绔棫鏂囦欢锛宱rigin 涓?`styles.css`(68KB) 浠嶅湪鈥斺€旂紦瀛?HTML 鐢ㄦ埛璧版棫鍏滃簳銆佹柊鐢ㄦ埛璧版媶鍒?CSS锛孋F ~4h 缂撳瓨绐楀彛鍐呬袱鎬侀兘涓嶇牬銆傞獙璇侊細origin HTTPS锛坄--resolve` 缁?CDN锛? 涓?CSS 鍏?200锛屾棫 `styles.css` 浠?200銆?*2026-07-04 宸叉竻鐞嗭紙D3锛?*锛氭媶涓?`css/{common,chat,playground,auth,pages}.css` 浜斾唤锛屽悇 HTML 鍙姞杞?common + 鐩稿叧鍒嗙墖锛堥灞忔棤鍏宠鍒欎笉鍐嶄笅杞斤級銆俙hash-assets.mjs` 鎵╁睍涓哄 `css/` 瀛愮洰褰曞仛 minify+hash+HTML 閲嶅啓銆?*閮ㄧ讲韪╁潙**锛歚deploy_chat_web.py` 鍙?SFTP 涓婁紶 FILES 娓呭崟銆佷粠涓嶅垹闄?origin 鏃ф枃浠讹紝鍥犳鏃?`styles.css`锛?8KB锛変粛鐣欏湪 origin 鍏滃簳 CDN 缂撳瓨鐨勬棫 HTML锛汣loudflare 瀵规柊 `css/*` 璺緞鍏堣繑鍥炶礋缂撳瓨 404锛岀害 4h 鍚庤浆 HIT 200銆傛柊鏃т袱鎬佸湪杩囨浮绐楀彛閮借兘姝ｅ父娓叉煋锛屾棤闇€ CF purge 鏉冮檺銆?
+- **鍥轰欢**锛?
+  - `ota.cc` 鐨?`IsAllowedOtaHost`/`IsAllowedEndpointUrl`/`IsLowerHexSha256`/`IsLikelyBase64` 鏄畨鍏ㄥ叧閿函鍑芥暟锛圥0.9 绔偣鐧藉悕鍗曪級锛屼絾鏃犲崟娴嬨€傛柊澧?`test_u8_ota_allowlist.cpp`锛?5 鐢ㄤ緥锛屽惈 evil-suffix 缁曡繃 `chat.donglicao.com.evil.com` 蹇呴』琚嫆锛夈€俙mqtt_protocol.cc` 鐨?`DecodeHexString`/`CharToHex` 鏂板 `test_u8_mqtt_hex_decode.cpp`锛?0 鐢ㄤ緥锛夈€備袱鑰呮帴鍏?CI `firmware-native-tests` job銆?
+- **鏁欒**锛?
+  - composable 鎻愬彇鏃讹紝璺?composable 鍏变韩鐨勭姸鎬侊紙濡?`latestPhase`銆乣infoLoading`锛夊繀椤荤敱銆屾嫢鏈夈€嶆柟鏆撮湶 setter锛屾秷璐规柟閫氳繃 setter 鍐欏叆锛屼笉鑳藉悇瀛樹竴浠?ref鈥斺€斿惁鍒欎簨浠舵祦鏇存柊鐨勬槸 events 鐨?ref锛宎ctions 璇荤殑鏄嚜宸辩殑 ref锛孶I 涓嶅埛鏂般€?
+  - 缁忓吀鑴氭湰锛圛IFE + script-tag锛夊幓閲嶆椂锛宍const` 鍦ㄥ叏灞€浣滅敤鍩熶細涓庡悗缁剼鏈殑 `function` 鍚屽悕澹版槑鍐茬獊锛涘幓閲嶅悗蹇呴』鍒犻櫎鎵€鏈夐噸澶嶅０鏄庯紝鍙暀涓€澶?alias銆?
+  - 绾?DSP 閫昏緫锛圓FSK 璋冨埗/WAV 缂栫爜锛夋娊鎴?framework-free 妯″潡鍚庡彲鐙珛鍗曟祴锛屾瘮鐣欏湪 Vue 缁勪欢閲屾洿瀹夊叏鈥斺€擿afskAudio.ts` 鐨勮緭鍑烘槸纭畾鎬х殑 base64锛屽彲鐩存帴鏂█銆?
+  - 鍥轰欢 native 鍗曟祴閲囩敤銆岀函閫昏緫閲嶅疄鐜般€嶆ā寮忥紙涓?include ESP-IDF 澶达級锛屼唬浠锋槸鍙屼唤浠ｇ爜锛涜嫢 ota.cc 閫昏緫鍙樻洿闇€鍚屾鏇存柊娴嬭瘯鎷疯礉銆傛潈琛★細鍙師鐢熺紪璇?vs 缁存姢鍙屼唤銆?
+
+- **鍚庣**锛?
+  - `http_caller.py` 涓?thin re-export 闂ㄩ潰锛岃嫢涓嬫父瀛愭ā鍧楋紙`http_sync`/`http_async`/`http_stream` 绛夛級鏀瑰悕鎴栧垹绗﹀彿锛屽巻鍙?`from http_caller import X` 浼氬湪杩愯鏃舵墠 `ImportError`銆傛柊澧?`tests/test_http_caller_reexports.py` 鍙傛暟鍖栨柇瑷€鍏ㄩ儴鍏紑绗﹀彿浠嶅彲瀵煎叆锛屾妸鍥炲綊鎻愬墠鍒版祴璇曟湡銆?
+  - `probe_loop.py`锛堝 dead/suspicious 涓诲姩鎺㈡椿锛変笌 `backend_probe_loop.py`锛堝叏閲忔壒娆″懆鏈熸帰娲伙級鑱岃矗鐩歌繎銆佸懡鍚嶇浉浼硷紝鏄撴贩娣嗐€傚凡鍦ㄤ袱鑰?docstring 椤堕儴鍔犱氦鍙夊紩鐢ㄨ鏄庡悇鑷Е鍙戞潯浠朵笌鍖哄埆銆?
+  - `requirements_dev.txt` 寮哄埗 `httpx2~=2.5` 鍙负娑?starlette testclient 寮冪敤璀﹀憡锛屽嵈寮曞叆绗簩濂?httpx 瀹炵幇銆佸澶т緷璧栭潰銆傝瘎浼板悗绉婚櫎锛泃estclient 鍦?httpx 0.28 涓嬪姛鑳芥甯革紝浠呬繚鐣欎竴鏉″純鐢?warning锛堟棤瀹筹級銆?
+  - `.env.example` 鐨?`LIMA_ADMIN_TOKEN`/`LIMA_API_KEY` 鍗犱綅绗﹀舰浼肩湡瀹炲瘑閽ワ紝鍘绘晱鍖栦负 `<set-your-*>` 鏍煎紡锛岄檷浣庤鎻愪氦/璇敤闈€?
+- **Chat Web**锛?
+  - `chat-web/_headers`锛堝惈 HSTS/nosniff/缂撳瓨绛栫暐锛夊凡瀛樺湪锛屼絾 `deploy_chat_web.py` 鐨?`FILES` 鏈寘鍚畠锛屽鑷撮儴缃插悗 nginx 涓嶄笅鍙戣繖浜涘ご銆傚凡鎶?`_headers` 鍔犲叆涓婁紶鍒楄〃銆?
+- **灏忕▼搴?*锛?
+  - `manifest.config.ts` 涓?`pages.config.ts` 鍚勮嚜澶嶅埗浜嗕竴浠?`getMode()`锛堣В鏋?`--mode` 鍛戒护琛屽弬鏁帮級锛岄噸澶嶉€昏緫銆傛娊鍒?`scripts/get-mode.ts` 鍗曠偣瀵煎嚭锛屼袱澶勫紩鐢ㄣ€?
+  - `unpackage/res/icons/*.png`锛?7 涓?App 鎵撳寘鍥炬爣锛屼粎 5+App 绔敤锛夎 git 璺熻釜锛屾薄鏌撲粨搴擄紱`git rm` 鍚?`.gitignore` 澧炲姞 `unpackage/` 蹇界暐銆?
+  - `src/static/app/icons/1024x1024.png`锛?58KB锛夌敤 Pillow `optimize=True` 鍘嬬缉鍒?433KB锛圧GBA PNG 鏃犳崯鍘嬬缉涓婇檺鏈夐檺锛涜繘涓€姝ラ渶杞牸寮忔垨闄嶅垎杈ㄧ巼锛屾殏涓嶆縺杩涘鐞嗭級銆?
+  - `src/i18n/{zh_CN,en}.ts` 鍚?800+ 琛屾墜宸ョ淮鎶わ紝key 瀹规槗婕傜Щ銆傛柊澧?`scripts/check-i18n-keys.mjs` 鏍￠獙涓嫳 key 闆嗗悎涓€鑷达紙褰撳墠 803 keys 瀵归綈锛夛紝鎸傚埌 `package.json` 鑴氭湰銆?
+  - `tabbarList.ts` 閬楃暀 TODO 涓?`utils/index.ts` 澶ч噺娉ㄩ噴鎺夌殑 `console.log` 璋冭瘯娈嬬暀锛屽凡娓呯悊銆?
+  - 渚濊禆鍐椾綑锛氭湭浣跨敤鐨?`@tanstack/vue-query`锛坄main.ts` 宸茬Щ闄?`VueQueryPlugin`锛夊強 8 涓潪鐩爣骞冲彴 `@dcloudio/uni-mp-*`锛坅lipay/baidu/jd/kuaishou/lark/qq/toutiao/xhs锛夊凡绉婚櫎锛沵acOS 涓撶敤 `@esbuild/darwin-*` / `@rollup/rollup-darwin-x64` 涔熺Щ闄わ紝鍑忓皯瀹夎浣撶Н涓庨攣鍐茬獊銆?
+  - **miniprogram-ci 涓婁紶澶辫触锛坄TypeError: _lruCache is not a constructor`锛?*锛氱幇璞♀€斺€旀竻鐞嗕緷璧栧苟 `pnpm install` 鍚庯紝`upload:mp-weixin` 鍦ㄧ紪璇戦樁娈垫姏姝ら敊銆傚鐜扳€斺€擿node -e "require('@babel/helper-compilation-targets')"`銆傛牴鍥犫€斺€斾緷璧栨竻鐞嗚Е鍙?pnpm 閲嶈В鏋愶紝`@babel/helper-compilation-targets`锛堣姹?`lru-cache@^5` 鐨勫叿鍚嶉粯璁ゅ鍑猴級琚彁鍗囧埌 `lru-cache@11`锛坴11 鏃犻粯璁ゅ鍑恒€佹瀯閫犵鍚嶅彉鏇达級銆備慨澶嶁€斺€斿湪 `pnpm-workspace.yaml` 鍔?`overrides: '@babel/helper-compilation-targets>lru-cache': ^5.1.1`锛堟敞鎰?pnpm 10 宸蹭笉鍐嶈 `package.json` 鐨?`pnpm.overrides` 瀛楁锛夛紝`pnpm install` 鍚庨攣瀹?`lru-cache@5.1.1`銆傞闃测€斺€斾緷璧栨竻鐞嗗悗蹇呴』閲嶈窇涓€娆?`build`+`upload` 鍐掔儫锛涗紶閫掍緷璧栫増鏈紓绉荤敤 workspace `overrides` 閽夋锛屼笉瑕佷緷璧栨彁鍗囬『搴忋€?
+- **鍥轰欢**锛?
+  - U1 `platformio.ini` 寮曠敤 `board_build.partitions = min_spiffs.csv`锛屼絾璇ユ枃浠朵緷璧?Arduino-ESP32 妗嗘灦鍐呯疆璺緞锛屽湪璺ㄦ満鍣?CI 鐜鍙兘瑙ｆ瀽澶辫触銆傚凡灏嗘爣鍑?`min_spiffs.csv` 鍏ュ簱鍒?`firmware/u1-grbl/extra/min_spiffs.csv` 骞舵敼鏈湴寮曠敤銆?
+  - U8 榛樿鏃ュ織绾у埆鍦?`sdkconfig.defaults` 鏈樉寮忚缃紝榛樿鍙兘鏄?VERBOSE/DEBUG锛岀敓浜т覆鍙ｆ棩蹇楀啑浣欍€傛柊澧?`CONFIG_LOG_DEFAULT_LEVEL_INFO=y` 缁熶竴瑁佸壀銆?
+- **鏂囨。**锛?
+  - `docs/getting-started.md` 鍓嶇疆鏉′欢琛ㄤ粛鍐欍€孞ava JDK | 21 | manager-api 缂栬瘧銆嶏紝CI 绔犺妭浠嶅垪銆孞ava 娴嬭瘯 鈥?manager-api 76+ 娴嬭瘯銆嶃€傚疄闄呬笂 manager-api 宸茶縼绉昏嚦 LiMa 涓婚」鐩紝宸叉竻鐞嗛伩鍏嶈瀵兼柊鎴愬憳銆?
+- **鏁欒**锛?
+  - re-export 闂ㄩ潰妯″潡蹇呴』閰嶃€岀鍙峰畬鏁存€ф祴璇曘€嶏紝鍚﹀垯閲嶆瀯瀛愭ā鍧楁椂闂ㄩ潰浼氶潤榛樿厫鍖栵紝鍙湁鐢熶骇瀵煎叆鎵嶆毚闇层€?
+  - 闈欐€佽祫婧愬ご鏂囦欢锛坄_headers`锛変笌閮ㄧ讲鑴氭湰 `FILES` 鍒楄〃鏄袱澶勬槗鑴辫妭鐨勯厤缃紝浠讳綍鏂板闈欐€佺瓥鐣ユ枃浠堕兘瑕佸悓姝ヨ繘閮ㄧ讲娓呭崟銆?
+  - i18n 澶氳瑷€鏂囦欢閫傚悎鐢ㄣ€宬ey 涓€鑷存€с€嶈剼鏈仛 CI 闂ㄧ锛屾瘮浜哄伐 review 鍙潬銆?
+  - 鍥轰欢鏋勫缓宸ュ叿閾撅紙PlatformIO/ESP-IDF锛変笌 Python 鐗堟湰寮虹粦瀹氾紝鏈湴鐜鎹熷潖鏃舵棤娉曞嵆鏃堕獙璇侊紝搴斿湪 CI 涓浐鍖栫紪璇戠煩闃点€?
+
+## 2026-07-03 M1 鍏ㄩ」鐩璁★細P0 瀹夊叏/姝ｇ‘鎬у彂鐜颁笌淇
+
+- **CRITICAL 绾э紙灏忕▼搴?鍥轰欢渚э級**锛?
+  - 涓婁紶绉侀挜 `private.wxbf3c1e0013b46343.key` 瀛樺湪浜庡伐浣滃尯锛屼絾 `git log --all` 纭**鏈繘鍏?git 鍘嗗彶**銆傞闄╋細鏈湴娉勯湶锛涘凡鍔?README 淇濈鎻愮ず銆?
+  - 鐢熶骇 `NODE_ENV = 'development'` 瀵艰嚧 vite 鍘嬬缉/tree-shake 澶辨晥锛涘凡淇涓?`production`銆?
+  - `vite.config.ts` 瑁?`console.log` 鎵撳嵃鍏ㄩ噺 env锛涘凡绉婚櫎銆?
+- **HIGH 绾?*锛?
+  - 鍚庣闈欓粯闄嶇骇锛歚xiaozhi_drawing/pipeline.py` 瀛樺湪 `except ImportError: pass`锛圓GENTS.md 纭鍒欑簿纭姝㈡ā寮忥級锛涘凡鏀逛负 `logger.warning`銆?
+  - CI 闂ㄧ鐩插尯锛歚tests/test_ci_gates.py` 浠呮壂 `device_gateway/` + `routes/` + 鏍硅矾鐢辨枃浠讹紝閬楁紡 `xiaozhi_drawing/`銆乣context_pipeline/`銆乣session_memory/` 绛夛紱宸叉敼涓烘帓闄ゅ紡鎵弿锛屽苟琛?`.worktrees` 鍒?skip 闆嗗悎銆?
+  - 灏忕▼搴忛潪寰俊绔祦寮忛潤榛樺け璐ワ細鏃犺疆璇㈠疄鐜板嵈鍋囪鏀寔锛涘凡鏀逛负 fail-loud銆?
+  - Chat Web 鍥剧墖鐢熸垚 XSS 闈細鍙牎楠屽崗璁湭鏍￠獙鍩熷悕锛涘凡鍔犵櫧鍚嶅崟銆?
+  - U1 OTA 鏃犵鍚?寮辫璇侊細榛樿绂佺敤 WebUI OTA 鍏ュ彛锛?03锛夈€?
+  - U8 绔偣鏃犵鍚嶄笅鍙戯細OTA 鏈嶅姟鍣ㄥ彲鎺ㄩ€佷换鎰?mqtt/websocket 绔偣锛涘凡鍔犵櫧鍚嶅崟銆?
+  - 鍥轰欢鏂囨。婊炲悗锛氭湇鍔＄缁勪欢宸插垹闄や絾 Dockerfile/README 浠嶆寚鍚戯紱宸叉竻鐞嗐€?
+- **M1 閬楃暀椤?*锛?
+  - `deploy_chat_web.py` 鍥犺繙绋?`/var/www/chat` 鐩綍涓嶅瓨鍦ㄨ€屽け璐ャ€傛牴鍥狅細鑴氭湰鏈湪閮ㄧ讲鍓?`mkdir -p`銆傚缓璁細瑕佷箞杩愮淮鎵嬪姩鍒涘缓锛岃涔堝湪 P2 闃舵鎶?`mkdir -p {REMOTE_DIR}` 鍔犺繘 `deploy_chat_web.py` 骞堕噸鏂伴儴缃层€?
+  - `.worktrees/` 涓?`feat-device-task-metrics` 涓?`feat-handwriting-resilience` 鍒嗘敮浠嶅惈闈欓粯闄嶇骇锛屼絾褰撳墠鏈繘鍏ヤ富鍒嗘敮锛涜繖浜?worktree 鏈潵鍚堝苟鍓嶉渶娓呯悊銆?
+- **鏁欒**锛?
+  - 鎺掗櫎寮?CI 鎵弿姣斿寘鍚紡鏇村仴澹紱浣嗛渶鎶?`.worktrees` 鏄庣‘鍔犲叆 skip 闆嗗悎锛岄伩鍏嶆妸鐗规€у垎鏀湭瀹屾垚鍊哄姟璇垽涓?main 鍥炲綊銆?
+  - 鍓嶇鏋勫缓鏃ュ織鏄?secret 娉勯湶闈紱`vite.config.ts` 鐨?`console.log` 浼氳 CI 瀹屾暣璁板綍锛屼笖涓嶅彈 `esbuild.drop` 绾︽潫銆?
+  - 鍥轰欢鏈嶅姟绔縼绉诲悗锛屽繀椤诲悓姝ュ垹闄?Dockerfile 骞舵洿鏂板巻鍙?README锛屽惁鍒欐柊鎴愬憳浼氭寜閿欒鏂囨。鎿嶄綔銆?
+
+## 2026-07-03 M2 鍏ㄩ」鐩璁★細P1 璐ㄩ噺/鏂囨。/娴嬭瘯鍙戠幇涓庝慨澶?
+
+- **鍚庣璐ㄩ噺**锛?
+  - `session_memory` 杩佺Щ閲嶈瘯銆乣observability/jsonl_store` 鏃ュ織杞浆銆乣context_pipeline/chroma_vector_store` 闄嶇骇绛夎矾寰勫師鍏堝彧 `logger.debug` 鎴栨棤鏃ュ織锛孉GENTS.md 纭鍒欒姹傘€岀姝㈤潤榛橀檷绾с€嶈嚦灏?`logger.warning`锛涘凡缁熶竴鏀逛负 warning 骞惰鏄?fallback 鍘熷洜銆?
+- **Chat Web**锛?
+  - 鍩熷悕閰嶇疆鍒嗘暎鍦?`index.html` 涓?`js/app-boot.js` 涓ゅ锛岃繍缁村垏鎹?Chat Web 鍏ュ彛鏃堕渶鏀逛袱澶勶紝鏄撻仐婕忥紱宸叉敹鏁涘埌 `window.LiMaConfig` 鍗曠偣閰嶇疆銆?
+  - 閮ㄧ讲鑴氭湰 `deploy_chat_web.py` 鏈鐞嗚繙绋嬬洰鏍囩洰褰曠己澶憋紝鏂?VPS 棣栨閮ㄧ讲鍗冲け璐ワ紱宸插姞 `mkdir -p` 鏀寔澶氱骇鐩綍锛坄js/` 瀛愮洰褰曪級銆?
+- **灏忕▼搴忥紙uni-app锛?*锛?
+  - 绫诲瀷鍊哄姟锛歚utils/index.ts` 澶ч噺 `any`銆佹棤 `SubPackage` 绫诲瀷銆乣deepClone` 绫诲瀷涓嶇簿纭紱宸叉敹鏁涚被鍨嬨€?
+  - 姝讳唬鐮侊細`store/config.ts` 鏃犲紩鐢ㄣ€乣store/user.ts` 閲嶅娓呴櫎 `userInfo`銆乣utils/platform.ts` 渚濊禆鏈畾涔夊畯锛涘凡鍒犻櫎/娓呯悊銆?
+  - API 灞備笉缁熶竴锛歚chatCompletion` 浠嶄娇鐢ㄥ師鐢?`uni.request`锛屼笌椤圭洰鏁翠綋 alova 灏佽涓嶄竴鑷达紱宸茶縼绉诲埌 `http.Post`銆?
+  - 瀹夊叏寮€鍏筹細`manifest.config.ts` 涓?`src/manifest.json` 鐨?`urlCheck` 鍦ㄧ湡鏈?鐢熶骇鐜涓?`false`锛屽彲鑳芥斁琛屾湭鏍￠獙 URL锛涘凡鏀逛负 `true`銆?
+  - 娴嬭瘯瑕嗙洊锛歮anager-mobile 鏃犲崟鍏冩祴璇曪紱宸插紩鍏?`vitest` 3.2.6 + `jsdom` 骞惰鐩?`deepClone` 绾嚱鏁般€?
+- **鍥轰欢**锛?
+  - U8 `main/CMakeLists.txt` 鍖呭惈 ml307/nt26/dual_network/rndis/esp_video 绛夐潪鐩爣鏉挎簮鐮侊紝澧炲姞鏋勫缓闈笌璇Е鍙戦闄╋紱宸茬Щ闄ゃ€?
+  - U1 `platformio.ini` 鐨?`[env]` 榛樿 `board = esp32` 涓庝笅鏂?`release_esp32s3` 瑕嗙洊鍏崇郴鏈敞閲婏紝鏂版垚鍛樻槗璇榛樿閰嶇疆锛涘凡琛ュ厖璇存槑銆?
+  - 杈圭紭鍗忚 schema 鏂囦欢鏃犵増鏈彿锛屽悜鍚庡吋瀹归毦杩借釜锛涘凡缁熶竴鍔?`schema_version: "1.0.0"`銆?
+  - `docs/schemas/edge_*` README 浠嶆寚鍚戞棫鍥轰欢鏈嶅姟绔紝鏈鏄庡凡杩佺Щ鑷?LiMa `device_gateway`锛涘凡鍔犺縼绉绘í骞呫€?
+- **鏁欒**锛?
+  - 灏忕▼搴?manifest 鍙屾枃浠讹紙`manifest.config.ts` + `src/manifest.json`锛夐渶鍚屾缁存姢锛屽惁鍒欑増鏈?bump 鎴栧畨鍏ㄥ紑鍏充細涓㈠け銆?
+  - 瀛愭ā鍧楀唴宓屽鐩綍鑻ュ惈鐙珛 git 浠撳簱锛屾彁浜ゅ墠瑕佺‘璁ゅ綋鍓?working tree 灞炰簬鍝釜浠撳簱锛岄伩鍏嶆妸鎸囬拡鎻愪氦閿欎粨搴撱€?
+  - 鍓嶇寮曞叆娴嬭瘯妗嗘灦鏃堕渶娉ㄦ剰涓庣幇鏈?vite 澶х増鏈吋瀹癸紙vitest 4.x 涓?vite 5 鍐茬獊锛夛紝搴旈攣瀹氬皬鐗堟湰銆?
+
+
+## 2026-07-03 U 鎵癸細routes/device_gateway_ws_handlers.py hello 鎻℃墜鏈哄埗鎶藉埌 device_gateway_hello_helpers.py
+
+- **绋冲畾鍗曚緥椤跺眰瀵煎叆瀹夊叏锛屼絾銆屽睘鎬ф浛鎹€峱atch 浠嶉』杩佺Щ鐩爣妯″潡**锛歚attestation_verifier` 缁?ripgrep 纭鏃?`set_*_for_tests`/`install_*_for_tests` 鎺ュ彛鈥斺€旀槸绋冲畾鍗曚緥锛圫 鎵圭ǔ瀹?vs 鍙浛鎹㈠崟渚嬪垽瀹氭硶锛夛紝鏂版ā鍧楅《灞?`from device_gateway.attestation import verifier as attestation_verifier` 瀹夊叏銆備絾 8 澶勬祴璇曠敤 `monkeypatch.setattr(handlers, "attestation_verifier", isolated_verifier)` / `patch.object(handlers, "attestation_verifier", ...)` **鏇挎崲妯″潡灞炴€т负闅旂 verifier**鈥斺€擿_check_attestation` 鎶藉埌 `hello_helpers` 鍚庝粠 `hello_helpers` 鏌?`attestation_verifier`锛宲atch 鑻ヤ粛鎸?`handlers` 鍒欐浛鎹簡鏃фā鍧楃殑灞炴€с€佹柊妯″潡璇诲埌鐨勮繕鏄叏灞€ verifier锛屾祴璇曢殧绂诲け鏁堛€傛暀璁細**绋冲畾鍗曚緥鐨勩€岄《灞傚鍏ャ€嶅彧瑙ｅ喅 R 鎵?from-import 缁戝畾闄烽槺锛坰wap 鎺ュ彛锛夛紱銆屽睘鎬ф浛鎹㈠紡 patch銆嶏紙monkeypatch.setattr 妯″潡灞炴€э級浠嶉』闅忕鍙疯縼绉婚噸鎸囩洰鏍囨ā鍧?*銆備袱绫婚闄╃嫭绔嬶紝鍒ゅ畾娉曚簰琛ワ細ripgrep `set_*_for_tests` 鍒?swap 鎺ュ彛锛堝喅瀹氬鍏ユ柟寮忥級锛宺ipgrep `monkeypatch.setattr\|patch.object` 鍒ゅ睘鎬ф浛鎹紙鍐冲畾 patch 鐩爣杩佺Щ锛夈€?
+- **鍏叡鍏ュ彛鐣欏畧 + 绉佹湁 helper 鎶界鐨勯浂璋冪敤鏂规敼鍔ㄦā寮?*锛歚handle_hello` 浣滀负鍏叡鍏ュ彛鐣欏湪 ws_handlers锛? 涓鏈?`_` helper 鎼埌 `hello_helpers`銆俙test_routes_device_gateway_ws.py` 鐨?`patch.object(dgws, "handle_hello", ...)` 缁戝畾 WS 璺敱妯″潡 `device_gateway_ws`锛堜粠 `hello_handlers` 瀵煎叆 `handle_hello` 鐨勪笅娓革級锛宲atch 鐨勬槸璺敱妯″潡鐨勭粦瀹氬悕鑰岄潪 handlers 妯″潡鈥斺€旀娊绂?helper 涓嶅姩 `handle_hello` 鑷韩鐨勫畾涔変綅缃紝姝ょ被 patch 涓嶅彈褰卞搷銆傚姣?R/S 鎵规暣绔偣鎼縼闇€淇眬閮?app `include_router` + 璺敱妯″潡 patch 鐩爣锛?*銆屽叕鍏卞叆鍙ｇ暀瀹?+ helper 鎶界銆嶆槸璺敱/鐘舵€佹ā鍧楃殑浣庨闄╂媶鍒嗗Э鍔?*锛氳皟鐢ㄦ柟锛堝惈 patch 璋冪敤鏂圭殑娴嬭瘯锛夐浂鏀瑰姩锛屼粎闇€杩佺Щ patch helper 鍐呴儴渚濊禆鐨勬祴璇曘€?
+
+## 2026-07-03 T 鎵癸細device_gateway intent.py LLM planner 瀛愬煙鎶藉埌 intent_llm_planner.py
+
+- **re-export 淇濇寔 backward compatibility**锛歀LM planner 瀛愬煙鎼蛋鍚庯紝`DANGEROUS_CAPABILITIES`锛堢敓浜?`prompt_engineering/layers.py` 瀵煎叆锛夊拰 `_llm_replan`锛堟祴璇?`dgi._llm_replan(...)` 璋冪敤锛夊繀椤讳粛鍙粠 `device_gateway.intent` 璁块棶銆傜敤 `from device_gateway.intent_llm_planner import DANGEROUS_CAPABILITIES, _llm_replan  # noqa: F401  re-export` 淇濇寔鈥斺€擿is` 鍚屼竴瀵硅薄韬唤锛堥潪鎷疯礉锛夛紝鐗瑰緛鍖栨祴璇曠敤 `assert dgi.DANGEROUS_CAPABILITIES is planner.DANGEROUS_CAPABILITIES` 閿佸畾銆傛暀璁細**鎶界琚閮ㄤ緷璧栫殑绗﹀彿鏃讹紝re-export + noqa: F401 + 鐗瑰緛鍖栨祴璇曚笁浠跺淇濊瘉 backward compatibility 涓嶇牬**銆侳401 鍏ㄥ眬闂ㄧ浼氭嫤鏈爣娉ㄧ殑 re-export锛宍# noqa: F401  re-export` 娉ㄩ噴鏄繀闇€鐨勩€?
+- **绾嚱鏁板瓙鍩熸娊绂?vs 璺敱/鐘舵€佺被鎶界椋庨櫓瀵规瘮**锛歍 鎵癸紙intent.py 绾嚱鏁帮級闆?router/monkeypatch 椋庨櫓鈥斺€? 娴嬭瘯鏂囦欢鍙?patch 鍏ㄥ眬 `http_caller.call_api`锛堟娊绂诲悗浠嶇敓鏁堬紝鍥?`_llm_replan` 鍐呴儴浠?`import http_caller` 璋?`call_api`锛夈€傚姣?R/S 鎵硅矾鐢辨娊绂婚渶淇眬閮?app `include_router` + `patch.object` 鐩爣杩佺Щ锛岀函鍑芥暟鎶界鍙渶 re-export + 鏀瑰鍏ユ簮銆傛暀璁細**浼樺厛閫夌函鍑芥暟瀛愬煙鎶界锛堥浂 router 椋庨櫓锛夛紝璺敱/鐘舵€佺被鎶界鐣欏埌绾嚱鏁扮┖闂磋€楀敖鍚?*銆?
+
+## 2026-07-03 S 鎵癸細routes/device_gateway.py events 绔偣鎶界鍒?device_gateway_events_routes.py
+
+- **绋冲畾鍗曚緥 vs 鍙浛鎹㈠崟渚嬬殑瀵煎叆绛栫暐**锛歊 鎵?lesson 鏄?`set_*_for_tests` 鍙浛鎹㈠崟渚嬪繀椤诲欢杩熷鍏?銆係 鎵归獙璇佷簡鍙嶉潰锛歚shadow_store` 鍜?`process_motion_event_core` 鏄ǔ瀹氭ā鍧楃骇鍗曚緥锛坮ipgrep 纭鏃?`set_*_for_tests` / `install_*_for_tests` / `monkeypatch` swap锛夛紝椤跺眰瀵煎叆瀹夊叏銆傛ā鍧?docstring 鏄惧紡璁板綍姝ゅ尯鍒紝閬垮厤鏈潵璇妸绋冲畾鍗曚緥涔熸敼寤惰繜瀵煎叆锛堝鍔犳棤璋撳鏉傚害锛夋垨璇妸鍙浛鎹㈠崟渚嬬敤椤跺眰瀵煎叆锛堥噸韫?R 鎵瑰洖褰掞級銆傚垽鏂硶锛歳ipgrep `set_<name>_for_tests\|install_<name>_for_tests\|monkeypatch.*<name>` 鍏ㄥ簱鏃犲懡涓?鈫?绋冲畾鍗曚緥鍙《灞傚鍏ワ紱鏈夊懡涓?鈫?蹇呴』寤惰繜瀵煎叆銆?
+- **patch.object 鐩爣闅忔ā鍧楄縼绉?*锛歚test_routes_device_gateway.py` 鐨?5 涓?events 娴嬭瘯鐢?`patch.object(dg, "validate_uplink", ...)` patch `routes.device_gateway` 妯″潡灞炴€с€俥vents 绔偣绉诲埌 `device_gateway_events_routes` 鍚庯紝`validate_uplink`/`process_motion_event_core`/`shadow_store`/`ProtocolError` 涓嶅湪 `dg` 涓娾€斺€擿AttributeError: <module 'routes.device_gateway'> does not have the attribute 'validate_uplink'`銆備慨姝ｏ細patch 鐩爣鏀规寚 `events_routes` 妯″潡锛坄from routes import device_gateway_events_routes as events_routes` + `patch.object(events_routes, "validate_uplink", ...)`锛夈€傛暀璁細**璺敱绔偣杩佺Щ鍒版柊妯″潡鏃讹紝鎵€鏈?`patch.object(鏃фā鍧? "渚濊禆鍚?, ...)` 蹇呴』鍚屾鏀规寚鏂版ā鍧?*锛屽惁鍒?AttributeError銆?
+
+## 2026-07-03 R 鎵癸細routes/device_gateway.py 鏌ヨ绔偣鎶界鍒?device_gateway_query_routes.py
+
+- **Python 妯″潡绾?`from import` 缁戝畾闄烽槺**锛氭柊妯″潡 `device_gateway_query_routes` 鍒濈増鐢ㄩ《灞?`from device_gateway.store import task_store` 缁戝畾妯″潡绾у崟渚嬨€備絾 `install_task_store_for_tests()` / `set_task_store_for_tests()` 鐢?`global task_store` 鏇挎崲 `device_gateway.store` 妯″潡鐨?`task_store` 灞炴€ф寚鍚?*鏂板璞?*鈥斺€斿凡椤跺眰 `from import` 鐨勬ā鍧椾粛鎸佹湁**鏃у璞″紩鐢?*锛屽鑷存祴璇?`test_sessions.py::test_registry_remove_zombies_requeues_outstanding_tasks` 璋?`install_task_store_for_tests()` 鍚庯紝鍚庣画 `test_task_list_returns_tasks` 鐨?`create_task_from_transcript` 鍐欏叆鏂板疄渚嬨€乣device_gateway_query_routes` 璇绘棫瀹炰緥锛宍count=0` 鍥炲綊銆備慨姝ｏ細4 涓繍琛屾椂鍗曚緥锛坄task_store`/`task_snapshot`/`artifact_store`/`artifacts_for_device`锛夋敼鍥?*鍑芥暟鍐呭欢杩熷鍏?*锛屾瘡娆¤皟鐢ㄩ噸鏂拌В鏋愭ā鍧楀睘鎬ф嬁褰撳墠瀹炰緥鈥斺€斾笌鍘?`routes/device_gateway.py` 琛屼负涓€鑷淬€傛暀璁細**娑夊強 `set_*_for_tests` 鍙浛鎹㈠崟渚嬬殑瀵煎叆锛屽繀椤荤敤寤惰繜瀵煎叆锛堝嚱鏁板唴 `from ... import ...`锛夛紝涓嶈兘鐢ㄩ《灞?`from import`**锛屽惁鍒欐祴璇曢殧绂诲洖褰掋€?
+- **灞€閮?app 娴嬭瘯闇€鍚屾 include 鏂?router**锛? 涓祴璇曟枃浠剁敤 `app = FastAPI(); app.include_router(dg.router)` 鏋勯€犲眬閮ㄥ鎴风锛堜笉璧?`server.app` 瀹屾暣娉ㄥ唽锛夛紝鎶界鏂?router 鍚庤繖浜涙祴璇曢渶鎵嬪姩鍔?`app.include_router(query_router)`銆傜敤 `server.app` 鐨勬祴璇曪紙`test_registration.py`銆乣test_json_body_contract.py`锛夎嚜鍔ㄨ幏寰楁柊璺敱鏃犻渶鏀广€侾OST-only 娴嬭瘯鏃犻渶鏀广€傛暀璁細**FastAPI 璺敱鎶界鏃讹紝蹇呴』瀹¤鎵€鏈夊眬閮?`app.include_router()` 娴嬭瘯瀹㈡埛绔?*锛屼笉鍙槸 `server.app` 闆嗘垚娴嬭瘯銆?
+- **`APIRoute.path` 鍚?prefix 鎷兼帴**锛氱壒寰佸寲娴嬭瘯鏂█鏂版ā鍧?router 璺緞鏃讹紝`APIRoute.path` 杩斿洖瀹屾暣璺緞锛堝惈 `prefix="/device/v1"` 鎷兼帴锛夛紝涓嶆槸鐩稿璺緞 `/tasks/{task_id}` 鑰屾槸 `/device/v1/tasks/{task_id}`銆傛柇瑷€椤荤敤瀹屾暣璺緞銆?
+
+## 2026-07-03 Q 鎵癸細device_gateway profiles.py 绾︽潫鏂藉姞鎶界鍒?profile_constraints.py
+
+- **绮楃矑搴﹀昂瀵哥洰鏍囪€楀敖鍚庣殑鍙戠幇鎵嬫**锛歅 鎵归棴鐜悗 `check_code_size.py` 鍏ㄨ繃锛? 涓?>300 琛屾枃浠躲€? 涓?>50 琛屽嚱鏁帮級锛岄渶鎹㈡洿缁嗗彂鐜版墜娈点€侰odeGraph 瀛ゅ効瀹¤锛坄codegraph_orphans.py --fanin`锛夋爣 `context_compressor.py` 涓?ORPHAN锛屼絾 `find` + `grep` 鍏ㄥ簱鏍稿疄纾佺洏宸蹭笉瀛樺湪鈥斺€旀槸 CodeGraph 鏁版嵁搴撻檲鏃э紝闈炵湡姝讳唬鐮佺洰鏍囥€傛暀璁細**CodeGraph 瀛ゅ効鏍囪蹇呴』 ripgrep 浜屾鏍稿疄**锛堜笌 G1b F401 瀹¤ agent 涓嶅彲淇″悓涓€鍘熷垯锛夛紝鍥炬暟鎹簱鍙兘婊炲悗浜庣鐩樸€傛渶缁堢敤"琛屾暟閫艰繎涓婇檺鎵弿"瀹氫綅 `profiles.py` 295 琛岋紙璺?300 浠?5 琛岋級涓烘渶鍊煎緱鎶界鐩爣銆?
+- **TYPE_CHECKING 瑙勯伩寰幆寮曠敤**锛歚profile_constraints` 闇€寮曠敤 `profiles.ResolvedProfile` 鍋氱被鍨嬫敞瑙ｏ紝浣?`profiles` 鈫?`device_profile` 閾捐嫢 `profile_constraints` 杩愯鏃跺鍏?`profiles` 浼氬舰鎴?`profile_constraints 鈫?profiles 鈫?device_profile` 涓?`task_creation 鈫?profile_constraints 鈫?profiles` 鐨勬綔鍦ㄧ幆銆傝В娉曪細`ResolvedProfile` 浠呭湪 `if TYPE_CHECKING:` 鍧椾笅瀵煎叆锛岃繍琛屾椂涓嶅鍏ャ€乸yright 浠嶈В鏋愮被鍨嬨€俻yright 0 errors 瀹炶瘉瑙勯伩鎴愬姛鈥斺€旀妯″紡閫傜敤浜?绾嚱鏁版ā鍧楅渶寮曠敤涓婃父 dataclass 绫诲瀷浣嗕笉闇€杩愯鏃惰皟鐢?鐨勬娊绂诲満鏅€?
+- **F401 鍏ㄥ眬闂ㄧ鍓甫鏀剁泭**锛氭娊绂?3 鍑芥暟鍚?`profiles.py` 鐨?`import json` 鍜?`from device_gateway.device_write_handler import record_simplification` 闅忎箣鍙樻锛圞2+L+M+N 鎵瑰惎鐢ㄧ殑 F401 鍏ㄥ眬闂ㄧ浼氭嫤锛夛紝绗竴鏃堕棿娓呯悊鈥斺€旇瘉鏄?F401 闂ㄧ鍦ㄩ噸鏋勬椂涓诲姩鏆撮湶姝诲鍏ワ紝鑰岄潪绛夊埌 CI 鎶ラ敊銆?
+
+## 2026-07-03 P 鎵癸細鏈湴 pre-commit 鍔?ruff format --check 瀹堟姢 + 鍓?`_run` cwd 閫忎紶鐪?bug 淇
+
+- **鏍瑰洜**锛歄-3 璋冭瘯鍘嗙▼鏆撮湶鏈湴 pre-commit 鍏ュ彛 `scripts/run_ruff_check.py` 鍙窇 `ruff check`锛孋I 璺?`ruff check` + `ruff format --check` 涓ゆ鈥斺€斾袱绔懡浠ら泦鍚堜笉瀵圭О锛屽垏鐗?spacing 婕傜Щ銆丱ptional[X]鈫扻|None 鏁寸悊銆丒OL newline 绛夊彧鐮?format 涓嶇牬 check 鐨勫樊寮傚湪鏈湴闈欓粯鏀捐銆佸埌 CI 鎵嶆毚闇诧紝姣忔閮借琛?fix commit + push retry銆?
+- **淇**锛歚run_ruff_check.py::run_ruff` 鏀逛负鑱氬悎 `ruff check` + `ruff format --check` 涓ゆ subprocess锛岀涓€闈為浂 returncode 鍗抽樆濉烇紝stdout/stderr 閫忎紶缁勫悎锛沝ocstring 瑙ｉ噴鏉ュ巻 + lesson learned O-3 閾炬帴銆?
+- **棣栨鍚敤鍗冲疄璇佷环鍊?*锛氭湰鍦扮┖ staging 璺?pre-commit 绔嬪嵆鎶撳嚭 2 澶勬棭宸茶 format 鐨勯暱琛屾紓绉伙紙`deploy/jdcloud/deploy_jd.py` 闀?URL銆乣tests/device_gateway/test_ws_lifecycle.py` 闀垮嚱鏁扮鍚嶏級锛孭 鎵归『鎵?format 娓呮帀銆?
+- **鍓甫 P-1 鈫?鎶撳嚭 `_run` cwd 閫忎紶鐪?bug (P-2)**锛歅-1 push commit `c16a4f9d` 瑙﹀彂 CI `Type check changed Python files` 姝ラ锛屽洜 `deploy_jd.py` 琚?diff 鍛戒腑瑙﹀彂 pyright锛屽彂鐜?line 34 `_run("sha256sum -c prometheus.sha256", cwd=INSTALL_DIR)` 浼?`cwd=` 浣?`_run` 鍑芥暟绛惧悕鍙湁 `check`銆乣cwd` 琚潤榛樺拷鐣モ€斺€擿sha256sum -c` 瀹為檯鍦ㄩ敊璇伐浣滅洰褰曡窇銆傝繖鏄?*娼滀紡宸蹭箙鐨勭湡 bug**锛屾牎楠屽湪閿欒鐩綍璺戝彲鑳借鍒ら€氳繃銆傜粰 `_run` 鍔?`cwd: Path | None = None` 鍙傛暟閫忎紶 `subprocess.run(..., cwd=cwd)`锛宲yright 0 errors銆?
+- **鏁欒 (CI 銆孴ype check changed Python files銆?鏄殣寮忓瑕嗙洊鎵弿)**锛氭湰鍦板彧鍦?`--full` pre-commit 鎴?user-changed 鏃惰窇 pyright 鍦ㄦ寚瀹氭枃浠讹紝CI 鐨?`Type check changed Python files` 鏄?`git diff --name-only HEAD~1..HEAD --diff-filter=ACMRT` 姣忔鑷姩鎵?*鎵€鏈夊姩杩囩殑 .py** 鈥斺€?鍗曚竴鏂囦欢鍙兘鍗充娇涓嶆槸鏀瑰姩鏍稿績锛屽彧瑕佽 diff 鍛戒腑灏?pyright銆傝繖鏄殣钘忕殑"瀹借鐩?pyright 鎵弿"銆備粖鍚庢秹鍙婂伐鍏疯剼鏈紙涓嶅湪鏉冨▉鏂囦欢娓呭崟锛夋敼鍔ㄥ簲鏈湴鎵嬪姩璺?`pyright <鏀瑰姩鏂囦欢>` 涓?CI 鍚屾锛屽惁鍒?pyright 澶辫触寰€寰€浼鎴愩€孋I 鍙堢孩浜嗐€嶅洖鐜?retry 娴垂銆?
+- **鏁欒 (CI/鏈湴瀹堟姢瀵圭О鍘熷垯)**锛欳I workflow 涓庢湰鍦板畧鎶よ剼鏈繀椤昏窇 **鍚屼竴濂?* 鍛戒护闆嗗悎锛坮uff check + ruff format --check锛夛紝鍚﹀垯鏈湴缁?CI 绾細鍙嶅鍙戠敓銆傞噸鏋?grep 鍙屾柟鏂囦欢 `.github/workflows/test.yml` 涓?`scripts/run_ruff_check.py` 姣斿 ruff 鍛戒护鏄瀹堟姢瀵圭О鐨勬渶绠€鏂规硶銆?
+
+## 2026-07-03 P 鎵癸細鏈湴 pre-commit 鍔?ruff format --check 瀹堟姢锛圕I 涓庢湰鍦板畧鎶ゅ绉帮級
+
+- **鏍瑰洜**锛歄-3 璋冭瘯鍘嗙▼鏆撮湶鏈湴 pre-commit 鍏ュ彛 `scripts/run_ruff_check.py` 鍙窇 `ruff check`锛孋I 璺?`ruff check` + `ruff format --check` 涓ゆ鈥斺€斾袱绔懡浠ら泦鍚堜笉瀵圭О锛屽垏鐗?spacing 婕傜Щ銆丱ptional[X]鈫扻|None 鏁寸悊銆丒OL newline 绛夊彧鐮?format 涓嶇牬 check 鐨勫樊寮傚湪鏈湴闈欓粯鏀捐銆佸埌 CI 鎵嶆毚闇诧紝姣忔閮借琛?fix commit + push retry銆?
+- **淇**锛歚run_ruff_check.py::run_ruff` 鏀逛负鑱氬悎 `ruff check` + `ruff format --check` 涓ゆ subprocess锛岀涓€闈為浂 returncode 鍗抽樆濉烇紝stdout/stderr 閫忎紶缁勫悎锛沝ocstring 瑙ｉ噴鏉ュ巻 + lesson learned O-3 閾炬帴銆?
+- **棣栨鍚敤鍗冲疄璇佷环鍊?*锛氭湰鍦扮┖ staging 璺?pre-commit 绔嬪嵆鎶撳嚭 2 澶勬棭宸茶 format 鐨勯暱琛屾紓绉伙紙`deploy/jdcloud/deploy_jd.py` 闀?URL銆乣tests/device_gateway/test_ws_lifecycle.py` 闀垮嚱鏁扮鍚嶏級锛孭 鎵归『鎵?format 娓呮帀銆?
+- **鏁欒 (CI/鏈湴瀹堟姢瀵圭О鍘熷垯)**锛欳I workflow 涓庢湰鍦板畧鎶よ剼鏈繀椤昏窇 **鍚屼竴濂?* 鍛戒护闆嗗悎锛屽惁鍒欍€屾湰鍦扮豢 CI 绾€嶅皢鍙嶅鍙戠敓锛屾瘡娆℃祴璇?CI 鏉ョ‘璁?commit 琛屼负鏄參鍙嶉銆傞噸鏋?grep 鍙屾柟鏂囦欢 `.github/workflows/test.yml` 涓?`scripts/run_ruff_check.py` 姣斿 ruff 鍛戒护鏄瀹堟姢瀵圭О鐨勬渶绠€鏂规硶銆備粖鍚庤嫢 CI 鍔犳柊 lint rule锛堝 Ruff 鏇存柊甯︽柊 rule锛夛紝鍚屾鍔犺繘鏈湴瀹堟姢銆?
+
+## 2026-07-03 O 鎵?CI 淇锛歱yright authority-files 姝ラ鎸囧悜宸茶縼绉荤殑 routing_engine 鍖?
+
+- **鏍瑰洜**锛欿2+L+M+N 鎺?push 鍚?GitHub Actions Tests workflow 澶辫触銆傞€愭瀹氫綅鍒?`Type check authority files` 姝ラ `pyright server.py routing_engine.py routes/chat_endpoints.py` 鎶?`File or directory "routing_engine.py" does not exist`锛坋xit 4锛夈€俙routing_engine.py` 鏃╁凡鍦ㄥ巻娆℃娊绂讳腑鎷嗘垚 `routing_engine/` 鍖咃紙`__init__.py` 涓烘潈濞?`route()` 鍏ュ彛 + `route_pipeline.py`/`execute_strategy.py`/`intent.py`/`post.py` 绛夊瓙妯″潡锛夛紝浣?CI 鐨?authority-files pyright 姝ラ纭紪鐮佷簡鏃у崟鏂囦欢璺緞銆?
+- **鍏抽敭婢勬竻**锛欳I 鐨?pytest / F401 瀹夊叏闂?/ testside_f401_safety_gate 鍏ㄩ儴閫氳繃锛坄4395 passed, 17 skipped`锛沗pytest --collect-only OK`锛夆€斺€?鍗?K2+L+M+N 鐨?F401 鍏ㄥ眬闂ㄧ涓?N 鎵?pypinyin pin 鍦?CI 涓婄湡瀹炵敓鏁堬紙H1/I/J 闆嗘祴鍦?CI 涓婂洜鏂拌 pypinyin 涓嶅啀琚?importorskip 璺宠繃锛宻kipped 鏁颁笅闄嶏級銆傚け璐?*浠?*鍦?pyright authority 姝ラ鐨勮繃鏃惰矾寰勶紝涓庣槮韬敼鍔ㄦ棤鍏炽€?
+- **淇**锛歚.github/workflows/test.yml` authority 姝ラ `routing_engine.py` 鈫?`routing_engine/__init__.py`锛涢『甯︽洿姝?3 澶勫叾瀹冭繃鏃跺紩鐢?鈥斺€?`scripts/repo_stats.py` KEY_FILES銆乣scripts/deploy_unified_common.py` CORE_FILES + phase_a SLICE_FILES銆俢ore slice 閮ㄧ讲鐢?`_collect_runtime_files()` 鍔ㄦ€佹敹闆嗕笉鍙楀奖鍝嶏紙888 files 涓€鐩存垚鍔燂級锛岃繃鏃跺紩鐢ㄤ粎褰卞搷 repo stats 鏄剧ず涓庢瀬灏戠敤鐨?phase_a slice锛岄潪闃诲浣嗕竴骞舵洿姝ｄ繚宸ュ叿鍑嗙‘銆?
+- **鏁欒**锛氭ā鍧椾粠鍗曟枃浠舵媶鎴愬寘鏃讹紝蹇呴』鍏ㄤ粨 grep `<鏃фā鍧?.py` 瀛楅潰閲忓紩鐢紙CI workflow銆侀儴缃叉竻鍗曘€乻tats 鑴氭湰銆佹枃妗ｏ級锛岃€岄潪鍙敼 import銆俙--diff-filter=ACMRT` 宸蹭娇 changed-files pyright 姝ラ澶╃劧鎺掗櫎鍒犻櫎鏂囦欢锛屼絾纭紪鐮?authority 娓呭崟鏄洸鐐光€斺€攁uthority 娓呭崟搴旀敼鐢ㄥ寘璺緞鎴?glob銆?
+
+## 2026-07-03 娣卞害鐦﹁韩 K2+L+M+N 鍚堟壒缁撻」锛欶401 鍏ㄥ眬闂ㄧ鍚敤 + 闂幆 + CI 鍚屾
+
+- **K2 鏁欒 (e) 鍨嬫€併€宖ixture 闂存帴渚濊禆閾俱€嶆柊鍙戠幇**锛欸1b 璁板綍鐨?F401 澶辫触鍥涘瀷鎬?(a)(b)(c)(d) 涔嬪锛屾湰鎵瑰張鍙戠幇绗?(e) 鍨嬫€?鈥斺€?銆宲ytest fixture 闂存帴渚濊禆 fixture 閾俱€嶃€俙import fake_u1` 鍦ㄦ祴璇曞嚱鏁扮鍚?(`test_xxx(lima_client, fake_device_server)`) 娌″嚭鐜帮紝浣?helper 妯″潡涓?`@pytest.fixture\ndef fake_device_server(fake_u1: dict)` 渚濊禆 `fake_u1` 浣滀负 fixture 鍙傛暟锛沺ytest 鏀堕泦 test 鏃堕€氳繃 fixture 渚濊禆鍥?resolve `fake_device_server` 鍙堥€掑綊 resolve 瀹冪殑 `fake_u1` 鍙傛暟锛岄渶瑕?`fake_u1` 鍚嶅瓧鍦?helper 妯″潡鐨?namespace 閲屽彲瑙侊紝鑰?import 灏辨槸涓轰簡璁?helper 妯″潡鍔犺浇鍒?sys.modules 瀹屾垚 fixture 娉ㄥ唽銆傚垹浜嗙珛鍗?`fixture 'fake_u1' not found`銆備慨澶嶏細灏界鐞嗚涓?import 涓嶅繀淇濈暀锛坧ytest 搴旇嚜琛屽彂鐜?fixture锛夛紝瀹炶瘉鍒?import 鍗抽敊鈥斺€斾繚鐣?import + `# noqa: F401  pytest fixture, transitively required` 娉ㄩ噴閲婃槑銆?
+- **L 鎵?grep-璇姤 lesson**锛歳uff F401 鎶ュ憡閲岄檮甯︾殑 dashed-name bare token 鐢?`\b...\b` grep 楠岃瘉浼氬懡涓?*瀛楃涓插瓧闈㈤噺 / 娉ㄩ噴 / 鍑芥暟鍚?* 鈥斺€?`pytest` 鍛戒腑 `"pytest"` 瀛楃涓叉瘮杈?`"pytest"`銆乣json` 鍛戒腑 httpx keyword `json={...}`銆乣asyncio` 鍛戒腑 `@pytest.mark.asyncio` 瑁呴グ鍣ㄥ悕锛?*閭ｄ笉鏄?asyncio 妯″潡鐢ㄦ硶**锛夈€乣http.client` 鍛戒腑 docstring "WebSocket client"銆乣sys` 鍛戒腑 `via sys.modules` 娉ㄩ噴銆傛湰鎵?audit 鑴氭湰 grep 鏄剧ず 6 risky 瀹為檯鍏ㄥ彲鍒犮€傛暀璁細grep `\bNAME\b` 浣滀负 F401 鐪熸鍒ゆ柇涓嶅锛岄渶閰嶅悎涓婁笅鏂囦汉宸ヨ瘑鍒紙瀛楃涓插瓧闈㈤噺 vs 鐪熸ā鍧楃敤娉曪級锛屼絾閰嶅悎 ruff --fix 鐨?pure 鍒犻櫎妯″紡锛坮uff 涓嶅垹 active import锛夛紝鍙ぇ鑳?`ruff --fix` 鍚庣珛鍗?pytest 楠岃瘉銆?
+- **M 鎵圭敓浜т晶 exclude reference lesson**锛歳eference/grbl_fix/ 5 涓?F401 鍦?`sys.state` 绛?C++ 浠ｇ爜瀛楃涓插瓧闈㈤噺閲岃 ruff 璇嗕负娲伙紝浣?module sys 鐪熸銆傚喅绛栨寜 AGENTS.md銆岀姝㈡殏瀛樺弬鑰冧粨搴撱€嶆敼涓哄湪 `ruff.toml` `exclude = ["reference/**"]` 鐩存帴璞佸厤锛屼笉鍒?F401銆傝繖涓庣敓浜ц矾寰?F401 gate 鍚敤鍚庝笉鍐茬獊鈥斺€攅xclude 鐨勭洰褰?ruff 瀹屽叏涓嶆壂锛屽涓荤嚎琛屼负浜х嚎闆跺奖鍝嶃€?
+- **M 鎵?ruff format 鍓綔鐢?lesson**锛歚ruff --fix --select F401 .` 涓嶄細鏀?format锛屼絾鏈壒绱ц窡鐨?`ruff format .` 涓€骞惰鑼冨寲浜?23 涓敓浜?/ tests 鏂囦欢锛圗OL 缂哄熬 newline / 鍗曗啋鍙岀┖琛?/ Optional[X]鈫扻|None 绛?G1b 鍚庡懆鏈熸棭搴斿仛杩囩殑鏍煎紡鍖栵級銆傝繖浜?silent 鍗囩骇 G1b 鏃舵槸鍚︽湁鎰忎繚鐣?NO锛屾湰鎵逛竴骞舵墦骞炽€傛暀璁細姣忔鏍煎紡鍖?repo-wide 鍚勭 small NIT 鏀瑰姩锛屽簲鍗曠嫭 commit 鎴栨槑纭褰曞埌 progress锛岄伩鍏?noise 娣疯繘 F401 閫昏緫鎵圭殑 commit銆傛湰鎵归伒瀹堛€孠2+L+M+N 鍚堜竴 commit銆嶅師鍒欎竴娆¤繃銆?
+- **閲岀▼纰戞剰涔?*锛欶401 鍏ㄥ眬 gate 鍚敤 = 浠?G1b 鎻愬嚭鐨勩€屽洓鍨嬫€佸叿鍚嶅け鏁?+ lesson learned銆嶅埌鐜板湪鐨勫伐绋嬮棴鐜€備粖鍚?TDD 鎶界鎵规浼氭湁 ruff 鍏?repo F401 0 鎶ュ憡鍋?baseline 瀹堟姢锛屾柊鐨勬 import 寮曞叆浼氱珛鍗宠鏈湴 commit + CI 鍙岄棬鎷掓敹锛屼笉鍐嶆湁 F401 闈欓粯姝讳唬鐮佹綔閫冪┖闂淬€侶2 鐨?F401 瀹夊叏闂?(`pytest --collect-only`) 涓?M 鐨?ruff F401 鍏ㄥ眬 gate 褰㈡垚涓ゅ眰闃茬嚎 鈥斺€?ruff 绗竴閬撻潤鎬佽繃婊わ紝pytest 鏀堕泦鍔ㄦ€侀獙璇佸瓧绗︿覆鍖归厤/fixture 闂存帴渚濊禆 (d)/(e) 鍨嬫€併€?
+
+## 2026-07-03 娣卞害鐦﹁韩 K 鎵规缁撻」锛氭祴璇曚晶 mixed 妗?10 鏂囦欢 39 涓湡姝?imported-name 閫愭枃浠舵竻鐞?
+
+- **K 鎵规瀹¤ agent 涓嶅彲鍏ㄤ俊 lesson**锛氭湰鎵瑰啀娆¤瘉鏄庛€屼緷闈?Explore/general-purpose agent 缁欏嚭鐨?F401 褰掓《鍒嗙被缁濅笉鍙洿鎺ヤ綔涓哄垹闄や緷鎹€嶃€傚璁?agent 鍦?mixed / domain dead 涓ゆ《閲屾妸 `fake_device_server`/`fake_u1`/`lima_client`/`accept_share`/`client`/`seed_guest` 褰掍负銆宒omain dead imports 鍙垹銆嶁€斺€?浣嗚繖 6 鍚嶉兘鏄?G1b 宸叉樉寮忚褰曠殑 (d) 銆宲ytest fixture 瀛楃涓插尮閰嶆敞鍏ャ€嶅瀷鎬侊紙鍦ㄦ祴璇曞嚱鏁扮鍚嶄綔涓哄弬鏁板悕鍑虹幇銆乸ytest 鏀堕泦鏈熸敞鍏ャ€乺uff 鐪嬩笉瑙侊級锛屽垹浜嗕細鍐嶇幇 18 ERROR銆?*鏁欒**锛欶401 鎵归噺娓呯悊鐨?grader 蹇呴』鏄€屼翰鑷?Read + ripgrep 鍚?`@pytest`/`pytest.`/fixture 鍚?builtin 瑁呴グ鍣ㄧ瓑澶氶噸 grep銆嶄汉宸ュ瑙嗭紝agent 鎶ュ憡鍙兘浣滀负鍒濆寮曞鑰岄潪鏈€缁堝垹闄ゆ竻鍗曘€傛湰鎵圭敤姝ゆ柟娉曟妸 plan 閿佸畾鐨?37 涓垹鍚嶆墿灞曞埌 39 涓紙琛ヤ簡 `os` 涓?`verifier as attestation_verifier` 涓や釜鎴戜箣鍓?Read 鏃舵紡瀹＄殑鐪熸鍚嶏級銆?
+- **K 鎵规 monkeypatch.setattr 瀛楃涓插睘鎬?鈮?import 鍒悕 lesson**锛歚test_device_attestation.py` 涓?`attestation_verifier` 瀛楃涓插嚭鐜板湪 `monkeypatch.setattr(handlers, "attestation_verifier", ...)` 澶氬锛岀涓€鍙嶅簲浼氳涓?import 鍒悕 `verifier as attestation_verifier` 鏄繀闇€鐨勶紱瀹為檯 `setattr` 鐨勭浜屽弬鏁板彧鏄睘鎬у悕瀛楃涓诧紝handlers 鑷繁鏈?`attestation_verifier` 灞炴€э紝鏈枃浠?import 鐨勫埆鍚嶅苟涓嶈寮曠敤锛屽垹瀹夊叏銆傝繖绉嶃€宨mport 鍒悕 = 宸插瓨鍦?attribute 鍚嶃€嶇殑瀛楃涓插瓧闈㈤噺寮曠敤鏄彟涓€绉?F401 闅愯斀娲昏穬鍋囪薄銆?
+- **K 鎵规鏂板舰鎬併€屽眬閮ㄥ彉閲忛伄钄?import銆峫esson**锛歚test_provider_automation_model_entry.py` 涓?`from provider_automation_helpers import entry` module 涓庢枃浠跺唴姣忎釜娴嬭瘯鍑芥暟鐨?`entry = ProviderModelEntry(...)` 灞€閮ㄥ彉閲忓悓鍚嶏紝鎵€鏈?`entry.xxx` 閮界敤灞€閮ㄥ疄渚嬨€佹案杩滀笉寮曠敤 module import銆傝繖鎰忓懗鐫€ module import 鐪熸鍙垹锛屼絾闇€ visualize 鍏ㄦ枃浠舵瘡涓?`entry` 鍑虹幇浣嶇疆鐨勪笂涓嬫枃锛坄entry = ProviderModelEntry(...)` 鍒嗛厤琛?vs `entry.xxx` 浣跨敤琛岋級鎵嶈兘鍖哄垎浜岃€呫€俽uff 榛樿鎶?import `entry` 瑙嗕负娲伙紙鍥犱负鍚嶅瓧 `entry` 鍦ㄦ枃浠朵腑鍑虹幇锛夛紝瀹為檯鏄伄钄藉亣娲?鈥斺€?ruff 姝ゅ琛ㄧ幇灏氱畻姝ｇ‘鎶ヤ簡 F401锛屼絾浜哄伐瀹¤瑕佸皬蹇冨眬閮ㄥ彉閲忓悓鍚嶉伄钄藉甫鏉ョ殑瑙嗚娣锋穯銆?
+- **K 鎵规涓嶅姩 6 鏂囦欢 (d) 娉ㄥ叆鍨嬫€佽鏄?*锛歠ake_u1_cloud 4 鏂囦欢 (`test_fake_u1_cloud_draw_svg.py` / `home` / `rejection` / `write_text`) 涓?device_app_sharing 2 鏂囦欢 (`test_device_app_sharing.py` / `_permissions.py`) 鐨?`fake_device_server`/`fake_u1`/`lima_client`/`accept_share`/`client`/`seed_guest` 鍦ㄦ祴璇曞嚱鏁扮鍚嶅弬鏁板嚭鐜帮紝灞?(d) pytest fixture 娉ㄥ叆鍨嬫€併€傝繖涓ょ被鐪熸姘镐箙瑙ｆ硶锛?a) 鍦?helper 妯″潡 (`fake_u1_helpers.py` / `device_app_sharing_helpers.py`) 鐨?`# noqa: F401` 涓婃敞鏄?re-export/fixture 鐢ㄩ€旓紱(b) 鍦ㄦ秷璐规祴璇曟枃浠剁洿鎺?`# noqa: F401` 鍚庤窡 `# fixture injected by pytest` 閲婃槑銆傛湰鎵规殏鐣?K2 鎵瑰鐞嗐€?
+- **K 鎵规鏁堟灉**锛氭祴璇曚晶 F401 鎬绘暟浠?141 鍑忓埌 102锛堝垹 39锛夛紱鍚?F401 鏂囦欢鏁颁粠 91 鍑忓埌 81锛堝垹鏂囦欢鍐呭叏閮?F401 鐨勮繘鍏?0 鎶ュ憡鐘舵€侊級銆傞棬绂佸叏绋嬬豢锛屾棤杩愯鏃惰涓哄彉鍖栥€?
+
+## 2026-07-03 娣卞害鐦﹁韩 J 鎵规缁撻」锛氬敜閱掕瘝鎻℃墜灞傛娊绂诲埌 accept_websocket_upgrade 绾嚱鏁?
+
+- **J 鎵规 accept_websocket_upgrade 鎺ョ紳璁捐缁撹**锛氭娊绂讳笉鍙﹁捣鏂版ā鍧楋紙Ponytail YAGNI锛氳兘涓嶆媶灏变笉鎷嗭級鈥斺€旀彙鎵嬪崗璁氨鏀惧湪 http_server.py 椤堕儴妯″潡灞傜骇锛屼笌 `build_handler_class` 宸ュ巶骞跺垪锛涙帴鍙?duck-typed `handler` 鍙傛暟娉ㄥ叆 `.headers.get / .send_response / .send_header / .end_headers / .send_error / .connection / .wfile` 涓冧釜瀹炰緥 API锛岃繑鍥?`(reader, writer)` 鎴?`None`锛堝凡 send_error 鍚庯級銆?*鍏抽敭璁捐鐐?*锛歘RDONLY 鐩村紩 `SimpleHTTPRequestHandler` 绫诲瀷娉ㄨВ灏卞锛堜笉闇€瑕侀《灞傚睘鎬?+ lazy `_resolve_*()` 鍏滃簳閾炬ā寮忥紝鍥犱负 handler 鏄粠绫诲閮ㄦ敞鍏ヨ€屼笉鏄鍦?importlib 鏃犵埗鍖呯幆澧冮噷鐩稿瀵煎叆锛夛紝鐩告瘮 `websocket_session / bridge_request_handler` 鐨?callback 娉ㄥ叆妯″紡鏇寸畝鍗曘€俙_handle_websocket` 浠?>20 琛屾敹绱у埌 ~9 琛屾帴缂濓紙`upgraded = accept_websocket_upgrade(self)` 鈫?`None 鍒?return` 鈫?`reader, writer = upgraded` 鈫?`serve_websocket_session(...)`锛夈€?
+- **J 鎵规濂戠害鐗瑰緛鍖栨祴璇?lesson learned**锛欼 鎵规 plan 鍦ㄥ€欓€夋竻鍗曢噷鎻愬埌銆孲ec-WebSocket-Version 涓嶆牎楠屻€嶆槸娼滃湪鏀硅繘鐐癸紝鏈壒 TDD RED-first 鎶婂畠鏄惧紡鍖栦负鐗瑰緛鍖栨祴璇?`test_websocket_handshake_succeeds_without_sec_websocket_version`鈥斺€旂敤 `ws_handshake(include_version=False)` 瑙﹀彂鎻℃墜锛屾柇瑷€杩樿兘 101 + 鏀跺埌 bridge_connected ready frame銆?*鏁欒**锛氱函缁撴瀯閲嶆瀯姝ラ閲岃嫢鏈夈€屾湭鏉ュ彲鏀硅繘 X銆嶇殑濂戠害鐩茬偣锛屽厛鎶婄幇鐘舵樉寮忓啓鎴愮壒寰佸寲娴嬭瘯锛屾槸鎶婇殣鎬у绾﹁浆鎴愭樉寮忓绾︺€侀伩鍏嶅皢鏉ユ倓鎮勬敹绱ф牎楠屾椂 silent break 娴忚鍣?瀹㈡埛绔殑鏈€寤変环鎵嬫銆傛湰娴嬭瘯鑻ュ皢鏉ュ紩鍏?Version 13 涓ユ牎楠屼細鍙樼孩锛岀敱鏀?PR 鏄惧紡鍐崇瓥濂戠害鏂瑰悜锛岃€岄潪闈欓粯鍥炲綊銆?
+- **J 鎵规杩涘害鍚?I 鎵规涓€鑷?*锛歠ull 4427 鈫?4428 passed锛堟伆濂?+1锛夈€乧heck_code_size PASS銆乺uff + pyright 鍏ㄨ繃銆乭ttp_server.py 170 鈫?187 琛岋紙缁撴瀯 +17 琛屾柊鍑芥暟 / -9 琛?_handle_websocket锛屽噣 +1 琛岋紝杩滀綆浜?300 闄愶級銆?
+
+## 2026-07-03 娣卞害鐦﹁韩 I 鎵规缁撻」锛氬敜閱掕瘝 http_server 绫诲伐鍘傛娊绂?+ 鎻℃墜閿欒璺緞鐗瑰緛鍖栨祴璇?
+
+- **I 鎵规姝讳唬鐮佽瘖鏂粨璁?*锛欶2 鎶界 `frame_codec`銆丟2 鎶界 `bridge_request_handler`銆丠1 鎶界 `websocket_session` 鍚庯紝`data/digital-human/wakeword_runtime/runtime/http_server.py` 鐨?`_build_server` 鍐呭祵 `TestRuntimeHandler` 绫绘畫鐣?**7 涓竴琛?delegator wrapper 鏂规硶**锛坄_build_wakeword_config_message` / `_handle_bridge_request` / `_save_wakeword_config` / `_receive_websocket_message` / `_read_exact` / `_send_websocket_text` / `_send_websocket_frame`锛夛紝鏂规硶浣撻兘鍙槸 `return <宸叉娊绂绘ā鍧楃殑椤跺眰鍑芥暟>(...)`锛屼絾鍥?`_handle_websocket` 鏀规垚鐩存帴璋?`websocket_session.serve_websocket_session(...) / bridge_request_handler.handle_bridge_request(...)` 绛夐《灞傚嚱鏁帮紝**鍏ㄤ粨 ripgrep `self._<method>` 0 鍛戒腑**锛岀‘璁ゆ槸绾浠ｇ爜銆?*鏁欒**锛氭瘡涓€娆°€屾娊绂荤函鍑芥暟妯″潡 + 鎶婅皟鐢ㄧ偣濮旀墭鍒伴《灞傘€嶇殑閲嶆瀯鏀跺熬蹇呴』 grep `self._<method>` 瀹¤閬楃暀 delegator锛屽惁鍒欎細闈欓粯娈嬬暀鏃犳秷璐硅€呯殑涓€琛屽寘瑁呯洿鑷充笅娆′汉宸ュ贰瀵熲€斺€旀湰鎵?7 涓?wrapper 绱Н宸?~6 鏈堬紙璺ㄨ秺 F2/G2/H1 涓夋壒锛屾瘡鎵规娊绂诲悗鏈珛鍗虫竻 delegator锛屽叏閮ㄧ暀鍒版湰鎵逛竴娆℃€ч攢璐︼級銆?*鏀硅繘**锛氭湭鏉ユ娊绂绘壒娆℃楠ゅ簲鍥哄寲銆? 瑙ｆ瀽璋冪敤鐐?鈫?6 璋冪敤鐐瑰鎵樺埌椤跺眰鍑芥暟 鈫?7 grep `self._<鍘焪rapper>` 鍒?delegator銆嶄笁姝ユ垚閾炬潯銆?
+- **I 鎵规绫诲伐鍘傛娊绂荤粨璁?*锛氬師 `_build_server` 鎶?`class TestRuntimeHandler(SimpleHTTPRequestHandler)` 宓屽湪闂寘浣撳唴鍙崟鑾?`test_root / event_bridge / schedule_restart` 涓変釜鑷敱鍙橀噺銆傛娊鍒版ā鍧楃骇 `build_handler_class(test_root, event_bridge, schedule_restart) -> type[SimpleHTTPRequestHandler]` 鍚庘€斺€?1) 涓庝笁涓濡规ā鍧楋紙`frame_codec` / `bridge_request_handler` / `websocket_session`锛夈€屾ā鍧楃骇绾嚱鏁般€嶉鏍煎榻愶紝handler 绫讳篃鍙湪 `http_server.build_handler_class(...)` 鐩存帴鏋勯€?鍗曟祴鑰屾棤闇€瀹炰緥鍖?`TestRuntimeHttpServer`锛?2) `_build_server` 鏀剁缉鍒?4 琛屻€岃皟宸ュ巶 + ThreadingHTTPServer + daemon_threads + return銆嶏紱(3) 闂寘鎹曡幏涓嶅彉锛堜粛鏄悓 3 涓?deps锛夛紝鏃犳柊杩愯鏃惰涓猴紝绾粨鏋勯噸鏋勩€?*淇濈暀涓嶆娊鐨勯儴鍒?*锛歚_handle_websocket` 鎻℃墜璺緞浠嶅己渚濊禆 `self.headers / self.send_response / self.send_error / self.wfile / self.connection`锛屾湰杞笉鍔紱骞跺湪妯″潡椤堕儴 ponytail docstring 鏍囨敞涓婇檺銆屾彙鎵嬪眰寮轰緷璧?SimpleHTTPRequestHandler 瀹炰緥 API銆? 鍗囩骇璺緞銆屾崲 wsproto/starlette 妗嗘灦鍚庡皢鎻℃墜灞備竴骞朵笅娌夈€嶃€?
+- **I 鎵规鎻℃墜閿欒璺緞鐗瑰緛鍖栨祴璇曠粨璁?*锛欻1 绔埌绔泦娴嬪彧瑕嗙洊 happy-path 101 鎻℃墜锛堥€氳繃 support helper `ws_handshake` 鐨勯殣寮?`"101" in status_line` + `Sec-WebSocket-Accept` 鏍￠獙锛夛紝**涓?BAD_REQUEST 鍒嗘敮锛堟棤 Upgrade 澶淬€佹棤 Sec-WebSocket-Key 澶达級姝ゅ墠闆惰鐩?*銆傛湰鎵逛互鐗瑰緛鍖栨祴璇曪紙闈炴柊鍔熻兘銆侀攣鐜版湁濂戠害锛夎ˉ 2 涓?http.client 娴嬭瘯锛岃窇杩囧嵆缁匡紝浣夸笅涓€姝ョ被宸ュ巶鎶界鏈夊畬鏁村洖褰掔綉銆?*鎰忎箟**锛歍DD 鍦ㄧ函缁撴瀯閲嶆瀯鍦烘櫙涓嬨€屽厛 RED 涓嶅彲鑳姐€佹敼鐢ㄧ壒寰佸寲娴嬭瘯閿佺幇鏈夊绾︺€嶆槸姝ｇ‘鍙樹綋鈥斺€旇繖鏄?TDD-not-an-ideology 鐨勫彲璇佸疄鐢ㄦ硶銆?
+- **I 鎵规 from-import 鏀舵暃缁撹**锛氬垹 7 涓?wrapper 鍚庡敮涓€寮曠敤 `read_exact` / `send_frame` 鐨勪唬鐮佹秷澶憋紝鎶?`from .frame_codec import compute_accept, read_exact, receive_message, send_frame, send_text` 鏀舵暃鍒?`from .frame_codec import compute_accept, receive_message, send_text`锛? 涓級锛屽噺灏忔ā鍧楁帴鍙ｈ〃闈㈢Н銆佹秷闄?F401 椋庨櫓銆?
+
+## 2026-07-03 娣卞害鐦﹁韩 H1+H2 鎵规缁撻」锛氭祴璇曚晶 F401 瀹夊叏闂ㄥ伐鍏峰寲 + 鍞ら啋璇?WebSocket 浼氳瘽鎶界
+
+- **H2 F401 瀹夊叏闂ㄥ伐鍏峰寲缁撹**锛氬熀浜?G1b lesson learned锛堝洓绫诲叿鍚嶅け鏁堝瀷鎬侊紝鐗瑰埆鏄?pytest fixture 瀛楃涓插尮閰?(d) 绫诲 ruff 瀹屽叏涓嶅彲瑙侊級寤轰粨鍖栧畨鍏ㄩ棬锛氭柊寤?`scripts/testside_f401_safety_gate.py`鈥斺€旀湰闂ㄥ湪 pre-commit 娴佺▼涓綋涓斾粎褰?staged 鏂囦欢鍚?`tests/*.py` 鏃惰Е鍙?`python -m pytest --collect-only -q`锛岃嫢鏀堕泦澶辫触锛堝惈 ERROR 绛夌骇锛夋寜 ERROR 琛岃В鏋愬嚭澶辫触娴嬭瘯鏂囦欢锛岃烦杩?baseline-skip 鏂囦欢鍚庢墦鍗板け璐ュ垪琛?+ 鍥涘瀷鎬佹彁绀?+ 鏀堕泦灏?30 琛?triage 杈撳嚭锛岃繑鍥為潪闆堕樆姝㈡彁浜ゃ€?*璁捐瑕佺偣**锛?1) 瑙﹀彂鍨嬫€佸垽瀹氱敤銆宖ile path 鏄惁鍦?tests/ 瀛愭爲銆嶇畝鍗曞墠缂€锛屼笉渚濊禆 git staged 鍒楄〃鐨?pandas 鍖栵紱(2) `--baseline-skip-from` 鎺ュ彈宸茬煡鐮存崯鏂囦欢娓呭崟锛堜笉涓?stdin 鍐茬獊锛夛紝璁╂笎杩涙竻鐞嗘壒鍙眮鍏嶆棫鍊猴紱(3) main() 鍑芥暟缁?`_build_argparser()` + `_print_blocked()` 鎷嗗垎淇濇寔姣忎釜鍑芥暟 鈮?0 琛岄€氳繃 check_code_size锛?4) 闆嗘垚鍏?`run_pre_commit_check.py` 鐨?`run_testside_f401_safety_gate()`锛岀疆浜庡叾浠栧揩閫熸鏌ヤ箣鍚庛€乣--full` pytest 涔嬪墠锛屼繚璇?fixture-removal 绫诲け璐ヨ蹇€熸崟鑾疯€岄潪鎱㈣窇鍚庢墠瀵熻銆?0 涓?gate 鍗曟祴楠岃瘉绾?helper 琛屼负锛坧ath 杩囨护銆丒RROR 瑙ｆ瀽銆乥aseline 杩囨护銆乵ain 鏃╂棭杩斿洖璺緞锛夛紝涓嶈皟鐢?pytest 鏈韩閬垮厤渚濊禆銆?*鎰忎箟**锛氭妸 G1b 鐨勩€屼汉宸?lesson learned銆嶆案涔呭浐鍖栦负闂ㄧ锛屼娇涓嬩竴鎵规祴璇曚晶 F401 娓呯悊宸ヤ綔鏃跺嵆渚挎槸涓嶅悓鎵ц浜猴紝涔熻兘鍦ㄨ鍒?fixture 鏃剁洿鎺ヨ鏈湴 commit 鎷掓敹锛屼笉鍐嶄緷璧栬繍琛屾椂 pytest 鎵嶅彂鐜?18 errors 绫诲瀷鐨勭伨闅俱€?
+- **H1 wakeword WebSocket 浼氳瘽鎶界缁撹锛堜簡缁?G2 銆宍_handle_websocket` 浠嶉渶鍏堣ˉ绔埌绔祴璇曘€嶉仐鐣欙級**锛氫互 TDD 鏂瑰紡琛?`tests/test_wakeword_session_integration.py`锛? 涓鍒扮闆嗘垚娴嬭瘯锛夛細鐢?importlib + sys.modules alias package锛坄wakeword_runtime_pkg.{runtime,bridge}` 鍚堟垚鍖咃級璁?hyphen 璺緞 `data/digital-human/...` 鍙鍏ワ紱fixture 鍦?ephemeral port 0 璧?TestRuntimeHttpServer + 鍐呭祵 plumbing锛坰eed config.json/models/keywords.txt锛夛紝娴嬭瘯椹卞姩 raw socket + http.client + 鎵嬪啓 RFC6455 client handshake 璺?`/health`銆佹彙鎵?Ready 甯с€乣set_wakeword_config` round-trip銆乺estart銆乽nknown type fallback 浜斾緥銆俙pytest.importorskip("pypinyin")` 璺宠繃澶栭儴渚濊禆缂哄け鐜浠ヤ繚璇侀泦娴嬪彲璺戙€傞泦鎴愭祴璇曢€氳繃鍚庯紙瀹堜綇鐜版湁琛屼负锛夛紝鎶?`_handle_websocket` 鍐呭祵 46 琛屼簨浠跺惊鐜綋锛坧ost-handshake 鐨?client_queue.add 鈫?greeting 鈫?鍙屽悜杞 鈫?finally remove锛夊埌 `websocket_session.py`锛?9 琛岀函鍑芥暟妯″潡 `serve_websocket_session(reader, writer, bridge, test_root, schedule_restart, send_text_writer, receive_reader_writer)`锛夛紝http_server 浠呬繚鐣?HTTP/WebSocket 鎻℃墜锛堝己 self.send_response/headers 渚濊禆锛夛紝178鈫?64銆傛部鐢?frame_codec/bridge_request_handler 妯″紡锛歚handle_bridge_request` 涓?`build_wakeword_config_message` 椤跺眰灞炴€э紙闈?from-import锛夐摼鍏ョ敱 http_server.py import 鍚?setattr 鐪熷疄瀹炵幇锛涙祴璇曞彲 setattr 娉ㄥ叆 fake銆傞泦鎴愭祴璇曞湪鎶界鍓嶅悗鍏ㄨ繃锛岃瘉鏄庤繍琛屾椂琛屼负涓嶅彉銆?*鍏抽敭 lesson learned 娌夋穩**锛氬鍏?plumbing锛坈osmetic alias package 娉ㄥ唽 + http_server 鍔犺浇 + WS frame helpers 璁?130+ 琛岋級蹇呴』鍦ㄧ嫭绔?`_wakeword_integration_support.py`锛坧ytest 涓嶆敹闆嗗洜 `_` 鍓嶇紑锛夛紝淇濇寔 test 涓绘枃浠?193 琛?/ support 191 琛屽弻鍙?鈮?00锛涘苟楠岃瘉 check_code_size 涓嶆紡鍒?scripts/testside_f401_safety_gate.py锛?3 琛?main 鍑芥暟鎷?helper 閫氳繃 50 闄愶級鈥斺€?涓よ捣鍙版姢鍦?H1+H2 钀藉湴涓?梅 钀芥灄 met 闄愬埗鍙嶅脊銆?
+- **闂ㄧ鍏ㄧ▼缁?*锛歚ruff check .` / `ruff format --check` clean锛堜粎鏍煎紡鍖栨湰鎵规柊澧?淇敼鐨?4 涓?production G2/H1 鏂囦欢 + 6 涓?H2 娴嬭瘯/鑴氭湰鏂囦欢锛夛紱`scripts/check_code_size.py` PASS锛? 鏂囦欢 >300銆? 鍑芥暟 >50锛岄渶鎷?`_print_blocked` 涓?`_build_argparser` 鍚庨€氳繃锛夛紱`pyright` 鏈壒 4 涓浉鍏虫枃浠?0 errors 0 warnings锛涘叏閲?`pytest --tb=short -q` 鈫?**4425 passed / 3 skipped / 2 deselected / 0 failed**锛堣緝 G1+G2 鐨?4410 +15锛屼笌 H2 +10 gate 鍗曟祴 + H1 +5 闆嗘垚娴嬭瘯 涓€鑷达級銆俻ypinyin==0.55.0 宸?pin 鍏?`.venv310` 娴嬭瘯鐜锛堜笌 `data/digital-human/wakeword_runtime/requirements.txt` 涓€鑷达級浣?H1 闆嗘垚娴嬭瘯鍙甯歌繍琛屻€?
+
+## 2026-07-03 娣卞害鐦﹁韩 G1+G2 鎵规缁撻」锛氬彴璐﹂攢璐?+ 娴嬭瘯渚?F401 绮鹃€?+ 鍞ら啋璇嶆ˉ鎺ヨ姹傛娊绂?
+
+- **G1a PONYTAIL-DEBT 鍙拌处閿€璐︾粨璁?*锛歚check_code_size.py 娈嬬暀 12 涓?51-54 琛屽嚱鏁癭鏉＄洰缁忕嫭绔?AST 鎵弿锛?1-55 琛岃寖鍥淬€佸叏浠撻潪鎺掗櫎鐩綍锛夌‘璁ゅ疄闄呭凡 **0 涓秴闄愬嚱鏁?*锛圗6-E9 绛夋棭鎵瑰凡娓呯悊锛夛紝鏉＄洰闄堟棫銆傚垹闄ゆ潯鐩苟琛ャ€屽凡缁撴竻銆嶈褰曪紝鏃犱唬鐮佹敼鍔ㄣ€?*鏁欒**锛歅ONYTAIL-DEBT 瑙﹀彂鏉′欢銆岃Е鍙戜笅涓€涓敓浜у嚱鏁拌秴 50 琛屾椂涓€骞舵竻鐞嗐€嶅缁堟湭瑙﹀彂锛屼絾鍊哄姟瀹為檯宸茶鍓嶆壒闅愬紡娓呭伩锛屽彴璐︿笌浠ｇ爜浜嬪疄鑴辫妭 6 涓湀浠ヤ笂銆傚彴璐﹂渶鍛ㄦ湡鎬ц嚜妫€锛堝 CI 闃舵瀵规瘡涓€屽綋鍓嶆爣璁般€嶆潯鐩窇涓€娆?AST 楠岃瘉锛夛紝涓嶈兘鍙瓑瑙﹀彂鏉′欢銆?
+- **G1b 娴嬭瘯渚?F401 绮鹃€夋竻鐞嗙粨璁?*锛氭祴璇曚晶 F401 鍏?202 澶勶紝鍒嗕袱缇わ細(1) port-target / 闅愬紡 fixture 鐢ㄦ硶锛坄pytest`/`os`/`time`/`unittest.mock.{MagicMock,AsyncMock,patch}`/`asyncio`/`importlib`/`builtins`/`threading` 鍏?~80锛屽涓?ruff 鐪嬩笉鍒扮殑闂存帴浣跨敤锛夆€斺€?淇濈暀锛?2) domain dead imports锛坄device_voice.exceptions.{AuthenticationError,ConfigurationError,VoiceProviderError}`銆乣device_gateway.attestation.*`銆乣client_keys.models.ClientKey`銆乣chat_models.{ChatRequest,Message}` 绛?~120锛屽彲瀹夊叏鍒狅級銆傛湰鎵归噰鐢?STYPE 鍒嗙被娓呯悊锛?9 涓?STYPE_CLEAN 鏂囦欢锛坰afe-only锛夌粡 F1 鍒悕鎰熺煡瀹¤鍏ㄨ繃 0 danger锛岄€愭枃浠?`ruff --fix` 绉婚櫎鍏?84 澶勩€傚墿 143 澶勪负 KEEP-infra + mixed 鏂囦欢鐣欏緟鍚庣画鎵归€愭枃浠朵汉宸ユ牳瀵广€?
+- **G1b 浜岃疆 + 涓夎疆瀹¤鐩茬偣 + 淇**锛欶1 鎻愮偧鐨勩€屽埆鍚嶈闂€嶅叿鍚嶅け鏁堥闄╁啀鍔犱笂 pytest 鐢?conftest 鎶?`tests/` 鍔犲埌 sys.path锛屾秷璐硅€呭啓 `from fake_u1_helpers import ...`锛?*鍓嶇紑鍩哄悕**鑰岄潪 dotted path `tests.fake_u1_helpers`锛夈€傚璁¤剼鏈殑 `module == file_dotted_path` 涓ユ牸鐩哥瓑婕忔帀姝ゆā寮忥紝`tests/fake_u1_helpers.py` 缁?`--fix` 璇垹 `motion_task_to_u1_commands` 鍚庝笅娓?`test_fake_u1_protocol_translation.py` 鏀堕泦澶辫触銆?*淇**锛氭仮澶?import 闄?`# noqa: E402,F401`锛岃鏄?re-export銆?
+- **涓夎疆瀹¤鐩茬偣锛坧ytest fixture 瀛楃涓插尮閰嶏級+ 淇**锛氭仮澶嶅悗浠?18 ERROR锛歚test_device_app_sharing.py`/`test_device_app_sharing_permissions.py` 鐢?`accept_share`/`client`/`seed_guest` 浣?pytest fixture锛堝湪娴嬭瘯鍑芥暟绛惧悕澹版槑涓哄弬鏁帮級锛宍test_fake_u1_cloud_*.py` 4 鏂囦欢鐢?`fake_device_server`/`fake_u1`/`lima_client` 浣?fixture銆俻ytest 鍦?*鏀堕泦鏈?*閫氳繃鍙傛暟鍚嶅瓧绗︿覆鍖归厤鍙戠幇 fixture锛?*瀵归潤鎬佸垎鏋愬畬鍏ㄤ笉鍙** 鈥斺€?ruff 鐪嬩笉鍑鸿繖浜?import 鏄?fixture 娉ㄥ叆鑰岄潪姝诲鍏ャ€傛垜鐨?INFRA_KEEP 鍒楄〃鍙鐩?`pytest`/`patch` 绛夊唴寤?fixture锛屾湭瑕嗙洊娴嬭瘯妯″潡鑷畾涔?fixture銆備慨澶嶏細鍥為€€ 6 涓秷璐规祴璇曟枃浠跺埌 HEAD銆?*鍏抽敭鏁欒**锛氭祴璇曚晶 F401 鍏峰悕澶辨晥鏈夊洓绉嶅瀷鎬?鈥斺€?(a) `from <module_dotted> import <name>` 鐩村紩锛?b) 妯″潡鍒悕璁块棶 `<alias>.<name>`锛?c) pytest sys.path 鏍瑰熀鍚嶅紩鐢?`from <baseline> import <name>`锛?*(d) pytest fixture 瀛楃涓插尮閰嶆敞鍏?*锛坕mport 鍚嶄綔涓烘祴璇曞嚱鏁板弬鏁板悕锛岀敱 pytest 鏀堕泦鏈熷彂鐜帮紝ruff 瀹屽叏涓嶅彲瑙侊級銆傜粺涓€缁忛獙锛?*銆屾壒閲?F401 娓呯悊瀹夊叏闂?= 鍒犻櫎鍓嶅厛 `pytest --collect-only` 閫氳繃鍏ㄦ祴璇曞浠躲€?*锛岃€岄潪鍗曢潬闈欐€佸璁★紱鎴栧湪 INFRA_KEEP 鍒楄〃閲屾妸鎵€鏈?`@pytest.fixture` 娉ㄨВ鍑芥暟鍚?+ 鎵€鏈夋祴璇曞嚱鏁扮鍚嶅弬鏁板悕鍏ㄩ儴鍔ㄦ€佸姞鍏?KEEP 闆嗗悎銆?
+- **G2 鍞ら啋璇嶆ˉ鎺ヨ姹?handler 鎶界缁撹**锛欶2 鎶界 WebSocket 甯х紪瑙ｇ爜鍚庯紝http_server.py 宓屽绫诲唴鍓╀綑 44 琛?`_handle_bridge_request`锛堟崟鑾?`test_root`/`schedule_restart` 闂寘锛岀粨鏋勬竻鏅帮級鏄悎閫傜殑涓嬩竴鎶界绮掑害銆備互 TDD 鏂瑰紡琛?6 涓?RED 娴嬭瘯锛坕mportlib 鍔犺浇銆佸惈 fake save_wakeword_config 娉ㄥ叆楠岃瘉 publish/build_message 濂戠害銆乻ave 寮傚父闄嶇骇璺緞銆乺estart 璋冨害銆乽nknown/empty 绫诲瀷 fallback锛夛紝鏂板缓 `bridge_request_handler.py`锛?21 琛岀函鍑芥暟妯″潡锛宍handle_bridge_request` 涓诲叆鍙?+ 2 涓?helper锛夈€?*鍏抽敭瑙ｈ€?*锛歚save_wakeword_config` 涓嶅湪椤跺眰 from-import锛堥伩 importlib 鏃犵埗鍖呯浉瀵瑰鍏ュけ璐ワ級锛屾敼涓洪《灞?`save_wakeword_config: Any = None` + `_resolve_save()` 寤惰繜鐩稿瀵煎叆鍏滃簳锛沨ttp_server.py 鍦?import 鍚?`bridge_request_handler.save_wakeword_config = save_wakeword_config` 鏄惧紡閾惧叆鐪熷疄瀹炵幇锛屾祴璇曠敤 `setattr` 娉ㄥ叆 fake銆俙WakewordEventBridge` 绫诲瀷娉ㄨВ鏀?`Any`锛坉uck-typed 閬垮紑 F821锛夈€俬ttp_server.py 213鈫?78 琛岋紝闂寘渚濊禆涓?`_handle_websocket` 浜嬩欢寰幆涓嶅姩銆?*閬楃暀**锛歚_handle_websocket`锛?6 琛岋紝涓?`client_queue` 绱ц€﹀悎锛変粛闇€鍏堣ˉ绔埌绔?WebSocket 闆嗘垚娴嬭瘯鍐嶈€冭檻鎶界銆?
+- **闂ㄧ鍏ㄧ▼缁?*锛歚ruff check .` / `ruff format --check` clean锛堜粎鏍煎紡鍖栨湰鎵规敼鍔ㄧ殑 4 涓?G2 鏂囦欢 + 7 涓?G1b 娴嬭瘯鏂囦欢鍥?`--fix` 鍚?ruff format 寤鸿鍚堝苟鎷彿锛夛紱`scripts/check_code_size.py` PASS锛? 鏂囦欢 >300銆? 鍑芥暟 >50锛夛紱`pyright` 鏈壒 3 涓浉鍏虫枃浠?0 errors 0 warnings锛涘叏閲?`pytest --tb=short -q` 鈫?**4410 passed / 3 skipped / 2 deselected / 0 failed**锛堣緝 F1+F2 鐨?4404 +6 = G2 鏂板 6 涓?bridge_request 娴嬭瘯锛夈€?
+
+## 2026-07-03 娣卞害鐦﹁韩 F1+F2 鎵规缁撻」锛氭瀵煎叆娓呯悊 + 鍞ら啋璇?WebSocket 甯х紪瑙ｇ爜鎶界
+
+- **F1 鐢熶骇璺緞 F401 姝诲鍏ユ竻鐞嗭紙绮鹃€夌瓥鐣ワ級缁撹**锛歚ruff --select F401` 鍏ㄥ簱 341 澶勫垎甯冩棤搴忥紝浣嗘祴璇曚晶 ~253 澶勫涓?patch-target 瀵煎叆锛堟浘瀵艰嚧 85 涓敹闆嗛敊璇級锛屾湰鎵?*鍙姩鐢熶骇渚?*銆傞噰鐢ㄣ€孉ST 瀹¤ + 鍒悕鎰熺煡 + noqa 淇濈暀 re-export銆嶄袱杞瓥鐣ワ細绗竴杞壂娴嬭瘯 `from <module> import <name>` 涓庣偣鍙?`<module>.<name>`锛岃瘑鍒?9 涓?must-keep re-export锛屾爣 `# noqa: F401` 鍚庨€愭枃浠?`ruff --fix`锛涢杞窇 pytest 鍑虹幇 12 failed / 22 errors锛屾牴鍥犳槸 server_bootstrap.MODEL_ID锛堣 server.py 鐢熶骇渚?`from server_bootstrap import MODEL_ID` 閲嶆柊寮曠敤锛夌瓑 re-export 瀹為檯缁?*妯″潡鍒悕璁块棶**锛坄dg._reset_for_tests()`銆乣_a.BACKENDS`銆乣hs.flush_pending_save()`銆乣text_to_path.list_handwriting_fonts()`锛夛紝绗竴杞函鏂囨湰鎵弿婕忔銆傜浜岃疆銆屽埆鍚嶇粦瀹?鈫?鍒悕鐐瑰彿璁块棶銆嶅弻鍚戣В鏋愬璁¤鐩栧叏浠撴湭鏀规枃浠讹紝琛ュ嚭 9 涓?must-keep锛屽叏鐢?noqa 鎭㈠鍚庨棬绂佽浆缁裤€?*鍏抽敭鏁欒**锛氭ā鍧楀埆鍚嶏紙`import M.sub as A` / `from pkg import sub`锛変細鎶?re-export 浣跨敤鏂逛粠婧愭ā鍧楀叏鍚嶅彉鎴愮煭鍒悕锛屽崟娴嬨€宨mport 涓€娆?= 鍙 patch銆嶄笉鏄珮鍗辨満鍨嬫€侊紱銆宺e-export 琚笅娓告ā鍧楀埆鍚嶈闂€嶆墠鏄洿楂樺嵄涓旀洿闅愯斀鍨嬫€併€傚畨鍏ㄥ璁″繀椤诲悓妗屽弻鍚戣В鏋愩€傜粺璁★細娓呯悊 ~97 澶勶紙91 鐪熸瀵煎叆 + 17 noqa 淇濈暀 re-export锛屽皯鏁板師鏈夐噸鍙狅級銆傚墿浣欐祴璇曚晶 F401 ~253 澶勭暀寰呭悗缁崟鐙壒閫愭枃浠朵汉宸ユ牳瀵广€?
+- **F2 鍞ら啋璇?WebSocket 甯х紪瑙ｇ爜鎶界缁撹**锛欵8 鎵规鏇句繚瀹堝湴鎶婅嚜鎴?socket 渚濊禆鐨?WebSocket 甯у疄鐜扮暀鍦ㄥ唴宓?handler 涓紙鏃犳祴瑕嗙洊銆佷笉鏁㈢洸鎷嗭級銆傛湰娆′互 TDD 鏂瑰紡琛ラ綈锛氬厛鍏?16 涓?RED 娴嬭瘯锛坄tests/test_wakeword_frame_codec.py`锛岀敤 importlib.spec_from_file_location 鍔犺浇閬垮紑 hyphen 璺緞涓嶅彲鐩存帴 import 闂锛岃鐩?compute_accept RFC6455 鑼冧緥鍚戦噺銆乺ead_exact 鐭?EOF銆乺eceive_message masked/unmasked 瑙ｆ帺鐮?ping 鑷姩 pong/close 鎶?ConnectionAbortedError/pong 蹇界暐/鏈煡 opcode/126 鎵╁睍闀垮害/绌鸿浇鑽枫€乻end_frame <126/126/127 涓夌闀垮害缂栫爜銆乺ound-trip锛夛紝鍐嶆柊寤?`data/digital-human/wakeword_runtime/runtime/frame_codec.py`锛?18 琛岀函 stdlib 鍑芥暟妯″潡鍖呭惈 compute_accept/read_exact/receive_message/send_frame/send_text 浜斾釜绾嚱鏁帮紝妯″潡澶撮檮 ponytail 娉ㄩ噴璇存槑涓婇檺銆屼粎 RFC6455 鏈€灏忓抚瀛愰泦锛屾棤鍒嗙墖/RSV銆嶄笌鍗囩骇璺緞銆屾崲鐢?wsproto銆嶏級锛屾渶鍚?REFACTOR http_server.py 濮旀墭锛歚_handle_websocket` accept 璁＄畻銆乣_receive_websocket_message`銆乣_read_exact`銆乣_send_websocket_text`銆乣_send_websocket_frame` 鍏ㄩ儴濮旀墭 frame_codec銆?*闂寘渚濊禆 `test_root`/`event_bridge`/`schedule_restart` 涓?`_handle_websocket` 浜嬩欢寰幆涓婚€昏緫涓嶅姩**锛屼粎 codec 鎶界锛沇ebSocket 甯ц鍐欎粛鐢?`self.connection`锛坮eader锛?`self.wfile`锛坵riter锛変紶閫掞紝杩愯鏃惰涓轰笉鍙樸€俬ttp_server 274鈫?12锛屾柊妯″潡 118 琛岄檮 ponytail: 鏍囪銆?*姝ｅ紡浜嗙粨 E8 閬楃暀**銆學ebSocket 甯у疄鐜颁粛涓哄唴宓?284 琛屽嚱鏁帮紝鏈潵闇€琛ユ祴鍚庡啀鑰冭檻鎷嗗垎銆嶃€?
+- **F3 test_jdcloud_push_probe.py 璐撮《涓嬬Щ缁撹**锛?00 琛岃创椤剁殑娴嬭瘯鏂囦欢灏濊瘯鎻愬彇 `monkeypatch_post` shared-feature 鍚堝苟 3 澶?`monkeypatch.setattr(push_probe_results, "_post_payload", ...)`锛氬疄娴嬪弽鑰屽鑷?305 琛岋紙fixture 瀹氫箟鍑€澧?11 琛岋紝浠呮瘡涓?test 鍒?3 琛岋級锛屾湭杈剧槮韬洰鏍囷紝**鍥為€€**淇濇寔 300 琛岀幇鐘讹紙璐撮《浣嗘湭鐮撮棬绂侊紝绗﹀悎 鈮?00 闄愰锛夈€備笅娆¤嫢闇€杩涗竴姝ラ檷琛岋紝闇€鐢ㄦ洿绱у噾 fixture + 鍑芥暟灏鹃儴鏂█鍚堝苟锛屾垨閲嶆帓娴嬭瘯浠ュ悎骞剁浉浼煎墠缂€锛屼絾鏀剁泭寰皬锛屼紭鍏堢骇浣庛€?
+- **闂ㄧ鍏ㄧ▼缁?*锛歚ruff check .` clean锛沗ruff format --check` clean锛堜粎鏍煎紡鍖栨湰鎵规敼鍔ㄧ殑 4 涓?routes/router_v3 鏂囦欢锛屾湭瑙︾鏃㈡湁 10 涓?pre-existing format-dirty 鏂囦欢浠ラ伩鍏嶆薄鏌?diff锛夛紱`scripts/check_code_size.py` PASS锛? 鏂囦欢 >300銆? 鍑芥暟 >50锛夛紱`pyright` 瀵规湰鎵规敼鍔ㄧ殑 8 涓敓浜ф枃浠?0 errors锛堜粎 `routes/device_gateway.py` 2 涓笌 F1 鏃犲叧鐨勬棦鏈?JSONResponse.get 璇锛屼笌 HEAD 鐩稿悓锛夛紱鍏ㄩ噺 `pytest --tb=short -q` 鈫?**4404 passed / 3 skipped / 2 deselected / 0 failed**锛堣緝 E6-E9 鐨?4388 +16锛屼笌 F2 鏂板 16 涓?frame codec 娴嬭瘯涓€鑷达級銆?
+
+## 2026-07-02 娣卞害鐦﹁韩 E6-E9 鎵规缁撻」锛氶暱鍑芥暟/閫€褰圭鐐?鍞ら啋璇嶆娊绂?鍙拌处鍚屾
+
+- **E7 eval_internal 閫€褰圭鐐圭Щ闄ょ粨璁?*锛歚routes/eval_internal.py` 鑷?v3.0 璧蜂负 410 Gone 妗╋紙`/internal/v1/eval/call`锛屽師鐢ㄤ簬 FRP 鏈湴浠ｇ悊鐩磋繛鍚庣璇勪及锛岀紪鐮佽兘鍔涢€€褰瑰悗淇濈暀浣滃崰浣嶏級銆傜粡鍏ㄥ簱 grep 鏍稿疄锛岀敓浜т唬鐮佷笌娴嬭瘯涓粎璺敱娉ㄥ唽 + 閫€褰规祴璇曚袱澶勫紩鐢紝**鏃犱换浣曡繍琛屾椂璋冪敤鏂?*銆傜‘璁ゅ畨鍏ㄥ垹闄わ細鏂囦欢鍒犻櫎 + `route_registry.py` 娉ㄥ唽琛岀Щ闄?+ `test_eval_internal_is_retired` 娴嬭瘯绉婚櫎銆傚垹闄ゅ悗 `route_registry` import OK锛?3 涓?routing authority 娴嬭瘯鍏ㄨ繃锛堝垹闄ゅ墠 23鈫掑垹闄ゅ悗 22锛屼笌绉婚櫎鍗曟祴涓€鑷达級銆?
+- **E8 鍞ら啋璇嶈繍琛屾椂鎶界缁撹**锛歚data/digital-human/wakeword_runtime/runtime/http_server.py` 鏄嫭绔嬭繍琛岀殑鍞ら啋璇嶆湰鍦?HTTP 鏈嶅姟锛堝惈鍐呭祵 `TestRuntimeHandler` + WebSocket 甯у疄鐜帮級銆傝鏂囦欢浣嶄簬 `data/` 鐩綍锛堣 `check_code_size.py` 鎺掗櫎瀹¤锛変笖**鏃犱换浣曟祴璇曡鐩?*銆傛湰娆′粎鎶界銆屾棤 socket/self 渚濊禆鐨勭函閫昏緫銆嶏紙閰嶇疆璇?鍐?鎷奸煶杞崲锛夊埌 `wakeword_config.py`锛屼繚鐣欏己渚濊禆 `self.connection` 鐨?WebSocket 甯ч€昏緫鍦ㄥ唴宓?handler 涓互鍏嶇牬鍧忔湭缁忔祴璇曠殑闂寘璇箟銆俬ttp_server 347鈫?74锛屾柊妯″潡 96 琛屽苟闄?`ponytail:` 鏍囪璁板綍 pypinyin 渚濊禆涓婇檺銆?*閬楃暀**锛歐ebSocket 甯у疄鐜颁粛涓哄唴宓?284 琛屽嚱鏁帮紝鏈潵闇€琛ユ祴鍚庡啀鑰冭檻鎷嗗垎銆?
+- **E9 PONYTAIL-DEBT 鍙拌处鍚屾缁撹**锛氭牳瀵规簮鐮佸悗鍙戠幇鍙拌处涓?6 鏉℃爣璁板搴斾唬鐮佸凡鐗╃悊绉婚櫎锛坈apability_matrix/task_creation/task_events/mqtt_client/quota 鐨?lazy-import 瑙ｈ€﹀凡钀藉湴銆乧hat-web config.js 鏂囦欢宸蹭笉瀛橈級锛屽睘銆屽凡缁撴竻浣嗗彴璐︽湭閿€璐︺€嶇殑鑴辫妭銆傚悓姝ュ垹闄?6 鏉″け鏁堟潯鐩€佷慨姝?3 鏉″亸绉昏鍙枫€佽ˉ褰?1 鏉℃柊鏍囪銆?*鏁欒**锛氬彴璐﹀簲涓庢瘡娆¤В鑰﹁惤鍦板悓姝ラ攢璐︼紝鍚﹀垯浼氱疮绉け鐪熴€?
+- **闂ㄧ**锛歳uff/format clean锛沺yright 0 errors锛坧ypinyin 鍙€変緷璧?warning 涓庢娊绂诲墠涓€鑷达級锛沜heck_code_size PASS锛涘叏閲?pytest **4388 passed / 3 skipped / 2 deselected**锛坋xit 0锛?49.56s锛夈€?
+- **涓嬩竴姝?*锛歝ommit/push origin 鈫?VPS 閮ㄧ讲 + 鍏綉鍐掔儫銆?
+
+## 2026-07-02 绯荤粺鐦﹁韩 P2-17/18/19/20 + 鍙傝€冩敼鍠?T1/T2 鍏ㄩ儴闂幆
+
+- **鑼冨洿**锛歅2-17/18锛圲I 鍚堝苟锛夈€丳2-19锛坰ettings 鐦﹁韩锛夈€丳2-20锛坋xcept:pass 瀹℃煡锛? T1-1锛堣涔夊垎绫诲櫒锛夈€乀1-2锛堢閬撴灦鏋勶級銆乀1-3锛圚ershey 瀛椾綋锛夈€乀2-2锛堝仴搴锋帰閽堬級銆乀2-3锛堜换鍔℃椂闂寸嚎锛夈€乀2-1锛團luidNC 杩佺Щ鍑嗗锛?
+- **P2-20 鍙戠幇**锛?3 澶?`except:pass/continue` 涓粎 3 澶勬槸鐪熸鐨勫娉涘紓甯搁潤榛樺悶鎺夛紙杩濆弽纭鍒?#1锛夛紝鍏朵綑 80 澶勬槸鐗瑰畾寮傚父绫诲瀷锛坄json.JSONDecodeError`銆乣KeyError` 绛夛級鐨勫悎娉曟帶鍒舵祦銆傚鏌ヨ剼鏈渶鍖哄垎 `except Exception:` 涓?`except SpecificError:` 鎵嶈兘鍑嗙‘璇嗗埆杩濊銆?
+- **P2-19 鍙戠幇**锛? 绉嶈瑷€涓?4 绉嶏紙de/vi/pt_BR/zh_TW锛夋槸鑷嗘祴娣诲姞鈥斺€旀棤瀹為檯鐢ㄦ埛銆佺炕璇戜笉瀹屾暣銆乮18n 閿鐩栫巼浣庛€傝鍒?zh_CN+en 鍚庢棤浠讳綍鍔熻兘鎹熷け銆?
+- **P2-17/18 鍙戠幇**锛歮ine 椤甸潰鏈川鏄€岃缃〉鐨勫瓙闆嗐€嶁€斺€斿０绾瑰叆鍙ｃ€侀€€鍑虹櫥褰曘€佸叧浜庛€佽缃烦杞紝鍏ㄩ儴鍙悎骞惰繘 settings銆俉orkshopHome 涓?device-list 鏁版嵁婧愮浉鍚岋紙`v2GetDevices`锛夛紝Hero 鍗＄墖璁捐鐩镐技锛屽悎骞朵负闆朵俊鎭崯澶便€倃rite-draw-panel 宸叉槸 2 姝ョ畝鍖栨祦锛宑reate/ 鏄珮绾фā寮忥紝涓よ€呭苟瀛樺悎鐞嗐€?
+- **T1-1 鍙戠幇**锛歯-gram TF-IDF 鏂规鍦ㄤ笉寮曞叆 sentence-transformers 閲嶅瀷渚濊禆鐨勫墠鎻愪笅瀹炵幇浜嗘绉掔骇璇箟鍖归厤锛? 1ms锛夛紝鍑嗙‘鐜囪鐩栨牳蹇冩剰鍥撅紙coding/chat/explanation/translation锛夈€傛瘮姝ｅ垯瑙勫垯缁存姢鎴愭湰浣庝竴涓噺绾с€?
+- **T2-3 鍙戠幇**锛歀edger 浜嬩欢娴佸凡澶╃劧鏀寔鏃堕棿绾挎煡璇紝鏃犻渶 schema 鍙樻洿鈥斺€擿events_for_task` 宸叉湁浜嬩欢璁板綍锛屽彧闇€鑱氬悎瑙嗗浘灞傘€?
+- **楠岃瘉**锛歅ython 4391 passed / 0 failed锛況uff check clean锛沺yright 0 errors锛泇ue-tsc 0 errors锛沵p-weixin 缂栬瘧鎴愬姛銆?
+
+## 2026-07-02 灏忕▼搴?UI 瀹℃煡閰嶅悎鏍稿疄绾犲亸锛氫笁椤规寚鎺т袱椤逛吉鍒や竴椤瑰睘瀹烇紙BACKLOG-P2-1锛?
+
+- **鑳屾櫙**锛氱槮韬鏌ユ姤鍛婃彁涓夐」 UI 鎸囨帶锛坈reate 937 琛屽祵濂椾袱灞?tab銆? 棣栭〉閲嶅彔銆乻ettings 744 琛屾潅鐗╋級锛屽苟闄勩€宑hat 涓?create 閲嶅彔銆嶉殣鍚棶棰樸€傞€愰」鏍稿疄婧愮爜鍚庣湡浼垎鏄庛€?
+- **灞炲疄椤?*锛歚create.vue` 937 琛屽祵濂椾袱灞?tab 鈥?**灞炲疄**銆俙mode`(ai-draw/image-draw) + `aiSubMode`(text/image) 涓ゅ眰鍒囨崲锛屼笖涓よ矾璧颁笉鍚?API锛坄generateImage` 浜戠敓鍥?vs `v2SubmitTask` 璁惧浠诲姟锛夛紝鍚堟垚 937 琛岋紙script 254 + template 240 + style 430锛宻tyle 鍗?46% 澶уご锛夈€傚簲鎷嗕袱椤碉紝宸叉媶锛圡2锛夈€?
+- **閮ㄥ垎灞炲疄椤?*锛? 棣栭〉閲嶅彔 鈥?**閮ㄥ垎灞炲疄**銆俶ine 缁熻鍗★紙璁惧/鍦ㄧ嚎/浠诲姟 3 鏁板瓧锛変笌 index 鏅鸿兘浣撻〉 Hero 璁惧鍗＄殑鏁版嵁閲嶅锛沵ine銆岃澶囩鐞嗐€嶃€岃澶囬厤缃戙€嶄袱鑿滃崟璺冲簳鏍忓凡鏈夌殑 tab锛堝 1 姝ュ啑浣欒烦杞級銆傚凡鍘婚噸锛圡3锛歮ine 鍒犵粺璁?鍒犲啑浣欒彍鍗曪紝杞函璐﹀彿椤碉紱index Hero銆岃澶?X 鍙般€嶆敼涓恒€屽湪绾?X/鎬?Y 鍙般€嶅惛鏀跺湪绾跨粺璁★級銆?
+- **浼垽椤?1锛歴ettings 744 琛屻€屾潅鐗┿€?* 鈥?**涓嶅睘瀹?*銆傞€愬尯鍧楁牳瀹烇紝鍏ㄩ儴鏄缃〉鑱岃矗锛堢綉缁滆缃?缂撳瓨绠＄悊/闅愮鏉冮檺/閫氱煡璁㈤槄/娉ㄩ攢璐﹀彿/鍏充簬鎴戜滑/璇█璁剧疆锛夛紝鏃犱竴闈炶缃姛鑳芥贩鍏ャ€傝噧鑲挎簮浜?7 涓?section 鐨勬爣棰?鍗＄墖澹虫牱寮忛噸澶嶆湭鎶界粍浠讹紝鍔?`useConfigStore`/`systemInfo` 2 澶勬浠ｇ爜銆傚凡鎶?`SectionCard` 缁勪欢鍘绘牱寮忛噸澶?+ 鍒犳浠ｇ爜锛圡1锛夛紝744鈫?55 琛屻€?
+- **浼垽椤?2锛歝hat 涓?create 閲嶅彔** 鈥?**涓嶅睘瀹?*銆俢hat 鐢?`chatCompletionStream`(鏂囨湰娴佸紡 LLM)銆乧reate 鐢?`generateImage`+`v2SubmitTask`(鐢熷浘/璁惧浠诲姟)锛岄浂浜ゅ弶瀵煎叆锛屽叆鍙ｉ€昏緫涓嶉噸澶嶃€備笉鍔ㄣ€?
+- **鏁欒**锛氬鏌ャ€岃鏁?宓屽灞傛暟銆嶈鏁板彲淇★紝浣嗐€屾潅鐗?閲嶅彔銆嶅畾鎬т笉鍙俊銆傛敼 UI 鍓嶅繀椤婚€愬尯鍧楁牳瀹炴瘡涓姛鑳界偣鐨勫綊灞烇紙鏄惁鐪熷湪璇ラ〉鑱岃矗鑼冨洿銆佹槸鍚︾湡涓庡畠椤甸噸澶嶏級锛屼笉鑳芥寜琛屾暟鎴栧鏌ユ帾杈炵洸鏀广€?
+
+## 2026-07-02 agent 閰嶇疆鏍戝悎骞剁籂鍋忥細瀹℃煡銆? 妫垫爲 9300 琛岄噸澶嶃€嶅鏁拌 gitignore 涓嶅叆搴擄紙BACKLOG-P1-4锛?
+
+- **鑳屾櫙**锛氱槮韬鏌ユ姤鍛婄О銆寏9300 琛?agent 鎸囦护璺?8 妫甸厤缃爲锛坄.agent`/`.claude`/`.kimi-code`/`.cursor`/`.joycode`/`andrej-karpathy-skills`/鏍癸級锛孭onytail 瑙勫垯閲嶅 6 澶勩€嶏紝寤鸿鍚堝苟銆?
+- **绾犲亸缁撹**锛? 妫垫爲涓?**5 妫佃 `.gitignore` 蹇界暐銆佷笉鍏ュ簱**锛坄.agent`=琛?61銆乣.claude`=琛?30銆乣.kimi-code`=琛?8銆乣.continue`=琛?63銆乣andrej-karpathy-skills`=琛?7锛夆€斺€旇繖浜涙槸鍚?IDE/Agent 宸ュ叿鐨?*鏈湴绉佹湁閰嶇疆**锛岄噸澶嶆槸宸ュ叿鐢熸€佹甯哥幇璞★紝涓嶅簲涔熶笉鑳姐€屽悎骞躲€嶃€?
+- **鐪熸鍏ュ簱鐨?agent 鏍?*浠?5 涓細`.cursor`(2 rules)銆乣.joycode`(2 memory)銆乣skills`(14)銆乣AGENTS.md`銆乣CLAUDE.md`銆傚叾涓湡姝ｅ啑浣欑殑鍙湁 `.cursor/rules/` 涓や唤锛?
+  - `ponytail.mdc`锛坄alwaysApply:true`锛変笌 `docs/AGENTS_PONYTAIL.md`锛堣 `AGENTS.md` 寮曠敤涓烘潈濞?Ponytail 椤鹃棶瑙勫垯婧愶級鍐呭閲嶅銆?
+  - `ecc-workflow.mdc`锛坄alwaysApply:true`锛変笌 `docs/ECC_WORKFLOW_CN.md`锛堣 `AGENTS.md` 寮曠敤涓烘潈濞?ECC 娴佺▼婧愶級鍐呭閲嶅銆?
+- **澶勭疆**锛氬垹闄?`.cursor/rules/ponytail.mdc` + `ecc-workflow.mdc`锛宍AGENTS.md` 淇濇寔鍗曚竴鏉冨▉婧愶紱淇濈暀 `.cursor/rules/lima-*.mdc`锛堟湭鍏ュ簱鐨勬湰鍦?Cursor 绉佹湁 rules锛屼笉褰卞搷鍏ュ簱闈級銆?
+- **鏁欒**锛氬鏌ユ妸銆屾湰鍦板伐鍏风鏈夐厤缃€嶄篃绠楀叆銆岃法鏍戦噸澶嶃€嶆槸鍙ｅ緞閿欒銆傚悎骞跺墠蹇呴』 `git ls-files <tree>` 鍖哄垎鍏ュ簱涓庢湰鍦扮鏈夆€斺€斿悗鑰呴噸澶嶆棤瀹炽€佸墠鑰呮墠鏄彲缁熶竴椤广€?
+
+## 2026-07-02 闈欓粯闄嶇骇瀹℃煡绾犲亸锛氬鏌ユ姤鍛娿€?6 澶勩€嶅疄闄呬竴绛夌敓浜ц矾寰勪粎 4 澶勶紙BACKLOG-P1-2锛?
+
+- **鑳屾櫙**锛氱槮韬鏌ユ姤鍛婄О鐢熶骇璺緞鏈?16 澶?`except: pass/continue` 闈欓粯闄嶇骇锛岀偣鍚?`voice_pipeline_ws.py`/`mqtt_client.py`/`store_voiceprint.py` 鍚?2 澶勩€傜敤 Explore 瀛愪唬鐞嗛€愮偣瀹炲湴鏍告煡銆?
+- **绾犲亸缁撹**锛氬鏌ョ殑銆岃鏁般€嶅噯纭紙杩欎簺鏂囦欢纭悇鏈?2 澶?pure-swallow锛夛紝浣嗐€屼弗閲嶅害銆嶉敊璇€斺€旇鐐瑰悕鐨?6 澶?*鍏ㄩ儴鍚堣**锛?
+  - `voice_pipeline_ws.py`锛歚asyncio.TimeoutError`鈫抍ontinue锛堥槦鍒楄疆璇㈣秴鏃讹紝姝ｅ父寰幆锛夈€乣asyncio.CancelledError`鈫抪ass锛堝叧闂椂绛夊緟宸插彇娑?worker锛夛紱涓ゅ骞夸箟 `except Exception`锛圠123/L131锛変笉鏄悶鈥斺€斿畠浠?`_send_error` 鍚?return锛寃orker 骞夸箟 handler锛圠169锛夋湁 `warning(exc_info=True)`銆?
+  - `mqtt_client.py`锛歚asyncio.CancelledError`鈫抪ass锛坰top 鏃朵换鍔″彇娑堬紝鍏勫紵 `except Exception`锛圠105锛夋湁 warning锛夈€乣asyncio.TimeoutError`鈫抪ass锛堟秷鎭车 `wait_for` 瓒呮椂鍚?drain锛屾儻鐢ㄦ硶锛夛紱`except ImportError`锛圠187锛変笉鏄潤榛樷€斺€斿墠闈㈡湁涓ゆ潯 `_log.info`銆?
+  - `store_voiceprint.py`锛氫袱澶?`sqlite3.OperationalError`鈫抪ass 鍧囨槸 schema 杩佺Щ骞傜瓑锛坄# column may not exist yet` / `# Column already exists`锛夛紝鏈夋敞閲婏紱鎵€鏈夊箍涔?`except Exception`锛圠51/L150/L185/L208锛夐兘鏈?warning銆?
+- **鐪熸杩濆弽 AGENTS.md銆岀姝㈤潤榛橀檷绾с€嶇殑涓€绛夌敓浜ц矾寰?= 4 澶?*锛堝箍涔?`except Exception` 瑁稿悶銆侀浂鏃ュ織锛夛紝鏈疆宸插叏閮ㄤ慨澶嶈ˉ鏃ュ織锛?
+  - `routing_executor_parallel.py`锛堝苟琛岄檷绾ф墽琛屽櫒锛夈€乣speculative_execution.py`锛堟帹娴嬬珵閫熷唴灞?future锛夈€乣observability/jsonl_store.py`锛堣閬ユ祴鏂囦欢锛夈€乣provider_automation/adapters/cloudflare.py`锛堢紪鐮佽瘎鍒嗗惊鐜級銆?
+- **杈圭晫椤癸紙鏈疆涓嶆敼锛岃褰曞緟鎺掓湡锛?*锛歚packages/provider-probe-offline/provider_probe/reverse/auth_detector.py:64`銆乣pricing_probe.py:74` 鍚?1 澶勨€斺€斿喎绂荤嚎鎻愪緵鍟嗘帰娴嬪伐鍏凤紝涓嶅湪鐢熶骇璇锋眰璺緞锛岄闄╀綆銆傝嫢鍚庣画瑕佹眰銆屽叏浠撻浂瑁稿悶銆嶅啀缁熶竴澶勭悊銆?
+- **鏁欒**锛氫慨闈欓粯闄嶇骇涓嶈兘鎸?grep pattern 璁℃暟鐩叉敼銆傜獎鍖栧紓甯革紙`asyncio.TimeoutError`/`sqlite3.OperationalError`/`json.JSONDecodeError`锛夊仛鎺у埗娴佹槸鍚堣鐨勶紱鍙湁銆屽箍涔?`except Exception` + 鏃犳棩蹇?+ 鏃犻噸鎶涖€嶆墠鏄繚瑙勩€傚鏌ユ姤鍛婄殑璁℃暟鍙綔绾跨储锛屼弗閲嶅害鍒ゅ畾蹇呴』閫愮偣澶嶆牳銆?
+
+## 2026-07-02 绯荤粺鐦﹁韩瀹℃煡锛氬洓缁村害杩囧害璁捐璇婃柇 + DEPRECATED 鏍囪璇爣鍙戠幇
+
+- **鑳屾櫙**锛氱敤鎴疯川鐤戙€屽皬绋嬪簭浜や簰澶嶆潅鍖栥€?銆屽悗绔繃搴﹁璁°€嶃€傚鍥轰欢/鍚庣/鏂囨。/灏忕▼搴忓洓缁村害鍋氫簡閲忓寲瀹℃煡锛岀‘璁よ繃搴﹁璁＄郴缁熸€у瓨鍦ㄣ€傝瑙?`docs/superpowers/specs/2026-07-02-system-slimdown-design.md`銆?
+- **鍏抽敭鍙戠幇锛堣鏍?bug锛?*锛歚speculative_policy.py` 鍜?`capability_matrix.py` 椤堕儴鏍?`# DEPRECATED v3.0 鈥?coding capability retired`锛屼絾瀹為檯锛?
+  - `speculative_policy.py` 鐨?`AFFINITY`/`classify_complexity`/`get_affinity_backends` 琚?`speculative.py`锛堣姹傛祦姘寸嚎鎺ㄦ祴鎵ц姝ラ锛夊拰 `context_pipeline/complexity.py` **娲昏穬 import 浣跨敤** 鈥斺€?鏄儹璺緞锛岄潪姝讳唬鐮併€?
+  - `capability_matrix.py` 鐨?`classify_intent` 浠嶈 `tests/test_capability_matrix_intent.py` 娴嬭瘯銆?
+  - **鐩存帴鍒犻櫎浼氬鑷寸敓浜у穿婧?*銆傜湡瀹炴儏鍐垫槸銆宑oding 鑳藉姏閫€褰癸紝浣嗘ā鍧楁湰韬湭閫€褰广€嶃€?
+- **澶勭悊**锛氬凡淇涓や釜鏂囦欢鐨勯《閮ㄦ敞閲婏紝鏄庣‘鍖哄垎銆宑oding 閫€褰广€嶄笌銆屾ā鍧楅€€褰广€嶃€俙routes/eval_internal.py` 纭负閫€褰规€侊紙杩斿洖 410锛屾祴璇曟柇瑷€锛夛紝淇濇寔鍘熺姸銆?
+- **鏁欒**锛氥€孌EPRECATED銆嶆爣璁扮殑璇箟蹇呴』绮剧‘ 鈥斺€?鏍囪鏌愪釜鑳藉姏鐨勯€€褰?鈮?鏍囪鏁翠釜鏂囦欢鍙垹銆傚垹鍓嶅繀椤?grep 璋冪敤鏂?+ codegraph impact 鍙岄噸纭銆?
+- **鍏朵粬 P0 宸插畬鎴?*锛氫慨 AGENTS.md 3 澶勬柇閾撅紙reference/ECC鈫?claude/ecc銆乺eference/ponytail/ 涓嶅瓨鍦級锛涗慨 STATUS.md Telegram 鎺緸鐭涚浘锛堥€氱煡閫氶亾閫€褰?vs gallery 瀛樺偍 API 澶嶇敤锛屼袱鑰呬笉鍚岋級锛涘垹 `.claude/skills/gitnexus/`锛堜笌 AGENTS.md銆岀姝?GitNexus銆嶅啿绐侊級锛汸0-2 U8 闊抽鍗忚宸查€夋柟妗?A 骞舵敼浠ｇ爜銆?
+- **U8 闊抽鍗忚鐭涚浘锛圥0-2锛屽凡閫夋柟妗?A锛屼唬鐮佸凡鏀癸級**锛氱敤鎴烽€夋嫨鏂规 A銆屽浐浠舵敼 PCM銆嶃€傚凡鍦?U8 鍥轰欢瀹炵幇涓婁笅琛?PCM 閫忎紶锛屽悓鏃朵繚鐣?MQTT/Xiaozhi 鐨?OPUS 缂栬В鐮佽矾寰勪笉鐮村潖锛?
+  - `AudioStreamPacket` 鏂板 `format` 瀛楁锛堥粯璁?`"opus"`锛夛紱
+  - `protocol.h` 鏂板 `UsesPcm()` 鎺ュ彛锛宍WebsocketProtocol` 杩斿洖 `true`锛宍MqttProtocol` 缁ф壙榛樿 `false`锛?
+  - `application.cc` 鍦ㄥ崗璁垵濮嬪寲鍚庤皟鐢?`audio_service_.SetSendPcm(protocol_->UsesPcm())`锛?
+  - `websocket_protocol.cc` 瀵逛笅琛岄煶棰戝寘璁剧疆 `format="pcm"`锛?
+  - `audio_service.cc` 鐨?`OpusCodecTask` 涓細涓婅鎸?`send_pcm_` 閫夋嫨 PCM 閫忎紶鎴?OPUS 缂栫爜锛涗笅琛屾寜 `packet->format` 閫夋嫨 PCM 閫忎紶鎴?OPUS 瑙ｇ爜锛沗PlaySound` 淇濇寔 `format="opus"`銆?
+  - **缁撴灉**锛歎8 杩炴帴 LiMa 鏃讹紝hello 甯?`format="pcm"` 涓庡疄闄呭彂閫佹牸寮忎竴鑷达紱鍚庣鏃犻渶鏂板 OPUS 瑙ｇ爜渚濊禆銆傚緟瀹為檯鐑у綍 U8 鍚庨獙璇佸疄鏃惰闊?TTS 鍥炴斁鐨勭鍒扮鏁堟灉銆?
+- **BACKLOG-P0-1 宸插叧闂?*锛歚deploy_unified.py` 宸叉敮鎸?`--target {aliyun,jdcloud}`锛岄粯璁?`jdcloud`锛岄伩鍏嶉粯璁ら儴缃插埌鏃?Aliyun pilot 鑰岀敓浜у叆鍙ｅ湪 JDCloud 鐨勯敊璇€傝瑙?`progress.md` 鍚屾棩鏈熸潯鐩€?
+
+## 2026-07-01 鍓嶇鍖垮悕鑱婂ぉ璇锋眰宸插垎娴佽嚦闃块噷浜?pilot
+
+- **缁撹**锛歝hat-web銆乣www.donglicao.com` playground銆乵anager-mobile H5 鐨勫尶鍚嶇畝鍗曡亰澶╄姹傜幇鍦ㄤ細鍙戦€佸埌 `https://aliyun.donglicao.com/v1/chat/completions`锛岀敱闃块噷浜?`lima-router-pilot`锛堜粎鍏嶈垂鍚庣锛夊鐞嗐€?
+- **瀹炵幇鏈哄埗**锛?
+  - **chat-web**锛歚chat-web/js/app-config.js` 杩愯鏃跺垽鏂棤 API Key + 榛樿妯″瀷 + 鏃?tools/鍥剧墖鏃堕€夋嫨 pilot锛沗chat-api.js` 缁熶竴閫氳繃 `LiMaConfig.getApiUrl()` 鑾峰彇 URL锛沗sendMessage()` 鍦?pilot 杩斿洖 429/503/5xx 鎴栫綉缁滈敊璇椂鑷姩鍥為€€涓昏妭鐐逛竴娆°€?
+  - **瀹樼綉 playground**锛歚donglicao-site-v2/app/developer/playground/page.tsx` 鍦?API Key 涓虹┖涓?endpoint/model 涓洪粯璁?chat 鏃惰嚜鍔ㄥ垏鎹?baseUrl銆?
+  - **manager-mobile**锛歚utils/index.ts` 鏂板 `getChatBaseUrl()`锛屾湭鐧诲綍涓旈粯璁ゆā鍨嬫椂杩斿洖 `aliyun.donglicao.com`锛沗api/chat/chat.ts` 娴佸紡/闈炴祦寮?chat 鍧囦娇鐢ㄨ baseUrl銆?
+  - CSP `connect-src` 宸插鍔?`https://aliyun.donglicao.com`銆?
+- **閮ㄧ讲**锛?
+  - GitHub Actions `Deploy Chat Web` / `Deploy Next.js Site` workflow 宸茶嚜鍔ㄩ儴缃插埌 Cloudflare Pages銆?
+  - 浜笢浜?`/opt/lima-router/chat-web` 婧愭枃浠跺凡鍚屾锛屼綔涓?FastAPI `/chat/` 闈欐€佸洖婧愩€?
+  - 浜笢浜?tunnel 鍏ュ彛鐢辩洿杩?`:8080` 鏀逛负 `https://127.0.0.1:443`锛堣烦杩?TLS 鏍￠獙锛夛紝鎭㈠ nginx 浣滀负鍏ュ彛锛屼粠鑰屾敮鎸?`/mobile/` H5 鐩綍銆?
+  - manager-mobile H5 鏋勫缓 base 璁句负 `/mobile/` 骞堕€氳繃 `scp -r` 閮ㄧ讲鍒?`/var/www/chat/mobile/`銆?
+- **楠岃瘉**锛?
+  - `https://app.donglicao.com/` 涓?`https://www.donglicao.com/developer/playground/` 鍧囧紩鐢?`aliyun.donglicao.com`銆?
+  - `https://chat.donglicao.com/mobile/index.html` 杩斿洖 H5 鍏ュ彛锛岃祫婧愯矾寰勪互 `/mobile/assets/` 寮€澶淬€?
+  - 鐩存帴 POST `aliyun.donglicao.com/v1/chat/completions`锛圤rigin: chat.donglicao.com锛夎繑鍥?200锛孋ORS 姝ｅ父锛屽悗绔负 `pollinations_openai`銆?
+- **椋庨櫓涓庡悗缁?*锛?
+  - Cloudflare Worker 鍏滃簳/鐏板害鏂规宸插疄鏂藉苟楠岃瘉锛氭柊澧?`cloudflare/workers/chat-router.js`锛岄儴缃插埌 `chat.donglicao.com/v1/chat/completions*`锛涙棤 Authorization 鐨勫尶鍚?chat 鐢?Worker 浠ｇ悊鍒?pilot锛堝搷搴斿ご `X-Lima-Backend: aliyun`锛夛紝pilot 寮傚父鏃惰嚜鍔ㄥ洖婧愪含涓滀簯锛坄X-Lima-Backend: jdcloud`锛夈€?
+  - manager-mobile 寰俊灏忕▼搴忓寘灏氭湭閲嶆柊涓婁紶鍙戠増锛汬5 宸查儴缃层€?
+
+## 2026-07-01 鍏ㄦ爤娣卞害璐ㄩ噺妫€鏌ワ紙LiMa + Web + chat-web + 灏忕▼搴?+ 鍥轰欢锛?
+
+### 妫€鏌ヨ寖鍥翠笌缁撴灉
+
+- **LiMa 鍚庣**锛歱ytest 4249 passed / 0 failed锛況uff clean锛沺yright 0 errors锛沜ode size PASS锛堜慨澶嶅悗锛夈€?
+- **donglicao-site-v2**锛圢ext.js 瀹樼綉锛夛細XSS 0銆佸瘑閽ユ硠婕?0銆丼EO 姝ｇ‘銆乤pex鈫抴ww 閲嶅畾鍚戝畨鍏ㄣ€傚彂鐜?1 涓?MEDIUM锛歚public/_headers` 缂?CSP/HSTS/X-Frame-Options锛堜粎 X-Content-Type-Options + Referrer-Policy锛夛紝鍔犲浐鐗堜粎瀛樺湪浜庢湭鍚敤鐨?`nginx-headers.conf.example`銆?
+- **chat-web**锛圕loudflare Pages 鍓嶇锛夛細Turnstile 鏈嶅姟绔獙璇佹纭紙fail-closed锛夈€丼RI 瀹屾暣銆佹棤瀵嗛挜娉勬紡銆傚彂鐜?5 涓?MEDIUM锛?1) `_headers` 鏃?HSTS锛?2) `'unsafe-inline' script-src` + sessionStorage token 鎻愬崌 XSS 褰卞搷锛?3) Turnstile site key 閰嶇疆浣?secret 缂哄け鏃堕潤榛樻斁琛岋紱(4) `hash-assets.mjs` 閬楁紡鏍圭骇 `chat-*.js`锛坕mmutable 缂撳瓨鏃?bust锛夛紱(5) devices.js status 鎻掑€兼湭 escape锛堝綋鍓嶆暟鎹畨鍏級銆?
+- **灏忕▼搴?manager-mobile**锛欱earer bug 宸蹭慨澶嶃€丄ppID 涓€鑷淬€丠TTPS/WSS 鍏ㄨ鐩栥€傚彂鐜?4 涓?MEDIUM锛?1) 璁惧杞Щ unionid 鍙戦€佷负 `toPhone` 瀛楁锛堝悗绔绾﹀緟鏍稿疄锛夛紱(2) 涓婁紶鏂囦欢绫诲瀷楠岃瘉琚敞閲婃帀锛?3) 鐧诲綍鎬佸熀浜?accountId 鑰岄潪 token锛堝彲鑳借璺宠浆鐧诲綍锛夛紱(4) 闈?WeChat 绔?chat streaming fallback 涓烘浠ｇ爜銆?
+- **鍥轰欢 esp32S_XYZ**锛欰UDIT-12 鍏ㄩ儴 6 椤规帶鍒讹紙OTA 绛惧悕/URL 鐧藉悕鍗?WS 閴存潈/鍧愭爣杈圭晫/鏃ュ織鑴辨晱锛夊潎 PRESENT 涓旀棤鍥炲綊銆傚彂鐜?1 涓?MEDIUM锛歚McpServer::DoToolCall` 璺宠繃 `user_only` 鎵ц闂ㄧ锛堟湭璁よ瘉鏈湴 WS 鍙?`tools/call self.reboot` DoS锛屽浐浠跺畨瑁呬粛琚?F1 绛惧悕闂ㄧ闃绘柇锛夈€? 涓?LOW锛歝ontrol_ws_token 鏃犲啓鍏ヨ€咃紙榛樿寮€鏀撅級銆乼oken 姣旇緝闈炲父閲忔椂闂淬€乤ctivation 澶辫触鏃ュ織鍚畬鏁村搷搴斾綋銆両DF floor 5.5.2 鍙崌 5.5.3銆?
+
+### 鏈淇锛? 椤癸級
+
+1. **`config/settings_core.py` 301 琛?鈫?280 琛?*锛堣繚鍙?鈮?00 纭鍒欙級锛氭彁鍙?`get_key_pool_raw`/`resolve_backend_key`/`get_env` 涓変釜绾嚱鏁板埌鏂?`config/settings_helpers.py`锛沗config/settings.py` 鏇存柊瀵煎叆婧愩€俢ode size 妫€鏌ヤ粠 FAIL 鈫?PASS銆?
+2. **Turnstile fail-open 璀﹀憡**锛坄device_logic/turnstile.py`锛夛細褰?`TURNSTILE_SITE_KEY` 宸查厤缃絾 `TURNSTILE_SECRET_KEY` 涓虹┖鏃讹紝鍚姩鏃ュ織杈撳嚭 `WARNING`锛堜箣鍓嶉潤榛樻斁琛岋紝鏃犱换浣曟棩蹇楋級銆?
+3. **姝讳唬鐮佹竻鐞?*锛坄server_lifespan_phases.py`锛夛細绉婚櫎 `start_auto_indexer`/`stop_auto_indexer` 瀹氫箟锛坈ommit `ba3d64ee` 宸茬Щ闄よ皟鐢ㄤ絾淇濈暀浜嗗嚱鏁板畾涔夛級銆?
+
+### 寰呰窡杩涢」锛堥渶鐙珛鎺掓湡锛?
+
+- ~~**donglicao-site-v2 `_headers`**~~锛氣渽 宸插畬鎴愶紙2026-07-01 绗簩杞慨澶嶏細琛?CSP/HSTS/X-Frame-Options/Permissions-Policy锛夈€?
+- ~~**chat-web `hash-assets.mjs`**~~锛氣渽 宸插畬鎴愶紙2026-07-01 绗簩杞慨澶嶏細鎵╁睍鍝堝笇瑕嗙洊鏍圭骇 `chat-*.js`锛夈€?
+- ~~**chat-web `_headers`**~~锛氣渽 宸插畬鎴愶紙2026-07-01 绗簩杞慨澶嶏細琛?HSTS锛夈€?
+- ~~**6 涓?SAFE dependabot PR**~~锛氣渽 宸叉墜鍔ㄥ簲鐢紙fastapi 0.138.2銆乸ython-multipart 0.0.32銆乸yright 1.1.411銆乸ytest-timeout 2.4銆乭ttpx 0.28.1銆亀ebsockets 16.0锛夈€?
+- **灏忕▼搴忚澶囪浆绉?`toPhone` 瀛楁**锛氭牳瀹炲悗绔绾︽槸鍚︽湡鏈?unionid銆?
+- **鍥轰欢 `DoToolCall` user_only 闂ㄧ**锛氬湪鎵ц璺緞澧炲姞 `user_only` 妫€鏌ャ€?
+- **4 涓?RISKY dependabot PR**锛坱orch/torchaudio/dashscope/onnxruntime锛夊缓璁叧闂€?
+- **7 涓渶鐙珛瀹℃煡 PR**锛坋slint-10/typescript-6/types-node-26/react/tailwindcss/vue/wrangler-action/setup-node锛夈€?
+
+### 绗簩杞慨澶嶏紙2026-07-01锛宑ommit 49f55b61锛?
+
+- **`client_keys/storage.py`**锛歚update_usage()` 鏀逛负 raise `ClientKeyStorageError`锛堜笉鍐嶉潤榛樺悶 sqlite3.Error锛夛紱`import json` 鎻愬埌妯″潡绾с€?
+- **`access_guard.py`**锛歚_dynamic_auth_configured` 浠?bare `Exception` 鏀剁獎涓?`(ImportError, AttributeError)`銆?
+- **`device_logic/wechat_gateway.py`**锛歚response.json()` 绉诲叆 try/except锛圴alueError 鎹曡幏锛夛紱`import time` 鎻愬埌妯″潡绾с€?
+- **`routes/client_keys.py`**锛? 涓?mutation 绔偣杩斿洖 typed `KeyMutationResponse`锛坄response_model_exclude_none=True`锛夈€?
+- **鍚堝苟閲嶅娴嬭瘯**锛歚test_security_headers.py` 鍒犻櫎锛屽敮涓€ `csp_is_strict` 娴嬭瘯骞跺叆 `test_routes_security_headers.py`銆?
+
+## 2026-07-01 Dependabot / pip-audit 渚濊禆婕忔礊淇
+
+- **鎵弿缁撴灉**锛氭湰鍦?`.venv310` 杩愯 `pip-audit --local` 鍙戠幇 5 涓寘鍏?17 涓凡鐭ユ紡娲烇細
+  - `cryptography 48.0.0` 鈫?GHSA-537c-gmf6-5ccf锛圤penSSL 闈欐€侀摼鎺ユ紡娲烇級
+  - `Pillow 10.4.0` 鈫?CVE-2026-25990 / CVE-2026-40192 / CVE-2026-42308 / CVE-2026-42310 / CVE-2026-42311
+  - `pip 23.0.1` 鈫?CVE-2023-5752 / CVE-2025-8869 / CVE-2026-1703 / CVE-2026-3219 / CVE-2026-6357 / CVE-2026-8643
+  - `python-multipart 0.0.30` 鈫?CVE-2026-53540锛堣礋 Content-Length 瀵艰嚧鏃犵晫璇诲彇锛?
+  - `starlette 1.2.1` 鈫?CVE-2026-54282 / CVE-2026-54283锛坲rlencoded 琛ㄥ崟闄愬埗缁曡繃銆乁RL 涓绘満娆洪獥锛?
+- **淇鎿嶄綔**锛?
+  - 鍗囩骇鏈湴 venv锛歚pip==26.1.2`, `cryptography==48.0.1`, `Pillow==12.2.0`, `python-multipart==0.0.31`, `starlette==1.3.1`銆?
+  - 鏀剁揣 `requirements_server.txt`锛?
     - `python-multipart>=0.0.31,<1.0`
     - `Pillow~=12.2.0`
-    - 新增显式下限：`starlette>=1.3.1`（FastAPI 传递依赖）、`cryptography>=48.0.1`（Paramiko 传递依赖）。
-- **验证**：
-  - `pip-audit --local` → `No known vulnerabilities found`。
-  - 聚焦 Pillow 相关测试：`tests/test_svg_converter.py`, `tests/test_svg_converter_sketch.py`, `tests/test_svg_binarize.py` → 33 passed。
-  - 聚焦 FastAPI/Starlette 相关测试：`tests/test_device_app_auth.py`, `tests/test_routes_chat_preflight.py`, `tests/test_routing_engine_post.py` → 25 passed。
-  - 完整门禁 `scripts/run_pre_commit_check.py --full` → 4239 passed, 3 skipped, ruff 通过。
-- **扩展修复（esp32S_XYZ 子模块）**：
-  - 子模块仓库同步提交并 push 到 `zhuguang-ZFG/esp32S_XYZ`。
-  - `esp32S_XYZ/requirements.txt`：`pytest>=9.0.3`（CVE-2025-71176）。
-  - `esp32S_XYZ/firmware/u8-xiaozhi/scripts/Image_Converter/requirements.txt`：`Pillow~=12.2.0`。
-- **扫描工具误报说明**：
-  - 运行 `pip-audit` 时，本地杀毒软件将 `cyclonedx-python-lib` 的 `vulnerability.cpython-310.pyc` 误报为 `HEUR:HackTool/VulnScan.a` 并删除。
-  - 已执行 `--force-reinstall pip-audit` 恢复，`pip-audit --local` 再次运行正常。
-- **扩展修复（前端与容器）**：
-  - `donglicao-site-v2/package.json`：添加 `overrides` 强制 `postcss>=8.5.10`；`npm audit` 归零，`npm run build` 成功。
-  - `docs-site/pnpm-workspace.yaml`：添加 `overrides` 强制 `vite ^6.4.3`、`esbuild ^0.25.0`；`pnpm audit` 归零，`pnpm run build` 成功。
-  - `Dockerfile`：基础镜像从浮动 `python:3.10-slim` 固定为 `python:3.10.20-slim-bookworm@sha256:89cef4d55961e885def21b86e34e102e65b7eab8cd281e806a66ff1709c9a455`。
-- **额外修复**：
-  - `.github/workflows/test.yml`：将错误的 `actions/checkout@v7`、`actions/setup-python@v6`、`actions/cache@v6` 改为正确的 v4/v5/v4。
-  - 2026-07-01 新增 CI `pip-audit -r requirements_server.txt` 门禁（`PYTHONUTF8=1`），与 `bandit` 合并到 `Security scan` 步骤。
-- **仍未修复的告警**：
-  - GitHub push 后仍提示 default branch 有 16 个漏洞（7 high, 9 moderate）。本地可扫描的 manifests 已全部 clean，剩余可能来源：
-    - GitHub Dependabot 计数存在延迟/缓存。
-    - `esp32S_XYZ` 子模块中其他未扫描的旧 npm/pnpm/Dockerfile manifests（如 `u1-grbl/embedded` 仍有 33 个高危/严重级漏洞，`xiaozhi-esp32-server/main/manager-mobile` 因私有 registry 无法 audit）。
-    - Dockerfile 固定 digest 后仍可能存在 Debian 系统级未修补 CVE。
-- **风险与后续**：
-  - Pillow 大版本 10→12 已确认通过全部图像处理测试；生产部署后需观察 `xiaozhi_drawing/svg_converter.py` 与 `device_logic/captcha.py` 行为。
-  - pip 大版本 23→26 仅影响包安装流程，未引入运行时变更。
-  - ~~建议后续在 CI 中加入 `pip-audit --requirement requirements_server.txt` 门禁。~~ ✅ 已完成（2026-07-01）：`.github/workflows/test.yml` 新增 `pip-audit -r requirements_server.txt` 步骤，环境变量 `PYTHONUTF8=1` 规避 Windows 编码问题。
-  - 子模块中遗留的旧前端构建链（gulp/cheerio/underscore 等）如需继续修复，涉及直接依赖大版本升级，可能破坏 ESP32 固件构建流程，需单独评估。
+    - 鏂板鏄惧紡涓嬮檺锛歚starlette>=1.3.1`锛團astAPI 浼犻€掍緷璧栵級銆乣cryptography>=48.0.1`锛圥aramiko 浼犻€掍緷璧栵級銆?
+- **楠岃瘉**锛?
+  - `pip-audit --local` 鈫?`No known vulnerabilities found`銆?
+  - 鑱氱劍 Pillow 鐩稿叧娴嬭瘯锛歚tests/test_svg_converter.py`, `tests/test_svg_converter_sketch.py`, `tests/test_svg_binarize.py` 鈫?33 passed銆?
+  - 鑱氱劍 FastAPI/Starlette 鐩稿叧娴嬭瘯锛歚tests/test_device_app_auth.py`, `tests/test_routes_chat_preflight.py`, `tests/test_routing_engine_post.py` 鈫?25 passed銆?
+  - 瀹屾暣闂ㄧ `scripts/run_pre_commit_check.py --full` 鈫?4239 passed, 3 skipped, ruff 閫氳繃銆?
+- **鎵╁睍淇锛坋sp32S_XYZ 瀛愭ā鍧楋級**锛?
+  - 瀛愭ā鍧椾粨搴撳悓姝ユ彁浜ゅ苟 push 鍒?`zhuguang-ZFG/esp32S_XYZ`銆?
+  - `esp32S_XYZ/requirements.txt`锛歚pytest>=9.0.3`锛圕VE-2025-71176锛夈€?
+  - `esp32S_XYZ/firmware/u8-xiaozhi/scripts/Image_Converter/requirements.txt`锛歚Pillow~=12.2.0`銆?
+- **鎵弿宸ュ叿璇姤璇存槑**锛?
+  - 杩愯 `pip-audit` 鏃讹紝鏈湴鏉€姣掕蒋浠跺皢 `cyclonedx-python-lib` 鐨?`vulnerability.cpython-310.pyc` 璇姤涓?`HEUR:HackTool/VulnScan.a` 骞跺垹闄ゃ€?
+  - 宸叉墽琛?`--force-reinstall pip-audit` 鎭㈠锛宍pip-audit --local` 鍐嶆杩愯姝ｅ父銆?
+- **鎵╁睍淇锛堝墠绔笌瀹瑰櫒锛?*锛?
+  - `donglicao-site-v2/package.json`锛氭坊鍔?`overrides` 寮哄埗 `postcss>=8.5.10`锛沗npm audit` 褰掗浂锛宍npm run build` 鎴愬姛銆?
+  - `docs-site/pnpm-workspace.yaml`锛氭坊鍔?`overrides` 寮哄埗 `vite ^6.4.3`銆乣esbuild ^0.25.0`锛沗pnpm audit` 褰掗浂锛宍pnpm run build` 鎴愬姛銆?
+  - `Dockerfile`锛氬熀纭€闀滃儚浠庢诞鍔?`python:3.10-slim` 鍥哄畾涓?`python:3.10.20-slim-bookworm@sha256:89cef4d55961e885def21b86e34e102e65b7eab8cd281e806a66ff1709c9a455`銆?
+- **棰濆淇**锛?
+  - `.github/workflows/test.yml`锛氬皢閿欒鐨?`actions/checkout@v7`銆乣actions/setup-python@v6`銆乣actions/cache@v6` 鏀逛负姝ｇ‘鐨?v4/v5/v4銆?
+  - 2026-07-01 鏂板 CI `pip-audit -r requirements_server.txt` 闂ㄧ锛坄PYTHONUTF8=1`锛夛紝涓?`bandit` 鍚堝苟鍒?`Security scan` 姝ラ銆?
+- **浠嶆湭淇鐨勫憡璀?*锛?
+  - GitHub push 鍚庝粛鎻愮ず default branch 鏈?16 涓紡娲烇紙7 high, 9 moderate锛夈€傛湰鍦板彲鎵弿鐨?manifests 宸插叏閮?clean锛屽墿浣欏彲鑳芥潵婧愶細
+    - GitHub Dependabot 璁℃暟瀛樺湪寤惰繜/缂撳瓨銆?
+    - `esp32S_XYZ` 瀛愭ā鍧椾腑鍏朵粬鏈壂鎻忕殑鏃?npm/pnpm/Dockerfile manifests锛堝 `u1-grbl/embedded` 浠嶆湁 33 涓珮鍗?涓ラ噸绾ф紡娲烇紝`xiaozhi-esp32-server/main/manager-mobile` 鍥犵鏈?registry 鏃犳硶 audit锛夈€?
+    - Dockerfile 鍥哄畾 digest 鍚庝粛鍙兘瀛樺湪 Debian 绯荤粺绾ф湭淇ˉ CVE銆?
+- **椋庨櫓涓庡悗缁?*锛?
+  - Pillow 澶х増鏈?10鈫?2 宸茬‘璁ら€氳繃鍏ㄩ儴鍥惧儚澶勭悊娴嬭瘯锛涚敓浜ч儴缃插悗闇€瑙傚療 `xiaozhi_drawing/svg_converter.py` 涓?`device_logic/captcha.py` 琛屼负銆?
+  - pip 澶х増鏈?23鈫?6 浠呭奖鍝嶅寘瀹夎娴佺▼锛屾湭寮曞叆杩愯鏃跺彉鏇淬€?
+  - ~~寤鸿鍚庣画鍦?CI 涓姞鍏?`pip-audit --requirement requirements_server.txt` 闂ㄧ銆倊~ 鉁?宸插畬鎴愶紙2026-07-01锛夛細`.github/workflows/test.yml` 鏂板 `pip-audit -r requirements_server.txt` 姝ラ锛岀幆澧冨彉閲?`PYTHONUTF8=1` 瑙勯伩 Windows 缂栫爜闂銆?
+  - 瀛愭ā鍧椾腑閬楃暀鐨勬棫鍓嶇鏋勫缓閾撅紙gulp/cheerio/underscore 绛夛級濡傞渶缁х画淇锛屾秹鍙婄洿鎺ヤ緷璧栧ぇ鐗堟湰鍗囩骇锛屽彲鑳界牬鍧?ESP32 鍥轰欢鏋勫缓娴佺▼锛岄渶鍗曠嫭璇勪及銆?
 
 
-## 2026-07-02 external_enrichment provider 占位状态确认
+## 2026-07-02 external_enrichment provider 鍗犱綅鐘舵€佺‘璁?
 
-> ⚠️ **作废标注（2026-07-06 代码实证）**：本节记录的 `external_enrichment/` 模块已在 P4/P5 瘦身时物理删除——`git ls-files external_enrichment` 返回 0 文件，目录不存在。下方原始「TODO: 真实 API 接入」占位记录仅作历史保留，无需再跟进。
+> 鈿狅笍 **浣滃簾鏍囨敞锛?026-07-06 浠ｇ爜瀹炶瘉锛?*锛氭湰鑺傝褰曠殑 `external_enrichment/` 妯″潡宸插湪 P4/P5 鐦﹁韩鏃剁墿鐞嗗垹闄も€斺€擿git ls-files external_enrichment` 杩斿洖 0 鏂囦欢锛岀洰褰曚笉瀛樺湪銆備笅鏂瑰師濮嬨€孴ODO: 鐪熷疄 API 鎺ュ叆銆嶅崰浣嶈褰曚粎浣滃巻鍙蹭繚鐣欙紝鏃犻渶鍐嶈窡杩涖€?
 
-- `external_enrichment/providers/nager_date.py` 与 `open_meteo.py` 方法体仅返回硬编码 mock（`# TODO: Actual API call would go here`）。
-- 确认：两文件被 `tests/test_external_enrichment.py` 明确用作离线测试 mock（docstring 标注 "offline tests with mock"）。
-- 结论：保留，不为瘦身删除测试依赖。真实 API 接入留待功能驱动时再做（YAGNI）。
+- `external_enrichment/providers/nager_date.py` 涓?`open_meteo.py` 鏂规硶浣撲粎杩斿洖纭紪鐮?mock锛坄# TODO: Actual API call would go here`锛夈€?
+- 纭锛氫袱鏂囦欢琚?`tests/test_external_enrichment.py` 鏄庣‘鐢ㄤ綔绂荤嚎娴嬭瘯 mock锛坉ocstring 鏍囨敞 "offline tests with mock"锛夈€?
+- 缁撹锛氫繚鐣欙紝涓嶄负鐦﹁韩鍒犻櫎娴嬭瘯渚濊禆銆傜湡瀹?API 鎺ュ叆鐣欏緟鍔熻兘椹卞姩鏃跺啀鍋氾紙YAGNI锛夈€?
 
-## 2026-07-02 CodeGraph 死函数复审（13 个候选）
+## 2026-07-02 CodeGraph 姝诲嚱鏁板瀹★紙13 涓€欓€夛級
 
-> 候选来自瘦身审查「疑似 0 调用点函数」清单。用 CodeGraph `edges.target` fan-in + 全库 grep 双重确认。
+> 鍊欓€夋潵鑷槮韬鏌ャ€岀枒浼?0 璋冪敤鐐瑰嚱鏁般€嶆竻鍗曘€傜敤 CodeGraph `edges.target` fan-in + 鍏ㄥ簱 grep 鍙岄噸纭銆?
 
-### 删除（12 个，CodeGraph fan-in=0 且 grep 全库无调用点、无装饰器、无同文件引用）
+### 鍒犻櫎锛?2 涓紝CodeGraph fan-in=0 涓?grep 鍏ㄥ簱鏃犺皟鐢ㄧ偣銆佹棤瑁呴グ鍣ㄣ€佹棤鍚屾枃浠跺紩鐢級
 
-| 文件:行 | 函数 | 说明 |
+| 鏂囦欢:琛?| 鍑芥暟 | 璇存槑 |
 |---------|------|------|
-| token_health.py:110 | `alert_expired_tokens` | 疑似未接 cron，无调用方 |
-| model_registry.py:108 | `get_active` | 与 key_pool.get_active_count 名字近但无关联 |
-| backends_registry/__init__.py:85 | `get_backend` | 与 health_state.get_backend_* 名字近但无关联 |
-| device_gateway/mqtt_client.py:34 | `is_mqtt_enabled` | 调用方直接读 DEVICE.mqtt_enabled |
-| device_gateway/mqtt_client.py:46 | `mqtt_send_to_device` | async 投递函数，无调用方 |
-| context_pipeline/cache.py:74 | `build_cached_prompt` | 仅改 _metrics 统计，无调用方 |
-| route_scorer.py:97 | `task_fit_score` | 编码退役后纯函数无调用方 |
-| user_identity/lessons.py:66 | `apply_lesson` | 有文件写副作用但无任何调用方 |
-| context_compressor.py:165 | `estimate_context_usage` | 纯计算，无调用方 |
-| session_memory/compactor.py:121 | `llm_summarizer_factory` | 工厂函数，无注入式调用方 |
-| channel_retirement.py:17 | `is_retired_route_path` | 纯函数，无调用方 |
-| key_pool.py:251 | `provider_snapshot` | 委托 pool_snapshot，无调用方（与 provider_automation/snapshot_store 模块名近但无关联） |
+| token_health.py:110 | `alert_expired_tokens` | 鐤戜技鏈帴 cron锛屾棤璋冪敤鏂?|
+| model_registry.py:108 | `get_active` | 涓?key_pool.get_active_count 鍚嶅瓧杩戜絾鏃犲叧鑱?|
+| backends_registry/__init__.py:85 | `get_backend` | 涓?health_state.get_backend_* 鍚嶅瓧杩戜絾鏃犲叧鑱?|
+| device_gateway/mqtt_client.py:34 | `is_mqtt_enabled` | 璋冪敤鏂圭洿鎺ヨ DEVICE.mqtt_enabled |
+| device_gateway/mqtt_client.py:46 | `mqtt_send_to_device` | async 鎶曢€掑嚱鏁帮紝鏃犺皟鐢ㄦ柟 |
+| context_pipeline/cache.py:74 | `build_cached_prompt` | 浠呮敼 _metrics 缁熻锛屾棤璋冪敤鏂?|
+| route_scorer.py:97 | `task_fit_score` | 缂栫爜閫€褰瑰悗绾嚱鏁版棤璋冪敤鏂?|
+| user_identity/lessons.py:66 | `apply_lesson` | 鏈夋枃浠跺啓鍓綔鐢ㄤ絾鏃犱换浣曡皟鐢ㄦ柟 |
+| context_compressor.py:165 | `estimate_context_usage` | 绾绠楋紝鏃犺皟鐢ㄦ柟 |
+| session_memory/compactor.py:121 | `llm_summarizer_factory` | 宸ュ巶鍑芥暟锛屾棤娉ㄥ叆寮忚皟鐢ㄦ柟 |
+| channel_retirement.py:17 | `is_retired_route_path` | 绾嚱鏁帮紝鏃犺皟鐢ㄦ柟 |
+| key_pool.py:251 | `provider_snapshot` | 濮旀墭 pool_snapshot锛屾棤璋冪敤鏂癸紙涓?provider_automation/snapshot_store 妯″潡鍚嶈繎浣嗘棤鍏宠仈锛?|
 
-### 保留（1 个）
+### 淇濈暀锛? 涓級
 
-| 文件:行 | 函数 | 保留原因 |
+| 鏂囦欢:琛?| 鍑芥暟 | 淇濈暀鍘熷洜 |
 |---------|------|----------|
-| observability/prometheus_metrics.py:199 | `record_backend_error` | 有测试覆盖（test_observability_metrics.py:90），疑似预留 prometheus 调度入口，YAGNI 保守保留 |
+| observability/prometheus_metrics.py:199 | `record_backend_error` | 鏈夋祴璇曡鐩栵紙test_observability_metrics.py:90锛夛紝鐤戜技棰勭暀 prometheus 璋冨害鍏ュ彛锛孻AGNI 淇濆畧淇濈暀 |
 
-### 验证
-- ruff check 11 个文件 clean
+### 楠岃瘉
+- ruff check 11 涓枃浠?clean
 - check_code_size PASS
-- 聚焦测试 64 passed（test_token_health/test_model_registry/test_backend_registry/test_route_scorer/test_channel_retirement/test_key_pool）
+- 鑱氱劍娴嬭瘯 64 passed锛坱est_token_health/test_model_registry/test_backend_registry/test_route_scorer/test_channel_retirement/test_key_pool锛?
 
 ---
 
-## 2026-07-06：固件 U8 plotter MCP 工具 + 小程序 v3.9.0 + MCP 部署脚本
+## 2026-07-06锛氬浐浠?U8 plotter MCP 宸ュ叿 + 灏忕▼搴?v3.9.0 + MCP 閮ㄧ讲鑴氭湰
 
-### 固件端发现
+### 鍥轰欢绔彂鐜?
 
-1. **Token 存储方案**：U8 固件原本无 DLC API token 存储机制。采用 NVS（Non-Volatile Storage）存储 `dlc_api_token`，通过 `GetDlcApiToken()` 统一读取（SEC-007）。配网时由小程序下发写入。
-2. **HTTPS 强制**：ESP32 HTTPClient 默认不校验证书。新增 `https://` scheme 检查，非 HTTPS 直接返回错误（SEC-007）。
-3. **响应大小限制**：dlc_api 返回的路径 JSON 可能非常大（复杂图画）。新增 `DLC_API_MAX_RESPONSE_BYTES=131072`（128KB）硬限制，防止 OOM（SEC-005）。
-4. **SoftAP SSID 统一**：原 SSID 前缀 `Xiaozhi` 与 DLC 产品定位不符，统一为 `DLC`。BluFi 设备名同步改为 `DLC-Blufi`。
-5. **MCP 工具注册位置**：`write_text` / `draw_generated` 注册在 `self.plotter` 命名空间下，与小智云 MCP tool schema 对齐（`plotter.write_text` / `plotter.draw_generated`）。
-6. **路径执行防呆**：设备端调 dlc_api `/dlc/tasks/preview` 仅获取路径数据，不触发服务端 dispatch。路径通过 `RunPathWithTaskId` 本地执行，task_id 用于状态追踪。
+1. **Token 瀛樺偍鏂规**锛歎8 鍥轰欢鍘熸湰鏃?DLC API token 瀛樺偍鏈哄埗銆傞噰鐢?NVS锛圢on-Volatile Storage锛夊瓨鍌?`dlc_api_token`锛岄€氳繃 `GetDlcApiToken()` 缁熶竴璇诲彇锛圫EC-007锛夈€傞厤缃戞椂鐢卞皬绋嬪簭涓嬪彂鍐欏叆銆?
+2. **HTTPS 寮哄埗**锛欵SP32 HTTPClient 榛樿涓嶆牎楠岃瘉涔︺€傛柊澧?`https://` scheme 妫€鏌ワ紝闈?HTTPS 鐩存帴杩斿洖閿欒锛圫EC-007锛夈€?
+3. **鍝嶅簲澶у皬闄愬埗**锛歞lc_api 杩斿洖鐨勮矾寰?JSON 鍙兘闈炲父澶э紙澶嶆潅鍥剧敾锛夈€傛柊澧?`DLC_API_MAX_RESPONSE_BYTES=131072`锛?28KB锛夌‖闄愬埗锛岄槻姝?OOM锛圫EC-005锛夈€?
+4. **SoftAP SSID 缁熶竴**锛氬師 SSID 鍓嶇紑 `Xiaozhi` 涓?DLC 浜у搧瀹氫綅涓嶇锛岀粺涓€涓?`DLC`銆侭luFi 璁惧鍚嶅悓姝ユ敼涓?`DLC-Blufi`銆?
+5. **MCP 宸ュ叿娉ㄥ唽浣嶇疆**锛歚write_text` / `draw_generated` 娉ㄥ唽鍦?`self.plotter` 鍛藉悕绌洪棿涓嬶紝涓庡皬鏅轰簯 MCP tool schema 瀵归綈锛坄plotter.write_text` / `plotter.draw_generated`锛夈€?
+6. **璺緞鎵ц闃插憜**锛氳澶囩璋?dlc_api `/dlc/tasks/preview` 浠呰幏鍙栬矾寰勬暟鎹紝涓嶈Е鍙戞湇鍔＄ dispatch銆傝矾寰勯€氳繃 `RunPathWithTaskId` 鏈湴鎵ц锛宼ask_id 鐢ㄤ簬鐘舵€佽拷韪€?
 
-### 小程序端发现
+### 灏忕▼搴忕鍙戠幇
 
-1. **chat 页面删除范围**：需同步删除 `pages.json` 中的路由注册、`useHomeNavigation.ts` 中的 `goChat`/`goDigitalHuman` 导航函数、`index.vue` 中的 AI 对话/数字人卡片组件。遗漏任何一处都会导致编译错误。
-2. **`getChatBaseUrl` 简化**：原函数含 `aliyun.donglicao.com` 分流逻辑，DLC 定位下对话统一走小智云，分流逻辑已删除。
-3. **配网主路径**：SoftAP 配网更适合 DLC 场景（用户现场无路由器时可直接连设备配网），作为主路径。BluFi 保留为备选。
-4. **版本号递增**：3.8.7 → 3.9.0（minor bump，因功能变更：删除对话 + 配网重构）。
+1. **chat 椤甸潰鍒犻櫎鑼冨洿**锛氶渶鍚屾鍒犻櫎 `pages.json` 涓殑璺敱娉ㄥ唽銆乣useHomeNavigation.ts` 涓殑 `goChat`/`goDigitalHuman` 瀵艰埅鍑芥暟銆乣index.vue` 涓殑 AI 瀵硅瘽/鏁板瓧浜哄崱鐗囩粍浠躲€傞仐婕忎换浣曚竴澶勯兘浼氬鑷寸紪璇戦敊璇€?
+2. **`getChatBaseUrl` 绠€鍖?*锛氬師鍑芥暟鍚?`aliyun.donglicao.com` 鍒嗘祦閫昏緫锛孌LC 瀹氫綅涓嬪璇濈粺涓€璧板皬鏅轰簯锛屽垎娴侀€昏緫宸插垹闄ゃ€?
+3. **閰嶇綉涓昏矾寰?*锛歋oftAP 閰嶇綉鏇撮€傚悎 DLC 鍦烘櫙锛堢敤鎴风幇鍦烘棤璺敱鍣ㄦ椂鍙洿鎺ヨ繛璁惧閰嶇綉锛夛紝浣滀负涓昏矾寰勩€侭luFi 淇濈暀涓哄閫夈€?
+4. **鐗堟湰鍙烽€掑**锛?.8.7 鈫?3.9.0锛坢inor bump锛屽洜鍔熻兘鍙樻洿锛氬垹闄ゅ璇?+ 閰嶇綉閲嶆瀯锛夈€?
 
-### MCP 部署发现
+### MCP 閮ㄧ讲鍙戠幇
 
-1. **模式 A（官方云直连）为首选**：小智官方云提供原生 MCP endpoint `wss://api.xiaozhi.me/mcp/?token=<JWT>`，无需自建 mcp-endpoint-server。`dlc_mcp/mcp_pipe.py` 以 WebSocket 客户端身份连入。
-2. **systemd 服务依赖**：`dlc-mcp.service` 依赖 `dlc-drawing.service`（After=），确保 dlc_api 先启动。
-3. **环境变量**：`MCP_ENDPOINT`（WebSocket URL）和 `DLC_API_URL`（内部 HTTP 地址）必须在 `.env` 中配置。已在 `.env.example` 中补入。
+1. **妯″紡 A锛堝畼鏂逛簯鐩磋繛锛変负棣栭€?*锛氬皬鏅哄畼鏂逛簯鎻愪緵鍘熺敓 MCP endpoint `wss://api.xiaozhi.me/mcp/?token=<JWT>`锛屾棤闇€鑷缓 mcp-endpoint-server銆俙dlc_mcp/mcp_pipe.py` 浠?WebSocket 瀹㈡埛绔韩浠借繛鍏ャ€?
+2. **systemd 鏈嶅姟渚濊禆**锛歚dlc-mcp.service` 渚濊禆 `dlc-drawing.service`锛圓fter=锛夛紝纭繚 dlc_api 鍏堝惎鍔ㄣ€?
+3. **鐜鍙橀噺**锛歚MCP_ENDPOINT`锛圵ebSocket URL锛夊拰 `DLC_API_URL`锛堝唴閮?HTTP 鍦板潃锛夊繀椤诲湪 `.env` 涓厤缃€傚凡鍦?`.env.example` 涓ˉ鍏ャ€?
 
-### 待验证项
+### 寰呴獙璇侀」
 
-- [ ] 小智云控制台获取 MCP endpoint token
-- [ ] VPS `.env` 配置 `MCP_ENDPOINT`
-- [ ] `install_dlc_mcp.sh` 在 VPS 上执行
-- [ ] 设备端 NVS token 写入流程验证（配网时小程序下发）
-- [ ] 端到端：语音 → 小智云 → MCP → dlc_api → 路径生成 → 设备执行
+- [ ] 灏忔櫤浜戞帶鍒跺彴鑾峰彇 MCP endpoint token
+- [ ] VPS `.env` 閰嶇疆 `MCP_ENDPOINT`
+- [ ] `install_dlc_mcp.sh` 鍦?VPS 涓婃墽琛?
+- [ ] 璁惧绔?NVS token 鍐欏叆娴佺▼楠岃瘉锛堥厤缃戞椂灏忕▼搴忎笅鍙戯級
+- [ ] 绔埌绔細璇煶 鈫?灏忔櫤浜?鈫?MCP 鈫?dlc_api 鈫?璺緞鐢熸垚 鈫?璁惧鎵ц
 
-## 2026-07-06 阶段D 前置验证：发现 3 个切流阻塞（诚实 block）
+## 2026-07-06 闃舵D 鍓嶇疆楠岃瘉锛氬彂鐜?3 涓垏娴侀樆濉烇紙璇氬疄 block锛?
 
-- **现象**：准备把 nginx 生产流量从旧 `:8080` 切到瘦身版 `server_dlc:8081` 前，逐一验证小程序 v3.9.0 所需端点，发现 3 个问题，全部会在切流时断掉小程序，故 STOP 未切。
-- **阻塞 1（缺失端点，🔴 硬阻塞，需产品决策）**：小程序活跃页面 `ai-draw.vue`（AI 绘图）调 `/device/v1/app/images/generations`，`useVoiceStream.ts`（语音）调 `/device/v1/app/voice/ticket` + `/voice/transcribe`。提供这些的 `routes/device_app_images.py`、`device_app_voice.py`、`device_app_chat.py` **在 P4/P5 瘦身（commit 89f59be7 / 992afa0f）时已被删除**，当前仓库无实现。这些端点现由 VPS 旧 `:8080` 系统承载；一旦切流到 `:8081` 会 404。**决策点**：这三个功能（AI 绘图 / 语音 ticket / 语音转写）是保留还是废弃？保留则需从旧系统恢复/重写这三个模块并注册进 server_dlc；废弃则需先改小程序移除对应页面再切流。
-- **阻塞 2（双前缀 bug，我引入，可自修）**：阶段A 聚合器 `dlc_api/device_app_router.py` 把 `device_app_api.router` 顶层注册，而 `device_app_api.py:255` 又 `include_router(device_app_sharing)`——两者都带 `prefix="/device/v1/app"`，导致 sharing 路由变成 `/device/v1/app/device/v1/app/devices/{id}/share`（前缀叠加）。根因：`device_app_sharing` 被父 include 时已自带完整 prefix，不应再有自己的 prefix，或聚合器不应重复。**修复方向**：改 sharing router 去掉自带 prefix（因它总是被 include 到已有 prefix 的父下），或在 device_app_api include 时不传 prefix。需单独 TDD 修复。
-- **阻塞 3（VPS 代码陈旧）**：两节点 `:8081` 跑的是旧 server_dlc（无 device_app 注册，`dlc_api/device_app_router.py` MISSING）。阶段A/B/C 的仓库变更尚未部署到 VPS。切流前必须先 `deploy_unified.py` 推送新代码并重启 `dlc-drawing`，验证 `:8081` 健康。
-- **根因（共性）**：P4/P5 瘦身"删旧系统模块"时，把小程序仍在用的 `device_app_images/voice/chat` 当死代码删了，但小程序前端并未同步移除这些调用——前后端瘦身不同步。这也是"瘦身不彻底/不一致"的一个具体实例。
-- **预防**：删除任何 `device_app_*`/对外 API 模块前，必须 grep 小程序 `manager-mobile/src` 的真实 HTTP 调用（不是 `@/api` 源码别名）确认无引用；切流生产入口前必须端点级 diff（旧 `:8080` openapi vs 新 `:8081` openapi）而非仅路由计数。
+- **鐜拌薄**锛氬噯澶囨妸 nginx 鐢熶骇娴侀噺浠庢棫 `:8080` 鍒囧埌鐦﹁韩鐗?`server_dlc:8081` 鍓嶏紝閫愪竴楠岃瘉灏忕▼搴?v3.9.0 鎵€闇€绔偣锛屽彂鐜?3 涓棶棰橈紝鍏ㄩ儴浼氬湪鍒囨祦鏃舵柇鎺夊皬绋嬪簭锛屾晠 STOP 鏈垏銆?
+- **闃诲 1锛堢己澶辩鐐癸紝馃敶 纭樆濉烇紝闇€浜у搧鍐崇瓥锛?*锛氬皬绋嬪簭娲昏穬椤甸潰 `ai-draw.vue`锛圓I 缁樺浘锛夎皟 `/device/v1/app/images/generations`锛宍useVoiceStream.ts`锛堣闊筹級璋?`/device/v1/app/voice/ticket` + `/voice/transcribe`銆傛彁渚涜繖浜涚殑 `routes/device_app_images.py`銆乣device_app_voice.py`銆乣device_app_chat.py` **鍦?P4/P5 鐦﹁韩锛坈ommit 89f59be7 / 992afa0f锛夋椂宸茶鍒犻櫎**锛屽綋鍓嶄粨搴撴棤瀹炵幇銆傝繖浜涚鐐圭幇鐢?VPS 鏃?`:8080` 绯荤粺鎵胯浇锛涗竴鏃﹀垏娴佸埌 `:8081` 浼?404銆?*鍐崇瓥鐐?*锛氳繖涓変釜鍔熻兘锛圓I 缁樺浘 / 璇煶 ticket / 璇煶杞啓锛夋槸淇濈暀杩樻槸搴熷純锛熶繚鐣欏垯闇€浠庢棫绯荤粺鎭㈠/閲嶅啓杩欎笁涓ā鍧楀苟娉ㄥ唽杩?server_dlc锛涘簾寮冨垯闇€鍏堟敼灏忕▼搴忕Щ闄ゅ搴旈〉闈㈠啀鍒囨祦銆?
+- **闃诲 2锛堝弻鍓嶇紑 bug锛屾垜寮曞叆锛屽彲鑷慨锛?*锛氶樁娈礎 鑱氬悎鍣?`dlc_api/device_app_router.py` 鎶?`device_app_api.router` 椤跺眰娉ㄥ唽锛岃€?`device_app_api.py:255` 鍙?`include_router(device_app_sharing)`鈥斺€斾袱鑰呴兘甯?`prefix="/device/v1/app"`锛屽鑷?sharing 璺敱鍙樻垚 `/device/v1/app/device/v1/app/devices/{id}/share`锛堝墠缂€鍙犲姞锛夈€傛牴鍥狅細`device_app_sharing` 琚埗 include 鏃跺凡鑷甫瀹屾暣 prefix锛屼笉搴斿啀鏈夎嚜宸辩殑 prefix锛屾垨鑱氬悎鍣ㄤ笉搴旈噸澶嶃€?*淇鏂瑰悜**锛氭敼 sharing router 鍘绘帀鑷甫 prefix锛堝洜瀹冩€绘槸琚?include 鍒板凡鏈?prefix 鐨勭埗涓嬶級锛屾垨鍦?device_app_api include 鏃朵笉浼?prefix銆傞渶鍗曠嫭 TDD 淇銆?
+- **闃诲 3锛圴PS 浠ｇ爜闄堟棫锛?*锛氫袱鑺傜偣 `:8081` 璺戠殑鏄棫 server_dlc锛堟棤 device_app 娉ㄥ唽锛宍dlc_api/device_app_router.py` MISSING锛夈€傞樁娈礎/B/C 鐨勪粨搴撳彉鏇村皻鏈儴缃插埌 VPS銆傚垏娴佸墠蹇呴』鍏?`deploy_unified.py` 鎺ㄩ€佹柊浠ｇ爜骞堕噸鍚?`dlc-drawing`锛岄獙璇?`:8081` 鍋ュ悍銆?
+- **鏍瑰洜锛堝叡鎬э級**锛歅4/P5 鐦﹁韩"鍒犳棫绯荤粺妯″潡"鏃讹紝鎶婂皬绋嬪簭浠嶅湪鐢ㄧ殑 `device_app_images/voice/chat` 褰撴浠ｇ爜鍒犱簡锛屼絾灏忕▼搴忓墠绔苟鏈悓姝ョЩ闄よ繖浜涜皟鐢ㄢ€斺€斿墠鍚庣鐦﹁韩涓嶅悓姝ャ€傝繖涔熸槸"鐦﹁韩涓嶅交搴?涓嶄竴鑷?鐨勪竴涓叿浣撳疄渚嬨€?
+- **棰勯槻**锛氬垹闄や换浣?`device_app_*`/瀵瑰 API 妯″潡鍓嶏紝蹇呴』 grep 灏忕▼搴?`manager-mobile/src` 鐨勭湡瀹?HTTP 璋冪敤锛堜笉鏄?`@/api` 婧愮爜鍒悕锛夌‘璁ゆ棤寮曠敤锛涘垏娴佺敓浜у叆鍙ｅ墠蹇呴』绔偣绾?diff锛堟棫 `:8080` openapi vs 鏂?`:8081` openapi锛夎€岄潪浠呰矾鐢辫鏁般€?
 
-## 2026-07-05 Aliyun pilot 免费 chat 链路退役（入站流量为 0）
+## 2026-07-05 Aliyun pilot 鍏嶈垂 chat 閾捐矾閫€褰癸紙鍏ョ珯娴侀噺涓?0锛?
 
-- **现象**：Aliyun `lima-router-pilot.service`(:8080) + 6 个后端 sidecar（mimo/longcat/kimi/hermes/tts）常年运行，占 `/opt/lima-router-pilot` 1.1G，但疑似无真实用户。
-- **复现/取证**：过去 24h 全部 nginx access log 中 `POST /v1/chat/completions` 入站命中 = **0**；pilot uvicorn 入站 access 行（journal last 3000）= **0**；pilot access log 唯一非监控客户端 IP 是 `117.72.118.95`（JDCloud 主节点自己）；established 连接到 :8080 为空。pilot 出站 chat/completions 787 条全是 `backend_probe_loop` 探测（大量 401/dead）。
-- **根因**：前端匿名 chat 分流早已名存实亡——CF Worker `lima-chat-router` 曾把匿名 chat 转 pilot，但 (1) manager-mobile v3.9.0 已删 aliyun 分流；(2) JDCloud 主节点 `/v1/chat/completions` 本身已随瘦身退役（现返回 410 Gone）。pilot 在无人使用的情况下 24h 空转探测失效后端。
-- **修复**：先切前端引用后停后端。① CF Worker 移除 pilot 分支（恒回源 JDCloud）；② `wrangler.toml` 删 `PILOT_ORIGIN`；③ chat-web `app-config.js` `shouldUsePilot` 恒 false；④ 官网 playground `selectBaseUrl` 恒主节点。经 GitHub Actions 部署（Worker/Pages/Next.js 三条 workflow success）。验证 `chat.donglicao.com/v1/chat/completions` 响应头 `X-Lima-Backend: jdcloud`（不再 aliyun）。随后 Aliyun 停 pilot + 6 sidecar，unit 改名 `.retired-20260705`（可逆），:8080 端口释放。
-- **如何预防**：退役前先做入站流量取证（access log + established conns + journal），用数据而非推测判断服务死活；停服用 unit 改名而非 rm，保留可逆回滚。
-- **连带修复的既存 CI 债**：① `deploy-chat-web.yml` 缺 `npm install`（自 7-03 连续 4 次失败，esbuild ERR_MODULE_NOT_FOUND）；② `test.yml` pyright 仍引用已删的 `server.py`/`routing_engine/__init__.py`/`routes/chat_endpoints.py`（改为 `server_dlc.py`）。
-- **未做**：`/opt/lima-router-pilot`（1.1G）目录仅停服未删；彻底删除属独立任务。
+- **鐜拌薄**锛欰liyun `lima-router-pilot.service`(:8080) + 6 涓悗绔?sidecar锛坢imo/longcat/kimi/hermes/tts锛夊父骞磋繍琛岋紝鍗?`/opt/lima-router-pilot` 1.1G锛屼絾鐤戜技鏃犵湡瀹炵敤鎴枫€?
+- **澶嶇幇/鍙栬瘉**锛氳繃鍘?24h 鍏ㄩ儴 nginx access log 涓?`POST /v1/chat/completions` 鍏ョ珯鍛戒腑 = **0**锛沺ilot uvicorn 鍏ョ珯 access 琛岋紙journal last 3000锛? **0**锛沺ilot access log 鍞竴闈炵洃鎺у鎴风 IP 鏄?`117.72.118.95`锛圝DCloud 涓昏妭鐐硅嚜宸憋級锛沞stablished 杩炴帴鍒?:8080 涓虹┖銆俻ilot 鍑虹珯 chat/completions 787 鏉″叏鏄?`backend_probe_loop` 鎺㈡祴锛堝ぇ閲?401/dead锛夈€?
+- **鏍瑰洜**锛氬墠绔尶鍚?chat 鍒嗘祦鏃╁凡鍚嶅瓨瀹炰骸鈥斺€擟F Worker `lima-chat-router` 鏇炬妸鍖垮悕 chat 杞?pilot锛屼絾 (1) manager-mobile v3.9.0 宸插垹 aliyun 鍒嗘祦锛?2) JDCloud 涓昏妭鐐?`/v1/chat/completions` 鏈韩宸查殢鐦﹁韩閫€褰癸紙鐜拌繑鍥?410 Gone锛夈€俻ilot 鍦ㄦ棤浜轰娇鐢ㄧ殑鎯呭喌涓?24h 绌鸿浆鎺㈡祴澶辨晥鍚庣銆?
+- **淇**锛氬厛鍒囧墠绔紩鐢ㄥ悗鍋滃悗绔€傗憼 CF Worker 绉婚櫎 pilot 鍒嗘敮锛堟亽鍥炴簮 JDCloud锛夛紱鈶?`wrangler.toml` 鍒?`PILOT_ORIGIN`锛涒憿 chat-web `app-config.js` `shouldUsePilot` 鎭?false锛涒懀 瀹樼綉 playground `selectBaseUrl` 鎭掍富鑺傜偣銆傜粡 GitHub Actions 閮ㄧ讲锛圵orker/Pages/Next.js 涓夋潯 workflow success锛夈€傞獙璇?`chat.donglicao.com/v1/chat/completions` 鍝嶅簲澶?`X-Lima-Backend: jdcloud`锛堜笉鍐?aliyun锛夈€傞殢鍚?Aliyun 鍋?pilot + 6 sidecar锛寀nit 鏀瑰悕 `.retired-20260705`锛堝彲閫嗭級锛?8080 绔彛閲婃斁銆?
+- **濡備綍棰勯槻**锛氶€€褰瑰墠鍏堝仛鍏ョ珯娴侀噺鍙栬瘉锛坅ccess log + established conns + journal锛夛紝鐢ㄦ暟鎹€岄潪鎺ㄦ祴鍒ゆ柇鏈嶅姟姝绘椿锛涘仠鏈嶇敤 unit 鏀瑰悕鑰岄潪 rm锛屼繚鐣欏彲閫嗗洖婊氥€?
+- **杩炲甫淇鐨勬棦瀛?CI 鍊?*锛氣憼 `deploy-chat-web.yml` 缂?`npm install`锛堣嚜 7-03 杩炵画 4 娆″け璐ワ紝esbuild ERR_MODULE_NOT_FOUND锛夛紱鈶?`test.yml` pyright 浠嶅紩鐢ㄥ凡鍒犵殑 `server.py`/`routing_engine/__init__.py`/`routes/chat_endpoints.py`锛堟敼涓?`server_dlc.py`锛夈€?
+- **鏈仛**锛歚/opt/lima-router-pilot`锛?.1G锛夌洰褰曚粎鍋滄湇鏈垹锛涘交搴曞垹闄ゅ睘鐙珛浠诲姟銆?
 
 
-## 2026-07-07 GitHub 同类项目对照审查：核查结论与 P1 修复
+## 2026-07-07 GitHub 鍚岀被椤圭洰瀵圭収瀹℃煡锛氭牳鏌ョ粨璁轰笌 P1 淇
 
-- **背景**：参考 GitHub 上类似 AI 路由/MCP 服务端项目做一次项目级代码审查，初版列出 4 个发现；逐条核查后纠正前提。
-- **P0 SSRF（draw_from_image 裸 fetch）— 误报，已防护**：初查怀疑 `svg_converter._download_image` 裸 `httpx.get(image_url)` 无内网过滤。核查发现：(1) `svg_converter.py` 在当前仓库**不存在**（审查时引用了幻觉/旧路径）；(2) 真实入口 `dlc_api/routes.py:_validate_image_url`（line 102）已实现三层防护——① 字面私有/loopback/link-local IP 拦截（`_is_private_ip`），② `ALLOWED_IMAGE_HOSTS = {api.telegram.org}` 白名单，③ `_resolve_hostname` DNS rebinding 防护（解析到私有 IP 即拒）；(3) 在 `/dlc/tasks/preview` 与 `/dlc/tasks/dispatch` 两入口的 `draw_from_image` 分支都调用该校验；(4) `tests/test_sec04_ssrf_hardening.py` 5 passed（DNS rebinding、白名单、字面私有 IP、localhost 全覆盖）。**结论：SSRF 防护已完整且正确，无需修改。**
-- **P1 /docs 暴露 — 真实，已修**：`server_dlc.py:25` 与 `dlc_api/app.py:9` 的 `FastAPI(title=...)` 未设 `docs_url/redoc_url/openapi_url=None`，公网入口暴露交互文档，可被枚举 API surface。`tests/test_server_docs_disabled.py` 早期删除后无回归保护。**修复**：两处 `FastAPI(...)` 显式 `docs_url=None, redoc_url=None, openapi_url=None`；新增 `tests/test_p1_security_hardening.py` 断言两个 app 的三个 URL 均为 None。
-- **P1 MCP 异常泄露内网 — 真实，已修**：`dlc_mcp/server.py` 的 `_submit`(line 94)/`_get_json`(line 109) 把 httpx 异常原样拼进返回 `error` 字段，含 `127.0.0.1:8081`，对外暴露内网拓扑。MCP endpoint 经小智云可达外部。**修复**：4 处 `f"...{exc}"` 改为通用文案（"dlc_api unreachable" / "invalid response from dlc_api"），详细 `exc` 仅 `logger.warning` 不返回；新增 2 个测试 mock `httpx.ConnectError` 断言返回文案不含 `127.0.0.1`/`8081`。
-- **P2 MCP 子进程 5s 终止窗口 — 误报**：初查引用 `mcp_pipe._run_session` finally 的 `terminate→wait(5s)→kill`。核查发现 `mcp_pipe.py` 当前仓库**不存在该函数**（审查引用了已删/幻觉路径）。MCP 子进程由 systemd 管理，无硬编码终止窗口。无需修改。
-- **核查通过的既存项**：SQL 注入（全参数化/ORM）、IDOR（account_id 作用域）、静默降级（生产路径无 `except: pass`）、secret 日志（无明文 token 落日志）。
-- **教训**：审查时引用的文件名/行号必须先 `Read` 确认存在，不能凭记忆/旧快照下结论；本次 P0/P2 两个误报都源于引用了不存在的符号。修正流程：先 `grep` 定位真实符号 → `Read` 全文 → 跑既有测试 → 再下结论。\r
+- **鑳屾櫙**锛氬弬鑰?GitHub 涓婄被浼?AI 璺敱/MCP 鏈嶅姟绔」鐩仛涓€娆￠」鐩骇浠ｇ爜瀹℃煡锛屽垵鐗堝垪鍑?4 涓彂鐜帮紱閫愭潯鏍告煡鍚庣籂姝ｅ墠鎻愩€?
+- **P0 SSRF锛坉raw_from_image 瑁?fetch锛夆€?璇姤锛屽凡闃叉姢**锛氬垵鏌ユ€€鐤?`svg_converter._download_image` 瑁?`httpx.get(image_url)` 鏃犲唴缃戣繃婊ゃ€傛牳鏌ュ彂鐜帮細(1) `svg_converter.py` 鍦ㄥ綋鍓嶄粨搴?*涓嶅瓨鍦?*锛堝鏌ユ椂寮曠敤浜嗗够瑙?鏃ц矾寰勶級锛?2) 鐪熷疄鍏ュ彛 `dlc_api/routes.py:_validate_image_url`锛坙ine 102锛夊凡瀹炵幇涓夊眰闃叉姢鈥斺€斺憼 瀛楅潰绉佹湁/loopback/link-local IP 鎷︽埅锛坄_is_private_ip`锛夛紝鈶?`ALLOWED_IMAGE_HOSTS = {api.telegram.org}` 鐧藉悕鍗曪紝鈶?`_resolve_hostname` DNS rebinding 闃叉姢锛堣В鏋愬埌绉佹湁 IP 鍗虫嫆锛夛紱(3) 鍦?`/dlc/tasks/preview` 涓?`/dlc/tasks/dispatch` 涓ゅ叆鍙ｇ殑 `draw_from_image` 鍒嗘敮閮借皟鐢ㄨ鏍￠獙锛?4) `tests/test_sec04_ssrf_hardening.py` 5 passed锛圖NS rebinding銆佺櫧鍚嶅崟銆佸瓧闈㈢鏈?IP銆乴ocalhost 鍏ㄨ鐩栵級銆?*缁撹锛歋SRF 闃叉姢宸插畬鏁翠笖姝ｇ‘锛屾棤闇€淇敼銆?*
+- **P1 /docs 鏆撮湶 鈥?鐪熷疄锛屽凡淇?*锛歚server_dlc.py:25` 涓?`dlc_api/app.py:9` 鐨?`FastAPI(title=...)` 鏈 `docs_url/redoc_url/openapi_url=None`锛屽叕缃戝叆鍙ｆ毚闇蹭氦浜掓枃妗ｏ紝鍙鏋氫妇 API surface銆俙tests/test_server_docs_disabled.py` 鏃╂湡鍒犻櫎鍚庢棤鍥炲綊淇濇姢銆?*淇**锛氫袱澶?`FastAPI(...)` 鏄惧紡 `docs_url=None, redoc_url=None, openapi_url=None`锛涙柊澧?`tests/test_p1_security_hardening.py` 鏂█涓や釜 app 鐨勪笁涓?URL 鍧囦负 None銆?
+- **P1 MCP 寮傚父娉勯湶鍐呯綉 鈥?鐪熷疄锛屽凡淇?*锛歚dlc_mcp/server.py` 鐨?`_submit`(line 94)/`_get_json`(line 109) 鎶?httpx 寮傚父鍘熸牱鎷艰繘杩斿洖 `error` 瀛楁锛屽惈 `127.0.0.1:8081`锛屽澶栨毚闇插唴缃戞嫇鎵戙€侻CP endpoint 缁忓皬鏅轰簯鍙揪澶栭儴銆?*淇**锛? 澶?`f"...{exc}"` 鏀逛负閫氱敤鏂囨锛?dlc_api unreachable" / "invalid response from dlc_api"锛夛紝璇︾粏 `exc` 浠?`logger.warning` 涓嶈繑鍥烇紱鏂板 2 涓祴璇?mock `httpx.ConnectError` 鏂█杩斿洖鏂囨涓嶅惈 `127.0.0.1`/`8081`銆?
+- **P2 MCP 瀛愯繘绋?5s 缁堟绐楀彛 鈥?璇姤**锛氬垵鏌ュ紩鐢?`mcp_pipe._run_session` finally 鐨?`terminate鈫抴ait(5s)鈫択ill`銆傛牳鏌ュ彂鐜?`mcp_pipe.py` 褰撳墠浠撳簱**涓嶅瓨鍦ㄨ鍑芥暟**锛堝鏌ュ紩鐢ㄤ簡宸插垹/骞昏璺緞锛夈€侻CP 瀛愯繘绋嬬敱 systemd 绠＄悊锛屾棤纭紪鐮佺粓姝㈢獥鍙ｃ€傛棤闇€淇敼銆?
+- **鏍告煡閫氳繃鐨勬棦瀛橀」**锛歋QL 娉ㄥ叆锛堝叏鍙傛暟鍖?ORM锛夈€両DOR锛坅ccount_id 浣滅敤鍩燂級銆侀潤榛橀檷绾э紙鐢熶骇璺緞鏃?`except: pass`锛夈€乻ecret 鏃ュ織锛堟棤鏄庢枃 token 钀芥棩蹇楋級銆?
+- **鏁欒**锛氬鏌ユ椂寮曠敤鐨勬枃浠跺悕/琛屽彿蹇呴』鍏?`Read` 纭瀛樺湪锛屼笉鑳藉嚟璁板繂/鏃у揩鐓т笅缁撹锛涙湰娆?P0/P2 涓や釜璇姤閮芥簮浜庡紩鐢ㄤ簡涓嶅瓨鍦ㄧ殑绗﹀彿銆備慨姝ｆ祦绋嬶細鍏?`grep` 瀹氫綅鐪熷疄绗﹀彿 鈫?`Read` 鍏ㄦ枃 鈫?璺戞棦鏈夋祴璇?鈫?鍐嶄笅缁撹銆俓r
 \r
-### 补充纠正（2026-07-07 部署后公网验证）\r
+### 琛ュ厖绾犳锛?026-07-07 閮ㄧ讲鍚庡叕缃戦獙璇侊級\r
 \r
-- **现象**：部署修复后，`https://chat.donglicao.com/docs` 仍返回 200。\r
-- **核查**：(1) 上游 `curl 127.0.0.1:8081/docs` → 404（FastAPI docs 已正确关闭）；(2) nginx `location /` 是 `try_files $uri $uri/ /index.html`（SPA catch-all），任何未知路径都 fallback 到前端 `index.html` 返回 200。\r
-- **结论**：公网 `/docs` 的 200 **不是** FastAPI 交互文档暴露（响应体是前端 SPA HTML，不是 Swagger UI），是 SPA 路由的正常行为。FastAPI 层的 docs 关闭仍然有价值——防御纵深，即使 nginx 配置变更或直连上游也无法访问交互文档。本次修复有效，但"公网暴露 API surface"的风险评级从 P1 下调为"非漏洞 + 防御纵深保留"。\r
-- **无需额外动作**：SPA fallback 行为是前端路由设计，不应改。\r
+- **鐜拌薄**锛氶儴缃蹭慨澶嶅悗锛宍https://chat.donglicao.com/docs` 浠嶈繑鍥?200銆俓r
+- **鏍告煡**锛?1) 涓婃父 `curl 127.0.0.1:8081/docs` 鈫?404锛團astAPI docs 宸叉纭叧闂級锛?2) nginx `location /` 鏄?`try_files $uri $uri/ /index.html`锛圫PA catch-all锛夛紝浠讳綍鏈煡璺緞閮?fallback 鍒板墠绔?`index.html` 杩斿洖 200銆俓r
+- **缁撹**锛氬叕缃?`/docs` 鐨?200 **涓嶆槸** FastAPI 浜や簰鏂囨。鏆撮湶锛堝搷搴斾綋鏄墠绔?SPA HTML锛屼笉鏄?Swagger UI锛夛紝鏄?SPA 璺敱鐨勬甯歌涓恒€侳astAPI 灞傜殑 docs 鍏抽棴浠嶇劧鏈変环鍊尖€斺€旈槻寰＄旱娣憋紝鍗充娇 nginx 閰嶇疆鍙樻洿鎴栫洿杩炰笂娓镐篃鏃犳硶璁块棶浜や簰鏂囨。銆傛湰娆′慨澶嶆湁鏁堬紝浣?鍏綉鏆撮湶 API surface"鐨勯闄╄瘎绾т粠 P1 涓嬭皟涓?闈炴紡娲?+ 闃插尽绾垫繁淇濈暀"銆俓r
+- **鏃犻渶棰濆鍔ㄤ綔**锛歋PA fallback 琛屼负鏄墠绔矾鐢辫璁★紝涓嶅簲鏀广€俓r
 \r
-## 2026-07-07 项目级代码审查（参考 GitHub 同类项目）：4 视角并行 + 修复 Top5\r
+## 2026-07-07 椤圭洰绾т唬鐮佸鏌ワ紙鍙傝€?GitHub 鍚岀被椤圭洰锛夛細4 瑙嗚骞惰 + 淇 Top5\r
 \r
-- **方法**：4 个 explore subagent 并行从「安全/并发可靠性/边界健壮性/可维护性」4 视角审查核心生产代码（dlc_api/dlc_core/dlc_mcp/device_gateway/routes），参考 OWASP、FastAPI 官方安全建议、asyncio 陷阱、Redis 队列最佳实践。收敛去重后逐条 `Read`/`grep` 核查真实性（吸取上次 SSRF 误报教训），修复 Top5。\r
-- **P0 #1 DashScope 同步阻塞事件循环（3 视角独立发现）— 真实，已修**：`device_draw_handler.py:85` 与 `routes/images_backends.py:272` 在 `async def` 内裸调 `client.generate()`（`ImageSynthesis.call` 同步 HTTP，5-30s），会卡死整个 asyncio 事件循环，期间所有设备 WS 心跳/健康检查/其他请求全停摆。DashScope 一次慢响应 = 全站假死。`asyncio.wait_for` 对同步阻塞无效（无法中断）。**修复**：两处改 `await asyncio.to_thread(client.generate, ...)`，同步调用丢线程池，事件循环不再被占。\r
-- **P1 #3 Redis 客户端无 socket_timeout — 真实，已修**：`redis_store_helpers.py:33` `Redis.from_url(redis_url, decode_responses=True)` 未设超时（redis-py 默认 `socket_timeout=None` 无限阻塞）。Redis 慢响应/断连/主从切换时同步调用挂住几十秒，叠加 P0 #1 时全站卡死无 fail-fast。**修复**：加 `socket_timeout=2.0, socket_connect_timeout=2.0, health_check_interval=30, retry_on_timeout=True`。\r
-- **P1 #5 MCP 畸形 JSON 崩主循环 — 真实，已修**：`dlc_mcp/server.py:247` `handle_request` 在 `try` 外，合法 JSON 但非对象（`["list"]`/`"str"`）时 `req.get` 抛 `AttributeError` → 整个 stdio 主循环退出 → mcp_pipe 频繁重连，MCP 工具持续不可用。**修复**：`handle_request` 入口加 `isinstance(req, dict)` 校验返回 -32600；`main()` 把 `handle_request` 纳入 try，异常返回 -32603 不退出主循环。\r
-- **P2 #4 routes.py 重复定义（3 视角发现）— 真实，已修**：`_quota_for`（`:45`/`:141`）与 `_claim_idempotency_key`（`:50`/`:148`）各定义两次，后者覆盖前者；常量 `_TASK_QUOTA_PER_MIN=30`/`_IMAGE_TASK_QUOTA_PER_MIN=6`/`_IDEMPOTENCY_TTL=600` 因此全部失效（实际生效的是 `DEVICE.dlc_*_per_min` 配置）。合并冲突未解干净的典型残留。**修复**：删除第一组（常量+两个函数），保留实际生效的配置版。\r
-- **核查确认的真实但未修（P2，记入待办，避免本次范围蔓延）**：\r
-  - async 端点全表 `hgetall` + 同步 SQLite/Redis 未下线程池（`redis_store.py:80,102`、`device_app_tasks.py:180`、`dispatch.py:26`）——需加 per-device 索引 + to_thread，改动面大，独立任务。\r
-  - CAS 重试耗尽静默丢弃（`redis_store_helpers.py:189`）+ recover 的 lrem/lpush 非原子——可能导致绘图机重复执行或任务丢失，需 Lua 脚本原子化。\r
-  - 幂等键先占位后执行，dispatch 失败后同 key 重试被判 duplicate——违反幂等语义，需失败回滚 key。\r
-  - 应用层无 body size 上限（`server_dlc.py` 未挂中间件）——依赖 nginx 兜底，建议恢复最小 ASGI body limit。\r
-  - `path_validator` 无类型校验/点数上限，非数值坐标触发 500。\r
-- **误报排除（参考上次教训，每条先核查再下结论）**：SQL 注入全参数化、IDOR 按 owner/account 收紧、SSRF 三层防护完整、Redis 用 JSON 非 pickle（无反序列化 RCE）、`record_simplification` 路径拼接（device_id 经正则校验禁 `/`，不可利用）、`auth.py` 空 token 兜底（已显式标注 CRITICAL 默认关闭）。\r
-- **测试**：新增 `tests/test_hidden_issues_review.py`（6 用例，静态+行为双校验），全量 1373 passed（含新测试 + 既有回归），ruff/CI gate/check_code_size 全过。
+- **鏂规硶**锛? 涓?explore subagent 骞惰浠庛€屽畨鍏?骞跺彂鍙潬鎬?杈圭晫鍋ュ．鎬?鍙淮鎶ゆ€с€? 瑙嗚瀹℃煡鏍稿績鐢熶骇浠ｇ爜锛坉lc_api/dlc_core/dlc_mcp/device_gateway/routes锛夛紝鍙傝€?OWASP銆丗astAPI 瀹樻柟瀹夊叏寤鸿銆乤syncio 闄烽槺銆丷edis 闃熷垪鏈€浣冲疄璺点€傛敹鏁涘幓閲嶅悗閫愭潯 `Read`/`grep` 鏍告煡鐪熷疄鎬э紙鍚稿彇涓婃 SSRF 璇姤鏁欒锛夛紝淇 Top5銆俓r
+- **P0 #1 DashScope 鍚屾闃诲浜嬩欢寰幆锛? 瑙嗚鐙珛鍙戠幇锛夆€?鐪熷疄锛屽凡淇?*锛歚device_draw_handler.py:85` 涓?`routes/images_backends.py:272` 鍦?`async def` 鍐呰８璋?`client.generate()`锛坄ImageSynthesis.call` 鍚屾 HTTP锛?-30s锛夛紝浼氬崱姝绘暣涓?asyncio 浜嬩欢寰幆锛屾湡闂存墍鏈夎澶?WS 蹇冭烦/鍋ュ悍妫€鏌?鍏朵粬璇锋眰鍏ㄥ仠鎽嗐€侱ashScope 涓€娆℃參鍝嶅簲 = 鍏ㄧ珯鍋囨銆俙asyncio.wait_for` 瀵瑰悓姝ラ樆濉炴棤鏁堬紙鏃犳硶涓柇锛夈€?*淇**锛氫袱澶勬敼 `await asyncio.to_thread(client.generate, ...)`锛屽悓姝ヨ皟鐢ㄤ涪绾跨▼姹狅紝浜嬩欢寰幆涓嶅啀琚崰銆俓r
+- **P1 #3 Redis 瀹㈡埛绔棤 socket_timeout 鈥?鐪熷疄锛屽凡淇?*锛歚redis_store_helpers.py:33` `Redis.from_url(redis_url, decode_responses=True)` 鏈瓒呮椂锛坮edis-py 榛樿 `socket_timeout=None` 鏃犻檺闃诲锛夈€俁edis 鎱㈠搷搴?鏂繛/涓讳粠鍒囨崲鏃跺悓姝ヨ皟鐢ㄦ寕浣忓嚑鍗佺锛屽彔鍔?P0 #1 鏃跺叏绔欏崱姝绘棤 fail-fast銆?*淇**锛氬姞 `socket_timeout=2.0, socket_connect_timeout=2.0, health_check_interval=30, retry_on_timeout=True`銆俓r
+- **P1 #5 MCP 鐣稿舰 JSON 宕╀富寰幆 鈥?鐪熷疄锛屽凡淇?*锛歚dlc_mcp/server.py:247` `handle_request` 鍦?`try` 澶栵紝鍚堟硶 JSON 浣嗛潪瀵硅薄锛坄["list"]`/`"str"`锛夋椂 `req.get` 鎶?`AttributeError` 鈫?鏁翠釜 stdio 涓诲惊鐜€€鍑?鈫?mcp_pipe 棰戠箒閲嶈繛锛孧CP 宸ュ叿鎸佺画涓嶅彲鐢ㄣ€?*淇**锛歚handle_request` 鍏ュ彛鍔?`isinstance(req, dict)` 鏍￠獙杩斿洖 -32600锛沗main()` 鎶?`handle_request` 绾冲叆 try锛屽紓甯歌繑鍥?-32603 涓嶉€€鍑轰富寰幆銆俓r
+- **P2 #4 routes.py 閲嶅瀹氫箟锛? 瑙嗚鍙戠幇锛夆€?鐪熷疄锛屽凡淇?*锛歚_quota_for`锛坄:45`/`:141`锛変笌 `_claim_idempotency_key`锛坄:50`/`:148`锛夊悇瀹氫箟涓ゆ锛屽悗鑰呰鐩栧墠鑰咃紱甯搁噺 `_TASK_QUOTA_PER_MIN=30`/`_IMAGE_TASK_QUOTA_PER_MIN=6`/`_IDEMPOTENCY_TTL=600` 鍥犳鍏ㄩ儴澶辨晥锛堝疄闄呯敓鏁堢殑鏄?`DEVICE.dlc_*_per_min` 閰嶇疆锛夈€傚悎骞跺啿绐佹湭瑙ｅ共鍑€鐨勫吀鍨嬫畫鐣欍€?*淇**锛氬垹闄ょ涓€缁勶紙甯搁噺+涓や釜鍑芥暟锛夛紝淇濈暀瀹為檯鐢熸晥鐨勯厤缃増銆俓r
+- **鏍告煡纭鐨勭湡瀹炰絾鏈慨锛圥2锛岃鍏ュ緟鍔烇紝閬垮厤鏈鑼冨洿钄撳欢锛?*锛歕r
+  - async 绔偣鍏ㄨ〃 `hgetall` + 鍚屾 SQLite/Redis 鏈笅绾跨▼姹狅紙`redis_store.py:80,102`銆乣device_app_tasks.py:180`銆乣dispatch.py:26`锛夆€斺€旈渶鍔?per-device 绱㈠紩 + to_thread锛屾敼鍔ㄩ潰澶э紝鐙珛浠诲姟銆俓r
+  - CAS 閲嶈瘯鑰楀敖闈欓粯涓㈠純锛坄redis_store_helpers.py:189`锛? recover 鐨?lrem/lpush 闈炲師瀛愨€斺€斿彲鑳藉鑷寸粯鍥炬満閲嶅鎵ц鎴栦换鍔′涪澶憋紝闇€ Lua 鑴氭湰鍘熷瓙鍖栥€俓r
+  - 骞傜瓑閿厛鍗犱綅鍚庢墽琛岋紝dispatch 澶辫触鍚庡悓 key 閲嶈瘯琚垽 duplicate鈥斺€旇繚鍙嶅箓绛夎涔夛紝闇€澶辫触鍥炴粴 key銆俓r
+  - 搴旂敤灞傛棤 body size 涓婇檺锛坄server_dlc.py` 鏈寕涓棿浠讹級鈥斺€斾緷璧?nginx 鍏滃簳锛屽缓璁仮澶嶆渶灏?ASGI body limit銆俓r
+  - `path_validator` 鏃犵被鍨嬫牎楠?鐐规暟涓婇檺锛岄潪鏁板€煎潗鏍囪Е鍙?500銆俓r
+- **璇姤鎺掗櫎锛堝弬鑰冧笂娆℃暀璁紝姣忔潯鍏堟牳鏌ュ啀涓嬬粨璁猴級**锛歋QL 娉ㄥ叆鍏ㄥ弬鏁板寲銆両DOR 鎸?owner/account 鏀剁揣銆丼SRF 涓夊眰闃叉姢瀹屾暣銆丷edis 鐢?JSON 闈?pickle锛堟棤鍙嶅簭鍒楀寲 RCE锛夈€乣record_simplification` 璺緞鎷兼帴锛坉evice_id 缁忔鍒欐牎楠岀 `/`锛屼笉鍙埄鐢級銆乣auth.py` 绌?token 鍏滃簳锛堝凡鏄惧紡鏍囨敞 CRITICAL 榛樿鍏抽棴锛夈€俓r
+- **娴嬭瘯**锛氭柊澧?`tests/test_hidden_issues_review.py`锛? 鐢ㄤ緥锛岄潤鎬?琛屼负鍙屾牎楠岋級锛屽叏閲?1373 passed锛堝惈鏂版祴璇?+ 鏃㈡湁鍥炲綊锛夛紝ruff/CI gate/check_code_size 鍏ㄨ繃銆?
 
-## 2026-07-06 P2 技术债处理（幂等键回滚 + recover 原子化 + CAS 核查降级）
+## 2026-07-06 P2 鎶€鏈€哄鐞嗭紙骞傜瓑閿洖婊?+ recover 鍘熷瓙鍖?+ CAS 鏍告煡闄嶇骇锛?
 
-- **背景**：项目级审查记录的 3 项 P2 技术债，逐条建立证据链后处理。参考同类 FastAPI + Redis 队列项目的幂等/原子化惯例，复用仓库已有 `device_gateway/redis_cas.py` 的 Lua `register_script` 模式。
-- **P2-a 幂等键先占位后执行 — 已修**：`dlc_api/routes.py::dispatch_task_endpoint` 在 `_build_dispatch_payload` / `dispatch_task` 之前就 `SET NX EX` 占用幂等键，一旦 payload 构建或下发失败（设备离线、路径生成异常、dispatch rejected），key 已被消费，客户端用同一 `Idempotency-Key` 重试会被判 `duplicate`，命令永久丢失。**修复**：新增 `release_idempotency_key`（Redis DEL，best-effort，失败靠 TTL 兜底），在三条失败路径（result 非 success / motion_task None / dispatch status 不在 `{sent,queued}`）释放 key；成功路径保留 key 维持去重语义。新增 `tests/test_p2_idempotency_rollback.py`（失败释放可重试 + 成功保留判重双向覆盖）。
-- **P2-c recover 的 LREM+LPUSH 非原子 — 已修**：`device_gateway/redis_store_recover.py::recover_stale_processing` 原先先 `lrem(proc)` 再 `lpush(pending)`，两步之间崩溃会导致任务既不在 processing 也不在 pending，永久丢失（at-most-once）。**修复**：在 `redis_cas.py` 新增 `requeue_item_atomic`（Lua 单次 LREM+LPUSH+EXPIRE 原子化，仅当 LREM 命中才 LPUSH，避免与并发 pop 竞争误删兄弟副本后重复入队；带 fallback 供无 `register_script` 的测试 fake）。新增 `tests/test_p2_recover_atomic.py`（命中迁移 + 未命中不 LPUSH + recover 回归）。
-- **P2-b CAS 重试耗尽静默丢弃 — 核查降级，不改**：审查怀疑 `_cas_update` 耗尽 3 次重试返回 None 时，`ack_processing` 未清 `processing_started_at` 会被 recover 误判 stale 重新入队 → 绘图机重复执行。**核查发现**：`ack_processing` 经 `_remove_processing_task` 先 `lrem` 把 item 从 processing **队列 list** 移除，之后才 `_cas_update` 改 state hash；而 `recover_stale_processing` 遍历的是 processing **队列 list**（`lrange`），item 已不在其中，recover 扫不到 → **不会重复入队，无物理重复执行风险**。CAS 失败的真实影响仅是 state hash 元数据字段（`processing_started_at`/status/retry_count）不同步，且耗尽时已有 `_log.warning`（符合禁止静默降级）。全面改 8 个调用方返回值语义波及大、收益低。**结论：队列正确性不依赖 CAS 返回值，属可观测性问题非安全问题，不改。**
-- **P2-d 全表 hgetall — 记入待办不做**：`redis_store.py` 的 `active_tasks_for_device`/`list_tasks_for_device` 全表 `hgetall` + Python 过滤，O(N) 扫描。属纯性能优化，需在所有写入点维护 per-device 反向索引 + 现有数据迁移，改动面最大、回归风险高；当前设备量下 O(N) 可接受，规模到了再做。
-- **文件行数约束**：`dlc_api/routes.py` 加 `release_idempotency_key` 后达 322 行超 300 硬限，把幂等键逻辑（client 单例 + claim/release）抽到新模块 `dlc_api/idempotency.py`，routes.py 降到 254 行；routes.py 用 `import as _claim_idempotency_key/_release_idempotency_key` 别名保持既有测试 patch 目标稳定。
-- **测试**：全量 816 passed（含新增 2 个 P2 测试文件 + 既有回归），ruff/check_code_size 全过。
-- **教训**：延续「审查高估 → 核查降级」模式——P2-b 与之前的 SSRF/子进程误报同理，审查提出的"物理重复执行"风险经证据链核查（队列 list vs state hash 的职责分离）证伪。真实修复只落在证据充分的 P2-a/P2-c。
+- **鑳屾櫙**锛氶」鐩骇瀹℃煡璁板綍鐨?3 椤?P2 鎶€鏈€猴紝閫愭潯寤虹珛璇佹嵁閾惧悗澶勭悊銆傚弬鑰冨悓绫?FastAPI + Redis 闃熷垪椤圭洰鐨勫箓绛?鍘熷瓙鍖栨儻渚嬶紝澶嶇敤浠撳簱宸叉湁 `device_gateway/redis_cas.py` 鐨?Lua `register_script` 妯″紡銆?
+- **P2-a 骞傜瓑閿厛鍗犱綅鍚庢墽琛?鈥?宸蹭慨**锛歚dlc_api/routes.py::dispatch_task_endpoint` 鍦?`_build_dispatch_payload` / `dispatch_task` 涔嬪墠灏?`SET NX EX` 鍗犵敤骞傜瓑閿紝涓€鏃?payload 鏋勫缓鎴栦笅鍙戝け璐ワ紙璁惧绂荤嚎銆佽矾寰勭敓鎴愬紓甯搞€乨ispatch rejected锛夛紝key 宸茶娑堣垂锛屽鎴风鐢ㄥ悓涓€ `Idempotency-Key` 閲嶈瘯浼氳鍒?`duplicate`锛屽懡浠ゆ案涔呬涪澶便€?*淇**锛氭柊澧?`release_idempotency_key`锛圧edis DEL锛宐est-effort锛屽け璐ラ潬 TTL 鍏滃簳锛夛紝鍦ㄤ笁鏉″け璐ヨ矾寰勶紙result 闈?success / motion_task None / dispatch status 涓嶅湪 `{sent,queued}`锛夐噴鏀?key锛涙垚鍔熻矾寰勪繚鐣?key 缁存寔鍘婚噸璇箟銆傛柊澧?`tests/test_p2_idempotency_rollback.py`锛堝け璐ラ噴鏀惧彲閲嶈瘯 + 鎴愬姛淇濈暀鍒ら噸鍙屽悜瑕嗙洊锛夈€?
+- **P2-c recover 鐨?LREM+LPUSH 闈炲師瀛?鈥?宸蹭慨**锛歚device_gateway/redis_store_recover.py::recover_stale_processing` 鍘熷厛鍏?`lrem(proc)` 鍐?`lpush(pending)`锛屼袱姝ヤ箣闂村穿婧冧細瀵艰嚧浠诲姟鏃笉鍦?processing 涔熶笉鍦?pending锛屾案涔呬涪澶憋紙at-most-once锛夈€?*淇**锛氬湪 `redis_cas.py` 鏂板 `requeue_item_atomic`锛圠ua 鍗曟 LREM+LPUSH+EXPIRE 鍘熷瓙鍖栵紝浠呭綋 LREM 鍛戒腑鎵?LPUSH锛岄伩鍏嶄笌骞跺彂 pop 绔炰簤璇垹鍏勫紵鍓湰鍚庨噸澶嶅叆闃燂紱甯?fallback 渚涙棤 `register_script` 鐨勬祴璇?fake锛夈€傛柊澧?`tests/test_p2_recover_atomic.py`锛堝懡涓縼绉?+ 鏈懡涓笉 LPUSH + recover 鍥炲綊锛夈€?
+- **P2-b CAS 閲嶈瘯鑰楀敖闈欓粯涓㈠純 鈥?鏍告煡闄嶇骇锛屼笉鏀?*锛氬鏌ユ€€鐤?`_cas_update` 鑰楀敖 3 娆￠噸璇曡繑鍥?None 鏃讹紝`ack_processing` 鏈竻 `processing_started_at` 浼氳 recover 璇垽 stale 閲嶆柊鍏ラ槦 鈫?缁樺浘鏈洪噸澶嶆墽琛屻€?*鏍告煡鍙戠幇**锛歚ack_processing` 缁?`_remove_processing_task` 鍏?`lrem` 鎶?item 浠?processing **闃熷垪 list** 绉婚櫎锛屼箣鍚庢墠 `_cas_update` 鏀?state hash锛涜€?`recover_stale_processing` 閬嶅巻鐨勬槸 processing **闃熷垪 list**锛坄lrange`锛夛紝item 宸蹭笉鍦ㄥ叾涓紝recover 鎵笉鍒?鈫?**涓嶄細閲嶅鍏ラ槦锛屾棤鐗╃悊閲嶅鎵ц椋庨櫓**銆侰AS 澶辫触鐨勭湡瀹炲奖鍝嶄粎鏄?state hash 鍏冩暟鎹瓧娈碉紙`processing_started_at`/status/retry_count锛変笉鍚屾锛屼笖鑰楀敖鏃跺凡鏈?`_log.warning`锛堢鍚堢姝㈤潤榛橀檷绾э級銆傚叏闈㈡敼 8 涓皟鐢ㄦ柟杩斿洖鍊艰涔夋尝鍙婂ぇ銆佹敹鐩婁綆銆?*缁撹锛氶槦鍒楁纭€т笉渚濊禆 CAS 杩斿洖鍊硷紝灞炲彲瑙傛祴鎬ч棶棰橀潪瀹夊叏闂锛屼笉鏀广€?*
+- **P2-d 鍏ㄨ〃 hgetall 鈥?璁板叆寰呭姙涓嶅仛**锛歚redis_store.py` 鐨?`active_tasks_for_device`/`list_tasks_for_device` 鍏ㄨ〃 `hgetall` + Python 杩囨护锛孫(N) 鎵弿銆傚睘绾€ц兘浼樺寲锛岄渶鍦ㄦ墍鏈夊啓鍏ョ偣缁存姢 per-device 鍙嶅悜绱㈠紩 + 鐜版湁鏁版嵁杩佺Щ锛屾敼鍔ㄩ潰鏈€澶с€佸洖褰掗闄╅珮锛涘綋鍓嶈澶囬噺涓?O(N) 鍙帴鍙楋紝瑙勬ā鍒颁簡鍐嶅仛銆?
+- **鏂囦欢琛屾暟绾︽潫**锛歚dlc_api/routes.py` 鍔?`release_idempotency_key` 鍚庤揪 322 琛岃秴 300 纭檺锛屾妸骞傜瓑閿€昏緫锛坈lient 鍗曚緥 + claim/release锛夋娊鍒版柊妯″潡 `dlc_api/idempotency.py`锛宺outes.py 闄嶅埌 254 琛岋紱routes.py 鐢?`import as _claim_idempotency_key/_release_idempotency_key` 鍒悕淇濇寔鏃㈡湁娴嬭瘯 patch 鐩爣绋冲畾銆?
+- **娴嬭瘯**锛氬叏閲?816 passed锛堝惈鏂板 2 涓?P2 娴嬭瘯鏂囦欢 + 鏃㈡湁鍥炲綊锛夛紝ruff/check_code_size 鍏ㄨ繃銆?
+- **鏁欒**锛氬欢缁€屽鏌ラ珮浼?鈫?鏍告煡闄嶇骇銆嶆ā寮忊€斺€擯2-b 涓庝箣鍓嶇殑 SSRF/瀛愯繘绋嬭鎶ュ悓鐞嗭紝瀹℃煡鎻愬嚭鐨?鐗╃悊閲嶅鎵ц"椋庨櫓缁忚瘉鎹摼鏍告煡锛堥槦鍒?list vs state hash 鐨勮亴璐ｅ垎绂伙級璇佷吉銆傜湡瀹炰慨澶嶅彧钀藉湪璇佹嵁鍏呭垎鐨?P2-a/P2-c銆?
 
-## 2026-07-06 P2-d 全表 hgetall 优化：实测生产数据后否决
+## 2026-07-06 P2-d 鍏ㄨ〃 hgetall 浼樺寲锛氬疄娴嬬敓浜ф暟鎹悗鍚﹀喅
 
-- **背景**：4视角审查提出 `active_tasks_for_device`/`list_tasks_for_device` 用 `hgetall(lima:device:tasks)` 全表扫描 + 逐条 decode，担心"任务随历史累积 → O(N) 拖垮事件循环 / Redis OOM"，建议改 per-device 反向索引。记入 P2 待办。
-- **决策方法**：不凭猜测做优化，先采集 VPS 生产 Redis 真实规模（阿里云 `47.112.162.80`，`LIMA_DEVICE_REDIS_URL` 生产确用 Redis backend，非 memory）。
-- **实测数据（2026-07-06）**：
-  - 阿里云 `HLEN lima:device:tasks` = **19 字段**，hash 内存 **24280 bytes（约 24KB）**。
-  - 京东云 tasks hash = 1 字段。
-  - 无 processing/pending 队列堆积；整库 `dbsize` = 2 个 key。
-- **结论：否决 P2-d，不做**。19 字段的 hgetall + decode 是微秒级，per-device 索引在此规模是典型过早优化，违背 Ponytail 第一原则（不做投机性优化 / YAGNI）。审查的"O(N) 拖垮"前提在真实生产不成立。
-- **重新评估触发条件**：仅当 `HLEN lima:device:tasks` 增长到数千字段量级（可作为运维监控指标）时，才作为独立性能任务重启。届时优先考虑：终态任务字段的后台 reaper（`hscan`+`hdel`）或活跃任务有序集合索引，而非一次性大重构。
-- **附带修正**：redis_task_ttl 默认 30 天 + 每次写刷新整键 TTL 的"永不过期"隐患（审查 P1-1 提及）在当前 19 字段规模无实际影响，同样待规模增长后再评估。
+- **鑳屾櫙**锛?瑙嗚瀹℃煡鎻愬嚭 `active_tasks_for_device`/`list_tasks_for_device` 鐢?`hgetall(lima:device:tasks)` 鍏ㄨ〃鎵弿 + 閫愭潯 decode锛屾媴蹇?浠诲姟闅忓巻鍙茬疮绉?鈫?O(N) 鎷栧灝浜嬩欢寰幆 / Redis OOM"锛屽缓璁敼 per-device 鍙嶅悜绱㈠紩銆傝鍏?P2 寰呭姙銆?
+- **鍐崇瓥鏂规硶**锛氫笉鍑寽娴嬪仛浼樺寲锛屽厛閲囬泦 VPS 鐢熶骇 Redis 鐪熷疄瑙勬ā锛堥樋閲屼簯 `47.112.162.80`锛宍LIMA_DEVICE_REDIS_URL` 鐢熶骇纭敤 Redis backend锛岄潪 memory锛夈€?
+- **瀹炴祴鏁版嵁锛?026-07-06锛?*锛?
+  - 闃块噷浜?`HLEN lima:device:tasks` = **19 瀛楁**锛宧ash 鍐呭瓨 **24280 bytes锛堢害 24KB锛?*銆?
+  - 浜笢浜?tasks hash = 1 瀛楁銆?
+  - 鏃?processing/pending 闃熷垪鍫嗙Н锛涙暣搴?`dbsize` = 2 涓?key銆?
+- **缁撹锛氬惁鍐?P2-d锛屼笉鍋?*銆?9 瀛楁鐨?hgetall + decode 鏄井绉掔骇锛宲er-device 绱㈠紩鍦ㄦ瑙勬ā鏄吀鍨嬭繃鏃╀紭鍖栵紝杩濊儗 Ponytail 绗竴鍘熷垯锛堜笉鍋氭姇鏈烘€т紭鍖?/ YAGNI锛夈€傚鏌ョ殑"O(N) 鎷栧灝"鍓嶆彁鍦ㄧ湡瀹炵敓浜т笉鎴愮珛銆?
+- **閲嶆柊璇勪及瑙﹀彂鏉′欢**锛氫粎褰?`HLEN lima:device:tasks` 澧為暱鍒版暟鍗冨瓧娈甸噺绾э紙鍙綔涓鸿繍缁寸洃鎺ф寚鏍囷級鏃讹紝鎵嶄綔涓虹嫭绔嬫€ц兘浠诲姟閲嶅惎銆傚眾鏃朵紭鍏堣€冭檻锛氱粓鎬佷换鍔″瓧娈电殑鍚庡彴 reaper锛坄hscan`+`hdel`锛夋垨娲昏穬浠诲姟鏈夊簭闆嗗悎绱㈠紩锛岃€岄潪涓€娆℃€уぇ閲嶆瀯銆?
+- **闄勫甫淇**锛歳edis_task_ttl 榛樿 30 澶?+ 姣忔鍐欏埛鏂版暣閿?TTL 鐨?姘镐笉杩囨湡"闅愭偅锛堝鏌?P1-1 鎻愬強锛夊湪褰撳墠 19 瀛楁瑙勬ā鏃犲疄闄呭奖鍝嶏紝鍚屾牱寰呰妯″闀垮悗鍐嶈瘎浼般€?
 
-## 2026-07-06 S10 幂等去重：Redis 不可用时的 fail-open vs fail-closed 决策
+## 2026-07-06 S10 骞傜瓑鍘婚噸锛歊edis 涓嶅彲鐢ㄦ椂鐨?fail-open vs fail-closed 鍐崇瓥
 
-- **背景**：Cursor 第三方复审提出，Redis 不可用时当前 fail-open（放行）可能导致 ESP32 物理设备重复画/写，建议改为 fail-closed（拒绝）。该建议属于产品策略，需定夺。
-- **调研方法**：参考开源项目/工程实践对 fail-open vs fail-closed 的决策框架，而非凭直觉。
-  - [Stripe 幂等设计](https://stripe.com/blog/idempotency) 强调对关键操作做幂等保护，但未主张所有操作在存储不可用时都拒绝。
-  - [Spring Boot REST API Idempotency-Key Guide](https://springboot-123.mizucoffee.com/en/blog/spring-boot-rest-api-idempotency-key-guide/) 明确框架："按业务影响分级——支付等关键操作 fail-closed，其他 fail-open"。
-  - [Algoroq / Plexobject 十二大致命反模式](https://www.algoroq.io/blog/idempotency-distributed-systems/) 强调"金融操作永远 fail-closed"，限定在高风险/不可逆场景。
-  - 工业机器人 fail-safe 原则针对人身伤害或设备损毁风险。
-- **应用到本项目**：
-  - 操作对象：ESP32 绘图机/写字机，消费者玩具级设备。
-  - 重复执行后果：浪费纸张/耗材、轻微笔迹重叠——**可逆、低严重**。
-  - 拒绝执行后果：用户语音指令被静默丢弃，设备"不响应"——**直接伤害用户体验**。
-  - 现状已改善：本轮已补 L1 进程内二级屏障，Redis 挂时同 worker（单节点几乎全部流量）重复请求会被拦住，风险已从"零去重"收窄到"仅跨节点重复才漏网"。
-- **决策**：**保持 fail-open + L1，不改 fail-closed**。理由与现有 `claim_idempotency_key` docstring 一致："a duplicate is less harmful than a dropped command"。消费者绘图动作的重复成本低于命令丢失的可用性损失，符合 Spring Boot 指南的"按业务影响分级"原则。
-- **可配置开关（未做，可选）**：若未来进入高价值/不可撤销场景（如收费打印、雕刻机等），可通过环境变量 `IDEMPOTENCY_FAIL_CLOSED=1` 切换为 fail-closed；当前默认保持 fail-open，不增加复杂度。
-- **关联修复**：本轮同步修复了 `_get_idempotency_client()` 的永久粘滞问题——首次 Redis 连接失败后加入 30s 冷却窗口，窗口过后自动重连，避免进程终身 fail-open（详见同日提交）。
+- **鑳屾櫙**锛欳ursor 绗笁鏂瑰瀹℃彁鍑猴紝Redis 涓嶅彲鐢ㄦ椂褰撳墠 fail-open锛堟斁琛岋級鍙兘瀵艰嚧 ESP32 鐗╃悊璁惧閲嶅鐢?鍐欙紝寤鸿鏀逛负 fail-closed锛堟嫆缁濓級銆傝寤鸿灞炰簬浜у搧绛栫暐锛岄渶瀹氬ず銆?
+- **璋冪爺鏂规硶**锛氬弬鑰冨紑婧愰」鐩?宸ョ▼瀹炶返瀵?fail-open vs fail-closed 鐨勫喅绛栨鏋讹紝鑰岄潪鍑洿瑙夈€?
+  - [Stripe 骞傜瓑璁捐](https://stripe.com/blog/idempotency) 寮鸿皟瀵瑰叧閿搷浣滃仛骞傜瓑淇濇姢锛屼絾鏈富寮犳墍鏈夋搷浣滃湪瀛樺偍涓嶅彲鐢ㄦ椂閮芥嫆缁濄€?
+  - [Spring Boot REST API Idempotency-Key Guide](https://springboot-123.mizucoffee.com/en/blog/spring-boot-rest-api-idempotency-key-guide/) 鏄庣‘妗嗘灦锛?鎸変笟鍔″奖鍝嶅垎绾р€斺€旀敮浠樼瓑鍏抽敭鎿嶄綔 fail-closed锛屽叾浠?fail-open"銆?
+  - [Algoroq / Plexobject 鍗佷簩澶ц嚧鍛藉弽妯″紡](https://www.algoroq.io/blog/idempotency-distributed-systems/) 寮鸿皟"閲戣瀺鎿嶄綔姘歌繙 fail-closed"锛岄檺瀹氬湪楂橀闄?涓嶅彲閫嗗満鏅€?
+  - 宸ヤ笟鏈哄櫒浜?fail-safe 鍘熷垯閽堝浜鸿韩浼ゅ鎴栬澶囨崯姣侀闄┿€?
+- **搴旂敤鍒版湰椤圭洰**锛?
+  - 鎿嶄綔瀵硅薄锛欵SP32 缁樺浘鏈?鍐欏瓧鏈猴紝娑堣垂鑰呯帺鍏风骇璁惧銆?
+  - 閲嶅鎵ц鍚庢灉锛氭氮璐圭焊寮?鑰楁潗銆佽交寰瑪杩归噸鍙犫€斺€?*鍙€嗐€佷綆涓ラ噸**銆?
+  - 鎷掔粷鎵ц鍚庢灉锛氱敤鎴疯闊虫寚浠よ闈欓粯涓㈠純锛岃澶?涓嶅搷搴?鈥斺€?*鐩存帴浼ゅ鐢ㄦ埛浣撻獙**銆?
+  - 鐜扮姸宸叉敼鍠勶細鏈疆宸茶ˉ L1 杩涚▼鍐呬簩绾у睆闅滐紝Redis 鎸傛椂鍚?worker锛堝崟鑺傜偣鍑犱箮鍏ㄩ儴娴侀噺锛夐噸澶嶈姹備細琚嫤浣忥紝椋庨櫓宸蹭粠"闆跺幓閲?鏀剁獎鍒?浠呰法鑺傜偣閲嶅鎵嶆紡缃?銆?
+- **鍐崇瓥**锛?*淇濇寔 fail-open + L1锛屼笉鏀?fail-closed**銆傜悊鐢变笌鐜版湁 `claim_idempotency_key` docstring 涓€鑷达細"a duplicate is less harmful than a dropped command"銆傛秷璐硅€呯粯鍥惧姩浣滅殑閲嶅鎴愭湰浣庝簬鍛戒护涓㈠け鐨勫彲鐢ㄦ€ф崯澶憋紝绗﹀悎 Spring Boot 鎸囧崡鐨?鎸変笟鍔″奖鍝嶅垎绾?鍘熷垯銆?
+- **鍙厤缃紑鍏筹紙鏈仛锛屽彲閫夛級**锛氳嫢鏈潵杩涘叆楂樹环鍊?涓嶅彲鎾ら攢鍦烘櫙锛堝鏀惰垂鎵撳嵃銆侀洉鍒绘満绛夛級锛屽彲閫氳繃鐜鍙橀噺 `IDEMPOTENCY_FAIL_CLOSED=1` 鍒囨崲涓?fail-closed锛涘綋鍓嶉粯璁や繚鎸?fail-open锛屼笉澧炲姞澶嶆潅搴︺€?
+- **鍏宠仈淇**锛氭湰杞悓姝ヤ慨澶嶄簡 `_get_idempotency_client()` 鐨勬案涔呯矘婊為棶棰樷€斺€旈娆?Redis 杩炴帴澶辫触鍚庡姞鍏?30s 鍐峰嵈绐楀彛锛岀獥鍙ｈ繃鍚庤嚜鍔ㄩ噸杩烇紝閬垮厤杩涚▼缁堣韩 fail-open锛堣瑙佸悓鏃ユ彁浜わ級銆?
 
-## 2026-07-06 代码层加固闭环：path_validator 类型守卫 + server_dlc body 上限（findings 待办核查）
+## 2026-07-06 浠ｇ爜灞傚姞鍥洪棴鐜細path_validator 绫诲瀷瀹堝崼 + server_dlc body 涓婇檺锛坒indings 寰呭姙鏍告煡锛?
 
-- **背景**：逐条核查设计文档/STATUS/progress/findings 里记录但未闭环的代码层待办，参考业界惯例做精确改善。
-- **#1 path_validator 非数值坐标 500（findings.md:585 指摘属实）— 已修**：`dlc_core/path_validator.py::validate_path` 的 `path: list[dict[str, Any]]` schema 允许 x/y 为任意类型，传 `{"x":"abc","y":5}` 会在 `x < 0` 比较处抛 `TypeError` → 500。**修复**：加 `_is_number`（int/float 且排除 bool 子类）守卫，非数值坐标返回 error 而非抛异常；非 dict 点也拒绝；新增硬点数上限 `MAX_PATH_POINTS=5000`（超过即 error，200 仍是软 warning 阈值）。新增 `tests/test_path_validator_type_guard.py`（6 用例：非数值 x/y、bool 坐标、非 dict、硬上限、正常路径）。
-- **#2 server_dlc 无 body 上限（findings.md:584 指摘属实）— 已修**：`server_dlc.py` 无任何中间件，请求体大小完全依赖 nginx `client_max_body_size 32M` 兜底；直连 :8081（内网/调试/nginx 配置漂移）则无上限。**修复**：新增 `dlc_api/middleware.py::BodySizeLimitMiddleware`（纯 ASGI，先查 Content-Length header 快速 413，无 header 时累计读取超限也拒绝），`add_body_size_limit(app, max_bytes=32*1024*1024)` 挂到 `server_dlc:app`（与 nginx 阈值对齐）。新增 `tests/test_body_size_limit.py`（3 用例：超限 413、正常放行、生产入口已挂中间件）。
-- **#3 external_enrichment mock（findings.md:466）— 已过时，无需处理**：核查确认 `external_enrichment/` 目录在 P4/P5 瘦身时已物理删除（主仓库 0 git 跟踪文件，仅 `.worktrees` 旧分支副本残留）。原 TODO「真实 API 接入」的模块已不存在，记录作废。
-- **U8 音频协议 bug（STATUS.md:160）— 已过时，2026-07-02 已修**：progress.md:820 标 ✅，方案 A（固件改 PCM 上下行透传，保留 MQTT/Xiaozhi 的 OPUS 路径）已实现。剩余仅「真机端到端验证」需硬件在环；且该自托管 WS 语音链在「对话走小智云」架构下已退役。
-- **测试**：全量 **1396 passed / 3 skipped / 0 failed**（1387 + 6 path_validator + 3 body_size）；ruff check + format + check_code_size 全过。提交 `51ce39cf` push origin main，双节点部署（阿里云 474 uploaded / 京东云 paramiko 核实最新代码 + 重启），公网 `/health` 200。
-- **教训**：延续「审查记录会过时」模式——findings 待办里 2/4 项（external_enrichment、U8）经核查已作废，真实修复只落在证据充分的 path_validator + body limit 两项。落地前先核查目录/代码现状，避免为过时记录制造投机工作（Ponytail 第一原则）。
+- **鑳屾櫙**锛氶€愭潯鏍告煡璁捐鏂囨。/STATUS/progress/findings 閲岃褰曚絾鏈棴鐜殑浠ｇ爜灞傚緟鍔烇紝鍙傝€冧笟鐣屾儻渚嬪仛绮剧‘鏀瑰杽銆?
+- **#1 path_validator 闈炴暟鍊煎潗鏍?500锛坒indings.md:585 鎸囨憳灞炲疄锛夆€?宸蹭慨**锛歚dlc_core/path_validator.py::validate_path` 鐨?`path: list[dict[str, Any]]` schema 鍏佽 x/y 涓轰换鎰忕被鍨嬶紝浼?`{"x":"abc","y":5}` 浼氬湪 `x < 0` 姣旇緝澶勬姏 `TypeError` 鈫?500銆?*淇**锛氬姞 `_is_number`锛坕nt/float 涓旀帓闄?bool 瀛愮被锛夊畧鍗紝闈炴暟鍊煎潗鏍囪繑鍥?error 鑰岄潪鎶涘紓甯革紱闈?dict 鐐逛篃鎷掔粷锛涙柊澧炵‖鐐规暟涓婇檺 `MAX_PATH_POINTS=5000`锛堣秴杩囧嵆 error锛?00 浠嶆槸杞?warning 闃堝€硷級銆傛柊澧?`tests/test_path_validator_type_guard.py`锛? 鐢ㄤ緥锛氶潪鏁板€?x/y銆乥ool 鍧愭爣銆侀潪 dict銆佺‖涓婇檺銆佹甯歌矾寰勶級銆?
+- **#2 server_dlc 鏃?body 涓婇檺锛坒indings.md:584 鎸囨憳灞炲疄锛夆€?宸蹭慨**锛歚server_dlc.py` 鏃犱换浣曚腑闂翠欢锛岃姹備綋澶у皬瀹屽叏渚濊禆 nginx `client_max_body_size 32M` 鍏滃簳锛涚洿杩?:8081锛堝唴缃?璋冭瘯/nginx 閰嶇疆婕傜Щ锛夊垯鏃犱笂闄愩€?*淇**锛氭柊澧?`dlc_api/middleware.py::BodySizeLimitMiddleware`锛堢函 ASGI锛屽厛鏌?Content-Length header 蹇€?413锛屾棤 header 鏃剁疮璁¤鍙栬秴闄愪篃鎷掔粷锛夛紝`add_body_size_limit(app, max_bytes=32*1024*1024)` 鎸傚埌 `server_dlc:app`锛堜笌 nginx 闃堝€煎榻愶級銆傛柊澧?`tests/test_body_size_limit.py`锛? 鐢ㄤ緥锛氳秴闄?413銆佹甯告斁琛屻€佺敓浜у叆鍙ｅ凡鎸備腑闂翠欢锛夈€?
+- **#3 external_enrichment mock锛坒indings.md:466锛夆€?宸茶繃鏃讹紝鏃犻渶澶勭悊**锛氭牳鏌ョ‘璁?`external_enrichment/` 鐩綍鍦?P4/P5 鐦﹁韩鏃跺凡鐗╃悊鍒犻櫎锛堜富浠撳簱 0 git 璺熻釜鏂囦欢锛屼粎 `.worktrees` 鏃у垎鏀壇鏈畫鐣欙級銆傚師 TODO銆岀湡瀹?API 鎺ュ叆銆嶇殑妯″潡宸蹭笉瀛樺湪锛岃褰曚綔搴熴€?
+- **U8 闊抽鍗忚 bug锛圫TATUS.md:160锛夆€?宸茶繃鏃讹紝2026-07-02 宸蹭慨**锛歱rogress.md:820 鏍?鉁咃紝鏂规 A锛堝浐浠舵敼 PCM 涓婁笅琛岄€忎紶锛屼繚鐣?MQTT/Xiaozhi 鐨?OPUS 璺緞锛夊凡瀹炵幇銆傚墿浣欎粎銆岀湡鏈虹鍒扮楠岃瘉銆嶉渶纭欢鍦ㄧ幆锛涗笖璇ヨ嚜鎵樼 WS 璇煶閾惧湪銆屽璇濊蛋灏忔櫤浜戙€嶆灦鏋勪笅宸查€€褰广€?
+- **娴嬭瘯**锛氬叏閲?**1396 passed / 3 skipped / 0 failed**锛?387 + 6 path_validator + 3 body_size锛夛紱ruff check + format + check_code_size 鍏ㄨ繃銆傛彁浜?`51ce39cf` push origin main锛屽弻鑺傜偣閮ㄧ讲锛堥樋閲屼簯 474 uploaded / 浜笢浜?paramiko 鏍稿疄鏈€鏂颁唬鐮?+ 閲嶅惎锛夛紝鍏綉 `/health` 200銆?
+- **鏁欒**锛氬欢缁€屽鏌ヨ褰曚細杩囨椂銆嶆ā寮忊€斺€攆indings 寰呭姙閲?2/4 椤癸紙external_enrichment銆乁8锛夌粡鏍告煡宸蹭綔搴燂紝鐪熷疄淇鍙惤鍦ㄨ瘉鎹厖鍒嗙殑 path_validator + body limit 涓ら」銆傝惤鍦板墠鍏堟牳鏌ョ洰褰?浠ｇ爜鐜扮姸锛岄伩鍏嶄负杩囨椂璁板綍鍒堕€犳姇鏈哄伐浣滐紙Ponytail 绗竴鍘熷垯锛夈€?
 
-## 2026-07-06 lima-router-pilot 彻底退役：VPS 死配置 + 前端死代码清理
+## 2026-07-06 lima-router-pilot 褰诲簳閫€褰癸細VPS 姝婚厤缃?+ 鍓嶇姝讳唬鐮佹竻鐞?
 
-- **背景**：pilot（aliyun.donglicao.com 免费 chat 分流）逻辑已于 2026-07-05 退役（shouldUsePilot 恒 false、CF Worker 分流移除），但残留死配置/死代码。本轮彻底清理。
-- **VPS 侧（阿里云）**：`lima-router-pilot.service` unit 已不存在、:8080 无监听，但 nginx `aliyun-pilot.donglicao.com.conf` 仍 proxy_pass 到死端口 :8080，导致 `aliyun.donglicao.com/health` 返回 502。备份到 `/root/aliyun-pilot.donglicao.com.conf.retired-20260706` 后改名 `.retired-20260706`，`nginx -t` + reload，502 消除。主入口 `chat.donglicao.com/health` 仍 200。
-- **前端侧（chat-web，commit 855e01fd）**：`app-config.js` 删除 PILOT_ORIGIN 常量 + pilot 分流辅助死函数（hasImageContent/isDefaultChatModel/getApiOrigin），shouldUsePilot 保留恒 false 仅兼容 chat-api.js 调用；`app-boot.js` 删 pilotOrigin；`index.html` CSP connect-src 移除 aliyun.donglicao.com（安全收益：收紧白名单）。chat-api.js 依赖的 PRIMARY_ORIGIN/shouldUsePilot/getApiUrl 均保留，零回归。
-- **验证**：3 个 JS node --check 语法通过；hash-assets 重建 dist 无 aliyun 残留；CI Deploy Chat Web 成功（29s）；公网 app.donglicao.com CSP 已无 aliyun，chat.donglicao.com/health 200。
-- **可逆性**：nginx conf 改名保留（`.retired-20260706`），前端删除的是恒不生效死代码，随时可从 git 恢复。
+- **鑳屾櫙**锛歱ilot锛坅liyun.donglicao.com 鍏嶈垂 chat 鍒嗘祦锛夐€昏緫宸蹭簬 2026-07-05 閫€褰癸紙shouldUsePilot 鎭?false銆丆F Worker 鍒嗘祦绉婚櫎锛夛紝浣嗘畫鐣欐閰嶇疆/姝讳唬鐮併€傛湰杞交搴曟竻鐞嗐€?
+- **VPS 渚э紙闃块噷浜戯級**锛歚lima-router-pilot.service` unit 宸蹭笉瀛樺湪銆?8080 鏃犵洃鍚紝浣?nginx `aliyun-pilot.donglicao.com.conf` 浠?proxy_pass 鍒版绔彛 :8080锛屽鑷?`aliyun.donglicao.com/health` 杩斿洖 502銆傚浠藉埌 `/root/aliyun-pilot.donglicao.com.conf.retired-20260706` 鍚庢敼鍚?`.retired-20260706`锛宍nginx -t` + reload锛?02 娑堥櫎銆備富鍏ュ彛 `chat.donglicao.com/health` 浠?200銆?
+- **鍓嶇渚э紙chat-web锛宑ommit 855e01fd锛?*锛歚app-config.js` 鍒犻櫎 PILOT_ORIGIN 甯搁噺 + pilot 鍒嗘祦杈呭姪姝诲嚱鏁帮紙hasImageContent/isDefaultChatModel/getApiOrigin锛夛紝shouldUsePilot 淇濈暀鎭?false 浠呭吋瀹?chat-api.js 璋冪敤锛沗app-boot.js` 鍒?pilotOrigin锛沗index.html` CSP connect-src 绉婚櫎 aliyun.donglicao.com锛堝畨鍏ㄦ敹鐩婏細鏀剁揣鐧藉悕鍗曪級銆俢hat-api.js 渚濊禆鐨?PRIMARY_ORIGIN/shouldUsePilot/getApiUrl 鍧囦繚鐣欙紝闆跺洖褰掋€?
+- **楠岃瘉**锛? 涓?JS node --check 璇硶閫氳繃锛沨ash-assets 閲嶅缓 dist 鏃?aliyun 娈嬬暀锛汣I Deploy Chat Web 鎴愬姛锛?9s锛夛紱鍏綉 app.donglicao.com CSP 宸叉棤 aliyun锛宑hat.donglicao.com/health 200銆?
+- **鍙€嗘€?*锛歯ginx conf 鏀瑰悕淇濈暀锛坄.retired-20260706`锛夛紝鍓嶇鍒犻櫎鐨勬槸鎭掍笉鐢熸晥姝讳唬鐮侊紝闅忔椂鍙粠 git 鎭㈠銆?
 
 
-## 2026-07-06 文档未完成标记全量核查：3 条过时记录作废
+## 2026-07-06 鏂囨。鏈畬鎴愭爣璁板叏閲忔牳鏌ワ細3 鏉¤繃鏃惰褰曚綔搴?
 
-逐条实证核查 STATUS/progress/findings 里的未完成标记，发现以下 3 条已与生产现状矛盾，作废：
+閫愭潯瀹炶瘉鏍告煡 STATUS/progress/findings 閲岀殑鏈畬鎴愭爣璁帮紝鍙戠幇浠ヤ笅 3 鏉″凡涓庣敓浜х幇鐘剁煕鐩撅紝浣滃簾锛?
 
-- **findings.md:100「公网 /dlc/* 返回 405 未修复」— 已过时**：2026-07-05 记录 JDCloud 无 DLC 服务 + SSH 认证失败导致公网 405。实证：公网 `POST https://chat.donglicao.com/dlc/tasks/validate` 现返回 **422**（请求体校验，端点可达），京东云本地 :8081 同为 422。路由已通，JDCloud 已部署 DLC 服务，SSH 密码认证本会话多次成功。
-- **findings.md:555「/opt/lima-router-pilot（1.1G）仅停服未删」— 已过时**：实证阿里云 `/opt/lima-router-pilot` 与 `/opt/lima-router` 目录均已不存在（2026-07-05 已回收，见 STATUS.md:22），:8080 无监听。
-- **progress.md:1337「JDCloud api.donglicao.com server name 冲突 warning 待排查」— 已过时**：实证阿里云 `nginx -t` 无 warning。
+- **findings.md:100銆屽叕缃?/dlc/* 杩斿洖 405 鏈慨澶嶃€嶁€?宸茶繃鏃?*锛?026-07-05 璁板綍 JDCloud 鏃?DLC 鏈嶅姟 + SSH 璁よ瘉澶辫触瀵艰嚧鍏綉 405銆傚疄璇侊細鍏綉 `POST https://chat.donglicao.com/dlc/tasks/validate` 鐜拌繑鍥?**422**锛堣姹備綋鏍￠獙锛岀鐐瑰彲杈撅級锛屼含涓滀簯鏈湴 :8081 鍚屼负 422銆傝矾鐢卞凡閫氾紝JDCloud 宸查儴缃?DLC 鏈嶅姟锛孲SH 瀵嗙爜璁よ瘉鏈細璇濆娆℃垚鍔熴€?
+- **findings.md:555銆?opt/lima-router-pilot锛?.1G锛変粎鍋滄湇鏈垹銆嶁€?宸茶繃鏃?*锛氬疄璇侀樋閲屼簯 `/opt/lima-router-pilot` 涓?`/opt/lima-router` 鐩綍鍧囧凡涓嶅瓨鍦紙2026-07-05 宸插洖鏀讹紝瑙?STATUS.md:22锛夛紝:8080 鏃犵洃鍚€?
+- **progress.md:1337銆孞DCloud api.donglicao.com server name 鍐茬獊 warning 寰呮帓鏌ャ€嶁€?宸茶繃鏃?*锛氬疄璇侀樋閲屼簯 `nginx -t` 鏃?warning銆?
 
-其余未完成标记均为合理挂起（需硬件在环：U8 真机验证、U1 FluidNC；需用户手动：微信小程序上传）或已决策不做（P2-d 全表 hgetall 过早优化、IDEMPOTENCY_FAIL_CLOSED 保持 fail-open），非遗漏。
+鍏朵綑鏈畬鎴愭爣璁板潎涓哄悎鐞嗘寕璧凤紙闇€纭欢鍦ㄧ幆锛歎8 鐪熸満楠岃瘉銆乁1 FluidNC锛涢渶鐢ㄦ埛鎵嬪姩锛氬井淇″皬绋嬪簭涓婁紶锛夋垨宸插喅绛栦笉鍋氾紙P2-d 鍏ㄨ〃 hgetall 杩囨棭浼樺寲銆両DEMPOTENCY_FAIL_CLOSED 淇濇寔 fail-open锛夛紝闈為仐婕忋€?
 
-## 2026-07-08 小程序 miniprogram-ci 遗留问题
+## 2026-07-08 灏忕▼搴?miniprogram-ci 閬楃暀闂
 
-- **pnpm install prepare 钩子割裂子模块归属**（CRITICAL）
-  - **现象**：在 `manager-mobile` 目录运行 `pnpm install` 时，`package.json` 的 `prepare` 脚本 `git init && husky` 在该目录新建了空 `.git`，导致 manager-mobile 从 esp32S_XYZ 仓库割裂出来，HEAD 落在 `master` 且 0 提交。远端历史（`599c2ea` 等）仍在 `origin`，但工作区无法访问。
-  - **根因**：`prepare` 脚本在**每个**目录执行，子目录没有 git init 的上下文，于是新建空 repo。`husky` 又在空 repo 里初始化 hooks，形成双重割裂。
-  - **修复**：把 `prepare` 脚本改为仅在根仓库执行（`if [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd)" ]`），或移除 manager-mobile 目录的 `prepare` 钩子依赖。stray `.git` 已移至 `/tmp/manager-mobile-stray-git-bak` 备份。
-  - **预防**：子目录跑 `pnpm install` 前应确认不是在根目录下，或在 `.npmrc` 里把 `prepare` 条件化（`if [ -n "$CI" ] || [ "$(git rev-parse --show-toplevel)" = "$(pwd)" ]`）。更推荐在 esp32S_XYZ 仓库根目录统一执行 `pnpm install`，而非在子模块目录。
+- **pnpm install prepare 閽╁瓙鍓茶瀛愭ā鍧楀綊灞?*锛圕RITICAL锛?
+  - **鐜拌薄**锛氬湪 `manager-mobile` 鐩綍杩愯 `pnpm install` 鏃讹紝`package.json` 鐨?`prepare` 鑴氭湰 `git init && husky` 鍦ㄨ鐩綍鏂板缓浜嗙┖ `.git`锛屽鑷?manager-mobile 浠?esp32S_XYZ 浠撳簱鍓茶鍑烘潵锛孒EAD 钀藉湪 `master` 涓?0 鎻愪氦銆傝繙绔巻鍙诧紙`599c2ea` 绛夛級浠嶅湪 `origin`锛屼絾宸ヤ綔鍖烘棤娉曡闂€?
+  - **鏍瑰洜**锛歚prepare` 鑴氭湰鍦?*姣忎釜**鐩綍鎵ц锛屽瓙鐩綍娌℃湁 git init 鐨勪笂涓嬫枃锛屼簬鏄柊寤虹┖ repo銆俙husky` 鍙堝湪绌?repo 閲屽垵濮嬪寲 hooks锛屽舰鎴愬弻閲嶅壊瑁傘€?
+  - **淇**锛氭妸 `prepare` 鑴氭湰鏀逛负浠呭湪鏍逛粨搴撴墽琛岋紙`if [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd)" ]`锛夛紝鎴栫Щ闄?manager-mobile 鐩綍鐨?`prepare` 閽╁瓙渚濊禆銆俿tray `.git` 宸茬Щ鑷?`/tmp/manager-mobile-stray-git-bak` 澶囦唤銆?
+  - **棰勯槻**锛氬瓙鐩綍璺?`pnpm install` 鍓嶅簲纭涓嶆槸鍦ㄦ牴鐩綍涓嬶紝鎴栧湪 `.npmrc` 閲屾妸 `prepare` 鏉′欢鍖栵紙`if [ -n "$CI" ] || [ "$(git rev-parse --show-toplevel)" = "$(pwd)" ]`锛夈€傛洿鎺ㄨ崘鍦?esp32S_XYZ 浠撳簱鏍圭洰褰曠粺涓€鎵ц `pnpm install`锛岃€岄潪鍦ㄥ瓙妯″潡鐩綍銆?
 
-- **miniprogram-ci 上传 `_lruCache is not a constructor`**（BLOCKER）
-  - **现象**：微信小程序上传 `v3.9.2` 时崩溃，报 `TypeError: _lruCache is not a constructor at @babel/helper-compilation-targets/lib/index.js:143:22`。
-  - **根因**：`.npmrc` 开了 `shamefully_hoist=true`，会把所有依赖拍平到顶层 `node_modules`。原 scoped override `@babel/helper-compilation-targets>lru-cache: ^5.1.1` 只影响 babel helper 私有的 v5，但 hoist 把 `lru-cache@11` 拍到顶层，赢了 babel helper 的私有 v5，导致 miniprogram-ci 子进程拿到 v11（无默认构造器）。
-  - **修复**：`pnpm-workspace.yaml` 改为全局 pin `lru-cache: 5.1.1`，让顶层也是 v5。`pnpm install` 后顶层 `lru-cache` 从 11.5.1 降至 5.1.1，babel helper 解析到的也是 v5，上传恢复成功。
-  - **预防**：`shamefully_hoist=true` 会绕过 scoped override，任何依赖如果被 hoist 到顶层，都必须在 `overrides` 里全局 pin。建议评估是否必须开 hoist，或改用 `resolution`（pnpm 现在也支持 `resolutions`）。
+- **miniprogram-ci 涓婁紶 `_lruCache is not a constructor`**锛圔LOCKER锛?
+  - **鐜拌薄**锛氬井淇″皬绋嬪簭涓婁紶 `v3.9.2` 鏃跺穿婧冿紝鎶?`TypeError: _lruCache is not a constructor at @babel/helper-compilation-targets/lib/index.js:143:22`銆?
+  - **鏍瑰洜**锛歚.npmrc` 寮€浜?`shamefully_hoist=true`锛屼細鎶婃墍鏈変緷璧栨媿骞冲埌椤跺眰 `node_modules`銆傚師 scoped override `@babel/helper-compilation-targets>lru-cache: ^5.1.1` 鍙奖鍝?babel helper 绉佹湁鐨?v5锛屼絾 hoist 鎶?`lru-cache@11` 鎷嶅埌椤跺眰锛岃耽浜?babel helper 鐨勭鏈?v5锛屽鑷?miniprogram-ci 瀛愯繘绋嬫嬁鍒?v11锛堟棤榛樿鏋勯€犲櫒锛夈€?
+  - **淇**锛歚pnpm-workspace.yaml` 鏀逛负鍏ㄥ眬 pin `lru-cache: 5.1.1`锛岃椤跺眰涔熸槸 v5銆俙pnpm install` 鍚庨《灞?`lru-cache` 浠?11.5.1 闄嶈嚦 5.1.1锛宐abel helper 瑙ｆ瀽鍒扮殑涔熸槸 v5锛屼笂浼犳仮澶嶆垚鍔熴€?
+  - **棰勯槻**锛歚shamefully_hoist=true` 浼氱粫杩?scoped override锛屼换浣曚緷璧栧鏋滆 hoist 鍒伴《灞傦紝閮藉繀椤诲湪 `overrides` 閲屽叏灞€ pin銆傚缓璁瘎浼版槸鍚﹀繀椤诲紑 hoist锛屾垨鏀圭敤 `resolution`锛坧npm 鐜板湪涔熸敮鎸?`resolutions`锛夈€?
 
-- **pages.config.ts 是真正源头，改 src/pages.json 会被打回**（MEDIUM）
-  - **现象**：在 `src/pages.json` 删 z-paging easycom 规则后，`uni build --platform mp-weixin` 会从 `pages.config.ts` 重新生成 `src/pages.json`，导致刚才的删除被覆盖加回（还顺带格式化加了尾逗号）。
-  - **根因**：`vite-plugin-uni-pages` 的行为是「配置源 `pages.config.ts` → 构建 → 生成 `src/pages.json`」。直接改生成物是反模式，应该改源文件。
-  - **修复**：从源头 `pages.config.ts` 删除 z-paging 规则，下次构建后 `src/pages.json` 自动与源头一致。
-  - **预防**：微信相关配置（manifest、pages、tabBar）应从 `*.config.ts` 源头改，而非直接改 `src/*.json` 生成物。如果构建工具支持配置文件热更新，应优先改配置源。
+- **pages.config.ts 鏄湡姝ｆ簮澶达紝鏀?src/pages.json 浼氳鎵撳洖**锛圡EDIUM锛?
+  - **鐜拌薄**锛氬湪 `src/pages.json` 鍒?z-paging easycom 瑙勫垯鍚庯紝`uni build --platform mp-weixin` 浼氫粠 `pages.config.ts` 閲嶆柊鐢熸垚 `src/pages.json`锛屽鑷村垰鎵嶇殑鍒犻櫎琚鐩栧姞鍥烇紙杩橀『甯︽牸寮忓寲鍔犱簡灏鹃€楀彿锛夈€?
+  - **鏍瑰洜**锛歚vite-plugin-uni-pages` 鐨勮涓烘槸銆岄厤缃簮 `pages.config.ts` 鈫?鏋勫缓 鈫?鐢熸垚 `src/pages.json`銆嶃€傜洿鎺ユ敼鐢熸垚鐗╂槸鍙嶆ā寮忥紝搴旇鏀规簮鏂囦欢銆?
+  - **淇**锛氫粠婧愬ご `pages.config.ts` 鍒犻櫎 z-paging 瑙勫垯锛屼笅娆℃瀯寤哄悗 `src/pages.json` 鑷姩涓庢簮澶翠竴鑷淬€?
+  - **棰勯槻**锛氬井淇＄浉鍏抽厤缃紙manifest銆乸ages銆乼abBar锛夊簲浠?`*.config.ts` 婧愬ご鏀癸紝鑰岄潪鐩存帴鏀?`src/*.json` 鐢熸垚鐗┿€傚鏋滄瀯寤哄伐鍏锋敮鎸侀厤缃枃浠剁儹鏇存柊锛屽簲浼樺厛鏀归厤缃簮銆?
 
-## 2026-07-12 VPS 验证 C/D 时发现：`check_rate_limit` 生产零调用方（C 实为待接线死代码）
+## 2026-07-12 VPS 楠岃瘉 C/D 鏃跺彂鐜帮細`check_rate_limit` 鐢熶骇闆惰皟鐢ㄦ柟锛圕 瀹炰负寰呮帴绾挎浠ｇ爜锛?
 
-- **现象**：优化计划 C（`4ff69e77`，`rate_limiter.py` 新增 `LIMA_IP_RATE_REDIS` Redis 后端）挂在 `check_rate_limit()` 上，但全仓生产代码**无任何调用方**——生产限流全部走 `check_keyed_rate_limit()`（`routes/rate_limit_helper.py` 的 `check_key_limit`/`check_ip_limit`、device auth L2），其 keyed Redis 后端（`LIMA_DEVICE_AUTH_RATE_REDIS=auto`）在 VPS 早已生效。
-- **佐证**：`docs/DEPLOY_AND_RELEASE_CONVENTION.md:113-117` 描述的「/v1/chat/completions 滑动窗口限流 120/60s」是旧聊天栈（已退役删除）的行为，文档过时；C 的函数随旧栈失去唯一调用方。
-- **影响**：C 代码本身正确（VPS 模块级验证全 PASS，见 progress.md 同日条目），但开启 `LIMA_IP_RATE_REDIS` 对生产流量**零效果**——没有路由调用它。要么把它接入需要 IP 级限流的路由（替换 `check_ip_limit` 内的 keyed 调用），要么按 ponytail 原则视为可删代码。
-- **决策（2026-07-12，用户拍板）**：删除 C。已删 `rate_limiter.py` 的 `_check_ip_redis`/`_ip_rate_redis_flag`/`_IP_RATE_REDIS_KEY`（`check_rate_limit` 回归纯内存滑动窗口）、整个 `tests/test_rate_limiter_redis.py`（全部用例只覆盖该特性）、`.env.example` 的 `LIMA_IP_RATE_REDIS` 注释块。keyed Redis 限流（device auth L2）不受影响。VPS 已重新部署删除后的 `rate_limiter.py`。
+- **鐜拌薄**锛氫紭鍖栬鍒?C锛坄4ff69e77`锛宍rate_limiter.py` 鏂板 `LIMA_IP_RATE_REDIS` Redis 鍚庣锛夋寕鍦?`check_rate_limit()` 涓婏紝浣嗗叏浠撶敓浜т唬鐮?*鏃犱换浣曡皟鐢ㄦ柟**鈥斺€旂敓浜ч檺娴佸叏閮ㄨ蛋 `check_keyed_rate_limit()`锛坄routes/rate_limit_helper.py` 鐨?`check_key_limit`/`check_ip_limit`銆乨evice auth L2锛夛紝鍏?keyed Redis 鍚庣锛坄LIMA_DEVICE_AUTH_RATE_REDIS=auto`锛夊湪 VPS 鏃╁凡鐢熸晥銆?
+- **浣愯瘉**锛歚docs/DEPLOY_AND_RELEASE_CONVENTION.md:113-117` 鎻忚堪鐨勩€?v1/chat/completions 婊戝姩绐楀彛闄愭祦 120/60s銆嶆槸鏃ц亰澶╂爤锛堝凡閫€褰瑰垹闄わ級鐨勮涓猴紝鏂囨。杩囨椂锛汣 鐨勫嚱鏁伴殢鏃ф爤澶卞幓鍞竴璋冪敤鏂广€?
+- **褰卞搷**锛欳 浠ｇ爜鏈韩姝ｇ‘锛圴PS 妯″潡绾ч獙璇佸叏 PASS锛岃 progress.md 鍚屾棩鏉＄洰锛夛紝浣嗗紑鍚?`LIMA_IP_RATE_REDIS` 瀵圭敓浜ф祦閲?*闆舵晥鏋?*鈥斺€旀病鏈夎矾鐢辫皟鐢ㄥ畠銆傝涔堟妸瀹冩帴鍏ラ渶瑕?IP 绾ч檺娴佺殑璺敱锛堟浛鎹?`check_ip_limit` 鍐呯殑 keyed 璋冪敤锛夛紝瑕佷箞鎸?ponytail 鍘熷垯瑙嗕负鍙垹浠ｇ爜銆?
+- **鍐崇瓥锛?026-07-12锛岀敤鎴锋媿鏉匡級**锛氬垹闄?C銆傚凡鍒?`rate_limiter.py` 鐨?`_check_ip_redis`/`_ip_rate_redis_flag`/`_IP_RATE_REDIS_KEY`锛坄check_rate_limit` 鍥炲綊绾唴瀛樻粦鍔ㄧ獥鍙ｏ級銆佹暣涓?`tests/test_rate_limiter_redis.py`锛堝叏閮ㄧ敤渚嬪彧瑕嗙洊璇ョ壒鎬э級銆乣.env.example` 鐨?`LIMA_IP_RATE_REDIS` 娉ㄩ噴鍧椼€俴eyed Redis 闄愭祦锛坉evice auth L2锛変笉鍙楀奖鍝嶃€俈PS 宸查噸鏂伴儴缃插垹闄ゅ悗鐨?`rate_limiter.py`銆?
 
-## 2026-07-14 A2A 逐文件全项目审查：123 文件闭环，交叉复核确认 119 / 证伪 20 / 存疑 14
+## 2026-07-14 A2A 閫愭枃浠跺叏椤圭洰瀹℃煡锛?23 鏂囦欢闂幆锛屼氦鍙夊鏍哥‘璁?119 / 璇佷吉 20 / 瀛樼枒 14
 
-- **方式**：Atom + Reasonix 初审（123/123 文件），Claude Opus 4.6 / Atom / Reasonix 三路并行独立交叉复核 18 批，每份高危发现逐行判定。产物：`.tmp/a2a_review/`（QUEUE.md、REVIEW_REPORT.md、findings/、cross/verdict_*）。
-- **修复链（已全部提交推送 origin/main）**：
-  - `770d82eb` P0 六项：NaN 物理防御、JWT typ 隔离、token 吊销 fail-closed、calibrate 误映射删除、audio 路径穿越、SSRF pin-IP。
-  - `b7b80647`+`68598020` P1 两波：redis 双花、流式 413、TOCTOU、出网脱敏 5 处、caller_model 白名单、text 上限 5000、captcha 哈希。
-  - `c50aec75`+`50b6ae3a`+`370643d5` P2 三波：测试函数移出 `__all__`+TESTING 守卫、固件版本语义化比较、registry 电话脱敏+分页、进程内状态容量上限 4 处、删死代码 `device_logic/sms.py`、insert-before-dispatch 消灭幽灵任务。
-  - 门禁：1719 passed / 3 skipped，ruff / check_code_size 全过。
-- **证伪 20 项**（初审报告但复核推翻，详见 REVIEW_REPORT.md 第二节）：误报率约 13%，含 060-063 四项跨 agent 分歧按复核结论记证伪。
-- **存疑 14 项需人工终裁**（依赖运行时配置，REVIEW_REPORT.md 第六节）：family_approval_store 身份校验、path_validator 负坐标、provision 无 authorize、KNOWN_PROFILES 无锁、auth INSERT 无 status、rate_limit 多 worker、StoreManager 无锁（no-GIL）、api_key 无 verify_key 入口等。
-- **关键决策记录**：
-  - profile 层空 fw_rev **fail-open+warning**（老设备兼容），registry 层 `assert_firmware_compatible` 保持严格；改严会导致 `test_device_app_task_extras.py` 4 例失败。
-  - FIX-O 中 Reasonix 给 `device_logic/auth_rate.py` 加的「每次调用 ping Redis」已**整体还原**（热路径冗余 + 与 rate_limiter 既有告警重复）。
-  - ponytail 否决项：不为存疑项预先加锁/加校验，等运行时配置确认后再定。
-- **遗留提醒**：Codex A2A（4941）muyuan.do key 401 auth_missing，需更换 key；Grok CLI 已卸载、A2A 4943 链路全清（daemon/launcher/dispatch/ps1/health-watch），健康看门狗实测 all ok。
+- **鏂瑰紡**锛欰tom + Reasonix 鍒濆锛?23/123 鏂囦欢锛夛紝Claude Opus 4.6 / Atom / Reasonix 涓夎矾骞惰鐙珛浜ゅ弶澶嶆牳 18 鎵癸紝姣忎唤楂樺嵄鍙戠幇閫愯鍒ゅ畾銆備骇鐗╋細`.tmp/a2a_review/`锛圦UEUE.md銆丷EVIEW_REPORT.md銆乫indings/銆乧ross/verdict_*锛夈€?
+- **淇閾撅紙宸插叏閮ㄦ彁浜ゆ帹閫?origin/main锛?*锛?
+  - `770d82eb` P0 鍏」锛歂aN 鐗╃悊闃插尽銆丣WT typ 闅旂銆乼oken 鍚婇攢 fail-closed銆乧alibrate 璇槧灏勫垹闄ゃ€乤udio 璺緞绌胯秺銆丼SRF pin-IP銆?
+  - `b7b80647`+`68598020` P1 涓ゆ尝锛歳edis 鍙岃姳銆佹祦寮?413銆乀OCTOU銆佸嚭缃戣劚鏁?5 澶勩€乧aller_model 鐧藉悕鍗曘€乼ext 涓婇檺 5000銆乧aptcha 鍝堝笇銆?
+  - `c50aec75`+`50b6ae3a`+`370643d5` P2 涓夋尝锛氭祴璇曞嚱鏁扮Щ鍑?`__all__`+TESTING 瀹堝崼銆佸浐浠剁増鏈涔夊寲姣旇緝銆乺egistry 鐢佃瘽鑴辨晱+鍒嗛〉銆佽繘绋嬪唴鐘舵€佸閲忎笂闄?4 澶勩€佸垹姝讳唬鐮?`device_logic/sms.py`銆乮nsert-before-dispatch 娑堢伃骞界伒浠诲姟銆?
+  - 闂ㄧ锛?719 passed / 3 skipped锛宺uff / check_code_size 鍏ㄨ繃銆?
+- **璇佷吉 20 椤?*锛堝垵瀹℃姤鍛婁絾澶嶆牳鎺ㄧ炕锛岃瑙?REVIEW_REPORT.md 绗簩鑺傦級锛氳鎶ョ巼绾?13%锛屽惈 060-063 鍥涢」璺?agent 鍒嗘鎸夊鏍哥粨璁鸿璇佷吉銆?
+- **瀛樼枒 14 椤归渶浜哄伐缁堣**锛堜緷璧栬繍琛屾椂閰嶇疆锛孯EVIEW_REPORT.md 绗叚鑺傦級锛歠amily_approval_store 韬唤鏍￠獙銆乸ath_validator 璐熷潗鏍囥€乸rovision 鏃?authorize銆並NOWN_PROFILES 鏃犻攣銆乤uth INSERT 鏃?status銆乺ate_limit 澶?worker銆丼toreManager 鏃犻攣锛坣o-GIL锛夈€乤pi_key 鏃?verify_key 鍏ュ彛绛夈€?
+- **鍏抽敭鍐崇瓥璁板綍**锛?
+  - profile 灞傜┖ fw_rev **fail-open+warning**锛堣€佽澶囧吋瀹癸級锛宺egistry 灞?`assert_firmware_compatible` 淇濇寔涓ユ牸锛涙敼涓ヤ細瀵艰嚧 `test_device_app_task_extras.py` 4 渚嬪け璐ャ€?
+  - FIX-O 涓?Reasonix 缁?`device_logic/auth_rate.py` 鍔犵殑銆屾瘡娆¤皟鐢?ping Redis銆嶅凡**鏁翠綋杩樺師**锛堢儹璺緞鍐椾綑 + 涓?rate_limiter 鏃㈡湁鍛婅閲嶅锛夈€?
+  - ponytail 鍚﹀喅椤癸細涓嶄负瀛樼枒椤归鍏堝姞閿?鍔犳牎楠岋紝绛夎繍琛屾椂閰嶇疆纭鍚庡啀瀹氥€?
+- **閬楃暀鎻愰啋**锛欳odex A2A锛?941锛塵uyuan.do key 401 auth_missing锛岄渶鏇存崲 key锛汫rok CLI 宸插嵏杞姐€丄2A 4943 閾捐矾鍏ㄦ竻锛坉aemon/launcher/dispatch/ps1/health-watch锛夛紝鍋ュ悍鐪嬮棬鐙楀疄娴?all ok銆?
 
-## 2026-07-14 存疑清单终裁：13 项全闭环（12 证伪 + 1 确认产品决策项）
+## 2026-07-14 瀛樼枒娓呭崟缁堣锛?3 椤瑰叏闂幆锛?2 璇佷吉 + 1 纭浜у搧鍐崇瓥椤癸級
 
-对 REVIEW_REPORT.md 第六节存疑清单（表内实列 13 行）逐项终裁，代码静态判定 10 项 + VPS 运行时查证 3 项：
+瀵?REVIEW_REPORT.md 绗叚鑺傚瓨鐤戞竻鍗曪紙琛ㄥ唴瀹炲垪 13 琛岋級閫愰」缁堣锛屼唬鐮侀潤鎬佸垽瀹?10 椤?+ VPS 杩愯鏃舵煡璇?3 椤癸細
 
-- **VPS 查证 3 项全部证伪**：047 生产库 `v2_account.status` 有 `DEFAULT 'active'`+CHECK（`/opt/dlc-drawing/data/lima.db`）；080 VPS 为标准 CPython 3.12.3 带 GIL（`Py_GIL_DISABLED=None`）；082 `server_dlc` 单 uvicorn 进程无 `--workers`，且 `LIMA_DEVICE_AUTH_RATE_REDIS`/`LIMA_DEVICE_REDIS_URL` 生产已开启，keyed 限流走 Redis。
-- **代码判定 9 项证伪**：006 审批写操作无 HTTP 入口（仅测试调用，未接线属功能问题）；018 负坐标 ≥-500 系设计允许且三链路必经校验；023 配网 token（256bit+1800s+单次）系标准 bearer 设计；026 `KNOWN_PROFILES` 生产无写入点运行期恒空；040 `task_context` 为无生产调用方的死参数；065 业务失败走 error dict + FastAPI 默认 500 兜底；091 上游 `_copy_scalar_params` 已剥离 `_` 前缀键并截断、读取有 `require_device_access`；106 timeline 单任务事件量天然小、设备级 activity 已有分页；113 safe_point `not (0<=x<=MAX)` 模式对 NaN 恒拦截（与 P0 修复一致）。
-- **确认 1 项（产品决策，非安全漏洞）**：092 `device_logic/api_key.py` 签发的 `sk-lima-*` key 全仓无任何 verify 消费方（`authorize()` 纯 JWT），但 `routes/device_app_auth_keys.py` 的 create/list/delete 路由**在线可达**——用户可铸造永远验不了的 key。两选项：①下线该路由（ponytail 推荐，若无小程序 UI 依赖）；②补 `verify_key` 并接入 device auth。**2026-07-14 已拍板下线并执行**：Claude 独立复核建议下线 + VPS nginx 日志（含轮转）`/device/v1/app/keys` 零调用佐证；删 `routes/device_app_auth_keys.py` + `device_logic/api_key.py` + 5 用例，前端 `chat-web/keys.html`/`js/keys.js` 及三处导航卡片一并移除（前后端初审均漏检此前端页，教训：下线类决策需 grep dist 产物）；`v2_api_key` 表保留。
+- **VPS 鏌ヨ瘉 3 椤瑰叏閮ㄨ瘉浼?*锛?47 鐢熶骇搴?`v2_account.status` 鏈?`DEFAULT 'active'`+CHECK锛坄/opt/dlc-drawing/data/lima.db`锛夛紱080 VPS 涓烘爣鍑?CPython 3.12.3 甯?GIL锛坄Py_GIL_DISABLED=None`锛夛紱082 `server_dlc` 鍗?uvicorn 杩涚▼鏃?`--workers`锛屼笖 `LIMA_DEVICE_AUTH_RATE_REDIS`/`LIMA_DEVICE_REDIS_URL` 鐢熶骇宸插紑鍚紝keyed 闄愭祦璧?Redis銆?
+- **浠ｇ爜鍒ゅ畾 9 椤硅瘉浼?*锛?06 瀹℃壒鍐欐搷浣滄棤 HTTP 鍏ュ彛锛堜粎娴嬭瘯璋冪敤锛屾湭鎺ョ嚎灞炲姛鑳介棶棰橈級锛?18 璐熷潗鏍?鈮?500 绯昏璁″厑璁镐笖涓夐摼璺繀缁忔牎楠岋紱023 閰嶇綉 token锛?56bit+1800s+鍗曟锛夌郴鏍囧噯 bearer 璁捐锛?26 `KNOWN_PROFILES` 鐢熶骇鏃犲啓鍏ョ偣杩愯鏈熸亽绌猴紱040 `task_context` 涓烘棤鐢熶骇璋冪敤鏂圭殑姝诲弬鏁帮紱065 涓氬姟澶辫触璧?error dict + FastAPI 榛樿 500 鍏滃簳锛?91 涓婃父 `_copy_scalar_params` 宸插墺绂?`_` 鍓嶇紑閿苟鎴柇銆佽鍙栨湁 `require_device_access`锛?06 timeline 鍗曚换鍔′簨浠堕噺澶╃劧灏忋€佽澶囩骇 activity 宸叉湁鍒嗛〉锛?13 safe_point `not (0<=x<=MAX)` 妯″紡瀵?NaN 鎭掓嫤鎴紙涓?P0 淇涓€鑷达級銆?
+- **纭 1 椤癸紙浜у搧鍐崇瓥锛岄潪瀹夊叏婕忔礊锛?*锛?92 `device_logic/api_key.py` 绛惧彂鐨?`sk-lima-*` key 鍏ㄤ粨鏃犱换浣?verify 娑堣垂鏂癸紙`authorize()` 绾?JWT锛夛紝浣?`routes/device_app_auth_keys.py` 鐨?create/list/delete 璺敱**鍦ㄧ嚎鍙揪**鈥斺€旂敤鎴峰彲閾搁€犳案杩滈獙涓嶄簡鐨?key銆備袱閫夐」锛氣憼涓嬬嚎璇ヨ矾鐢憋紙ponytail 鎺ㄨ崘锛岃嫢鏃犲皬绋嬪簭 UI 渚濊禆锛夛紱鈶¤ˉ `verify_key` 骞舵帴鍏?device auth銆?*2026-07-14 宸叉媿鏉夸笅绾垮苟鎵ц**锛欳laude 鐙珛澶嶆牳寤鸿涓嬬嚎 + VPS nginx 鏃ュ織锛堝惈杞浆锛塦/device/v1/app/keys` 闆惰皟鐢ㄤ綈璇侊紱鍒?`routes/device_app_auth_keys.py` + `device_logic/api_key.py` + 5 鐢ㄤ緥锛屽墠绔?`chat-web/keys.html`/`js/keys.js` 鍙婁笁澶勫鑸崱鐗囦竴骞剁Щ闄わ紙鍓嶅悗绔垵瀹″潎婕忔姝ゅ墠绔〉锛屾暀璁細涓嬬嚎绫诲喅绛栭渶 grep dist 浜х墿锛夛紱`v2_api_key` 琛ㄤ繚鐣欍€?
 
-## 2026-07-15 A2A residual 全项目审计（high）
+## 2026-07-15 A2A residual 鍏ㄩ」鐩璁★紙high锛?
 
-- **方式**：Kimi 主控 + 并发 explore/coder + Atom A2A 初审 + 社区对标（FastAPI security checklist / xiaozhi MCP）。工单：`C:/Users/zhugu/a2a_workorder_full_project_audit_20260715.md`。Claude deep-health 失败；Reasonix busy 时本地子代理兜底。
-- **门禁实测**：`ruff` 热路径 PASS；`test_repo_hygiene` PASS；`test_p13_no_silent_exception_pass_in_active_paths` **曾 FAIL**（扫到 `.claude/.cursor/.codex` hooks 的 `except Exception: pass`，非生产路径）。
-- **本轮修复（最小）**：
-  1. `tests/test_ci_gates.py`：`_P13_SKIP_DIRS` 增加 agent IDE 目录白名单。
-  2. `device_gateway/path_validator.py::_clamp_feed_value`：`math.isfinite` 拦截 NaN/Inf（`min/max` 对 NaN 会错误落到边界）。
-- **仍开 residual（未在本轮全修）**：
-  - **HIGH**：free-text 任务 `create_and_route` 后 `insert_task_row`（`routes/device_app_tasks.py:62-74`）仍可能幽灵队列；approve 失败 `revert_task_to_pending` 不卸 Redis 队列（双入队窗口，`progress` 07-13 已记）。
-  - **MED**：`access_guard.production_blocked` 名不副实；JWT 缺 `typ` 仍放行 legacy；device/admin 共享 `LIMA_JWT_SECRET`；DLC/GW 运动边界不一致；voice ticket 进程内；STATUS 文档落后。
-  - **产品 P0**：真机 E2E、微信提审、固件 `user_only` 未 OTA、`LIMA_AUTO_FALLBACK` 无真机。
-- **社区对标**：[FastAPI Security Guide](https://davidmuraya.com/blog/fastapi-security-guide/) 强调生产关 docs、限流、密钥分离、输入校验；本仓 docs 已关、限流/SSRF 已有，残余在 JWT typ/密钥域与 fail-open 运维开关。
-- **预防**：P13 扫描应 `git ls-files` 或排除 IDE 树；运动数值一律 `isfinite`；approve/revert 与 Redis 队列同事务语义。
+- **鏂瑰紡**锛欿imi 涓绘帶 + 骞跺彂 explore/coder + Atom A2A 鍒濆 + 绀惧尯瀵规爣锛團astAPI security checklist / xiaozhi MCP锛夈€傚伐鍗曪細`C:/Users/zhugu/a2a_workorder_full_project_audit_20260715.md`銆侰laude deep-health 澶辫触锛汻easonix busy 鏃舵湰鍦板瓙浠ｇ悊鍏滃簳銆?
+- **闂ㄧ瀹炴祴**锛歚ruff` 鐑矾寰?PASS锛沗test_repo_hygiene` PASS锛沗test_p13_no_silent_exception_pass_in_active_paths` **鏇?FAIL**锛堟壂鍒?`.claude/.cursor/.codex` hooks 鐨?`except Exception: pass`锛岄潪鐢熶骇璺緞锛夈€?
+- **鏈疆淇锛堟渶灏忥級**锛?
+  1. `tests/test_ci_gates.py`锛歚_P13_SKIP_DIRS` 澧炲姞 agent IDE 鐩綍鐧藉悕鍗曘€?
+  2. `device_gateway/path_validator.py::_clamp_feed_value`锛歚math.isfinite` 鎷︽埅 NaN/Inf锛坄min/max` 瀵?NaN 浼氶敊璇惤鍒拌竟鐣岋級銆?
+- **浠嶅紑 residual锛堟湭鍦ㄦ湰杞叏淇級**锛?
+  - **HIGH**锛歠ree-text 浠诲姟 `create_and_route` 鍚?`insert_task_row`锛坄routes/device_app_tasks.py:62-74`锛変粛鍙兘骞界伒闃熷垪锛沘pprove 澶辫触 `revert_task_to_pending` 涓嶅嵏 Redis 闃熷垪锛堝弻鍏ラ槦绐楀彛锛宍progress` 07-13 宸茶锛夈€?
+  - **MED**锛歚access_guard.production_blocked` 鍚嶄笉鍓疄锛汮WT 缂?`typ` 浠嶆斁琛?legacy锛沝evice/admin 鍏变韩 `LIMA_JWT_SECRET`锛汥LC/GW 杩愬姩杈圭晫涓嶄竴鑷达紱voice ticket 杩涚▼鍐咃紱STATUS 鏂囨。钀藉悗銆?
+  - **浜у搧 P0**锛氱湡鏈?E2E銆佸井淇℃彁瀹°€佸浐浠?`user_only` 鏈?OTA銆乣LIMA_AUTO_FALLBACK` 鏃犵湡鏈恒€?
+- **绀惧尯瀵规爣**锛歔FastAPI Security Guide](https://davidmuraya.com/blog/fastapi-security-guide/) 寮鸿皟鐢熶骇鍏?docs銆侀檺娴併€佸瘑閽ュ垎绂汇€佽緭鍏ユ牎楠岋紱鏈粨 docs 宸插叧銆侀檺娴?SSRF 宸叉湁锛屾畫浣欏湪 JWT typ/瀵嗛挜鍩熶笌 fail-open 杩愮淮寮€鍏炽€?
+- **棰勯槻**锛歅13 鎵弿搴?`git ls-files` 鎴栨帓闄?IDE 鏍戯紱杩愬姩鏁板€间竴寰?`isfinite`锛沘pprove/revert 涓?Redis 闃熷垪鍚屼簨鍔¤涔夈€?
 
-## 2026-07-15 free-text insert-before-dispatch + approve revert 卸队列
+## 2026-07-15 free-text insert-before-dispatch + approve revert 鍗搁槦鍒?
 
-- **现象**：审计 HIGH residual — (1) free-text `create_and_route_task` 先 enqueue 再 `insert_task_row`，insert 失败会幽灵队列；(2) `revert_task_to_pending` 只改 DB，approve 失败后重试可双入队。
-- **复现**：见 `tests/test_p2_no_ghost_tasks.py::TestFreeTextInsertBeforeEnqueue` 与 `test_revert_task_to_pending_removes_queue_item`。
-- **修复**：
-  1. `create_and_route_task(..., enqueue=False)` 供 app free-text 先建任务；`routes/device_app_tasks.py` insert 成功后再 `enqueue_pending_task`；enqueue 失败 `mark_task_failed`。
-  2. `revert_task_to_pending(task_id, device_id=...)` 调用 `remove_pending_task` 卸队列；approve 失败路径传 device_id。
-- **验证**：相关 42 pytest passed；ruff 改动文件 clean。
-- **预防**：任何「入队/下发」路径必须 insert-before-dispatch；revert/补偿必须同时处理 DB 与队列。
+- **鐜拌薄**锛氬璁?HIGH residual 鈥?(1) free-text `create_and_route_task` 鍏?enqueue 鍐?`insert_task_row`锛宨nsert 澶辫触浼氬菇鐏甸槦鍒楋紱(2) `revert_task_to_pending` 鍙敼 DB锛宎pprove 澶辫触鍚庨噸璇曞彲鍙屽叆闃熴€?
+- **澶嶇幇**锛氳 `tests/test_p2_no_ghost_tasks.py::TestFreeTextInsertBeforeEnqueue` 涓?`test_revert_task_to_pending_removes_queue_item`銆?
+- **淇**锛?
+  1. `create_and_route_task(..., enqueue=False)` 渚?app free-text 鍏堝缓浠诲姟锛沗routes/device_app_tasks.py` insert 鎴愬姛鍚庡啀 `enqueue_pending_task`锛沞nqueue 澶辫触 `mark_task_failed`銆?
+  2. `revert_task_to_pending(task_id, device_id=...)` 璋冪敤 `remove_pending_task` 鍗搁槦鍒楋紱approve 澶辫触璺緞浼?device_id銆?
+- **楠岃瘉**锛氱浉鍏?42 pytest passed锛況uff 鏀瑰姩鏂囦欢 clean銆?
+- **棰勯槻**锛氫换浣曘€屽叆闃?涓嬪彂銆嶈矾寰勫繀椤?insert-before-dispatch锛況evert/琛ュ伩蹇呴』鍚屾椂澶勭悊 DB 涓庨槦鍒椼€?

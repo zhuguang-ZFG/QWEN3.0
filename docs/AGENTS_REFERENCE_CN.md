@@ -63,7 +63,7 @@ Client → server_dlc.py (FastAPI 入口，:8081，/docs 已禁用 SEC-05)
 | 鉴权/限流 | `access_guard.py`, `rate_limiter.py`, `ws_ticket.py`, `device_logic/auth.py` |
 | 图生 | `dashscope_image_client.py`（DashScope/wanx，经 `asyncio.to_thread`） |
 
-**已退役模块（禁止按此表去找代码）**：旧 `server.py`/`routing_engine*`/`router_v3`/`routing_executor`/`http_caller`/`context_pipeline`（代码上下文 v3.0 删）/`session_memory` 主路径/`observability`/`provider_probe`（仅 JDCloud 冷离线指针）/`backends_registry` —— 均已在 P4/P5 瘦身物理删除。详见 `progress.md` 与 `docs/archive/`。
+**已退役模块（禁止按此表去找代码）**：旧 `server.py`/`routing_engine*`/`router_v3`/`routing_executor`/`http_caller`/`context_pipeline`（代码上下文 v3.0 删）/`session_memory` 主路径/`observability`/`provider_probe`（仅 JDCloud 冷离线指针）/`backends_registry` —— 均已在 P4/P5 瘦身物理删除。详见 `progress.md` 与 git history（仓库不再保留 `docs/archive/`）。
 
 ### 部署拓扑（2026-07-10）
 

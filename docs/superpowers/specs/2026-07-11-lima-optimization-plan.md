@@ -37,7 +37,7 @@ E (AI fallback 路由，独立；建议 B 完成后做，便于 warning 可观�
 - `server_dlc.py:25` 仍是 `logging.basicConfig`（已过时，见执行状态）；`observability/` 仅 `correlation.py`（内存 ring buffer）+ 4 个 prometheus 模块；无 structured_logging.py（已过时，见执行状态）；无 OTel。
 - `Dockerfile:29` 单 uvicorn，无 `--workers`。
 - `dlc_api/middleware.py` 仅 `BodySizeLimitMiddleware`，无 X-Request-ID（已过时，见执行状态）。
-- 可复用设计：`docs/OBSERVABILITY_EVENTS_CN.md:4`、`docs/archive/strategic-plans-2026-06/OPTIMIZATION_ANALYSIS_2026-06-23.md:127-128`。
+- 可复用设计：以当前 `server_dlc` 日志与 `STATUS.md` 为准（旧可观测/优化分析文档已删除）。
 
 ## 条目明细
 

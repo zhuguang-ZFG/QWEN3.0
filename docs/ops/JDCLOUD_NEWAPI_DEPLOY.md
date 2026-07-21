@@ -640,4 +640,4 @@ gh workflow run fix-cloudflare-api-bot-1010.yml -f mode=dns_only
 - `deploy/jdcloud/newapi.nginx.conf` — nginx 反代模板（本 runbook 配套新建）
 - `deploy/jdcloud/install_newapi.sh` — 一键安装脚本（本 runbook 配套新建）
 - `deploy/jdcloud/configure_newapi_firewall.sh` — new-api 专用 ufw（本 runbook 配套新建）
-- `docs/archive/superpowers-2026-05/2026-05-26-infra-tools-integration.md` — Infisical/Healthchecks/Tailscale 接入计划，可与 new-api 协同
+- Infisical/Healthchecks/Tailscale 等历史计划文档已删除（见 git history）

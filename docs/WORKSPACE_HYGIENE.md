@@ -1,54 +1,53 @@
-# 工作区卫生
+# 宸ヤ綔鍖哄崼鐢?
 
-LiMa 主仓库 (`D:\QWEN3.0`) 只保留 Server、设备子模块、评测 fixture 与文档。
-参考克隆、本地数据库、部署包和一次性脚本统一放在仓库外：
+LiMa 涓讳粨搴?(`D:\QWEN3.0`) 鍙繚鐣?Server銆佽澶囧瓙妯″潡銆佽瘎娴?fixture 涓庢枃妗ｃ€?
+鍙傝€冨厠闅嗐€佹湰鍦版暟鎹簱銆侀儴缃插寘鍜屼竴娆℃€ц剼鏈粺涓€鏀惧湪浠撳簱澶栵細
 
 ```text
 D:\LIMA-external\
-  reference-repos/     开源参考克隆
-  hardware-vendor/     inkscape / bCNC / llama.cpp 等
-  third-party-apps/    与 Server 无直接耦合的应用树
-  ops-tools/frp/       FRP 工具（运行中时可暂留 D:\GIT\frp 副本）
-  local-runtime/data/  SQLite、deploy tar、本地 smoke JSON
-  scratch/             根目录散落脚本与 context-construction 笔记
-  scratch/superpowers-plans/  未纳入 Git 的 superpowers 计划草稿
-  archives/            压缩包
-  cursor-local/        .claude / 本地代理配置
+  reference-repos/     寮€婧愬弬鑰冨厠闅?
+  hardware-vendor/     inkscape / bCNC / llama.cpp 绛?
+  third-party-apps/    涓?Server 鏃犵洿鎺ヨ€﹀悎鐨勫簲鐢ㄦ爲
+  ops-tools/frp/       FRP 宸ュ叿锛堣繍琛屼腑鏃跺彲鏆傜暀 D:\GIT\frp 鍓湰锛?
+  local-runtime/data/  SQLite銆乨eploy tar銆佹湰鍦?smoke JSON
+  scratch/             鏍圭洰褰曟暎钀借剼鏈笌 context-construction 绗旇
+  scratch/superpowers-plans/  鏈撼鍏?Git 鐨?superpowers 璁″垝鑽夌
+  archives/            鍘嬬缉鍖?
+  cursor-local/        .claude / 鏈湴浠ｇ悊閰嶇疆
 ```
 
-## 保留在仓库内
+## 淇濈暀鍦ㄤ粨搴撳唴
 
-- LiMa Python 核心、`routes/`、`tests/`、`docs/`（已 tracked 的 superpowers plans）
-- Git 子模块：`esp32S_XYZ`
+- LiMa Python 鏍稿績銆乣routes/`銆乣tests/`銆乣docs/`锛堝凡 tracked 鐨?superpowers plans锛?
+- Git 瀛愭ā鍧楋細`esp32S_XYZ`
 - `requirements_server.txt` and deliberate test fixtures stay tracked; mutable
   runtime JSON under `data/` stays ignored and must not be re-added
-- `donglicao-site-v2/`（Next.js 官网，tracked）；旧 `donglicao-site/` 归档后可移除
-- Agent Worker 本地运行状态使用 `.lima-worker/dev/`，不得重新引入 `.lima-code/`
-  或 `deepcode-cli` 作为当前验证路径。
+- `donglicao-site-v2/`锛圢ext.js 瀹樼綉锛宼racked锛夛紱鏃?`donglicao-site/` 褰掓。鍚庡彲绉婚櫎
+- Agent Worker 鏈湴杩愯鐘舵€佷娇鐢?`.lima-worker/dev/`锛屼笉寰楅噸鏂板紩鍏?`.lima-code/`
+  鎴?`deepcode-cli` 浣滀负褰撳墠楠岃瘉璺緞銆?
 
-## FRP 仍在仓库内时
+## FRP 浠嶅湪浠撳簱鍐呮椂
 
-`frpc.exe` 若被进程占用，无法整目录搬走。可停止 FRP 后再迁移，或使用 junction：
+`frpc.exe` 鑻ヨ杩涚▼鍗犵敤锛屾棤娉曟暣鐩綍鎼蛋銆傚彲鍋滄 FRP 鍚庡啀杩佺Щ锛屾垨浣跨敤 junction锛?
 
 ```powershell
 cmd /c mklink /J D:\QWEN3.0\frp D:\LIMA-external\ops-tools\frp
 ```
 
-## 被锁定的本地 DB
+## 琚攣瀹氱殑鏈湴 DB
 
-`data/agent_tasks.db` 等在服务运行时无法移动。
-已在 `.gitignore` 忽略；停服后可手动移到 `D:\LIMA-external\local-runtime\data\`。
-## Codex `.codex/` 边界
+`data/agent_tasks.db` 绛夊湪鏈嶅姟杩愯鏃舵棤娉曠Щ鍔ㄣ€?
+宸插湪 `.gitignore` 蹇界暐锛涘仠鏈嶅悗鍙墜鍔ㄧЩ鍒?`D:\LIMA-external\local-runtime\data\`銆?
+## Codex `.codex/` 杈圭晫
 
-- `.codex/config.toml` 可以提交，用来放项目级 Codex 默认配置。
-- `.codex/agents/*.toml` 可以提交，用来定义项目级 custom agents。
-- 其他 `.codex/` 本地缓存、技能、会话状态继续忽略，不要把整目录放开。
+- `.codex/config.toml` 鍙互鎻愪氦锛岀敤鏉ユ斁椤圭洰绾?Codex 榛樿閰嶇疆銆?
+- `.codex/agents/*.toml` 鍙互鎻愪氦锛岀敤鏉ュ畾涔夐」鐩骇 custom agents銆?
+- 鍏朵粬 `.codex/` 鏈湴缂撳瓨銆佹妧鑳姐€佷細璇濈姸鎬佺户缁拷鐣ワ紝涓嶈鎶婃暣鐩綍鏀惧紑銆?
 
-## 文档归档卫生
+## 鏂囨。鍗敓
 
-归档 `docs/` 下的文档时遵循以下规则，避免索引死链和协作者困惑：
+杩囨湡鏂囨。**鐩存帴鍒犻櫎**锛屼粨搴撲笉鍐嶇淮鎶?`docs/archive/`锛堥渶瑕佹椂鐢?git history 鎭㈠锛夛細
 
-1. **移到 `docs/archive/`**：归档文件统一放 `docs/archive/`，不散落到子目录。
-2. **同步更新 `docs/README.md`**：归档后立即从活跃表格移除或改为 `archive/` 路径，更新索引日期。
-3. **标注归档原因**：在文件头部或 commit message 说明归档原因（被取代、过时、已完成等）。
-4. **检查 VitePress 侧边栏**：`docs-site/.vitepress/config.ts` 仅引用 `docs-site/` 内文件，与 `docs/` 独立，一般无需同步；但若 docs-site 内有对应内容则一并清理。
+1. **鍒犻櫎鑰岄潪褰掓。鐩綍**锛氳繃鏈?琚彇浠ｆ枃妗?`git rm`锛宑ommit message 鍐欐槑鍘熷洜銆?
+2. **鍚屾 `docs/README.md` 涓?`STATUS.md`**锛氫粠绱㈠紩涓庣姸鎬佽〃绉婚櫎姝婚摼锛屾洿鏂版棩鏈熴€?
+3. **妫€鏌?VitePress**锛歚docs-site/.vitepress/config.ts` 浠呭紩鐢?`docs-site/`锛涜嫢鍏紑绔欐湁瀵瑰簲椤靛垯涓€骞舵竻鐞嗐€?

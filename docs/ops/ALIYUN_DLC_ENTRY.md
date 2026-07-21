@@ -151,4 +151,4 @@ ssh root@47.112.162.80 \
 
 - 旧 `lima-router-pilot.service` 停止并禁用。
 - 旧 `aliyun.donglicao.com` 域名可保留重定向到 `chat.donglicao.com`，或逐步退役。
-- 详细历史 runbook 见 `docs/ops/ALIYUN_PILOT_DEPLOY.md`。
+- 历史 pilot runbook 已删除（见 git history）。

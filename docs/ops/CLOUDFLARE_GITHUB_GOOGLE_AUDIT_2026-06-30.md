@@ -80,7 +80,7 @@ Tests: 42 | Deploy: 36 | Deploy Next.js Site: 5 | Setup Cloudflare Pages: 5 | De
 | 功能 | 用途 | 状态 |
 |---|---|---|
 | **Gemini/Gemma API** | `google_flash_lite`、`google_flash`、`google_pro`、`google_gemma4` 等后端 | ✅ 在路由池，有 budget |
-| **Google AI model discovery** | 计划中的 `scripts/inventory_google_models.py`（参考 `docs/archive/.../2026-05-26-cloudflare-google-maximization.md`） | ❌ 未实现 |
+| **Google AI model discovery** | 计划中的 `scripts/inventory_google_models.py` | ❌ 未实现 |
 
 ### 4.2 未使用 / 可优化
 

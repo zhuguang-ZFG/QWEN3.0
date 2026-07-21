@@ -182,7 +182,7 @@ python scripts/run_pre_commit_check.py --full
 
 ## 退役说明
 
-P4/P5 瘦身后已移除旧 LiMa 多后端路由、`server.py`、`routing_engine*`、Chat/Admin/Voice 等模块。详见 [`STATUS.md`](STATUS.md) 与 [`docs/archive/`](docs/archive/)。
+P4/P5 瘦身后已移除旧 LiMa 多后端路由、`server.py`、`routing_engine*`、Chat/Admin 等模块。详见 [`STATUS.md`](STATUS.md) 与 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
 
 ---
 

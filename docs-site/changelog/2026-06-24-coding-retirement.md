@@ -11,7 +11,7 @@
 
 - 移除代码编辑、IDE 插件相关路由与入口。
 - `routing_classifier` 不再将请求导向 `ide`/`code` 场景。
-- 相关测试、文档与示例逐步归档到 `docs/archive/`。
+- 相关测试、文档与示例已清理；过期文档不再保留在仓库。
 
 ## 用户影响
 
@@ -20,5 +20,5 @@
 
 ## 相关文档
 
-- `docs/archive/ROUTING_ENGINE_DESIGN.md`
+- 旧 `ROUTING_ENGINE_DESIGN` 等（已删除，见 git history）
 - `progress.md` 第 2026-06-24 条

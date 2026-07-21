@@ -52,7 +52,7 @@
 
 ### BACKLOG-P1-3 retired 代码文件在 docs 树
 
-- **事实**：`docs/archive/retired/` 含历史脚本。
+- **事实**：历史 retired 脚本已从仓库删除（git history 可查）。
 - **决策**：删 or 移至 `archive/code/`。
 
 ### BACKLOG-P1-4 agent 配置树合并

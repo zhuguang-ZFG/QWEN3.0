@@ -225,5 +225,5 @@ python scripts/run_ruff_check.py
 
 - [x] `STATUS.md` 已更新（VPS 已恢复 200）
 - [x] `progress.md` 已附本文件链接与 pytest 摘要
-- [x] `docs/LIMA_MEMORY_CN.md` 已记录跨会话事实：VPS 因 `device_ledger.store` 缺失配置函数崩溃，需用 `deploy_unified.py` 同步 store/memory/notifier 文件。
+- [x] 跨会话事实已记录（原 LIMA_MEMORY；现以 STATUS/progress 为准）：VPS 因 `device_ledger.store` 缺失配置函数崩溃，需用 `deploy_unified.py` 同步相关文件。
 - [x] 仅 stage 本切片相关文件后 commit（见 Git 记录）
