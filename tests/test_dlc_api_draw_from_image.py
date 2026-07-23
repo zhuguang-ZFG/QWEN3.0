@@ -83,8 +83,13 @@ def test_preview_draw_from_image_missing_url() -> None:
     assert "image_url" in data["error"].lower()
 
 
-@patch("dlc_api.routes.handle_draw_from_image", new_callable=AsyncMock)
-def test_dispatch_draw_from_image(mock_draw_from_image) -> None:
+@patch(
+    "dlc_api.motion_payload.validate_image_url_async",
+    new_callable=AsyncMock,
+    return_value=("https://api.telegram.org/file/bot123/img.png", None),
+)
+@patch("dlc_api.motion_payload.handle_draw_from_image", new_callable=AsyncMock)
+def test_dispatch_draw_from_image(mock_draw_from_image, _mock_validate) -> None:
     mock_draw_from_image.return_value = {
         "status": "success",
         "svg_path": "M0,0",
@@ -123,8 +128,13 @@ def test_dispatch_draw_from_image(mock_draw_from_image) -> None:
         assert motion_task["request_id"] == "req-2"
 
 
-@patch("dlc_api.routes.handle_draw_from_image", new_callable=AsyncMock)
-def test_dispatch_draw_from_image_failed(mock_draw_from_image) -> None:
+@patch(
+    "dlc_api.motion_payload.validate_image_url_async",
+    new_callable=AsyncMock,
+    return_value=("https://api.telegram.org/file/bot123/bad.png", None),
+)
+@patch("dlc_api.motion_payload.handle_draw_from_image", new_callable=AsyncMock)
+def test_dispatch_draw_from_image_failed(mock_draw_from_image, _mock_validate) -> None:
     mock_draw_from_image.return_value = {
         "status": "failed",
         "svg_path": "",

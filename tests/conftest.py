@@ -70,6 +70,15 @@ for _key in _TEST_ENV_KEYS:
     _TEST_ENV_ORIGINAL[_key] = os.environ.get(_key)
     os.environ.setdefault(_key, _TEST_ENV_DEFAULTS[_key])
 
+# Deploy tests must not depend on a local ~/.ssh key or real SSH credentials (CI
+# has neither). Provide a throwaway password + a non-existent key path so
+# connect_ssh takes the password branch and the mocked SSHClient.connect runs.
+_DEPLOY_ENV_KEYS = ("LIMA_JDCLOUD_ROOT_PASSWORD", "LIMA_DEPLOY_KEY_PATH")
+for _key in _DEPLOY_ENV_KEYS:
+    _TEST_ENV_ORIGINAL[_key] = os.environ.get(_key)
+os.environ["LIMA_JDCLOUD_ROOT_PASSWORD"] = "lima-test-deploy-pw"
+os.environ["LIMA_DEPLOY_KEY_PATH"] = "/nonexistent/lima-test-key"  # key_path stays None
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -122,6 +131,13 @@ def pytest_sessionfinish(session, exitstatus):
     import shutil
 
     for _key in _TEST_ENV_KEYS:
+        _original = _TEST_ENV_ORIGINAL.get(_key)
+        if _original is None:
+            os.environ.pop(_key, None)
+        else:
+            os.environ[_key] = _original
+
+    for _key in _DEPLOY_ENV_KEYS:
         _original = _TEST_ENV_ORIGINAL.get(_key)
         if _original is None:
             os.environ.pop(_key, None)
