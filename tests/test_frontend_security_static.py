@@ -4,8 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# esp32S_XYZ is a git submodule; locally it may not be checked out. Skip the
+# firmware-dependent checks in that case (CI checks it out automatically).
+_SUBMODULE = ROOT / "esp32S_XYZ"
+_submodule_present = _SUBMODULE.is_dir() and (_SUBMODULE / "firmware").is_dir()
+_submodule_required = pytest.mark.skipif(not _submodule_present, reason="esp32S_XYZ submodule not checked out")
 
 
 def test_public_chat_has_content_security_policy() -> None:
@@ -31,12 +38,14 @@ def test_public_chat_renderer_does_not_restore_unescaped_image_attributes() -> N
         assert "'<img src=\"'+img.url+'\" alt=\"'+img.alt" not in text
 
 
+@_submodule_required
 def test_lima_direct_firmware_defaults_to_secure_websocket() -> None:
     text = (ROOT / "esp32S_XYZ/firmware/u8-xiaozhi/main/protocols/websocket_protocol.cc").read_text(encoding="utf-8")
     assert 'url = "wss://chat.donglicao.com/device/v1/ws";' in text
     assert 'url = "ws://chat.donglicao.com/device/v1/ws";' not in text
 
 
+@_submodule_required
 def test_firmware_websocket_protocol_is_lima_only() -> None:
     text = (ROOT / "esp32S_XYZ/firmware/u8-xiaozhi/main/protocols/websocket_protocol.cc").read_text(encoding="utf-8")
     assert "CONFIG_LIMA_DIRECT_MODE" not in text
@@ -46,6 +55,7 @@ def test_firmware_websocket_protocol_is_lima_only() -> None:
     assert 'strcmp(type->valuestring, "hello_ack") == 0' in text
 
 
+@_submodule_required
 def test_u1_webui_authentication_is_enabled() -> None:
     """U1 Grbl WebUI must not ship with authentication commented out."""
     text = (ROOT / "esp32S_XYZ/firmware/u1-grbl/Grbl_Esp32/src/Config.h").read_text(encoding="utf-8")
