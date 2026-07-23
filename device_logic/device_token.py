@@ -21,11 +21,6 @@ def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def _token_hash(token: str) -> str:
-    """Backward-compatible alias for callers/tests using the private name."""
-    return token_hash(token)
-
-
 def lookup_device_id_by_token(token: str) -> str | None | object:
     """Resolve plaintext token → device_id via v2_device_token.
 
@@ -76,7 +71,7 @@ def ensure_device_token(conn: sqlite3.Connection, device_id: str) -> tuple[str |
         INSERT INTO v2_device_token (device_id, token_hash, created_at, rotated_at)
         VALUES (?, ?, ?, ?)
         """,
-        (device_id, _token_hash(token), ts, ts),
+        (device_id, token_hash(token), ts, ts),
     )
     return token, True
 
@@ -93,6 +88,6 @@ def rotate_device_token(conn: sqlite3.Connection, device_id: str) -> str:
             token_hash=excluded.token_hash,
             rotated_at=excluded.rotated_at
         """,
-        (device_id, _token_hash(token), ts, ts),
+        (device_id, token_hash(token), ts, ts),
     )
     return token
