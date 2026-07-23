@@ -7,9 +7,7 @@ from dashscope_image_client import DashScopeImageClient
 from device_gateway.device_draw_config import resolve_draw_model
 from device_gateway.model_routing import try_backends
 from device_gateway.handwriting_path import try_text_to_handwriting
-from xiaozhi_drawing.svg_converter import SVGConverter
 from xiaozhi_drawing.preset_shapes import get_preset_svg
-from device_gateway.draw_svg_stage import optimize_draw_svg, validate_draw_svg
 
 from device_gateway.device_profile.registry import get_device_profile
 from device_gateway.draw_prompt_enhancer import (
@@ -19,9 +17,9 @@ from device_gateway.draw_prompt_enhancer import (
     screen_drawing_request,
 )
 from device_gateway.path_pipeline import precheck_draw_motion_path
+from device_gateway.image_url_validation import validate_image_url_async
 from device_gateway.draw_responses import build_failed_response as _build_failed_response
-from device_gateway.draw_responses import build_partial_response as _build_partial_response
-from device_gateway.draw_responses import build_success_response as _build_success_response
+from device_gateway.draw_image_conversion import _convert_and_optimize
 
 logger = logging.getLogger(__name__)
 
@@ -121,48 +119,6 @@ async def _generate_image(
         return {"status": "failed", "images": [], "task_id": "", "error": str(exc)}
 
 
-async def _convert_image_to_svg(image_url: str) -> Dict[str, Any]:
-    """Convert an image URL to an SVG result dict."""
-    converter = SVGConverter()
-    return await converter.convert_url_to_svg(image_url, skeletonize=True, reorder_strokes=True)
-
-
-def _check_motion_bounds(optimization: Any, *, device_id: Optional[str] = None) -> str | None:
-    """Return an error string if the optimized path exceeds motion bounds."""
-    bounds_err = precheck_draw_motion_path(optimization.optimized_path, device_id=device_id)
-    if bounds_err:
-        logger.warning("Draw motion bounds precheck failed: %s", bounds_err)
-    return bounds_err
-
-
-async def _convert_and_optimize(image_url: str, model: str, *, device_id: Optional[str] = None) -> Dict[str, Any]:
-    """Convert → optimize into workspace → validate/precheck (avoid rejecting raw pixel paths)."""
-    svg_result = await _convert_image_to_svg(image_url)
-    if svg_result["status"] != "success":
-        return _build_partial_response(image_url, 0, 0, model, error=f"SVG conversion failed: {svg_result['error']}")
-
-    # Optimize first so large image-space paths scale into the device canvas before
-    # bbox validation (W1). Then validate + motion precheck on the scaled path.
-    optimization = optimize_draw_svg(svg_result["svg_path"], svg_result, device_id=device_id)
-    _validation, error = validate_draw_svg(
-        {"svg_path": optimization.optimized_path},
-        device_id=device_id,
-    )
-    if error:
-        return _build_partial_response(image_url, svg_result["width"], svg_result["height"], model, error=error)
-
-    bounds_err = _check_motion_bounds(optimization, device_id=device_id)
-    if bounds_err:
-        return _build_partial_response(
-            image_url,
-            svg_result["width"],
-            svg_result["height"],
-            model,
-            error=f"Motion bounds precheck failed: {bounds_err}",
-        )
-    return _build_success_response(image_url, svg_result, optimization, model)
-
-
 def _finalize_draw_response(
     device_id: Optional[str],
     prompt: str,
@@ -185,7 +141,17 @@ from device_gateway.device_draw_config import _resolve_draw_request  # noqa: F40
 async def _convert_provided_image(image_url: str, config: dict, device_id: str | None, prompt: str) -> dict[str, Any]:
     """Convert a caller-provided image URL to an optimized draw path."""
     try:
-        response = await _convert_and_optimize(image_url, config["model"], device_id=device_id)
+        validated_url, url_err = await validate_image_url_async(image_url)
+        if url_err:
+            logger.warning("Rejected provided image_url: %s", url_err)
+            return _finalize_draw_response(
+                device_id,
+                prompt,
+                _build_failed_response(config["model"], f"image_url not allowed: {url_err}"),
+            )
+        response = await _convert_and_optimize(
+            validated_url, config["model"], device_id=device_id, allowed_hosts=frozenset()
+        )
         if response.get("status") != "success":
             record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, response)
@@ -207,18 +173,8 @@ def _try_fast_paths(
     )
 
 
-async def _try_preset_or_generate(
-    prompt: str, device_id: str | None, config: dict, image_url: str | None
-) -> dict[str, Any]:
-    """Try provided image URL, then preset shape/handwriting fast paths, then AI generation."""
-    if image_url and len(image_url) < 2000 and image_url.startswith(("https://", "http://")):
-        return await _convert_provided_image(image_url, config, device_id, prompt)
-    fast = _try_fast_paths(prompt, device_id, config.get("device_type"), config.get("font_name"))
-    if fast:
-        if fast.get("status") != "success":
-            record_failed_draw_prompt(device_id, prompt, error=str(fast.get("error") or ""))
-        return _finalize_draw_response(device_id, prompt, fast)
-
+async def _generate_and_convert(prompt: str, config: dict, device_id: str | None) -> dict[str, Any]:
+    """AI generate an image from the prompt, then convert/optimize it for drawing."""
     # 降级优于拒绝：复杂描述简化成单线简笔画尽力画，而非在 prompt 层硬拒绝。
     # feasible=True 时 simplified_prompt 就是原 prompt；不可行时是启发式简化版。
     # 下游 motion bounds precheck + path_validator 硬点数上限双重兜底真实超限路径。
@@ -245,7 +201,12 @@ async def _try_preset_or_generate(
             )
 
         generated_image_url = result["images"][0]["url"]
-        response = await _convert_and_optimize(generated_image_url, config["model"], device_id=device_id)
+        response = await _convert_and_optimize(
+            generated_image_url,
+            config["model"],
+            device_id=device_id,
+            allowed_hosts=frozenset(),
+        )
         if response.get("status") != "success":
             record_failed_draw_prompt(device_id, prompt, error=str(response.get("error") or ""))
         return _finalize_draw_response(device_id, prompt, response)
@@ -257,6 +218,21 @@ async def _try_preset_or_generate(
         logger.error("Device draw failed: %s", exc, exc_info=True)
         record_failed_draw_prompt(device_id, prompt, error=str(exc))
         return _finalize_draw_response(device_id, prompt, _build_failed_response(config["model"], str(exc)))
+
+
+async def _try_preset_or_generate(
+    prompt: str, device_id: str | None, config: dict, image_url: str | None
+) -> dict[str, Any]:
+    """Try provided image URL, then preset shape/handwriting fast paths, then AI generation."""
+    if image_url and len(image_url) < 2000 and image_url.startswith(("https://", "http://")):
+        return await _convert_provided_image(image_url, config, device_id, prompt)
+    fast = _try_fast_paths(prompt, device_id, config.get("device_type"), config.get("font_name"))
+    if fast:
+        if fast.get("status") != "success":
+            record_failed_draw_prompt(device_id, prompt, error=str(fast.get("error") or ""))
+        return _finalize_draw_response(device_id, prompt, fast)
+
+    return await _generate_and_convert(prompt, config, device_id)
 
 
 async def handle_device_draw(

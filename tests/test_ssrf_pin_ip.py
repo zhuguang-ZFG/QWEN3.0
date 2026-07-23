@@ -125,3 +125,55 @@ class TestFetchPinned:
         monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo_private)
         with pytest.raises(ValueError, match="blocked"):
             await fetch_pinned("https://api.telegram.org/image.png")
+
+
+# --------------------------------------------------------------------------- #
+#  allowlist enforcement (SEC-04) for pin-IP path
+# --------------------------------------------------------------------------- #
+
+
+def test_validate_and_pin_ip_rejects_non_allowlisted_host_by_default(monkeypatch):
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo_public)
+    with pytest.raises(ValueError, match="not allowed"):
+        validate_and_pin_ip("https://evil.com/image.png")
+
+
+def test_validate_and_pin_ip_skips_allowlist_with_empty_set(monkeypatch):
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo_public)
+    url, pinned_ip, host = validate_and_pin_ip("https://evil.com/image.png", allowed_hosts=frozenset())
+    assert pinned_ip == "93.184.216.34"
+    assert host == "evil.com"
+
+
+@pytest.mark.asyncio
+async def test_fetch_pinned_rejects_non_allowlisted_host_by_default(monkeypatch):
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo_public)
+    with pytest.raises(ValueError, match="not allowed"):
+        await fetch_pinned("https://evil.com/image.png")
+
+
+@pytest.mark.asyncio
+async def test_fetch_pinned_allows_any_public_host_with_empty_set(monkeypatch):
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_getaddrinfo_public)
+
+    with patch("xiaozhi_drawing.image_url_validation.httpx.AsyncClient") as MockClient:
+        mock_instance = AsyncMock()
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=False)
+
+        captured_requests = []
+
+        async def capture_get(url, *, headers=None, extensions=None):
+            captured_requests.append((url, headers, extensions))
+            req = httpx.Request("GET", url)
+            return httpx.Response(200, content=b"PNG_DATA", request=req)
+
+        mock_instance.get = capture_get
+        MockClient.return_value = mock_instance
+
+        result = await fetch_pinned("https://evil.com/image.png", allowed_hosts=frozenset())
+        assert result == b"PNG_DATA"
+        assert len(captured_requests) == 1
+        req_url, req_headers, _req_ext = captured_requests[0]
+        assert "93.184.216.34" in req_url
+        assert req_headers["Host"] == "evil.com"

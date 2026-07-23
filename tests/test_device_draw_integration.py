@@ -35,7 +35,7 @@ async def test_device_draw_with_validation_and_optimization():
 
     with (
         patch("device_gateway.device_draw_handler.DashScopeImageClient", return_value=mock_client),
-        patch("device_gateway.device_draw_handler.SVGConverter", return_value=mock_converter),
+        patch("device_gateway.draw_image_conversion.SVGConverter", return_value=mock_converter),
     ):
         result = await handle_device_draw("画一只猫", device_id="test-001")
 
@@ -74,7 +74,7 @@ async def test_device_draw_validation_failure():
 
     with (
         patch("device_gateway.device_draw_handler.DashScopeImageClient", return_value=mock_client),
-        patch("device_gateway.device_draw_handler.SVGConverter", return_value=mock_converter),
+        patch("device_gateway.draw_image_conversion.SVGConverter", return_value=mock_converter),
     ):
         result = await handle_device_draw("画一只猫", device_id="test-002")
 
@@ -100,7 +100,7 @@ async def test_device_draw_optimization_reduces_points():
 
     with (
         patch("device_gateway.device_draw_handler.DashScopeImageClient", return_value=mock_client),
-        patch("device_gateway.device_draw_handler.SVGConverter", return_value=mock_converter),
+        patch("device_gateway.draw_image_conversion.SVGConverter", return_value=mock_converter),
     ):
         result = await handle_device_draw("画线条", device_id="test-003")
 
@@ -134,7 +134,7 @@ async def test_complex_prompt_degrades_to_generation_not_rejected():
 
     with (
         patch("device_gateway.device_draw_handler.DashScopeImageClient", return_value=mock_client),
-        patch("device_gateway.device_draw_handler.SVGConverter", return_value=mock_converter),
+        patch("device_gateway.draw_image_conversion.SVGConverter", return_value=mock_converter),
     ):
         # complex 请求（含"城市/人群"高信号词），无 profile 设备
         result = await handle_device_draw("画一座城市和人群的照片", device_id="test-complex")

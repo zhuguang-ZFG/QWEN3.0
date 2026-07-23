@@ -72,11 +72,29 @@ def validate_image_url(image_url: str) -> tuple[str | None, str | None]:
 # --------------------------------------------------------------------------- #
 
 
-def validate_and_pin_ip(image_url: str) -> tuple[str, str, str]:
-    """Resolve URL host, assert ALL addresses are public, return pin info.
+def _require_allowed_host(hostname: str, allowed_hosts: frozenset[str] | None) -> frozenset[str]:
+    """Return the effective allowlist and raise if hostname is not in it."""
+    if allowed_hosts is None:
+        allowed_hosts = allowed_image_hosts()
+    if allowed_hosts and hostname not in allowed_hosts:
+        raise ValueError(f"image_url host not allowed: {hostname}")
+    return allowed_hosts
 
-    Returns:
-        (url, pinned_ip, original_host)
+
+def validate_and_pin_ip(
+    image_url: str,
+    *,
+    allowed_hosts: frozenset[str] | None = None,
+) -> tuple[str, str, str]:
+    """Resolve URL host, assert ALL addresses are public and host is allowlisted, return pin info.
+
+    Args:
+        image_url: URL to validate and pin.
+        allowed_hosts: Explicit allowlist of hostnames. If ``None``, the
+            default ``allowed_image_hosts()`` (SEC-04) is used. Pass an empty
+            ``frozenset()`` to skip host-allowlist checks while still blocking
+            private/loopback addresses (e.g., for URLs returned by a trusted
+            internal service such as DashScope).
 
     Raises:
         ValueError on any validation failure.
@@ -95,6 +113,8 @@ def validate_and_pin_ip(image_url: str) -> tuple[str, str, str]:
     if _is_private_ip(hostname):
         raise ValueError("image_url hostname is blocked (private/loopback/link-local)")
 
+    _require_allowed_host(hostname, allowed_hosts)
+
     try:
         addrs = _resolve_hostname(hostname)
     except OSError as exc:
@@ -111,14 +131,26 @@ def validate_and_pin_ip(image_url: str) -> tuple[str, str, str]:
     return url, pinned_ip, hostname
 
 
-async def fetch_pinned(image_url: str, *, timeout: float = 30.0) -> bytes:
+async def fetch_pinned(
+    image_url: str,
+    *,
+    timeout: float = 30.0,
+    allowed_hosts: frozenset[str] | None = None,
+) -> bytes:
     """Download image_url with pin-IP protection against SSRF/DNS-rebinding.
+
+    Args:
+        image_url: URL to download.
+        timeout: Request timeout in seconds.
+        allowed_hosts: Explicit host allowlist. ``None`` applies the default
+            SEC-04 allowlist. Pass an empty ``frozenset()`` to allow any public
+            host (use only for URLs from a trusted internal service).
 
     Raises:
         ValueError on validation failure.
         httpx.HTTPStatusError on non-2xx response.
     """
-    url, pinned_ip, original_host = validate_and_pin_ip(image_url)
+    url, pinned_ip, original_host = validate_and_pin_ip(image_url, allowed_hosts=allowed_hosts)
 
     parsed = urlparse(url)
     pinned_netloc = f"{pinned_ip}:{parsed.port}" if parsed.port else pinned_ip
