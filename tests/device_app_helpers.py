@@ -64,16 +64,8 @@ def seed_binding(
         conn.commit()
 
 
-def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
-    monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "device_app.db"))
-    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
-    monkeypatch.setenv("LIMA_XIAOZHI_LOGIN_CODE", "000000")
-    monkeypatch.setenv("LIMA_DEVICE_APP_WS_QUERY_AUTH", "1")
-    _schema_ready_paths.clear()
-    reset_activation_store_for_tests()
-    reset_tasks_for_tests()
-    store = install_task_store_for_tests(InMemoryDeviceTaskStore())
-
+def _build_device_app() -> FastAPI:
+    """Construct the device-app FastAPI with all routers mounted."""
     from routes.device_app_api import router as app_router
     from routes.device_app_assets import router as assets_router
     from routes.device_app_auth import router as auth_router
@@ -96,22 +88,39 @@ def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
 
     registry.clear()
     app = FastAPI()
-    app.include_router(app_router)
-    app.include_router(assets_router)
-    app.include_router(auth_router)
-    app.include_router(chat_router)
-    app.include_router(voice_router)
-    app.include_router(voice_ws_router)
-    app.include_router(voice_legacy_ws_router)
-    app.include_router(provision_router)
-    app.include_router(images_router)
-    app.include_router(member_router)
-    app.include_router(misc_router)
-    app.include_router(notifications_router)
-    app.include_router(stats_router)
-    app.include_router(template_router)
-    app.include_router(task_router)
-    app.include_router(task_extras_router)
-    app.include_router(status_ws_router)
-    app.include_router(activity_router)
+    for router in (
+        app_router,
+        assets_router,
+        auth_router,
+        chat_router,
+        voice_router,
+        voice_ws_router,
+        voice_legacy_ws_router,
+        provision_router,
+        images_router,
+        member_router,
+        misc_router,
+        notifications_router,
+        stats_router,
+        template_router,
+        task_router,
+        task_extras_router,
+        status_ws_router,
+        activity_router,
+    ):
+        app.include_router(router)
+    return app
+
+
+def client(tmp_path, monkeypatch) -> tuple[TestClient, InMemoryDeviceTaskStore]:
+    monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "device_app.db"))
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
+    monkeypatch.setenv("LIMA_XIAOZHI_LOGIN_CODE", "000000")
+    monkeypatch.setenv("LIMA_DEVICE_APP_WS_QUERY_AUTH", "1")
+    _schema_ready_paths.clear()
+    reset_activation_store_for_tests()
+    reset_tasks_for_tests()
+    store = install_task_store_for_tests(InMemoryDeviceTaskStore())
+
+    app = _build_device_app()
     return TestClient(app), store
