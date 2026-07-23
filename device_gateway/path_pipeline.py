@@ -25,9 +25,11 @@ import math
 from device_gateway.path_data import (
     FONT_CHAR_W,
     MAX_PATH_POINTS,  # noqa: F401  re-export imported by tests
+    PEN_UP_Z,
     _FONT_GLYPHS,
     clamp_path,
 )
+from device_gateway.path_decimate import decimate_to_max_points
 from device_gateway.path_optimizer import PathOptimizer, apply_multi_pass
 from device_gateway.path_workspace import resolve_workspace_mm
 from device_gateway.svg_parser import svg_path_to_motion
@@ -42,10 +44,16 @@ def text_to_path(
     origin_x: float = 5.0,
     origin_y: float = 20.0,
     scale: float = 2.0,
+    max_points: int = MAX_PATH_POINTS,
 ) -> list[dict[str, float]]:
-    """ASCII stroke-font polyline; pen-up = consecutive identical points."""
+    """ASCII stroke-font polyline; pen-up reposition points carry z > 0.
+
+    Pen state is written per point (previously computed but never emitted):
+    stroke/glyph repositioning moves (font ``None`` markers) get z = PEN_UP_Z
+    (travel at safe height), drawing points get z = 0. Over-budget paths are
+    decimated per-stroke (Douglas-Peucker) instead of silently truncated.
+    """
     path: list[dict[str, float]] = []
-    pen_down = False
     cursor_x = origin_x
     for ch in text:
         glyph = _FONT_GLYPHS.get(ch, _FONT_GLYPHS.get("?"))
@@ -54,17 +62,16 @@ def text_to_path(
             continue
         for item in glyph:
             if len(item) == 3 and item[0] is None:
-                if pen_down and path:
-                    pen_down = False
+                # Pen-up reposition (stroke start / inter-glyph travel).
                 px = cursor_x + float(item[1]) * scale
                 py = origin_y - float(item[2]) * scale
-                path.append({"x": round(px, 2), "y": round(py, 2), "z": 0})
+                path.append({"x": round(px, 2), "y": round(py, 2), "z": PEN_UP_Z})
             else:
                 px = cursor_x + float(item[0]) * scale
                 py = origin_y - float(item[1]) * scale
                 path.append({"x": round(px, 2), "y": round(py, 2), "z": 0})
-                pen_down = True
         cursor_x += FONT_CHAR_W * scale
+    path = decimate_to_max_points(path, max_points)
     return clamp_path(path)
 
 
@@ -75,11 +82,18 @@ def _motion_path_to_svg_d(path: list[dict[str, float]]) -> str:
     prev_pt: dict[str, float] | None = None
     pending_move = True
     for pt in path:
-        if prev_pt is not None and pt["x"] == prev_pt["x"] and pt["y"] == prev_pt["y"]:
+        # Pen-up = z > 0 (safe-height travel) or legacy consecutive duplicates.
+        is_duplicate = prev_pt is not None and pt["x"] == prev_pt["x"] and pt["y"] == prev_pt["y"]
+        if float(pt.get("z", 0.0)) > 0:
+            parts.append(f"M {pt['x']},{pt['y']}")
+            pending_move = False
+            prev_pt = pt
+            continue
+        if is_duplicate:
             pending_move = True
             continue
         cmd = "M" if pending_move else "L"
-        parts.append(f"{cmd} {pt['x']} {pt['y']}")
+        parts.append(f"{cmd} {pt['x']},{pt['y']}")
         pending_move = False
         prev_pt = pt
     return " ".join(parts)
@@ -176,7 +190,8 @@ def _normalize_path_to_workspace(
     origin_x = margin - min_x * scale
     origin_y = margin - min_y * scale
     normalized = [
-        {"x": round(origin_x + pt["x"] * scale, 2), "y": round(origin_y + pt["y"] * scale, 2), "z": 0} for pt in path
+        {"x": round(origin_x + pt["x"] * scale, 2), "y": round(origin_y + pt["y"] * scale, 2), "z": pt.get("z", 0)}
+        for pt in path
     ]
     # GW-B2: post-translation assertion — reject instead of silently dispatching.
     _assert_path_within_workspace(normalized, width, height, stage="normalize")
@@ -275,11 +290,11 @@ def preview_svg(
             f'<text x="10" y="20" font-size="12">(empty path)</text></svg>'
         )
 
-    points_str = " ".join(f"{p['x']},{p['y']}" for p in path)
+    d_string = _motion_path_to_svg_d(path)
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">'
         f'<rect width="{width}" height="{height}" fill="#fafafa" stroke="#ccc"/>'
-        f'<polyline points="{points_str}" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round"/>'
+        f'<path d="{d_string}" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round"/>'
         f'<text x="5" y="{height - 5}" font-size="10" fill="#888">{html.escape(title)} — {len(path)} pts</text>'
         f"</svg>"
     )

@@ -93,6 +93,12 @@ MAX_PATH_POINTS = 200
 MAX_WORKSPACE_MM = 200.0
 MIN_WORKSPACE_MM = 1.0
 
+# Pen-up travel height (mm). Pen state is encoded per point: z > 0 = pen up
+# (travel at safe height), z == 0 = pen down (drawing). Matches the
+# path_optimizer / device_intelligence.simulator convention; z < 0 is invalid
+# (rejected by safe_point / profile workspace checks).
+PEN_UP_Z = 5.0
+
 
 def clamp_path(
     path: list[dict[str, float]],
