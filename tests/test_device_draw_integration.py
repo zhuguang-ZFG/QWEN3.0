@@ -51,19 +51,24 @@ async def test_device_draw_with_validation_and_optimization():
 
 @pytest.mark.asyncio
 async def test_device_draw_validation_failure():
-    """测试 SVG 验证失败"""
+    """SVG 转换失败应返回 partial 状态。
+
+    大幅图象空间路径现在由 optimize_draw_svg 先缩放进设备画布再验证，
+    故「超出工作区」已不再触发拒绝（参见 _convert_and_optimize 注释）。
+    本测试改为覆盖转换失败这一稳定 partial 路径。
+    """
 
     mock_client = MagicMock()
     mock_client.generate.return_value = {"status": "success", "images": [{"url": "http://example.com/image.jpg"}]}
 
-    # 返回超出工作区的路径
     mock_converter = MagicMock()
     mock_converter.convert_url_to_svg = AsyncMock(
         return_value={
-            "status": "success",
-            "svg_path": "M 0 0 L 500 500 Z",  # 超出 200x200
-            "width": 512,
-            "height": 512,
+            "status": "failed",
+            "error": "skeletonize returned no contours",
+            "svg_path": "",
+            "width": 0,
+            "height": 0,
         }
     )
 
@@ -73,10 +78,10 @@ async def test_device_draw_validation_failure():
     ):
         result = await handle_device_draw("画一只猫", device_id="test-002")
 
-        # 应该返回 partial 状态
+        # 转换失败 → partial
         assert result["status"] == "partial"
         assert result["svg_path"] is None
-        assert "validation failed" in result["error"]
+        assert "SVG conversion failed" in result["error"]
 
 
 @pytest.mark.asyncio

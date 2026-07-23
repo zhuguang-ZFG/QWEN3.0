@@ -191,9 +191,9 @@ def test_fake_device_run_path_reports_positions_and_done():
 def test_fake_device_run_path_clamps_each_axis_and_reports_limit():
     device = FakeDevice()
     device.handle_command(home_command())
-    events = device.handle_command(run_path_command([MotionPoint(-1, 101, 99)]))
+    events = device.handle_command(run_path_command([MotionPoint(-1, 301, 99)]))
 
-    assert device.position.to_dict() == {"x": 0.0, "y": 100.0, "z": 20.0}
+    assert device.position.to_dict() == {"x": 0.0, "y": 300.0, "z": 80.0}
     assert MotionEventKind.LIMIT_HIT in _event_kinds(events)
 
 
@@ -260,9 +260,9 @@ def test_safe_point_outside_raises():
 
 
 def test_default_workspace_bounds():
-    assert DEFAULT_WORKSPACE_MM["x"] == 100.0
-    assert DEFAULT_WORKSPACE_MM["y"] == 100.0
-    assert DEFAULT_WORKSPACE_MM["z"] == 20.0
+    assert DEFAULT_WORKSPACE_MM["x"] == 300.0
+    assert DEFAULT_WORKSPACE_MM["y"] == 300.0
+    assert DEFAULT_WORKSPACE_MM["z"] == 80.0
 
 
 def test_fake_device_state_defaults():
