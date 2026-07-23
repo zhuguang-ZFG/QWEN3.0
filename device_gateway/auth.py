@@ -90,10 +90,9 @@ def _token_matches_db(device_id: str, token: str) -> bool:
     resolved = lookup_device_id_by_token(token)
     if not isinstance(resolved, str):
         return False
-    # device_id is not a secret; equality is enough. Length-guard compare_digest.
-    if len(resolved) != len(device_id):
-        return False
-    return compare_digest(resolved, device_id)
+    # resolved came from an exact token-hash lookup; plain equality is correct and
+    # there is no secret to protect against timing here (device_id is not a secret).
+    return resolved == device_id
 
 
 def validate_device_token(device_id: str, token: str) -> bool:
