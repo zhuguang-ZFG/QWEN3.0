@@ -3,6 +3,20 @@
 > 更早 findings / AUDIT 已删除；需要时查 git history。
 > 五问法：现象？复现？根因？修复？如何预防？
 
+## 2026-07-23 SEC-04 SSRF allowlist 绕过修复（PR #76，已部署）
+
+- **现象**：code review HIGH #1。服务端取图路径 `xiaozhi_drawing/image_url_validation.fetch_pinned` / `validate_and_pin_ip` 只挡私网 IP，**从不调用 `allowed_image_hosts()`**；`device_gateway/device_draw_handler` 外部 `image_url` 仅校验 `len<2000 + startswith(http/https)` 即交给 `convert_url_to_svg → fetch_pinned`，绕开主机 allowlist。绘图端点沦为公网取图代理（私网 IP 仍挡）。
+- **根因**：pin-IP 防护（防 DNS rebinding/TOCTOU）与主机 allowlist（SEC-04）是两道独立防线，`fetch_pinned` 只实现了前者；`device_draw_handler` 未复用已有的 `validate_image_url_async`。
+- **修复**：
+  - `fetch_pinned` / `validate_and_pin_ip` 新增 `allowed_hosts` 参数，默认 `None` → 使用 `allowed_image_hosts()` 强制 allowlist；传 `frozenset()` 显式跳过（仅用于可信内部来源如 DashScope 生成图 URL，仍保留私网/DNS-rebinding 防护）。
+  - `device_draw_handler._convert_provided_image` 外部 image_url 先过 `validate_image_url_async`，拒绝返回结构化失败。
+  - DashScope 生成图 URL 走 `allowed_hosts=frozenset()`（来源可信），主路径不受影响。
+  - 拆出 `device_gateway/draw_image_conversion.py`（image→SVG 转换）以满足文件 ≤300 行门禁。
+- **影响评估**：VPS `allowed_image_hosts()` = `{api.telegram.org, chat.donglicao.com}`（VERIFY_HOST 默认值内置于 `config/deploy_config.py`，非 env 依赖）。gallery 图 / Telegram 图 / DashScope 生成图均放行；仅“任意外部 URL 直接画图”被拒（即漏洞路径）。生产主链路（prompt→生成）无影响。
+- **验证**：pytest 2010 passed / 0 failed；ruff + size gate PASS；新增 `test_device_draw_handler_ssrf.py` + 扩展 `test_ssrf_pin_ip.py`（allowlist 拒绝/跳过）。VPS 已部署 `8b993d6e`，进程 PID 2489558，`/health` + `/health/ready` 200，文件级确认新代码生效。
+- **预防**：服务端任何出网取图必须同时过「私网 IP + 主机 allowlist」两道；新增取图路径默认 `allowed_hosts=None`（强制 allowlist），仅对可信内部 URL 显式传 `frozenset()`。
+- **注**：部署约定文档中的 `/device/v1/health` 探针实为过时路径（返回 404），真实健康端点是 `/health`（`dlc_api/routes.py:129`，含 `task_store_health`）。
+
 ## 2026-07-23 code review 低优先级项收尾（PR #74 / #75）
 
 - **范围**：code review 明细 `docs/CODE_REVIEW_2026-07-22_CN.md` 中遗留的 #1（统一 `DEFAULT_WORKSPACE_MM`）、#3（拆分 `path_pipeline.py` SVG 渲染）、#5（`route_evidence_builder` / `draw_prompt_memory` 测试盲区）、#2（`SafetyError` 裸字符串 vs `MotionErrorCode` 枚举双轨制）。
