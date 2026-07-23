@@ -1,4 +1,16 @@
-"""Safety constraints for first-slice device motion tasks."""
+"""Device-gateway internal safety primitives (raise-style).
+
+NOTE — this is NOT the production dispatch validator. Production task
+dispatch validates motion params via ``device_gateway.path_validator.
+validate_capability_params``, which returns a ``(sanitized, error)`` tuple using
+the structured ``MotionErrorCode`` enum (``E_BAD_PARAMS`` …) ready for motion
+events. The ``validate_run_path_params`` / ``safe_point`` here raise
+``SafetyError(str)`` and are used only by gateway internals and tests.
+
+If you need to reject a task at dispatch time, use ``path_validator`` — do not
+route the raise-style functions below into the dispatch path (they would lose
+the structured error code clients depend on).
+"""
 
 from __future__ import annotations
 
@@ -46,6 +58,7 @@ def validate_run_path_params(
     *,
     workspace_mm: dict[str, float] | None = None,
 ) -> dict[str, Any]:
+    """Raise-style validator (see module docstring). Dispatch uses path_validator."""
     path = params.get("path")
     if not isinstance(path, list) or not path:
         raise SafetyError("path must be a non-empty list")
