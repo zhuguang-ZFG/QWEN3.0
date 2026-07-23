@@ -16,9 +16,9 @@ def _reset_store():
     reset_tasks_for_tests()
 
 
-@pytest.mark.asyncio
-async def test_draw_generated_gallery_image_id_resolves_without_persisting_url(tmp_path, monkeypatch):
-    monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "gallery_draw.db"))
+def _seed_owner_and_image(tmp_path, monkeypatch, db_name: str, *, mime_type: str = "image/jpeg") -> dict:
+    """Seed the owner account + one gallery image; return the image row."""
+    monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / db_name))
     monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
     monkeypatch.setenv("LIMA_VERIFY_HOST", "chat.donglicao.com")
 
@@ -33,15 +33,20 @@ async def test_draw_generated_gallery_image_id_resolves_without_persisting_url(t
         )
         conn.commit()
 
-    image = gallery_store.add_image(
+    return gallery_store.add_image(
         account_id="owner",
         file_id="telegram-file-id",
         filename="cat.jpg",
         size_bytes=1234,
-        mime_type="image/jpeg",
+        mime_type=mime_type,
         thumb_url="https://api.telegram.org/file/botsecret/thumb.jpg",
         tags=[],
     )
+
+
+@pytest.mark.asyncio
+async def test_draw_generated_gallery_image_id_resolves_without_persisting_url(tmp_path, monkeypatch):
+    image = _seed_owner_and_image(tmp_path, monkeypatch, "gallery_draw.db")
 
     voice_task = {
         "capability": "draw_generated",
@@ -146,30 +151,7 @@ async def test_draw_generated_rejects_client_account_id_spoof(tmp_path, monkeypa
 
 @pytest.mark.asyncio
 async def test_draw_generated_gallery_image_id_ignores_image_url(tmp_path, monkeypatch):
-    monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "gallery_draw_priority.db"))
-    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
-    monkeypatch.setenv("LIMA_VERIFY_HOST", "chat.donglicao.com")
-
-    from device_logic.db import _schema_ready_paths, connect
-    from device_gateway import gallery_store
-
-    _schema_ready_paths.clear()
-    with connect() as conn:
-        conn.execute(
-            "INSERT OR IGNORE INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)",
-            ("owner", "owner-phone", "owner"),
-        )
-        conn.commit()
-
-    image = gallery_store.add_image(
-        account_id="owner",
-        file_id="telegram-file-id",
-        filename="cat.jpg",
-        size_bytes=1234,
-        mime_type="image/jpeg",
-        thumb_url="https://api.telegram.org/file/botsecret/thumb.jpg",
-        tags=[],
-    )
+    image = _seed_owner_and_image(tmp_path, monkeypatch, "gallery_draw_priority.db")
 
     voice_task = {
         "capability": "draw_generated",
