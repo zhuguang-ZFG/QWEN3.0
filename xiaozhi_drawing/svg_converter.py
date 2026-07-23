@@ -135,9 +135,13 @@ def _svg_payload(
 # --------------------------------------------------------------------------- #
 
 
-async def _download_image(image_url: str) -> BytesIO:
+async def _download_image(
+    image_url: str,
+    *,
+    allowed_hosts: frozenset[str] | None = None,
+) -> BytesIO:
     """Download image from URL with SSRF pin-IP protection."""
-    content = await fetch_pinned(image_url)
+    content = await fetch_pinned(image_url, allowed_hosts=allowed_hosts)
     return BytesIO(content)
 
 
@@ -202,10 +206,17 @@ class SVGConverter:
         spur_length_threshold: int = 10,
         min_stroke_length: float = 5.0,
         reorder_strokes: bool = False,
+        allowed_hosts: frozenset[str] | None = None,
     ) -> dict[str, Any]:
-        """Download image URL and convert to SVG paths."""
+        """Download image URL and convert to SVG paths.
+
+        Args:
+            allowed_hosts: ``None`` applies the SEC-04 default allowlist.
+                Pass ``frozenset()`` to download from any public host (e.g.,
+                URLs returned by a trusted internal image-generation service).
+        """
         try:
-            image_data = await _download_image(image_url)
+            image_data = await _download_image(image_url, allowed_hosts=allowed_hosts)
         except Exception as e:
             logger.error(f"下载图片失败: {e}")
             return _svg_payload("failed", error=f"Download failed: {e}")
