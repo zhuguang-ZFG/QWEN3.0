@@ -1,5 +1,6 @@
 """Tests for device_gateway.path_pipeline — text/SVG-to-path rendering."""
 
+from device_gateway.path_data import PEN_UP_Z
 from device_gateway.path_pipeline import (
     MAX_PATH_POINTS,
     preview_svg,
@@ -13,7 +14,30 @@ from device_gateway.path_pipeline import (
 def test_text_to_path_renders_ascii():
     path = text_to_path("Hi", origin_x=0, origin_y=20, scale=2)
     assert len(path) > 2
-    assert all("x" in p and "y" in p and p["z"] == 0 for p in path)
+    assert all("x" in p and "y" in p and "z" in p for p in path)
+    # Pen state is now written per point: z == 0 draws, z > 0 is pen-up travel.
+    assert all(p["z"] in (0, PEN_UP_Z) for p in path)
+
+
+def test_text_to_path_writes_pen_up_for_repositioning():
+    # 'H' begins with a pen-up move to the first stroke start (font None marker).
+    path = text_to_path("H", origin_x=0, origin_y=20, scale=2)
+    pen_up = [p for p in path if p["z"] > 0]
+    draw = [p for p in path if p["z"] == 0]
+    assert pen_up, "expected at least one pen-up reposition point"
+    assert all(p["z"] == PEN_UP_Z for p in pen_up)
+    assert draw, "expected drawing points at z == 0"
+
+
+def test_text_to_path_decimates_long_text_within_budget():
+    # '写'*40 falls back to '?' glyphs (7 pts each = 280) — must decimate to
+    # <= MAX_PATH_POINTS via per-stroke Douglas-Peucker, not silent truncation.
+    path = text_to_path("写" * 40)
+    assert 0 < len(path) <= MAX_PATH_POINTS
+    # All 40 glyphs represented: x-span reflects full cursor advance, not a
+    # truncated prefix.
+    xs = [p["x"] for p in path]
+    assert max(xs) - min(xs) > 100
 
 
 def test_text_to_path_unknown_char_falls_back_to_question_mark():
