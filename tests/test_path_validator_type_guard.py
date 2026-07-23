@@ -88,8 +88,8 @@ def test_inf_y_returns_error() -> None:
 
 
 def test_z_above_workspace_returns_error() -> None:
-    """W2 回归：z 超出行程（默认 20mm）必须拒绝——笔轴超程会压穿纸面。"""
-    result = validate_path([{"x": 5, "y": 5, "z": 25}])
+    """W2 回归：z 超出行程（产品默认 80mm）必须拒绝——笔轴超程会压穿纸面。"""
+    result = validate_path([{"x": 5, "y": 5, "z": 85}])
     assert result["ok"] is False
     assert any("z out of workspace" in e for e in result["errors"]), result
 

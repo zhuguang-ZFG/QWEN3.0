@@ -8,13 +8,15 @@ from typing import Any
 # Single source of truth with path_data / path_validator (was 128 vs 200 split).
 from device_gateway.path_data import MAX_PATH_POINTS
 
+# Product writing-machine canvas (U8, 300x300x80) — single source of truth lives
+# in device_intelligence.schemas; import instead of duplicating. Unknown devices
+# without a profile use this for path generation; incomplete routing still uses
+# CONSERVATIVE_WORKSPACE_MM in profiles.py (60mm) for policy hints only.
+from device_intelligence.schemas import DEFAULT_WORKSPACE_MM
+
 MAX_POINTS = MAX_PATH_POINTS
 MAX_FEED = 1200
 DEFAULT_FEED = 900
-# Product writing-machine canvas (U8). Unknown devices without profile use this
-# for path generation; incomplete routing still uses CONSERVATIVE_WORKSPACE_MM
-# in profiles.py (60mm) for policy hints only.
-DEFAULT_WORKSPACE_MM = {"x": 300.0, "y": 300.0, "z": 80.0}
 
 
 class SafetyError(ValueError):

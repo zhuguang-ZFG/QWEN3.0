@@ -19,7 +19,6 @@ from __future__ import annotations
 
 from typing import Any  # used by workspace_mm / profile kwargs
 
-import html
 import math
 
 from device_gateway.path_data import (
@@ -31,6 +30,11 @@ from device_gateway.path_data import (
 )
 from device_gateway.path_decimate import decimate_to_max_points
 from device_gateway.path_optimizer import PathOptimizer, apply_multi_pass
+from device_gateway.path_preview import (
+    path_bounds_with_margin as _path_bounds_with_margin,
+    motion_path_to_svg_d as _motion_path_to_svg_d,
+    preview_svg,  # noqa: F401  re-export imported by device_write_handler
+)
 from device_gateway.path_workspace import resolve_workspace_mm
 from device_gateway.svg_parser import svg_path_to_motion
 
@@ -73,38 +77,6 @@ def text_to_path(
         cursor_x += FONT_CHAR_W * scale
     path = decimate_to_max_points(path, max_points)
     return clamp_path(path)
-
-
-def _motion_path_to_svg_d(path: list[dict[str, float]]) -> str:
-    if not path:
-        return ""
-    parts: list[str] = []
-    prev_pt: dict[str, float] | None = None
-    pending_move = True
-    for pt in path:
-        # Pen-up = z > 0 (safe-height travel) or legacy consecutive duplicates.
-        is_duplicate = prev_pt is not None and pt["x"] == prev_pt["x"] and pt["y"] == prev_pt["y"]
-        if float(pt.get("z", 0.0)) > 0:
-            parts.append(f"M {pt['x']},{pt['y']}")
-            pending_move = False
-            prev_pt = pt
-            continue
-        if is_duplicate:
-            pending_move = True
-            continue
-        cmd = "M" if pending_move else "L"
-        parts.append(f"{cmd} {pt['x']},{pt['y']}")
-        pending_move = False
-        prev_pt = pt
-    return " ".join(parts)
-
-
-def _path_bounds_with_margin(path: list[dict[str, float]], margin: float = 2.0) -> tuple[int, int]:
-    if not path:
-        return int(margin * 2), int(margin * 2)
-    xs = [pt["x"] for pt in path]
-    ys = [pt["y"] for pt in path]
-    return max(int(max(xs) + margin), 1), max(int(max(ys) + margin), 1)
 
 
 def text_to_svg_path(
@@ -274,27 +246,3 @@ def precheck_draw_motion_path(
         if not (0 <= x <= max_x and 0 <= y <= max_y and 0 <= z <= max_z):
             return f"motion point {idx} ({x},{y},{z}) outside workspace {max_x}x{max_y}mm"
     return None
-
-
-def preview_svg(
-    path: list[dict[str, float]],
-    width: float = 200,
-    height: float = 200,
-    *,
-    title: str = "motion preview",
-) -> str:
-    """Generate a standalone SVG preview of a motion path."""
-    if not path:
-        return (
-            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">'
-            f'<text x="10" y="20" font-size="12">(empty path)</text></svg>'
-        )
-
-    d_string = _motion_path_to_svg_d(path)
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">'
-        f'<rect width="{width}" height="{height}" fill="#fafafa" stroke="#ccc"/>'
-        f'<path d="{d_string}" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round"/>'
-        f'<text x="5" y="{height - 5}" font-size="10" fill="#888">{html.escape(title)} — {len(path)} pts</text>'
-        f"</svg>"
-    )
