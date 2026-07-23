@@ -9,10 +9,18 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 _ESP32_TOOLS = Path(__file__).resolve().parent.parent / "esp32S_XYZ" / "tools"
+
+# route_policy_validator lives in the esp32S_XYZ submodule, which may not be
+# checked out locally. Skip the whole module then (CI checks it out).
+if not (_ESP32_TOOLS / "fake_u1" / "route_policy_validator.py").is_file():
+    pytest.skip("esp32S_XYZ submodule not checked out", allow_module_level=True)
+
 sys.path.insert(0, str(_ESP32_TOOLS / "fake_u1"))
 
-from route_policy_validator import validate_route_policy_for_u1
+from route_policy_validator import validate_route_policy_for_u1  # noqa: E402
 
 
 def test_valid_device_write_policy_passes():
