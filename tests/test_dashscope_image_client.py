@@ -94,3 +94,35 @@ def test_get_task_result_pending(mock_response_success):
 
         assert result["status"] == "pending"
         assert len(result["images"]) == 0
+
+
+@pytest.fixture
+def mock_response_200_no_url():
+    """200 / SUCCEEDED 但 results 无可用 image URL。"""
+    mock = Mock()
+    mock.status_code = 200
+    mock.output = {"task_id": "task-123", "results": []}
+    return mock
+
+
+def test_generate_200_no_image_url_is_failed(mock_response_200_no_url):
+    """200 但无可下载图片 URL → failed，而不是 success。"""
+    with patch("dashscope_image_client.ImageSynthesis.call", return_value=mock_response_200_no_url):
+        client = DashScopeImageClient(api_key="test-key")
+        result = client.generate(prompt="a cat", model="wanx-v1")
+
+    assert result["status"] == "failed"
+    assert len(result["images"]) == 0
+    assert result["error"]
+
+
+def test_get_task_result_succeeded_no_image_url_is_failed(mock_response_200_no_url):
+    """task_status=SUCCEEDED 但无可下载图片 URL → failed，而不是 success。"""
+    mock_response_200_no_url.output["task_status"] = "SUCCEEDED"
+    with patch("dashscope_image_client.ImageSynthesis.fetch", return_value=mock_response_200_no_url):
+        client = DashScopeImageClient(api_key="test-key")
+        result = client.get_task_result(task_id="task-123")
+
+    assert result["status"] == "failed"
+    assert len(result["images"]) == 0
+    assert result["error"]

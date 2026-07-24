@@ -216,7 +216,7 @@ class TestHealthEndpoint:
             patch("device_gateway.store.task_store", mock_store),
         ):
             client = TestClient(app)
-            resp = client.get("/health")
+            resp = client.get("/health/ready")
 
         assert resp.status_code == 503
         data = resp.json()
@@ -241,7 +241,7 @@ class TestHealthEndpoint:
             patch("dlc_api.routes.REDIS", mock_redis),
         ):
             client = TestClient(app)
-            resp = client.get("/health")
+            resp = client.get("/health/ready")
 
         assert resp.status_code == 503
         data = resp.json()
@@ -285,7 +285,7 @@ class TestHealthEndpoint:
             patch.dict("os.environ", {"LIMA_DEVICE_TASK_STORE": "redis"}, clear=False),
         ):
             client = TestClient(app)
-            resp = client.get("/health")
+            resp = client.get("/health/ready")
 
         assert resp.status_code == 503
         assert resp.json()["status"] == "degraded"

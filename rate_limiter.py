@@ -85,11 +85,25 @@ def _check_keyed_redis(key: str, *, max_per_window: int, window: float) -> bool 
     Fixed calendar-bucket window (vs. the in-memory sliding window): a client
     can burst up to 2x limit across a bucket boundary. Accepted trade-off for
     a single INCR round-trip; the bucket key makes the divergence explicit.
+
+    When Redis is *configured* (use_redis_backend() True) but a transient error
+    makes the check fail, we return None so the caller falls back to the
+    in-memory limiter — still rate-limited, but only within this process. In a
+    multi-worker deployment that weakens the L2 device-auth brute-force limit
+    to per-worker scope, so the fallback is logged loudly at WARNING (not
+    silently downgraded). Unconfigured Redis (use_redis_backend() False or no
+    client) is the normal dev path and stays quiet.
     """
-    if not use_redis_backend():
+    configured = use_redis_backend()
+    if not configured:
         return None
     client = _get_redis_client()
     if client is None:
+        if configured:
+            _log.warning(
+                "keyed rate limit: Redis configured but unavailable (client init failed); "
+                "falling back to per-process memory, which weakens cross-worker enforcement"
+            )
         return None
     limit = max(1, max_per_window)
     bucket = int(time.time() // window)
@@ -104,7 +118,11 @@ def _check_keyed_redis(key: str, *, max_per_window: int, window: float) -> bool 
         count = int(pipe.execute()[0])
         return count <= limit
     except Exception as exc:
-        _log.warning("keyed rate limit Redis check failed: %s", type(exc).__name__)
+        _log.warning(
+            "keyed rate limit Redis check failed (%s); falling back to per-process memory, "
+            "which weakens cross-worker enforcement",
+            type(exc).__name__,
+        )
         return None
 
 
