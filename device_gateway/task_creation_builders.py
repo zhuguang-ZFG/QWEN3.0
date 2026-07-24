@@ -140,12 +140,15 @@ def _normalize_generated_path(
     return out, None
 
 
-def _clamp_params_to_profile(run_params: dict[str, Any], profile: Any) -> dict[str, Any]:
-    """Clamp feed / path length to profile limits before validation.
+def _clamp_params_to_profile(run_params: dict[str, Any], profile: Any) -> dict[str, Any] | str:
+    """Clamp feed to profile limit before validation; reject over-long paths.
 
-    Feed and point-count overruns are clamped (matching the downstream
-    apply_profile_constraints semantics); only workspace violations should
-    hard-reject in profile_limit_error.
+    Feed overruns are clamped (matches apply_profile_constraints semantics — the
+    device cap is a safety ceiling, lowering it is harmless). A path exceeding
+    profile.max_path_points is *not* silently tail-truncated: truncating a
+    precomputed motion path mid-stroke yields a partial drawing (pen left down
+    at an arbitrary point) reported as success, which is lossier than refusing
+    the task. Return an error string instead so the caller builds a failed task.
     """
     if profile is None:
         return run_params
@@ -155,7 +158,10 @@ def _clamp_params_to_profile(run_params: dict[str, Any], profile: Any) -> dict[s
         clamped["feed"] = profile.max_feed
     path = clamped.get("path")
     if isinstance(path, list) and len(path) > profile.max_path_points:
-        clamped["path"] = path[: profile.max_path_points]
+        return (
+            f"path has {len(path)} points, exceeds profile limit {profile.max_path_points}; "
+            "reject rather than truncate mid-stroke"
+        )
     return clamped
 
 
@@ -169,7 +175,22 @@ async def _validate_params_or_error(
     profile: Any = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Validate sanitized params or return an error task."""
-    run_params = _clamp_params_to_profile(run_params, profile)
+    clamp_result = _clamp_params_to_profile(run_params, profile)
+    if isinstance(clamp_result, str):
+        # Profile clamp rejected (e.g. precomputed path over profile point limit):
+        # surface as a validation failure rather than silently truncating.
+        return None, _build_error_task(
+            device_id,
+            voice_task,
+            request_id,
+            route_policy,
+            capability,
+            "profile_path_too_long",
+            f"validation failed: {clamp_result}",
+            "failed",
+            "validation_failed",
+        )
+    run_params = clamp_result
     sanitized, error = deps.validate_capability_params(capability, run_params, profile=profile)
     if error:
         return None, _build_error_task(

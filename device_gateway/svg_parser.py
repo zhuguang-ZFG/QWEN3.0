@@ -71,50 +71,59 @@ def _parse_float_args(tokens: list[str], start: int, count: int) -> list[float] 
 
 
 def _handle_ml(
-    tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
-) -> tuple[int, float, float, float, float]:
-    rel = cmd == "m"
+    tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list,
+    *, is_first: bool,
+) -> tuple[int, float, float, bool, tuple[float, float] | None]:
+    """Consume one (x, y) group for M/m/L/l. Returns (new_i, new_cx, new_cy, consumed, first).
+
+    consumed=False means no group was parsed (end-of-tokens or non-numeric); the
+    caller stops looping and lets the outer loop treat the next token as a new
+    command. first is set only on the *first* moveto group (M/m) so a multi-group
+    moveto (`M x1 y1 x2 y2`) treats subsequent groups as implicit lineto.
+    """
+    rel = cmd in ("m", "l")
     if i + 1 >= len(tokens):
-        return len(tokens), cx, cy, cx if rel else 0.0, cy if rel else 0.0
+        return i, cx, cy, False, None
     x = _safe_float(tokens[i])
     y = _safe_float(tokens[i + 1])
     if x is None or y is None:
-        return len(tokens), cx, cy, cx if rel else 0.0, cy if rel else 0.0
+        return i, cx, cy, False, None
     x = x * scale + (cx if rel else 0)
     y = y * scale + (cy if rel else 0)
     i += 2
     path.append(_pt(ox, oy, x, y))
-    first_x = x if cmd == "M" or (cmd == "m" and not path[:-1]) else 0.0
-    first_y = y if cmd == "M" or (cmd == "m" and not path[:-1]) else 0.0
-    return i, x, y, first_x, first_y
+    first: tuple[float, float] | None = (x, y) if (cmd in ("M", "m") and is_first) else None
+    return i, x, y, True, first
 
 
 def _handle_hv(
     tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
-) -> tuple[int, float, float]:
+) -> tuple[int, float, float, bool]:
+    """Consume one scalar group for H/h/V/v. Returns (new_i, new_cx, new_cy, consumed)."""
     rel = cmd in ("h", "v")
     if i >= len(tokens):
-        return len(tokens), cx, cy
+        return i, cx, cy, False
     value = _safe_float(tokens[i])
     if value is None:
-        return len(tokens), cx, cy
+        return i, cx, cy, False
     if cmd in ("H", "h"):
         cx = value * scale + (cx if rel else 0)
     else:
         cy = value * scale + (cy if rel else 0)
     i += 1
     path.append(_pt(ox, oy, cx, cy))
-    return i, cx, cy
+    return i, cx, cy, True
 
 
 def _handle_cubic(
     tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
-) -> tuple[int, float, float]:
-    if i + 5 >= len(tokens):
-        return len(tokens), cx, cy
+) -> tuple[int, float, float, bool]:
+    """Consume one 6-arg cubic group for C/c. Returns (new_i, new_cx, new_cy, consumed)."""
+    if len(tokens) - i < 6:
+        return i, cx, cy, False
     coords = _parse_float_args(tokens, i, 6)
     if coords is None:
-        return len(tokens), cx, cy
+        return i, cx, cy, False
     x1, y1, x2, y2, x, y = coords
     i += 6
     if cmd == "c":
@@ -128,17 +137,18 @@ def _handle_cubic(
     for pt in _bezier_to_polyline(cx, cy, x1, y1, x2, y2, x, y, 8):
         cx, cy = pt
         path.append(_pt(ox, oy, cx, cy))
-    return i, cx, cy
+    return i, cx, cy, True
 
 
 def _handle_quad(
     tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
-) -> tuple[int, float, float]:
-    if i + 3 >= len(tokens):
-        return len(tokens), cx, cy
+) -> tuple[int, float, float, bool]:
+    """Consume one 4-arg quad group for Q/q. Returns (new_i, new_cx, new_cy, consumed)."""
+    if len(tokens) - i < 4:
+        return i, cx, cy, False
     coords = _parse_float_args(tokens, i, 4)
     if coords is None:
-        return len(tokens), cx, cy
+        return i, cx, cy, False
     x1, y1, x, y = coords
     i += 4
     if cmd == "q":
@@ -150,7 +160,7 @@ def _handle_quad(
     for pt in _bezier_to_polyline(cx, cy, x1, y1, x1, y1, x, y, 8):
         cx, cy = pt
         path.append(_pt(ox, oy, cx, cy))
-    return i, cx, cy
+    return i, cx, cy, True
 
 
 def svg_path_to_motion(
@@ -173,18 +183,60 @@ def svg_path_to_motion(
     while i < len(tokens):
         cmd = tokens[i]
         i += 1
-        if cmd in ("M", "m"):
-            i, cx, cy, first_x, first_y = _handle_ml(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
-        elif cmd in ("L", "l"):
-            i, cx, cy, _, _ = _handle_ml(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
+        if cmd in ("M", "m", "L", "l"):
+            # SVG allows one command letter followed by multiple coordinate
+            # groups (`L x1 y1 x2 y2 ...`); after a moveto's first group the
+            # rest are implicit linetos. Consume groups until a non-numeric
+            # token ends the run, then let the outer loop treat it as a new
+            # command letter.
+            is_moveto = cmd in ("M", "m")
+            group_idx = 0
+            while i < len(tokens):
+                if group_idx == 0:
+                    linear_cmd = cmd
+                elif is_moveto:
+                    # Subsequent groups after a moveto are implicit linetos,
+                    # preserving the original command's relativity.
+                    linear_cmd = "L" if cmd == "M" else "l"
+                else:
+                    linear_cmd = cmd
+                ni, ncx, ncy, consumed, first = _handle_ml(
+                    tokens, i, linear_cmd, cx, cy, scale, origin_x, origin_y, path, is_first=(group_idx == 0)
+                )
+                if not consumed:
+                    break
+                i, cx, cy = ni, ncx, ncy
+                if first is not None:
+                    first_x, first_y = first
+                group_idx += 1
         elif cmd in ("H", "h", "V", "v"):
-            i, cx, cy = _handle_hv(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
+            while i < len(tokens):
+                ni, ncx, ncy, consumed = _handle_hv(
+                    tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path
+                )
+                if not consumed:
+                    break
+                i, cx, cy = ni, ncx, ncy
         elif cmd in ("C", "c"):
-            i, cx, cy = _handle_cubic(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
+            while i < len(tokens):
+                ni, ncx, ncy, consumed = _handle_cubic(
+                    tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path
+                )
+                if not consumed:
+                    break
+                i, cx, cy = ni, ncx, ncy
         elif cmd in ("Q", "q"):
-            i, cx, cy = _handle_quad(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
+            while i < len(tokens):
+                ni, ncx, ncy, consumed = _handle_quad(
+                    tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path
+                )
+                if not consumed:
+                    break
+                i, cx, cy = ni, ncx, ncy
         elif cmd in ("Z", "z"):
             cx, cy = first_x, first_y
             path.append(_pt(origin_x, origin_y, cx, cy))
+        # Unknown token: leave i as-is at the next token (already advanced past
+        # the command letter) and let the loop re-evaluate it as a command.
 
     return clamp_path(path, max_points)

@@ -57,6 +57,15 @@ class DashScopeImageClient:
             for r in results:
                 if isinstance(r, dict) and "url" in r:
                     images.append({"url": r["url"]})
+            # 200 with no usable image URL is a failure, not a success — a caller
+            # trusting status=="success" must never receive zero images.
+            if not images:
+                return {
+                    "status": "failed",
+                    "images": [],
+                    "task_id": output.get("task_id", ""),
+                    "error": "API returned 200 but no image URL",
+                }
             return {
                 "status": "success",
                 "images": images,
@@ -95,6 +104,14 @@ class DashScopeImageClient:
                     for r in results:
                         if isinstance(r, dict) and "url" in r:
                             images.append({"url": r["url"]})
+                    # SUCCEEDED with no usable image URL is a failure, not success.
+                    if not images:
+                        return {
+                            "status": "failed",
+                            "images": [],
+                            "task_id": task_id,
+                            "error": "task SUCCEEDED but no image URL",
+                        }
                     return {
                         "status": "success",
                         "images": images,

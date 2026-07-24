@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from typing import Any
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
@@ -112,13 +113,24 @@ def _store_unhealthy(backend: str) -> bool:
 
 
 def _health_payload(*, ready: bool) -> dict[str, Any] | JSONResponse:
-    """Shared health body. ready=True also requires delivery reapers when production."""
+    """Shared health body.
+
+    Liveness (ready=False): process-up only. Dependency state is *reported* but
+    never causes 503 — a dependency outage must not trigger pod restarts, since
+    restarting the process cannot fix Redis and would produce a crash loop.
+
+    Readiness (ready=True): store must be healthy, and production also requires
+    delivery reapers. Dependency failures pull the pod out of rotation here.
+    """
     base = {"service": "dlc-drawing", "version": "0.4.0-p3"}
     backend = _task_store_backend()
     deps: dict[str, str] = {"task_store": backend, "delivery_reapers": _reaper_dep()}
+    if not ready:
+        # Liveness: report dependencies but never fail on them.
+        return {"status": "ok", **base, "dependencies": deps}
     if _store_unhealthy(backend):
         return _degraded(base, deps)
-    if ready and deps["delivery_reapers"] == "down":
+    if deps["delivery_reapers"] == "down":
         from runtime_env import is_production_runtime
 
         if is_production_runtime():
@@ -128,7 +140,7 @@ def _health_payload(*, ready: bool) -> dict[str, Any] | JSONResponse:
 
 @router.get("/health")
 async def health():
-    """Liveness: process up + store probe (reapers reported but not required)."""
+    """Liveness: process up only. Dependencies reported but never cause 503."""
     return _health_payload(ready=False)
 
 
@@ -201,9 +213,14 @@ async def dispatch_task_endpoint(
 
     # S10: dedupe replays — a repeated Idempotency-Key must not dispatch twice.
     idem_full_key = f"{caller_device_id}:{idempotency_key}" if idempotency_key else None
+    # CAD token: the compare-and-delete value that lets *this* request release only
+    # its own claim. request_id defaults to "" (schemas.py), so falling back to a
+    # per-request uuid keeps every claim unique — otherwise the store's "1" default
+    # makes CAD always match and silently drops the lost-lock protection.
+    idem_token = body.request_id or uuid4().hex
     if idem_full_key:
         try:
-            claimed = _claim_idempotency_key(idem_full_key, body.request_id)
+            claimed = _claim_idempotency_key(idem_full_key, idem_token)
         except IdempotencyUnavailableError:
             return JSONResponse(
                 status_code=503,
@@ -214,30 +231,35 @@ async def dispatch_task_endpoint(
 
     # P2-a: the idempotency key is claimed *before* the work runs, so any failure
     # (returned or raised) must release it — see _dispatch_and_release.
-    return await _dispatch_and_release(body, idem_full_key)
+    return await _dispatch_and_release(body, idem_full_key, idem_token)
 
 
-async def _dispatch_and_release(body: TaskDispatchRequest, idem_full_key: str | None) -> TaskDispatchResponse:
+async def _dispatch_and_release(
+    body: TaskDispatchRequest, idem_full_key: str | None, idem_token: str
+) -> TaskDispatchResponse:
     """Build the motion payload and dispatch it, releasing the idempotency key on
     any failure path (returned failure, unsupported type, raised exception, or a
     rejected dispatch) so the caller can retry with the same Idempotency-Key.
-    Only a dispatch that actually reached the device queue keeps the key."""
+    Only a dispatch that actually reached the device queue keeps the key.
+
+    idem_token is the compare-and-delete value paired with the claim; releases must
+    use the same token so only this request's claim is removed."""
     try:
         result, motion_task = await _build_dispatch_payload(body)
         if result.get("status") != "success":
             if idem_full_key:
-                _release_idempotency_key(idem_full_key, body.request_id)
+                _release_idempotency_key(idem_full_key, idem_token)
             return TaskDispatchResponse(status="failed", error=result.get("error"))
         if motion_task is None:
             if idem_full_key:
-                _release_idempotency_key(idem_full_key, body.request_id)
+                _release_idempotency_key(idem_full_key, idem_token)
             return TaskDispatchResponse(status="failed", error="unsupported type")
 
         dispatch_result = await dispatch_task(body.device_id, motion_task)
     except Exception:
         # Command never reached the device queue — release so the caller can retry.
         if idem_full_key:
-            _release_idempotency_key(idem_full_key, body.request_id)
+            _release_idempotency_key(idem_full_key, idem_token)
         raise
     # Keep claim for any accepted queue state (incl. honest no-delivery queue).
     # Keep claim for accepted delivery states (sent online push, queued, or offline hold).
@@ -246,7 +268,7 @@ async def _dispatch_and_release(body: TaskDispatchRequest, idem_full_key: str | 
         "queued",
         "queued_no_delivery",
     }:
-        _release_idempotency_key(idem_full_key, body.request_id)
+        _release_idempotency_key(idem_full_key, idem_token)
     return TaskDispatchResponse(
         status=dispatch_result["status"],
         task_id=dispatch_result.get("task_id"),

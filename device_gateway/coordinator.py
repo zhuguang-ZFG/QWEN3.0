@@ -134,22 +134,36 @@ class MultiDeviceCoordinator:
         return assignments
 
     def merge_results(self, device_results: list[dict[str, Any]]) -> dict[str, Any]:
-        """Summarize per-device outcomes.
+        """Summarize per-device outcomes with honest dispatch accounting.
 
-        Accepts both terminal statuses ("completed") and dispatch outcomes
-        ("dispatched" — task enqueued successfully); execute_coordinated feeds
-        dispatch results here, so counting only "completed" reported 0
-        successes for every real batch.
+        Each result is one of:
+          "completed" — terminal success (delivery confirmed).
+          "dispatched" — task enqueued to an online device; delivery is async and
+                        unconfirmed at summary time.
+          "failed" — build/validate/offline failure.
+
+        overall_status is "completed" only when every device reached "completed".
+        A batch where every device is "dispatched" reports "dispatched" (all
+        enqueued, none yet confirmed) — *not* "completed" — so the caller does
+        not mistake "enqueued" for "drawn". "partial" covers any mixed outcome.
         """
         total = len(device_results)
-        success = sum(1 for r in device_results if r.get("status") in ("completed", "dispatched"))
+        completed = sum(1 for r in device_results if r.get("status") == "completed")
+        dispatched = sum(1 for r in device_results if r.get("status") == "dispatched")
         failed = sum(1 for r in device_results if r.get("status") == "failed")
-        overall = "completed" if total > 0 and success == total else "partial"
         if total == 0:
             overall = "empty"
+        elif completed == total:
+            overall = "completed"
+        elif dispatched == total and completed == 0:
+            overall = "dispatched"
+        else:
+            overall = "partial"
         return {
             "total_devices": total,
-            "success_count": success,
+            "completed_count": completed,
+            "dispatched_count": dispatched,
+            "success_count": completed + dispatched,
             "failed_count": failed,
             "overall_status": overall,
         }

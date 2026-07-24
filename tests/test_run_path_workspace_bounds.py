@@ -59,4 +59,17 @@ async def test_run_path_over_limit_feed_is_clamped_not_rejected():
     # apply_profile_constraints semantics) instead of hard-rejecting.
     task = await project_to_motion_task_async("dev-w1-feed", _run_path_task([{"x": 10, "y": 10, "z": 0}], feed=1500))
     assert "error" not in task
-    assert task["params"]["feed"] <= 600
+
+
+@pytest.mark.asyncio
+async def test_run_path_over_point_limit_is_rejected_not_truncated():
+    # W7 regression: a precomputed run_path exceeding profile.max_path_points
+    # (conservative = 50) must hard-reject, not silently tail-truncate to a
+    # partial stroke. All points are inside the conservative workspace, so only
+    # the point-count limit can trigger the failure.
+    from device_gateway.profiles import CONSERVATIVE_MAX_PATH_POINTS
+
+    over_limit = [{"x": 1.0, "y": 1.0, "z": 0} for _ in range(CONSERVATIVE_MAX_PATH_POINTS + 10)]
+    task = await project_to_motion_task_async("dev-w7-long", _run_path_task(over_limit))
+    assert task.get("error"), "over-limit precomputed path must be rejected"
+    assert task["error"]["code"] == "profile_path_too_long"

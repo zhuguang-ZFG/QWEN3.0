@@ -84,6 +84,33 @@ def test_svg_path_to_motion_clamps_max_points():
     assert len(path) <= 50
 
 
+def test_svg_path_to_motion_multi_coord_lineto():
+    """L followed by multiple coordinate groups must consume all groups
+    (regression: the old loop dropped every group after the first)."""
+    path = svg_path_to_motion("M 0 0 L 10 10 20 20 30 30", origin_x=0, origin_y=100, scale=1)
+    assert len(path) == 4  # M + 3 lineto groups
+
+
+def test_svg_path_to_motion_moveto_implicit_lineto():
+    """After a moveto's first group, remaining groups are implicit linetos."""
+    path = svg_path_to_motion("M 0 0 10 10 20 20", origin_x=0, origin_y=100, scale=1)
+    assert len(path) == 3  # moveto + 2 implicit linetos
+
+
+def test_svg_path_to_motion_multi_coord_horizontal():
+    """H with multiple scalar groups consumes each as a separate point."""
+    path = svg_path_to_motion("M 0 0 H 10 20 30", origin_x=0, origin_y=100, scale=1)
+    assert len(path) == 4  # M + 3 horizontal moves
+
+
+def test_svg_path_to_motion_multi_coord_cubic():
+    """C with multiple 6-arg groups consumes each as a separate curve."""
+    path = svg_path_to_motion(
+        "M 0 0 C 1 1 2 2 10 10 1 1 2 2 20 20", origin_x=0, origin_y=100, scale=1
+    )
+    assert len(path) >= 16  # M + two 8-segment bezier polylines
+
+
 def test_preview_svg_generates_valid_svg():
     path = [{"x": 10, "y": 20, "z": 0}, {"x": 50, "y": 60, "z": 0}]
     svg = preview_svg(path, title="test path")
