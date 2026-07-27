@@ -24,7 +24,7 @@ redis~=8.0.1                 # 设备任务队列（RedisDeviceTaskStore）
 python-multipart>=0.0.32,<1.0  # FastAPI 文件上传（图库）
 
 # 运维指标（observability/prometheus_metrics.py）
-prometheus_client~=0.25.0
+prometheus_client~=0.26.0
 
 # MQTT 设备通信
 paho-mqtt~=2.1.0
