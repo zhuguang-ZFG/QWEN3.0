@@ -7,7 +7,7 @@
 # Web 框架
 fastapi>=0.139.0,<0.139.1
 starlette>=1.3.1             # transitive via fastapi; CVE-2026-54282/54283
-uvicorn[standard]~=0.50.0
+uvicorn[standard]~=0.52.0
 
 # HTTP 客户端（设备通信 + 小程序 HTTP 路径调用 dlc_api）
 httpx~=0.28.0
