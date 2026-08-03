@@ -20,7 +20,7 @@ paramiko~=5.0.0
 cryptography>=49.0.0         # transitive via paramiko
 
 # 数据层
-redis~=8.0.1                 # 设备任务队列（RedisDeviceTaskStore）
+redis~=8.1.0                 # 设备任务队列（RedisDeviceTaskStore）
 python-multipart>=0.0.32,<1.0  # FastAPI 文件上传（图库）
 
 # 运维指标（observability/prometheus_metrics.py）
