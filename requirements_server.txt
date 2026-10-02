@@ -30,7 +30,7 @@ prometheus_client~=0.25.0
 paho-mqtt~=2.1.0
 
 # 设备鉴权（device_logic/auth.py JWT + bcrypt）
-PyJWT~=2.13.0
+PyJWT~=2.15.0
 bcrypt~=5.0.0
 
 # 绘画引擎（dlc_core 路径生成 + 图像矢量化）
